@@ -2156,6 +2156,116 @@ def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     return retval
 
 
+def ctn_check_service_status_in_resources(host_id: int, service_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT status FROM resources WHERE parent_id={host_id} AND id={service_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['status']
+                    logger.console(f"status of service {host_id}:{service_id} is {state}")
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_service_status_in_services(host_id: int, service_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT state FROM services WHERE host_id={host_id} AND service_id={service_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                logger.console(result)
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['state']
+                    logger.console(f"status of service {host_id}:{service_id} is {state}")
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_host_status_in_resources(host_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT status FROM resources WHERE parent_id=0 AND id={host_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['status']
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
+
+def ctn_check_host_status_in_hosts(host_id: int, expected: int, timeout: int = 30):
+    limit = time.time() + timeout
+    retval = False
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                query = f"SELECT state FROM hosts WHERE host_id={host_id}"
+                logger.console(query)
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    # insert a duplicate value at the mid of the day
+                    state = row['state']
+                    if int(state) == int(expected):
+                        retval = True
+                        break
+        time.sleep(1)
+    return retval
+
 def ctn_add_duplicate_metrics(metric_ids):
     """
     Add a value at the middle of the last day of each metric in the provided list.

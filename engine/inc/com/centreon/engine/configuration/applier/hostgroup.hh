@@ -18,7 +18,6 @@
  */
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
-
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
 
@@ -35,12 +34,12 @@ class hostgroup {
   ~hostgroup() noexcept = default;
   hostgroup& operator=(hostgroup const& right) = delete;
   void add_object(const configuration::Hostgroup& obj);
-  void expand_objects(configuration::State& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
-  void remove_object(ssize_t idx);
+  void remove_object(const std::string& key);
   void resolve_object(const configuration::Hostgroup& obj, error_cnt& err);
 };
+
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration
 

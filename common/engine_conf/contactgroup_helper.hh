@@ -20,7 +20,6 @@
 #define CCE_CONFIGURATION_CONTACTGROUP
 
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::engine::configuration {
 
@@ -36,7 +35,7 @@ class contactgroup_helper : public message_helper {
       configuration::Contactgroup& obj,
       absl::flat_hash_set<std::string_view>& resolved,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
           m_contactgroups);
 
  public:
@@ -48,7 +47,7 @@ class contactgroup_helper : public message_helper {
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,
-      absl::flat_hash_map<std::string, configuration::Contactgroup*>&
+      const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
           m_contactgroups);
 };
 }  // namespace com::centreon::engine::configuration

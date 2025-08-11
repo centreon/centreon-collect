@@ -21,6 +21,7 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using com::centreon::exceptions::msg_fmt;
+using google::protobuf::util::MessageDifferencer;
 
 namespace com::centreon::engine::configuration {
 

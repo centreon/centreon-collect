@@ -29,6 +29,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
+#include "com/centreon/engine/globals.hh"
 
 namespace multi_index = boost::multi_index;
 
@@ -95,7 +96,8 @@ class agent_to_engine_test : public TestEngine {
     service::services.clear();
     service::services_by_id.clear();
 
-    init_config_state();
+    std::unique_ptr<configuration::state_helper> state_hlp =
+        init_config_state();
 
     configuration::applier::connector conn_aply;
     configuration::Connector cnn;
@@ -115,7 +117,7 @@ class agent_to_engine_test : public TestEngine {
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(pb_config);
+    state_hlp->expand(err);
     ct_aply.resolve_object(ctct, err);
 
     configuration::Host hst =
@@ -361,7 +363,7 @@ TEST_F(
     ~cred_eraser() { ::credentials_decrypt.reset(); }
   };
 
-  pb_config.set_credentials_encryption(true);
+  pb_indexed_config.mut_state().set_credentials_encryption(true);
 
   cred_eraser eraser;
 

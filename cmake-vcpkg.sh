@@ -205,6 +205,7 @@ elif [ -r /etc/issue ] ; then
       g++
       gcc
       curl
+      git
       libcurl4-openssl-dev
       libgcrypt20-dev
       libgnutls28-dev
@@ -214,13 +215,16 @@ elif [ -r /etc/issue ] ; then
       librrd-dev
       libssh2-1-dev
       libssl-dev
+      mold
       ninja-build
       pkg-config
       python3
       python3-pip
+      sccache
       zip
       zlib1g-dev
     )
+    apt update
     for i in "${pkgs[@]}"; do
       if ! $dpkg -l $i | grep "^ii" ; then
         if [[ "$my_id" == 0 ]] ; then

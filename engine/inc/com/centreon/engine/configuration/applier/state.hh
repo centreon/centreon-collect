@@ -18,9 +18,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_STATE_HH
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
-#include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/servicedependency.hh"
+#include "common/engine_conf/indexed_state.hh"
 
 namespace com::centreon::engine {
 
@@ -45,6 +44,11 @@ namespace applier {
  *  Simple configuration applier for state class.
  */
 class state {
+  void _apply_diff_conf(
+      DiffState& diff,
+      absl::FixedArray<std::chrono::system_clock::time_point, 5>* tv,
+      error_cnt& err);
+
  public:
   void apply(configuration::State& new_cfg,
              error_cnt& err,
@@ -55,9 +59,9 @@ class state {
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
-  std::unordered_map<std::string, std::string>& user_macros();
-  std::unordered_map<std::string, std::string>::const_iterator user_macros_find(
-      std::string const& key) const;
+  absl::flat_hash_map<std::string, std::string>& user_macros();
+  absl::flat_hash_map<std::string, std::string>::const_iterator
+  user_macros_find(const std::string_view& key) const;
   void lock();
   void unlock();
 
@@ -84,28 +88,85 @@ class state {
 
   state& operator=(state const&);
   void _apply(const configuration::State& new_cfg, error_cnt& err);
-  template <typename ConfigurationType, typename Key, typename ApplierType>
-  void _apply(const pb_difference<ConfigurationType, Key>& diff,
-              error_cnt& err);
+  template <typename Applier,
+            typename DiffType,
+            typename KeyType,
+            typename ObjType,
+            typename ProtoKeyType>
+  void _apply_ng(
+      const DiffType& diff,
+      absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+      std::function<KeyType(const ObjType&)>&& build_key,
+      std::function<KeyType(const ProtoKeyType&)>&& convert_key) {
+    Applier aplyr;
+
+    // Modify objects.
+    for (auto& m : diff.modified()) {
+      KeyType key = build_key(m);
+      auto* current_obj = current_list.at(key).get();
+      aplyr.modify_object(current_obj, m);
+    }
+
+    // Erase objects.
+    for (auto& key : diff.removed()) {
+      aplyr.remove_object(convert_key(key));
+    }
+
+    // Add objects.
+    for (auto& obj : diff.added()) {
+      aplyr.add_object(obj);
+    }
+  }
+
+  template <typename Applier,
+            typename DiffType,
+            typename KeyType,
+            typename ObjType>
+  void _apply_ng(
+      const DiffType& diff,
+      absl::flat_hash_map<KeyType, std::unique_ptr<ObjType>>& current_list,
+      std::function<KeyType(const ObjType&)>&& build_key) {
+    Applier aplyr;
+
+    // Modify objects.
+    for (auto& m : diff.modified()) {
+      KeyType key = build_key(m);
+      auto* current_obj = current_list.at(key).get();
+      aplyr.modify_object(current_obj, m);
+    }
+
+    // Erase objects.
+    for (auto& key : diff.removed()) {
+      aplyr.remove_object(key);
+    }
+
+    // Add objects.
+    for (auto& obj : diff.added()) {
+      aplyr.add_object(obj);
+    }
+  }
   void _apply(configuration::State& new_cfg,
               retention::state& state,
               error_cnt& err);
-  template <typename ConfigurationType, typename ApplierType>
-  void _expand(configuration::State& new_state, error_cnt& err);
   void _processing(configuration::State& new_cfg,
                    error_cnt& err,
                    retention::state* state = nullptr);
-  template <typename ConfigurationType, typename ApplierType>
+  void _processing_diff(configuration::DiffState& diff_conf,
+                        error_cnt& err,
+                        retention::state* state = nullptr);
+  template <typename ConfigurationType, typename KeyType, typename ApplierType>
   void _resolve(
-      const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg,
+      const absl::flat_hash_map<KeyType, std::unique_ptr<ConfigurationType>>&
+          cfg,
       error_cnt& err);
 
   std::mutex _apply_lock;
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;
-  std::unordered_map<std::string, std::string> _user_macros;
+  absl::flat_hash_map<std::string, std::string> _user_macros;
 };
+
 }  // namespace applier
 }  // namespace configuration
 

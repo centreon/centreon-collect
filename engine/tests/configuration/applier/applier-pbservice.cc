@@ -27,14 +27,7 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/tag.hh"
-#include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
-#include "common/engine_conf/command_helper.hh"
-#include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/message_helper.hh"
-#include "common/engine_conf/tag_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -43,8 +36,11 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
 class ApplierService : public TestEngine {
+ protected:
+  std::unique_ptr<configuration::state_helper> _state_hlp;
+
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { _state_hlp = init_config_state(); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -150,8 +146,10 @@ TEST_F(ApplierService, PbRenameServiceFromConfig) {
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_config.mutable_services(0), svc);
-  svc_aply.expand_objects(pb_config);
+  svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
+                         svc);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
 
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 1u);
@@ -200,7 +198,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfig) {
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
-  svc_aply.remove_object(0);
+  svc_aply.remove_object({1, 3});
   ASSERT_EQ(engine::service::services_by_id.size(), 0u);
 
   svc.set_service_description("test_description2");
@@ -435,8 +433,10 @@ TEST_F(ApplierService, PbStalkingOptionsWhenServiceIsModified) {
   ASSERT_TRUE(serv->get_notify_on(engine::service::unknown));
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_config.mutable_services(0), svc);
-  svc_aply.expand_objects(pb_config);
+  svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
+                         svc);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
 
   ASSERT_EQ(sm.size(), 1u);
   ASSERT_EQ(sm.begin()->first.first, 1u);
@@ -577,8 +577,10 @@ TEST_F(ApplierService, PbRenameServiceFromConfigTags) {
   svc_aply.add_object(svc);
 
   svc.set_service_description("test_description2");
-  svc_aply.modify_object(pb_config.mutable_services(0), svc);
-  svc_aply.expand_objects(pb_config);
+  svc_aply.modify_object(pb_indexed_config.mut_services().at({1, 3}).get(),
+                         svc);
+  configuration::error_cnt err;
+  _state_hlp->expand(err);
 
   const service_id_map& sm = engine::service::services_by_id;
   ASSERT_EQ(sm.size(), 1u);
@@ -646,7 +648,7 @@ TEST_F(ApplierService, PbRemoveServiceFromConfigTags) {
   svc_aply.add_object(svc);
 
   ASSERT_EQ(engine::service::services_by_id.size(), 1u);
-  svc_aply.remove_object(0);
+  svc_aply.remove_object({1, 3});
   ASSERT_EQ(engine::service::services_by_id.size(), 0u);
 
   svc.set_service_description("test_description2");

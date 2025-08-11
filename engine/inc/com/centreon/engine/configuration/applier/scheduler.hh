@@ -18,8 +18,6 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
-#include "com/centreon/engine/configuration/applier/difference.hh"
-#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "common/engine_conf/state.pb.h"
 
@@ -38,13 +36,7 @@ namespace configuration::applier {
  */
 class scheduler {
  public:
-  void apply(configuration::State& config,
-             const pb_difference<configuration::Host, uint64_t>& diff_hosts,
-             const pb_difference<configuration::Service,
-                                 std::pair<uint64_t, uint64_t> >& diff_services,
-             const pb_difference<configuration::Anomalydetection,
-                                 std::pair<uint64_t, uint64_t> >&
-                 diff_anomalydetections);
+  void apply(configuration::State& config, const DiffState& diff);
   static scheduler& instance();
   void clear();
   void remove_host(uint64_t host_id);
@@ -92,11 +84,9 @@ class scheduler {
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;
   timed_event* _evt_orphan_check;
-  timed_event* _evt_reschedule_checks;
   timed_event* _evt_retention_save;
   timed_event* _evt_sfreshness_check;
   timed_event* _evt_status_save;
-  unsigned int _old_auto_rescheduling_interval;
   unsigned int _old_check_reaper_interval;
   int _old_command_check_interval;
   unsigned int _old_host_freshness_check_interval;

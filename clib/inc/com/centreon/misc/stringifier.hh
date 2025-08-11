@@ -46,6 +46,7 @@ class stringifier {
   stringifier& operator<<(long long ll) throw();
   stringifier& operator<<(long l) throw();
   stringifier& operator<<(std::string const& str) throw();
+  stringifier& operator<<(const std::string_view& str) noexcept;
   stringifier& operator<<(stringifier const& str) throw();
   stringifier& operator<<(unsigned int u) throw();
   stringifier& operator<<(unsigned long long ull) throw();

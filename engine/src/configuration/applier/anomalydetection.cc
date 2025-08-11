@@ -17,12 +17,10 @@
  *
  */
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
@@ -52,8 +50,9 @@ void applier::anomalydetection::add_object(
                       obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
-  auto* cfg_obj = pb_config.add_anomalydetections();
-  cfg_obj->CopyFrom(obj);
+  pb_indexed_config.mut_anomalydetections().emplace(
+      std::make_pair(obj.host_id(), obj.service_id()),
+      std::make_unique<Anomalydetection>(obj));
 
   // Create anomalydetection.
   engine::anomalydetection* ad{add_anomalydetection(
@@ -99,7 +98,7 @@ void applier::anomalydetection::add_object(
                                       obj.service_description()}]
       ->set_service_id(obj.service_id());
   ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                  pb_config.interval_length());
+                                  pb_indexed_config.state().interval_length());
   ad->set_last_acknowledgement(0);
 
   // Add contacts.
@@ -126,28 +125,6 @@ void applier::anomalydetection::add_object(
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, ad,
                                MODATTR_ALL);
-}
-
-/**
- *  Expand a anomalydetection object.
- *
- *  @param[in,out] s  State being applied.
- */
-void applier::anomalydetection::expand_objects(configuration::State& s) {
-  std::list<std::unique_ptr<Service> > expanded;
-  // Let's consider all the macros defined in s.
-  absl::flat_hash_set<std::string_view> cvs;
-  for (auto& cv : s.macros_filter().data())
-    cvs.emplace(cv);
-
-  // Browse all anomalydetections.
-  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
-    // Should custom variables be sent to broker ?
-    for (auto& cv : *ad_cfg.mutable_customvariables()) {
-      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
-        cv.set_is_sent(true);
-    }
-  }
 }
 
 /**
@@ -275,7 +252,7 @@ void applier::anomalydetection::modify_object(
   s->set_host_id(new_obj.host_id());
   s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 pb_config.interval_length());
+                                 pb_indexed_config.state().interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
 
   // Contacts.
@@ -331,8 +308,9 @@ void applier::anomalydetection::modify_object(
                                MODATTR_ALL);
 }
 
-void applier::anomalydetection::remove_object(ssize_t idx) {
-  Anomalydetection& obj = pb_config.mutable_anomalydetections()->at(idx);
+void applier::anomalydetection::remove_object(
+    const std::pair<uint64_t, uint64_t>& key) {
+  Anomalydetection& obj = *pb_indexed_config.mut_anomalydetections().at(key);
   const std::string& host_name(obj.host_name());
   const std::string& service_description(obj.service_description());
 
@@ -374,7 +352,7 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
   }
 
   // Remove anomalydetection from the global configuration set.
-  pb_config.mutable_anomalydetections()->DeleteSubrange(idx, 1);
+  pb_indexed_config.mut_anomalydetections().erase(key);
 }
 
 /**

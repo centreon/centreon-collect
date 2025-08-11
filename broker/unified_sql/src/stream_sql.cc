@@ -1805,8 +1805,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(
       _logger_sql,
-      "unified_sql: processing pb host event (poller: {}, host: {}, name: {})",
-      h.instance_id(), h.host_id(), h.name());
+      "unified_sql: processing pb host event (poller: {}, host: {}, name: {}, state: {})",
+      h.instance_id(), h.host_id(), h.name(), h.state());
 
   auto cache_ptr = cache::global_cache::instance_ptr();
 
@@ -2264,8 +2264,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
-                      "<<{}>> - last_check: {}",
-                      hscr.host_id(), hscr.output(), hscr.last_check());
+                      "<<{}>> - last_check: {} - state: {}",
+                      hscr.host_id(), hscr.output(), hscr.last_check(), hscr.state());
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified_sql: pb host status check result perfdata: <<{}>>",
       hscr.perfdata());

@@ -99,7 +99,8 @@ int neb_load_all_modules() {
   try {
     loader& ldr(loader::instance());
 
-    const std::string& mod_dir = pb_config.broker_module_directory();
+    const std::string& mod_dir =
+        pb_indexed_config.state().broker_module_directory();
     if (!mod_dir.empty())
       ldr.load_directory(mod_dir);
 
