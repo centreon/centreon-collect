@@ -117,6 +117,12 @@ BEUS
     ${output}    Ctn Check Host Status In Resources    ${host_id}    ${0}
     Should Be True    ${output}    Host ${host_id} should be UP
     ${output}    Ctn Check Service Status In Services    ${host_id}    ${service_id}    ${0}
+
+    # We display the content of /tmp/states
+    Log To Console    We display the content of /tmp/states
+    ${content}    Get File    /tmp/states
+    Log To Console    ${content}
+
     Should Be True    ${output}    Service ${host_id}:${service_id} should be OK
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
