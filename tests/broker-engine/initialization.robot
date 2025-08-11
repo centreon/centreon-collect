@@ -123,6 +123,11 @@ BEUS
     ${content}    Get File    /tmp/states
     Log To Console    ${content}
 
+    # We display the content of services.cfg
+    Log To Console    We display the content of /tmp/etc/centreon-engine/config0/services.cfg
+    ${content}    Get File    /tmp/etc/centreon-engine/config0/services.cfg
+    Log To Console    ${content}
+
     Should Be True    ${output}    Service ${host_id}:${service_id} should be OK
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
