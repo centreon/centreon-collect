@@ -68,9 +68,12 @@ BEUS
     ${cmd_id}    Ctn Get Service Command Id    ${service_id}
     Ctn Set Command Status    ${cmd_id}    0
 
+    Ctn Schedule Forced Service Check    host_${host_id}    service_${service_id}
+
     # We check service host_id:service_id in resources
     Log To Console    We check service ${host_id}:${service_id} in resources
     ${output}    Query    SELECT internal_id,type,status,status_ordered,in_downtime,acknowledged,status_confirmed,check_attempts,max_check_attempts,poller_id,severity_id, name, alias, address,parent_name, icon_id, notes_url, notes, action_url, has_graph, notifications_enabled, passive_checks_enabled, active_checks_enabled, last_check_type, last_check, output, enabled, flapping, percent_state_change FROM resources WHERE id=${service_id} AND parent_id=${host_id}
+    Log To Console    Service in resources table: ${output}
     Should Be Equal    "${output}"    "((None, 0, 4, 1, 0, 0, 1, 1, 3, 1, None, 'service_${service_id}', None, None, 'host_${host_id}', 0, '', '', '', 0, 1, 1, 1, 0, None, None, 1, 0, 0.0),)"    Service ${host_id}:${service_id} not as expected in resources table (first step)
 
     # We check host host_id in resources
