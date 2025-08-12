@@ -30,9 +30,9 @@ NO_ENGINE_ENCRYPTION
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-    ${content}    Create List    read from stdout: clear_mac raw::raw_mac encrypt::encrypt_mac
+    ${content}    Create List    clear_mac raw::raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    "echo output not found in logs.
+    Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
     
 ENGINE_ENCRYPTION_BAD_CONF
     [Documentation]    Given an engine with configured encryption, but without key and salt, 
@@ -60,9 +60,9 @@ ENGINE_ENCRYPTION_BAD_CONF
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    error message not found in logs
 
-    ${content}    Create List    read from stdout: clear_mac raw_mac encrypt::encrypt_mac
+    ${content}    Create List    clear_mac raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    echo output not found in logs.
+    Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
     
 
 ENGINE_ENCRYPTION_GOOD_CONF
@@ -102,9 +102,9 @@ ENGINE_ENCRYPTION_GOOD_CONF
     Sleep    1s
     Remove File    /etc/centreon-engine/engine-context.json
     
-    ${content}    Create List    read from stdout: clear_mac raw_mac The content to encode
+    ${content}    Create List   clear_mac raw_mac The content to encode
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    echo output not found in logs.
+    Should Be True    ${result}    "clear_mac raw_mac The content to encode" not found in logs.
 
 
 BROKER_LUA_ENCRYPTION
