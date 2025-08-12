@@ -16,8 +16,11 @@
 # For more information : contact@centreon.com
 #
 
+<<<<<<< HEAD
 param($compile_ut="On")
 
+=======
+>>>>>>> 24.10.x
 <#
 .SYNOPSIS
 add builtin revision to vcpkg.json
@@ -115,7 +118,11 @@ else {
 
 Write-Host "create CMake files with cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=$compile_ut -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -Bbuild_windows"
 
+<<<<<<< HEAD
 cmake -DCMAKE_BUILD_TYPE=Release "-DWITH_TESTING=$compile_ut" -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
+=======
+cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
+>>>>>>> 24.10.x
 
 #Write-Host "------------- vcpkg used compiler ---------------"
 #Get-Content "build_windows\vcpkg_installed\vcpkg\compiler-file-hash-cache.json"

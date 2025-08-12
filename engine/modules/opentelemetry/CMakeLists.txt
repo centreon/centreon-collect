@@ -89,7 +89,11 @@ target_link_libraries(
   opentelemetry_base
   PRIVATE spdlog::spdlog pb_open_telemetry_lib protobuf::libprotobuf Boost::url
           Boost::program_options)
+<<<<<<< HEAD
 add_dependencies(opentelemetry_base process_stat engine_rpc)
+=======
+add_dependencies(opentelemetry_base process_stat)
+>>>>>>> 24.10.x
 
 # mod_externalcmd target.
 add_library(opentelemetry SHARED ${SRC_DIR}/main.cc)

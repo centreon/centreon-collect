@@ -346,7 +346,11 @@ Query: $query
     unless ($options{no_error_log}) {
         $self->{logger}->writeLogError($error);
     }
+<<<<<<< HEAD
     if ($self->{in_transaction} == 1) {
+=======
+    if ($self->{transaction_begin} == 1) {
+>>>>>>> 24.10.x
         $self->rollback();
     }
     $self->disconnect();

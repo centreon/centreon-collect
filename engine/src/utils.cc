@@ -421,6 +421,7 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling && !verify_config) {
     checks::checker::deinit();
+<<<<<<< HEAD
     /* Before stopping, we stop all the connectors that are not already finished. */
     for (auto& c : commands::connector::connectors)
       c.second->stop_connector();
@@ -428,6 +429,11 @@ void cleanup() {
     /* Before stopping, we destroy all the running checks that are not already finished. */
     com::centreon::engine::commands::command::commands.clear();
 
+=======
+    for (auto& c : commands::connector::connectors)
+      c.second->stop_connector();
+
+>>>>>>> 24.10.x
     neb_free_callback_list();
     neb_unload_all_modules(NEBMODULE_FORCE_UNLOAD, sigshutdown
                                                        ? NEBMODULE_NEB_SHUTDOWN
