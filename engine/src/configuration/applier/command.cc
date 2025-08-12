@@ -23,7 +23,6 @@
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"

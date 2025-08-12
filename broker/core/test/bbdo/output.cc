@@ -23,14 +23,10 @@
 #include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::misc;
 using com::centreon::common::log_v2::log_v2;
 
 class into_memory : public io::stream {
