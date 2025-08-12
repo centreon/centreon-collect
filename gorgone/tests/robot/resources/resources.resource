@@ -153,6 +153,7 @@ Check Poller Communicate
     Log To Console    checking Gorgone see poller in rest api response...
     FOR    ${i}    IN RANGE    25
         Sleep    5
+        ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
         IF    not ${response.json()}[data]
