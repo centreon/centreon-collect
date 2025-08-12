@@ -197,10 +197,7 @@ TEST(otl_grpc_config, tokencompare) {
   ASSERT_EQ(c2.compare(c2_minos), 1);
   ASSERT_EQ(c2.compare(c2_plus), -1);
 }
-<<<<<<< HEAD
 
-=======
->>>>>>> 24.10.x
 //  test all allow encryption values
 //  full, insecure, no, true, false
 TEST(otl_grpc_config, encryption_value) {
