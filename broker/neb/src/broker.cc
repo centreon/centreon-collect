@@ -229,6 +229,8 @@ void broker_module_init(void const* arg) {
                        &neb::pb_otl_metrics::operations, "otl_metrics");
       e.register_event(neb::pb_agent_stats::static_type(), "AgentStats",
                        &neb::pb_agent_stats::operations, "agent_information");
+      e.register_event(neb::pb_global_diff_state::static_type(), "DiffState",
+                       &neb::pb_global_diff_state::operations, "diff_state");
     }
   }
 }

@@ -161,6 +161,14 @@ Ctn Kindly Stop Broker
             ELSE
                 Log To Console    We don't check RRD duplicates here (bbdo2 or explicitly asked)
             END
+
+	    # We check negative metric_id
+	    ${result}    Grep File    ${centralLog}    unified_sql: the 'metrics' table contains rows with metric_id <= 0
+	    IF    len("""${result}""") > 0
+                Log To Console    The central logs contain errors about metrics with negative IDs.
+                Ctn Save Logs
+                Remove File    ${centralLog}
+	    END
         END
     END
 
@@ -217,13 +225,13 @@ Ctn Start Engine
             Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}/current-conf.prot    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         ELSE
-            Start Process    /usr/sbin/centengine    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+            Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
         END
     END
 
-Ctn Start Engine With Extend Conf
+Ctn Start Engine With Extended Conf
     ${count}    Ctn Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
@@ -274,18 +282,17 @@ Ctn Stop Engine
         Send Signal To Process    SIGTERM    e${idx}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}    Catenate    SEPARATOR=    e    ${idx}
-        ${result}    Wait For Process    ${alias}    timeout=60s
+        ${result}    Wait For Process    e${idx}    timeout=60s
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
-            Ctn Dump Process    ${alias}    /usr/sbin/centengine    ${name}
-            Send Signal To Process    SIGKILL    ${alias}
+            Ctn Dump Process    e${idx}    /usr/sbin/centengine    ${name}
+            Send Signal To Process    SIGKILL    e${idx}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
-                Ctn Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
+                Ctn Coredump Info    e${idx}    /usr/sbin/centengine    e${idx}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0

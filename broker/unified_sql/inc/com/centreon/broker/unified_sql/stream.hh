@@ -266,10 +266,11 @@ class stream : public io::stream {
       _metric_cache;
   misc::shared_mutex _metric_cache_m;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
+      _severities_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resources_cache;
 
   mutable absl::Mutex _timer_m;
   /* This is a barrier for timers. It must be locked in shared mode in the

@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2025 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ std::unique_ptr<configuration::state_helper> init_config_state() {
   pb_indexed_config.set_state(std::move(new_state));
 
   if (!cbm)
-    cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>();
+    cbm = std::make_unique<com::centreon::broker::neb::cbmod_test>("");
 
   configuration::state_helper cfg_hlp(&pb_indexed_config.mut_state());
   pb_indexed_config.mut_state().set_log_file_line(true);
