@@ -461,13 +461,14 @@ sub check {
 
         if (defined($synctime_nodes->{$_}->{total_msg}) &&
             time() - $synctime_nodes->{$_}->{in_progress_time} > $synctimeout_option) {
+            $options{logger}->writeLogInfo("[proxy] Getlog max timeout reached for '" . $_ . "'");
             gorgone::standard::library::add_history({
                 dbh => $options{dbh},
                 code => GORGONE_ACTION_FINISH_KO,
                 data => { message => "proxy - getlog in timeout for '$_'" },
                 json_encode => 1
             });
-            # created when querying for node logs, in routing() with GETLOG event.
+            # this property created when querying for node logs, in routing() with GETLOG event.
             # if the query is in timeout, delete everything to be ready for the next query.
             delete($synctime_nodes->{$_}->{total_msg});
             $synctime_nodes->{$_}->{got_msg} = 0

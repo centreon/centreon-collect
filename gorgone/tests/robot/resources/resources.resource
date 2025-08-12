@@ -107,7 +107,6 @@ Setup Gorgone Config
     [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=
     Gorgone Execute Sql    ${sql_file}
     Create Directory    /var/log/centreon-gorgone/${gorgone_name}/
-    Remove Files    /var/log/centreon-gorgone/${gorgone_name}/config.d/*
     Copy File    ${CURDIR}${/}..${/}config${/}includer.yaml    /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
     FOR    ${file}    IN    @{file_list}
