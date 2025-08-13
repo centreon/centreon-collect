@@ -112,6 +112,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      # Install Inno Setup (ISCC) and expose its path
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
+
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
         shell: powershell
@@ -149,7 +155,7 @@ jobs:
 
       - name: Build modifier
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_MODIFIER=On  -Bbuild_windows
+          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=OFF -DWITH_BUILD_AGENT_MODIFIER=On  -Bbuild_windows
           cmake --build build_windows --config Release
 
       - name: Sign modifier

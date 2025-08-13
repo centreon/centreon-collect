@@ -40,9 +40,10 @@ set(OUTPUT_BASE_FILENAME_MODIFIER "centreon-monitoring-agent-modify")
 # Path to Inno Setup Compiler
 set(ISCC_EXECUTABLE "C:/Program Files (x86)/Inno Setup 6/ISCC.exe")
 
-# Download plugins
+if (WITH_BUILD_AGENT_INSTALLER)
 
-# Define GitHub URL
+# Download plugins
+## Define GitHub URL
 set(PLUGINS_RELEASE_URL "https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest")
 set(RELEASE_JSON "${CMAKE_CURRENT_BINARY_DIR}/plugins_release.json")
 file(DOWNLOAD "${PLUGINS_RELEASE_URL}" "${RELEASE_JSON}"
@@ -94,9 +95,6 @@ else()
     set(PLUGIN_VERSION "")
 endif()
 
-
-
-
 # Download the centreon_plugins.exe
 set(PLUGIN_DOWNLOAD_PATH "${CMAKE_CURRENT_BINARY_DIR}/centreon_plugins.exe")
 file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
@@ -107,14 +105,14 @@ file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
 if(EXISTS "${PLUGIN_DOWNLOAD_PATH}")
   file(SIZE "${PLUGIN_DOWNLOAD_PATH}" PLUGIN_SIZE)
 endif()
-
-
 # installer .iss file from .in template
 configure_file(
   ${PROJECT_SOURCE_DIR}/installer.iss.in
   ${PROJECT_SOURCE_DIR}/installer_configured.iss
   @ONLY
 )
+endif()
+
 # modifier .iss file from .in template
 configure_file(
   ${PROJECT_SOURCE_DIR}/modifier.iss.in
@@ -123,33 +121,33 @@ configure_file(
 )
 
 
-
 # Inno Setup command
 # Add a custom target to build the  modifier/installer
 # Modifier build
-add_custom_command(
-  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
-  DEPENDS "${PROJECT_SOURCE_DIR}/modifier_configured.iss" ${CENTREON_AGENT}
-  COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/modifier_configured.iss
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  COMMENT "Building modifier using Inno Setup"
-  VERBATIM
-)
-add_custom_target("centreon-monitoring-agent-modifier" ALL
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
-)
+# ----- Modifier (standalone) -----
+if (WITH_BUILD_AGENT_MODIFIER OR WITH_BUILD_AGENT_INSTALLER)
+  add_custom_command(
+    OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+    DEPENDS "${PROJECT_SOURCE_DIR}/modifier_configured.iss" ${CENTREON_AGENT}
+    COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/modifier_configured.iss
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMENT "Building modifier using Inno Setup"
+    VERBATIM)
+  add_custom_target(centreon-monitoring-agent-modifier ALL
+    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe")
+endif()
 
-# Installer build (depends on modifier output file)
-add_custom_command(
-  OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
-  DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
-  COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/installer_configured.iss
-  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  COMMENT "Building installer using Inno Setup"
-  VERBATIM
-)
-if(WITH_BUILD_AGENT_INSTALLER)
-  add_custom_target("centreon-monitoring-agent-installer" ALL
-    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
-  )
+# ----- Installer (only if enabled) -----
+if (WITH_BUILD_AGENT_INSTALLER )
+  add_custom_command(
+    OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
+    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
+    COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/installer_configured.iss
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    COMMENT "Building installer using Inno Setup"
+    VERBATIM)
+  add_custom_target(centreon-monitoring-agent-installer ALL
+    DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe")
+  add_dependencies(centreon-monitoring-agent-installer
+                   centreon-monitoring-agent-modifier)
 endif()
