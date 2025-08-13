@@ -299,7 +299,7 @@ sub transmit_back {
                 my $message = $msg_header . encode_json($msg_recv);
                 $self->send_message(message => $message);
             } else {
-                $self->{logger}->writeLogDebug("[pullwss]  [$token] getlog message included "
+                $self->{logger}->writeLogDebug("[pullwss] [$token] getlog message included "
                     . scalar(@{$logs}) . " logs, splitting into $nb_msg messages, last log is " . $size . " character long");
 
                 # let's send each message. @msg_to_send contains a list of payload (logs) to send.

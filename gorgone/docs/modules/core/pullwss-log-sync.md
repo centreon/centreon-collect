@@ -1,5 +1,5 @@
 
-## Gorgone log syncronization with pullwss communcation mode.
+## Gorgone log synchronization with pullwss communication mode.
 
 
 each box represent a process running. Each participant represent a file used by the process.\

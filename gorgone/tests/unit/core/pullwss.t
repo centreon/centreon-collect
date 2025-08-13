@@ -14,7 +14,7 @@ sub test_transmit_back{
     my $logger = centreon::common::logger->new();
     my $gorgone = gorgone::modules::core::pullwss::class->new(logger => $logger);
     $gorgone->{logger} = $logger;
-    # this configuration dictate how many log peer message will be sent, but it's compatbilising only the "data" field.
+    # this configuration dictates how many log peer messages will be sent, but it's compatibilizing only the "data" field.
     # changing this value will change the number of message sent to the remote node.
     $gorgone->{config}->{max_msg_size} = 970;
     is($gorgone, check_isa('gorgone::modules::core::pullwss::class'), 'new object created');

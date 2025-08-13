@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       check gorgone can send many log, even over the pullwss message size limit.
+Documentation       check gorgone can send many logs, even over the pullwss message size limit.
 # Check every communication_mode although only pullwss had a problem.
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
