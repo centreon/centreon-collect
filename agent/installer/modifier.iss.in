@@ -48,6 +48,18 @@ Source: {#InfoIcon};   Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
 [Code]
+{ ────────────────────────────────────────────────────────────────────── }
+{ ──────────────────────────── Dll ───────────────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+
+function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
+  external 'GetComputerNameW@kernel32.dll stdcall';
+
+function InternetCheckConnectionW(lpszUrl: string; dwFlags: DWORD; dwReserved: DWORD): BOOL;
+  external 'InternetCheckConnectionW@wininet.dll stdcall';
+
+procedure ExitProcess(uExitCode: UINT);
+  external 'ExitProcess@kernel32.dll stdcall';
 
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────── Global Variables and Widgets ─────────────────── }
@@ -275,6 +287,30 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+procedure LogToStdOutFile(Msg: String);
+var
+  LogFile: String;
+  LogLine: String;
+begin
+  LogFile := AddBackslash(ExtractFileDir(ExpandConstant('{srcexe}'))) +
+             'installer_output.log';
+  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
+  // Append log line to file, fail silently if error
+  SaveStringToFile(LogFile, LogLine, True);
+end;
+
+function CmdLineParamExists(Param: string): Boolean;
+var
+  I: Integer;
+begin
+  for I := 1 to ParamCount do
+    if CompareText(ParamStr(I), Param) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  Result := False;
+end;
 
 function IsPathValid(Path: string): Boolean;
 var
@@ -292,7 +328,7 @@ begin
     for I := 3 to Length(Path) do
     begin
       case Path[I] of
-        '0'..'9', 'A'..'Z', '\', ' ', '.', '-', '(', ')':
+        '0'..'9', 'A'..'Z', '\', ' ', '.', '-', '_', '(', ')':
           else 
         begin
           Result := False;
@@ -357,9 +393,6 @@ begin
     Exit;
   end;
 end;
-
-function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
-  external 'GetComputerNameW@kernel32.dll stdcall';
 
 function GetWindowsHostName: String;
 var
@@ -468,30 +501,6 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Silent Mode ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
-procedure LogToStdOutFile(Msg: String);
-var
-  LogFile: String;
-  LogLine: String;
-begin
-  LogFile := ExpandConstant('{log}\installer_output.log');
-  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
-  // Append log line to file, fail silently if error
-  SaveStringToFile(LogFile, LogLine, True);
-end;
-
-function CmdLineParamExists(Param: string): Boolean;
-var
-  I: Integer;
-begin
-  for I := 1 to ParamCount do
-    if CompareText(ParamStr(I), Param) = 0 then
-    begin
-      Result := True;
-      Exit;
-    end;
-  Result := False;
-end;
-
 function IsSilentMode: Boolean;
 begin
   Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
@@ -501,32 +510,67 @@ procedure LoadSilentParameters;
 begin
   if not IsSilentMode then Exit;
 
-  HostNameEdit.Text := ExpandConstant('{param:host|}');
-  PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
+  // Only set if param is not empty
+  if ExpandConstant('{param:host|}') <> '' then
+    HostNameEdit.Text := ExpandConstant('{param:host|}');
+  if ExpandConstant('{param:endpoint|}') <> '' then
+    PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
 
-  if LowerCase(ExpandConstant('{param:logtype|event-log}')) = 'file' then
-    LogTypeComboBox.ItemIndex := 1
-  else
-    LogTypeComboBox.ItemIndex := 0;
+  // Log type (ComboBox)
+  if ExpandConstant('{param:logtype|}') <> '' then
+  begin
+    if LowerCase(ExpandConstant('{param:logtype|}')) = 'file' then
+      LogTypeComboBox.ItemIndex := 1
+    else if LowerCase(ExpandConstant('{param:logtype|}')) = 'event-log' then
+      LogTypeComboBox.ItemIndex := 0;
+  end;
 
-  LogLeveLComboBox.Text := ExpandConstant('{param:loglevel|}');
-  LogFileEdit.Text := ExpandConstant('{param:logfile|}');
-  MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|10}');
-  MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|3}');
-  PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
+  // Log level (ComboBox)
+  if ExpandConstant('{param:loglevel|}') <> '' then
+  begin
+    case LowerCase(ExpandConstant('{param:loglevel|}')) of
+      'off':      LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Off');
+      'critical': LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Critical');
+      'error':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Error');
+      'warning':  LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Warning');
+      'info':     LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Info');
+      'debug':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Debug');
+      'trace':    LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Trace');
+    end;
+  end;
 
-  EncryptionCheckBox.Checked := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
-  PublicCertEdit.Text := ExpandConstant('{param:cert|}');
-  PrivateKeyEdit.Text := ExpandConstant('{param:key|}');
-  CaEdit.Text := ExpandConstant('{param:ca|}');
-  CommonNameEdit.Text := ExpandConstant('{param:commonname|}');
-  TokenEdit.Text := ExpandConstant('{param:token|}');
+  if ExpandConstant('{param:logfile|}') <> '' then
+    LogFileEdit.Text := ExpandConstant('{param:logfile|}');
+  if ExpandConstant('{param:maxfilesize|}') <> '' then
+    MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|}');
+  if ExpandConstant('{param:maxnumber|}') <> '' then
+    MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|}');
+
+  // PollerInitiatedCheckBox
+  if ExpandConstant('{param:reverse|}') <> '' then
+    PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|}')) = 'true');
+
+  // EncryptionCheckBox
+  if ExpandConstant('{param:encryption|}') <> '' then
+    EncryptionCheckBox.Checked := (LowerCase(ExpandConstant('{param:encryption|}')) = 'true');
+
+  if ExpandConstant('{param:cert|}') <> '' then
+    PublicCertEdit.Text := ExpandConstant('{param:cert|}');
+  if ExpandConstant('{param:key|}') <> '' then
+    PrivateKeyEdit.Text := ExpandConstant('{param:key|}');
+  if ExpandConstant('{param:ca|}') <> '' then
+    CaEdit.Text := ExpandConstant('{param:ca|}');
+  if ExpandConstant('{param:commonname|}') <> '' then
+    CommonNameEdit.Text := ExpandConstant('{param:commonname|}');
+  if ExpandConstant('{param:token|}') <> '' then
+    TokenEdit.Text := ExpandConstant('{param:token|}');
 end;
 
 function CheckSilentParameterValidity: Boolean;
 var
-  HostParam, EndpointParam, LogTypeParam, LogFileParam: string;
-  EncryptionEnabled: Boolean;
+  HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
+  Pluginsrc_p: string;
+  EncryptionEnabled,PollerInitiatedEnabled: Boolean;
 begin
   if not IsSilentMode then
   begin
@@ -539,6 +583,7 @@ begin
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
   LogFileParam := ExpandConstant('{param:logfile|}');
   EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
+  PollerInitiatedEnabled := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
 
   // HOST
   if HostParam = '' then
@@ -559,7 +604,7 @@ begin
   // if logtype = file → log file mandatory
   if LogTypeParam = 'file' then
   begin
-    if LogFileParam = '' then
+    if  (LogFileParam = '') or not(IsPathValid(LogFileParam)) then
     begin
       LogToStdOutFile('Missing /LOGFILE when /LOGTYPE=file');
       Result := False;
@@ -567,29 +612,55 @@ begin
     end;
   end;
 
+  // check log level 
+  Loglvl := LowerCase(ExpandConstant('{param:loglevel|error}'));
+  if (Loglvl <> 'off') and (Loglvl <> 'critical') and (Loglvl <> 'error') and (Loglvl <> 'warning') and (Loglvl <> 'info') and (Loglvl <> 'debug') and (Loglvl <> 'trace') then
+  begin
+    LogToStdOutFile('Invalid /LOGLEVEL value. Allowed values: off|critical|error|warning|info|debug|trace');
+    Result := False;
+    Exit;
+  end;
+
   // if encryption test cert key token
   if EncryptionEnabled then
   begin
-    if ExpandConstant('{param:cert|}') = '' then
-    begin
-      LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
-      Result := False;
-      Exit;
-    end;
+    if PollerInitiatedEnabled then begin
+      if (ExpandConstant('{param:cert|}') = '') or not(IsPathValid(ExpandConstant('{param:cert|}'))) then
+      begin
+        LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
+        Result := False;
+        Exit;
+      end;
 
-    if ExpandConstant('{param:key|}') = '' then
-    begin
-      LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
-      Result := False;
-      Exit;
+      if (ExpandConstant('{param:key|}') = '') or not(IsPathValid(ExpandConstant('{param:key|}'))) then
+      begin
+        LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+        Result := False;
+        Exit;
+      end;
+     end
+    else begin
+      if not(ExpandConstant('{param:ca|}') = '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
+        begin
+          LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+          Result := False;
+          Exit;
+        end;
     end;
-
+     
     if ExpandConstant('{param:token|}') = '' then
     begin
       LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=true');
       Result := False;
       Exit;
     end;
+  end;
+
+  Pluginsrc_p := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
+  if (Pluginsrc_p <> 'auto') and (Pluginsrc_p <> 'embedded') then begin
+    LogToStdOutFile('Invalid /PLUGINSRC value. Use auto|embedded.');
+    Result := False;
+    Exit;
   end;
 
   // all good
@@ -603,6 +674,9 @@ function InitializeSetup(): Boolean;
 begin
   // ── Silent mode
   Result := CheckSilentParameterValidity;
+
+  if not Result then
+  ExitProcess(1)  
 end;
 
 procedure InitializeWizard;
@@ -763,7 +837,7 @@ begin
   LogLeveLComboBox.Items.Add('Info');
   LogLeveLComboBox.Items.Add('Debug');
   LogLeveLComboBox.Items.Add('Trace');
-  LogLeveLComboBox.ItemIndex := 5;
+  LogLeveLComboBox.ItemIndex := 2;
 
   // ──── Log file
 
@@ -1102,6 +1176,7 @@ begin
 
   ReadAgentRegistryValues;
   LoadSilentParameters;
+
 
 end;
 

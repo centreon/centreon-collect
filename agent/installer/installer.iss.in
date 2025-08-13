@@ -375,7 +375,7 @@ begin
     for I := 3 to Length(Path) do
     begin
       case Path[I] of
-        '0'..'9', 'A'..'Z', '\', ' ', '.', '-', '(', ')':
+        '0'..'9', 'A'..'Z', '\', ' ', '.', '-', '_', '(', ')':
           else 
         begin
           Result := False;
@@ -725,7 +725,7 @@ begin
   // if logtype = file → log file mandatory
   if LogTypeParam = 'file' then
   begin
-    if LogFileParam = '' then
+    if (LogFileParam = '') or not(IsPathValid(LogFileParam)) then
     begin
       LogToStdOutFile('Missing /LOGFILE when /LOGTYPE=file');
       Result := False;
@@ -742,32 +742,25 @@ begin
     Exit;
   end;
 
-  if (LogTypeComboBox.Text = 'File') and not(IsPathValid(LogFileParam)) then 
-    begin
-      LogToStdOutFile('Invalid log file path. Please enter a valid absolute path (e.g. C:\logs\agent.log).', mbError, MB_OK);
-      Result := False;
-      exit;
-  end;
-
   // if encryption test cert key token
   if EncryptionEnabled then
   begin
     if PollerInitiatedEnabled then begin
-      if ExpandConstant('{param:cert|}') = '' or not(IsPathValid(ExpandConstant('{param:cert|}'))) then
+      if (ExpandConstant('{param:cert|}') = '') or not(IsPathValid(ExpandConstant('{param:cert|}'))) then
       begin
         LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
         Result := False;
         Exit;
       end;
 
-      if ExpandConstant('{param:key|}') = '' not(IsPathValid(ExpandConstant('{param:key|}'))) then
+      if (ExpandConstant('{param:key|}') = '') or not(IsPathValid(ExpandConstant('{param:key|}'))) then
       begin
         LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
         Result := False;
         Exit;
       end;
      end
-    else
+    else begin
       if not(ExpandConstant('{param:ca|}') = '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
         begin
           LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
