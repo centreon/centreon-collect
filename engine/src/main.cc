@@ -30,6 +30,7 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>
 

@@ -24,7 +24,6 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-#include <sys/wait.h>
 #include <boost/process/v2/stdio.hpp>
 
 #include "com/centreon/common/process/process.hh"

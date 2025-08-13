@@ -22,7 +22,6 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "common/engine_conf/state_helper.hh"
 
 namespace com::centreon::broker {
 namespace multiplexing {
