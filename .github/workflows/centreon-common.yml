@@ -19,7 +19,6 @@ on:
     paths:
       - "packaging/centreon-common/**"
       - "selinux/centreon-common/**"
-      - ".github/workflows/centreon-common.yml"
 
 jobs:
   get-environment:
