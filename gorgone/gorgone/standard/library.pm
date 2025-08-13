@@ -497,7 +497,7 @@ sub getlog {
     my %filters = ();
     my ($filter, $filter_append) = ('', '');
     my @bind_values = ();
-    foreach ((['id', '>'], ['token', '='], ['ctime', '>'], ['etime', '>'], ['code', '='])) {
+    foreach ((['id', '>'], ['token', '='], ['code', '='])) {
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . $_->[0] . ' ' . $_->[1] . ' ?';
             $filter_append = ' AND ';
