@@ -91,7 +91,7 @@ Type: filesandordirs; Name: "{app}\Plugins";Components: plugins;
 
 [Code]
 { ────────────────────────────────────────────────────────────────────── }
-{ ──────────────────────────── Dll ───────────────────────────────────── }
+{ ──────────────────────────── DLL ───────────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 
 function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
@@ -104,7 +104,7 @@ procedure ExitProcess(uExitCode: UINT);
   external 'ExitProcess@kernel32.dll stdcall';
 
 { ────────────────────────────────────────────────────────────────────── }
-{ ───────────────────── Global Variables and Widgets ─────────────────── }
+{ ───────────────────── Global Variables and Wizard ─────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 var
 // ─────────────────────────────────────────────
@@ -334,6 +334,7 @@ end;
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 
+// Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
 procedure LogToStdOutFile(Msg: String);
 var
   LogFile: String;
@@ -346,6 +347,9 @@ begin
   SaveStringToFile(LogFile, LogLine, True);
 end;
 
+// Checks if a specific command line parameter exists.
+// Param: The parameter string to search for.
+// Returns: True if the parameter is found among the command line arguments; otherwise, False.
 function CmdLineParamExists(Param: string): Boolean;
 var
   I: Integer;
@@ -359,6 +363,8 @@ begin
   Result := False;
 end;
 
+// Checks if the given path string is a valid Windows absolute path.
+// Returns True if the path matches the expected format and contains only allowed characters.
 function IsPathValid(Path: string): Boolean;
 var
   I: Integer;
@@ -386,6 +392,8 @@ begin
   end;
 end;
 
+// Checks if the input string is in "host:port" format and validates host and port characters.
+// Displays error messages and hints if the format or values are invalid.
 function IsValidHostPortFormat(S: String): Boolean;
 var
   Host, Port: String;
@@ -441,6 +449,8 @@ begin
   end;
 end;
 
+// Retrieves the current Windows computer name as a string.
+// Returns an empty string if the computer name cannot be obtained.
 function GetWindowsHostName: String;
 var
   buf: String;
@@ -454,6 +464,11 @@ begin
     Result := '';
 end;
 
+// Reads Centreon Monitoring Agent configuration values from the Windows registry and populates the installer UI fields accordingly.
+// For each expected registry value under 'SOFTWARE\Centreon\CentreonMonitoringAgent', attempts to read the value:
+//   - If found, sets the corresponding UI control (edit box, combo box, or checkbox) with the value.
+//   - If not found for 'host', uses the current Windows host name as a fallback.
+// Handles both string and DWORD registry values, converting as needed for UI controls.
 procedure ReadAgentRegistryValues;
 var
   RootKey: Integer;
@@ -509,6 +524,9 @@ begin
     PollerInitiatedCheckBox.Checked := (DwordValue <> 0);
 end;
 
+// Writes Centreon Monitoring Agent configuration values to the Windows registry.
+// This procedure sets string and DWORD values under the key 'SOFTWARE\Centreon\CentreonMonitoringAgent' in HKEY_LOCAL_MACHINE.
+// The values are retrieved from various UI controls, including host, endpoint, log settings, certificates, and agent options.
 procedure WriteAgentRegistryValues;
 var
   RootKey: Integer;
@@ -537,6 +555,14 @@ begin
 end;
 
 
+// Returns the position of the first occurrence of the substring SubStr within the string S,
+// starting the search at the specified Offset (1-based index). If SubStr is not found, returns 0.
+// Parameters:
+//   SubStr - The substring to search for.
+//   S      - The string to search within.
+//   Offset - The position in S to start searching from (1-based).
+// Returns:
+//   Integer - The position of SubStr in S, or 0 if not found.
 function PosEx(const SubStr, S: string; Offset: Integer): Integer;
 var
   i: Integer; L: Integer;
@@ -552,6 +578,9 @@ begin
     end;
 end;
 
+// Performs an HTTP GET request to the specified URL using WinHttp.
+// Returns the response body and HTTP status code via output parameters.
+// Returns True if the request succeeds with a 2xx status code, otherwise False.
 
 function HttpGet(const Url: string; out Body: string; out Status: Integer): Boolean;
 var
@@ -586,6 +615,10 @@ begin
   end;
  end;
 
+// Retrieves the browser download URL for a specific asset from a JSON API response.
+// Makes an HTTP GET request to the given ApiUrl and searches for AssetName.
+// Returns the download URL if found, otherwise returns an empty string.
+// Logs an error if the HTTP request fails.
 function GetBrowserDownloadURL(const ApiUrl, AssetName: string): string;
 var
   Json: string;
@@ -617,6 +650,10 @@ begin
   end;
 end;
 
+// Extracts the version string from a given URL.
+// Searches for the substring between 'download/' and '/centreon_plugins.exe'.
+// Returns the extracted version or an empty string if not found.
+// Assumes the URL follows a specific format for Centreon plugin downloads.
 function ExtractVersionFromURL(const Url: string): string;
 var
   p1, p2: Integer;
@@ -632,6 +669,10 @@ begin
   end;
 end;
 
+// Determines whether the embedded plugin should be installed.
+// Returns True if the plugin source is 'embedded', or if no URL is provided,
+// or if the plugin version matches the embedded version.
+// Used to control plugin installation logic during setup.
 function ShouldInstallEmbeddedPlugin: Boolean;
 begin
   // Only install embedded version if no URL or same version
@@ -649,6 +690,10 @@ begin
   Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
 end;
 
+// Loads installer parameters in silent mode from command-line arguments.
+// Populates UI fields with provided or default values.
+// Handles log type, log level, encryption, and certificate settings.
+// Only executes if installer is running in silent mode.
 procedure LoadSilentParameters;
 begin
   if not IsSilentMode then Exit;
@@ -687,6 +732,10 @@ begin
   PluginSrc := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
 end;
 
+// Checks validity of silent installation parameters.
+// Validates required fields, formats, and values for host, endpoint, logging, encryption, and plugin source.
+// Logs errors to standard output and returns False if any check fails.
+// Returns True if all parameters are valid.
 function CheckSilentParameterValidity: Boolean;
 var
   HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
@@ -791,6 +840,8 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Start Wizard ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+// Initializes the setup process, handles silent mode and version display.
+// Returns True if silent parameters are valid, otherwise exits with error.
 function InitializeSetup(): Boolean;
 begin
   PluginSrc := 'auto';
@@ -806,6 +857,7 @@ begin
   ExitProcess(1)  
 end;
 
+// Initializes the Centreon Agent installer wizard, configuring custom pages and UI elements for agent setup.
 procedure InitializeWizard;
 var
 Infobmp: String;
@@ -1312,6 +1364,10 @@ begin
 
 end;
 
+// Determines whether a wizard page should be skipped based on its PageID.
+// Skips Config and Encryption pages if 'agent' component is not selected.
+// Skips Download page if 'plugins' component is not selected.
+// Returns True to skip the page, False otherwise.
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
   if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
@@ -1322,6 +1378,12 @@ begin
     Result := False;
 end;
 { ────────────────────────────────────────────────────────────────────── }
+{ ──────────────────────────── Handler Wizard ────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+// Handles the logic for the Next button click event in the installer wizard.
+// Validates user input and required fields for each wizard page.
+// Displays error messages and prevents continuation on invalid input.
+// Manages plugin download and registry updates as needed.
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Error: String;
@@ -1472,6 +1534,10 @@ begin
     Result := True;
 end;
 
+// Handles actions after installation step completes.
+// Sets registry values to enable the Modify button and specify the modify executable.
+// Keeps the Repair option hidden in the Windows Uninstall dialog.
+// Targets the application's uninstall registry key.
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Key: string;

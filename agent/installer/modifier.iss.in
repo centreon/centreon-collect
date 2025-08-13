@@ -287,6 +287,7 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+// Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
 procedure LogToStdOutFile(Msg: String);
 var
   LogFile: String;
@@ -299,6 +300,9 @@ begin
   SaveStringToFile(LogFile, LogLine, True);
 end;
 
+// Checks if a specific command line parameter exists.
+// Param: The parameter string to search for.
+// Returns: True if the parameter is found among the command line arguments; otherwise, False.
 function CmdLineParamExists(Param: string): Boolean;
 var
   I: Integer;
@@ -312,6 +316,8 @@ begin
   Result := False;
 end;
 
+// Checks if the given path string is a valid Windows absolute path.
+// Returns True if the path matches the expected format and contains only allowed characters.
 function IsPathValid(Path: string): Boolean;
 var
   I: Integer;
@@ -339,6 +345,8 @@ begin
   end;
 end;
 
+// Checks if the input string is in "host:port" format and validates host and port characters.
+// Displays error messages and hints if the format or values are invalid.
 function IsValidHostPortFormat(S: String): Boolean;
 var
   Host, Port: String;
@@ -394,6 +402,8 @@ begin
   end;
 end;
 
+// Retrieves the current Windows computer name as a string.
+// Returns an empty string if the computer name cannot be obtained.
 function GetWindowsHostName: String;
 var
   buf: String;
@@ -407,6 +417,11 @@ begin
     Result := '';
 end;
 
+// Reads Centreon Monitoring Agent configuration values from the Windows registry and populates the installer UI fields accordingly.
+// For each expected registry value under 'SOFTWARE\Centreon\CentreonMonitoringAgent', attempts to read the value:
+//   - If found, sets the corresponding UI control (edit box, combo box, or checkbox) with the value.
+//   - If not found for 'host', uses the current Windows host name as a fallback.
+// Handles both string and DWORD registry values, converting as needed for UI controls.
 procedure ReadAgentRegistryValues;
 var
   RootKey: Integer;
@@ -462,6 +477,9 @@ begin
     PollerInitiatedCheckBox.Checked := (DwordValue <> 0);
 end;
 
+// Writes Centreon Monitoring Agent configuration values to the Windows registry.
+// This procedure sets string and DWORD values under the key 'SOFTWARE\Centreon\CentreonMonitoringAgent' in HKEY_LOCAL_MACHINE.
+// The values are retrieved from various UI controls, including host, endpoint, log settings, certificates, and agent options.
 procedure WriteAgentRegistryValues;
 var
   RootKey: Integer;
@@ -489,6 +507,10 @@ begin
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
 end;
 
+// Restarts the CentreonMonitoringAgent service by stopping and then starting it.
+// Uses 'sc.exe' to control the service and waits for each operation to complete.
+// Includes a short delay between stop and start for graceful handling.
+// Returns nothing; errors are not explicitly handled.
 procedure RestartService;
 var rc: Integer;
 begin
@@ -506,6 +528,10 @@ begin
   Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
 end;
 
+// Loads installer parameters in silent mode from command-line arguments.
+// Populates UI fields with provided or default values.
+// Handles log type, log level, encryption, and certificate settings.
+// Only executes if installer is running in silent mode.
 procedure LoadSilentParameters;
 begin
   if not IsSilentMode then Exit;
@@ -566,6 +592,10 @@ begin
     TokenEdit.Text := ExpandConstant('{param:token|}');
 end;
 
+// Checks validity of silent installation parameters.
+// Validates required fields, formats, and values for host, endpoint, logging, encryption, and plugin source.
+// Logs errors to standard output and returns False if any check fails.
+// Returns True if all parameters are valid.
 function CheckSilentParameterValidity: Boolean;
 var
   HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
@@ -670,6 +700,8 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Start Wizard ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+// Initializes the setup process, handles silent mode and version display.
+// Returns True if silent parameters are valid, otherwise exits with error.
 function InitializeSetup(): Boolean;
 begin
   // ── Silent mode
@@ -679,6 +711,7 @@ begin
   ExitProcess(1)  
 end;
 
+// Initializes the Centreon Agent installer wizard, configuring custom pages and UI elements for agent setup.
 procedure InitializeWizard;
 var
 Infobmp: String;
@@ -1181,6 +1214,12 @@ begin
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
+{ ──────────────────────────── Handler Wizard ────────────────────────── }
+{ ────────────────────────────────────────────────────────────────────── }
+// Handles the logic for the Next button click event in the installer wizard.
+// Validates user input and required fields for each wizard page.
+// Displays error messages and prevents continuation on invalid input.
+// Manages plugin download and registry updates as needed.
 function NextButtonClick(CurPageID: Integer): Boolean;
 begin
   if CurPageID = wpReady then begin
