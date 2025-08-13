@@ -629,10 +629,9 @@ sub setlogs {
     $constatus_ping->{ $options{data}->{data}->{id} }->{last_ping_recv} = time();
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
 
-    if (defined($options{data}->{data}->{nb_total_msg})
-        and (!defined($node_status->{total_msg})
-        or $node_status->{total_msg} == -1)) {
-        $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg};
+    if (!defined($node_status->{total_msg} or $node_status->{total_msg} == -1)) {
+        $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg} // 1;
+        # if not defined it probably mean we are connected to an older node that does not support multipart messages, so there is only one part.
     }
 
     my $ctime_recent = 0;
@@ -710,7 +709,6 @@ sub increment_log_messages_retrieved {
         $logger->writeLogInfo("[proxy] ". ($node->{total_msg} != -1 ? $node->{total_msg} : 1) . " logs parts received for node $id, last log is from $node->{ctime}");
         delete($node->{total_msg});
         $node->{got_msg} = 0;
-
     }
 }
 
