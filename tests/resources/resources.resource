@@ -94,7 +94,14 @@ Ctn Stop Vault
     ...    Vault not correctly stopped
 
 Ctn Start Broker
-    [Arguments]    ${only_central}=False
+    [Arguments]    ${only_central}=False    ${newGeneration}=False
+
+    IF    ${newGeneration}
+	${count}    Ctn Get Engines Count
+	Ctn Config BBDO3    ${count}    3.1.0
+        Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    END
+
     # Currently we are in BBDO2 by default.
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
     IF    not ${only_central}
@@ -207,8 +214,10 @@ Ctn Stop Processes
 
 Ctn Start Engine
     [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
-    # Currently we are in BBDO2 by default.
     ${count}    Ctn Get Engines Count
+    IF    ${newGeneration}
+        Ctn Config BBDO3    ${count}    3.1.0
+    END
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg

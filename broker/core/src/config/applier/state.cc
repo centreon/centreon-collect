@@ -303,6 +303,7 @@ void state::add_peer(uint64_t poller_id,
   assert(poller_id && !broker_name.empty());
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
+  std::string available_conf;
   if (found == _connected_peers.end()) {
     _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
   } else {
@@ -310,16 +311,33 @@ void state::add_peer(uint64_t poller_id,
         "Poller '{}' with id {} already known as connected. Replacing it.",
         broker_name, poller_id);
     _connected_peers.erase(found);
+    available_conf = found->second.available_conf;
   }
   _connected_peers[{poller_id, poller_name, broker_name}] =
-      peer{poller_id,     poller_name, broker_name,
-           time(nullptr), peer_type,   extended_negotiation,
-           engine_conf,   engine_conf, true};
+      peer{poller_id,      poller_name, broker_name,
+           time(nullptr),  peer_type,   extended_negotiation,
+           available_conf, engine_conf, true};
   if (extended_negotiation && _peer_type == common::BROKER) {
     if (!_watch_engine_conf_timer) {
+      _logger->debug("Starting engine configuration watcher");
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
+
+      /* The directory watcher has been started but may be there were <ID>.lck
+       * files already present in the cache directory. We need to check them
+       * and apply the diff if needed.
+       */
+      boost::asio::post(com::centreon::common::pool::instance().io_context(),
+                        [this]() {
+                          if (set_engine_conf_watcher_occupied(
+                                  true, "applier::state::watcher")) {
+                            _logger->debug("Checking for existing lck files");
+                            _check_last_engine_conf(true);
+                            set_engine_conf_watcher_occupied(
+                                false, "applier::state::watcher");
+                          }
+                        });
     }
   }
 }
@@ -481,6 +499,34 @@ const std::filesystem::path& state::proto_conf() const {
 }
 
 /**
+ * @brief Get the current lck files in the cache configuration directory.
+ * This method is used to check if some Engine configurations are already
+ * present in the cache directory when the watcher is started.
+ *
+ * @return A vector of poller IDs for which a .lck file is present in the
+ * cache configuration directory.
+ */
+std::vector<uint32_t> state::_get_current_lck_files() {
+  std::vector<uint32_t> retval;
+  if (_cache_config_dir_watcher) {
+    for (const auto& entry :
+         std::filesystem::directory_iterator(_cache_config_dir)) {
+      if (entry.is_regular_file() && entry.path().extension() == ".lck") {
+        std::string_view name = entry.path().stem().string();
+        uint32_t poller_id;
+        if (absl::SimpleAtoi(name, &poller_id)) {
+          _logger->debug("Found '{}.lck' for poller id '{}'", name, poller_id);
+          retval.push_back(poller_id);
+        } else {
+          _logger->warn("Cannot parse poller id from lck file '{}.lck'", name);
+        }
+      }
+    }
+  }
+  return retval;
+}
+
+/**
  * @brief Check if some new engine configurations are available.
  *
  * @return A vector of poller IDs concerned by some new configuration or an
@@ -568,6 +614,11 @@ bool state::all_engine_peers_acknowledged() const {
   return true;
 }
 
+/**
+ * @brief Start the timer to watch for changes in the Engine configurations
+ * directory.
+ *
+ */
 void state::_start_watch_engine_conf_timer() {
   _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
   _watch_engine_conf_timer->async_wait(
@@ -583,9 +634,25 @@ void state::_start_watch_engine_conf_timer() {
       });
 }
 
-void state::_check_last_engine_conf() {
-  _logger->debug("Checking if there is a new engine configuration");
-  auto pollers_vec = config::applier::state::instance()._watch_engine_conf();
+/**
+ * @brief inotify doesn't notify if a file is already present in the
+ * directory. So to check if there are new Engine configurations when broker
+ * starts or when a poller initiates its connection, we set the forced_poller_id
+ * parameter to its value and we can check if there is a new Engine
+ * configuration for this poller. If it is 0, the check is based on the inotify
+ * results.
+ * For each <ID>.lck file found in the cache directory, this function checks
+ * if there is a new Engine configuration for the poller with this ID and
+ * prepares the diff to propagate.
+ *
+ * @param forced_poller_id The poller ID to check for a new Engine
+ * configuration. If it is 0, the check is based on the inotify results.
+ */
+void state::_check_last_engine_conf(bool first_call) {
+  _logger->debug("Checking if there is a new Engine configuration - forced: {}",
+                 first_call);
+  auto pollers_vec =
+      first_call ? _get_current_lck_files() : _watch_engine_conf();
   std::error_code ec;
   for (uint32_t poller_id : pollers_vec) {
     auto state = std::make_unique<engine::configuration::State>();
@@ -676,11 +743,28 @@ void state::_prepare_diff_for_poller(
           auto previous_state =
               std::make_unique<engine::configuration::State>();
           previous_state->ParseFromIstream(&f);
-          diff_state = std::make_unique<engine::configuration::DiffState>();
-          auto previous_indexed_state =
-              engine::configuration::indexed_state(std::move(previous_state));
-          previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                      diff_state.get());
+          /* If the known configuration by Broker is the same as the one sent
+           * by the poller, we can compute the diff. */
+          if (previous_state->config_version() == lower->second.engine_conf) {
+            diff_state = std::make_unique<engine::configuration::DiffState>();
+            auto previous_indexed_state =
+                engine::configuration::indexed_state(std::move(previous_state));
+            previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                        diff_state.get());
+          } else {
+            /* Otherwise, we do as if there was no previous
+             * configuration, so the diff will be the whole new configuration.
+             */
+            _logger->warn(
+                "Poller '{}' with id {} has a new configuration available, but "
+                "the previous configuration is not the same as the one sent by "
+                "the poller (previous: '{}', new: '{}'). The diff will be the "
+                "whole new configuration.",
+                lower->second.poller_name, poller_id, lower->second.engine_conf,
+                state->config_version());
+            diff_state = std::make_unique<engine::configuration::DiffState>();
+            diff_state->set_allocated_state(state.release());
+          }
         } else {
           /* No previous configuration */
           diff_state = std::make_unique<engine::configuration::DiffState>();

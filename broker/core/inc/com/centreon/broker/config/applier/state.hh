@@ -114,9 +114,10 @@ class state {
         const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept;
+  std::vector<uint32_t> _get_current_lck_files();
   std::vector<uint32_t> _watch_engine_conf();
   void _start_watch_engine_conf_timer();
-  void _check_last_engine_conf();
+  void _check_last_engine_conf(bool first_call = false);
   void _prepare_diff_for_poller(
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
