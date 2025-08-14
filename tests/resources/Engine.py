@@ -75,7 +75,7 @@ import_robot_resources()
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False, centralized: bool = False):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -87,12 +87,12 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host, 0, sh_command)
+        self.build_configs(hosts, srv_by_host, centralized, 0, bash_checks)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
         makedirs(ENGINE_HOME, mode=0o777, exist_ok=True)
-        makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
+        makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
 
@@ -617,9 +617,14 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, sh_command: bool = False):
+    def build_configs(self, hosts: int, services_by_host: int, centralized: bool, debug_level=0, bash_checks: bool = False):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            shutil.rmtree(f"{VAR_ROOT}/lib/centreon/config")
+        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
+            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
+
         r = 0
         if hosts % self.instances > 0:
             r = 1
@@ -632,7 +637,11 @@ passive_checks_enabled 1
                 nb_hosts = hosts
                 hosts = 0
 
-            config_dir = "{}/config{}".format(CONF_DIR, inst)
+            if centralized:
+                config_dir = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}"
+            else:
+                config_dir = f"{CONF_DIR}/config{inst}"
+
             makedirs(config_dir)
             with open(f"{config_dir}/centengine.cfg", "w") as f:
                 bb = self._create_centengine(inst, debug_level=debug_level)
@@ -645,7 +654,7 @@ passive_checks_enabled 1
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
-                            if (sh_command):
+                            if (bash_checks):
                                 ff.write(
                                     self._create_service_with_sh_command(h["hid"], j))
                             else:
@@ -654,7 +663,7 @@ passive_checks_enabled 1
                             self.services.append("service_{}".format(h["hid"]))
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
-                if (sh_command):
+                if bash_checks:
                     for host_id in range(1, nb_hosts + 1):
                         for service_id in range(1, services_by_host + 1):
                             f.write(self.create_sh_command(
@@ -827,6 +836,10 @@ define contact {
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
+            if centralized:
+                with open(f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck", "w"):
+                    pass
+
     def centengine_conf_add_bam(self):
         """
         centengine_conf_add_bam _entengine Conf Add Bam_
@@ -854,7 +867,22 @@ define contact {
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
+def ctn_config_centralized_engine(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
+    """
+    Configure all the necessary files for num instances of centengine.
+    These configurations are sent to centengine instances by central cbd.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
+    """
+    global engine
+    engine = EngineInstance(num, hosts, srv_by_host, bash_checks, True)
+
+
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -862,10 +890,10 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, sh_comma
         num (int): How many engine configurations to start
         hosts (int, optional): Defaults to 50.
         srv_by_host (int, optional): Defaults to 20.
-        sh_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host, sh_command)
+    engine = EngineInstance(num, hosts, srv_by_host, bash_checks)
 
 
 def ctn_get_engines_count():

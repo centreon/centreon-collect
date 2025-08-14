@@ -522,8 +522,6 @@ void applier::state::_apply(const configuration::State& new_cfg,
       new_cfg.send_recovery_notifications_anyways());
   pb_indexed_config.mut_state().set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
-  pb_indexed_config.mut_state().set_broker_module_cfg_file(
-      new_cfg.broker_module_cfg_file());
   pb_indexed_config.mut_state().set_credentials_encryption(
       new_cfg.credentials_encryption());
   pb_indexed_config.mut_state().set_config_version(new_cfg.config_version());
