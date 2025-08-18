@@ -86,7 +86,12 @@ class EngineInstance:
         self.instances = count
         self.host_cmd = {}
         self.service_cmd = {}
+        self.centralized = centralized
         self.anomaly_detection_internal_id = 1
+        if centralized:
+            self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
+        else:
+            self.config_dir = CONF_DIR
         self.build_configs(hosts, srv_by_host, centralized, 0, bash_checks)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
@@ -95,6 +100,20 @@ class EngineInstance:
         makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+
+    def get_config_dir(self, inst: int):
+        """
+        get_config_dir Returns the configuration directory for the given instance.
+
+        Args:
+            inst (int): Poller instance ID
+
+        Get the configuration directory for the engine instance
+        """
+        if self.centralized:
+            return f"{self.config_dir}/{inst + 1}"
+        else:
+            return f"{self.config_dir}/config{inst}"
 
     def _create_centengine(self, id: int, debug_level=0):
         """
@@ -637,10 +656,7 @@ passive_checks_enabled 1
                 nb_hosts = hosts
                 hosts = 0
 
-            if centralized:
-                config_dir = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}"
-            else:
-                config_dir = f"{CONF_DIR}/config{inst}"
+            config_dir = self.get_config_dir(inst)
 
             makedirs(config_dir)
             with open(f"{config_dir}/centengine.cfg", "w") as f:
@@ -922,7 +938,7 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
         disambiguous (bool, optional): Defaults to False. If the key appears several times in the file and we want to
         match only one, it is interesting to enable this option, it will try to also compare values.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    filename = f"{engine.get_config_dir(idx)}/centengine.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 

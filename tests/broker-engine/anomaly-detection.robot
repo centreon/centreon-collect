@@ -32,7 +32,7 @@ ANO_NOFILE
     Ctn Stop Engine
 
 ANO_NOFILE_VERIF_CONFIG_NO_ERROR
-    [Documentation]    an anomaly detection without threshold file doesn't display error on config check
+    [Documentation]    An anomaly detection without threshold file doesn't display error on config check
     [Tags]    broker    engine    anomaly    MON-20385
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
