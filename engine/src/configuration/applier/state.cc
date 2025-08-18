@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdint>
 
+#include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/otel_connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -1283,7 +1284,15 @@ void applier::state::_apply_diff_conf(
   }
   APPLY_REPEATED_DIFF(cfg_dir);
   APPLY_DIFF(state_retention_file);
-  APPLY_REPEATED_DIFF(broker_module);
+  if (!diff.broker_module().empty()) {
+    pb_indexed_config.mut_state().clear_broker_module();
+    for (auto& item : diff.broker_module()) {
+      pb_indexed_config.mut_state().add_broker_module(item);
+      /* Don't try to remove modules as this operation can often fail. */
+      if (!broker::loader::instance().loaded(item))
+        broker::loader::instance().add_module(item);
+    }
+  }
   APPLY_DIFF(broker_module_directory);
   APPLY_DIFF(enable_macros_filter);
   APPLY_STR_LST_DIFF(macros_filter);
@@ -1769,6 +1778,7 @@ void applier::state::_processing(configuration::State& new_cfg,
   }
 
   has_already_been_loaded = true;
+  std::cout << "Configuration APPLIED (1)!!" << std::endl;
   _processing_state = state_ready;
 }
 
@@ -1852,6 +1862,7 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
   }
 
   has_already_been_loaded = true;
+  std::cout << "Configuration APPLIED (2)!!" << std::endl;
   _processing_state = state_ready;
   cbm->set_diff_state_applied(diff_conf.config_version());
 }

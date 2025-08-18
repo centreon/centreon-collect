@@ -56,6 +56,21 @@ std::shared_ptr<engine::broker::handle> loader::add_module(
 }
 
 /**
+ * @brief Check if the module is already loaded.
+ *
+ * @param filename The module filename to check.
+ *
+ * @return A boolean indicating whether the module is loaded or not.
+ */
+bool loader::loaded(const std::filesystem::path& filename) const {
+  for (const auto& module : _modules) {
+    if (equivalent(module->get_filename(), filename))
+      return true;
+  }
+  return false;
+}
+
+/**
  *  Remove a module.
  *
  *  @param[in] mod Module to remove.
