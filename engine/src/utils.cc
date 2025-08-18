@@ -398,7 +398,7 @@ bool set_cloexec(int fd) {
  */
 void cleanup() {
   // Unload modules.
-  if (!test_scheduling && !verify_config) {
+  if (!test_scheduling /*&& !verify_config*/) {
     checks::checker::deinit();
     /* Before stopping, we stop all the connectors that are not already finished. */
     for (auto& c : commands::connector::connectors)
