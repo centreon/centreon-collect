@@ -59,6 +59,7 @@
 #include <vector>
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/std.h>
 #include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>

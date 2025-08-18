@@ -416,9 +416,13 @@ int main(int argc, char* argv[]) {
 
           neb_init_callback_list();
 
+          std::cout << "Number of modules: " << new_conf->broker_module().size()
+                    << std::endl;
           for (auto& m : new_conf->broker_module()) {
             std::pair<std::string, std::string> p =
                 absl::StrSplit(m, absl::MaxSplits(' ', 1));
+            std::cout << "Loading broker module: " << p.first
+                      << " with parameters: " << p.second << std::endl;
             broker::loader::instance().add_module(p.first, p.second);
           }
 
