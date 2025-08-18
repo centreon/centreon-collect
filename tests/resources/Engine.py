@@ -1773,7 +1773,8 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     Example:
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/services.cfg", "a+") as f:
         svc = engine._create_service(host_id, [1, cmd_id])
         lst = svc.split('\n')
         good = [line for line in lst if "_SERVICE_ID" in line][0]
@@ -1781,8 +1782,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
         if m is not None:
             retval = int(m.group(1))
         else:
-            raise Exception(
-                "Impossible to get the service id from '{}'".format(good))
+            raise Exception(f"Impossible to get the service id from '{good}'")
             m = 0
         f.write(svc)
     return retval

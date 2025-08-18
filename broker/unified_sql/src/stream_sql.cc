@@ -1800,10 +1800,10 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   auto& h = hst->obj();
 
   // Log message.
-  SPDLOG_LOGGER_INFO(
-      _logger_sql,
-      "unified_sql: processing pb host event (poller: {}, host: {}, name: {}, state: {})",
-      h.instance_id(), h.host_id(), h.name(), h.state());
+  SPDLOG_LOGGER_INFO(_logger_sql,
+                     "unified_sql: processing pb host event (poller: {}, host: "
+                     "{}, name: {}, state: {})",
+                     h.instance_id(), h.host_id(), h.name(), h.state());
 
   auto cache_ptr = cache::global_cache::instance_ptr();
 
@@ -2262,7 +2262,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
                       "<<{}>> - last_check: {} - state: {}",
-                      hscr.host_id(), hscr.output(), hscr.last_check(), hscr.state());
+                      hscr.host_id(), hscr.output(), hscr.last_check(),
+                      hscr.state());
   SPDLOG_LOGGER_DEBUG(
       _logger_sql, "unified_sql: pb host status check result perfdata: <<{}>>",
       hscr.perfdata());
@@ -2658,6 +2659,22 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
                          database::mysql_error::store_poller, conn);
     _add_action(conn, actions::instances);
   }
+}
+
+/**
+ *  Process an instance event. The thread executing the command is
+ * controlled so that queries depending on this one will be made by the same
+ * thread.
+ *
+ *  @param[in] e Uncasted instance.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
+  const neb::pb_global_diff_state& global_diff_state(
+      *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
+  const auto& obj = global_diff_state.obj();
+  _logger_sql->info("unified_sql: processing global diff state event");
 }
 
 /**
