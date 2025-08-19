@@ -64,8 +64,12 @@ std::shared_ptr<engine::broker::handle> loader::add_module(
  */
 bool loader::loaded(const std::filesystem::path& filename) const {
   for (const auto& module : _modules) {
-    if (equivalent(module->get_filename(), filename))
-      return true;
+    std::error_code ec;
+    if (std::filesystem::equivalent(module->get_filename(), filename, ec))
+        return true;
+    else if (ec)
+      runtime_logger->error("Error: Could not check module '{}' loading: {}",
+                            filename.filename().string(), ec.message());
   }
   return false;
 }

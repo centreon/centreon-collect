@@ -1287,10 +1287,12 @@ void applier::state::_apply_diff_conf(
   if (!diff.broker_module().empty()) {
     pb_indexed_config.mut_state().clear_broker_module();
     for (auto& item : diff.broker_module()) {
-      pb_indexed_config.mut_state().add_broker_module(item);
       /* Don't try to remove modules as this operation can often fail. */
-      if (!broker::loader::instance().loaded(item))
-        broker::loader::instance().add_module(item);
+      pb_indexed_config.mut_state().add_broker_module(item);
+      if (!broker::loader::instance().loaded(item)) {
+	if (!verify_config)
+	  broker::loader::instance().add_module(item);
+      }
     }
   }
   APPLY_DIFF(broker_module_directory);
