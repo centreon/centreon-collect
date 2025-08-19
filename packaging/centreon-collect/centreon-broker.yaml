@@ -44,8 +44,7 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-cbd = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-broker-devel
     replaces:
@@ -54,8 +53,7 @@ overrides:
       - centreon-broker-devel
   deb:
     depends:
-      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-cbd (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-broker-dev
     replaces:
