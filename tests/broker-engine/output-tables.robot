@@ -51,7 +51,6 @@ BEHS1
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    sql    trace
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
     Ctn Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    yes
     Ctn Clear Retention
@@ -95,7 +94,6 @@ BEINSTANCESTATUS
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
@@ -147,9 +145,9 @@ BEINSTANCE
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
+    Disconnect From Database
 
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Ctn Get Round Current Date
@@ -205,6 +203,7 @@ BE_NOTIF_OVERFLOW
     ${output}    Query
     ...    SELECT s.notification_number FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_16' AND s.description='service_314'
     Should Be True    ${output[0][0]} == None    notification_number is not null
+    Disconnect From Database
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -222,6 +221,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
 
@@ -256,6 +256,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
 
@@ -280,7 +281,6 @@ BE_FLAPPING_SERVICE_RESOURCE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Engine Config Set Value    0    enable_flap_detection    1
     Ctn Set Services Passive    ${0}    service_1
@@ -293,14 +293,17 @@ BE_FLAPPING_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
+    Ctn Clear Logs
 
-    Ctn Start Broker    
+    ${start}	Get Current Date
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # generate flapping
     FOR    ${index}    IN RANGE    21
@@ -312,7 +315,7 @@ BE_FLAPPING_SERVICE_RESOURCE
     ${result}    Ctn Check Service Flapping   host_1    service_1    30    5    50
     Should Be True    ${result}   The service or resource (host_1,service_1) is not flapping as expected
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 
 BE_FLAPPING_HOST_RESOURCE
@@ -322,7 +325,6 @@ BE_FLAPPING_HOST_RESOURCE
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Engine Config Set Value    0    enable_flap_detection    1
     Ctn Set Hosts Passive    ${0}    host_1
@@ -336,14 +338,16 @@ BE_FLAPPING_HOST_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
+    Disconnect From Database
 
     Ctn Clear Retention
 
-    Ctn Start Broker    
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # generate flapping
     FOR    ${index}    IN RANGE    21
@@ -355,4 +359,4 @@ BE_FLAPPING_HOST_RESOURCE
     ${result}    Ctn Check Host Flapping   host_1    30    5    50
     Should Be True    ${result}   The host or resource host_1 is not flapping as expected
 
-    [Teardown]    Ctn Stop Engine Broker And Save Logs    
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
