@@ -176,3 +176,29 @@ TEST(TestJWT, ConstructorInvalidJsonPayload) {
     FAIL() << "Expected msg_fmt but got some other exception type.";
   }
 }
+
+// Test: never_expired
+// Purpose: Ensure that a JWT token with a null expiration time is handled
+// correctly, allowing the token to be considered valid indefinitely.
+// Note: This test checks that the expiration time is set to max when "exp" is
+// null in the payload.
+TEST(TestJWT, Never_expired) {
+  try {
+    const std::string metadata =
+        "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+        "eyJuYW1lIjoidG9rZW4xIiwiaWF0IjoxNzU1NTM0MjY5LCJleHAiOm51bGx9."
+        "6_m-qL0qdY8-p7bHdinYAlPHPdEwNsfJ--9BUvxgCVQ";
+    jwt jwt(metadata);
+    ASSERT_EQ(jwt.get_header(), "{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
+    std::cout << "payload: " << jwt.get_payload() << std::endl;
+    ASSERT_EQ(jwt.get_payload(),
+              "{\"name\":\"token1\",\"iat\":1755534269,\"exp\":null}");
+    ASSERT_EQ(jwt.get_exp(), system_clock::time_point::max());
+  } catch (const msg_fmt& ex) {
+    EXPECT_TRUE(
+        std::string(ex.what()).find("forbidden values in jwt payload: document "
+                                    "doesn't respect this schema:") == 0);
+  } catch (...) {
+    FAIL() << "Expected msg_fmt but got some other exception type.";
+  }
+}

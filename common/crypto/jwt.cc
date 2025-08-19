@@ -51,24 +51,20 @@ static constexpr std::string_view _payload_schema(R"(
     "title": "jwt payload",
     "type": "object",
     "properties": {
-        "iss": {
-            "description": "issuer",
+        "name": {
+            "description": "token name",
             "type": "string"
         },
         "exp": {
             "description": "expiration time",
-            "type": "integer"
+            "type": ["integer","null"]
         },
         "iat": {
             "description": "issued at",
             "type": "integer"
         }
     },
-    "required": [
-        "iss",
-        "exp",
-        "iat"
-    ]
+    "required": [ "exp", "iat" ]
 }
 )");
 
@@ -148,10 +144,14 @@ jwt::jwt(const std::string& token)
 
   // check the experation date used
   if (payload_json.has_member("exp")) {
-    _exp_str = std::to_string(payload_json.get_uint64_t("exp"));
-    _exp = std::chrono::system_clock::time_point(
-        std::chrono::seconds(payload_json.get_uint64_t("exp")));
+    if (payload_json.get_member("exp").IsNull()) {
+      _exp = std::chrono::system_clock::time_point::max();
+    } else {
+      _exp = std::chrono::system_clock::time_point(
+          std::chrono::seconds(payload_json.get_uint64_t("exp")));
+    }
   }
+
   if (payload_json.has_member("iat")) {
     _iat = std::chrono::system_clock::time_point(
         std::chrono::seconds(payload_json.get_uint64_t("iat")));
