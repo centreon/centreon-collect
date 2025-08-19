@@ -30,6 +30,9 @@ BESS6_${label}
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    module0    bbdo    debug
     Ctn Broker Config Log    rrd    bbdo    debug
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Broker Config Flush Log    module0    0
     IF    ${grpc}
         Ctn Change Broker Tcp Output To Grpc    central
         Ctn Change Broker Tcp Output To Grpc    module0
@@ -129,7 +132,9 @@ BEDW
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Ctn Clear Broker Logs
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
     ${start}    Ctn Get Round Current Date
@@ -169,7 +174,9 @@ BEDWEN
     Ctn Config BBDO3    1    3.1.0
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Ctn Clear Broker Logs
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
     ${start}    Ctn Get Round Current Date
@@ -213,7 +220,9 @@ BEDWENF
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    module0    0
     Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
+    Ctn Clear Broker Logs
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Remove Directory    ${VarRoot}/lib/centreon/config    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon/config
@@ -276,6 +285,8 @@ BEDWEND
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    module0    0
+    Ctn Clear Broker Logs
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration
 
