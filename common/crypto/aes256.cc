@@ -48,6 +48,11 @@ aes256::aes256(const std::string_view& json_file_path) {
       rapidjson_helper::read_from_file(json_file_path);
   _first_key =
       base64_decode(rapidjson_helper(file_content).get_string("app_secret"));
+
+  // We force the size of the first key to be 32 bytes (256 bits).
+  if (_first_key.size() != 32)
+    _first_key.resize(32);
+
   _second_key =
       base64_decode(rapidjson_helper(file_content).get_string("salt"));
 }
@@ -66,9 +71,7 @@ aes256::aes256(const std::string& first_key, const std::string& second_key)
     : _first_key{base64_decode(first_key)},
       _second_key(base64_decode(second_key)) {
   if (_first_key.size() != 32)
-    throw exceptions::msg_fmt(
-        "the key for aes256 must have a size of 256 bits and not {}",
-        _first_key.size() * 8);
+    _first_key.resize(32);
   assert(!_second_key.empty());
 }
 
