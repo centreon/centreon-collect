@@ -991,6 +991,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
   if (_poller_id > 0 && !_broker_name.empty()) {
+    _logger->debug("Adding peer {}:{}:{}", _poller_id, _poller_name,
+                   _broker_name);
     config::applier::state::instance().add_peer(
         _poller_id, _poller_name, _broker_name, _peer_type,
         _extended_negotiation, peer_engine_conf);

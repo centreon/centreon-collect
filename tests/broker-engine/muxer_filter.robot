@@ -58,6 +58,7 @@ STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -85,6 +86,7 @@ FILTER_ON_LUA_EVENT
     [Documentation]    stream connector with a bad configured filter generate a log error message
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -151,9 +153,9 @@ BAM_STREAM_FILTER
     Ctn Clear Broker Logs
 
     Ctn Start Broker    True
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # KPI set to critical
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
@@ -254,6 +256,7 @@ CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
     [Tags]    broker    engine    filter
 
+    Ctn Clear Broker Logs
     Ctn Clear Retention
     Ctn Config Broker    module    ${1}
     Ctn Config Broker    central
@@ -265,16 +268,16 @@ CBD_RELOAD_AND_FILTERS
     Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 1).
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
@@ -306,7 +309,7 @@ CBD_RELOAD_AND_FILTERS
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 2).
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List    rrd event .* rejected by write filter
@@ -335,7 +338,7 @@ CBD_RELOAD_AND_FILTERS
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
-    Should Be True    ${result}    No status from central broker for 1mn.
+    Should Be True    ${result}    No status from central broker for 1mn (step 3).
 
     # We check that output filters to rrd doesn't filter anything
     ${content}    Create List    rrd event .* rejected by write filter
@@ -363,11 +366,11 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Ctn Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
 
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
@@ -446,6 +449,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
     [Tags]    broker    engine    filter
     Remove File    /tmp/all_lua_event.log
     Remove File    /tmp/all_lua_event-bis.log
+    Ctn Clear Broker Logs
 
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central

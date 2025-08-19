@@ -303,20 +303,22 @@ void state::add_peer(uint64_t poller_id,
   assert(poller_id && !broker_name.empty());
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  std::string available_conf;
   if (found == _connected_peers.end()) {
     _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
+    _connected_peers[{poller_id, poller_name, broker_name}] =
+        peer{poller_id, poller_name,          broker_name, time(nullptr),
+             peer_type, extended_negotiation, "",          engine_conf,
+             true};
   } else {
     _logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it.",
         broker_name, poller_id);
-    _connected_peers.erase(found);
-    available_conf = found->second.available_conf;
+    found->second.connected_since = time(nullptr);
+    found->second.peer_type = peer_type;
+    found->second.extended_negotiation = extended_negotiation;
+    found->second.engine_conf = engine_conf;
+    /* available_conf is already set. */
   }
-  _connected_peers[{poller_id, poller_name, broker_name}] =
-      peer{poller_id,      poller_name, broker_name,
-           time(nullptr),  peer_type,   extended_negotiation,
-           available_conf, engine_conf, true};
   if (extended_negotiation && _peer_type == common::BROKER) {
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");

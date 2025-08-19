@@ -103,7 +103,6 @@ static void hup_handler(int) {
       /* We update the logger, since the conf has been applied */
     } catch (const std::exception& e) {
       core_logger->error("problem while reloading cbd: {}", e.what());
-      core_logger->error("problem while reloading cbd: {}", e.what());
     }
 
     try {
