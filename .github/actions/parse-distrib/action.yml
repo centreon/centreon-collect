@@ -54,6 +54,10 @@ runs:
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.22.04"
           PACKAGE_EXTENSION="deb"
+        elif [[ "${{ inputs.distrib }}" == "noble" ]]; then
+          PACKAGE_DISTRIB_SEPARATOR="-"
+          PACKAGE_DISTRIB_NAME="0ubuntu.24.04"
+          PACKAGE_EXTENSION="deb"
         else
           echo "::error::Distrib ${{ inputs.distrib }} cannot be parsed"
           exit 1
