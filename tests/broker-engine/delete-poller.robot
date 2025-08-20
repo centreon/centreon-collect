@@ -516,7 +516,7 @@ EBDP7
     ${start}    Get Current Date
     Ctn Clear Engine Logs
     Ctn Start Engine
-    Ctn Wait For Engine To Be Ready    ${2}
+    Ctn Wait For Engine To Be Ready    ${start}    ${2}
 
     ${remove_time}    Get Current Date
     Ctn Remove Poller By Id    51001    ${3}

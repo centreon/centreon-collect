@@ -30,7 +30,7 @@ EBBM1
     ${start_broker}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     FOR    ${i}    IN RANGE    ${10}
         Ctn Process Service Check Result With Big Metrics

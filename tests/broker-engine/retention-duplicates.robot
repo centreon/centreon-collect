@@ -523,7 +523,7 @@ BERDUCA301
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
-    Ctn Wait For Engine To Be Ready    ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Stop Engine
     ${content}    Create List    BBDO: sending stop packet to peer
