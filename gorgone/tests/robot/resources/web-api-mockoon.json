@@ -131,6 +131,102 @@
       "responseMode": null,
       "streamingMode": null,
       "streamingInterval": 0
+    },
+    {
+      "uuid": "dd3a5560-0ea2-4f9f-8628-622f2189d9ff",
+      "type": "http",
+      "documentation": "Vault authentication   {\"role_id\":\"role-id-for-test\",\"secret_id\":\"secret-id-for-test\"}",
+      "method": "post",
+      "endpoint": "v1/auth/approle/login",
+      "responses": [
+        {
+          "uuid": "388470e3-d774-4520-906e-1e6e888bf01f",
+          "body": "{\"auth\":{\"lease_duration\": 999999999, \"client_token\": \"TokenFromVaultAuthentication\"}}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "body",
+              "modifier": "role_id",
+              "value": "role-id-for-test",
+              "invert": false,
+              "operator": "equals"
+            },
+            {
+              "target": "body",
+              "modifier": "secret_id",
+              "value": "secret-id-for-test",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "AND",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "06c7ad23-3bc4-4290-aa88-9681a6c9cb27",
+          "body": "{\"errors\": \"TODO update mockoon\"}",
+          "latency": 0,
+          "statusCode": 401,
+          "label": "when not authenticated vault should response this",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "18c69e8b-3ed3-423b-8aa1-09108774c004",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "v1/evan/data/monitoring/hosts/b89fde74-44ac-4e2e-a897-df49f0d1fd55",
+      "responses": [
+        {
+          "uuid": "ba234177-f616-4240-82b1-df1d751b920b",
+          "body": "{\"request_id\": \"ARandomString\", \"data\": {\"data\" : {\"_HOSTMACROPARAMETER\": \"<?xml\"}}}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
     }
   ],
   "rootChildren": [
@@ -149,6 +245,14 @@
     {
       "type": "route",
       "uuid": "80f8b00f-6bf8-49ef-8704-3e1aff571bd6"
+    },
+    {
+      "type": "route",
+      "uuid": "dd3a5560-0ea2-4f9f-8628-622f2189d9ff"
+    },
+    {
+      "type": "route",
+      "uuid": "18c69e8b-3ed3-423b-8aa1-09108774c004"
     }
   ],
   "proxyMode": false,

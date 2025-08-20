@@ -13,6 +13,7 @@ use lib "$FindBin::RealBin/../../";
 use centreon::common::centreonvault;
 use centreon::common::logger;
 use JSON::XS;
+use MIME::Base64;
 
 
 # this sub make an hash with all generic data used in the tests, and send back a hashref.
@@ -26,15 +27,15 @@ sub create_data_set {
     # I encrypted the string "String-to-encrypt" from the C++ implementation, and set it to secret_id and role_id
     # the key to decrypt should be set as an environment variable.
     # the salt can be used to encrypt again the data, so the script can be sure the decryption worked correctly, but this function is not implemented yet.
-    $set->{default_app_secret} = 'SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=';
-    $set->{decryted_string} = 'String-to-encrypt';
+    $set->{default_app_secret} = '7d38c9e29199fb48533eee540b1005ab653ae010e85e0081f5a550';
+    $set->{decryted_string} = 'string-to-encrypt';
     $set->{vault_config_hash} = {
         "name"      => "default",
         "url"       => "localhost",
         "port"      => 443,
         "root_path" => "path",
-        "role_id"   => "4vOkzIaIJ7yxGWmysGVYY9sYHDyDM1nEv1++jSx9eAHpj83J6aIjE5SPvvpF6kBu3JeFga7o6DDS2yC7jVPAwXsWiur+KUOQncPq0JtjiFojr9YkrO8x1w1dmQFq/RqYV/S/kUare8z6r6+RnAxwsA==",
-        "secret_id" => "4vOkzIaIJ7yxGWmysGVYY9sYHDyDM1nEv1++jSx9eAHpj83J6aIjE5SPvvpF6kBu3JeFga7o6DDS2yC7jVPAwXsWiur+KUOQncPq0JtjiFojr9YkrO8x1w1dmQFq/RqYV/S/kUare8z6r6+RnAxwsA==",
+        "role_id"   => "PIuuuf8XMQ6j2dYwjDnNgTpzASXxTbpIRDogP9Rctc1QGXJIYUC2S6hpSq2rmUs6wltRKy5D0ft96rq+0t2gr539pVBSN2lLCKNThEfmRtXhpo3lXbkmQN9kx2eXqTvhoNUdN4irKKFNX5R1BgnIHg==",
+        "secret_id" => "PIuuuf8XMQ6j2dYwjDnNgTpzASXxTbpIRDogP9Rctc1QGXJIYUC2S6hpSq2rmUs6wltRKy5D0ft96rq+0t2gr539pVBSN2lLCKNThEfmRtXhpo3lXbkmQN9kx2eXqTvhoNUdN4irKKFNX5R1BgnIHg==",
         "salt"      => "U2FsdA==" }; # for now the salt is not used, it will be used to check if the data where correctly decrypted.
 
     $set->{wrong_vault_config_hash} = {
@@ -50,8 +51,8 @@ sub create_data_set {
     # this is all the fields that should be set everytime.
     $set->{http}->{generic_auth_fields} = {
         CURLOPT_POST()          => { result => 1, detail => 'the http request should be POST' },
-        CURLOPT_POSTFIELDS()    => { result => 'role_id=String-to-encrypt&secret_id=String-to-encrypt', detail => 'postfields are correct' },
-        CURLOPT_POSTFIELDSIZE() => { result => 53, detail => 'post field size is set' },
+        CURLOPT_POSTFIELDS()    => { result => '{"role_id":"string-to-encrypt","secret_id":"string-to-encrypt"}', detail => 'postfields are correct' },
+        CURLOPT_POSTFIELDSIZE() => { result => 63, detail => 'post field size is set' },
         CURLOPT_URL()           => { result => 'https://localhost:443/v1/auth/approle/login', detail => 'target url was set' }, };
     # this is the token given by the API when the authentication work.
     $set->{http}->{"Vault_Token"} = "RandomAuthTokenGivenByVault";
@@ -105,7 +106,7 @@ sub test_decrypt {
         )
     );
 
-    is($vault->extract_and_decrypt(('data' => $set->{vault_config_hash}->{secret_id})), 'String-to-encrypt', 'extract_and_decrypt() worked');
+    is($vault->extract_and_decrypt(('data' => $set->{vault_config_hash}->{secret_id})), 'string-to-encrypt', 'extract_and_decrypt() worked');
 
 }
 
@@ -118,17 +119,17 @@ sub test_transform_json_to_object {
         },
         {
             json   => '"int": 12, "string": "A String with space", "array" : ["array-key", "string"]}',
-            result => { "error_message" => match(qr/^Could not decode JSON from/) },
+            result => { "errors" => [match(qr/^Could not decode JSON from/)] },
             detail => "invalid json should generate an error"
         },
         {
             json   => '',
-            result => { "error_message" => match(qr/^Could not decode JSON from.*'. Reason:/) },
+            result => { "errors" => [match(qr/^Could not decode JSON from.*'. Reason:/)] },
             detail => "empty json"
         },
         {
             json   => 'abcdef',
-            result => { "error_message" => match(qr/^Could not decode JSON from/) },
+            result => { "errors" => [match(qr/^Could not decode JSON from/)] },
             detail => "simple string json"
         },
         {
@@ -148,20 +149,23 @@ sub test_get_app_secret {
     -e '/usr/share/centreon/.env' and `mv /usr/share/centreon/.env /usr/share/centreon/.env.back`;
 
     my $old_app_secret = $ENV{'APP_SECRET'};
-    my $res = "SECRET";
-    $ENV{'APP_SECRET'} = $res;
-    is(centreon::common::centreonvault->get_app_secret(), $res, "get_app_secret() should return the correct value");
+    my $key           = 'iamaverylongtokenforaesiamaverylongtokenforaesiamaverylongtokenforaes'; # this is more than 256 bits
+    my $decrypted_key = 'iamaverylongtokenforaesiamaverylongtokenfoo='; # key are stored as base64 string, get_app_secret make the b64 decode.
+    $ENV{'APP_SECRET'} = $key;
+    is(trim(encode_base64(centreon::common::centreonvault->get_app_secret())), $decrypted_key, "get_app_secret() should return the correct value");
     $ENV{'APP_SECRET'} = undef;
     is(centreon::common::centreonvault->get_app_secret(), "", "get_app_secret() should return an empty string");
     open(my $fh, '>', '/usr/share/centreon/.env');
     print $fh "NotAPP_SECRET=toto\n";
     print $fh "APP_SECRT=tata\n";
-    is(centreon::common::centreonvault->get_app_secret(), "", "get_app_secret() should return empty string if file don't ha.");
+    is(centreon::common::centreonvault->get_app_secret(), "", "get_app_secret() should return empty string if file don't contain value.");
 
-    print $fh "APP_SECRET=$res\n";
+    print $fh "APP_SECRET=$key\n";
     close($fh);
-    is(centreon::common::centreonvault->get_app_secret(), $res, "get_app_secret() should get value from file.");
+    is(trim(encode_base64(centreon::common::centreonvault->get_app_secret())), $decrypted_key, "get_app_secret() should get value from file.");
     `rm /usr/share/centreon/.env`;
+    $ENV{'APP_SECRET'} = '7d38c9e29199fb'; # this is a shorter key than 32 chars, should be padded to 32 chars by the lib.
+    is(trim(encode_base64(centreon::common::centreonvault->get_app_secret())), '7d38c9e29199fQAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', "get_app_secret() pad key to 256 bits.");
     -e '/usr/share/centreon/.env.back' and `mv /usr/share/centreon/.env.back /usr/share/centreon/.env`;
     $ENV{'APP_SECRET'} = $old_app_secret;
 }
@@ -219,10 +223,33 @@ sub test_get_secret {
     is($clear_password, "tokenGotFromApi", "authentication worked, the token was correctly retrieved by get_secret() from the API");
 
 }
+# this sub test the encrypt and extract_and_decrypt to validate they are inverse of each other.
+sub test_encrypt {
+    my $set = shift;
+    my $testsCases = [
+        { app_secret => "iamaatokenoftherightsizetocreateanaesobject", data => "datatoencryptsimple", detail => "simple key" },
+        { app_secret => "smallertokenforaes", data => "datatoencryptsimple", detail => "shorter key than 32 chars, should be padded to 32 chars" },
+        { app_secret =>
+            "iamaverylongtokenforaesiamaverylongtokenforaesiamaverylongtokenforaes",
+            data     => "datatoencryptsimple",
+            detail   => "longer key than 32 chars, should be trimmed to 32 chars" },
+    ];
+    my $old_app_secret = $ENV{'APP_SECRET'};
+    for my $test (@$testsCases) {
+        $ENV{'APP_SECRET'} = $test->{app_secret};
+        my $vault = centreon::common::centreonvault->new(
+                'logger'      => $set->{logger},
+                'config_file' => $set->{vault_config_hash}
+        );
+        my $encrypted_data = $vault->encrypt($test->{data});
+        is($vault->extract_and_decrypt((data => $encrypted_data)), $test->{data}, "encrypt/decrypt " . $test->{detail});
+    }
+    $ENV{'APP_SECRET'} = $old_app_secret;
 
+}
 sub main {
     my $set = create_data_set();
-
+    test_encrypt($set);
     test_get_app_secret();
     my $old_app_secret = $ENV{'APP_SECRET'};
     $ENV{'APP_SECRET'} = $set->{default_app_secret};
@@ -287,4 +314,15 @@ sub mock_http {
     return $mock;
 
 }
+
+sub trim {
+    my ($value) = $_[0];
+
+    # Sometimes there is a null character
+    $value =~ s/\x00$//;
+    $value =~ s/^[ \t\n]+//;
+    $value =~ s/[ \t\n]+$//;
+    return $value;
+}
+
 &main;

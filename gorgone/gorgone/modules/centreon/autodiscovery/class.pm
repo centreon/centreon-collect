@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::modules::centreon::autodiscovery::services::discovery;
+use centreon::common::centreonvault;
 use gorgone::class::tpapi::clapi;
 use gorgone::class::tpapi::centreonv2;
 use gorgone::class::sqlquery;
@@ -75,7 +76,11 @@ sub new {
     # disable shell interpretation by default, can be enabled back by user in the config file
     $connector->{config}->{no_shell_interpretation} = defined($options{config}->{no_shell_interpretation})
         && $options{config}->{no_shell_interpretation} =~ /^(0|false)$/i ? 0 : 1;
-
+    # allow service discovery to unvault data from db, for host disco it's php who query db and send via api the data to gorgone, so it's php who must handle vault.
+    $connector->{vault} = centreon::common::centreonvault->new(
+        logger => $connector->{logger},
+        config_file => $connector->{config_core}->{vault_file}
+    );
     $connector->{is_module_installed} = 0;
     $connector->{is_module_installed_check_interval} = 60;
     $connector->{is_module_installed_last_check} = -1;
