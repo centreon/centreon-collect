@@ -18,6 +18,17 @@ echo "${USED_ADDRESS}      ${HOST_NAME}" >> /etc/hosts
 echo "##### /etc/hosts: ######"
 cat /etc/hosts
 
+
+echo "########################### activate python virtual env ###########################"
+python3 -m venv /.venv
+source /.venv/bin/activate
+# Install Robotframework
+apt-get install -y python3 python3-dev python3-pip
+
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
+/.venv/bin/pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
+
+
 echo "##### Starting tests ##### with params: $JSON_TEST_PARAMS"
 cd tests
 ./init-proto.sh
