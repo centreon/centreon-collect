@@ -147,7 +147,6 @@ BEINSTANCE
     Ctn Config BBDO3    1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
-    Disconnect From Database
 
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Ctn Get Round Current Date
@@ -166,6 +165,7 @@ BEINSTANCE
     Should Be True    ${result}    no correct end_time in instances table.
     @{bdd_start_time}    Query    SELECT start_time FROM instances WHERE instance_id=1
     ${now}    Ctn Get Round Current Date
+    Disconnect From Database
     Should Be True
     ...    ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}
     ...    sg=no correct start_time in instances table.
@@ -221,7 +221,6 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
-    Disconnect From Database
 
     Ctn Clear Retention
 
@@ -240,10 +239,11 @@ BE_TIME_NULL_SERVICE_RESOURCE
     Should Be Equal As Strings
     ...    ${output}
     ...    ((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
+    Disconnect From Database
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
+BE_DEFAULT_NOTIFICATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Documentation]    default notification_interval must be set to NULL in services, hosts and resources tables.
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
@@ -256,7 +256,6 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     Execute SQL String    DELETE FROM services
     Execute SQL String    DELETE FROM resources
     Execute SQL String    DELETE FROM hosts
-    Disconnect From Database
 
     Ctn Clear Retention
 
@@ -270,6 +269,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         Sleep    1s
         IF    "${output}" == "((0.0, 0.0),)"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Ctn Stop Engine
     Ctn Kindly Stop Broker
