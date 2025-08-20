@@ -2414,10 +2414,15 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
     Returns: jwt token
     """
     value = random.randint(0, 100000)
+    now = datetime.now()
     payload = {
-        "iss": f"centreon{value}",
-        "iat": int(datetime.now().timestamp()),
-        "exp": int((datetime.now() + timedelta(seconds=exp_s)).timestamp())
+        "name": f"centreon{value}",
+        "iat": int(now.timestamp())
     }
+    # if exp_s == -1, set exp to None (null in JWT)
+    if exp_s != -1:
+        payload["exp"] = int((now + timedelta(seconds=exp_s)).timestamp())
+    else:
+        payload["exp"] = None
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")

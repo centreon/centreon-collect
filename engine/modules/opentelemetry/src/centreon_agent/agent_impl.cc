@@ -322,6 +322,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::OnReadDone(bool ok) {
   if (ok) {
     if (_exp_time != std::chrono::system_clock::time_point::min() &&
+        _exp_time != std::chrono::system_clock::time_point::max() &&
         _exp_time <= std::chrono::system_clock::now()) {
       SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
                           static_cast<void*>(this), _class_name);
