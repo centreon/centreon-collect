@@ -1779,7 +1779,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
-    ${token1}    Ctn Create Jwt Token    ${60}
+    ${token1}    Ctn Create Jwt Token    ${-1}
 
     Ctn Add Token Otl Server Module    0    ${token1}
 
@@ -2329,7 +2329,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Engine Config Set Value    0    log_level_config    error
     Ctn Engine Config Set Value    0    log_level_events    error
 
-    ${token1}    Ctn Create Jwt Token    ${60}
+    ${token1}    Ctn Create Jwt Token    ${-1}
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' == 'None'
