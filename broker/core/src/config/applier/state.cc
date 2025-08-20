@@ -437,7 +437,7 @@ void state::set_cache_config_dir(
   if (!_cache_config_dir.empty()) {
     _logger->info("Watching for changes in '{}'", _cache_config_dir.string());
     _cache_config_dir_watcher = std::make_unique<file::directory_watcher>(
-        _cache_config_dir, IN_CREATE | IN_MODIFY, true);
+        _cache_config_dir, IN_CREATE | IN_MODIFY | IN_ATTRIB, true);
   } else if (_cache_config_dir_watcher) {
     _logger->info("Stop watching for changes in '{}'",
                   _cache_config_dir.string());
@@ -543,11 +543,11 @@ std::vector<uint32_t> state::_watch_engine_conf() {
       std::string_view event_str;
       if (event & IN_CREATE)
         event_str = "IN_CREATE";
-      else if (event & IN_MODIFY)
+      else if (event & (IN_MODIFY | IN_ATTRIB))
         event_str = "IN_MODIFY";
       else
         event_str = "UNKNOWN";
-      if (((event & IN_CREATE) || (event & IN_MODIFY)) &&
+      if (((event & IN_CREATE) || (event & (IN_MODIFY | IN_ATTRIB))) &&
           absl::EndsWith(name, ".lck")) {
         std::string_view prefix(name.data(), name.size() - 4);
         uint32_t poller_id;

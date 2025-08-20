@@ -22,6 +22,7 @@
 import Common
 import grpc
 import math
+from pathlib import Path
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
 from google.protobuf.json_format import MessageToDict
@@ -33,7 +34,7 @@ import opentelemetry.proto.metrics.v1.metrics_pb2
 from array import array
 from dateutil import parser
 import datetime
-from os import makedirs, chmod
+from os import makedirs, chmod, remove
 from os.path import exists, dirname, basename
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
@@ -250,11 +251,14 @@ class EngineInstance:
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
         self.service_cmd[service_id] = "command_{}".format(command_id)
 
-        retval = """define service {{
-    host_name                       host_{0}
-    service_description             service_{1}
-    _SERVICE_ID                     {1}
-    check_command                   {2}
+        return self.define_service(host_id, service_id, f"service_{service_id}", self.service_cmd[service_id])
+
+    def define_service(self, host_id: int, service_id: int, service_description: str, command_name: str):
+        return f"""define service {{
+    host_name                       host_{host_id}
+    service_description             {service_description}
+    _SERVICE_ID                     {service_id}
+    check_command                   {command_name}
     check_period                    24x7
     max_check_attempts              3
     check_interval                  5
@@ -262,11 +266,9 @@ class EngineInstance:
     register                        1
     active_checks_enabled           1
     passive_checks_enabled          1
-    _KEY_SERV{0}_{1}                VAL_SERV{1}
+    _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-""".format(
-            host_id, service_id, self.service_cmd[service_id])
-        return retval
+"""
 
     def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
         """
@@ -853,8 +855,8 @@ define contact {
                 makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
             if centralized:
-                with open(f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck", "w"):
-                    pass
+                lck_file = f"{VAR_ROOT}/lib/centreon/config/{inst + 1}.lck"
+                Path(lck_file).touch()
 
     def centengine_conf_add_bam(self):
         """
@@ -4722,6 +4724,23 @@ def ctn_engine_command_remove_connector(idx: int, command_name: str):
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg", "w") as f:
         f.writelines(lines)
 
+
+def ctn_engine_config_add_service(idx: int, host_id: int, service_id: int, service_description: str, command_name: str):
+    """
+    Add a service to the Engine configuration file.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        host_id (int): ID of the host to which the service belongs.
+        service_description (str): Description of the service.
+        command_name (str): Name of the command associated with the service.
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/services.cfg"
+    with open(filename, "a+") as f:
+        f.write(engine.define_service(host_id, service_id, service_description, command_name))
+        lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+        Path(lck_file).touch()
 
 def ctn_engine_check_sh_command_output():
     """
