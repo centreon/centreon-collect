@@ -2005,15 +2005,16 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    #if the message apear mean that the connection is accepted
+    #if the message apear mean that the connection is refused
     ${content}    Create List    UNAUTHENTICATED: No authorization header
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
     
 BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
-    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled with no trusted_token
+    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled with no token in the trusted_token
     ...    When the Centreon Agent attempts to connect with tls
-    ...    Then the connection should be accepted
+    ...    Then the connection should be refused
+    ...    And the log should contain the message "No authorization header"
     [Tags]    broker    engine    opentelemetry    MON-170625
 
     Ctn Config Engine    ${1}    ${2}    ${2}
@@ -2038,6 +2039,17 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
     Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
     Ctn Config BBDO3    1
     Ctn Clear Retention
@@ -2053,8 +2065,13 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
-    Should Be True    ${result}    resources table not updated
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    15    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Not Be True    ${result}    resources table should not be updated for host_1
+
+    ${content}    Create List    UNAUTHENTICATED: No authorization header
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Missing authorization" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
     [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
