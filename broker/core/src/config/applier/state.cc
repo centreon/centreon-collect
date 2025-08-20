@@ -508,13 +508,28 @@ const std::filesystem::path& state::proto_conf() const {
  * @return A vector of poller IDs for which a .lck file is present in the
  * cache configuration directory.
  */
-std::vector<uint32_t> state::_get_current_lck_files() {
+std::vector<uint32_t> state::_get_current_lck_files() noexcept {
   std::vector<uint32_t> retval;
   if (_cache_config_dir_watcher) {
-    for (const auto& entry :
-         std::filesystem::directory_iterator(_cache_config_dir)) {
-      if (entry.is_regular_file() && entry.path().extension() == ".lck") {
-        std::string_view name = entry.path().stem().string();
+    std::error_code ec;
+
+    std::filesystem::directory_iterator it(_cache_config_dir, ec);
+    if (ec) {
+      _logger->error("Cannot iterate in cache config directory '{}': {}",
+                     _cache_config_dir.string(), ec.message());
+      return retval;
+    }
+
+    for (const auto& entry : it) {
+      bool is_regular = entry.is_regular_file(ec);
+      if (ec) {
+        _logger->warn("Cannot check if '{}' is a regular file: {}",
+                      entry.path().string(), ec.message());
+        continue;
+      }
+
+      if (is_regular && entry.path().extension() == ".lck") {
+        std::string name = entry.path().stem().string();
         uint32_t poller_id;
         if (absl::SimpleAtoi(name, &poller_id)) {
           _logger->debug("Found '{}.lck' for poller id '{}'", name, poller_id);
