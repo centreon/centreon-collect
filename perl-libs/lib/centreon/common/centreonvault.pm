@@ -48,6 +48,10 @@ sub new {
     return $self;
 }
 
+sub is_enabled {
+    my ($self) = @_;
+    return $self->{enabled};
+}
 
 sub init {
     my ($self, %options) = @_;

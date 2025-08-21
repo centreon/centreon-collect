@@ -765,7 +765,7 @@ sub service_discovery_post_exec {
 }
 
 sub service_execute_commands {
-    my ($self, %options) = @_;
+    my ($self) = @_;
 
     foreach my $rule_id (keys %{$self->{discovery}->{rules}}) {
         foreach my $poller_id (keys %{$self->{discovery}->{rules}->{$rule_id}->{hosts}}) {
@@ -784,7 +784,6 @@ sub service_execute_commands {
                     command_line => $self->{discovery}->{rules}->{$rule_id}->{command_line},
                     host         => $host,
                     poller       => $self->{service_pollers}->{$poller_id},
-                    vault_count  => $options{vault_count}
                 );
 
                 $self->{logger}->writeLogDebug("[autodiscovery] -servicediscovery- $self->{uuid} [" .
@@ -881,16 +880,6 @@ sub launchdiscovery {
     }
     $self->{audit_user_id} = $user_id;
 
-    ##################
-    # get vault config
-    ##################
-
-    ($status, $message, my $vault_count) = $self->get_vault_count();
-    if ($status < 0) {
-        $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => $message);
-        return -1;
-    }
-
     ################
     # get rules
     ################
@@ -916,12 +905,13 @@ sub launchdiscovery {
     foreach my $rule_id (keys %$rules) {
         ($status, $message, my $hosts, my $count) = gorgone::modules::centreon::autodiscovery::services::resources::get_hosts(
             host_template         => $rules->{$rule_id}->{host_template},
+            logger                => $self->{logger},
             poller_id             => $rules->{$rule_id}->{poller_id},
             class_object_centreon => $self->{class_object_centreon},
             with_macro            => 1,
             host_lookup           => $data->{content}->{filter_hosts},
             poller_lookup         => $data->{content}->{filter_pollers},
-            vault_count           => $vault_count
+            vault                 => $self->{class_autodiscovery}->{vault},
         );
         if ($status < 0) {
             $self->send_log_msg_error(token => $options{token}, subname => 'servicediscovery', number => $self->{uuid}, message => $message);
@@ -968,7 +958,7 @@ sub launchdiscovery {
         pollers_reload     => {}
     };
 
-    $self->service_execute_commands(vault_count => $vault_count);
+    $self->service_execute_commands();
 
     return 0;
 }
@@ -977,34 +967,6 @@ sub event {
     my ($self, %options) = @_;
 
     $self->{class_autodiscovery}->event();
-}
-
-sub get_vault_count() {
-    my ($self, %options) = @_;
-
-    # Check if vault config file exists
-    if (-e $self->{config}->{vault_file}) {
-        my ($fh, $size);
-        # Read config file
-        if (!open($fh, '<', $self->{config}->{vault_file})) {
-            return (-1, "Could not open $self->{config}->{vault_file}: $!");
-        }
-        my $content = do {
-            local $/;
-            <$fh>
-        };
-        close $fh;
-        # Check JSON validity
-        my $vault_config;
-        eval {
-            $vault_config = JSON::XS->new->decode($content);
-        };
-        if ($@) {
-            return (-1, "Cannot decode json $self->{config}->{vault_file}: $!");
-        }
-        return (0, '', 1);
-    }
-    return (0, '', 0);
 }
 
 1;
