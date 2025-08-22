@@ -468,7 +468,7 @@ jobs:
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
-    name: ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.test_group_name }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
