@@ -99,6 +99,10 @@ runs:
         fi
 
     - name: Publish RPMs
+      shell: bash
+      env:
+        JF_URL: https://centreon.jfrog.io
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
       run: |
         set -eux
 
@@ -198,5 +202,3 @@ runs:
             fi
           done
         done
-
-      shell: bash

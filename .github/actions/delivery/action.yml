@@ -112,6 +112,10 @@ runs:
 
     - if: ${{ env.extfile == 'rpm' }}
       name: Publish RPMs
+      shell: bash
+      env:
+        JF_URL: https://centreon.jfrog.io
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
       run: |
         set -eux
 
@@ -217,10 +221,9 @@ runs:
           done
         fi
 
-      shell: bash
-
     - if: ${{ env.extfile == 'deb' }}
       name: Publish DEBs
+      shell: bash
       run: |
         FILES="*.${{ env.extfile }}"
 
@@ -286,4 +289,3 @@ runs:
           echo "Uploading $file"
           jf rt upload "$file" "$ROOT_REPO_PATH/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
-      shell: bash
