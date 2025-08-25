@@ -28,6 +28,9 @@ inputs:
   delivery_type:
     description: "Delivery to feature or standard repository"
     required: true
+  centreon_technique_pat:
+    description: "Token used to handle delivery."
+    required: true
 
 runs:
   using: "composite"
@@ -56,7 +59,7 @@ runs:
         JF_URL: https://centreon.jfrog.io
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - if: inputs.delivery_type == 'feature' && env.extfile = 'rpm'
+    - if: inputs.delivery_type == 'feature' && env.extfile == 'rpm'
       name: Create a rpm feature repository
       shell: bash
       env:
@@ -70,7 +73,7 @@ runs:
         echo "[INFO] Creating a rpm feature repository if it does not exist"
 
         curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.CENTREON_TECHNIQUE_PAT }}" \
+            -H "Authorization: Bearer ${{ inputs.centreon_technique_pat }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/centreon/delivery-tooling/dispatches \
             -d "$(jq -n \
