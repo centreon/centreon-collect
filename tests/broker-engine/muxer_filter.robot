@@ -287,7 +287,7 @@ CBD_RELOAD_AND_FILTERS
 
     # New configuration
     Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
-
+    Ctn Broker Config Flush
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
     Ctn Restart Engine
@@ -320,6 +320,7 @@ CBD_RELOAD_AND_FILTERS
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     ${start}    Get Current Date
+    Ctn Broker Config Flush
     Ctn Restart Engine
     Ctn Reload Broker
     # wait broker reload
@@ -385,6 +386,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # New configuration
     Ctn Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
+    Ctn Broker Config Flush
 
     Log To Console    Second configuration: only storage events are sent.
     ${start}    Get Current Date
@@ -417,6 +419,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Ctn Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    Ctn Broker Config Flush
     ${start}    Get Current Date
     Ctn Restart Engine
     Ctn Reload Broker

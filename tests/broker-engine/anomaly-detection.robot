@@ -131,6 +131,7 @@ ANO_JSON_SENSITIVITY_NOT_SAVED
     ...    55.0
     ...    ${predict_data}
     Ctn Clear Retention
+    Ctn Config Broker    module
     Ctn Start Engine
     Sleep    5s
     Ctn Stop Engine
@@ -141,6 +142,7 @@ ANO_CFG_SENSITIVITY_SAVED
     [Documentation]    cfg sensitivity saved in retention
     [Tags]    engine    anomaly    retention
     Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    module
     ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric    4.00
     ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
     Ctn Create Anomaly Threshold File V2
@@ -162,6 +164,7 @@ ANO_EXTCMD_SENSITIVITY_SAVED
     [Tags]    engine    anomaly    retention    extcmd
     FOR    ${use_grpc}    IN RANGE    1    2
         Ctn Config Engine    ${1}    ${50}    ${20}
+	Ctn Config Broker    module
         ${serv_id}    Ctn Create Anomaly Detection    ${0}    ${1}    ${1}    metric
         ${predict_data}    Evaluate    [[0,50,2, 10],[2648812678,25,-5,6]]
         Ctn Create Anomaly Threshold File V2
@@ -244,7 +247,7 @@ ANO_DT1
     Ctn Kindly Stop Broker
 
 ANO_DT2
-    [Documentation]    Given a service and its AD, 
+    [Documentation]    Given a service and its AD,
     ...    when we delete downtime on dependent service, AD must not be in downtime anymore
     [Tags]    broker    engine    anomaly
     Ctn Config Engine    ${1}    ${50}    ${20}

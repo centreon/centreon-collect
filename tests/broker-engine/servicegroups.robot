@@ -26,6 +26,7 @@ EBNSG1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
@@ -48,7 +49,7 @@ EBNSGU1
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Config Broker    module
+    Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
     Ctn Config Broker Sql Output    central    unified_sql
@@ -58,6 +59,7 @@ EBNSGU1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Ctn Wait For Engine To Be Ready    ${start}    ${3}

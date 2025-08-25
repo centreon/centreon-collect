@@ -385,9 +385,16 @@ def ctn_get_workspace_win():
 
 def ctn_start_mysql():
     if not ctn_run_env():
-        logger.console("Starting Mariadb with systemd")
-        getoutput("systemctl start mysql")
-        logger.console("Mariadb started with systemd")
+        if os.path.exists("/usr/bin/systemctl"):
+            logger.console("Starting Mariadb with systemd")
+            getoutput("systemctl start mysql")
+            logger.console("Mariadb started with systemd")
+        elif os.path.exists("/usr/sbin/service"):
+            logger.console("Starting Mariadb with service")
+            getoutput("service mysql start")
+            logger.console("Mariadb started with service")
+        else:
+            logger.console("Unable to start the database")
     else:
         if os.path.exists("/usr/libexec/mysqldtoto"):
             logger.console("Starting mysqld directly")
@@ -408,9 +415,16 @@ def ctn_start_mysql():
 
 def ctn_stop_mysql():
     if not ctn_run_env():
-        logger.console("Stopping Mariadb with systemd")
-        getoutput("systemctl stop mysql")
-        logger.console("Mariadb stopped with systemd")
+        if os.path.exists("/usr/bin/systemctl"):
+            logger.console("Stopping Mariadb with systemd")
+            getoutput("systemctl stop mysql")
+            logger.console("Mariadb stopped with systemd")
+        elif os.path.exists("/usr/sbin/service"):
+            logger.console("Stopping Mariadb with service")
+            getoutput("service mysql stop")
+            logger.console("Mariadb stopped with service")
+        else:
+            logger.console("Unable to stop the database")
     else:
         if os.path.exists("/usr/libexec/mysqldtoto"):
             logger.console("Stopping directly mysqld")

@@ -1240,6 +1240,7 @@ BECUSTOMHOSTVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1275,6 +1276,7 @@ BECUSTOMSVCVAR
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1310,6 +1312,7 @@ BESERVCHECK
     [Tags]    broker    engine    host    extcmd    atoi
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -1339,6 +1342,7 @@ BEHOSTCHECK
     [Tags]    broker    engine    host    extcmd    bbdo3
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1

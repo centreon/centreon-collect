@@ -173,7 +173,7 @@ BSCSSTG1
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Flush Log    rrd    0
     Ctn Broker Config Source Log    rrd    1
-    
+
     Ctn Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -448,6 +448,7 @@ BSCSSGA2
 *** Keywords ***
 Ctn Start Stop Service
     [Arguments]    ${interval}
+    Ctn Broker Config Flush
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     Sleep    ${interval}
@@ -465,6 +466,7 @@ Ctn Start Stop Service
 
 Ctn Start Stop Instance
     [Arguments]    ${interval}
+    Ctn Broker Config Flush
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Sleep    ${interval}
     Send Signal To Process    SIGTERM    b1

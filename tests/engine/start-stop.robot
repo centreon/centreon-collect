@@ -108,6 +108,7 @@ ESSOCWNV
     Ctn Config Engine    ${1}
     Ctn Engine Config Set Value    ${0}    broker_module    /usr/lib64/nagios/plugins/centreon-broker/cbmod.so ${ETC_ROOT}/centreon-broker/central-module0.json    True    True
     Ctn Engine Config Delete Key    ${0}    broker_module_cfg_file
+    Ctn Config Broker    module
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     ${content}    Create List    is deprecated and will be removed in future versions.

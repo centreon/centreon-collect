@@ -276,6 +276,7 @@ BSCSSCGRR2
 *** Keywords ***
 Ctn Start Stop Service
     [Arguments]    ${interval}
+    Ctn Broker Config Flush
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     Sleep    ${interval}
@@ -293,6 +294,7 @@ Ctn Start Stop Service
 
 Ctn Start Stop Instance
     [Arguments]    ${interval}
+    Ctn Broker Config Flush
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Sleep    ${interval}
     Send Signal To Process    SIGTERM    b1

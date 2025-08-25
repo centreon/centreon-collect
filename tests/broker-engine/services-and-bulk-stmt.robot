@@ -286,8 +286,8 @@ RLCode
     ...    end
     ...
     ...    function write(d)
-    ...    broker_log:info(0, "toto")
-    ...    return true
+    ...      broker_log:info(0, "toto")
+    ...      return true
     ...    end
 
     # Create the initial LUA script file
@@ -343,6 +343,7 @@ metric_mapping
     Ctn Config Engine    ${1}    ${1}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Broker Config Add Item    central    bbdo_version    3.0.1
     Ctn Broker Config Add Item    module0    bbdo_version    3.0.1
     Ctn Broker Config Log    central    lua    debug

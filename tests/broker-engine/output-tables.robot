@@ -91,6 +91,7 @@ BEINSTANCESTATUS
     Ctn Engine Config Set Value    0    accept_passive_service_checks    0    True
 
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -142,6 +143,7 @@ BEINSTANCE
     Ctn Config Engine    ${1}    ${50}    ${20}
 
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Config BBDO3    1
@@ -175,6 +177,7 @@ BE_NOTIF_OVERFLOW
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Add Item    module0    bbdo_version    2.0.0
     Ctn Broker Config Add Item    central    bbdo_version    2.0.0
@@ -213,6 +216,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
@@ -248,6 +252,7 @@ BE_DEFAULT_NOTIFICATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
     [Tags]    broker    engine    protobuf    bbdo
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
