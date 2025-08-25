@@ -597,6 +597,7 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: classic
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
