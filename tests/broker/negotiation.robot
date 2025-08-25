@@ -20,6 +20,7 @@ BC1
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config BBDO3    ${0}
+    Ctn Broker Config Flush
 
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${start}    Get Current Date

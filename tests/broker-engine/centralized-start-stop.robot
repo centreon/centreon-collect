@@ -552,6 +552,7 @@ BECSS_ENGINE_DELETE_HOST
     [Tags]    broker    engine    start-stop
     Ctn Config Centralized Engine    ${1}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    config    debug
     Ctn Broker Config Log    module0    core    off

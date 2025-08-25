@@ -103,6 +103,8 @@ Ctn Start Broker
 	Ctn Config BBDO3    ${count}    3.1.0
         Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     END
+    Log To Console    Flushing broker configuration
+    Ctn Broker Config Flush
 
     # Currently we are in BBDO2 by default.
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1    stdout=${BROKER_LOG}/central-broker-master-stdout.log    stderr=${BROKER_LOG}/central-broker-master-stderr.log
@@ -213,6 +215,7 @@ Ctn Stop Processes
     Terminate All Processes    kill=True
     Ctn Kill Broker
     Ctn Kill Engine
+    Ctn Broker Config Reset
 
 Ctn Start Engine
     [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
@@ -220,6 +223,7 @@ Ctn Start Engine
     IF    ${newGeneration}
         Ctn Config BBDO3    ${count}    3.1.0
     END
+    Ctn Broker Config Flush    ${False}
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
@@ -256,6 +260,7 @@ Ctn Start Engine With Extended Conf
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
+	Ctn Broker Config Flush    ${False}
         Start Process
         ...    /usr/sbin/centengine
         ...    --extended-config\=/tmp/centengine_extend.json
@@ -270,6 +275,7 @@ Ctn Restart Engine
 
 Ctn Start Custom Engine
     [Arguments]    ${broker_conf}    ${conf_path}    ${process_alias}
+    Ctn Broker Config Flush    ${False}
     Start Process    /usr/sbin/centengine
     ...    -b    ${broker_conf}
     ...    ${conf_path}

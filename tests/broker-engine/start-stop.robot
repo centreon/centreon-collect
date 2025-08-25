@@ -662,6 +662,7 @@ BESSCTO
     Ctn Engine Command Remove Connector    ${0}    *
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
       ${start}    Ctn Get Round Current Date
@@ -685,6 +686,7 @@ BESSCTOWC
     Ctn Engine Command Add Arg    ${0}    *    --duration 1000
     Ctn Config Broker    central
     Ctn Config Broker    module
+    Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
       ${start}    Ctn Get Round Current Date
