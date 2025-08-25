@@ -121,7 +121,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{inputs.test_group_name}}
+    name: ${{ matrix.feature }} ${{ inputs.test_group_name }}
 
     steps:
       - name: Checkout sources
@@ -183,7 +183,7 @@ jobs:
         if: ${{ failure() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.test_group_name}}
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ inputs.test_group_name }}
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
             cp tests/log.html reports/$FILE_PREFIX-log.html
@@ -203,7 +203,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: reports-${{inputs.test_group_name}}-${{ steps.feature-path.outputs.feature_name_with_dash }}
+          name: reports-${{ inputs.test_group_name }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
@@ -218,20 +218,20 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:
-          pattern: reports-${{inputs.test_group_name}}-*
+          pattern: reports-${{ inputs.test_group_name }}-*
           path: reports
           merge-multiple: true
 
       - name: Upload the regrouped artifact
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
         with:
-          name: reports-${{inputs.test_group_name}}
+          name: reports-${{ inputs.test_group_name }}
           path: reports/
           retention-days: 1
 
       - name: Delete separated artifacts
         run: |
-          artifact_pattern="reports-${{inputs.test_group_name}}-"
+          artifact_pattern="reports-${{ inputs.test_group_name }}-"
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           artifact_exist=true
           while [ "$artifact_exist" = true ] ;do

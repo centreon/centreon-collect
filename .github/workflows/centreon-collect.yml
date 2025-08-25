@@ -157,7 +157,7 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit test ${{ matrix.distrib }}
+    name: unit-test ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
@@ -382,7 +382,7 @@ jobs:
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
-    name: ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.test_group_name }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
@@ -453,7 +453,7 @@ jobs:
           - distrib: el9
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: deliver-rpm ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -490,7 +490,7 @@ jobs:
           - distrib: noble
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: deliver-deb ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
