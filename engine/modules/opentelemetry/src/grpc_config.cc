@@ -126,15 +126,13 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   bool compress = false;
   int second_keepalive_interval;
 
-  if (json_config.has_member("encryption")) {
-    const std::string& encryption = json_config.get_string("encryption");
-    if (encryption == "full") {
-      security_mode = TLS_SECURE;
-    } else if (encryption == "insecure") {
-      security_mode = TLS_INSECURE;
-    } else {
-      security_mode = NONE;
-    }
+  const std::string& encryption = json_config.get_string("encryption", "no");
+  if (encryption == "full") {
+    security_mode = TLS_SECURE;
+  } else if (encryption == "insecure") {
+    security_mode = TLS_INSECURE;
+  } else {
+    security_mode = NONE;
   }
 
   read_file(json_config_v, "public_cert", certificate);

@@ -120,8 +120,9 @@ class grpc_config {
         _second_max_reconnect_backoff(0),
         _max_message_length(0) {}
 
+  // used to construct grpc config for agent
   grpc_config(const std::string& hostp,
-              bool crypted,
+              e_security_mode security_mode,
               const std::string& certificate,
               const std::string& cert_key,
               const std::string& ca_cert,
@@ -133,7 +134,8 @@ class grpc_config {
               const std::string& token,
               const absl::flat_hash_set<std::string>& trusted_tokens)
       : _hostport(hostp),
-        _crypted(crypted),
+        _security_mode(security_mode),
+        _crypted(security_mode != NONE),
         _certificate(certificate),
         _cert_key(cert_key),
         _ca_cert(ca_cert),

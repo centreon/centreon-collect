@@ -94,7 +94,14 @@ config::config(const std::string& registry_key) {
   _log_file = get_sz_reg_or_default("log_file", "");
   _log_max_file_size = get_unsigned("log_max_file_size");
   _log_max_files = get_unsigned("log_max_files");
-  _encryption = get_bool("encryption");
+  std::string encryption = get_sz_reg_or_default("encryption", "no");
+  if (encryption == "full") {
+    _security_mode = common::grpc::grpc_config::TLS_SECURE;
+  } else if (encryption == "insecure") {
+    _security_mode = common::grpc::grpc_config::TLS_INSECURE;
+  } else {
+    _security_mode = common::grpc::grpc_config::NONE;
+  }
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
