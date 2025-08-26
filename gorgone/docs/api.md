@@ -153,7 +153,8 @@ curl --request GET "https://hostname:8443/api/internal/information" \
 
 ### force a ping to a remote node
 
-This endpoint is used to force a ping to a remote node, it will not return the status of the node, use constatus to see the result of the ping.
+This endpoint is used to force a ping to a remote node. It will not return the status of the node: use **constatus** to see the result of the ping.
+
 
 | Endpoint                      | Method |
 |:------------------------------|:-------|

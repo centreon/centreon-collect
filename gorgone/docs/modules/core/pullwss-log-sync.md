@@ -2,14 +2,17 @@
 ## Gorgone log synchronization with pullwss communication mode.
 
 
-each box represent a process running. Each participant represent a file used by the process.\
-as participant name must be unique, P or C represent if the file is used on the Poller or the Central\
-dotted line are zmq message, full line are direct subroutine call.
+Each box represents a process running. Each participant represents a file used by the process.\
+
+As participants' names must be unique, P or C represents whether the file is used on the Poller or the Central\
+
+The dotted lines are zmq messages, the full lines are direct subroutine calls
 
 ### Pullwss
-Please note that pullwss communication mode have a limitation on the message size that zmq don't have.
-To limit the size of the GETLOG message, the pullwss module split the message in smaller part, and send multiple SETLOGS message.
-Other communication module send only one SETLOGS message in this case.
+
+Please note that the pullwss communication mode has a limitation on message size that zmq doesn't have.
+To limit the size of the GETLOG message, the pullwss module splits the message into smaller parts, and sends multiple SETLOGS messages.
+Other communication modules send only one SETLOGS message in this case.
 
 ```mermaid
 sequenceDiagram
@@ -52,18 +55,18 @@ sequenceDiagram
     deactivate C/class/core
     deactivate C/class/core
 
-# central use the proxy module to send data to the remote node. proxy have multiples process runing in parallel,
-# it is not clear for now if the main process see message before the worker process.
+# The central uses the proxy module to send data to the remote node. Proxies have multiples processes runing in parallel,
+# it is not clear for now if the main process sees the message before the worker process.
     C/proxy/httpserver ->  + C/proxy/httpserver: read_zmq_events
     C/proxy/httpserver ->  + C/proxy/httpserver: proxy
     C/proxy/httpserver --) P/pullwss/class: GETLOGS
     deactivate C/proxy/httpserver
     deactivate C/proxy/httpserver
 
-# the poller (which is a distant node) retrieve the GETLOG message, and process it.
-# first the pullwss module listen the websocket, and transmit the message retrieved to the core.
-# the core process it and send back the response.
-# TODO : make a note wss_connect is not called everytime.
+# The poller (which is a distant node) retrieves the GETLOG message, and processes it.
+# First the pullwss module listens on the websocket, and transmits the message retrieved to the core.
+# The core processes it and sends back the response.
+# TODO : make a note that wss_connect is not called every time.
     P/pullwss/class -> + P/pullwss/class: wss_connect
     P/pullwss/class ->> + P/class/module: send_internal_action
     P/class/module --) P/class/core: GETLOG
@@ -77,7 +80,7 @@ sequenceDiagram
     deactivate P/class/core
 
 
-    # on the distant poller, processing of the message.
+    # On the distant poller, processing of the message.
     P/pullwss/class -> + P/pullwss/class: read_zmq_events
     P/pullwss/class -> + P/pullwss/class: transmit_back
     loop split the logs in smaller message if it's too big for the websocket, making possibility multiples SETLOG message
