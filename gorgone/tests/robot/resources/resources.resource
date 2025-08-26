@@ -157,8 +157,8 @@ Check Poller Communicate
     [Arguments]    ${poller_id}    ${max_failed_attempt}=0
     ${response}     Set Variable    ${EMPTY}
     Log To Console    checking Gorgone see poller in rest api response...
-    FOR    ${i}    IN RANGE    25
-        Sleep    5
+    FOR    ${i}    IN RANGE    30
+        Sleep    1
         ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
@@ -170,7 +170,7 @@ Check Poller Communicate
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 24    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
+    Should Be True    ${i} < 29    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
     Should Be True    ${max_failed_attempt} >= ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
 
