@@ -24,7 +24,7 @@
 #define AppId "D80E49AC-E863-41E6-A157-54AB2960FFC8"
 
 [Setup]
-AppId={{{#AppId}}
+AppId={{{#AppId}}}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppPublisher={#AppPublisher}
@@ -47,6 +47,9 @@ DisableDirPage=yes
 LicenseFile={#LicenseFile}
 SetupIconFile ={#CentreonIcon}
 PrivilegesRequired=admin
+UsePreviousAppDir=no
+AlwaysUsePersonalGroup=false
+SetupLogging=yes
 Uninstallable=yes
 DisableStartupPrompt=yes
 WizardImageFile={#CentreonLogoLarge}
