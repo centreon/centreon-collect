@@ -120,7 +120,7 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
 
   std::string hostport = fmt::format("{}:{}", json_config.get_string("host"),
                                      json_config.get_unsigned("port"));
-  bool crypted = false;
+  grpc_config::e_security_mode security_mode = NONE;
   std::string certificate, cert_key, ca_cert;
   std::string ca_name;
   bool compress = false;
@@ -128,8 +128,13 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
 
   if (json_config.has_member("encryption")) {
     const std::string& encryption = json_config.get_string("encryption");
-    crypted =
-        (encryption == "full");  // true if full encryption otherwise false
+    if (encryption == "full") {
+      security_mode = TLS_SECURE;
+    } else if (encryption == "insecure") {
+      security_mode = TLS_INSECURE;
+    } else {
+      security_mode = NONE;
+    }
   }
 
   read_file(json_config_v, "public_cert", certificate);
@@ -164,10 +169,11 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   }
 
   static_cast<common::grpc::grpc_config&>(*this) = common::grpc::grpc_config(
-      hostport, crypted, certificate, cert_key, ca_cert, ca_name, compress,
-      second_keepalive_interval, second_max_reconnect_backoff,
+      hostport, security_mode, certificate, cert_key, ca_cert, ca_name,
+      compress, second_keepalive_interval, second_max_reconnect_backoff,
       max_message_length, token,
-      std::make_shared<absl::flat_hash_set<std::string>>(trusted_tokens));
+      std::make_shared<absl::flat_hash_set<std::string>>(
+          std::move(trusted_tokens)));
 }
 
 /**

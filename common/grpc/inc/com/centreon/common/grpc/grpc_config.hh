@@ -43,12 +43,17 @@ constexpr uint32_t calc_accept_all_compression_mask() {
  *
  */
 class grpc_config {
+ public:
+  enum e_security_mode { NONE, TLS_INSECURE, TLS_SECURE };
+
+ private:
   /**
    * @brief client case: where to connect
    * server case: address/port to listen
    *
    */
   std::string _hostport;
+  e_security_mode _security_mode = NONE;
   bool _crypted = false;
   std::string _certificate, _cert_key, _ca_cert;
   std::string _ca_name;
@@ -141,9 +146,10 @@ class grpc_config {
         _trusted_tokens(std::make_shared<absl::flat_hash_set<std::string>>(
             trusted_tokens)) {}
 
+  // use to construct grpc config for engine
   grpc_config(
       const std::string& hostp,
-      bool crypted,
+      e_security_mode security_mode,
       const std::string& certificate,
       const std::string& cert_key,
       const std::string& ca_cert,
@@ -155,7 +161,8 @@ class grpc_config {
       const std::string& token,
       const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
       : _hostport(hostp),
-        _crypted(crypted),
+        _security_mode(security_mode),
+        _crypted(security_mode != NONE),
         _certificate(certificate),
         _cert_key(cert_key),
         _ca_cert(ca_cert),
@@ -169,6 +176,7 @@ class grpc_config {
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
+  e_security_mode get_security_mode() const { return _security_mode; }
   const std::string& get_cert() const { return _certificate; }
   const std::string& get_key() const { return _cert_key; }
   const std::string& get_ca() const { return _ca_cert; }
