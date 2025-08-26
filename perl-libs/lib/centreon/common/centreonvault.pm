@@ -104,15 +104,7 @@ sub check_options {
 
 sub check_configuration {
     my ($self, %options) = @_;
-
-    if ( !defined($self->{vault_config}->{url}) || $self->{vault_config}->{url} eq '') {
-        $self->{logger}->writeLogDebug("Vault url is missing from configuration.");
-        $self->{vault_config}->{url} = '127.0.0.1';
-    }
-    if ( !defined($self->{vault_config}->{port}) || $self->{vault_config}->{port} eq '') {
-        $self->{logger}->writeLogDebug("Vault port is missing from configuration.");
-        $self->{vault_config}->{port} = '443';
-    }
+    $self->{vault_url} = $self->get_vault_url();
 
     # Normally, the role_id and secret_id data are encrypted using AES wit the following information:
     # firstKey = APP_SECRET (environment variable)
@@ -280,7 +272,7 @@ sub authenticate {
 
 
     # Authenticate to get the token
-    my $url = "https://" . $self->{vault_config}->{url} . ":" . $self->{vault_config}->{port} . "/v1/auth/approle/login";
+    my $url = $self->{vault_url} . "/v1/auth/approle/login";
     $self->{logger}->writeLogDebug("Authenticating to the vault server at URL: $url");
     $self->{curl_easy}->setopt( CURLOPT_URL, $url );
 
@@ -360,7 +352,7 @@ sub get_secret {
 
     # prepare the GET statement
     my $get_result_json;
-    my $url = "https://" . $self->{vault_config}->{url} . ":" . $self->{vault_config}->{port} . "/v1/" . $secret_path;
+    my $url = $self->{vault_url} .  "/v1/" . $secret_path;
     $self->{logger}->writeLogDebug("Requesting URL: $url");
 
     #$self->{curl_easy}->setopt( CURLOPT_VERBOSE, 1 );
@@ -399,6 +391,32 @@ sub get_secret {
     }
     $self->{logger}->writeLogInfo("Secret '$secret_name' from path '$secret_path' retrieved from the vault.");
     return $get_result_obj->{data}->{data}->{$secret_name};
+}
+
+sub get_vault_url {
+    my ($self) = shift;
+
+    my $url;
+    if ( !defined($self->{vault_config}->{url}) || $self->{vault_config}->{url} eq '') {
+        $self->{logger}->writeLogDebug("Vault url is missing from configuration, using https://127.0.0.1");
+        $url = 'https://127.0.0.1';
+    }
+    elsif ($self->{vault_config}->{url} !~ qr|^https?://|) { # if file don't specify http explicitly, we use https
+        $url = "https://";
+    }
+    $url .= $self->{vault_config}->{url};
+
+    if ( !defined($self->{vault_config}->{port}) || $self->{vault_config}->{port} eq '') {
+        $self->{logger}->writeLogDebug("Vault port is missing from configuration, using 443 by default");
+        $self->{vault_config}->{port} = '443';
+    }
+    if (defined($self->{vault_config}->{port}) and $self->{vault_config}->{port} =~ /\d+/) {
+        $url .= ':' . $self->{vault_config}->{port};
+    }
+    else {
+        $url .= ':443';
+    }
+    return $url;
 }
 
 sub transform_json_to_object {
