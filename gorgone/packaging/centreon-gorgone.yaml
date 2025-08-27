@@ -200,7 +200,6 @@ overrides:
       - perl(Tie::File) # required by MBI module
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
-      - centreon-common
       - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl
