@@ -359,7 +359,7 @@ Function silent_update_conf
     ClearErrors
     ${GetOptions} $cmdline_parameters "--encryption" $0
     ${IfNot} ${Errors}
-        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" $0
     ${EndIf}
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "encryption"
     ${If} $0 != "no"
