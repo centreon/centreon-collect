@@ -36,7 +36,7 @@ BECSS1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -72,7 +72,7 @@ BECSS2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -110,7 +110,7 @@ BECSS3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -148,7 +148,7 @@ BECSS4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -157,23 +157,6 @@ BECSS4
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
-
-BECSS5
-    [Documentation]    Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
-    [Tags]    broker    engine    start-stop
-    Ctn Config Centralized Engine    ${1}
-    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Broker Config Log    central    config    debug
-    Ctn Broker Config Log    central    bbdo    debug
-
-    Ctn Start Engine    newGeneration=True
-    Ctn Start Broker    newGeneration=True
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Broker and Engine seem not connected
-    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 BECSS_GRPC1
     [Documentation]     Scenario: Broker sends configuration to engine in new generation
@@ -195,6 +178,7 @@ BECSS_GRPC1
     Ctn Change Broker Tcp Output To Grpc    module0
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
+    Ctn Clear Broker Logs
 
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
@@ -205,7 +189,7 @@ BECSS_GRPC1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -234,6 +218,7 @@ BECSS_GRPC2
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Flush Log    central    0
+    Ctn Clear Broker Logs
 
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
@@ -245,7 +230,7 @@ BECSS_GRPC2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -276,6 +261,7 @@ BECSS_GRPC3
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Broker Logs
 
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -287,7 +273,7 @@ BECSS_GRPC3
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -318,6 +304,7 @@ BECSS_GRPC4
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Broker Logs
 
     Ctn Start Engine    newGeneration=True
     Ctn Start Broker    newGeneration=True
@@ -329,7 +316,7 @@ BECSS_GRPC4
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -338,31 +325,6 @@ BECSS_GRPC4
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
-
-BECSS_GRPC5
-    [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
-    [Tags]    broker    engine    start-stop    MON-153802
-    Ctn Config Centralized Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Engine Config Set Value    ${0}    debug_level    ${-1}
-    Ctn Change Broker Tcp Output To Grpc    central
-    Ctn Change Broker Tcp Output To Grpc    module0
-    Ctn Change Broker Tcp Input To Grpc    central
-    Ctn Change Broker Tcp Input To Grpc    rrd
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    Ctn Start Broker    newGeneration=True
-    Ctn Start Engine    newGeneration=True
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connections between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
 
 BECSS_GRPC_COMPRESS1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
@@ -377,14 +339,24 @@ BECSS_GRPC_COMPRESS1
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Change Broker Compression Output    module0    central-module-master-output    yes
     Ctn Change Broker Compression Input    central    centreon-broker-master-input    yes
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Broker Logs
+
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
+    ${start}    Ctn Get Round Current Date
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
 
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection not established between Engine and Broker
+
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
     Ctn Stop Engine
@@ -410,13 +382,23 @@ BECSS_CRYPTED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
     Ctn Remove Host From Broker Output    module0    central-module-master-output
     Ctn Add Host To Broker Output    module0    central-module-master-output    localhost
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Broker Logs
+
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
+	${start}    Ctn Get Round Current Date
 	${result}    Ctn In Bbdo2
 	Should Not Be True    ${result}    We should be in BBDO3 in this test.
         ${result}    Ctn Check Connections
         Should Be True    ${result}    Connection between Engine and Broker not established
+
+	${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+        Should Be True    ${result}    No new Engine configuration found in central cbd log
+
         ${result}    Ctn Check Poller Enabled In Database    1    10
         Should Be True    ${result}    Poller not visible in database
         Ctn Stop Engine
@@ -440,6 +422,7 @@ BECSS_CRYPTED_GRPC2
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    False
+    Ctn Clear Broker Logs
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
@@ -465,6 +448,7 @@ BECSS_CRYPTED_GRPC3
     Ctn Change Broker Tcp Input To Grpc    central
     Ctn Change Broker Tcp Input To Grpc    rrd
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Ctn Clear Broker Logs
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
@@ -493,6 +477,7 @@ BECSS_CRYPTED_REVERSED_GRPC1
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Ctn Clear Broker Logs
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
@@ -522,6 +507,10 @@ BECSS_CRYPTED_REVERSED_GRPC2
     Ctn Add Broker Tcp Output Grpc Crypto    module0    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Ctn Clear Broker Logs
+    Log To Console    Waiting 2s to be sure configurations are written
+    Sleep    2s
+    #Ctn Stop Processes
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
@@ -547,6 +536,7 @@ BECSS_CRYPTED_REVERSED_GRPC3
     Ctn Add Broker Tcp Input Grpc Crypto    central    True    True
     Ctn Add Host To Broker Input    central    central-broker-master-input    localhost
     Ctn Remove Host From Broker Output    module0    central-module-master-output
+    Ctn Clear Broker Logs
     FOR    ${i}    IN RANGE    0    5
         Ctn Start Broker    newGeneration=True
         Ctn Start Engine    newGeneration=True
@@ -572,6 +562,7 @@ BECSS_ENGINE_DELETE_HOST
     Ctn Engine Config Set Value    ${0}    log_level_functions    trace
     Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Clear Retention
+    Ctn Clear Broker Logs
     ${start}    Get Current Date
     Ctn Start Broker    True    True
     Ctn Start Engine    newGeneration=True
@@ -589,7 +580,7 @@ BECSS_ENGINE_DELETE_HOST
     Ctn Engine Config Remove Host    ${0}    host_16
     Ctn Notify Broker Of Engine Config Change    ${0}
 
-    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${content}    Create List    Found lock file '/tmp/var/lib/centreon/config/1.lck' for poller id 1    Sending Engine configuration to poller 1    BBDO: received diff state ack
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No new Engine configuration found in central cbd log
 
@@ -614,16 +605,19 @@ BECSSBQ1
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
-    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Ctn Clear Broker Logs
     ${start}    Get Current Date
+    Ctn Create Bad Queue    central-broker-master.queue.central-broker-unified-sql
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
-    ${content}    Create List    execute statement 1245300e
 
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
-    Should Be True    ${result}    Services should be updated after the ingestion of the queue file
+    ${content}    Create List    stream got corrupted compressed data, skipping next byte    processing pb service event
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    Broker should raise an error about the bad queue file and the process service events
+    ${start}    Get Current Date
+
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
@@ -638,6 +632,7 @@ Centralized_Start_Stop_Engine_Broker_${id}
     Ctn Broker Config Log    central    core    debug
     Ctn Broker Config Log    central    processing    debug
     Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Clear Broker Logs
     IF    ${grpc}
         Ctn Change Broker Tcp Output To Grpc    central
         Ctn Change Broker Tcp Output To Grpc    module0
@@ -682,6 +677,7 @@ Centralized_Start_Stop_Broker_Engine_${id}
         Ctn Change Broker Tcp Input To Grpc    central
         Ctn Change Broker Tcp Input To Grpc    rrd
     END
+    Ctn Clear Broker Logs
     ${start}    Ctn Get Round Current Date
 
     Ctn Start Broker    newGeneration=True

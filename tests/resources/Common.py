@@ -1849,24 +1849,23 @@ def ctn_find_internal_id(date, exists=True, timeout: int = TIMEOUT):
 
 
 def ctn_create_bad_queue(filename: str):
-    f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
-    buffer = bytearray(10000)
-    buffer[0] = 0
-    buffer[1] = 0
-    buffer[2] = 0
-    buffer[3] = 0
-    buffer[4] = 0
-    buffer[5] = 0
-    buffer[6] = 8
-    buffer[7] = 0
-    t = 0
-    for i in range(8, 10000):
-        buffer[i] = t
-        t += 1
-        if t > 100:
-            t = 0
-    f.write(buffer)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb') as f:
+        buffer = bytearray(10000)
+        buffer[0] = 0
+        buffer[1] = 0
+        buffer[2] = 0
+        buffer[3] = 0
+        buffer[4] = 0
+        buffer[5] = 0
+        buffer[6] = 8
+        buffer[7] = 0
+        t = 0
+        for i in range(8, 10000):
+            buffer[i] = t
+            t += 1
+            if t > 100:
+                t = 0
+        f.write(buffer)
 
 
 def ctn_grep(file_path: str, pattern: str):
@@ -1908,9 +1907,9 @@ def ctn_check_types_in_resources(lst: list):
 
 
 def ctn_get_collect_version():
-    f = open("../CMakeLists.txt", "r")
-    lines = f.readlines()
-    f.close()
+    with open("../CMakeLists.txt", "r") as f:
+        lines = f.readlines()
+
     filtered = filter(lambda line: line.startswith("set(COLLECT_"), lines)
 
     rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
