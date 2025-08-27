@@ -31,6 +31,7 @@ Start Gorgone
     ${process}    Start Process
     ...    /usr/bin/perl
     ...    -I/centreon-collect/gorgone
+    ...    -I/centreon-collect/perl-libs/lib
     ...    ${gorgone_binary}
     ...    --config
     ...    /etc/centreon-gorgone/${ALIAS}/includer.yaml
@@ -84,6 +85,11 @@ Start Mockoon
 Stop Mockoon
     Terminate All Processes
     #Remove File    ${MOCKOON_LOG_FILE}
+
+Setup Vault
+    Run    mkdir -p /var/lib/centreon/vault/ /usr/share/centreon/
+    Copy File    ${ROOT_CONFIG}vault.json    /var/lib/centreon/vault/vault.json
+    Copy File    ${ROOT_CONFIG}vault-env     /usr/share/centreon/.env
 
 Setup Sudo
     [Documentation]    This keyword setup a simple sudo command for when we are root in a container which don't have sudo installed.
