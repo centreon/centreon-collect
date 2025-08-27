@@ -1731,13 +1731,11 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_warning
     Ctn Reload Engine
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
-
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_critical
@@ -1802,13 +1800,11 @@ BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_warning
     Ctn Reload Engine
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
-
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_critical
@@ -1873,13 +1869,11 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_warning
     Ctn Reload Engine
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
-
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_critical
@@ -2722,8 +2716,6 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
         ${echo_command}   Ctn Echo Command  "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command  ${0}    rejected_by_whitelist    ${echo_command}    OTEL connector
 
-
-
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -2756,8 +2748,6 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     Should Be True    ${result}    resources table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    rejected_by_whitelist
-    
-
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
