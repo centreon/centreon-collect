@@ -47,6 +47,7 @@ import re
 import stat
 import string
 import json
+import os
 
 
 sys.path.append('.')
@@ -664,6 +665,8 @@ passive_checks_enabled 1
             with open(f"{config_dir}/centengine.cfg", "w") as f:
                 bb = self._create_centengine(inst, debug_level=debug_level)
                 f.write(bb)
+                f.flush()
+                os.fsync(f.fileno())
 
             with open(f"{config_dir}/hosts.cfg", "w") as f:
                 with open(f"{config_dir}/services.cfg", "w") as ff:

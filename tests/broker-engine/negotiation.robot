@@ -287,6 +287,7 @@ BEDWEND
     Ctn Clear Broker Logs
     Remove Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration    recursive=${True}
     Create Directory    ${VarRoot}/lib/centreon-broker/pollers-configuration
+    Wait Until Created    ${VarRoot}/lib/centreon-broker/pollers-configuration    timeout=30s
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker    newGeneration=${True}

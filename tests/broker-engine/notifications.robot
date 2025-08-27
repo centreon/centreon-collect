@@ -1551,7 +1551,7 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     Ctn Create Single Day Time Period    0    short_time_period    ${start}    2
 
     Ctn Start Broker
-    Ctn Start Engine With Extend Conf
+    Ctn Start Engine With Extended Conf
 
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}

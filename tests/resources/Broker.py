@@ -18,7 +18,7 @@
 #
 
 import signal
-from os import setsid
+from os import setsid 
 from os import makedirs
 from os.path import exists
 import datetime
@@ -1058,8 +1058,9 @@ def ctn_broker_config_add_item(name, key, value):
         buf = f.read()
     conf = json.loads(buf)
     conf["centreonBroker"][key] = value
+    output = json.dumps(conf, indent=2)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-        f.write(json.dumps(conf, indent=2))
+        f.write(output)
 
 
 def ctn_broker_config_remove_item(name, key):
@@ -2831,12 +2832,17 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resour
         with connection:
             with connection.cursor() as cursor:
                 if in_resources:
+                    logger.console(
+                        f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
                     cursor.execute(
                         f"SELECT DISTINCT enabled FROM resources WHERE poller_id = {poller_id} AND enabled > 0")
                 else:
+                    logger.console(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                     cursor.execute(
                         f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
+                logger.console(f"result: {result}")
                 if len(result) > 0:
                     return True
         time.sleep(2)
