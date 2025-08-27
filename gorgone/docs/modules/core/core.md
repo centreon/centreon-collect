@@ -2,7 +2,7 @@
 
 ## Description
 
-The first process of gorgone is responsible for more than launching other module, and babysitting them.
+Gorgone's first process is responsible for more than launching other modules, and babysitting them.
 
 It also handles part of the log synchronization from distant pollers, transforming logs to responses from zmq messages, 
 and runs the check() sub of each module regulary.
