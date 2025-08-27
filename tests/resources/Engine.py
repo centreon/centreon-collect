@@ -1486,7 +1486,7 @@ def ctn_engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, v
         ff.writelines(lines)
 
 
-def ctn_engine_config_remove_service_host(idx: int, host: str):
+def ctn_engine_config_remove_all_services_from_host(idx: int, host: str):
     """
     Remove all the services of a host from the services.cfg file.
 
@@ -1494,7 +1494,8 @@ def ctn_engine_config_remove_service_host(idx: int, host: str):
         idx (int): index of the configuration (from 0)
         host (str): Host name
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
     host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
@@ -1530,7 +1531,7 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         idx (int): Index of the configuration (from 0)
         host (str): name of the host wanted to be removed
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    filename = f"{engine.get_config_dir(idx)}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -4738,9 +4739,11 @@ def ctn_engine_config_add_service(idx: int, host_id: int, service_id: int, servi
     conf_dir = engine.get_config_dir(idx)
     filename = f"{conf_dir}/services.cfg"
     with open(filename, "a+") as f:
-        f.write(engine.define_service(host_id, service_id, service_description, command_name))
+        f.write(engine.define_service(host_id, service_id,
+                service_description, command_name))
         lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
         Path(lck_file).touch()
+
 
 def ctn_engine_check_sh_command_output():
     """
