@@ -1284,17 +1284,6 @@ void applier::state::_apply_diff_conf(
   }
   APPLY_REPEATED_DIFF(cfg_dir);
   APPLY_DIFF(state_retention_file);
-  if (!diff.broker_module().empty()) {
-    pb_indexed_config.mut_state().clear_broker_module();
-    for (auto& item : diff.broker_module()) {
-      /* Don't try to remove modules as this operation can often fail. */
-      pb_indexed_config.mut_state().add_broker_module(item);
-      if (!broker::loader::instance().loaded(item)) {
-	if (!verify_config)
-	  broker::loader::instance().add_module(item);
-      }
-    }
-  }
   APPLY_DIFF(broker_module_directory);
   APPLY_DIFF(enable_macros_filter);
   APPLY_STR_LST_DIFF(macros_filter);
@@ -1356,6 +1345,26 @@ void applier::state::_apply_diff_conf(
   APPLY_DIFF(admin_pager);
   APPLY_DIFF(allow_empty_hostgroup_assignment);
   APPLY_DIFF(command_file);
+  if (!diff.broker_module().empty()) {
+    pb_indexed_config.mut_state().clear_broker_module();
+    for (auto& m : diff.broker_module()) {
+      pb_indexed_config.mut_state().add_broker_module(m);
+      if (!broker::loader::instance().loaded(m)) {
+        if (!verify_config) {
+          std::pair<std::string, std::string> p =
+              absl::StrSplit(m, absl::MaxSplits(' ', 1));
+          auto mod = broker::loader::instance().add_module(p.first, p.second);
+          if (mod)
+            mod->open();
+          else {
+            config_logger->error(
+                "Error loading broker module '{}' with parameters '{}'",
+                p.first, p.second);
+          }
+        }
+      }
+    }
+  }
   APPLY_DIFF(status_file);
   APPLY_DIFF(poller_name);
   APPLY_DIFF(poller_id);
