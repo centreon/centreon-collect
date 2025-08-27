@@ -102,7 +102,7 @@ Function reverse_onClick
         ${NSD_SetText} $hCtl_cma_endpoint_label "Listening interface:"
     ${Else}
         ${NSD_SetText} $hCtl_cma_endpoint_label "Poller endpoint:"
-	${EndIf}
+    ${EndIf}
 
     Pop $0
 FunctionEnd
@@ -276,14 +276,20 @@ FunctionEnd
 */
 Function init_encryption_dlg
     Push $0
+    Push $1
 
     SetRegView 64
     ClearErrors
-    ReadRegDWORD $0 HKLM ${CMA_REG_KEY} "encryption"
-    ${If} ${Errors} 
-    ${OrIf} $0 > 0
-        ${NSD_Check} $hCtl_encryption_EncryptionCheckBox
+    ReadRegStr $0 HKLM ${CMA_REG_KEY} "encryption"
+    ${If} ${Errors}
+    ${ElseIf} $0 == "no"
+        ${NSD_CB_SelectString} $hCtl_encryption_encryption_droplist "No TLS"
+    ${ElseIf} $0 == "insecure"
+        ${NSD_CB_SelectString} $hCtl_encryption_encryption_droplist "TLS Insecure"
+    ${Else}
+        ${NSD_CB_SelectString} $hCtl_encryption_encryption_droplist "TLS"
     ${EndIf}
+
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "public_cert"
     ${NSD_SetText} $hCtl_encryption_certificate_file_Txt $0
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "private_key"
@@ -295,7 +301,21 @@ Function init_encryption_dlg
     ReadRegStr $0 HKLM ${CMA_REG_KEY} "token"
     ${NSD_SetText} $hCtl_encryption_token $0
 
+    ; check reverse flag from registry
+    ReadRegDWORD $1 HKLM ${CMA_REG_KEY} "reversed_grpc_streaming"
 
+    ; --- Always try to remove "TLS Insecure" ---
+    ${NSD_CB_FindStringExact} $hCtl_encryption_encryption_droplist "TLS Insecure" $0
+    ${If} $0 != -1
+        ${NSD_CB_DelString} $hCtl_encryption_encryption_droplist $0
+    ${EndIf}
+
+    ; --- Only re-add if reverse is NOT enabled ---
+    ${If} $1 == 0
+        ${NSD_CB_AddString} $hCtl_encryption_encryption_droplist "TLS Insecure"
+    ${EndIf}
+
+    Pop $1
     Pop $0
 FunctionEnd
 
@@ -313,9 +333,14 @@ Function encryption_dlg_onNext
 
     StrCpy $0 ${FILE_PATH_REGEXP}
 
-    ${NSD_GetState} $hCtl_encryption_EncryptionCheckBox $1
-    ${If} $1 == ${BST_CHECKED}
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 1
+    ${NSD_GetText} $hCtl_encryption_encryption_droplist $1
+    ${If} $1 != "No TLS"
+
+        ${If} $1 == "TLS Insecure"
+            WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "insecure"
+        ${ElseIf} $1 == "TLS"
+            WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "full"
+        ${EndIf}
 
         ${NSD_GetText} $hCtl_encryption_certificate_file_Txt $1
         ${If} $1 == ""
@@ -386,7 +411,7 @@ Function encryption_dlg_onNext
         Pop $3
         Pop $2
     ${Else}
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
 	${EndIf}
 
     Pop $1
@@ -394,12 +419,12 @@ Function encryption_dlg_onNext
 FunctionEnd
 
 /**
-  * @brief when encryption checkbox is checked or not, encryption group is shown or hidden
+  * @brief when encryption is No TLS,TLS FULL,TLS Insecure encryption group is shown or hidden
 */
-Function on_encryptioncheckbox_click
+Function on_encryptiondroplist_change
     Push $0
-    ${NSD_GetState} $hCtl_encryption_EncryptionCheckBox $0
-    ${If} $0 == ${BST_CHECKED}
+    ${NSD_GetText} $hCtl_encryption_encryption_droplist $0
+    ${If} $0 != "No TLS"
         ShowWindow $hCtl_encryption_EncryptionGroupBox ${SW_SHOW}
         ShowWindow $hCtl_encryption_label_private_key_file ${SW_SHOW}
         ShowWindow $hCtl_encryption_private_key_file_Txt ${SW_SHOW}
@@ -439,7 +464,7 @@ Function on_encryptioncheckbox_click
         ShowWindow $hCtl_encryption_token ${SW_HIDE}
         ShowWindow $hCtl_encryption_label_token ${SW_HIDE}
         ShowWindow $hCtl_encryption_token_help ${SW_HIDE}
-	${EndIf}
+    ${EndIf}
     Pop $0
 FunctionEnd
 

@@ -6,9 +6,15 @@ Do not edit manually!
 -->
 <Dialog Name="encryption" Title="Centreon Monitoring Agent" Subtitle="Encryption parameters">
   <CreateFunctionCustomScript>Call init_encryption_dlg
-Call on_encryptioncheckbox_click</CreateFunctionCustomScript>
-  <CheckBox Name="EncryptionCheckBox" Location="12, 3" Text="Encryption" TabIndex="0" onClick="on_encryptioncheckbox_click" />
-  <GroupBox Name="EncryptionGroupBox" Location="12, 33" Size="388, 159" Text="Certificates" TabIndex="1">
+Call on_encryptiondroplist_change</CreateFunctionCustomScript>
+  <Label Name="encryption_label" Location="12, 8" Size="100, 16" Text="Encryption :" TabIndex="0" />
+  <DropList Name="encryption_droplist" Location="109, 5" Size="100, 21" TabIndex="1" onChange="on_encryptiondroplist_change">
+    <Items>
+      <value>TLS</value>
+      <value>No TLS</value>
+    </Items>
+  </DropList>
+  <GroupBox Name="EncryptionGroupBox" Location="12, 33" Size="388, 159" Text="Certificates" TabIndex="2">
     <Bitmap Name="token_help" Location="361, 135" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="0" onClick="token_help_onClick" />
     <TextBox Name="token" Location="162, 133" Size="193, 20" TabIndex="1" />
     <Bitmap Name="ca_name_help" Location="361, 105" Size="18, 18" ImageFilename="resources\info.bmp" TabIndex="2" onClick="ca_name_help_onClick" />
