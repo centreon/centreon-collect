@@ -66,7 +66,7 @@ sequenceDiagram
 # The poller (which is a distant node) retrieves the GETLOG message, and processes it.
 # First the pullwss module listens on the websocket, and transmits the message retrieved to the core.
 # The core processes it and sends back the response.
-# TODO : make a note that wss_connect is not called every time.
+# wss_connect is only called when the connexion is initiated.
     P/pullwss/class -> + P/pullwss/class: wss_connect
     P/pullwss/class ->> + P/class/module: send_internal_action
     P/class/module --) P/class/core: GETLOG
@@ -83,7 +83,7 @@ sequenceDiagram
     # On the distant poller, processing of the message.
     P/pullwss/class -> + P/pullwss/class: read_zmq_events
     P/pullwss/class -> + P/pullwss/class: transmit_back
-    loop split the logs in smaller message if it's too big for the websocket, making possibility multiples SETLOG message
+    loop splits the logs into smaller messages if they're too big for the websocket, possibly making multiple SETLOG messages
         P/pullwss/class -> + P/pullwss/class: send_message
         P/pullwss/class --) C/proxy/httpserver: SETLOGS
         deactivate P/pullwss/class
