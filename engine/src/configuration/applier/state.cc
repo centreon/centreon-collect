@@ -141,6 +141,13 @@ void applier::state::apply(configuration::State& new_cfg,
   }
 }
 
+/**
+ * @brief Apply a diff configuration.
+ *
+ * @param diff_conf The new diff configuration.
+ * @param err Error counter.
+ * @param state The retention to use. Currently, it is not used.
+ */
 void applier::state::apply_diff(configuration::DiffState& diff_conf,
                                 error_cnt& err,
                                 retention::state* state [[maybe_unused]]) {
@@ -1789,10 +1796,16 @@ void applier::state::_processing(configuration::State& new_cfg,
   }
 
   has_already_been_loaded = true;
-  std::cout << "Configuration APPLIED (1)!!" << std::endl;
   _processing_state = state_ready;
 }
 
+/**
+ * @brief Process a diff configuration and apply it.
+ *
+ * @param diff_conf The diff configuration to apply.
+ * @param err	    The error count.
+ * @param state	    The retention state to use.
+ */
 void applier::state::_processing_diff(configuration::DiffState& diff_conf,
                                       error_cnt& err,
                                       retention::state* state) {
@@ -1873,7 +1886,6 @@ void applier::state::_processing_diff(configuration::DiffState& diff_conf,
   }
 
   has_already_been_loaded = true;
-  std::cout << "Configuration APPLIED (2)!!" << std::endl;
   _processing_state = state_ready;
   cbm->set_diff_state_applied(diff_conf.config_version());
 }
