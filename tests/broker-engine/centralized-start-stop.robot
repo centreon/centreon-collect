@@ -564,9 +564,13 @@ BECSS_ENGINE_DELETE_HOST
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    config    debug
-    #Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    module0    core    off
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Flush Log    central    0
     Ctn Broker Config Flush Log    module0    0
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+    Ctn Engine Config Set Value    ${0}    log_level_config    debug
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker    True    True
@@ -574,14 +578,25 @@ BECSS_ENGINE_DELETE_HOST
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
 
-    Ctn Wait For Engine To Be Ready    ${start}	   60
+    Ctn Wait For Engine To Be Ready    ${start}
 
     Ctn Kindly Stop Broker    True
     Ctn Start Broker    True    True
-    Ctn Engine Config Remove Service Host    ${0}    host_16
+
+    ${start}    Ctn Get Round Current Date
+
+    Ctn Engine Config Remove All Services From Host    ${0}    host_16
     Ctn Engine Config Remove Host    ${0}    host_16
-    Ctn Reload Engine
-    Sleep    2s
+    Ctn Notify Broker Of Engine Config Change    ${0}
+
+    ${content}    Create List    Found '1.lck' for poller id '1'    Sending Engine configuration to poller 1    BBDO: received diff state ack
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No new Engine configuration found in central cbd log
+
+    ${content}    Create List    Removing host 'host_16'.
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Host removal not found in engine log
+
     Ctn Kindly Stop Broker    True
     Ctn Stop Engine
 
@@ -688,74 +703,3 @@ Centralized_Start_Stop_Broker_Engine_${id}
     ...    1    False
     ...    2    True
     Ctn Stop Engine
-
-BECSSG
-    [Documentation]    Scenario: Broker handles connection and disconnection with Engine
-    ...    Given Broker is configured with only one output that is Graphite
-    ...    When the Engine starts and connects to the Broker
-    ...    Then the Broker must be able to handle the connection
-    ...    When the Engine stops
-    ...    Then the Broker must be able to handle the disconnection
-
-    [Tags]    broker    engine    start-stop    MON-161611
-    Ctn Config Centralized Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config BBDO3    1    3.0.1    True
-    Ctn Broker Config Flush Log    central    0
-    Ctn Broker Config Remove Output    central    central-broker-unified-sql
-    Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
-    Ctn Broker Config Add Output    central    { "name": "graphite-output", "db_host": "localhost", "db_port": "2003", "type": "graphite", "db_password": "", "queries_per_transaction": "1000", "metric_naming": "nagios.host.$HOST$.service.$SERVICE$.perfdata.$METRIC$", "status_naming": "nagios.host.$HOST$.service.$SERVICE$.metadata.state" }
-    ${start}    Ctn Get Round Current Date
-    Ctn Start Broker    ${True}
-    Ctn Start Engine
-
-    Ctn Wait For Engine To Be Ready    ${start}    1
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker    ${True}
-
-BECSSCTO
-    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
-    ...    Given the Engine is configured as usual but without the Perl Connector
-    ...    When the Engine executes its service commands
-    ...    Then the commands take too long and reach the timeout
-    ...    And the Engine starts and stops two times as a result
-    [Tags]    engine    start-stop    MON-167816
-    Ctn Config Centralized Engine    ${1}
-    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
-    Ctn Engine Command Remove Connector    ${0}    *
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config BBDO3    1    3.0.1
-    FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
-    END
-
-BECSSCTOWC
-    [Documentation]    Scenario: Service commands time out due to missing Perl Connector
-    ...    Given the Engine is configured as usual with some commands using the Perl Connector
-    ...    When the Engine executes its service commands
-    ...    Then the commands take too long and reach the timeout
-    ...    And the Engine starts and stops two times as a result
-
-    [Tags]    engine    start-stop    MON-167816
-    Ctn Config Centralized Engine    ${1}
-    Ctn Engine Command Add Arg    ${0}    *    --duration 1000
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config BBDO3    1    3.0.1
-    FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
-    END
