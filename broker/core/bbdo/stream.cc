@@ -1125,7 +1125,7 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       std::filesystem::path name(
           config::applier::state::instance().pollers_config_dir() /
           fmt::format("{}.prot", _poller_id));
-      _logger->error("bbdo::stream removing {}", name.string());
+      _logger->debug("bbdo::stream removing {}", name.string());
       std::error_code ec;
       std::filesystem::rename(new_name, name, ec);
       if (ec)
