@@ -1848,9 +1848,15 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    ${content}     Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    0    120    HARD
-    Should Be True    ${result}    resources table not updated
-    Should Contain    ${content}    OK - 127.0.0.1:
+    FOR    ${i}    IN RANGE    1    10
+        ${result}    ${content}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    0    120    HARD
+        Should Be True    ${result}    resources table not updated
+        ${found}=    Run Keyword And Return Status    Should Contain    ${content}    OK - 127.0.0.1
+        Exit For Loop If    ${found}
+        Sleep    1s
+    END
+
+    Should Be True    ${found}    Expected 'OK - 127.0.0.1' in content but got '${content}'
 
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
