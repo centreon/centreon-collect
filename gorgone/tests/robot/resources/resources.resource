@@ -30,6 +30,7 @@ Start Gorgone
     [Arguments]    ${SEVERITY}    ${ALIAS}
     ${process}    Start Process
     ...    /usr/bin/perl
+    ...    -I/centreon-collect/gorgone
     ...    ${gorgone_binary}
     ...    --config
     ...    /etc/centreon-gorgone/${ALIAS}/includer.yaml
@@ -129,6 +130,11 @@ Setup Gorgone Config
 
 Check Poller Is Connected
     [Arguments]    ${port}=    ${expected_nb}=
+
+    # let's call the log api to force a gorgone GETLOG message to be sent to the poller.
+    # we don't want to parse the output because we don't have any log to check.
+    ${response}=    GET  http://127.0.0.1:8085/api/nodes/2/log/initLogRobot
+
     Log To Console    checking TCP connection is established...
     FOR    ${i}    IN RANGE    40
         Sleep    4
@@ -147,6 +153,7 @@ Check Poller Communicate
     Log To Console    checking Gorgone see poller in rest api response...
     FOR    ${i}    IN RANGE    25
         Sleep    5
+        ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
         IF    not ${response.json()}[data]
@@ -181,7 +188,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${central_name}
-        
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2
 
@@ -199,6 +207,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    8086
         Start Gorgone    debug    ${poller_name}
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
@@ -214,7 +224,8 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    5556
         Start Gorgone    debug    ${poller_name}
-
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=5556    expected_nb=2
         Check Poller Communicate     2    max_failed_attempt=1
     ELSE
