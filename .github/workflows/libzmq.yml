@@ -186,13 +186,18 @@ jobs:
 
   deliver-deb:
     needs: [get-environment, package-deb]
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled') &&
+    #   (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      github.repository == 'centreon/centreon-collect'
     runs-on: centreon-common
     strategy:
       matrix:
