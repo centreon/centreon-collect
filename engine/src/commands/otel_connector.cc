@@ -177,7 +177,7 @@ uint64_t otel_connector::run(const std::string& processed_cmd [[maybe_unused]],
                              uint32_t timeout [[maybe_unused]],
                              const check_result::pointer& to_push_to_checker
                              [[maybe_unused]],
-                             const notifier* caller [[maybe_unused]]) {
+                             const notifier* caller) {
   try {
     std::shared_ptr<otel::open_telemetry_base> otel =
         otel::open_telemetry_base::instance();
