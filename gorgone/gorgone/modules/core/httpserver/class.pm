@@ -382,6 +382,8 @@ sub api_call {
     }
 
     my %parameters = $request->uri->query_form;
+
+    # Handle other endpoints
     my $response = gorgone::standard::api::root(
         method => $request->method,
         uri => $request->uri->path,

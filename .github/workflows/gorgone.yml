@@ -143,6 +143,27 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
+      - name: wait mariadb initialization before creating databases
+        run: |
+          hostname=mariadb
+          max_attempts=20
+          attempt_num=1
+          echo "trying to access the database at $hostname"
+          set +e
+          while [ $attempt_num -le $max_attempts ]; do
+            output=$(mysql -h "$hostname" -u root -ppassword -e "SELECT 1;" 2>&1)
+            status=$?
+            if [ $status -eq 0 ]; then
+              echo "Attempt $attempt_num succeeded. Database is accessible."
+              exit 0
+            fi
+            echo "Attempt $attempt_num failed. Trying again in one second..."
+            sleep 1
+            attempt_num=$(( attempt_num + 1 ))
+          done
+          echo "failed accessing the database at $hostname after $max_attempts attempts : $output"
+          exit 1
+
       - name: Create databases
         run: |
           mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
@@ -384,7 +405,8 @@ jobs:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -408,6 +430,8 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb:
     runs-on: centreon-common
