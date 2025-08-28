@@ -444,17 +444,17 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
                             "pid:{} fail read from stdout of process {}: {}",
-                            _proc->proc.native_handle(), *_args, err.message());
+                            _proc->proc.handle().id(), *_args, err.message());
       } else {
         SPDLOG_LOGGER_ERROR(
             _logger, "pid:{} fail read from stdout of process {}: {} {}",
-            _proc->proc.native_handle(), *_args, err.value(), err.message());
+            _proc->proc.handle().id(), *_args, err.value(), err.message());
       }
       _completion_flags.fetch_or(e_completion_flags::stdout_eof);
       eof = true;
     } else {
       SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stdout: {}",
-                          _proc->proc.native_handle(), *_args,
+                          _proc->proc.handle().id(), *_args,
                           std::string_view(_stdout_read_buffer, nb_read));
       _stdout.append(_stdout_read_buffer, nb_read);
       _stdout_read();
@@ -506,17 +506,17 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
                             "pid:{} fail read from stderr of process {}: {}",
-                            _proc->proc.native_handle(), *_args, err.message());
+                            _proc->proc.handle().id(), *_args, err.message());
       } else {
         SPDLOG_LOGGER_ERROR(
             _logger, "pid:{} fail read from stderr of process {}: {} {}",
-            _proc->proc.native_handle(), *_args, err.value(), err.message());
+            _proc->proc.handle().id(), *_args, err.value(), err.message());
       }
       _completion_flags.fetch_or(e_completion_flags::stderr_eof);
       eof = true;
     } else {
       SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stdout: {}",
-                          *_args, _proc->proc.native_handle(),
+                          *_args, _proc->proc.handle().id(),
                           std::string_view(_stderr_read_buffer, nb_read));
       _stderr.append(_stderr_read_buffer, nb_read);
       _stderr_read();
@@ -573,7 +573,7 @@ template <bool use_mutex>
 void process<use_mutex>::kill() {
   detail::lock<use_mutex> l(&_protect);
   if (_proc) {
-    auto child_pid = _proc->proc.native_handle();
+    auto child_pid = _proc->proc.handle().id();
     SPDLOG_LOGGER_INFO(_logger, "pid:{} kill process {}", child_pid, *_args);
     boost::system::error_code err;
     _proc->proc.terminate(err);
