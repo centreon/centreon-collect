@@ -735,6 +735,9 @@ else()
 endif()
 
 message(STATUS "    - Startup script              ${STARTUP_SCRIPT}")
+if(LEGACY_ENGINE)
+  message(STATUS "    - LEGACY_ENGINE               ON")
+endif()
 message(STATUS "")
 message(STATUS "  Install")
 
