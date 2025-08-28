@@ -4125,13 +4125,13 @@ static void send_initial_configuration() {
   SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
   send_severity_list();
   send_tag_list();
-  send_host_list<proto>();
-  send_service_list<proto>();
-  send_custom_variables_list<proto>();
-  send_downtimes_list<proto>();
-  send_host_parents_list<proto>();
-  send_host_group_list<proto>();
-  send_service_group_list<proto>();
+  //send_host_list<proto>();
+  //send_service_list<proto>();
+  //send_custom_variables_list<proto>();
+  //send_downtimes_list<proto>();
+  //send_host_parents_list<proto>();
+  //send_host_group_list<proto>();
+  //send_service_group_list<proto>();
   //    } else {
   //      SPDLOG_LOGGER_INFO(_neb_logger,
   //                         "init: No need to send poller configuration");

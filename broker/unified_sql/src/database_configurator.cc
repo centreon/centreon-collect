@@ -33,82 +33,82 @@ namespace com::centreon::broker::unified_sql {
 void database_configurator::process() {
   /* We start by disabling pollers with full conf. */
   _disable_pollers_with_full_conf();
-
-  /* Then we process the diff. */
-
+  //
+  //  /* Then we process the diff. */
+  //
   /* Disabling removed hosts and services */
   //_disable_hosts_and_services();
 
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
-    _add_severities_mariadb(_diff.severities().added(),
-                            _stream->severities_cache());
-    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
+    //    _add_severities_mariadb(_diff.severities().added(),
+    //                            _stream->severities_cache());
+    //    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mariadb(_diff.hosts().added());
-    _add_host_resources_mariadb(_diff.hosts().added(),
-                                _stream->resources_cache());
-    _add_services_mariadb(_diff.services().added());
-    _add_service_resources_mariadb(_diff.services().added(),
-                                   _stream->resources_cache());
-    _add_anomalydetections_mariadb(_diff.anomalydetections().added());
-    _add_anomalydetection_resources_mariadb(_diff.anomalydetections().added(),
-                                            _stream->resources_cache());
-
-    /* Modifying existing objects */
-    _add_severities_mariadb(_diff.severities().modified(),
-                            _stream->severities_cache());
-    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
-
+    //    _add_host_resources_mariadb(_diff.hosts().added(),
+    //                                _stream->resources_cache());
+    //    _add_services_mariadb(_diff.services().added());
+    //    _add_service_resources_mariadb(_diff.services().added(),
+    //                                   _stream->resources_cache());
+    //    _add_anomalydetections_mariadb(_diff.anomalydetections().added());
+    //    _add_anomalydetection_resources_mariadb(_diff.anomalydetections().added(),
+    //                                            _stream->resources_cache());
+    //
+    //    /* Modifying existing objects */
+    //    _add_severities_mariadb(_diff.severities().modified(),
+    //                            _stream->severities_cache());
+    //    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
+    //
     _add_hosts_mariadb(_diff.hosts().modified());
-    _add_host_resources_mariadb(_diff.hosts().modified(),
-                                _stream->resources_cache());
-    _add_services_mariadb(_diff.services().modified());
-    _add_service_resources_mariadb(_diff.services().modified(),
-                                   _stream->resources_cache());
-    _add_anomalydetections_mariadb(_diff.anomalydetections().modified());
-    _add_anomalydetection_resources_mariadb(
-        _diff.anomalydetections().modified(), _stream->resources_cache());
-
-    /* Disabling removed objects */
-    _disable_hosts(_diff.hosts().removed());
-    _disable_services_mariadb(_diff.services().removed());
-    _disable_services_mariadb(_diff.anomalydetections().removed());
-    _disable_service_resources_mariadb(_diff.services().removed());
-    _disable_service_resources_mariadb(_diff.anomalydetections().removed());
+    //    _add_host_resources_mariadb(_diff.hosts().modified(),
+    //                                _stream->resources_cache());
+    //    _add_services_mariadb(_diff.services().modified());
+    //    _add_service_resources_mariadb(_diff.services().modified(),
+    //                                   _stream->resources_cache());
+    //    _add_anomalydetections_mariadb(_diff.anomalydetections().modified());
+    //    _add_anomalydetection_resources_mariadb(
+    //        _diff.anomalydetections().modified(), _stream->resources_cache());
+    //
+    //    /* Disabling removed objects */
+    //    _disable_hosts(_diff.hosts().removed());
+    //    _disable_services_mariadb(_diff.services().removed());
+    //    _disable_services_mariadb(_diff.anomalydetections().removed());
+    //    _disable_service_resources_mariadb(_diff.services().removed());
+    //    _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
-    _add_severities_mysql(_diff.severities().added(),
-                          _stream->severities_cache());
-    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
-    _add_hosts_mysql(_diff.hosts().added());
-    _add_host_resources_mysql(_diff.hosts().added(),
-                              _stream->resources_cache());
-    _add_services_mysql(_diff.services().added());
-    _add_service_resources_mysql(_diff.services().added(),
-                                 _stream->resources_cache());
-    _add_anomalydetections_mysql(_diff.anomalydetections().added());
-    _add_anomalydetection_resources_mysql(_diff.anomalydetections().added(),
-                                          _stream->resources_cache());
-
-    /* Modifying existing objects */
-    _add_severities_mysql(_diff.severities().modified(),
-                          _stream->severities_cache());
-    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
-    _add_hosts_mysql(_diff.hosts().modified());
-    _add_host_resources_mysql(_diff.hosts().modified(),
-                              _stream->resources_cache());
-    _add_services_mysql(_diff.services().modified());
-    _add_service_resources_mysql(_diff.services().modified(),
-                                 _stream->resources_cache());
-    _add_anomalydetections_mysql(_diff.anomalydetections().modified());
-    _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
-                                          _stream->resources_cache());
-    /* Disabling removed objects */
-    _disable_hosts(_diff.hosts().removed());
-    _disable_services_mysql(_diff.services().removed());
-    _disable_services_mysql(_diff.anomalydetections().removed());
-    _disable_service_resources_mysql(_diff.services().removed());
-    _disable_service_resources_mysql(_diff.anomalydetections().removed());
+    //    _add_severities_mysql(_diff.severities().added(),
+    //                          _stream->severities_cache());
+    //    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
+    //    _add_hosts_mysql(_diff.hosts().added());
+    //    _add_host_resources_mysql(_diff.hosts().added(),
+    //                              _stream->resources_cache());
+    //    _add_services_mysql(_diff.services().added());
+    //    _add_service_resources_mysql(_diff.services().added(),
+    //                                 _stream->resources_cache());
+    //    _add_anomalydetections_mysql(_diff.anomalydetections().added());
+    //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().added(),
+    //                                          _stream->resources_cache());
+    //
+    //    /* Modifying existing objects */
+    //    _add_severities_mysql(_diff.severities().modified(),
+    //                          _stream->severities_cache());
+    //    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
+    //    _add_hosts_mysql(_diff.hosts().modified());
+    //    _add_host_resources_mysql(_diff.hosts().modified(),
+    //                              _stream->resources_cache());
+    //    _add_services_mysql(_diff.services().modified());
+    //    _add_service_resources_mysql(_diff.services().modified(),
+    //                                 _stream->resources_cache());
+    //    _add_anomalydetections_mysql(_diff.anomalydetections().modified());
+    //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
+    //                                          _stream->resources_cache());
+    //    /* Disabling removed objects */
+    //    _disable_hosts(_diff.hosts().removed());
+    //    _disable_services_mysql(_diff.services().removed());
+    //    _disable_services_mysql(_diff.anomalydetections().removed());
+    //    _disable_service_resources_mysql(_diff.services().removed());
+    //    _disable_service_resources_mysql(_diff.anomalydetections().removed());
   }
 }
 
@@ -213,7 +213,7 @@ void database_configurator::_add_severities_mariadb(
     absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
-  if (!_add_severities_stmt->prepared()) {
+  if (!_add_severities_stmt) {
     std::string query(
         "INSERT INTO severities (id,type,name,level,icon_id) VALUES "
         "(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
@@ -327,7 +327,7 @@ void database_configurator::_add_tags_mariadb(
     absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
-  if (!_add_tags_stmt->prepared()) {
+  if (!_add_tags_stmt) {
     std::string query(
         "INSERT INTO tags (id,type,name) VALUES (?,?,?) ON DUPLICATE KEY "
         "UPDATE id=VALUES(id),type=VALUES(type),name=VALUES(name)");
@@ -478,7 +478,7 @@ void database_configurator::_add_hosts_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_add_hosts_stmt->prepared()) {
+  if (!_add_hosts_stmt) {
     std::string query(
         "INSERT INTO hosts "
         "(host_id,name,instance_id,action_url,active_checks,address,alias,"
@@ -534,7 +534,10 @@ void database_configurator::_add_hosts_mariadb(
   }
   auto bind = _add_hosts_stmt->create_bind();
 
+  uint32_t count = 0;
   for (const auto& msg : lst) {
+    _logger->debug("Processing host {} (poller {})", msg.host_name(),
+                   msg.poller_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.host_name(),
@@ -644,7 +647,9 @@ void database_configurator::_add_hosts_mariadb(
     else
       bind->set_null_str(51);
     bind->next_row();
+    count++;
   }
+  _logger->debug("Adding/updating {} hosts", count);
   _add_hosts_stmt->set_bind(std::move(bind));
   mysql.run_statement(*_add_hosts_stmt);
 }
@@ -819,7 +824,7 @@ void database_configurator::_add_host_resources_mariadb(
     absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
-  if (!_add_host_resources_stmt->prepared()) {
+  if (!_add_host_resources_stmt) {
     std::string query(
         "INSERT INTO resources "
         "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
@@ -1054,7 +1059,7 @@ void database_configurator::_add_services_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_add_services_stmt->prepared()) {
+  if (!_add_services_stmt) {
     std::string query(
         "INSERT INTO services "
         "(host_id,description,service_id,action_url,active_checks,check_"
@@ -1377,7 +1382,7 @@ void database_configurator::_disable_services_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_disable_services_stmt->prepared()) {
+  if (!_disable_services_stmt) {
     _disable_services_stmt = std::make_unique<mysql_bulk_stmt>(
         "UPDATE services SET enabled=0 WHERE host_id=? AND service_id=?");
     mysql.prepare_statement(*_disable_services_stmt);
@@ -1403,7 +1408,7 @@ void database_configurator::_disable_services_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_disable_services_stmt->prepared()) {
+  if (!_disable_services_stmt) {
     _disable_services_stmt = std::make_unique<mysql_stmt>(
         "UPDATE services SET enabled=0 WHERE host_id=? AND service_id=?");
     mysql.prepare_statement(*_disable_services_stmt);
@@ -1439,7 +1444,7 @@ void database_configurator::_disable_service_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_disable_service_resources_stmt->prepared()) {
+  if (!_disable_service_resources_stmt) {
     _disable_service_resources_stmt = std::make_unique<mysql_bulk_stmt>(
         "UPDATE resources SET enabled=0 WHERE parent_id=? AND id=?");
     mysql.prepare_statement(*_disable_service_resources_stmt);
@@ -1466,7 +1471,7 @@ void database_configurator::_disable_service_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_disable_service_resources_stmt->prepared()) {
+  if (!_disable_service_resources_stmt) {
     _disable_service_resources_stmt = std::make_unique<mysql_stmt>(
         "UPDATE resources SET enabled=0 WHERE parent_id=? AND id=?");
     mysql.prepare_statement(*_disable_service_resources_stmt);
@@ -1549,7 +1554,7 @@ void database_configurator::_add_anomalydetections_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_add_anomalydetections_stmt->prepared()) {
+  if (!_add_anomalydetections_stmt) {
     std::string query(
         "INSERT INTO services "
         "(host_id,description,service_id,action_url,active_checks,check_"
@@ -1885,7 +1890,7 @@ void database_configurator::_add_service_resources_mariadb(
     absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
-  if (!_add_service_resources_stmt->prepared()) {
+  if (!_add_service_resources_stmt) {
     std::string query(
         "INSERT INTO resources "
         "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
@@ -2076,7 +2081,7 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
-  if (!_add_anomalydetection_resources_stmt->prepared()) {
+  if (!_add_anomalydetection_resources_stmt) {
     std::string query(
         "INSERT INTO resources "
         "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
@@ -2259,7 +2264,7 @@ void database_configurator::_add_customvariables_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::CustomVariable>& lst) {
   mysql& mysql = _stream->get_mysql();
-  if (!_add_customvariables_stmt->prepared()) {
+  if (!_add_customvariables_stmt) {
     std::string query(
         "INSERT INTO customvariables "
         "(host_id,service_id,name,default_value,value,type,enabled,modified) "

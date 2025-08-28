@@ -33,7 +33,6 @@ from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
 import json
-from pathlib import Path
 import glob
 import os.path
 import grpc
@@ -560,21 +559,25 @@ def ctn_broker_config_flush(is_broker: bool=True):
     for name, conf in current_configs.items():
         filename = ''
         if is_broker:
-            logger.console(f"Writing broker configuration for {name}")
             if name == 'central':
                 filename = "central-broker.json"
             elif name == 'central_map':
                 filename = "central-broker.json"
             elif name == 'rrd':
                 filename = "central-rrd.json"
+            else:
+                continue
+            logger.console(f"Writing broker (broker) configuration for {name}")
         else:
-            logger.console(f"Writing broker configuration for {name}")
             if name.startswith('module'):
                 filename = "central-{}.json".format(name)
-        if len(filename) > 0:
-            conf = current_configs[name]
-            with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-                f.write(json.dumps(conf, indent=2))
+            else:
+                continue
+            logger.console(f"Writing broker (module) configuration for {name}")
+
+        conf = current_configs[name]
+        with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+            f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_reset():
@@ -3235,14 +3238,3 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
-
-
-def ctn_notify_broker_of_engine_config_change(idx: int):
-    """
-    Notify the broker of a change in the engine configuration.
-
-    Args:
-        idx (int): The index of the configuration to notify.
-    """
-    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
-    Path(lck_file).touch()

@@ -22,6 +22,7 @@
 import Common
 import grpc
 import math
+import glob
 from pathlib import Path
 from google.protobuf import empty_pb2
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -102,6 +103,32 @@ class EngineInstance:
         makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+
+    def update_configs(self, inst: int, hosts: int, services_by_host: int, bash_checks: bool = False):
+        """
+            update_configs Update the configuration of an existing Instance.
+            This method only works with centralized configuration.
+
+            Args:
+                inst (int): Poller instance ID
+                hosts (int): Number of hosts
+                services_by_host (int): Number of services by host
+                bash_checks (bool, optional): Use bash checks. Defaults to False.
+        """
+        self.last_service_id = 0
+        self.hosts = []
+        self.services = []
+        self.service_by_host = services_by_host
+        self.last_host_id = 0
+        self.last_host_group_id = 0
+        self.commands_count = 50
+        self.instances = inst
+        self.host_cmd = {}
+        self.service_cmd = {}
+        self.centralized = True
+        self.anomaly_detection_internal_id = 1
+        self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
+        self.build_configs(hosts, services_by_host, True, 0, bash_checks)
 
     def get_config_dir(self, inst: int):
         """
@@ -901,6 +928,24 @@ def ctn_config_centralized_engine(num: int, hosts: int = 50, srv_by_host: int = 
     """
     global engine
     engine = EngineInstance(num, hosts, srv_by_host, bash_checks, True)
+
+
+def ctn_update_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
+    """
+    Update the configuration of an existing EngineInstance.
+
+    Args:
+        num (int): How many engine configurations to start
+        hosts (int, optional): Defaults to 50.
+        srv_by_host (int, optional): Defaults to 20.
+        bash_checks: if True, services will use check.sh instead of check.pl, services will have some extra macros
+    """
+    global engine
+    if engine is None:
+        raise Exception("EngineInstance not initialized, please call ctn_config_engine first")
+    engine.update_configs(num, hosts, srv_by_host, bash_checks)
+    for idx in range(num):
+        Common.ctn_notify_broker_of_engine_config_change(idx)
 
 
 def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, bash_checks: bool = False):
@@ -4812,3 +4857,26 @@ def ctn_engine_check_sh_command_output():
                 return 0
             service_checked[service_id] = 1
     return len(service_checked)
+
+def ctn_clear_engine_configurations():
+    """
+    Clear all Centreon Engine configurations by removing configuration directories
+    and recreating them with default settings.
+    """
+    # Remove existing *.prot files in /{VAR_ROOT}/lib/centreon-engine/config*
+    prot_files = glob.glob(f"{VAR_ROOT}/lib/centreon-engine/config*.prot")
+    for prot_file in prot_files:
+        os.remove(prot_file)
+
+    # Remove existing *.prot files in /{VAR_ROOT}/lib/centreon-broker/pollers-configuration
+    prot_files = glob.glob(f"{VAR_ROOT}/lib/centreon-broker/pollers-configuration/*.prot")
+    for prot_file in prot_files:
+        os.remove(prot_file)
+
+    # Remove the content of /{VAR_ROOT}/lib/centreon/config
+    config_files = glob.glob(f"{VAR_ROOT}/lib/centreon/config/*")
+    for config_file in config_files:
+        if os.path.isfile(config_file):
+            os.remove(config_file)
+        elif os.path.isdir(config_file):
+            shutil.rmtree(config_file)

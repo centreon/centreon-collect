@@ -76,6 +76,8 @@ class state {
   std::filesystem::path _proto_conf;
   std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
   std::atomic_bool _watch_occupied;
+  mutable absl::Mutex _lck_vector_m;
+  std::vector<uint32_t> _lck_vector ABSL_GUARDED_BY(_lck_vector_m);
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -115,9 +117,9 @@ class state {
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept;
   uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
-  std::vector<uint32_t> _watch_engine_conf();
+  void _watch_engine_conf(std::vector<uint32_t>* poller_ids);
   void _start_watch_engine_conf_timer();
-  void _check_last_engine_conf(uint64_t forced_poller_id = 0);
+  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_vector_m);
   void _prepare_diff_for_poller(
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)

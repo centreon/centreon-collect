@@ -331,17 +331,12 @@ void state::add_peer(uint64_t poller_id,
      * files already present in the cache directory. We need to check them
      * and apply the diff if needed.
      */
-    boost::asio::post(
-        com::centreon::common::pool::instance().io_context(),
-        [this, poller_id]() {
-          if (set_engine_conf_watcher_occupied(true,
-                                               "applier::state::watcher")) {
-            _logger->debug("Checking for existing {}.lck file", poller_id);
-            uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
-            _check_last_engine_conf(existing_lck);
-            set_engine_conf_watcher_occupied(false, "applier::state::watcher");
-          }
-        });
+    _logger->debug("Checking for existing {}.lck file", poller_id);
+    uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
+    if (existing_lck) {
+      absl::MutexLock lck(&_lck_vector_m);
+      _lck_vector.push_back(existing_lck);
+    }
   }
 }
 
@@ -361,7 +356,7 @@ void state::set_poller_engine_conf(uint32_t poller_id,
     _logger->info("Poller with id {} not found in connected peers", poller_id);
   } else {
     _logger->info("Poller with id {} has its version changed from '{}' to '{}'",
-                  found->second.engine_conf, engine_conf);
+                  poller_id, found->second.engine_conf, engine_conf);
     found->second.engine_conf = engine_conf;
   }
 }
@@ -534,11 +529,11 @@ uint32_t state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
 /**
  * @brief Check if some new engine configurations are available.
  *
- * @return A vector of poller IDs concerned by some new configuration or an
- * empty vector.
+ * @param poller_ids A vector to fill with the poller IDs concerned by some new
+ * configuration. Thas vector can already contain some poller IDs to check
+ * (for example when a poller initiates its connection to Broker).
  */
-std::vector<uint32_t> state::_watch_engine_conf() {
-  std::vector<uint32_t> retval;
+void state::_watch_engine_conf(std::vector<uint32_t>* poller_ids) {
   if (_cache_config_dir_watcher) {
     auto it = _cache_config_dir_watcher->watch();
     for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
@@ -565,14 +560,13 @@ std::vector<uint32_t> state::_watch_engine_conf() {
             _logger->error("Cannot remove lock file '{}': {}", name,
                            ec.message());
           acknowledge_engine_peer(poller_id, false);
-          retval.push_back(poller_id);
+          poller_ids->push_back(poller_id);
         } else
           _logger->warn("Change in '{}' detected but poller id not found",
                         _cache_config_dir.string());
       }
     }
   }
-  return retval;
 }
 
 /**
@@ -653,19 +647,20 @@ void state::_start_watch_engine_conf_timer() {
  * @param forced_poller_id The poller ID to check for a new Engine
  * configuration. If it is 0, the check is based on the inotify results.
  */
-void state::_check_last_engine_conf(uint64_t forced_poller_id) {
+void state::_check_last_engine_conf() {
   std::vector<uint32_t> pollers_vec;
-  if (forced_poller_id) {
-    _logger->debug(
-        "Checking if there is a new Engine configuration for poller {}",
-        forced_poller_id);
-    pollers_vec.push_back(forced_poller_id);
-  } else {
-    _logger->debug("Checking if there is a new Engine configuration available");
-    pollers_vec = _watch_engine_conf();
+  {
+    absl::MutexLock lck(&_lck_vector_m);
+    std::swap(pollers_vec, _lck_vector);
   }
+
+  _watch_engine_conf(&pollers_vec);
+
   std::error_code ec;
   for (uint32_t poller_id : pollers_vec) {
+    _logger->debug(
+        "Checking if there is a new Engine configuration for poller {}",
+        poller_id);
     auto state = std::make_unique<engine::configuration::State>();
     engine::configuration::state_helper state_hlp(state.get());
     engine::configuration::error_cnt err;

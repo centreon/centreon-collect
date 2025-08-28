@@ -35,6 +35,7 @@ import shutil
 import string
 from dateutil import parser
 from datetime import datetime, timedelta
+from pathlib import Path
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
@@ -1690,6 +1691,7 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
                 cursor.execute(
                     "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
                 result = cursor.fetchall()
+                logger.console(f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1 => {result[0]} <-> {value}")
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
                         return True
@@ -2498,3 +2500,14 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     dico2 = MessageToDict(pb2)
 
     return compare_dicts(dico1, dico2)
+
+
+def ctn_notify_broker_of_engine_config_change(idx: int):
+    """
+    Notify the broker of a change in the engine configuration.
+
+    Args:
+        idx (int): The index of the configuration to notify.
+    """
+    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+    Path(lck_file).touch()
