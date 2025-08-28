@@ -2768,6 +2768,71 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     Should Be True    ${result}    command not allowed by whitelist.
 
 
+BEOTEL_CENTREON_AGENT_FORCE_CHECK
+    [Documentation]    Given an agent host with 20 services checked by centagent, we force check to 10nth service and then to the host and 
+    ...    we expect correct status in bdd
+    [Tags]    broker    engine    opentelemetry    MON-176090
+    Ctn Config Engine    ${1}    ${1}    ${20}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+
+    FOR   ${i}    IN RANGE    1    21
+        Ctn Engine Config Replace Value In Services    ${0}    service_${i}    check_command    otel_check_icmp
+        Ctn Set Services Passive    ${0}    service_${i}
+    END
+
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    resources
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    1s
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_20    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    ${start}    Get Current Date
+    Ctn Schedule Forced Service Check    host_1    service_10
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_10    30    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    ${start}    Get Current Date
+    Ctn Schedule Forced Host Check    host_1
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+
+
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

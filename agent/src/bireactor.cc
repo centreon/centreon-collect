@@ -92,9 +92,7 @@ void bireactor<bireactor_class>::OnReadDone(bool ok) {
       _read_current.reset();
     }
     start_read();
-    if (read->has_config()) {
-      on_incomming_request(read);
-    }
+    on_incomming_request(read);
   } else {
     SPDLOG_LOGGER_ERROR(_logger, "{:p} {} peer:{} fail read from stream",
                         static_cast<void*>(this), _class_name, _peer);

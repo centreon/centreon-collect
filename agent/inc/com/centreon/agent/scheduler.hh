@@ -40,9 +40,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
       duration /* check interval */,
-      const std::string& /*service*/,
-      const std::string& /*cmd_name*/,
-      const std::string& /*cmd_line*/,
+      const Service& /*service*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
       check::completion_handler&&,
       const checks_statistics::pointer& /*stat*/,
@@ -163,7 +161,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   ~scheduler();
 
+  void on_engine_request(const engine_to_agent_request_ptr& request);
+
   void update(const engine_to_agent_request_ptr& conf);
+
+  void force_check(const engine_to_agent_request_ptr& request);
 
   static std::shared_ptr<com::centreon::agent::MessageToAgent> default_config();
 
@@ -183,9 +185,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
       duration check_interval,
-      const std::string& service,
-      const std::string& cmd_name,
-      const std::string& cmd_line,
+      const Service& service,
       const engine_to_agent_request_ptr& conf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,

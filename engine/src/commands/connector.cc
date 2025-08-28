@@ -114,7 +114,7 @@ uint64_t connector::run(const std::string& processed_cmd,
                         nagios_macros&,
                         uint32_t timeout,
                         const check_result::pointer& to_push_to_checker,
-                        const void* caller) {
+                        const notifier* caller) {
   engine_logger(dbg_commands, basic)
       << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
       << "', timeout=" << timeout;

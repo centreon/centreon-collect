@@ -27,14 +27,24 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 using namespace com::centreon::agent;
 using namespace std::string_literals;
 
-TEST(native_check_uptime, ok) {
+class native_check_uptime_test : public testing::Test {
+ public:
+  Service serv;
+
+  native_check_uptime_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
+TEST_F(native_check_uptime_test, ok) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "345600", "critical-uptime" : "172800"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -58,14 +68,13 @@ TEST(native_check_uptime, ok) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, ok_m) {
+TEST_F(native_check_uptime_test, ok_m) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "5760", "critical-uptime" : "2880", "unit": "m"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -89,14 +98,13 @@ TEST(native_check_uptime, ok_m) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, ok_h) {
+TEST_F(native_check_uptime_test, ok_h) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "96", "critical-uptime" : "48", "unit": "h"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -120,14 +128,13 @@ TEST(native_check_uptime, ok_h) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, ok_d) {
+TEST_F(native_check_uptime_test, ok_d) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -151,14 +158,13 @@ TEST(native_check_uptime, ok_d) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, ok_w) {
+TEST_F(native_check_uptime_test, ok_w) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "2", "critical-uptime" : "1", "unit": "w"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -182,14 +188,13 @@ TEST(native_check_uptime, ok_w) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, warning) {
+TEST_F(native_check_uptime_test, warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -213,14 +218,13 @@ TEST(native_check_uptime, warning) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, warning_bis) {
+TEST_F(native_check_uptime_test, warning_bis) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "4", "critical-uptime" : "", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -244,14 +248,13 @@ TEST(native_check_uptime, warning_bis) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, critical) {
+TEST_F(native_check_uptime_test, critical) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -274,14 +277,13 @@ TEST(native_check_uptime, critical) {
   ASSERT_EQ(perf.warning_low(), 0);
 }
 
-TEST(native_check_uptime, critical_bis) {
+TEST_F(native_check_uptime_test, critical_bis) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "warning-uptime" : "", "critical-uptime" : "2", "unit": "d"})"_json;
 
   check_uptime checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

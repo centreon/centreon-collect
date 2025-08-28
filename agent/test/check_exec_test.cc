@@ -36,19 +36,26 @@ using namespace com::centreon::agent;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-static const std::string serv("serv");
-static const std::string cmd_name("command");
-static std::string command_line;
+class check_exec_test : public testing::Test {
+ public:
+  Service serv;
 
-TEST(check_exec_test, echo) {
-  command_line = ECHO_PATH " hello toto";
+  check_exec_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("command");
+    serv.set_command_line("my_command_line");
+  }
+};
+
+TEST_F(check_exec_test, echo) {
+  serv.set_command_line(ECHO_PATH " hello toto");
   int status;
   std::list<std::string> outputs;
   std::mutex mut;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
-      command_line, engine_to_agent_request_ptr(),
+      g_io_context, spdlog::default_logger(), {}, {}, serv, serv.command_line(),
+      engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
@@ -72,14 +79,14 @@ TEST(check_exec_test, echo) {
   ASSERT_EQ(outputs.begin()->substr(0, 10), "hello toto");
 }
 
-TEST(check_exec_test, timeout) {
-  command_line = SLEEP_PATH " 120";
+TEST_F(check_exec_test, timeout) {
+  serv.set_command_line(SLEEP_PATH " 120");
   int status;
   std::list<std::string> outputs;
   std::condition_variable cond;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
-      command_line, engine_to_agent_request_ptr(),
+      g_io_context, spdlog::default_logger(), {}, {}, serv, serv.command_line(),
+      engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
@@ -118,15 +125,15 @@ TEST(check_exec_test, timeout) {
 #endif
 }
 
-TEST(check_exec_test, bad_command) {
-  command_line = "/usr/bad_path/turlututu titi toto";
+TEST_F(check_exec_test, bad_command) {
+  serv.set_command_line("/usr/bad_path/turlututu titi toto");
   int status;
   std::list<std::string> outputs;
   std::condition_variable cond;
   std::mutex mut;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
-      command_line, engine_to_agent_request_ptr(),
+      g_io_context, spdlog::default_logger(), {}, {}, serv, serv.command_line(),
+      engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
           int statuss,
@@ -138,7 +145,7 @@ TEST(check_exec_test, bad_command) {
           status = statuss;
           outputs = output;
         }
-        SPDLOG_INFO("end of {}", command_line);
+        SPDLOG_INFO("end of {}", serv.command_line());
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         cond.notify_one();
       },
@@ -159,13 +166,13 @@ TEST(check_exec_test, bad_command) {
 #endif
 }
 
-TEST(check_exec_test, recurse_not_lock) {
-  command_line = ECHO_PATH " hello toto";
+TEST_F(check_exec_test, recurse_not_lock) {
+  serv.set_command_line(ECHO_PATH " hello toto");
   std::condition_variable cond;
   unsigned cpt = 0;
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, cmd_name,
-      command_line, engine_to_agent_request_ptr(),
+      g_io_context, spdlog::default_logger(), {}, {}, serv, serv.command_line(),
+      engine_to_agent_request_ptr(),
       [&](const std::shared_ptr<com::centreon::agent::check>& caller, int,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,

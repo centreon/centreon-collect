@@ -18,10 +18,6 @@
 
 #include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
-#include <chrono>
-#include <cstdint>
-#include <memory>
-#include <mutex>
 
 #include "com/centreon/common/rapidjson_helper.hh"
 
@@ -81,6 +77,14 @@ std::array<sample, 9> _samples = {
 
 class drive_size_test : public ::testing::Test {
  public:
+  Service serv;
+
+  drive_size_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+
   static std::list<fs_stat> compute(
       filter& filt,
       const std::shared_ptr<spdlog::logger>& logger);
@@ -120,8 +124,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -188,8 +191,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -256,8 +258,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -312,8 +313,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -377,8 +377,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -436,8 +435,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -502,8 +500,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -563,8 +560,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -624,8 +620,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
 
   auto checker = std::make_shared<check_drive_size>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
+      std::chrono::seconds(1), serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

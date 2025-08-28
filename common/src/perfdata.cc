@@ -375,7 +375,7 @@ std::list<perfdata> perfdata::parse_perfdata(
     p.max(extract_float(tmp));
 
     // Log new perfdata.
-    logger->debug(
+    logger->trace(
         "storage: got new perfdata (name={}, value={}, unit={}, warning={}, "
         "critical={}, min={}, max={})",
         p.name(), p.value(), p.unit(), p.warning(), p.critical(), p.min(),

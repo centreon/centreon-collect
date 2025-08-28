@@ -35,6 +35,7 @@ class test_check : public check_memory {
  public:
   static MEMORYSTATUSEX mock;
   static PERFORMANCE_INFORMATION perf_mock;
+  static Service serv;
 
   test_check(const rapidjson::Value& args)
       : check_memory(
@@ -42,9 +43,7 @@ class test_check : public check_memory {
             spdlog::default_logger(),
             {},
             {},
-            "serv"s,
-            "cmd_name"s,
-            "cmd_line"s,
+            serv,
             args,
             nullptr,
             [](const std::shared_ptr<check>& caller,
@@ -87,6 +86,8 @@ PERFORMANCE_INFORMATION test_check::perf_mock = {
     0,                 // ProcessCount
     0,                 // ThreadCount
 };
+
+Service test_check::serv;
 
 const uint64_t _total_phys = test_check::mock.ullTotalPhys;
 const uint64_t _available_phys = test_check::mock.ullAvailPhys;

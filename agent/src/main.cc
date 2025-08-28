@@ -166,6 +166,8 @@ int main(int argc, char* argv[]) {
 
   // don't use it because spdlog mutex would hang child process
   // spdlog::flush_every(std::chrono::seconds(1));
+  // we use asio timer instead
+  init_log_flush_timer(g_io_context);
 
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "

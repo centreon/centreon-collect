@@ -155,9 +155,8 @@ class check : public std::enable_shared_from_this<check> {
   // it's updated on check_start and added of multiple of check_interval
   // (check_period / nb_check) on check completion
   time_step _start_expected;
-  const std::string& _service;
-  const std::string& _command_name;
-  std::string _command_line;
+  const Service& _service;
+
   // by owning a reference to the original request, we can get only reference to
   // host, service
   // on completion, this pointer is compared to the current config pointer.
@@ -203,9 +202,7 @@ class check : public std::enable_shared_from_this<check> {
         const std::shared_ptr<spdlog::logger>& logger,
         time_point first_start_expected,
         duration check_interval,
-        const std::string& serv,
-        const std::string& command_name,
-        const std::string& cmd_line,
+        const Service& serv,
         const engine_to_agent_request_ptr& cnf,
         completion_handler&& handler,
         const checks_statistics::pointer& stat);
@@ -231,11 +228,21 @@ class check : public std::enable_shared_from_this<check> {
 
   const time_step& get_raw_start_expected() const { return _start_expected; }
 
-  const std::string& get_service() const { return _service; }
+  const std::string& get_service() const {
+    return _service.service_description();
+  }
 
-  const std::string& get_command_name() const { return _command_name; }
+  const std::string& get_command_name() const {
+    return _service.command_name();
+  }
 
-  const std::string& get_command_line() const { return _command_line; }
+  const std::string& get_command_line() const {
+    return _service.command_line();
+  }
+
+  uint64_t get_host_id() const { return _service.host_id(); }
+
+  uint64_t get_service_id() const { return _service.service_id(); }
 
   const engine_to_agent_request_ptr& get_conf() const { return _conf; }
 

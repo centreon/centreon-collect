@@ -32,7 +32,18 @@ using namespace std::string_literals;
 using namespace com::centreon::common::literals;
 using namespace std::chrono_literals;
 
-TEST(check_health_test, no_threshold_no_reverse) {
+class check_health_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_health_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
+TEST_F(check_health_test, no_threshold_no_reverse) {
   config::load(false);
 
   rapidjson::Document check_args =
@@ -46,8 +57,7 @@ TEST(check_health_test, no_threshold_no_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -79,7 +89,7 @@ TEST(check_health_test, no_threshold_no_reverse) {
   }
 }
 
-TEST(check_health_test, no_threshold_reverse) {
+TEST_F(check_health_test, no_threshold_reverse) {
   config::load(true);
 
   rapidjson::Document check_args =
@@ -93,8 +103,7 @@ TEST(check_health_test, no_threshold_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -126,7 +135,7 @@ TEST(check_health_test, no_threshold_reverse) {
   }
 }
 
-TEST(check_health_test, threshold_1) {
+TEST_F(check_health_test, threshold_1) {
   config::load(true);
 
   rapidjson::Document check_args =
@@ -140,8 +149,7 @@ TEST(check_health_test, threshold_1) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -179,7 +187,7 @@ TEST(check_health_test, threshold_1) {
   }
 }
 
-TEST(check_health_test, threshold_2) {
+TEST_F(check_health_test, threshold_2) {
   config::load(true);
 
   rapidjson::Document check_args =
@@ -193,8 +201,7 @@ TEST(check_health_test, threshold_2) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -232,7 +239,7 @@ TEST(check_health_test, threshold_2) {
   }
 }
 
-TEST(check_health_test, threshold_3) {
+TEST_F(check_health_test, threshold_3) {
   config::load(true);
 
   rapidjson::Document check_args =
@@ -246,8 +253,7 @@ TEST(check_health_test, threshold_3) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -285,7 +291,7 @@ TEST(check_health_test, threshold_3) {
   }
 }
 
-TEST(check_health_test, threshold_4) {
+TEST_F(check_health_test, threshold_4) {
   config::load(true);
 
   rapidjson::Document check_args =
@@ -299,8 +305,7 @@ TEST(check_health_test, threshold_4) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

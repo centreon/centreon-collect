@@ -48,6 +48,16 @@ TEST(duration_from_str, values) {
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
+class check_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_test() {
+    serv.set_service_description("my_serv");
+    serv.set_command_name("my_command_name");
+    serv.set_command_line("my_command_line");
+  }
+};
 class dummy_check : public check {
   duration _command_duration;
   asio::system_timer _command_timer;
@@ -71,9 +81,7 @@ class dummy_check : public check {
   }
 
   template <typename handler_type>
-  dummy_check(const std::string& serv,
-              const std::string& command_name,
-              const std::string& command_line,
+  dummy_check(const Service& serv,
               const duration& command_duration,
               handler_type&& handler)
       : check(g_io_context,
@@ -81,8 +89,6 @@ class dummy_check : public check {
               std::chrono::system_clock::now(),
               std::chrono::seconds(1),
               serv,
-              command_name,
-              command_line,
               nullptr,
               handler,
               std::make_shared<checks_statistics>()),
@@ -90,11 +96,7 @@ class dummy_check : public check {
         _command_timer(*g_io_context) {}
 };
 
-static std::string serv("my_serv");
-static std::string cmd_name("my_command_name");
-static std::string cmd_line("my_command_line");
-
-TEST(check_test, timeout) {
+TEST_F(check_test, timeout) {
   unsigned status = 0;
   std::string output;
   std::mutex cond_m;
@@ -102,7 +104,7 @@ TEST(check_test, timeout) {
   unsigned handler_call_cpt = 0;
 
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
-      serv, cmd_name, cmd_line, std::chrono::milliseconds(500),
+      serv, std::chrono::milliseconds(500),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -132,7 +134,7 @@ TEST(check_test, timeout) {
   ASSERT_EQ(output, "Timeout at execution of my_command_line");
 }
 
-TEST(check_test, no_timeout) {
+TEST_F(check_test, no_timeout) {
   unsigned status = 0;
   std::string output;
   std::mutex cond_m;
@@ -140,7 +142,7 @@ TEST(check_test, no_timeout) {
   unsigned handler_call_cpt = 0;
 
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
-      serv, cmd_name, cmd_line, std::chrono::milliseconds(100),
+      serv, std::chrono::milliseconds(100),
       [&status, &output, &handler_call_cpt, &cond](
           const std::shared_ptr<check>&, unsigned statuss,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

@@ -20,6 +20,7 @@
 #include <grpc/support/log.h>
 #include <grpcpp/version_info.h>
 #include "spdlog/common.h"
+#include "spdlog/details/registry.h"
 
 #include "log.hh"
 
@@ -160,3 +161,32 @@ void com::centreon::agent::set_grpc_logger() {
 }
 
 #endif
+
+static boost::asio::system_timer* _log_flush_timer;
+
+static void flush_timer_handler(const boost::system::error_code& err);
+
+static void start_log_flush_timer() {
+  _log_flush_timer->expires_after(std::chrono::seconds(1));
+  _log_flush_timer->async_wait(flush_timer_handler);
+}
+
+/**
+ * @brief As spdlog flush thread can hang child process, we do periodic flush
+ * log ourselves
+ *
+ * @param io_context
+ */
+void com::centreon::agent::init_log_flush_timer(
+    const std::shared_ptr<asio::io_context>& io_context) {
+  _log_flush_timer = new boost::asio::system_timer(*io_context);
+  start_log_flush_timer();
+}
+
+static void flush_timer_handler(const boost::system::error_code& err) {
+  if (err) {
+    return;
+  }
+  spdlog::details::registry::instance().flush_all();
+  start_log_flush_timer();
+}

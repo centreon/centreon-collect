@@ -36,9 +36,7 @@ struct test_check_process : public check_process {
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
                      duration check_interval,
-                     const std::string& serv,
-                     const std::string& cmd_name,
-                     const std::string& cmd_line,
+                     const Service& serv,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
                      check::completion_handler&& handler,
@@ -48,8 +46,6 @@ struct test_check_process : public check_process {
                       first_start_expected,
                       check_interval,
                       serv,
-                      cmd_name,
-                      cmd_line,
                       args,
                       cnf,
                       std::move(handler),
@@ -58,11 +54,22 @@ struct test_check_process : public check_process {
   }
 };
 
+class check_process_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_process_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
 /**
  * @brief check_process, given a process filter, we expect the correct status
  * and output
  */
-TEST(check_process, output_no_verbose) {
+TEST_F(check_process_test, output_no_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "empty-state": "{status}: no process", 
@@ -80,8 +87,7 @@ TEST(check_process, output_no_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -223,7 +229,7 @@ TEST(check_process, output_no_verbose) {
  * @brief check_process, given a process filter, we expect the correct status
  * and output
  */
-TEST(check_process, output_verbose) {
+TEST_F(check_process_test, output_verbose) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({ "empty-state": "{status}: no process", 
@@ -241,8 +247,7 @@ TEST(check_process, output_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

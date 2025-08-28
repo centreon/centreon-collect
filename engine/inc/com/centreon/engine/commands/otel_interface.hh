@@ -167,6 +167,8 @@ class open_telemetry_base
 
   virtual std::shared_ptr<otl_check_result_builder_base>
   create_check_result_builder(const std::string& cmdline) = 0;
+
+  virtual void force_check(uint64_t host_id, uint64_t serv_id) = 0;
 };
 
 };  // namespace com::centreon::engine::commands::otel

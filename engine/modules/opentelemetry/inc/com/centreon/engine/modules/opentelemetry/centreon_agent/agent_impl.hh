@@ -29,15 +29,103 @@
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 
 /**
+ * @brief base class of agent connection.
+ * It contains static containers that allow to find agent connection from
+ * service@host ids
+ *
+ */
+class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
+  struct instance_element {
+    instance_element() {}
+    instance_element(uint64_t host_id,
+                     uint64_t serv_id,
+                     const std::shared_ptr<agent_impl_base>& conn)
+        : host_serv(host_id, serv_id), connection(conn) {}
+
+    using host_serv_pair =
+        std::pair<uint64_t /*host_id*/, uint64_t /*serv_id*/>;
+    host_serv_pair host_serv;
+    std::shared_ptr<agent_impl_base> connection;
+  };
+
+  using instance_container = boost::multi_index::multi_index_container<
+      instance_element,
+      boost::multi_index::indexed_by<
+          boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_MEMBER(
+              instance_element,
+              instance_element::host_serv_pair,
+              host_serv)>,
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
+              instance_element,
+              std::shared_ptr<agent_impl_base>,
+              connection)>>>;
+
+  static instance_container* _configured_instance
+      ABSL_GUARDED_BY(*_instances_m);
+  static absl::btree_set<std::shared_ptr<agent_impl_base>>*
+      _no_configured_instance ABSL_GUARDED_BY(*_instances_m);
+  static absl::Mutex* _instances_m;
+
+ protected:
+  void _on_new_conf(const agent::AgentConfiguration& conf);
+
+  void _on_done();
+
+  virtual void _force_check(uint64_t host_id, uint64_t serv_id) = 0;
+
+  template <typename applier>
+  static void _apply_to_all(applier&& apply);
+
+ public:
+  using pointer = std::shared_ptr<agent_impl_base>;
+  // virtual void force_check() = 0;
+  virtual void shutdown() = 0;
+
+  static void force_check(uint64_t host_id, uint64_t serv_id);
+
+  static void all_agent_calc_and_send_config_if_needed(
+      const agent_config::pointer& new_conf);
+
+  virtual void calc_and_send_config_if_needed(
+      const agent_config::pointer& new_conf) = 0;
+};
+
+/**
+ * @brief call apply(agent_impl_base::pointer) on each connection stored in
+ * containers
+ *
+ * @tparam applier
+ * @param apply
+ */
+template <typename applier>
+void agent_impl_base::_apply_to_all(applier&& apply) {
+  std::vector<pointer> all_conn;
+  {
+    absl::MutexLock l(_instances_m);
+    all_conn.reserve(_no_configured_instance->size() +
+                     _configured_instance->size());
+    std::copy(_no_configured_instance->begin(), _no_configured_instance->end(),
+              std::back_inserter(all_conn));
+
+    pointer last = nullptr;
+    for (const auto& to_copy : _configured_instance->get<1>()) {
+      if (to_copy.connection != last) {
+        all_conn.push_back(to_copy.connection);
+        last = to_copy.connection;
+      }
+    }
+  }
+  std::for_each(all_conn.begin(), all_conn.end(), apply);
+}
+
+/**
  * @brief this class manages connection with centreon monitoring agent
  * reverse connection or no
  *
  * @tparam bireactor_class (grpc::bireactor<,>)
  */
 template <class bireactor_class>
-class agent_impl
-    : public bireactor_class,
-      public std::enable_shared_from_this<agent_impl<bireactor_class>> {
+class agent_impl : public bireactor_class, public agent_impl_base {
   std::shared_ptr<boost::asio::io_context> _io_context;
   const std::string_view _class_name;
   const bool _reversed;
@@ -55,10 +143,6 @@ class agent_impl
       ABSL_GUARDED_BY(_protect);
   std::shared_ptr<agent::MessageToAgent> _last_sent_config
       ABSL_GUARDED_BY(_protect);
-
-  static std::set<std::shared_ptr<agent_impl>>* _instances
-      ABSL_GUARDED_BY(_instances_m);
-  static absl::Mutex _instances_m;
 
   bool _write_pending;
   std::deque<std::shared_ptr<agent::MessageToAgent>> _write_queue
@@ -79,6 +163,8 @@ class agent_impl
   agent_stat::pointer _stats;
 
   mutable absl::Mutex _protect;
+
+  void _force_check(uint64_t host_id, uint64_t serv_id) override;
 
  public:
   agent_impl(const std::shared_ptr<boost::asio::io_context>& io_context,
@@ -102,10 +188,13 @@ class agent_impl
 
   virtual ~agent_impl();
 
-  void calc_and_send_config_if_needed(const agent_config::pointer& new_conf);
+  std::shared_ptr<agent_impl<bireactor_class>> shared_from_this() {
+    return std::static_pointer_cast<agent_impl<bireactor_class>>(
+        agent_impl_base::shared_from_this());
+  }
 
-  static void all_agent_calc_and_send_config_if_needed(
-      const agent_config::pointer& new_conf);
+  void calc_and_send_config_if_needed(
+      const agent_config::pointer& new_conf) override;
 
   static void update_config();
 
@@ -129,7 +218,7 @@ class agent_impl
   // client version
   void OnDone(const ::grpc::Status& /*s*/);
 
-  virtual void shutdown();
+  void shutdown() override;
 
   static void shutdown_all();
 };

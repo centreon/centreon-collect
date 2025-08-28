@@ -130,7 +130,7 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         ff.write("\n}\n")
 
 
-def ctn_config_set_value(key: str, value: str):
+def ctn_config_centreon_agent_set_value(key: str, value: str):
     """ctn_config_set_value
     Set a value in the centreon agent config file
     Args:

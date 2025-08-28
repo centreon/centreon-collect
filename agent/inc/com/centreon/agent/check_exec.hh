@@ -44,9 +44,8 @@ class check_exec : public check {
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
       duration check_interval,
-      const std::string& serv,
-      const std::string& cmd_name,
-      const std::string& cmd_line,
+      const Service& serv,
+      const std::string& command_line,
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
@@ -57,9 +56,8 @@ class check_exec : public check {
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
       duration check_interval,
-      const std::string& serv,
-      const std::string& cmd_name,
-      const std::string& cmd_line,
+      const Service& serv,
+      const std::string& command_line,
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,
       const checks_statistics::pointer& stat,
@@ -91,8 +89,6 @@ class check_exec : public check {
  * @param first_start_expected The expected start time of the first check.
  * @param check_interval The interval between checks.
  * @param serv The service name.
- * @param cmd_name The command name.
- * @param cmd_line The command line.
  * @param output The predefined error message to be sent.
  * @param cnf Configuration for the engine to agent request.
  * @param handler Completion handler for the check.
@@ -109,9 +105,7 @@ class check_dummy : public check {
               const std::shared_ptr<spdlog::logger>& logger,
               time_point first_start_expected,
               duration check_interval,
-              const std::string& serv,
-              const std::string& cmd_name,
-              const std::string& cmd_line,
+              const Service& serv,
               const std::string& output,
               const engine_to_agent_request_ptr& cnf,
               check::completion_handler&& handler,
@@ -122,9 +116,7 @@ class check_dummy : public check {
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
       duration check_interval,
-      const std::string& serv,
-      const std::string& cmd_name,
-      const std::string& cmd_line,
+      const Service& serv,
       const std::string& output,
       const engine_to_agent_request_ptr& cnf,
       check::completion_handler&& handler,

@@ -193,19 +193,6 @@ void to_agent_connector::start() {
 }
 
 /**
- * @brief send conf to agent if something has changed (list of services,
- * commands...)
- *
- */
-void to_agent_connector::refresh_agent_configuration_if_needed(
-    const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_connection_m);
-  if (_connection) {
-    _connection->calc_and_send_config_if_needed(new_conf);
-  }
-}
-
-/**
  * @brief shutdown configuration, once this method has been called, this object
  * is dead and must be deleted
  *

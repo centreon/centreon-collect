@@ -20,6 +20,7 @@
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/base64.hh"
 
 #include "otl_fmt.hh"
@@ -31,19 +32,80 @@ using namespace com::centreon::engine::modules::opentelemetry::centreon_agent;
 /**
  * @brief when BiReactor::OnDone is called by grpc layers, we should delete
  * this. But this object is even used by others.
- * So it's stored in this container and just removed from this container when
+ * So it's stored in these container and just removed from this container when
  * OnDone is called
  * This container is also used to push configuration changes to agent
  *
- * @tparam bireactor_class
  */
-template <class bireactor_class>
-std::set<std::shared_ptr<agent_impl<bireactor_class>>>*
-    agent_impl<bireactor_class>::_instances =
-        new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
+agent_impl_base::instance_container* agent_impl_base::_configured_instance =
+    new agent_impl_base::instance_container;
 
-template <class bireactor_class>
-absl::Mutex agent_impl<bireactor_class>::_instances_m;
+absl::btree_set<std::shared_ptr<agent_impl_base>>*
+    agent_impl_base::_no_configured_instance =
+        new absl::btree_set<std::shared_ptr<agent_impl_base>>;
+
+absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
+
+/**
+ * @brief stores connections along their host and service ids
+ *
+ * @param conf
+ */
+void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
+  absl::MutexLock l(_instances_m);
+  auto me = shared_from_this();
+  _configured_instance->get<1>().erase(me);
+  if (conf.services().empty()) {
+    _no_configured_instance->insert(me);
+  } else {
+    _no_configured_instance->erase(me);
+
+    for (const agent::Service& serv : conf.services()) {
+      _configured_instance->emplace(serv.host_id(), serv.service_id(), me);
+    }
+  }
+}
+
+/**
+ * @brief when grpc Layers call OnDone, we can remove connection from containers
+ *
+ */
+void agent_impl_base::_on_done() {
+  auto me = shared_from_this();
+  absl::MutexLock l(_instances_m);
+  _configured_instance->get<1>().erase(me);
+  _no_configured_instance->erase(me);
+}
+
+/**
+ * @brief static method used to push new configuration to all agents
+ *
+ */
+void agent_impl_base::all_agent_calc_and_send_config_if_needed(
+    const agent_config::pointer& new_conf) {
+  _apply_to_all([&new_conf](const agent_impl_base::pointer& conn) {
+    conn->calc_and_send_config_if_needed(new_conf);
+  });
+}
+
+/**
+ * @brief static version of _force_check, it search connection that handle
+ * host_id and serv_id and then call _force_check
+ *
+ * @param host_id
+ * @param serv_id
+ */
+void agent_impl_base::force_check(uint64_t host_id, uint64_t serv_id) {
+  absl::MutexLock l(_instances_m);
+  auto& host_serv_index = _configured_instance->get<0>();
+  auto search = host_serv_index.find(std::make_pair(host_id, serv_id));
+  if (search == host_serv_index.end()) {
+    throw exceptions::msg_fmt(
+        "No agent that checks service {} of host {} connected", serv_id,
+        host_id);
+  }
+  search->connection->_force_check(host_id, serv_id);
+}
 
 /**
  * @brief Construct a new agent impl<bireactor class>::agent impl object
@@ -133,8 +195,7 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
     _conf = new_conf;
   }
   auto to_call = std::packaged_task<int(void)>(
-      [me = std::enable_shared_from_this<agent_impl<bireactor_class>>::
-           shared_from_this()]() mutable -> int32_t {
+      [me = shared_from_this()]() mutable -> int32_t {
         // then we are in the main thread
         // services, hosts and commands are stable
         me->_calc_and_send_config_if_needed();
@@ -143,24 +204,12 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
   command_manager::instance().enqueue(std::move(to_call));
 }
 
-/**
- * @brief static method used to push new configuration to all agents
- *
- * @tparam bireactor_class
- */
-template <class bireactor_class>
-void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
-    const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_instances_m);
-  for (auto& instance : *_instances) {
-    instance->calc_and_send_config_if_needed(new_conf);
-  }
-}
-
 static bool add_command_to_agent_conf(
     const std::string& cmd_name,
     const std::string& cmd_line,
     const std::string& service,
+    uint64_t host_id,
+    uint64_t service_id,
     uint32_t check_interval,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
@@ -183,6 +232,8 @@ static bool add_command_to_agent_conf(
   com::centreon::agent::Service* serv = cnf->add_services();
   serv->set_service_description(service);
   serv->set_command_name(cmd_name);
+  serv->set_host_id(host_id);
+  serv->set_service_id(service_id);
   if (encrypt_credentials && pb_config.credentials_encryption() &&
       credentials_decrypt) {
     serv->set_command_line("encrypt::" +
@@ -249,11 +300,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           _agent_info->init().host(),
           [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
-              const std::string& service, uint32_t check_interval,
+              const std::string& service, uint64_t host_id, uint64_t service_id,
+              uint32_t check_interval,
               const std::shared_ptr<spdlog::logger>& logger) {
-            return add_command_to_agent_conf(cmd_name, cmd_line, service,
-                                             check_interval, cnf, logger, peer,
-                                             crypt_credentials);
+            return add_command_to_agent_conf(
+                cmd_name, cmd_line, service, host_id, service_id,
+                check_interval, cnf, logger, peer, crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
@@ -264,6 +316,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(
             *cnf, _last_sent_config->config())) {
+      _on_new_conf(new_conf->config());
       _last_sent_config = new_conf;
     } else {
       new_conf.reset();
@@ -333,8 +386,7 @@ void agent_impl<bireactor_class>::_write(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
-  absl::MutexLock l(&_instances_m);
-  _instances->insert(strm);
+  strm->_on_new_conf(agent::AgentConfiguration());
 }
 
 /**
@@ -454,16 +506,11 @@ void agent_impl<bireactor_class>::OnDone() {
    * of the current thread witch go to a EDEADLOCK error and call grpc::Crash.
    * So we uses asio thread to do the job
    */
-  asio::post(*_io_context,
-             [me = std::enable_shared_from_this<
-                  agent_impl<bireactor_class>>::shared_from_this(),
-              logger = _logger]() {
-               absl::MutexLock l(&_instances_m);
-               SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
-                                   static_cast<void*>(me.get()));
-               _instances->erase(
-                   std::static_pointer_cast<agent_impl<bireactor_class>>(me));
-             });
+  asio::post(*_io_context, [me = shared_from_this(), logger = _logger]() {
+    SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
+                        static_cast<void*>(me.get()));
+    me->_on_done();
+  });
 }
 
 /**
@@ -481,10 +528,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
    * grpc::Crash. So we uses asio thread to do the job
    */
   asio::post(
-      *_io_context, [me = std::enable_shared_from_this<
-                         agent_impl<bireactor_class>>::shared_from_this(),
-                     status, logger = _logger]() {
-        absl::MutexLock l(&_instances_m);
+      *_io_context, [me = shared_from_this(), status, logger = _logger]() {
         if (status.ok()) {
           SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                               static_cast<void*>(me.get()),
@@ -494,8 +538,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
                               static_cast<void*>(me.get()),
                               status.error_message(), status.error_details());
         }
-        _instances->erase(
-            std::static_pointer_cast<agent_impl<bireactor_class>>(me));
+        me->_on_done();
       });
 }
 
@@ -517,15 +560,26 @@ void agent_impl<bireactor_class>::shutdown() {
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
-  std::set<std::shared_ptr<agent_impl>>* to_shutdown;
-  {
-    absl::MutexLock l(&_instances_m);
-    to_shutdown = _instances;
-    _instances = new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
-  }
-  for (std::shared_ptr<agent_impl> conn : *to_shutdown) {
-    conn->shutdown();
-  }
+  _apply_to_all([](const agent_impl_base::pointer& conn) { conn->shutdown(); });
+}
+
+/**
+ * @brief send force check message to the agent
+ *
+ * @tparam bireactor_class
+ * @param host_id
+ * @param serv_id
+ */
+template <class bireactor_class>
+void agent_impl<bireactor_class>::_force_check(uint64_t host_id,
+                                               uint64_t serv_id) {
+  std::shared_ptr<agent::MessageToAgent> to_agent =
+      std::make_shared<agent::MessageToAgent>();
+
+  auto force = to_agent->mutable_force_check();
+  force->set_host_id(host_id);
+  force->set_serv_id(serv_id);
+  _write(to_agent);
 }
 
 namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
