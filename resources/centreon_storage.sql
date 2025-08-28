@@ -45,6 +45,7 @@ CREATE TABLE `instances` (
   `version` varchar(16) DEFAULT NULL,
   `deleted` tinyint(1) NOT NULL DEFAULT '0',
   `outdated` tinyint(1) NOT NULL DEFAULT '0',
+  `is_encryption_ready` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`instance_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
