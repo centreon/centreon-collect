@@ -22,13 +22,16 @@ List of the available modules:
 
 # Module implementation
 
+When starting, the first process gorgone-core will create child process for each module enabled in the configuration file.
 Each module should have a hook.pm and a class.pm file with some mandatory functions implemented.
-
+Gorgone-core will check the required functions are implemented and call them to create the module process and route events to it.
 
 ## hook.pm
 
-Mainly used for creating the module process(es)
+Mainly used for creating the module process(es) by gorgone-core
 and route events to it each time a new message is received by gorgone.
+
+Most functions in this file will be called by the gorgone-core process and not by the module process.
 
 ### const EVENTS []
 
