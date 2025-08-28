@@ -2012,9 +2012,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     
 BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled with no token in the trusted_token
-    ...    When the Centreon Agent attempts to connect with tls
+    ...    When the Centreon Agent attempts to connect with tls with a token
     ...    Then the connection should be refused
-    ...    And the log should contain the message "No authorization header"
+    ...    And the log should contain the message "Token is not trusted"
     [Tags]    broker    engine    opentelemetry    MON-170625
 
     Ctn Config Engine    ${1}    ${2}    ${2}
@@ -2050,7 +2050,9 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     Ctn Engine Config Set Value    0    log_level_config    error
     Ctn Engine Config Set Value    0    log_level_events    error
 
-    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
+    ${token1}    Ctn Create Jwt Token    ${-1}
+
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token1}
     Ctn Config BBDO3    1
     Ctn Clear Retention
 
@@ -2068,9 +2070,9 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    15    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Not Be True    ${result}    resources table should not be updated for host_1
 
-    ${content}    Create List    UNAUTHENTICATED: No authorization header
+    ${content}    Create List    UNAUTHENTICATED : Token is not trusted
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    "Missing authorization" should appear.
+    Should Be True    ${result}    "UNAUTHENTICATED : Token is not trusted" should appear.
 
 
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
