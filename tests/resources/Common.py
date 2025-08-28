@@ -239,12 +239,13 @@ def ctn_get_round_current_date():
     return int(time.time())
 
 
-def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
+def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int, agent_format: bool = False):
 
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = ctn_find_in_log(log, date, content, regex=True)
+        ok, c = ctn_find_in_log(
+            log, date, content, regex=True, agent_format=agent_format)
         if ok:
             return True, c
         time.sleep(5)
@@ -347,14 +348,18 @@ def ctn_get_hostname():
     return retval
 
 
-def ctn_create_key_and_certificate(host: str, key: str, cert: str):
+def ctn_create_key_and_certificate(host: str, key: str, cert: str, with_san: bool = False):
     if len(key) > 0:
         os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
     if len(cert) > 0:
         os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
     if len(key) > 0:
-        getoutput(
-            f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}'")
+        if with_san:
+            getoutput(
+                f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -addext \"subjectAltName=DNS:{host},IP:127.0.0.1\"")
+        else:
+            getoutput(
+                f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}'")
     else:
         getoutput(
             f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {cert} -subj '/CN={host}'")
