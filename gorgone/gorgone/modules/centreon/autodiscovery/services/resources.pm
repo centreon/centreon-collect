@@ -428,7 +428,7 @@ sub get_macros_host {
         }
 
         if (defined($datas->[0]->[0]) && $datas->[0]->[0] ne '') {
-            set_macro(\%macros, '$_HOSTSNMPCOMMUNITY$', $datas->[0]->[0]);
+            set_macro(\%macros, '$_HOSTSNMPCOMMUNITY$', $vault->get_secret($datas->[0]->[0]));
         }
         if (defined($datas->[0]->[1]) && $datas->[0]->[1] ne '') {
             set_macro(\%macros, '$_HOSTSNMPVERSION$', $datas->[0]->[1]);
