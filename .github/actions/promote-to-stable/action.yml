@@ -122,6 +122,7 @@ runs:
 
     - name: Promote DEB packages to stable
       # if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' && inputs.is_cloud == 'false' }}
+      if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' }}
       run: |
         set -eux
 
