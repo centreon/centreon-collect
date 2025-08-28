@@ -99,8 +99,14 @@ config::config(const std::string& registry_key) {
     _security_mode = common::grpc::grpc_config::TLS_SECURE;
   } else if (encryption == "insecure") {
     _security_mode = common::grpc::grpc_config::TLS_INSECURE;
-  } else {
+  } else if (encryption == "no") {
     _security_mode = common::grpc::grpc_config::NONE;
+  } else {
+    RegCloseKey(h_key);
+    throw exceptions::msg_fmt(
+        "invalid value for registry key 'encryption' ('{}'), accepted values "
+        "are: full, insecure, no",
+        encryption);
   }
   _public_cert_file = get_sz_reg_or_default("public_cert", "");
   _private_key_file = get_sz_reg_or_default("private_key", "");
