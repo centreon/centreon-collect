@@ -206,15 +206,18 @@ Function cmd_line_to_registry
     ClearErrors
     ${GetOptions} $cmdline_parameters "--encryption" $0
     ${IfNot} ${Errors}
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" $0
         StrCpy $0 ""
         ${GetOptions} $cmdline_parameters "--private_key" $0
         ${If} ${Errors}
             ${If} $2 == 1
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "If encryption and poller-initiated connection are active, the private key is mandatory."
                 Call silent_fatal_error
             ${EndIf}
         ${Else}
             ${If} $0 !~ $1
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "Bad private key file path."
                 Call silent_fatal_error
             ${EndIf}
@@ -225,11 +228,13 @@ Function cmd_line_to_registry
         ${GetOptions} $cmdline_parameters "--public_cert" $0
         ${If} ${Errors}
             ${If} $2 == 1
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "If encryption and poller-initiated connection are active, the certificate is mandatory."
                 Call silent_fatal_error
             ${EndIf}
         ${Else}
             ${If} $0 !~ $1
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "Bad certificate file path."
                 Call silent_fatal_error
             ${EndIf}
@@ -240,6 +245,7 @@ Function cmd_line_to_registry
         ${GetOptions} $cmdline_parameters "--ca" $0
         ${IfNot} ${Errors}
             ${If} $0 !~ $1
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "Bad CA file path."
                 Call silent_fatal_error
             ${EndIf}
@@ -249,9 +255,8 @@ Function cmd_line_to_registry
         StrCpy $0 ""
         ${GetOptions} $cmdline_parameters "--ca_common_name" $0
         WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $0
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 1
     ${Else}
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
     ${EndIf}
 
     #token
@@ -354,10 +359,20 @@ Function silent_update_conf
     ClearErrors
     ${GetOptions} $cmdline_parameters "--encryption" $0
     ${IfNot} ${Errors}
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+        ${If} $0 == "full"
+        ${OrIf} $0 == "insecure"
+        ${OrIf} $0 == "no"
+            WriteRegStr HKLM ${CMA_REG_KEY} "encryption" $0
+        ${Else}
+            StrCpy $1 "encryption must be one of full, insecure or no"
+            Call silent_fatal_error
+        ${EndIf}
     ${EndIf}
-    ReadRegDWORD $0 HKLM ${CMA_REG_KEY} "encryption"
-    ${If} $0 > 0
+    ReadRegStr $0 HKLM ${CMA_REG_KEY} "encryption"
+    ${If} $0 != "no"
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" $0
+        StrCpy $0 ""
+
         ${GetOptions} $cmdline_parameters "--private_key" $0
         ${IfNot} ${Errors}
             ${If} $0 !~ $1
@@ -386,31 +401,29 @@ Function silent_update_conf
         ${GetOptions} $cmdline_parameters "--ca_common_name" $0
         ${IfNot} ${Errors}
             WriteRegStr HKLM ${CMA_REG_KEY} "ca_name" $0
-        ${EndIf}
-
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 1
+        ${EndIf}        
     ${EndIf}
 
     ClearErrors
     ${GetOptions} $cmdline_parameters "--no_encryption" $0
     ${IfNot} ${Errors}
-        WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+        WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
     ${EndIf}
 
     #certif and private key are mandatory in reverse mode
     ReadRegDWORD $0 HKLM ${CMA_REG_KEY} "reversed_grpc_streaming"
     ${If} $0 > 0
-        ReadRegDWORD $0 HKLM ${CMA_REG_KEY} "encryption"
-        ${If} $0 > 0
+        ReadRegStr $0 HKLM ${CMA_REG_KEY} "encryption"
+        ${If} $0 != "no"
             ReadRegStr $0 HKLM ${CMA_REG_KEY} "private_key"
             ${If} $0 == ""
-                WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "If encryption and poller-initiated connection are active, the private key is mandatory."
                 Call silent_fatal_error
             ${EndIf}
             ReadRegStr $0 HKLM ${CMA_REG_KEY} "public_cert"
             ${If} $0 == ""
-                WriteRegDWORD HKLM ${CMA_REG_KEY} "encryption" 0
+                WriteRegStr HKLM ${CMA_REG_KEY} "encryption" "no"
                 Strcpy $1 "If encryption and poller-initiated connection are active, the certificate is mandatory."
                 Call silent_fatal_error
             ${EndIf}
