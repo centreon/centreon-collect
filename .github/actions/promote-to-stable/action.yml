@@ -67,9 +67,9 @@ runs:
         # Cloud specific promote
         # delivery by default to onprem, override to internal if is_cloud is true
         if [[ ${{ inputs.is_cloud }} == "true" ]]; then
-          ROOT_REPO_PATH="rpm-standard-internal-kdu"
+          ROOT_REPO_PATH="rpm-standard-internal"
         else
-          ROOT_REPO_PATH="rpm-standard-kdu"
+          ROOT_REPO_PATH="rpm-standard"
         fi
 
         # Search for testing packages candidate for promote
@@ -123,8 +123,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
-      # if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' && inputs.is_cloud == 'false' }}
-      if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' }}
+      if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' && inputs.is_cloud == 'false' }}
       run: |
         set -eux
 
@@ -156,8 +155,6 @@ runs:
 
         SOURCE_ROOT_REPO_PATH="${ROOT_REPO_PATH_PREFIX}standard${SOURCE_ROOT_REPO_PATH_SUFFIX}"
         TARGET_ROOT_REPO_PATH="${ROOT_REPO_PATH_PREFIX}standard${TARGET_ROOT_REPO_PATH_SUFFIX}"
-        SOURCE_ROOT_REPO_PATH="apt-kdu"
-        TARGET_ROOT_REPO_PATH="apt-kdu"
 
         echo "[DEBUG] - Get path of testing DEB packages to promote to stable."
 
