@@ -7,6 +7,7 @@ DROP TABLE IF EXISTS `mod_auto_disco_inclusion_exclusion`;
 DROP TABLE IF EXISTS `mod_auto_disco_change`;
 DROP TABLE IF EXISTS `mod_auto_disco_inst_rule_relation`;
 DROP TABLE IF EXISTS `mod_auto_disco_rule`;
+DROP TABLE IF EXISTS `on_demand_macro_host`;
 
 -- host discovery tables
 DROP TABLE IF EXISTS `mod_host_disco_host_already_discovered`;

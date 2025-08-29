@@ -27,6 +27,7 @@ use MIME::Base64;
 use Crypt::OpenSSL::AES;
 use Net::Curl::Easy qw(:constants);
 use JSON::XS;
+use Crypt::URandom qw( urandom );
 
 my $VAULT_PATH_REGEX = qr/^secret::hashicorp_vault::([^:]+)::(.+)$/;
 
@@ -47,6 +48,10 @@ sub new {
     return $self;
 }
 
+sub is_enabled {
+    my ($self) = @_;
+    return $self->{enabled};
+}
 
 sub init {
     my ($self, %options) = @_;
@@ -99,15 +104,7 @@ sub check_options {
 
 sub check_configuration {
     my ($self, %options) = @_;
-
-    if ( !defined($self->{vault_config}->{url}) || $self->{vault_config}->{url} eq '') {
-        $self->{logger}->writeLogDebug("Vault url is missing from configuration.");
-        $self->{vault_config}->{url} = '127.0.0.1';
-    }
-    if ( !defined($self->{vault_config}->{port}) || $self->{vault_config}->{port} eq '') {
-        $self->{logger}->writeLogDebug("Vault port is missing from configuration.");
-        $self->{vault_config}->{port} = '443';
-    }
+    $self->{vault_url} = $self->get_vault_url();
 
     # Normally, the role_id and secret_id data are encrypted using AES wit the following information:
     # firstKey = APP_SECRET (environment variable)
@@ -134,25 +131,78 @@ sub check_configuration {
 }
 
 sub get_app_secret {
+    # this string is generated without a fixed size, but php use https://www.php.net/manual/en/function.openssl-decrypt.php,
+    # which truncate the string at 256 character or add null character if the string is too short.
+
+    my $secret = ''; # if no app_secret found return empty string so caller don't try to use it.
     if (defined($ENV{'APP_SECRET'}) && $ENV{'APP_SECRET'} ne '' ) {
-        return $ENV{'APP_SECRET'};
+        $secret = substr(decode_base64($ENV{'APP_SECRET'}), 0, 32);
     }
-    if (-r '/usr/share/centreon/.env'){
+    elsif (-r '/usr/share/centreon/.env'){
         open(my $fh, '<', '/usr/share/centreon/.env') or return '';
         while (my $line = <$fh>) {
             chomp $line;
             if ($line =~ /^APP_SECRET=(.+)$/) {
-                return $1;
+                $secret = substr(decode_base64($1), 0, 32);
             }
         }
     }
-    return ''; # if no app_secret found return empty string so caller don't try to use it.
+    return '' if ($secret eq '');
+
+    if (length($secret) < 32){
+        $secret = $secret . "\0" x (32-length($secret));
+    }
+    return $secret
+}
+sub encrypt {
+    my ($self, $input) = @_;
+    if (!defined($input) || $input eq '') {
+        $self->{logger}->writeLogNotice("No input data to encrypt. Returning undef.");
+        return undef;
+    }
+    # with AES-256, the IV length must 16 bytes
+    my $iv = urandom(16);
+    # create the AES object
+    $self->{logger}->writeLogDebug(
+            "Creating the AES encryption object for initialization vector (IV) of length "
+            . "input is " . length($input) . "B long"
+            . length($iv) . "B" .  ", key is " . length($self->{encryption_key}) *8 . " bits long");
+
+    my $cipher;
+    eval {
+        $cipher = Crypt::OpenSSL::AES->new($self->{encryption_key},
+            {
+                'cipher'  => 'AES-256-CBC',
+                'iv'      => $iv,
+                'padding' => 1
+            }
+        );
+    };
+    if ($@) {
+        $self->{logger}->writeLogNotice("There was an error while creating the AES object: " . $@);
+        return undef;
+    }
+
+    # decrypt
+    $self->{logger}->writeLogDebug("Decrypting the data of length " . length($input) . "B.");
+    my $encrypted_data;
+    eval {$encrypted_data = $cipher->encrypt($input);};
+    if ($@) {
+        $self->{logger}->writeLogNotice("There was an error while decrypting one of the AES-encrypted data: " . $@);
+        return undef;
+    }
+
+    return encode_base64($iv . urandom(64) . $encrypted_data);
 }
 
 sub extract_and_decrypt {
     my ($self, %options) = @_;
 
     my $input = decode_base64($options{data});
+    if (!defined($input) || $input eq '') {
+        $self->{logger}->writeLogNotice("No input data to decrypt. Returning undef.");
+        return undef;
+    }
     $self->{logger}->writeLogDebug("data to extract and decrypt: '" . $options{data} . "'");
 
     # with AES-256, the IV length must 16 bytes
@@ -165,12 +215,13 @@ sub extract_and_decrypt {
     # create the AES object
     $self->{logger}->writeLogDebug(
             "Creating the AES decryption object for initialization vector (IV) of length "
-            . length($iv) . "B, key of length " . length($self->{encryption_key}) . "B."
-    );
+            . length($iv) . "B" .  ", key is " . length($self->{encryption_key}) *8 . " bits long");
+    $self->{logger}->writeLogDebug(
+            "input is " . length($input) . "B long, iv is " . length($iv) . "B long and data is " . length($encrypted_data) . "B long.");
+
     my $cipher;
     eval {
-        $cipher = Crypt::OpenSSL::AES->new(
-            decode_base64( $self->{encryption_key} ),
+        $cipher = Crypt::OpenSSL::AES->new($self->{encryption_key},
             {
                 'cipher'  => 'AES-256-CBC',
                 'iv'      => $iv,
@@ -209,6 +260,11 @@ sub authenticate {
         $self->{logger}->writeLogDebug("Decrypting the credentials needed to authenticate to the vault.");
         $role_id   = $self->extract_and_decrypt( ('data' => $role_id ));
         $secret_id = $self->extract_and_decrypt( ('data' => $secret_id ));
+        if (!defined($role_id) || !defined($secret_id)) {
+            $self->{logger}->writeLogNotice("Error while decrypting role_id or secret_id. "
+                . "Check that the APP_SECRET environment variable is set and that the vault config file is correct.");
+            return undef;
+        }
         $self->{logger}->writeLogDebug("role_id and secret_id have been decrypted.");
     } else {
         $self->{logger}->writeLogDebug("role_id and secret_id are not crypted");
@@ -216,11 +272,12 @@ sub authenticate {
 
 
     # Authenticate to get the token
-    my $url = "https://" . $self->{vault_config}->{url} . ":" . $self->{vault_config}->{port} . "/v1/auth/approle/login";
+    my $url = $self->{vault_url} . "/v1/auth/approle/login";
     $self->{logger}->writeLogDebug("Authenticating to the vault server at URL: $url");
     $self->{curl_easy}->setopt( CURLOPT_URL, $url );
 
-    my $post_data = "role_id=$role_id&secret_id=$secret_id";
+    my $post_data = '{"role_id":"' . $role_id . '","secret_id":"' . $secret_id. '"}';
+    $self->{logger}->writeLogDebug("Post data: $post_data");
     my $auth_result_json;
     # to get more details (in STDERR)
     #$self->{curl_easy}->setopt(CURLOPT_VERBOSE, 1);
@@ -237,15 +294,13 @@ sub authenticate {
         return undef;
     }
 
-    $self->{logger}->writeLogInfo("Authentication to the vault passed." );
 
     my $auth_result_obj = transform_json_to_object($auth_result_json);
-    if (defined($auth_result_obj->{error_message})) {
-        $self->{logger}->writeLogError("Error while decoding JSON '$auth_result_json'. Message: "
-                . $auth_result_obj->{error_message});
+    if (defined($auth_result_obj->{errors})) {
+        $self->{logger}->writeLogError("can't authenticate to vault api : " . join(", ", @{$auth_result_obj->{errors}}));
         return undef;
     }
-
+    $self->{logger}->writeLogInfo("Authentication to the vault passed." );
     # store the token (.auth.client_token) and its expiration date (current date + .lease_duration)
     my $expiration_epoch = -1;
     my $lease_duration = $auth_result_obj->{auth}->{lease_duration};
@@ -297,7 +352,7 @@ sub get_secret {
 
     # prepare the GET statement
     my $get_result_json;
-    my $url = "https://" . $self->{vault_config}->{url} . ":" . $self->{vault_config}->{port} . "/v1/" . $secret_path;
+    my $url = $self->{vault_url} .  "/v1/" . $secret_path;
     $self->{logger}->writeLogDebug("Requesting URL: $url");
 
     #$self->{curl_easy}->setopt( CURLOPT_VERBOSE, 1 );
@@ -338,6 +393,32 @@ sub get_secret {
     return $get_result_obj->{data}->{data}->{$secret_name};
 }
 
+sub get_vault_url {
+    my ($self) = shift;
+
+    my $url;
+    if ( !defined($self->{vault_config}->{url}) || $self->{vault_config}->{url} eq '') {
+        $self->{logger}->writeLogDebug("Vault url is missing from configuration, using https://127.0.0.1");
+        $url = 'https://127.0.0.1';
+    }
+    elsif ($self->{vault_config}->{url} !~ qr|^https?://|) { # if file don't specify http explicitly, we use https
+        $url = "https://";
+    }
+    $url .= $self->{vault_config}->{url};
+
+    if ( !defined($self->{vault_config}->{port}) || $self->{vault_config}->{port} eq '') {
+        $self->{logger}->writeLogDebug("Vault port is missing from configuration, using 443 by default");
+        $self->{vault_config}->{port} = '443';
+    }
+    if (defined($self->{vault_config}->{port}) and $self->{vault_config}->{port} =~ /\d+/) {
+        $url .= ':' . $self->{vault_config}->{port};
+    }
+    else {
+        $url .= ':443';
+    }
+    return $url;
+}
+
 sub transform_json_to_object {
     my ($json_data) = @_;
 
@@ -346,7 +427,7 @@ sub transform_json_to_object {
         $json_as_object = decode_json($json_data);
     };
     if ($@) {
-        return ({'error_message' => "Could not decode JSON from '$json_data'. Reason: " . $@});
+        return ({'errors' => ["Could not decode JSON from '$json_data'. Reason: " . $@]});
     };
     return($json_as_object);
 }
@@ -417,6 +498,16 @@ The expected file format for Centreon Vault is:
 
 This sub will not emit Error logs (only Notice and inferior) as it can be called on environment where the Vault is not used.
 get_secret() can emit Error logs if vault is considered enabled.
+
+=head2 encrypt($input)
+
+Encrypts the given input using AES-256-CBC with the key retrieved by the constructor
+
+Return the encrypted data as a base64 encode string with the following format:
+
+    <iv><64 bytes long random data><encrypted data>
+
+By default the library use AES256, so the IV is 16 bytes long. The hmac can't be constructed in perl easily, so for now it is a random 64 bytes long string to follow the same format as the decrypt method. It was created to make the tests easier, if you really need to crypt something ccc or php should be used instead.
 
 =head2 get_secret($secret)
 

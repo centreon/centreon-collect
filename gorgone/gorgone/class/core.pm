@@ -163,7 +163,7 @@ sub init {
         $self->{logger}->writeLogError("[core] can't find config file '$self->{config_file}'");
         exit(1);
     }
-    # before loading the config, we need to load initialize vault.
+    # before loading the config, we need to initialize vault.
     # Gorgone don't know how to reload for now, but once it will be done, we will need to retry the vault connexion if it failed when starting, and read again the configuration
     $self->{vault_file} = defined($self->{vault_file}) ? $self->{vault_file} : '/var/lib/centreon/vault/vault.json';
     $self->{vault} = centreon::common::centreonvault->new(logger => $self->{logger},  'config_file' =>  $self->{vault_file});
@@ -453,7 +453,8 @@ sub load_module {
         config_core => $self->{config}->{configuration}->{gorgone},
         config_db_centreon => $self->{config}->{configuration}->{centreon}->{database}->{db_configuration},
         config_db_centstorage => $self->{config}->{configuration}->{centreon}->{database}->{db_realtime},
-        logger => $self->{logger}
+        logger => $self->{logger},
+        vault_file => $self->{vault_file} # this is only used by autodiscovery for now
     );
     if ($loaded == 0) {
         delete $self->{modules_register}->{$package};
