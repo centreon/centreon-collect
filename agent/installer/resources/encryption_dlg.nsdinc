@@ -7,7 +7,8 @@
 
 ; handle variables
 Var hCtl_encryption
-Var hCtl_encryption_EncryptionCheckBox
+Var hCtl_encryption_encryption_label
+Var hCtl_encryption_encryption_droplist
 Var hCtl_encryption_EncryptionGroupBox
 Var hCtl_encryption_token_help
 Var hCtl_encryption_token_help_hImage
@@ -45,108 +46,114 @@ Function fnc_encryption_Create
   ${EndIf}
   !insertmacro MUI_HEADER_TEXT "Centreon Monitoring Agent" "Encryption parameters"
   
-  ; === EncryptionCheckBox (type: Checkbox) ===
-  ${NSD_CreateCheckbox} 8u 2u 68u 15u "Encryption"
-  Pop $hCtl_encryption_EncryptionCheckBox
-  ${NSD_OnClick} $hCtl_encryption_EncryptionCheckBox on_encryptioncheckbox_click
+  ; === encryption_label (type: Label) ===
+  ${NSD_CreateLabel} 8u 5u 66u 10u "Encryption :"
+  Pop $hCtl_encryption_encryption_label
+  
+  ; === encryption_droplist (type: DropList) ===
+  ${NSD_CreateDropList} 72u 3u 66u 13u ""
+  Pop $hCtl_encryption_encryption_droplist
+  ${NSD_OnChange} $hCtl_encryption_encryption_droplist on_encryptiondroplist_change
+  ${NSD_CB_AddString} $hCtl_encryption_encryption_droplist "TLS"
+  ${NSD_CB_AddString} $hCtl_encryption_encryption_droplist "No TLS"
   
   ; === EncryptionGroupBox (type: GroupBox) ===
-  ${NSD_CreateGroupBox} 8u 20u 255u 98u "Certificates"
+  ${NSD_CreateGroupBox} 8u 20u 255u 68u "Certificates"
   Pop $hCtl_encryption_EncryptionGroupBox
   
   ; === token_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 103u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 30u 12u 11u ""
   Pop $hCtl_encryption_token_help
   ${NSD_OnClick} $hCtl_encryption_token_help token_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_token_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_token_help_hImage
   
   ; === token (type: Text) ===
-  ${NSD_CreateText} 115u 102u 127u 12u ""
+  ${NSD_CreateText} 115u 28u 127u 12u ""
   Pop $hCtl_encryption_token
   
   ; === ca_name_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 85u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 66u 12u 11u ""
   Pop $hCtl_encryption_ca_name_help
   ${NSD_OnClick} $hCtl_encryption_ca_name_help ca_name_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_ca_name_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_ca_name_help_hImage
   
   ; === label_token (type: Label) ===
-  ${NSD_CreateLabel} 12u 104u 92u 10u "Token:"
+  ${NSD_CreateLabel} 12u 30u 95u 10u "Token:"
   Pop $hCtl_encryption_label_token
   
   ; === ca_file_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 66u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 47u 12u 11u ""
   Pop $hCtl_encryption_ca_file_help
   ${NSD_OnClick} $hCtl_encryption_ca_file_help ca_file_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_ca_file_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_ca_file_help_hImage
   
   ; === certificate_file_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 29u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 47u 12u 11u ""
   Pop $hCtl_encryption_certificate_file_help
   ${NSD_OnClick} $hCtl_encryption_certificate_file_help certificate_file_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_certificate_file_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_certificate_file_help_hImage
   
   ; === private_key_file_help (type: Bitmap) ===
-  ${NSD_CreateBitmap} 246u 47u 12u 11u ""
+  ${NSD_CreateBitmap} 246u 66u 12u 11u ""
   Pop $hCtl_encryption_private_key_file_help
   ${NSD_OnClick} $hCtl_encryption_private_key_file_help private_key_file_help_onClick
   File "/oname=$PLUGINSDIR\info.bmp" "resources\info.bmp"
   ${NSD_SetImage} $hCtl_encryption_private_key_file_help "$PLUGINSDIR\info.bmp" $hCtl_encryption_private_key_file_help_hImage
   
   ; === ca_name (type: Text) ===
-  ${NSD_CreateText} 115u 84u 127u 12u ""
+  ${NSD_CreateText} 115u 65u 127u 12u ""
   Pop $hCtl_encryption_ca_name
   
   ; === label_ca_name (type: Label) ===
-  ${NSD_CreateLabel} 12u 86u 95u 10u "CA Common Name (CN):"
+  ${NSD_CreateLabel} 12u 67u 95u 10u "CA Common Name (CN):"
   Pop $hCtl_encryption_label_ca_name
   
   ; === ca_file_Txt (type: Text) ===
-  ${NSD_CreateText} 115u 65u 106u 12u ""
+  ${NSD_CreateText} 115u 46u 106u 12u ""
   Pop $hCtl_encryption_ca_file_Txt
   
   ; === ca_file_Btn (type: Button) ===
-  ${NSD_CreateButton} 222u 65u 20u 12u "..."
+  ${NSD_CreateButton} 222u 46u 20u 12u "..."
   Pop $hCtl_encryption_ca_file_Btn
   ${NSD_OnClick} $hCtl_encryption_ca_file_Btn fnc_hCtl_encryption_ca_file_Click
   
   ; === certificate_file_Txt (type: Text) ===
-  ${NSD_CreateText} 115u 28u 106u 12u ""
+  ${NSD_CreateText} 115u 46u 106u 12u ""
   Pop $hCtl_encryption_certificate_file_Txt
   
   ; === certificate_file_Btn (type: Button) ===
-  ${NSD_CreateButton} 222u 28u 20u 12u "..."
+  ${NSD_CreateButton} 222u 46u 20u 12u "..."
   Pop $hCtl_encryption_certificate_file_Btn
   ${NSD_OnClick} $hCtl_encryption_certificate_file_Btn fnc_hCtl_encryption_certificate_file_Click
   
   ; === label_ca_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 67u 99u 10u "CA:"
+  ${NSD_CreateLabel} 12u 49u 99u 10u "CA:"
   Pop $hCtl_encryption_label_ca_file
   
   ; === private_key_file_Txt (type: Text) ===
-  ${NSD_CreateText} 115u 46u 106u 12u ""
+  ${NSD_CreateText} 115u 65u 106u 12u ""
   Pop $hCtl_encryption_private_key_file_Txt
   
   ; === private_key_file_Btn (type: Button) ===
-  ${NSD_CreateButton} 222u 46u 20u 12u "..."
+  ${NSD_CreateButton} 222u 65u 20u 12u "..."
   Pop $hCtl_encryption_private_key_file_Btn
   ${NSD_OnClick} $hCtl_encryption_private_key_file_Btn fnc_hCtl_encryption_private_key_file_Click
   
   ; === label_certificate_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 30u 66u 10u "Public certificate:"
+  ${NSD_CreateLabel} 12u 49u 66u 10u "Public certificate:"
   Pop $hCtl_encryption_label_certificate_file
   
   ; === label_private_key_file (type: Label) ===
-  ${NSD_CreateLabel} 12u 49u 66u 10u "Private key:"
+  ${NSD_CreateLabel} 12u 67u 66u 10u "Private key:"
   Pop $hCtl_encryption_label_private_key_file
   
   ; CreateFunctionCustomScript
   Call init_encryption_dlg
-  Call on_encryptioncheckbox_click
+  Call on_encryptiondroplist_change
   
   
 FunctionEnd
