@@ -39,9 +39,11 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "maximum": 65535
         },
         "encryption": {
-          "description": "encryption mode: full, insecure, or no",
-          "type": "string",
-          "enum": ["full", "insecure", "no"]
+            "description": "encryption mode: full, insecure, or no",
+            "anyOf": [
+              { "type": "boolean" },
+              { "type": "string", "enum": ["full", "insecure", "no", "true", "false"] }
+            ]
         },
         "public_cert": {
             "description": "path of certificate file .crt",
@@ -126,13 +128,25 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
   bool compress = false;
   int second_keepalive_interval;
 
-  const std::string& encryption = json_config.get_string("encryption", "no");
-  if (encryption == "full") {
-    security_mode = TLS_SECURE;
-  } else if (encryption == "insecure") {
-    security_mode = TLS_INSECURE;
-  } else {
-    security_mode = NONE;
+  if (json_config.has_member("encryption")) {
+    const auto& encryption_value = json_config_v["encryption"];
+    if (encryption_value.IsString()) {
+      const std::string& encryption = json_config.get_string("encryption");
+      if (encryption == "full") {
+        security_mode = TLS_SECURE;
+      } else if (encryption == "insecure") {
+        security_mode = TLS_INSECURE;
+      } else {
+        security_mode = NONE;
+      }
+    } else if (encryption_value.IsBool()) {
+      bool crypted = encryption_value.GetBool();
+      if (crypted) {
+        security_mode = TLS_INSECURE;
+      } else {
+        security_mode = NONE;
+      }
+    }
   }
 
   read_file(json_config_v, "public_cert", certificate);
