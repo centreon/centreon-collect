@@ -39,11 +39,11 @@ NO_ENGINE_ENCRYPTION
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
 
-    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
 
-    # Disconnect From Database    pymysql
+    Disconnect From Database    pymysql
 
 ENGINE_ENCRYPTION_BAD_CONF
     [Documentation]    Given an engine with configured encryption, but without key and salt, 
@@ -80,11 +80,11 @@ ENGINE_ENCRYPTION_BAD_CONF
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
     
-    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
 
-    # Disconnect From Database    pymysql
+    Disconnect From Database    pymysql
 
 ENGINE_ENCRYPTION_GOOD_CONF
     [Documentation]    Given an engine with configured encryption, and key and salt, 
@@ -133,11 +133,11 @@ ENGINE_ENCRYPTION_GOOD_CONF
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw_mac The content to encode" not found in logs.
 
-    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=1    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=1    ==    1    retry_time_out=30s    retry_pause=2s
 
-    # Disconnect From Database    pymysql
+    Disconnect From Database    pymysql
 
 BROKER_LUA_ENCRYPTION
     [Documentation]    Given an engine with configured encryption, and key and salt, 
