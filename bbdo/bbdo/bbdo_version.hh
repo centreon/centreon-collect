@@ -37,6 +37,16 @@ union bbdo_version {
 
   bbdo_version(uint16_t maj, uint16_t min, uint16_t ptch)
       : patch(ptch), minor_v(min), major_v(maj) {}
+
+  bool operator<(const bbdo_version& right) const {
+    if (major_v != right.major_v) {
+      return major_v < right.major_v;
+    }
+    if (minor_v != right.minor_v) {
+      return minor_v < right.minor_v;
+    }
+    return patch < right.patch;
+  }
 };
 
 }  // namespace com::centreon::broker::bbdo
