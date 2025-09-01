@@ -196,7 +196,7 @@ BEDSVCDTDEL
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    rrd    core    off
     Ctn Broker Config Log    rrd    rrd    debug
 
@@ -223,11 +223,13 @@ BEDSVCDTDEL
 	    ${service_id}    Set Variable    ${service_id + 1}
         END
     END
+    Log To Console    We wait a bit to have service checks processed.
+    Sleep    2m
     # It's time to schedule some downtimes
     Log To Console    All the 50 hosts are set in downtime.
     ${start}    Ctn Get Round Current Date
     FOR    ${host_id}    IN RANGE    50
-        Ctn Schedule Host Downtime    0    host_${host_id}    ${60}
+        Ctn Schedule Host Downtime    0    host_${host_id}    ${180}
     END
     Sleep    1m
 
@@ -238,8 +240,8 @@ BEDSVCDTDEL
 
     # After one minute, the downtime should be automatically removed
 
-    FOR    ${count}    IN RANGE    60
-        Log To Console    Downtimes will be removed in about ${60 - ${count}} seconds
+    FOR    ${count}    IN RANGE    180
+        Log To Console    Downtimes will be removed in about ${180 - ${count}} seconds
 	Sleep    1s
     END
     ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
