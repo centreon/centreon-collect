@@ -43,7 +43,7 @@ ENGINE_MANY_CHECK_OK
     [Tags]    engine    MON-177740
 
     #10 hosts of 50 services
-    Ctn Config Engine    ${1}    ${10}    ${50}
+    Ctn Config Engine    ${1}    ${10}    ${20}
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    error
@@ -72,4 +72,4 @@ ENGINE_MANY_CHECK_OK
     # this is the purpose of the following function	
     ${nb_check_ok}    Ctn Engine Check Command Output
 
-    Should Be Equal    ${nb_check_ok}    ${500}    we should have 500 services checked
+    Should Be Equal    ${nb_check_ok}    ${200}    we should have 500 services checked

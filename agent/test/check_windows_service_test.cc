@@ -109,7 +109,18 @@ constexpr std::array<std::string_view, 7> expected_metrics = {
     "services.continuing.count", "services.pausing.count",
     "services.paused.count"};
 
-TEST(check_service, service_no_threshold_all_running) {
+class check_service_test : public testing::Test {
+ public:
+  Service serv;
+
+  check_service_test() {
+    serv.set_service_description("serv");
+    serv.set_command_name("cmd_name");
+    serv.set_command_line("cmd_line");
+  }
+};
+
+TEST_F(check_service_test, service_no_threshold_all_running) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service1", "desc serv1",
                                            SERVICE_RUNNING, SERVICE_AUTO_START),
@@ -130,8 +141,7 @@ TEST(check_service, service_no_threshold_all_running) {
   rapidjson::Document check_args = "{ }"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -163,7 +173,7 @@ TEST(check_service, service_no_threshold_all_running) {
   }
 }
 
-TEST(check_service, service_no_threshold_one_by_state) {
+TEST_F(check_service_test, service_no_threshold_one_by_state) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -199,8 +209,7 @@ TEST(check_service, service_no_threshold_one_by_state) {
   rapidjson::Document check_args = "{ }"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -230,7 +239,7 @@ TEST(check_service, service_no_threshold_one_by_state) {
   }
 }
 
-TEST(check_service, service_filter_exclude_all_service) {
+TEST_F(check_service_test, service_filter_exclude_all_service) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -265,8 +274,7 @@ TEST(check_service, service_filter_exclude_all_service) {
   rapidjson::Document check_args = R"({ "exclude-name": ".*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -294,7 +302,7 @@ TEST(check_service, service_filter_exclude_all_service) {
   }
 }
 
-TEST(check_service, service_filter_allow_some_service) {
+TEST_F(check_service_test, service_filter_allow_some_service) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -329,8 +337,7 @@ TEST(check_service, service_filter_allow_some_service) {
   rapidjson::Document check_args = R"({ "filter-name": "service_s.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -364,7 +371,7 @@ TEST(check_service, service_filter_allow_some_service) {
   }
 }
 
-TEST(check_service, service_filter_exclude_some_service) {
+TEST_F(check_service_test, service_filter_exclude_some_service) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -399,8 +406,7 @@ TEST(check_service, service_filter_exclude_some_service) {
   rapidjson::Document check_args = R"({ "exclude-name": "service_s.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -435,7 +441,7 @@ TEST(check_service, service_filter_exclude_some_service) {
   }
 }
 
-TEST(check_service, service_filter_allow_some_service_warning_running) {
+TEST_F(check_service_test, service_filter_allow_some_service_warning_running) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -471,8 +477,7 @@ TEST(check_service, service_filter_allow_some_service_warning_running) {
       R"({ "filter-name": "service_s.*", "warning-total-running": "5", "critical-total-running": ""  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -506,7 +511,7 @@ TEST(check_service, service_filter_allow_some_service_warning_running) {
   }
 }
 
-TEST(check_service, service_filter_allow_some_service_warning_stopped) {
+TEST_F(check_service_test, service_filter_allow_some_service_warning_stopped) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -543,8 +548,7 @@ TEST(check_service, service_filter_allow_some_service_warning_stopped) {
       R"({ "filter-name": "service_s.*", "warning-total-stopped": 1  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -578,7 +582,7 @@ TEST(check_service, service_filter_allow_some_service_warning_stopped) {
   }
 }
 
-TEST(check_service, service_filter_allow_some_service_critical_state) {
+TEST_F(check_service_test, service_filter_allow_some_service_critical_state) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -614,8 +618,7 @@ TEST(check_service, service_filter_allow_some_service_critical_state) {
       R"({ "filter-name": "service_s.*", "critical-state": "stop.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -652,7 +655,7 @@ TEST(check_service, service_filter_allow_some_service_critical_state) {
   }
 }
 
-TEST(check_service, service_filter_start_auto_true) {
+TEST_F(check_service_test, service_filter_start_auto_true) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -685,8 +688,7 @@ TEST(check_service, service_filter_start_auto_true) {
   rapidjson::Document check_args = R"({ "start-auto": true  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -722,7 +724,7 @@ TEST(check_service, service_filter_start_auto_true) {
   }
 }
 
-TEST(check_service, service_filter_start_auto_false) {
+TEST_F(check_service_test, service_filter_start_auto_false) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -755,8 +757,7 @@ TEST(check_service, service_filter_start_auto_false) {
   rapidjson::Document check_args = R"({ "start-auto": false  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -790,8 +791,8 @@ TEST(check_service, service_filter_start_auto_false) {
   }
 }
 
-TEST(check_service,
-     service_filter_allow_some_service_filtered_by_display_warning_running) {
+TEST_F(check_service_test,
+       service_filter_allow_some_service_filtered_by_display_warning_running) {
   mock_service_enumerator::enum_with_conf data[] = {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
@@ -827,8 +828,7 @@ TEST(check_service,
       R"({ "filter-display": "desc service_s.*", "warning-total-running": "5"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},

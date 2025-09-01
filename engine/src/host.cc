@@ -1865,7 +1865,7 @@ int host::run_async_check(int check_options,
       try {
         // Run command.
         get_check_command_ptr()->run(processed_cmd, *macros, host_check_timeout,
-                                     check_result_info);
+                                     check_result_info, this);
       } catch (std::exception const& e) {
         // Update check result.
         run_failure("(Execute command failed)");

@@ -77,8 +77,6 @@ void measure_to_status<nb_metric>::compute_status(
  * @param check_interval check interval between two checks (not only this but
  * also others)
  * @param serv service
- * @param cmd_name
- * @param cmd_line
  * @param args native plugin arguments
  * @param cnf engine configuration received object
  * @param handler called at measure completion
@@ -89,9 +87,7 @@ native_check_base<nb_metric>::native_check_base(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
@@ -101,8 +97,6 @@ native_check_base<nb_metric>::native_check_base(
             first_start_expected,
             check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat) {}

@@ -107,7 +107,7 @@ class command : public std::enable_shared_from_this<command> {
                        nagios_macros& macors,
                        uint32_t timeout,
                        const check_result::pointer& to_push_to_checker,
-                       const void* caller = nullptr) = 0;
+                       const notifier* caller = nullptr) = 0;
   virtual void run(const std::string& process_cmd,
                    nagios_macros& macros,
                    uint32_t timeout,

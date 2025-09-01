@@ -39,6 +39,7 @@ message MessageToAgent {
     AgentConfiguration config = 1;
     opentelemetry.proto.collector.metrics.v1.ExportMetricsServiceResponse
         otel_response = 2;
+    ForceCheck force_check = 3;
   }
 }
 
@@ -100,4 +101,12 @@ message Service {
   string command_name = 2;
   string command_line = 3;
   uint32 check_interval = 4;
+  uint64 host_id = 5;
+  uint64 service_id = 6;
+}
+
+// message used by engine to make agent do a force check
+message ForceCheck {
+  uint64 host_id = 1;
+  uint64 serv_id = 2;
 }

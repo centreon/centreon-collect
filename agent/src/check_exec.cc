@@ -30,9 +30,8 @@ check_exec::check_exec(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
+    const std::string& command_line,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
@@ -42,14 +41,12 @@ check_exec::check_exec(
             first_start_expected,
             check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),
       _credentials_decrypt(credentials_decrypt) {
   _process_args =
-      com::centreon::common::process<false>::parse_cmd_line(cmd_line);
+      com::centreon::common::process<false>::parse_cmd_line(command_line);
   if (_credentials_decrypt) {
     _process_args->encrypt_args(*_credentials_decrypt);
     _process_args->clear_unencrypted_args();
@@ -67,8 +64,6 @@ check_exec::check_exec(
  * @param check_interval check interval between two checks (not only this
  * but also others)
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param cnf   agent configuration
  * @param handler  completion handler
  * @return std::shared_ptr<check_exec>
@@ -78,16 +73,15 @@ std::shared_ptr<check_exec> check_exec::load(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
+    const std::string& command_line,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
     const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::shared_ptr<check_exec> ret = std::make_shared<check_exec>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, cnf, std::move(handler), stat, credentials_decrypt);
+      io_context, logger, first_start_expected, check_interval, serv,
+      command_line, cnf, std::move(handler), stat, credentials_decrypt);
   return ret;
 }
 
@@ -192,9 +186,7 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
                          duration check_interval,
-                         const std::string& serv,
-                         const std::string& cmd_name,
-                         const std::string& cmd_line,
+                         const Service& serv,
                          const std::string& output,
                          const engine_to_agent_request_ptr& cnf,
                          check::completion_handler&& handler,
@@ -204,8 +196,6 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
             first_start_expected,
             check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),
@@ -221,8 +211,6 @@ check_dummy::check_dummy(const std::shared_ptr<asio::io_context>& io_context,
  * @param check_interval check interval between two checks (not only this but
  * also others)
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param cnf   agent configuration
  * @param handler  completion handler
  * @return std::shared_ptr<check_dummy>
@@ -232,16 +220,14 @@ std::shared_ptr<check_dummy> check_dummy::load(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const std::string& output,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_dummy> ret = std::make_shared<check_dummy>(
-      io_context, logger, first_start_expected, check_interval, serv, cmd_name,
-      cmd_line, output, cnf, std::move(handler), stat);
+      io_context, logger, first_start_expected, check_interval, serv, output,
+      cnf, std::move(handler), stat);
   return ret;
 }
 

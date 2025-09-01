@@ -6,14 +6,16 @@ Test Timeout        220s
 
 *** Test Cases ***
 check autodiscovery ${communication_mode}
-    [Documentation]    Check engine autodiscovery module
+    [Documentation]    Check engine autodiscovery module.
     ${central}=    Set Variable    ${communication_mode}_gorgone_central_discovery
     ${poller}=    Set Variable    ${communication_mode}_gorgone_poller2_discovery
     @{process_list}    Create List    ${central}    ${poller}
     [Teardown]    Test Teardown    @{process_list}
     Test Setup    ${communication_mode}    @{process_list}
 
+    # Service discovery command is constructed by gorgone, so we need to check vault is honored by gorgone.
     Test Service Disco
+    # host discovery command is constructed by php which honor vault himself.
     Test Host disco    ${poller}
     Test Service Disco don't interpret bash    ${central}
 
@@ -64,6 +66,7 @@ Test Teardown
 Test Setup
     [Arguments]    ${communication_mode}    @{process_list}
     Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
+    Setup Vault
 
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
 

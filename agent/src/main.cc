@@ -166,6 +166,8 @@ int main(int argc, char* argv[]) {
 
   // don't use it because spdlog mutex would hang child process
   // spdlog::flush_every(std::chrono::seconds(1));
+  // we use asio timer instead
+  init_log_flush_timer(g_io_context);
 
   SPDLOG_LOGGER_INFO(g_logger,
                      "centreon-monitoring-agent start, you can decrease log "
@@ -181,7 +183,7 @@ int main(int argc, char* argv[]) {
     _signals.async_wait(signal_handler);
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
-        conf.get_endpoint(), conf.use_encryption(),
+        conf.get_endpoint(), conf.get_security_mode(),
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,

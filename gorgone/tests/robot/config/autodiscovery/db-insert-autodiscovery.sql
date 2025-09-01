@@ -1,6 +1,10 @@
 
+-- $_HOSTMACROPARAMETER$ is a parameter that will be replaced by the host macro by gorgone, it's used to pass the host name, port and credentials to the command
+-- here we use an echo to simplify test but still want to test this feature of the command generation by gorgone.
+-- The real value of the macro is stored in vault and should be '<?xml'
+
 INSERT INTO `command` VALUES
-(1,NULL,'OS-Linux-tests-Discover','echo ''<?xml version=\"1.0\" encoding=\"utf-8\"?> <data> <label name=\"/var/lib/docker\" storageid=\"35\" total=\"304492544\"/> <label total=\"20956397568\" storageid=\"36\" name=\"/\"/> <label name=\"/var/lib\" storageid=\"38\" total=\"1522458624\"/> <label total=\"5242880\" storageid=\"39\" name=\"/home\"/> <label name=\"/run/user/1001\" storageid=\"50\" total=\"304488448\"/> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1),
+(1,NULL,'OS-Linux-tests-Discover','echo ''$_HOSTMACROPARAMETER$ version=\"1.0\" encoding=\"utf-8\"?> <data> <label name=\"/var/lib/docker\" storageid=\"35\" total=\"304492544\"/> <label total=\"20956397568\" storageid=\"36\" name=\"/\"/> <label name=\"/var/lib\" storageid=\"38\" total=\"1522458624\"/> <label total=\"5242880\" storageid=\"39\" name=\"/home\"/> <label name=\"/run/user/1001\" storageid=\"50\" total=\"304488448\"/> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1),
 (2,NULL,'OS-Linux-tests-Macro','echo ''<?xml version=\"1.0\" encoding=\"utf-8\"?> <data> <element>name</element> <element>total</element> <element>storageid</element> </data>''',NULL,4,0,NULL,'0',NULL,NULL,1),
 (3,NULL,'OS-Linux-injection-Discover','echo "toto" ;touch /tmp/robotInjectionAutodiscoverychecker',NULL,4,0,NULL,'0',NULL,NULL,1);
 

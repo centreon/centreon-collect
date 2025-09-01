@@ -555,9 +555,7 @@ check_service::check_service(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& serv,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
@@ -567,8 +565,6 @@ check_service::check_service(
                         first_start_expected,
                         check_interval,
                         serv,
-                        cmd_name,
-                        cmd_line,
                         args,
                         cnf,
                         std::move(handler),
@@ -594,8 +590,8 @@ check_service::check_service(
         re2::RE2 filter_typ_re(val.GetString());
         if (!filter_typ_re.ok()) {
           throw exceptions::msg_fmt(
-              "command: {} warning-state: {} is not a valid regex", cmd_name,
-              val.GetString());
+              "command: {} warning-state: {} is not a valid regex",
+              get_command_name(), val.GetString());
         } else {
           for (const auto& [label, flag] : _label_state) {
             if (RE2::FullMatch(label, filter_typ_re)) {
@@ -605,7 +601,7 @@ check_service::check_service(
         }
       } else {
         throw exceptions::msg_fmt("command: {} warning-state must be a string",
-                                  cmd_name);
+                                  get_command_name());
       }
     } else if (key == "critical-state") {
       const rapidjson::Value& val = member_iter->value;
@@ -613,8 +609,8 @@ check_service::check_service(
         re2::RE2 filter_typ_re(val.GetString());
         if (!filter_typ_re.ok()) {
           throw exceptions::msg_fmt(
-              "command: {} critical-state: {} is not a valid regex", cmd_name,
-              val.GetString());
+              "command: {} critical-state: {} is not a valid regex",
+              get_command_name(), val.GetString());
         } else {
           for (const auto& [label, flag] : _label_state) {
             if (RE2::FullMatch(label, filter_typ_re)) {
@@ -624,13 +620,14 @@ check_service::check_service(
         }
       } else {
         throw exceptions::msg_fmt("command: {} critical-state must be a string",
-                                  cmd_name);
+                                  get_command_name());
       }
     } else {
       auto threshold = _label_to_service_status.find(key);
       if (threshold != _label_to_service_status.end()) {
-        std::optional<double> val = get_double(
-            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        std::optional<double> val =
+            get_double(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value, true);
         if (val) {
           std::unique_ptr<w_service_to_status> to_ins = threshold->second(*val);
           _measure_to_status.emplace(
@@ -643,7 +640,7 @@ check_service::check_service(
                  key != "filter-display" && key != "exclude-display" &&
                  key != "start-auto") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
-                            cmd_name, member_iter->name);
+                            get_command_name(), member_iter->name);
       }
     }
   }

@@ -361,8 +361,6 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
  * @param first_start_expected
  * @param check_interval
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param args
  * @param cnf
  * @param handler
@@ -371,9 +369,7 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
                            duration check_interval,
-                           const std::string& serv,
-                           const std::string& cmd_name,
-                           const std::string& cmd_line,
+                           const Service& serv,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
                            check::completion_handler&& handler,
@@ -383,8 +379,6 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                         first_start_expected,
                         check_interval,
                         serv,
-                        cmd_name,
-                        cmd_line,
                         args,
                         cnf,
                         std::move(handler),
@@ -395,16 +389,18 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
          ++member_iter) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "swap") {
-        std::optional<bool> val = get_bool(
-            cmd_name, member_iter->name.GetString(), member_iter->value);
+        std::optional<bool> val =
+            get_bool(get_command_name(), member_iter->name.GetString(),
+                     member_iter->value);
         if (val && *val) {
           _output_flags |= w_memory_info::output_flags::dump_swap;
         }
         continue;
       }
       if (key == "virtual") {
-        std::optional<bool> val = get_bool(
-            cmd_name, member_iter->name.GetString(), member_iter->value);
+        std::optional<bool> val =
+            get_bool(get_command_name(), member_iter->name.GetString(),
+                     member_iter->value);
         if (val && *val) {
           _output_flags |= w_memory_info::output_flags::dump_virtual;
         }
@@ -413,8 +409,9 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
 
       auto mem_to_status_search = _label_to_mem_to_status.find(key);
       if (mem_to_status_search != _label_to_mem_to_status.end()) {
-        std::optional<double> val = get_double(
-            cmd_name, member_iter->name.GetString(), member_iter->value, true);
+        std::optional<double> val =
+            get_double(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value, true);
         if (val) {
           std::unique_ptr<windows_mem_to_status> mem_checker =
               mem_to_status_search->second(*val);
@@ -426,7 +423,7 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
         }
       } else {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter {}",
-                            cmd_name, member_iter->name);
+                            get_command_name(), member_iter->name);
       }
     }
   }

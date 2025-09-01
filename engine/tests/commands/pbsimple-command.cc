@@ -167,7 +167,14 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
-  const void* caller[] = {nullptr, path};
+  /**
+   * @brief system that checks that a caller does not execute a command too
+   * frequently needs only void pointers, no needs of real notifier object, so
+   * we use this fake notifier array
+   *
+   */
+  const notifier* caller[] = {reinterpret_cast<const notifier*>(1),
+                              reinterpret_cast<const notifier*>(2)};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));
@@ -209,7 +216,14 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   std::shared_ptr<commands::command> cmd{std::make_unique<commands::raw_v2>(
       g_io_context, "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
   cmd->set_listener(lstnr.get());
-  const void* caller[] = {nullptr, path};
+  /**
+   * @brief system that checks that a caller does not execute a command too
+   * frequently needs only void pointers, no needs of real notifier object, so
+   * we use this fake notifier array
+   *
+   */
+  const notifier* caller[] = {reinterpret_cast<const notifier*>(1),
+                              reinterpret_cast<const notifier*>(2)};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));

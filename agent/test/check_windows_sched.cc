@@ -36,6 +36,7 @@ tasksched_data g_data1, g_data2, g_data3;
 
 class check_windows_sched : public ::testing::Test {
  public:
+  Service serv;
   static void SetUpTestCase() {
     auto make_date_info = [](std::chrono::system_clock::time_point when) {
       std::time_t t = std::chrono::system_clock::to_time_t(when);
@@ -105,8 +106,8 @@ TEST_F(check_windows_sched, default_check_sched) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -259,8 +260,8 @@ TEST_F(check_windows_sched, filter_task1) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -290,8 +291,8 @@ TEST_F(check_windows_sched, filter_task2) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -321,8 +322,8 @@ TEST_F(check_windows_sched, filter_task3) {
   })t"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -353,8 +354,8 @@ TEST_F(check_windows_sched, warning_filter) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -388,8 +389,8 @@ TEST_F(check_windows_sched, exclude_tasks) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -427,8 +428,8 @@ TEST_F(check_windows_sched, output_format) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -458,8 +459,8 @@ TEST_F(check_windows_sched, output_format_2) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -490,8 +491,8 @@ TEST_F(check_windows_sched, filter_by_name_and_author) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -529,8 +530,8 @@ TEST_F(check_windows_sched, filter_by_last_run) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},
@@ -564,8 +565,8 @@ TEST_F(check_windows_sched, warning_last_run) {
   })"_json;
 
   check_sched checker(
-      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
-      "cmd_line"s, json_config, nullptr,
+      g_io_context, spdlog::default_logger(), {}, {}, serv, json_config,
+      nullptr,
       [](const std::shared_ptr<check>&, int,
          const std::list<com::centreon::common::perfdata>&,
          const std::list<std::string>&) {},

@@ -166,6 +166,19 @@ void scheduler::_start_waiting_check() {
 }
 
 /**
+ * @brief called on a message sent by engine
+ *
+ * @param request
+ */
+void scheduler::on_engine_request(const engine_to_agent_request_ptr& request) {
+  if (request->has_config()) {
+    update(request);
+  } else if (request->has_force_check()) {
+    force_check(request);
+  }
+}
+
+/**
  * @brief called when we receive a new configuration
  * It initialize check queue and restart all checks schedule
  * running checks stay alive but their completion will not be handled
@@ -277,9 +290,7 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
           check_interval = std::chrono::seconds(60);
         }
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, check_interval,
-            serv.service_description(), serv.command_name(),
-            serv.command_line(), conf,
+            _io_context, _logger, next, check_interval, serv, conf,
             [me = shared_from_this()](
                 const std::shared_ptr<check>& check, unsigned status,
                 const std::list<com::centreon::common::perfdata>& perfdata,
@@ -315,6 +326,37 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 
   _start_waiting_check();
   _start_check_timer();
+}
+
+/**
+ * @brief do a force check by moving service (if waiting in queue) to the top of
+ * the queue
+ *
+ * @param request
+ */
+void scheduler::force_check(const engine_to_agent_request_ptr& request) {
+  auto force = request->force_check();
+  if (!_waiting_check_queue.empty()) {
+    for (check_queue::iterator to_check = _waiting_check_queue.begin();
+         !_waiting_check_queue.empty() &&
+         to_check != _waiting_check_queue.end();
+         ++to_check) {
+      if (to_check->second->get_service_id() == force.serv_id() &&
+          to_check->second->get_host_id() == force.host_id()) {
+        SPDLOG_LOGGER_INFO(_logger, "force check of service {} {}@{}",
+                           to_check->second->get_service(),
+                           to_check->second->get_service_id(),
+                           to_check->second->get_host_id());
+        _start_check(to_check->second);
+        _waiting_check_queue.erase(to_check);
+        return;
+      }
+    }
+  }
+  SPDLOG_LOGGER_INFO(_logger,
+                     "service {}@{} not in queue (perhaps yet running) => it "
+                     "won't be check forced",
+                     force.serv_id(), force.host_id());
 }
 
 /**
@@ -661,31 +703,29 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
     duration check_interval,
-    const std::string& service,
-    const std::string& cmd_name,
-    const std::string& cmd_line,
+    const Service& service,
     const engine_to_agent_request_ptr& conf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat,
     const std::shared_ptr<common::crypto::aes256>& credentials_decrypt) {
   std::string command_line;
   // has to decrypt cmd_line
-  if (credentials_decrypt && !cmd_line.compare(0, 9, "encrypt::")) {
+  if (credentials_decrypt &&
+      !service.command_line().compare(0, 9, "encrypt::")) {
     try {
-      command_line =
-          credentials_decrypt->decrypt(std::string_view(cmd_line).substr(9));
+      command_line = credentials_decrypt->decrypt(
+          std::string_view(service.command_line()).substr(9));
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger,
                           "Fail to decrypt command line for service {} : {}",
-                          service, e.what());
+                          service.service_description(), e.what());
       return check_dummy::load(
           io_context, logger, first_start_expected, check_interval, service,
-          cmd_name, "",
           fmt::format("Unable to decrypt command line {}", e.what()), conf,
           std::move(handler), stat);
     }
   } else {
-    command_line = cmd_line;
+    command_line = service.command_line();
   }
   using namespace std::literals;
   // test native checks where cmd_line is a json
@@ -706,64 +746,62 @@ std::shared_ptr<check> scheduler::default_check_builder(
       if (check_type == "cpu_percentage"sv) {
         return std::make_shared<check_cpu>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "health"sv) {
         return std::make_shared<check_health>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
         return std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "storage"sv) {
         return std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "memory"sv) {
         return std::make_shared<check_memory>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "service"sv) {
         return std::make_shared<check_service>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "counter"sv) {
         return std::make_shared<check_counter>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "tasksched"sv) {
         return std::make_shared<check_sched>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "files"sv) {
         return std::make_shared<check_files>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
-        return check_event_log::load(
-            io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+        return check_event_log::load(io_context, logger, first_start_expected,
+                                     check_interval, service, *args, conf,
+                                     std::move(handler), stat);
       } else if (check_type == "process_nscp"sv) {
         return std::make_shared<check_process>(
             io_context, logger, first_start_expected, check_interval, service,
-            cmd_name, command_line, *args, conf, std::move(handler), stat);
+            *args, conf, std::move(handler), stat);
 #endif
       } else {
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
-                                  cmd_name, command_line);
+                                  service.command_name(), command_line);
       }
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
-                               check_interval, service, cmd_name, command_line,
-                               std::string(e.what()), conf, std::move(handler),
-                               stat);
+                               check_interval, service, std::string(e.what()),
+                               conf, std::move(handler), stat);
     }
   } catch (const std::exception&) {
     return check_exec::load(io_context, logger, first_start_expected,
-                            check_interval, service, cmd_name, command_line,
-                            conf, std::move(handler), stat,
-                            credentials_decrypt);
+                            check_interval, service, command_line, conf,
+                            std::move(handler), stat, credentials_decrypt);
   }
 }

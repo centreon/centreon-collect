@@ -36,8 +36,6 @@ static const absl::flat_hash_map<std::string_view, unsigned> _unit_multiplier =
  * @param first_start_expected
  * @param check_interval
  * @param serv
- * @param cmd_name
- * @param cmd_line
  * @param args
  * @param cnf
  * @param handler
@@ -46,9 +44,7 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
                            duration check_interval,
-                           const std::string& serv,
-                           const std::string& cmd_name,
-                           const std::string& cmd_line,
+                           const Service& serv,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
                            check::completion_handler&& handler,
@@ -58,8 +54,6 @@ check_uptime::check_uptime(const std::shared_ptr<asio::io_context>& io_context,
             first_start_expected,
             check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat),

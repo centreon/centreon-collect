@@ -1,6 +1,22 @@
 -- this was separated in two because in only one file robotframework could not handle the file.
 -- there was an error as if the last ; was not there.
 
+CREATE TABLE IF NOT EXISTS `on_demand_macro_host` (
+  `host_macro_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'Unique identifier for the on-demand macro',
+  `host_macro_name` varchar(255) NOT NULL COMMENT 'Name of the on-demand macro',
+  `host_macro_value` varchar(4096) NOT NULL COMMENT 'Value of the on-demand macro',
+  `is_password` tinyint(2) DEFAULT 0 COMMENT 'Indicates whether the macro is a password',
+  `description` text DEFAULT NULL COMMENT 'Description of the on-demand macro',
+  `host_host_id` int(11) NOT NULL COMMENT 'Identifier for the host',
+  `macro_order` int(11) DEFAULT 0 COMMENT 'Order of the macro',
+  PRIMARY KEY (`host_macro_id`),
+  KEY `host_host_id` (`host_host_id`),
+  CONSTRAINT `on_demand_macro_host_ibfk_1` FOREIGN KEY (`host_host_id`) REFERENCES `host` (`host_id`) ON DELETE CASCADE
+)ENGINE=InnoDB  DEFAULT CHARSET=utf8 ;
+INSERT INTO `on_demand_macro_host` VALUES
+(140,'$_HOSTMACROPARAMETER$','secret::hashicorp_vault::evan/data/monitoring/hosts/b89fde74-44ac-4e2e-a897-df49f0d1fd55::_HOSTMACROPARAMETER',1,NULL,81,0);
+
+
 CREATE TABLE IF NOT EXISTS `mod_auto_disco_inclusion_exclusion` (
 	`exinc_id` int(11) NOT NULL AUTO_INCREMENT,
 	`exinc_type` enum('0', '1') DEFAULT '0',
@@ -160,9 +176,10 @@ CREATE TABLE `mod_host_disco_credential` (
     `name` varchar(100) NOT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `mod_host_disco_credential_UN` (`type_id`,`name`),
-    KEY `mod_host_disco_credential_fk_1` (`type_id`),
-    CONSTRAINT `mod_host_disco_credential_fk_1` FOREIGN KEY (`type_id`) REFERENCES `mod_host_disco_provider_type` (`id`) ON DELETE CASCADE
+    KEY `mod_host_disco_credential_fk_1` (`type_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `mod_host_disco_credential` VALUES (1, 1, "test robots");
 
 -- describe each credential parameter to generate dynamically wizard form
 CREATE TABLE `mod_host_disco_credential_parameter` (
@@ -173,6 +190,9 @@ CREATE TABLE `mod_host_disco_credential_parameter` (
    KEY `mod_host_disco_credential_parameter_fk_1` (`credential_id`),
    CONSTRAINT `mod_host_disco_credential_parameter_fk_1` FOREIGN KEY (`credential_id`) REFERENCES `mod_host_disco_credential` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `mod_host_disco_credential_parameter` VALUES
+(1,'MACROPARAMETER','secret::hashicorp_vault::evan/data/discovery/c6c2e67b-35f1-4a7d-b190-0314565a1fba::MACROPARAMETER');
 
 -- used to store the job which will be scheduled to discover hosts
 CREATE TABLE `mod_host_disco_job` (

@@ -13,6 +13,7 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 *** Test Cases ***
 NO_ENGINE_ENCRYPTION
     [Documentation]    Given an engine without configured encryption, we give him several macros and we expect to retrieve them in logs.
+    ...    As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
     [Tags]    engine    macros_decrypt    MON-158788
     Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Set Value In Services    0    service_1    _CLEAR_MAC    clear_mac
@@ -23,20 +24,31 @@ NO_ENGINE_ENCRYPTION
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    with_mac_cmd
 
     Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
 
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Start Broker
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${content}    Create List    clear_mac raw::raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
-    
+
+    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+
+    # Disconnect From Database    pymysql
+
 ENGINE_ENCRYPTION_BAD_CONF
     [Documentation]    Given an engine with configured encryption, but without key and salt, 
     ...    we give him several macros and we expect to retrieve them in logs without decrypt.
+    ...    As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
     [Tags]    engine    macros_decrypt    MON-158788
     Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Add Value    0    credentials_encryption    1
@@ -48,12 +60,16 @@ ENGINE_ENCRYPTION_BAD_CONF
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    with_mac_cmd
 
     Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
 
     Ctn Clear Retention
     Remove File    /etc/centreon-engine/engine-context.json
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
+    Ctn Start Broker
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     
     ${content}    Create List     no encryption configured => can't decryp macro _SERVICEENCRYPT_MAC
@@ -64,21 +80,33 @@ ENGINE_ENCRYPTION_BAD_CONF
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
     
+    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+
+    # Disconnect From Database    pymysql
 
 ENGINE_ENCRYPTION_GOOD_CONF
     [Documentation]    Given an engine with configured encryption, and key and salt, 
     ...    we give him several macros and we expect to retrieve them in logs without decrypt.
+    ...    As engine is ready to receive encrypted macros, is_encryption_ready must be equal to 1 in db
     [Tags]    engine    macros_decrypt    MON-158788
 
     #we need broker to encode values
+    Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+
+
+    Ctn Broker Config Log    central    sql    trace
     Ctn Start Broker
 
     ${encrypted}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    The content to encode
     log to console    Encrypted: ${encrypted}
 
 
-    Ctn Config Engine    ${1}    ${2}    ${10}
     Ctn Engine Config Add Value    0    credentials_encryption    1
     
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
@@ -91,7 +119,6 @@ ENGINE_ENCRYPTION_GOOD_CONF
     Ctn Engine Config Add Command    ${0}    with_mac_cmd   /bin/echo $_SERVICECLEAR_MAC$ $_SERVICERAW_MAC$ $_SERVICEENCRYPT_MAC$
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    with_mac_cmd
 
-    Ctn Config Broker    module
 
     Ctn Clear Retention
 
@@ -106,6 +133,11 @@ ENGINE_ENCRYPTION_GOOD_CONF
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "clear_mac raw_mac The content to encode" not found in logs.
 
+    # Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    # Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=1    ==    1    retry_time_out=30s    retry_pause=2s
+
+    # Disconnect From Database    pymysql
 
 BROKER_LUA_ENCRYPTION
     [Documentation]    Given an engine with configured encryption, and key and salt, 
@@ -143,6 +175,7 @@ BROKER_LUA_ENCRYPTION
     ...        file:write("event receive")
     ...        file:close()
     ...      end
+    ...      return true
     ...    end
     ...
 

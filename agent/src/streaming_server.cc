@@ -132,8 +132,9 @@ std::shared_ptr<server_reactor> server_reactor::load(
 
 void server_reactor::on_incomming_request(
     const std::shared_ptr<MessageToAgent>& request) {
-  asio::post(*_io_context,
-             [sched = _sched, request]() { sched->update(request); });
+  asio::post(*_io_context, [sched = _sched, request]() {
+    sched->on_engine_request(request);
+  });
 }
 
 void server_reactor::on_error() {

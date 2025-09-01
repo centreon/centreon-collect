@@ -124,15 +124,8 @@ void open_telemetry::_reload() {
     _agent_reverse_client->update(_conf->get_centreon_agent_config());
   }
   // push new configuration to connected agents
-  centreon_agent::agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
-                                                       agent::MessageToAgent>>::
-      all_agent_calc_and_send_config_if_needed(
-          _conf->get_centreon_agent_config());
-
-  centreon_agent::agent_impl<::grpc::ClientBidiReactor<
-      agent::MessageToAgent, agent::MessageFromAgent>>::
-      all_agent_calc_and_send_config_if_needed(
-          _conf->get_centreon_agent_config());
+  centreon_agent::agent_impl_base::all_agent_calc_and_send_config_if_needed(
+      _conf->get_centreon_agent_config());
 }
 
 /**
@@ -415,3 +408,7 @@ void open_telemetry::on_metric(const metric_request_ptr& metrics) {
  */
 void open_telemetry::_forward_to_broker(
     [[maybe_unused]] const std::vector<otl_data_point>& unknown) {}
+
+void open_telemetry::force_check(uint64_t host_id, uint64_t serv_id) {
+  centreon_agent::agent_impl_base::force_check(host_id, serv_id);
+}

@@ -70,9 +70,6 @@ class to_agent_connector
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats);
 
-  void refresh_agent_configuration_if_needed(
-      const agent_config::pointer& new_conf);
-
   virtual void shutdown();
 
   void on_error();

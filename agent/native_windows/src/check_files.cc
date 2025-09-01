@@ -506,9 +506,7 @@ void ::check_files_detail::check_files_thread::async_get_files(
  * @param first_start_expected The expected time point for the first check
  * execution.
  * @param check_interval The interval duration between checks.
- * @param serv The service name associated with this check.
- * @param cmd_name The command name for the check.
- * @param cmd_line The command line string for the check.
+ * @param serv The service.
  * @param args RapidJSON value containing additional arguments for
  * configuration.
  * @param cnf Shared pointer to the engine-to-agent request configuration.
@@ -522,9 +520,7 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
                          duration check_interval,
-                         const std::string& serv,
-                         const std::string& cmd_name,
-                         const std::string& cmd_line,
+                         const Service& serv,
                          const rapidjson::Value& args,
                          const engine_to_agent_request_ptr& cnf,
                          check::completion_handler&& handler,
@@ -534,8 +530,6 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
             first_start_expected,
             check_interval,
             serv,
-            cmd_name,
-            cmd_line,
             cnf,
             std::move(handler),
             stat) {
