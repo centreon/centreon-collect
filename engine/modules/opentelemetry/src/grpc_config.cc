@@ -148,7 +148,6 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
       }
     }
   }
-  const std::string& encryption = json_config.get_string("encryption", "no");
 
   read_file(json_config_v, "public_cert", certificate);
   read_file(json_config_v, "private_key", cert_key);
