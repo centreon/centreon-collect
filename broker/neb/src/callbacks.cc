@@ -3432,6 +3432,7 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   SPDLOG_LOGGER_DEBUG(
       neb_logger, "callbacks: generating pb service status check result event");
 
+  neb_logger->trace("Stacktrace:\n{}", get_stack_trace(20));
   nebstruct_service_status_data* ds =
       static_cast<nebstruct_service_status_data*>(data);
   const engine::service* es = static_cast<engine::service*>(ds->object_ptr);
