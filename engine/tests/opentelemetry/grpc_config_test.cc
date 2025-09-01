@@ -244,11 +244,18 @@ TEST(otl_grpc_config, encryption_value) {
           "encryption":false
       })"_json);
 
+  ASSERT_EQ(conf_full.get_security_mode(), grpc_config::TLS_SECURE);
   ASSERT_TRUE(conf_full.is_crypted());
-  ASSERT_FALSE(conf_insecure.is_crypted());
+  ASSERT_EQ(conf_insecure.get_security_mode(), grpc_config::TLS_INSECURE);
+  ASSERT_TRUE(conf_insecure.is_crypted());
+  ASSERT_EQ(conf_no.get_security_mode(), grpc_config::NONE);
   ASSERT_FALSE(conf_no.is_crypted());
+  ASSERT_EQ(conf_true_s.get_security_mode(), grpc_config::TLS_INSECURE);
   ASSERT_TRUE(conf_true_s.is_crypted());
+  ASSERT_EQ(conf_false_s.get_security_mode(), grpc_config::NONE);
   ASSERT_FALSE(conf_false_s.is_crypted());
+  ASSERT_EQ(conf_true.get_security_mode(), grpc_config::TLS_SECURE);
   ASSERT_TRUE(conf_true.is_crypted());
+  ASSERT_EQ(conf_false.get_security_mode(), grpc_config::NONE);
   ASSERT_FALSE(conf_false.is_crypted());
 }
