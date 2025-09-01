@@ -24,7 +24,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-collect"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**
@@ -53,7 +52,6 @@ on:
     paths:
       - ".version"
       - ".version.centreon-collect"
-      - agent/**
       - bbdo/**
       - broker/**
       - ccc/**

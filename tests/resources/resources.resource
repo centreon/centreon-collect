@@ -250,11 +250,6 @@ Ctn Stop Engine Broker And Save Logs
     EXCEPT
         Log    Can't kindly stop Broker
     END
-    TRY
-        Ctn Kindly Stop Agent
-    EXCEPT
-        Log    Can't kindly stop Agent
-    END
     Ctn Save Logs If Failed
 
 Ctn Get Engine Pid
@@ -416,29 +411,3 @@ Ctn Wait For Engine To Be Ready
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
     END
 
-
-Ctn Start Agent
-    Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
-
-Ctn Kindly Stop Agent
-    #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
-
-    IF  ${{$centreon_agent_process is None}}  RETURN
-
-    Send Signal To Process    SIGTERM    centreon_agent
-    ${result}    Wait For Process    centreon_agent    timeout=60s
-    # In case of process not stopping
-    IF    "${result}" == "${None}"
-        Log To Console    "fail to stop centreon_agent"
-        Ctn Save Logs
-        Ctn Dump Process    centreon_agent    /usr/bin/centagent   centreon_agent
-        Send Signal To Process    SIGKILL    centreon_agent
-        Fail    centreon_agent not correctly stopped (coredump generated)
-    ELSE
-        IF    ${result.rc} != 0
-            Ctn Save Logs
-            Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
-            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
-        END
-    END
