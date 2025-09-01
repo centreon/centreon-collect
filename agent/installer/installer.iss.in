@@ -558,10 +558,15 @@ begin
   RegWriteStringValue(RootKey, BaseKey, 'ca_certificate', CaEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'ca_name', CommonNameEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'token', TokenEdit.Text);
-  RegWriteStringValue(RootKey, BaseKey, 'encryption', EncryptionComboBox.Text);
+  
+  if EncryptionComboBox.Text = 'TLS' then
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'full')
+  else if EncryptionComboBox.Text = 'TLS Insecure' then
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'insecure')
+  else
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'no');
 
   // DWORDs
-  RegWriteDWordValue(RootKey, BaseKey, 'encryption', Integer(EncryptionCheckBox.Checked));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_file_size', StrToIntDef(MaxFileEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_files', StrToIntDef(MaxNumberEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
@@ -1512,14 +1517,7 @@ begin
   else if CurPageID = EncryptionPage.ID then begin
     if EncryptionComboBox.Text <> 'No' then begin
       if PollerInitiatedCheckBox.Checked then begin
-        if PublicCertEdit.Text = '' then begin
-          PublicCertWarningBitmapImage.Hint := 'Public certificate file path is required.';
-          PublicCertWarningBitmapImage.Show;
-          MsgBox('Public certificate file path is required. Please enter the path to the public certificate file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-        if not(IsPathValid(PublicCertEdit.Text)) then begin
+        if (not(IsPathValid(PublicCertEdit.Text))) and (PublicCertEdit.Text <> '') then begin
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
           MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1527,15 +1525,7 @@ begin
           exit;
         end;
 
-        if PrivateKeyEdit.Text = '' then begin
-          PrivateKeyWarningBitmapImage.Hint := 'Private key file path is required.';
-          PrivateKeyWarningBitmapImage.Show;
-          MsgBox('Private key file path is required. Please enter the path to the private key file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-
-        if not(IsPathValid(PrivateKeyEdit.Text)) then begin
+        if not(IsPathValid(PrivateKeyEdit.Text)) and (PrivateKeyEdit.Text <> '') then begin
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
           MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1544,25 +1534,16 @@ begin
         end;
       end
       else begin
-        if CaEdit.Text = '' then begin
-          CaWarningBitmapImage.Hint := 'CA certificate file path is required.';
-          CaWarningBitmapImage.Show;
-          MsgBox('CA certificate file path is required. Please enter the path to the CA certificate file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-
-        if not(IsPathValid(CaEdit.Text)) then begin
+        if not(IsPathValid(CaEdit.Text)) and (CaEdit.Text <> '') then begin
           CaWarningBitmapImage.Hint := 'Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).';
           CaWarningBitmapImage.Show;
           MsgBox('Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
           Result := False;
           exit;
         end;
-
       end;
       if TokenEdit.Text = '' then begin
-        TokenWarningBitmapImage.Hint := 'Please select a CA file before continuing.';
+        TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
