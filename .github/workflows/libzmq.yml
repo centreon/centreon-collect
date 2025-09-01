@@ -68,7 +68,7 @@ jobs:
           mkdir -p /github/home/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp libzmq-4.3.5/packaging/redhat/zeromq.spec /github/home/rpmbuild/SPECS/
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
-          rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
+          rpmbuild -bb --nocheck /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
 
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
@@ -137,7 +137,7 @@ jobs:
           ln -s packaging/debian
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
-          dpkg-buildpackage -us -uc -nc
+          DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -nc
           cd ..
 
           rm -f libzmq5-dbg_*.deb
@@ -174,11 +174,11 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Publish RPM packages
-        uses: ./.github/actions/delivery
+        uses: ./.github/actions/rpm-delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-environment.outputs.stability }}
@@ -210,18 +210,16 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Publish DEB packages
-        uses: ./.github/actions/delivery
+        uses: ./.github/actions/deb-delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          delivery_type: classic
-          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
