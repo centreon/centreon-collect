@@ -2650,7 +2650,8 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
            {8, "start_time", 0, 0},
            {9, "version", 0,
             get_centreon_storage_instances_col_size(
-                centreon_storage_instances_version)}});
+                centreon_storage_instances_version)},
+           {11, "is_encryption_ready", 0, 0}});
     }
 
     // Process object.

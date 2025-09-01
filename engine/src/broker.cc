@@ -4162,6 +4162,7 @@ void broker_program_state(int type, int flags [[maybe_unused]]) {
     inst.set_version(get_program_version());
     inst.set_instance_id(cbm->poller_id());
     inst.set_name(cbm->poller_name());
+    inst.set_is_encryption_ready(credentials_decrypt.get() != nullptr);
 
     switch (type) {
       case NEBTYPE_PROCESS_EVENTLOOPSTART: {
