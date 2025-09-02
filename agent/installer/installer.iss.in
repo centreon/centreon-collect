@@ -882,6 +882,7 @@ begin
    if CmdLineParamExists('/VERSION') then
   begin
     LogToStdOutFile('{#AppName} {#AppVersion}'#13#10);
+    LogToStdOutFile('Embedded plugin version: {#EmbeddedPluginVer}'#13#10);
     ExitProcess(0);
   end;
   Result := CheckSilentParameterValidity;
