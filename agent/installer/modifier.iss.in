@@ -88,7 +88,8 @@ var
 // ─────────────────────────────────────────────
 // Widget for Encryption
 // ─────────────────────────────────────────────
-  EncryptionCheckBox: TNewCheckBox;
+  EncryptionLabel: TNewStaticText;
+  EncryptionComboBox: TNewComboBox;
   PublicCertLabel, PrivateKeyLabel, CaLabel, CommonNameLabel, TokenLabel: TNewStaticText;
   PublicCertBrowseButton, PrivateKeyBrowseButton, CABrowseButton : TButton;
   PublicCertEdit, PrivateKeyEdit, CaEdit, CommonNameEdit, TokenEdit: TNewEdit;
@@ -134,8 +135,6 @@ begin
     PollerLabel.Caption := 'Listening interface:'
   else
     PollerLabel.Caption := 'Poller endpoint:';
-    {toggle the box to false to refresh the fields}
-  EncryptionCheckBox.checked := False;
 end;
 
 procedure OnLogTypeChange(Sender: TObject);
@@ -192,66 +191,74 @@ begin
     end;
 end;
 
-procedure OnEncryptionToggle(Sender: TObject);
+procedure OnEncryptionChange(Sender: TObject);
 begin
-  if EncryptionCheckBox.Checked then
+  // Hide all encryption-related fields first
+  PublicCertLabel.Hide;
+  PublicCertEdit.Hide;
+  PublicCertBrowseButton.Hide;
+  PublicCertInfoBitmapImage.Hide;
+  PublicCertWarningBitmapImage.Hide;
+
+  PrivateKeyLabel.Hide;
+  PrivateKeyEdit.Hide;
+  PrivateKeyBrowseButton.Hide;
+  PrivateKeyInfoBitmapImage.Hide;
+  PrivateKeyWarningBitmapImage.Hide;
+
+  CaLabel.Hide;
+  CaEdit.Hide;
+  CABrowseButton.Hide;
+  CaInfoBitmapImage.Hide;
+  CaWarningBitmapImage.Hide;
+
+  CommonNameLabel.Hide;
+  CommonNameEdit.Hide;
+  CommonNameInfoBitmapImage.Hide;
+
+  TokenLabel.Hide;
+  TokenEdit.Hide;
+  TokenInfoBitmapImage.Hide;
+  TokenWarningBitmapImage.Hide;
+
+  if (EncryptionComboBox.Text = 'TLS') or (EncryptionComboBox.Text = 'TLS Insecure') then
+  begin
+    if PollerInitiatedCheckBox.Checked then
     begin
-      if PollerInitiatedCheckBox.checked then 
-      begin
-        PublicCertLabel.Show;
-        PublicCertEdit.Show;
-        PublicCertBrowseButton.Show;
-        PublicCertInfoBitmapImage.Show;
-        
-        PrivateKeyLabel.Show;
-        PrivateKeyEdit.Show;
-        PrivateKeyBrowseButton.Show;
-        PrivateKeyInfoBitmapImage.Show;
-        end
-      else 
-      begin
-        CaLabel.Show;
-        CaEdit.Show;
-        CABrowseButton.Show;
-        CaInfoBitmapImage.Show;
-        
-        CommonNameLabel.Show;
-        CommonNameEdit.Show;
-        CommonNameInfoBitmapImage.Show;
-      end;
+      // Show only cert/key/token for TLS + poller-initiated
+      PublicCertLabel.Show;
+      PublicCertEdit.Show;
+      PublicCertBrowseButton.Show;
+      PublicCertInfoBitmapImage.Show;
+
+      PrivateKeyLabel.Show;
+      PrivateKeyEdit.Show;
+      PrivateKeyBrowseButton.Show;
+      PrivateKeyInfoBitmapImage.Show;
+
       TokenLabel.Show;
       TokenEdit.Show;
-      TokenInfoBitmapImage.Show
+      TokenInfoBitmapImage.Show;
     end
-  else 
-  begin
-    PublicCertLabel.Hide;
-    PublicCertEdit.Hide;
-    PublicCertBrowseButton.Hide;
-    PublicCertInfoBitmapImage.Hide;
-    PublicCertWarningBitmapImage.Hide;
-    
-    PrivateKeyLabel.Hide;
-    PrivateKeyEdit.Hide;
-    PrivateKeyBrowseButton.Hide;
-    PrivateKeyInfoBitmapImage.Hide;
-    PrivateKeyWarningBitmapImage.Hide;
-    CaWarningBitmapImage.Hide;
-    
-    CaLabel.Hide;
-    CaEdit.Hide;
-    CABrowseButton.Hide;
-    CaInfoBitmapImage.Hide;
-    
-    CommonNameLabel.Hide;
-    CommonNameEdit.Hide;
-    CommonNameInfoBitmapImage.Hide;
-    
-    TokenLabel.Hide;
-    TokenEdit.Hide;
-    TokenInfoBitmapImage.Hide;
-    TokenWarningBitmapImage.Hide;
-  end;
+    else
+    begin
+      CaLabel.Show;
+      CaEdit.Show;
+      CABrowseButton.Show;
+      CaInfoBitmapImage.Show;
+
+      if EncryptionComboBox.Text = 'TLS Insecure' then
+        begin
+          CommonNameLabel.Show;
+          CommonNameEdit.Show;
+          CommonNameInfoBitmapImage.Show;
+        end;
+
+      TokenLabel.Show;
+      TokenEdit.Show;
+      TokenInfoBitmapImage.Show;
+    end;
+  end
 end;
 
 procedure PublicCertBrowseFile(Sender: TObject);
@@ -287,6 +294,7 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+
 // Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
 procedure LogToStdOutFile(Msg: String);
 var
@@ -464,8 +472,15 @@ begin
   if RegQueryStringValue(RootKey, BaseKey, 'token', StrValue) then
     TokenEdit.Text := StrValue;
 
-  if RegQueryDWordValue(RootKey, BaseKey, 'encryption', DwordValue) then
-    EncryptionCheckBox.Checked := (DwordValue <> 0);
+  if RegQueryStringValue(RootKey, BaseKey, 'encryption', StrValue) then
+  begin
+    if StrValue = 'full' then
+      EncryptionComboBox.Text := 'TLS'
+    else if StrValue = 'insecure' then
+      EncryptionComboBox.Text := 'TLS Insecure'
+    else
+      EncryptionComboBox.Text := 'No TLS';
+  end;
 
   if RegQueryDWordValue(RootKey, BaseKey, 'log_max_file_size', DwordValue) then
     MaxFileEdit.Text := IntToStr(DwordValue);
@@ -500,8 +515,14 @@ begin
   RegWriteStringValue(RootKey, BaseKey, 'ca_name', CommonNameEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'token', TokenEdit.Text);
 
+  if EncryptionComboBox.Text = 'TLS' then
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'full')
+  else if EncryptionComboBox.Text = 'TLS Insecure' then
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'insecure')
+  else
+    RegWriteStringValue(RootKey, BaseKey, 'encryption', 'no');
+
   // DWORDs
-  RegWriteDWordValue(RootKey, BaseKey, 'encryption', Integer(EncryptionCheckBox.Checked));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_file_size', StrToIntDef(MaxFileEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_files', StrToIntDef(MaxNumberEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
@@ -578,7 +599,11 @@ begin
 
   // EncryptionCheckBox
   if ExpandConstant('{param:encryption|}') <> '' then
-    EncryptionCheckBox.Checked := (LowerCase(ExpandConstant('{param:encryption|}')) = 'true');
+    case LowerCase(ExpandConstant('{param:encryption|no}')) of
+      'full':     EncryptionComboBox.Text := 'TLS';
+      'insecure': EncryptionComboBox.Text := 'TLS Insecure';
+      else        EncryptionComboBox.Text := 'No TLS';
+    end;
 
   if ExpandConstant('{param:cert|}') <> '' then
     PublicCertEdit.Text := ExpandConstant('{param:cert|}');
@@ -634,7 +659,7 @@ begin
   // if logtype = file → log file mandatory
   if LogTypeParam = 'file' then
   begin
-    if  (LogFileParam = '') or not(IsPathValid(LogFileParam)) then
+    if (LogFileParam = '') or not(IsPathValid(LogFileParam)) then
     begin
       LogToStdOutFile('Missing /LOGFILE when /LOGTYPE=file');
       Result := False;
@@ -735,12 +760,12 @@ begin
   HostLabel := TNewStaticText.Create(ConfigPage);
   HostLabel.Parent := ConfigPage.Surface;
   HostLabel.Top := ScaleY(3);
-  HostLabel.Caption := 'Host name:';
+  HostLabel.Caption := 'Host name in Centreon:';
 
   HostNameEdit := TNewEdit.Create(ConfigPage);
   HostNameEdit.Parent := ConfigPage.Surface;
   HostNameEdit.Top := HostLabel.Top - ScaleY(3);
-  HostNameEdit.Left := HostLabel.Width + ScaleX(75);
+  HostNameEdit.Left := HostLabel.Width + ScaleX(20);
   HostNameEdit.Width := ConfigPage.SurfaceWidth div 2;
   HostNameEdit.Text := 'my-centreon-host';
 
@@ -976,18 +1001,72 @@ begin
   'Centreon Agent Configuration',
   'Connection security for agent.');
   // ──── Encryption
-  EncryptionCheckBox := TNewCheckBox.Create(EncryptionPage);
-  EncryptionCheckBox.Parent := EncryptionPage.Surface;
-  EncryptionCheckBox.Top := HostNameEdit.Top;
-  EncryptionCheckBox.Caption := 'Encryption';
-  EncryptionCheckBox.Checked := False;
-  EncryptionCheckBox.OnClick := @OnEncryptionToggle;
+
+  EncryptionLabel := TNewStaticText.Create(EncryptionPage);
+  EncryptionLabel.Parent := EncryptionPage.Surface;
+  EncryptionLabel.Top := HostNameEdit.Top;
+  EncryptionLabel.Caption := 'Encryption:';
+
+  EncryptionComboBox := TNewComboBox.Create(EncryptionPage);
+  EncryptionComboBox.top := EncryptionLabel.Top - ScaleY(2);
+  EncryptionComboBox.Width := ScaleX(90);
+  EncryptionComboBox.Left := EncryptionLabel.Left + EncryptionLabel.Width + ScaleX(10) ;
+  EncryptionComboBox.Parent := EncryptionPage.Surface;
+  EncryptionComboBox.Style := csDropDownList;
+  EncryptionComboBox.Items.Add('TLS');
+  EncryptionComboBox.Items.Add('TLS Insecure');
+  EncryptionComboBox.Items.Add('No TLS');
+  EncryptionComboBox.ItemIndex := 0;
+  EncryptionComboBox.OnChange := @OnEncryptionChange;
+
+  // ──── Token
+
+  TokenLabel := TNewStaticText.Create(EncryptionPage);
+  TokenLabel.Parent := EncryptionPage.Surface;
+  TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
+  TokenLabel.Caption := 'Token:';
+  TokenLabel.Hide;
+
+  TokenEdit := TNewEdit.Create(EncryptionPage);
+  TokenEdit.Parent := EncryptionPage.Surface;
+  TokenEdit.Top := TokenLabel.Top - ScaleY(3);
+  TokenEdit.Left := HostNameEdit.Left;
+  TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
+  TokenEdit.Text := '';
+  TokenEdit.Hide;
+
+  TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
+  TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  TokenInfoBitmapImage.Parent := EncryptionPage.Surface;
+  TokenInfoBitmapImage.Top := TokenLabel.Top - ScaleY(2);
+  TokenInfoBitmapImage.Left := TokenEdit.Left + TokenEdit.Width + ScaleX(4);
+  TokenInfoBitmapImage.Center := True;
+  TokenInfoBitmapImage.Width := 20;
+  TokenInfoBitmapImage.Height := 20;
+  TokenInfoBitmapImage.Stretch := True;
+  TokenInfoBitmapImage.Cursor := crHand;
+  TokenInfoBitmapImage.OnClick := @BitmapImageOnClick;
+  TokenInfoBitmapImage.Hide;
+
+  TokenWarningBitmapImage := TBitmapImage.Create(EncryptionPage);
+  TokenWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  TokenWarningBitmapImage.Parent := EncryptionPage.Surface;
+  TokenWarningBitmapImage.Top := TokenLabel.Top- ScaleY(3);
+  TokenWarningBitmapImage.Left := TokenInfoBitmapImage.Left + TokenInfoBitmapImage.Width + ScaleX(4);
+  TokenWarningBitmapImage.Center := True;
+  TokenWarningBitmapImage.Width := 24;
+  TokenWarningBitmapImage.Height := 24;
+  TokenWarningBitmapImage.Stretch := True;
+  TokenWarningBitmapImage.Cursor := crHand;
+  TokenWarningBitmapImage.ShowHint := True;
+  TokenWarningBitmapImage.Hide;
+
 
   // ──── Public certificate
 
   PublicCertLabel := TNewStaticText.Create(EncryptionPage);
   PublicCertLabel.Parent := EncryptionPage.Surface;
-  PublicCertLabel.Top := EncryptionCheckBox.Top + ScaleY(25);
+  PublicCertLabel.Top := TokenLabel.Top + ScaleY(25);
   PublicCertLabel.Caption := 'Public certificate:';
   PublicCertLabel.Hide;
 
@@ -1089,8 +1168,8 @@ begin
 
   CaLabel := TNewStaticText.Create(EncryptionPage);
   CaLabel.Parent := EncryptionPage.Surface;
-  CaLabel.Top := EncryptionCheckBox.Top + ScaleY(30);
-  CaLabel.Caption := 'Ca:';
+  CaLabel.Top := TokenLabel.Top + ScaleY(30);
+  CaLabel.Caption := 'CA:';
   CaLabel.Hide;
 
   CaEdit := TNewEdit.Create(EncryptionPage);
@@ -1136,12 +1215,13 @@ begin
   CaWarningBitmapImage.ShowHint := True;
   CaWarningBitmapImage.Hide;
 
+  
   // ──── Ca common name (CN)
 
   CommonNameLabel:= TNewStaticText.Create(EncryptionPage);
   CommonNameLabel.Parent := EncryptionPage.Surface;
   CommonNameLabel.Top := CaLabel.Top + ScaleY(30);
-  CommonNameLabel.Caption := 'Ca common name (CN):';
+  CommonNameLabel.Caption := 'CA Common Name (CN):';
   CommonNameLabel.Hide;
 
   CommonNameEdit := TNewEdit.Create(EncryptionPage);
@@ -1165,51 +1245,8 @@ begin
   CommonNameInfoBitmapImage.OnClick := @BitmapImageOnClick;
   CommonNameInfoBitmapImage.Hide;
 
-  // ──── Token
-
-  TokenLabel := TNewStaticText.Create(EncryptionPage);
-  TokenLabel.Parent := EncryptionPage.Surface;
-  TokenLabel.Top := CommonNameLabel.Top + ScaleY(30);
-  TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
-
-  TokenEdit := TNewEdit.Create(EncryptionPage);
-  TokenEdit.Parent := EncryptionPage.Surface;
-  TokenEdit.Top := TokenLabel.Top - ScaleY(3);
-  TokenEdit.Left := HostNameEdit.Left;
-  TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
-  TokenEdit.Text := '';
-  TokenEdit.Hide;
-
-  TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
-  TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
-  TokenInfoBitmapImage.Parent := EncryptionPage.Surface;
-  TokenInfoBitmapImage.Top := TokenLabel.Top - ScaleY(2);
-  TokenInfoBitmapImage.Left := TokenEdit.Left + TokenEdit.Width + ScaleX(4);
-  TokenInfoBitmapImage.Center := True;
-  TokenInfoBitmapImage.Width := 20;
-  TokenInfoBitmapImage.Height := 20;
-  TokenInfoBitmapImage.Stretch := True;
-  TokenInfoBitmapImage.Cursor := crHand;
-  TokenInfoBitmapImage.OnClick := @BitmapImageOnClick;
-  TokenInfoBitmapImage.Hide;
-
-  TokenWarningBitmapImage := TBitmapImage.Create(EncryptionPage);
-  TokenWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
-  TokenWarningBitmapImage.Parent := EncryptionPage.Surface;
-  TokenWarningBitmapImage.Top := TokenLabel.Top- ScaleY(3);
-  TokenWarningBitmapImage.Left := TokenInfoBitmapImage.Left + TokenInfoBitmapImage.Width + ScaleX(4);
-  TokenWarningBitmapImage.Center := True;
-  TokenWarningBitmapImage.Width := 24;
-  TokenWarningBitmapImage.Height := 24;
-  TokenWarningBitmapImage.Stretch := True;
-  TokenWarningBitmapImage.Cursor := crHand;
-  TokenWarningBitmapImage.ShowHint := True;
-  TokenWarningBitmapImage.Hide;
-
   ReadAgentRegistryValues;
   LoadSilentParameters;
-
 
 end;
 
@@ -1265,20 +1302,27 @@ begin
         Result := False;
         exit;
       end;
-    
+
+    if PollerInitiatedCheckBox.Checked then
+    begin
+      if EncryptionComboBox.Items.IndexOf('TLS Insecure') <> -1 then
+        EncryptionComboBox.Items.Delete(EncryptionComboBox.Items.IndexOf('TLS Insecure'));
+    end
+    else
+    begin
+      if EncryptionComboBox.Items.IndexOf('TLS Insecure') = -1 then
+        EncryptionComboBox.Items.Insert(1, 'TLS Insecure');
+    end;
+
+    //select the TLS
+    EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS');
+    OnEncryptionChange(EncryptionComboBox);
     Result := True;
   end 
   else if CurPageID = EncryptionPage.ID then begin
-    if EncryptionCheckBox.Checked then begin
+    if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
-        if PublicCertEdit.Text = '' then begin
-          PublicCertWarningBitmapImage.Hint := 'Public certificate file path is required.';
-          PublicCertWarningBitmapImage.Show;
-          MsgBox('Public certificate file path is required. Please enter the path to the public certificate file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-        if not(IsPathValid(PublicCertEdit.Text)) then begin
+        if (not(IsPathValid(PublicCertEdit.Text))) and (PublicCertEdit.Text <> '') then begin
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
           MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1286,15 +1330,7 @@ begin
           exit;
         end;
 
-        if PrivateKeyEdit.Text = '' then begin
-          PrivateKeyWarningBitmapImage.Hint := 'Private key file path is required.';
-          PrivateKeyWarningBitmapImage.Show;
-          MsgBox('Private key file path is required. Please enter the path to the private key file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-
-        if not(IsPathValid(PrivateKeyEdit.Text)) then begin
+        if not(IsPathValid(PrivateKeyEdit.Text)) and (PrivateKeyEdit.Text <> '') then begin
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
           MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1303,25 +1339,16 @@ begin
         end;
       end
       else begin
-        if CaEdit.Text = '' then begin
-          CaWarningBitmapImage.Hint := 'CA certificate file path is required.';
-          CaWarningBitmapImage.Show;
-          MsgBox('CA certificate file path is required. Please enter the path to the CA certificate file.', mbError, MB_OK);
-          Result := False;
-          exit;
-        end;
-
-        if not(IsPathValid(CaEdit.Text)) then begin
+        if not(IsPathValid(CaEdit.Text)) and (CaEdit.Text <> '') then begin
           CaWarningBitmapImage.Hint := 'Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).';
           CaWarningBitmapImage.Show;
           MsgBox('Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
           Result := False;
           exit;
         end;
-
       end;
       if TokenEdit.Text = '' then begin
-        TokenWarningBitmapImage.Hint := 'Please select a CA file before continuing.';
+        TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;

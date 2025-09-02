@@ -184,8 +184,6 @@ begin
     PollerLabel.Caption := 'Listening interface:'
   else
     PollerLabel.Caption := 'Poller endpoint:';
-    {toggle the box to false to refresh the fields}
-  EncryptionComboBox.Text := 'No';
 end;
 
 procedure OnLogTypeChange(Sender: TObject);
@@ -524,7 +522,14 @@ begin
     TokenEdit.Text := StrValue;
 
   if RegQueryStringValue(RootKey, BaseKey, 'encryption', StrValue) then
-    EncryptionComboBox.Text := StrValue;
+  begin
+    if StrValue = 'full' then
+      EncryptionComboBox.Text := 'TLS'
+    else if StrValue = 'insecure' then
+      EncryptionComboBox.Text := 'TLS Insecure'
+    else
+      EncryptionComboBox.Text := 'No TLS';
+  end;
 
   if RegQueryDWordValue(RootKey, BaseKey, 'log_max_file_size', DwordValue) then
     MaxFileEdit.Text := IntToStr(DwordValue);
@@ -558,7 +563,7 @@ begin
   RegWriteStringValue(RootKey, BaseKey, 'ca_certificate', CaEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'ca_name', CommonNameEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'token', TokenEdit.Text);
-  
+
   if EncryptionComboBox.Text = 'TLS' then
     RegWriteStringValue(RootKey, BaseKey, 'encryption', 'full')
   else if EncryptionComboBox.Text = 'TLS Insecure' then
@@ -740,7 +745,12 @@ begin
   MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|3}');
   PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
 
-  EncryptionComboBox.Text := ExpandConstant('{param:encryption|}');;
+  // Set encryption combo box based on parameter value
+  case LowerCase(ExpandConstant('{param:encryption|no}')) of
+    'full':     EncryptionComboBox.Text := 'TLS';
+    'insecure': EncryptionComboBox.Text := 'TLS Insecure';
+    else        EncryptionComboBox.Text := 'No TLS';
+  end;
   PublicCertEdit.Text := ExpandConstant('{param:cert|}');
   PrivateKeyEdit.Text := ExpandConstant('{param:key|}');
   CaEdit.Text := ExpandConstant('{param:ca|}');
@@ -903,12 +913,12 @@ begin
   HostLabel := TNewStaticText.Create(ConfigPage);
   HostLabel.Parent := ConfigPage.Surface;
   HostLabel.Top := ScaleY(3);
-  HostLabel.Caption := 'Host name:';
+  HostLabel.Caption := 'Host name in Centreon:';
 
   HostNameEdit := TNewEdit.Create(ConfigPage);
   HostNameEdit.Parent := ConfigPage.Surface;
   HostNameEdit.Top := HostLabel.Top - ScaleY(3);
-  HostNameEdit.Left := HostLabel.Width + ScaleX(75);
+  HostNameEdit.Left := HostLabel.Width + ScaleX(20);
   HostNameEdit.Width := ConfigPage.SurfaceWidth div 2;
   HostNameEdit.Text := 'my-centreon-host';
 
@@ -1158,7 +1168,7 @@ begin
   EncryptionComboBox.Style := csDropDownList;
   EncryptionComboBox.Items.Add('TLS');
   EncryptionComboBox.Items.Add('TLS Insecure');
-  EncryptionComboBox.Items.Add('No');
+  EncryptionComboBox.Items.Add('No TLS');
   EncryptionComboBox.ItemIndex := 0;
   EncryptionComboBox.OnChange := @OnEncryptionChange;
 
@@ -1312,7 +1322,7 @@ begin
   CaLabel := TNewStaticText.Create(EncryptionPage);
   CaLabel.Parent := EncryptionPage.Surface;
   CaLabel.Top := TokenLabel.Top + ScaleY(30);
-  CaLabel.Caption := 'Ca:';
+  CaLabel.Caption := 'CA:';
   CaLabel.Hide;
 
   CaEdit := TNewEdit.Create(EncryptionPage);
@@ -1364,7 +1374,7 @@ begin
   CommonNameLabel:= TNewStaticText.Create(EncryptionPage);
   CommonNameLabel.Parent := EncryptionPage.Surface;
   CommonNameLabel.Top := CaLabel.Top + ScaleY(30);
-  CommonNameLabel.Caption := 'Ca common name (CN):';
+  CommonNameLabel.Caption := 'CA Common Name (CN):';
   CommonNameLabel.Hide;
 
   CommonNameEdit := TNewEdit.Create(EncryptionPage);
@@ -1496,7 +1506,7 @@ begin
         Result := False;
         exit;
       end;
-    
+
     if PollerInitiatedCheckBox.Checked then
     begin
       if EncryptionComboBox.Items.IndexOf('TLS Insecure') <> -1 then
@@ -1515,7 +1525,7 @@ begin
     Result := True;
   end 
   else if CurPageID = EncryptionPage.ID then begin
-    if EncryptionComboBox.Text <> 'No' then begin
+    if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
         if (not(IsPathValid(PublicCertEdit.Text))) and (PublicCertEdit.Text <> '') then begin
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
