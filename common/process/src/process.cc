@@ -59,6 +59,25 @@ struct boost_process {
   boost::process::v2::basic_process<asio::io_context::executor_type> proc;
 };
 
+#if defined(BOOST_PROCESS_V2_WINDOWS)
+
+/**
+ * @brief The only goal of this struct is to set CREATE_NO_WINDOW flag in
+ * CreateProcess call. Agent only start console applications, so we ensure that
+ * no parasit cmd windows will be created.
+ */
+struct create_no_window {
+  template <class launcher>
+  boost::system::error_code on_setup(
+      launcher& windows_launcher,
+      const std::filesystem::path& /*executable*/,
+      std::wstring& /*cmd_line*/) {
+    windows_launcher.creation_flags |= CREATE_NO_WINDOW;
+    return {};
+  }
+};
+#endif
+
 }  // namespace com::centreon::common::detail
 
 using namespace com::centreon::common;
@@ -71,7 +90,9 @@ using namespace com::centreon::common;
  * @param logger
  * @param exe_path exe without arguments
  * @param use_setpgid if true, we set process group of child process
- * @param use_stdin if true, we open a stding pipe to child process
+ * @param use_stdin if true, we open a stding pipe to child process, if false,
+ * we open a stdin pipe, but we close it as soon as child process is created. By
+ * doing this, child process will read an eof.
  * @param args command arguments
  * @param env environment (boost)
  */
@@ -232,34 +253,24 @@ static const std::vector<std::string> _no_args;
 template <bool use_mutex>
 void process<use_mutex>::_create_process() {
   if (_env && !_env->env_buffer.empty()) {
-    if (_use_stdin) {
-      _proc = new detail::boost_process(
-          boost::process::v2::basic_process<asio::io_context::executor_type>(
-              *_io_context, _args->get_exe_path(), _args->get_args(),
-              boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                                _stderr_pipe},
-              *_env));
-    } else {
-      _proc = new detail::boost_process(
-          boost::process::v2::basic_process<asio::io_context::executor_type>(
-              *_io_context, _args->get_exe_path(), _args->get_args(),
-              boost::process::v2::process_stdio{{}, _stdout_pipe, _stderr_pipe},
-              *_env));
-    }
+    _proc = new detail::boost_process(
+        boost::process::v2::basic_process<asio::io_context::executor_type>(
+            *_io_context, _args->get_exe_path(), _args->get_args(),
+            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
+                                              _stderr_pipe},
+            *_env, detail::create_no_window()));
   } else {
-    if (_use_stdin) {
-      _proc = new detail::boost_process(
-          boost::process::v2::basic_process<asio::io_context::executor_type>(
-              *_io_context, _args->get_exe_path(), _args->get_args(),
-              boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                                _stderr_pipe}));
-    } else {
-      _proc = new detail::boost_process(
-          boost::process::v2::basic_process<asio::io_context::executor_type>(
-              *_io_context, _args->get_exe_path(), _args->get_args(),
-              boost::process::v2::process_stdio{
-                  {}, _stdout_pipe, _stderr_pipe}));
-    }
+    _proc = new detail::boost_process(
+        boost::process::v2::basic_process<asio::io_context::executor_type>(
+            *_io_context, _args->get_exe_path(), _args->get_args(),
+            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
+                                              _stderr_pipe},
+            detail::create_no_window()));
+  }
+  if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
+                      // from child process will get an eof
+    boost::system::error_code ec;
+    _stdin_pipe.close(ec);
   }
 }
 
@@ -275,17 +286,15 @@ void process<use_mutex>::_create_process() {
   char* const* env = (_env && !_env->env_buffer.empty())
                          ? const_cast<char* const*>(_env->env.data())
                          : nullptr;
-  if (_use_stdin) {
-    _proc = new detail::boost_process(detail::spawnp(
-        *_io_context, _args, _use_setpgid,
-        proc::detail::process_input_binding(_stdin_pipe).fd,
-        proc::detail::process_output_binding(_stdout_pipe).fd,
-        proc::detail::process_error_binding(_stderr_pipe).fd, env));
-  } else {
-    _proc = new detail::boost_process(detail::spawnp(
-        *_io_context, _args, _use_setpgid, -1,
-        proc::detail::process_output_binding(_stdout_pipe).fd,
-        proc::detail::process_error_binding(_stderr_pipe).fd, env));
+  _proc = new detail::boost_process(detail::spawnp(
+      *_io_context, _args, _use_setpgid,
+      proc::detail::process_input_binding(_stdin_pipe).fd,
+      proc::detail::process_output_binding(_stdout_pipe).fd,
+      proc::detail::process_error_binding(_stderr_pipe).fd, env));
+  if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
+                      // from child process will get an eof
+    boost::system::error_code ec;
+    _stdin_pipe.close(ec);
   }
 }
 
