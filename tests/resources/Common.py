@@ -2509,5 +2509,6 @@ def ctn_notify_broker_of_engine_config_change(idx: int):
     Args:
         idx (int): The index of the configuration to notify.
     """
+    logger.console(f"Notify broker of engine config change for poller {idx + 1}")
     lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
     Path(lck_file).touch()

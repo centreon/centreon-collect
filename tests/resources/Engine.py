@@ -95,14 +95,34 @@ class EngineInstance:
             self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
         else:
             self.config_dir = CONF_DIR
-        self.build_configs(hosts, srv_by_host, centralized, 0, bash_checks)
+
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
-        makedirs(CONF_DIR, mode=0o777, exist_ok=True)
         makedirs(ENGINE_HOME, mode=0o777, exist_ok=True)
+        if exists(CONF_DIR):
+            for item in glob.glob(f"{CONF_DIR}/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(CONF_DIR, mode=0o777, exist_ok=True)
+
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(f"{VAR_ROOT}/lib/centreon/config", mode=0o777, exist_ok=True)
+        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
+            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
+
         makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+        self.build_configs(hosts, srv_by_host, centralized, 0, bash_checks)
 
     def update_configs(self, inst: int, hosts: int, services_by_host: int, bash_checks: bool = False):
         """
@@ -128,6 +148,16 @@ class EngineInstance:
         self.centralized = True
         self.anomaly_detection_internal_id = 1
         self.config_dir = f"{VAR_ROOT}/lib/centreon/config"
+
+        if exists(f"{VAR_ROOT}/lib/centreon/config"):
+            for item in glob.glob(f"{VAR_ROOT}/lib/centreon/config/*"):
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
+        else:
+            makedirs(f"{VAR_ROOT}/lib/centreon/config", mode=0o777, exist_ok=True)
+
         self.build_configs(hosts, services_by_host, True, 0, bash_checks)
 
     def get_config_dir(self, inst: int):
@@ -667,13 +697,6 @@ passive_checks_enabled 1
             ff.write(content)
 
     def build_configs(self, hosts: int, services_by_host: int, centralized: bool, debug_level=0, bash_checks: bool = False):
-        if exists(CONF_DIR):
-            shutil.rmtree(CONF_DIR)
-        if exists(f"{VAR_ROOT}/lib/centreon/config"):
-            shutil.rmtree(f"{VAR_ROOT}/lib/centreon/config")
-        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
-            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
-
         r = 0
         if hosts % self.instances > 0:
             r = 1

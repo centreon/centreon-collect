@@ -58,6 +58,18 @@ BECNSVC1
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A global diff state event should have been built and processed
 
+    # Check that the 50 hosts are stored in the database
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Log To Console    Check that the 50 hosts are prepared in the database (hosts and resources tables).
+    Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled=1    ==    ${50}    retry_timeout=30s    retry_pause=1s
+    Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled=1 AND parent_id=0    ==    ${50}    retry_timeout=30s    retry_pause=1s
+
+    Log To Console    Check that the 1000 services are prepared in the database (services and resources tables).
+    Check Query Result    SELECT COUNT(*) FROM services WHERE enabled=1    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled=1 AND parent_id<>0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
+    Disconnect From Database
+
+    Log To Console    Services are progressively increased from 20 to 28 per host.
     FOR    ${i}    IN RANGE    ${3}
         Sleep    10s
         ${services_by_host}    Evaluate    20 + 4 * $i
@@ -66,14 +78,16 @@ BECNSVC1
 
         ${services_count}    Evaluate    17 * (20 + 4 * $i)
         ${resources_count}    Evaluate    $services_count + 17
-        ${result}    Ctn Check Number Of Resources Monitored By Poller Is    ${1}    ${resources_count}    30
-        Should Be True    ${result}    Poller 1 should monitor ${services_count} services and 17 hosts.
-#        ${result}    Ctn Check Number Of Resources Monitored By Poller Is    ${2}    ${resources_count}    30
-#        Should Be True    ${result}    Poller 2 should monitor ${services_count} services and 17 hosts.
-#        ${services_count}    Evaluate    16 * (20 + 4 * $i)
-#        ${resources_count}    Evaluate    $services_count + 16
-#        ${result}    Ctn Check Number Of Resources Monitored By Poller Is    ${3}    ${resources_count}    30
-#        Should Be True    ${result}    Poller 3 should monitor ${services_count} services and 16 hosts.
+	${resources_count_3}    Evaluate    16 * (20 + 4 * $i) + 16
+
+	Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+	Log To Console    Poller 1 should monitor ${resources_count} resources.
+	Check Query Result    SELECT COUNT(*) FROM resources WHERE poller_id=1 AND enabled=1    ==    ${resources_count}    retry_timeout=30s    retry_pause=1s
+	Log To Console    Poller 2 should monitor ${resources_count} resources.
+	Check Query Result    SELECT COUNT(*) FROM resources WHERE poller_id=2 AND enabled=1    ==    ${resources_count}    retry_timeout=30s    retry_pause=1s
+	Log To Console    Poller 3 should monitor ${resources_count_3} resources.
+	Check Query Result    SELECT COUNT(*) FROM resources WHERE poller_id=3 AND enabled=1    ==    ${resources_count_3}    retry_timeout=30s    retry_pause=1s
+        Disconnect From Database
     END
     Ctn Stop Engine
     Ctn Kindly Stop Broker
