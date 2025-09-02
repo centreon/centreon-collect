@@ -134,7 +134,7 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
       const std::string& encryption = json_config.get_string("encryption");
       if (encryption == "full") {
         security_mode = TLS_SECURE;
-      } else if (encryption == "insecure") {
+      } else if (encryption == "insecure" || encryption == "true") {
         security_mode = TLS_INSECURE;
       } else {
         security_mode = NONE;
