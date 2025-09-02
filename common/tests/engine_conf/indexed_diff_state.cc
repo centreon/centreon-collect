@@ -18,15 +18,21 @@
  */
 #include "common/engine_conf/indexed_diff_state.hh"
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 #include "common/engine_conf/command_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/tag_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+using com::centreon::common::log_v2::log_v2;
 
 class IndexedDiffState : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
-  void SetUp() override {}
+  void SetUp() override { _logger = log_v2::instance().get(log_v2::BBDO); }
   void TearDown() override {}
 };
 
@@ -40,7 +46,7 @@ TEST_F(IndexedDiffState, AddCommand) {
   cmd->set_connector("super connector");
 
   diff_state.mutable_commands()->mutable_added()->AddAllocated(cmd.release());
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
   ASSERT_EQ(global_diff.added_commands().size(), 1);
 }
 
@@ -54,11 +60,11 @@ TEST_F(IndexedDiffState, AddRemoveCommand) {
   cmd->set_connector("super connector");
 
   diff_state.mutable_commands()->mutable_added()->AddAllocated(cmd.release());
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(diff_state.commands().added_size(), 0);
   diff_state.mutable_commands()->add_removed("test1");
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_commands().size(), 0);
   ASSERT_EQ(global_diff.removed_commands().size(), 0);
@@ -82,11 +88,11 @@ TEST_F(IndexedDiffState, AddRemoveCommandAddTag) {
   tag->set_tag_name("tag");
   diff_state.mutable_tags()->mutable_added()->AddAllocated(tag.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(diff_state.commands().added_size(), 0);
   diff_state.mutable_commands()->add_removed("test1");
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_commands().size(), 0);
   ASSERT_EQ(global_diff.removed_commands().size(), 0);
@@ -108,14 +114,14 @@ TEST_F(IndexedDiffState, ModifyRemoveTag) {
   tag->set_tag_name("tag");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(diff_state.commands().modified_size(), 0);
   auto key = std::make_unique<configuration::KeyType>();
   key->set_id(12);
   key->set_type(2);
   diff_state.mutable_tags()->mutable_removed()->AddAllocated(key.release());
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_tags().size(), 0);
   ASSERT_EQ(global_diff.removed_tags().size(), 0);
@@ -130,7 +136,7 @@ TEST_F(IndexedDiffState, RemoveModifyTag) {
   key->set_id(12);
   key->set_type(2);
   diff_state.mutable_tags()->mutable_removed()->AddAllocated(key.release());
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   auto tag = std::make_unique<configuration::Tag>();
   configuration::tag_helper tag_hlp(tag.get());
@@ -139,7 +145,7 @@ TEST_F(IndexedDiffState, RemoveModifyTag) {
   tag->set_tag_name("tag");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_tags().size(), 0);
   ASSERT_EQ(global_diff.removed_tags().size(), 0);
@@ -157,7 +163,7 @@ TEST_F(IndexedDiffState, AddModifyTag) {
   tag->set_tag_name("tag1");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   auto tag1 = std::make_unique<configuration::Tag>();
   configuration::tag_helper tag1_hlp(tag1.get());
@@ -166,7 +172,7 @@ TEST_F(IndexedDiffState, AddModifyTag) {
   tag1->set_tag_name("tag2");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag1.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_tags().size(), 0);
   ASSERT_EQ(global_diff.removed_tags().size(), 0);
@@ -184,7 +190,7 @@ TEST_F(IndexedDiffState, ModifyAddTag) {
   tag1->set_tag_name("tag2");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag1.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   auto tag = std::make_unique<configuration::Tag>();
   configuration::tag_helper tag_hlp(tag.get());
@@ -193,7 +199,7 @@ TEST_F(IndexedDiffState, ModifyAddTag) {
   tag->set_tag_name("tag1");
   diff_state.mutable_tags()->mutable_modified()->AddAllocated(tag.release());
 
-  global_diff.add_diff_state(diff_state);
+  global_diff.add_diff_state(diff_state, _logger);
 
   ASSERT_EQ(global_diff.added_tags().size(), 0);
   ASSERT_EQ(global_diff.removed_tags().size(), 0);

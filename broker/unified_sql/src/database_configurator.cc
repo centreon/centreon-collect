@@ -17,6 +17,7 @@
  */
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include <google/protobuf/repeated_ptr_field.h>
+#include <iterator>
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/utf8.hh"
@@ -45,11 +46,10 @@ void database_configurator::process() {
     //                            _stream->severities_cache());
     //    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mariadb(_diff.hosts().added());
-    //    _add_host_resources_mariadb(_diff.hosts().added(),
-    //                                _stream->resources_cache());
-    //    _add_services_mariadb(_diff.services().added());
-    //    _add_service_resources_mariadb(_diff.services().added(),
-    //                                   _stream->resources_cache());
+    _add_host_resources_mariadb(_diff.hosts().added());
+    _add_services_mariadb(_diff.services().added());
+    _add_service_resources_mariadb(_diff.services().added(),
+                                   _stream->resources_cache());
     //    _add_anomalydetections_mariadb(_diff.anomalydetections().added());
     //    _add_anomalydetection_resources_mariadb(_diff.anomalydetections().added(),
     //                                            _stream->resources_cache());
@@ -60,11 +60,10 @@ void database_configurator::process() {
     //    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
     //
     _add_hosts_mariadb(_diff.hosts().modified());
-    //    _add_host_resources_mariadb(_diff.hosts().modified(),
-    //                                _stream->resources_cache());
-    //    _add_services_mariadb(_diff.services().modified());
-    //    _add_service_resources_mariadb(_diff.services().modified(),
-    //                                   _stream->resources_cache());
+    _add_host_resources_mariadb(_diff.hosts().modified());
+    _add_services_mariadb(_diff.services().modified());
+    _add_service_resources_mariadb(_diff.services().modified(),
+                                   _stream->resources_cache());
     //    _add_anomalydetections_mariadb(_diff.anomalydetections().modified());
     //    _add_anomalydetection_resources_mariadb(
     //        _diff.anomalydetections().modified(), _stream->resources_cache());
@@ -94,9 +93,9 @@ void database_configurator::process() {
     //    _add_severities_mysql(_diff.severities().modified(),
     //                          _stream->severities_cache());
     //    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
-    //    _add_hosts_mysql(_diff.hosts().modified());
-    //    _add_host_resources_mysql(_diff.hosts().modified(),
-    //                              _stream->resources_cache());
+    _add_hosts_mysql(_diff.hosts().modified());
+    _add_host_resources_mysql(_diff.hosts().modified(),
+                              _stream->resources_cache());
     //    _add_services_mysql(_diff.services().modified());
     //    _add_service_resources_mysql(_diff.services().modified(),
     //                                 _stream->resources_cache());
@@ -110,6 +109,7 @@ void database_configurator::process() {
     //    _disable_service_resources_mysql(_diff.services().removed());
     //    _disable_service_resources_mysql(_diff.anomalydetections().removed());
   }
+  _stream->get_mysql().commit();
 }
 
 /**
@@ -122,29 +122,32 @@ void database_configurator::_disable_pollers_with_full_conf() {
     _stream->clean_tables(instance_id);
 
   // Removed hosts are disabled in the hosts table.
-  std::string query(
-      fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
-                  fmt::join(_diff.hosts().removed(), ",")));
-  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                 0);
+  if (!_diff.hosts().removed().empty()) {
+    std::string query(
+        fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
+                    fmt::join(_diff.hosts().removed(), ",")));
+    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                   0);
 
-  // Services of removed hosts are disabled in the services table.
-  query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
-                      fmt::join(_diff.hosts().removed(), ","));
-  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                 0);
+    // Services of removed hosts are disabled in the services table.
+    query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
+                        fmt::join(_diff.hosts().removed(), ","));
+    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                   0);
 
-  // Same thing with resources table.
-  query = fmt::format(
-      "UPDATE resources SET enabled=0 WHERE parent_id IN ({0}) OR (parent_id = "
-      "0 AND id IN ({0}))",
-      fmt::join(_diff.hosts().removed(), ","));
-  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                 0);
+    // Same thing with resources table.
+    query = fmt::format(
+        "UPDATE resources SET enabled=0 WHERE parent_id IN ({0}) OR (parent_id "
+        "= "
+        "0 AND id IN ({0}))",
+        fmt::join(_diff.hosts().removed(), ","));
+    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
+                                   0);
+  }
 }
 
 void database_configurator::_disable_hosts(
-    ::google::protobuf::RepeatedField<uint64_t> const& host_ids) {
+    const ::google::protobuf::RepeatedField<uint64_t>& host_ids) {
   if (host_ids.empty())
     return;
 
@@ -477,6 +480,11 @@ void database_configurator::_add_tags_mysql(
 void database_configurator::_add_hosts_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
+  if (lst.empty()) {
+    _logger->debug("No need to add/update hosts, list empty");
+    return;
+  }
+
   mysql& mysql = _stream->get_mysql();
   if (!_add_hosts_stmt) {
     std::string query(
@@ -536,8 +544,8 @@ void database_configurator::_add_hosts_mariadb(
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
-    _logger->debug("Processing host {} (poller {})", msg.host_name(),
-                   msg.poller_id());
+    _logger->debug("Processing host {} (id {} - poller {})", msg.host_name(),
+                   msg.host_id(), msg.poller_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.host_name(),
@@ -820,8 +828,13 @@ void database_configurator::_add_hosts_mysql(
  */
 void database_configurator::_add_host_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
+        lst) {
+  auto& cache = _stream->resources_cache();
+  auto& hosts_instances_cache = _stream->hosts_instances_cache();
+  if (lst.empty()) {
+    _logger->debug("No service resources to add/update");
+    return;
+  }
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_host_resources_stmt) {
@@ -849,6 +862,7 @@ void database_configurator::_add_host_resources_mariadb(
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
+    hosts_instances_cache[msg.host_id()] = msg.poller_id();
 
     bind->set_value_as_u64(0, msg.host_id());
     bind->set_value_as_u64(1, 0);
@@ -1058,6 +1072,11 @@ void database_configurator::_add_host_resources_mysql(
 void database_configurator::_add_services_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
+  if (lst.empty()) {
+    _logger->debug("No need to add/update services, list empty");
+    return;
+  }
+
   mysql& mysql = _stream->get_mysql();
   if (!_add_services_stmt) {
     std::string query(
@@ -1116,7 +1135,9 @@ void database_configurator::_add_services_mariadb(
   }
   auto bind = _add_services_stmt->create_bind();
 
+  uint32_t count = 0;
   for (const auto& msg : lst) {
+    _logger->debug("Processing service {}:{}", msg.host_id(), msg.service_id());
     bind->set_value_as_i32(0, msg.host_id());
     bind->set_value_as_str(
         1, common::truncate_utf8(msg.service_description(),
@@ -1223,7 +1244,9 @@ void database_configurator::_add_services_mariadb(
     bind->set_value_as_bool(
         51, msg.stalking_options() & ActionServiceOn::action_svc_warning);
     bind->next_row();
+    count++;
   }
+  _logger->debug("Adding/updating {} services", count);
   _add_services_stmt->set_bind(std::move(bind));
   mysql.run_statement(*_add_services_stmt);
 }
@@ -1888,6 +1911,10 @@ void database_configurator::_add_service_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst,
     absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
+  if (lst.empty()) {
+    _logger->debug("No service resources to add/update");
+    return;
+  }
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_service_resources_stmt) {
@@ -1919,7 +1946,7 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, get_service_type(msg));
     bind->set_value_as_u32(4, msg.max_check_attempts());
-    bind->set_value_as_u64(5, _stream->hosts_instances_cache(msg.host_id()));
+    bind->set_value_as_u64(5, _stream->hosts_instances_cache()[msg.host_id()]);
     if (msg.has_severity_id())
       bind->set_value_as_u64(6, msg.severity_id());
     else
@@ -1989,8 +2016,8 @@ void database_configurator::_add_service_resources_mysql(
     std::string value(fmt::format(
         "({},{},NULL,{},{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
-        msg.max_check_attempts(), _stream->hosts_instances_cache(msg.host_id()),
-        msg.severity_id(),
+        msg.max_check_attempts(),
+        _stream->hosts_instances_cache()[msg.host_id()], msg.severity_id(),
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2111,7 +2138,7 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_null_u64(2);
     bind->set_value_as_u32(3, 4);
     bind->set_value_as_u32(4, msg.max_check_attempts());
-    bind->set_value_as_u64(5, _stream->hosts_instances_cache(msg.host_id()));
+    bind->set_value_as_u64(5, _stream->hosts_instances_cache()[msg.host_id()]);
     if (msg.has_severity_id())
       bind->set_value_as_u64(6, msg.severity_id());
     else
@@ -2183,7 +2210,7 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     std::string value(fmt::format(
         "({},{},NULL,{},{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
-        _stream->hosts_instances_cache(msg.host_id()), msg.severity_id(),
+        _stream->hosts_instances_cache()[msg.host_id()], msg.severity_id(),
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2267,10 +2294,10 @@ void database_configurator::_add_customvariables_mariadb(
   if (!_add_customvariables_stmt) {
     std::string query(
         "INSERT INTO customvariables "
-        "(host_id,service_id,name,default_value,value,type,enabled,modified) "
-        "VALUES (?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        "(host_id,service_id,name,default_value,value,type,modified) "
+        "VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
         "default_value=VALUES(default_value),value=VALUES(value),type=VALUES("
-        "type),enabled=VALUES(enabled),modified=VALUES(modified)");
+        "type),modified=VALUES(modified)");
     _add_customvariables_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_customvariables_stmt);
   }
@@ -2301,8 +2328,7 @@ void database_configurator::_add_customvariables_mariadb(
     else
       bind->set_value_as_u32(5, 0);
 
-    bind->set_value_as_bool(6, true);
-    bind->set_value_as_bool(7, false);
+    bind->set_value_as_bool(6, false);
     bind->next_row();
   }
   _add_customvariables_stmt->set_bind(std::move(bind));

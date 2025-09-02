@@ -59,7 +59,6 @@ state::state(common::PeerType peer_type,
       _poller_id(0),
       _rpc_port(0),
       _bbdo_version{2u, 0u, 0u},
-      _watch_occupied{false},
       _modules{logger},
       _center{std::make_shared<com::centreon::broker::stats::center>()},
       _diff_state_applied{false} {}
@@ -289,6 +288,21 @@ const config::applier::state::stats& state::stats_conf() {
 }
 
 /**
+ * @brief Called from an Engine. This method tells if the connected Broker
+ * supports extended negotiation.
+ *
+ * @return A boolean.
+ */
+bool state::broker_peer_supports_extended_negotiation() const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  for (auto& p : _connected_peers) {
+    if (p.second.peer_type == common::BROKER)
+      return p.second.extended_negotiation;
+  }
+  return false;
+}
+
+/**
  * @brief Add a poller to the list of connected pollers.
  *
  * @param poller_id The id of the poller (an id by host)
@@ -306,9 +320,11 @@ void state::add_peer(uint64_t poller_id,
   if (found == _connected_peers.end()) {
     _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
     _connected_peers[{poller_id, poller_name, broker_name}] =
-        peer{poller_id, poller_name,          broker_name, time(nullptr),
-             peer_type, extended_negotiation, "",          engine_conf,
-             true};
+        peer{poller_id,   poller_name,
+             broker_name, time(nullptr),
+             peer_type,   extended_negotiation,
+             "",          engine_conf,
+             false,       true};
   } else {
     _logger->warn(
         "Poller '{}' with id {} already known as connected. Replacing it.",
@@ -317,6 +333,7 @@ void state::add_peer(uint64_t poller_id,
     found->second.peer_type = peer_type;
     found->second.extended_negotiation = extended_negotiation;
     found->second.engine_conf = engine_conf;
+    found->second.available_conf_sent = false;
     /* available_conf is already set. */
   }
   if (extended_negotiation && _peer_type == common::BROKER) {
@@ -334,14 +351,15 @@ void state::add_peer(uint64_t poller_id,
     _logger->debug("Checking for existing {}.lck file", poller_id);
     uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
     if (existing_lck) {
-      absl::MutexLock lck(&_lck_vector_m);
-      _lck_vector.push_back(existing_lck);
+      absl::MutexLock lck(&_lck_set_m);
+      _lck_set.insert(existing_lck);
     }
   }
 }
 
 /**
- * @brief Set the engine configuration for a poller.
+ * @brief Called from a Broker. Set the engine configuration of a poller among
+ * the list of connected peers.
  *
  * @param poller_id The poller ID.
  * @param engine_conf The new Engine configuration version.
@@ -355,8 +373,11 @@ void state::set_poller_engine_conf(uint32_t poller_id,
   if (found == _connected_peers.end()) {
     _logger->info("Poller with id {} not found in connected peers", poller_id);
   } else {
-    _logger->info("Poller with id {} has its version changed from '{}' to '{}'",
-                  poller_id, found->second.engine_conf, engine_conf);
+    _logger->info(
+        "Poller with id {} available conf '{}' and current version changed "
+        "from '{}' to '{}'",
+        poller_id, found->second.available_conf, found->second.engine_conf,
+        engine_conf);
     found->second.engine_conf = engine_conf;
   }
 }
@@ -533,11 +554,14 @@ uint32_t state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
  * configuration. Thas vector can already contain some poller IDs to check
  * (for example when a poller initiates its connection to Broker).
  */
-void state::_watch_engine_conf(std::vector<uint32_t>* poller_ids) {
+void state::_watch_engine_conf(std::unordered_set<uint32_t>* poller_ids) {
   if (_cache_config_dir_watcher) {
+    _logger->debug("Watch engine configuration directory");
     auto it = _cache_config_dir_watcher->watch();
     for (auto end = _cache_config_dir_watcher->end(); it != end; ++it) {
+      _logger->debug("Change detected in '{}'", _cache_config_dir.string());
       auto [event, name] = *it;
+      _logger->debug("event: {}, name: '{}'", event, name);
       std::string_view event_str;
       if (event & IN_CREATE)
         event_str = "IN_CREATE";
@@ -560,39 +584,12 @@ void state::_watch_engine_conf(std::vector<uint32_t>* poller_ids) {
             _logger->error("Cannot remove lock file '{}': {}", name,
                            ec.message());
           acknowledge_engine_peer(poller_id, false);
-          poller_ids->push_back(poller_id);
+          poller_ids->insert(poller_id);
         } else
           _logger->warn("Change in '{}' detected but poller id not found",
                         _cache_config_dir.string());
       }
     }
-  }
-}
-
-/**
- * @brief If occupied is true, set the occupied flag to true if possible (we
- * cannot set it to true if it is already enabled). If occupied is false,
- * set the occupied flag to false.
- *
- * @param occupied True if we want to set the occupied flag to true, false if we
- * want to set it to false.
- *
- * @return True on success, false otherwise. An action linked to this occupied
- * flag should work only if this function returns true.
- */
-bool state::set_engine_conf_watcher_occupied(bool occupied,
-                                             const std::string_view& owner) {
-  if (occupied) {
-    bool expected = false;
-    if (_watch_occupied.compare_exchange_strong(expected, true)) {
-      _logger->trace("watcher taken by '{}'", owner);
-      return true;
-    } else
-      return false;
-  } else {
-    _watch_occupied = false;
-    _logger->trace("watcher released by '{}'", owner);
-    return true;
   }
 }
 
@@ -623,12 +620,11 @@ void state::_start_watch_engine_conf_timer() {
   _watch_engine_conf_timer->async_wait(
       [this](const boost::system::error_code& ec) {
         if (!ec) {
-          if (set_engine_conf_watcher_occupied(true,
-                                               "applier::state::watcher")) {
-            _check_last_engine_conf();
-            set_engine_conf_watcher_occupied(false, "applier::state::watcher");
-          }
+          _check_last_engine_conf();
           _start_watch_engine_conf_timer();
+        } else if (ec) {
+          _logger->error("Error in engine configuration watcher: {}",
+                         ec.message());
         }
       });
 }
@@ -648,16 +644,17 @@ void state::_start_watch_engine_conf_timer() {
  * configuration. If it is 0, the check is based on the inotify results.
  */
 void state::_check_last_engine_conf() {
-  std::vector<uint32_t> pollers_vec;
+  _logger->trace("Checking for new Engine configurations");
+  std::unordered_set<uint32_t> pollers_set;
   {
-    absl::MutexLock lck(&_lck_vector_m);
-    std::swap(pollers_vec, _lck_vector);
+    absl::MutexLock lck(&_lck_set_m);
+    std::swap(pollers_set, _lck_set);
   }
 
-  _watch_engine_conf(&pollers_vec);
+  _watch_engine_conf(&pollers_set);
 
   std::error_code ec;
-  for (uint32_t poller_id : pollers_vec) {
+  for (uint32_t poller_id : pollers_set) {
     _logger->debug(
         "Checking if there is a new Engine configuration for poller {}",
         poller_id);
@@ -687,6 +684,7 @@ void state::_check_last_engine_conf() {
       try {
         p.parse(centengine_test, state.get(), err);
         state->set_config_version(version);
+        state->set_poller_id(poller_id);
         state_hlp.expand(err);
         if (!std::filesystem::exists(pollers_config_dir())) {
           std::filesystem::create_directories(pollers_config_dir(), ec);
@@ -720,7 +718,7 @@ void state::_check_last_engine_conf() {
 
 /**
  * @brief Prepare the diff between the previous and the new Engine
- * configurations. The occupied flag must be enabled during this function.
+ * configurations.
  *
  * @param poller_id The poller ID.
  * @param state The new Engine configuration.
@@ -787,6 +785,7 @@ void state::_prepare_diff_for_poller(
            * Once sent to it, this file must be renamed into <poller ID>.prot
            * and the diff file can be removed. */
           lower->second.available_conf = new_version;
+          lower->second.available_conf_sent = false;
         } else {
           _logger->error(
               "Cannot write the diff Engine protobuf configuration '{}': {}",
@@ -813,11 +812,21 @@ void state::_prepare_diff_for_poller(
  */
 bool state::engine_peer_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
+  _logger->trace("engine_peer_needs_update called for poller id {}", poller_id);
   auto lower = _connected_peers.lower_bound({poller_id, "", ""});
   for (auto end = _connected_peers.end();
        lower != end && lower->second.poller_id == poller_id; ++lower) {
     if (lower->second.peer_type == common::ENGINE) {
-      return lower->second.available_conf != lower->second.engine_conf;
+      if (lower->second.available_conf_sent)
+        return false;
+
+      if (!lower->second.available_conf.empty() &&
+          lower->second.available_conf != lower->second.engine_conf) {
+        _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
+                       lower->second.available_conf, lower->second.engine_conf,
+                       poller_id);
+        return true;
+      }
     }
   }
   return false;
@@ -888,4 +897,25 @@ void state::set_engine_conf(const std::string& engine_conf) {
  */
 const std::string& state::engine_conf() const {
   return _engine_conf;
+}
+
+/**
+ * @brief Called from Broker side when the new configuration has been sent to
+ * the poller engine peer.
+ *
+ * @param poller_id
+ */
+void state::set_available_conf_sent_to_engine_peer(uint32_t poller_id) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      lower->second.available_conf_sent = true;
+      _logger->debug("New configuration sent to poller {}", poller_id);
+      return;
+    }
+  }
+  _logger->info("Unable to send configuration to poller {}: it doesn't exist",
+                poller_id);
 }

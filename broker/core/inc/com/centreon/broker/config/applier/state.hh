@@ -57,6 +57,10 @@ class state {
     /* The current Engine configuration known by this poller. Only available
      * for an Engine peer. */
     std::string engine_conf;
+    /* The available_conf_sent flag is set to true when the available
+     * configuration has been sent to the Engine peer. Otherwise, it is false.
+     */
+    bool available_conf_sent;
     /* The conf_acknowledged flag is set to false when a new configuration
      * concerning this Engine peer must be sent to it. Otherwise, it is true. */
     bool conf_acknowledged;
@@ -75,9 +79,8 @@ class state {
   size_t _pool_size;
   std::filesystem::path _proto_conf;
   std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
-  std::atomic_bool _watch_occupied;
-  mutable absl::Mutex _lck_vector_m;
-  std::vector<uint32_t> _lck_vector ABSL_GUARDED_BY(_lck_vector_m);
+  mutable absl::Mutex _lck_set_m;
+  std::unordered_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
 
   /* Currently, this is the poller configurations known by this instance of
    * Broker. It is updated during neb::instance and
@@ -117,9 +120,9 @@ class state {
         const std::shared_ptr<spdlog::logger>& logger);
   ~state() noexcept;
   uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
-  void _watch_engine_conf(std::vector<uint32_t>* poller_ids);
+  void _watch_engine_conf(std::unordered_set<uint32_t>* poller_ids);
   void _start_watch_engine_conf_timer();
-  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_vector_m);
+  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
   void _prepare_diff_for_poller(
       uint64_t poller_id,
       std::unique_ptr<engine::configuration::State>&& state)
@@ -147,6 +150,8 @@ class state {
   const std::filesystem::path& pollers_config_dir() const noexcept;
   void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
+  bool broker_peer_supports_extended_negotiation() const
+      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   void add_peer(uint64_t poller_id,
                 const std::string& poller_name,
                 const std::string& broker_name,
@@ -188,8 +193,6 @@ class state {
     return _diff_state_applied.compare_exchange_strong(expected, false);
   }
 
-  bool set_engine_conf_watcher_occupied(bool occupied,
-                                        const std::string_view& owner);
   bool all_engine_peers_acknowledged() const;
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
@@ -198,6 +201,7 @@ class state {
                               const std::string& broker_name,
 
                               const std::string& engine_conf);
+  void set_available_conf_sent_to_engine_peer(uint32_t poller_id);
 };
 }  // namespace com::centreon::broker::config::applier
 

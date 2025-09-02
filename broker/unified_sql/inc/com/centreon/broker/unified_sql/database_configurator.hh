@@ -71,8 +71,7 @@ class database_configurator {
   void _disable_hosts(const ::google::protobuf::RepeatedField<uint64_t>& lst);
   void _add_host_resources_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
-          lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+          lst);
   void _add_host_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst,
@@ -104,13 +103,15 @@ class database_configurator {
           engine::configuration::Anomalydetection>& lst,
       absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
   void _add_customvariables_mariadb(
-      uint64_t host_id, uint64_t service_id,
+      uint64_t host_id,
+      uint64_t service_id,
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::CustomVariable>& lst);
   void _add_customvariables_mysql(
-      uint64_t host_id, uint64_t service_id,
+      uint64_t host_id,
+      uint64_t service_id,
       const ::google::protobuf::RepeatedPtrField<
-                                  engine::configuration::CustomVariable>& lst);
+          engine::configuration::CustomVariable>& lst);
   void _disable_services_mariadb(const ::google::protobuf::RepeatedPtrField<
                                  engine::configuration::HostServiceId>& lst);
   void _disable_services_mysql(const ::google::protobuf::RepeatedPtrField<

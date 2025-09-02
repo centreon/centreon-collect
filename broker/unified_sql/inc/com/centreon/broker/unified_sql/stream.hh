@@ -540,8 +540,8 @@ class stream : public io::stream {
   resources_cache() {
     return _resources_cache;
   }
-  uint32_t hosts_instances_cache(uint64_t host_id) {
-    return _cache_host_instance[host_id];
+  std::unordered_map<uint32_t, uint32_t>& hosts_instances_cache() {
+    return _cache_host_instance;
   }
 };
 }  // namespace unified_sql

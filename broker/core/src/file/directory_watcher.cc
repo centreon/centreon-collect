@@ -92,10 +92,10 @@ directory_watcher::~directory_watcher() {
  */
 directory_watcher::iterator directory_watcher::watch() {
   boost::system::error_code ec;
-  auto buffer = boost::asio::buffer(_buffer);
-  _bytes_read = _sd.read_some(buffer, ec);
-  iterator retval(this);
-  if (ec)
-    _logger->debug("Unable to read from inotify: {}", ec.message());
-  return retval;
+  _bytes_read = _sd.read_some(boost::asio::buffer(_buffer), ec);
+  if (ec) {
+    _logger->error("Unable to read from inotify: {}", ec.message());
+    _bytes_read = 0;
+  }
+  return iterator(this);
 }

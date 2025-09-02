@@ -991,8 +991,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   _negotiated = true;
   /* With old BBDO, we don't have poller_id nor poller name available. */
   if (_poller_id > 0 && !_broker_name.empty()) {
-    _logger->debug("Adding peer {}:{}:{}", _poller_id, _poller_name,
-                   _broker_name);
+    _logger->debug("Adding peer {}:{}:{} with version '{}'", _poller_id,
+                   _poller_name, _broker_name, peer_engine_conf);
     config::applier::state::instance().add_peer(
         _poller_id, _poller_name, _broker_name, _peer_type,
         _extended_negotiation, peer_engine_conf);
@@ -1108,7 +1108,6 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
       config::applier::state::instance().set_diff_state(d);
     } break;
     case pb_diff_state_ack::static_type(): {
-      _logger->info("BBDO: received diff state ack");
       auto& obj = std::static_pointer_cast<pb_diff_state_ack>(d)->obj();
       assert(obj.poller_id() == _poller_id);
       config::applier::state::instance().set_poller_engine_conf(
@@ -1117,8 +1116,8 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
           obj.poller_id(), true);
       SPDLOG_LOGGER_INFO(
           _logger,
-          "BBDO: received diff state ack from Engine with version '{}'",
-          obj.config_version());
+          "BBDO: received diff state ack from poller {} with version '{}'",
+          obj.poller_id(), obj.config_version());
       std::filesystem::path new_name(
           config::applier::state::instance().pollers_config_dir() /
           fmt::format("new-{}.prot", _poller_id));
@@ -1159,7 +1158,7 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
               if (f) {
                 diff.ParseFromIstream(&f);
                 f.close();
-                global_diff.add_diff_state(diff);
+                global_diff.add_diff_state(diff, _logger);
                 _logger->debug("BBDO: Removing diff file '{}'",
                                diff_name.string());
                 std::filesystem::remove(diff_name);
@@ -1177,10 +1176,6 @@ void stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         multiplexing::publisher pblshr;
         _logger->debug("BBDO: Publishing global diff state");
         pblshr.write(diff);
-
-        // We can now release the watcher for a new configuration.
-        config::applier::state::instance().set_engine_conf_watcher_occupied(
-            false, "bbdo::stream");
       }
     } break;
     default:
@@ -1235,26 +1230,26 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   }
   if (_peer_type == common::ENGINE &&
       config::applier::state::instance().engine_peer_needs_update(_poller_id)) {
-    if (config::applier::state::instance().set_engine_conf_watcher_occupied(
-            true, "bbdo::stream")) {
-      _logger->debug(
-          "BBDO: We should send the Engine configuration to the peer");
-      auto pb_conf = std::make_shared<pb_diff_state>();
-      auto& obj = pb_conf->mut_obj();
-      std::filesystem::path diff_name(
-          config::applier::state::instance().pollers_config_dir() /
-          fmt::format("diff-{}.prot", _poller_id));
-      std::ifstream f(diff_name);
-      if (f) {
-        std::error_code ec;
-        obj.ParseFromIstream(&f);
-        f.close();
-        _logger->debug("BBDO: Sending Engine configuration to poller {}",
-                       _poller_id);
-        config::applier::state::instance().set_poller_engine_conf(
-            _poller_id, _poller_name, _broker_name, obj.config_version());
-        _write(pb_conf);
-      }
+    _logger->debug(
+        "BBDO: We should send the Engine configuration to the poller {}",
+        _poller_id);
+    auto pb_conf = std::make_shared<pb_diff_state>();
+    auto& obj = pb_conf->mut_obj();
+    std::filesystem::path diff_name(
+        config::applier::state::instance().pollers_config_dir() /
+        fmt::format("diff-{}.prot", _poller_id));
+    std::ifstream f(diff_name);
+    if (f) {
+      std::error_code ec;
+      obj.ParseFromIstream(&f);
+      const std::string& config_version =
+          obj.has_state() ? obj.state().config_version() : obj.config_version();
+      f.close();
+      _logger->debug("BBDO: Sending Engine configuration to poller {}",
+                     _poller_id);
+      _write(pb_conf);
+      config::applier::state::instance().set_available_conf_sent_to_engine_peer(
+          _poller_id);
     }
   }
   return !timed_out;

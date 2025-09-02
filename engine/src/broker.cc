@@ -483,6 +483,9 @@ static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
                             const engine::host* eh) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host event protobuf");
@@ -937,6 +940,9 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -4125,17 +4131,17 @@ static void send_initial_configuration() {
   SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
   send_severity_list();
   send_tag_list();
-  //send_host_list<proto>();
-  //send_service_list<proto>();
-  //send_custom_variables_list<proto>();
-  //send_downtimes_list<proto>();
-  //send_host_parents_list<proto>();
-  //send_host_group_list<proto>();
-  //send_service_group_list<proto>();
-  //    } else {
-  //      SPDLOG_LOGGER_INFO(_neb_logger,
-  //                         "init: No need to send poller configuration");
-  //  }
+  // send_host_list<proto>();
+  // send_service_list<proto>();
+  // send_custom_variables_list<proto>();
+  // send_downtimes_list<proto>();
+  // send_host_parents_list<proto>();
+  // send_host_group_list<proto>();
+  // send_service_group_list<proto>();
+  //     } else {
+  //       SPDLOG_LOGGER_INFO(_neb_logger,
+  //                          "init: No need to send poller configuration");
+  //   }
   send_instance_configuration<proto>();
 }
 

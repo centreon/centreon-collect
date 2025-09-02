@@ -267,7 +267,8 @@ class indexed_diff_state {
   }
 
  public:
-  void add_diff_state(DiffState& state);
+  void add_diff_state(DiffState& state,
+                      const std::shared_ptr<spdlog::logger>& logger);
   auto& added_timeperiods() const { return _added_timeperiods; }
   auto& modified_timeperiods() const { return _modified_timeperiods; }
   auto& removed_timeperiods() const { return _removed_timeperiods; }
