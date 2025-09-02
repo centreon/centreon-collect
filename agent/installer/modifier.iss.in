@@ -132,7 +132,11 @@ end;
 procedure OnPollerInitiatedToggle(Sender: TObject);
 begin
   if PollerInitiatedCheckBox.Checked then
-    PollerLabel.Caption := 'Listening interface:'
+  begin
+    PollerLabel.Caption := 'Listening interface:';
+    if EncryptionComboBox.Text = 'Insecure TLS' then
+      EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS');
+  end
   else
     PollerLabel.Caption := 'Poller endpoint:';
 end;
@@ -221,7 +225,7 @@ begin
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
-  if (EncryptionComboBox.Text = 'TLS') or (EncryptionComboBox.Text = 'TLS Insecure') then
+  if (EncryptionComboBox.Text = 'TLS') or (EncryptionComboBox.Text = 'Insecure TLS') then
   begin
     if PollerInitiatedCheckBox.Checked then
     begin
@@ -247,7 +251,7 @@ begin
       CABrowseButton.Show;
       CaInfoBitmapImage.Show;
 
-      if EncryptionComboBox.Text = 'TLS Insecure' then
+      if EncryptionComboBox.Text = 'Insecure TLS' then
         begin
           CommonNameLabel.Show;
           CommonNameEdit.Show;
@@ -475,11 +479,11 @@ begin
   if RegQueryStringValue(RootKey, BaseKey, 'encryption', StrValue) then
   begin
     if StrValue = 'full' then
-      EncryptionComboBox.Text := 'TLS'
+      EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS')
     else if StrValue = 'insecure' then
-      EncryptionComboBox.Text := 'TLS Insecure'
+      EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('Insecure TLS')
     else
-      EncryptionComboBox.Text := 'No TLS';
+      EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('No TLS');
   end;
 
   if RegQueryDWordValue(RootKey, BaseKey, 'log_max_file_size', DwordValue) then
@@ -517,7 +521,7 @@ begin
 
   if EncryptionComboBox.Text = 'TLS' then
     RegWriteStringValue(RootKey, BaseKey, 'encryption', 'full')
-  else if EncryptionComboBox.Text = 'TLS Insecure' then
+  else if EncryptionComboBox.Text = 'Insecure TLS' then
     RegWriteStringValue(RootKey, BaseKey, 'encryption', 'insecure')
   else
     RegWriteStringValue(RootKey, BaseKey, 'encryption', 'no');
@@ -600,9 +604,9 @@ begin
   // EncryptionCheckBox
   if ExpandConstant('{param:encryption|}') <> '' then
     case LowerCase(ExpandConstant('{param:encryption|no}')) of
-      'full':     EncryptionComboBox.Text := 'TLS';
-      'insecure': EncryptionComboBox.Text := 'TLS Insecure';
-      else        EncryptionComboBox.Text := 'No TLS';
+      'full':     EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS');
+      'insecure': EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('Insecure TLS');
+      else        EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('No TLS');
     end;
 
   if ExpandConstant('{param:cert|}') <> '' then
@@ -637,7 +641,8 @@ begin
   EndpointParam := ExpandConstant('{param:endpoint|}');
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
   LogFileParam := ExpandConstant('{param:logfile|}');
-  EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|false}')) = 'true');
+  EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|no}')) = 'full') or
+                       (LowerCase(ExpandConstant('{param:encryption|no}')) = 'insecure');
   PollerInitiatedEnabled := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
 
   // HOST
@@ -680,24 +685,24 @@ begin
   if EncryptionEnabled then
   begin
     if PollerInitiatedEnabled then begin
-      if (ExpandConstant('{param:cert|}') = '') or not(IsPathValid(ExpandConstant('{param:cert|}'))) then
+      if (ExpandConstant('{param:cert|}') <> '') and not(IsPathValid(ExpandConstant('{param:cert|}'))) then
       begin
-        LogToStdOutFile('Missing /CERT when /ENCRYPTION=true');
+        LogToStdOutFile('Missing /CERT when /ENCRYPTION=full/insecure');
         Result := False;
         Exit;
       end;
 
-      if (ExpandConstant('{param:key|}') = '') or not(IsPathValid(ExpandConstant('{param:key|}'))) then
+      if (ExpandConstant('{param:key|}') <> '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
       begin
-        LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+        LogToStdOutFile('Missing /KEY when /ENCRYPTION=full/insecure');
         Result := False;
         Exit;
       end;
      end
     else begin
-      if not(ExpandConstant('{param:ca|}') = '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
+      if not(ExpandConstant('{param:ca|}') <> '') and not(IsPathValid(ExpandConstant('{param:ca|}'))) then
         begin
-          LogToStdOutFile('Missing /KEY when /ENCRYPTION=true');
+          LogToStdOutFile('Missing /CA when /ENCRYPTION=full/insecure');
           Result := False;
           Exit;
         end;
@@ -705,7 +710,7 @@ begin
      
     if ExpandConstant('{param:token|}') = '' then
     begin
-      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=true');
+      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=full/insecure');
       Result := False;
       Exit;
     end;
@@ -1014,7 +1019,7 @@ begin
   EncryptionComboBox.Parent := EncryptionPage.Surface;
   EncryptionComboBox.Style := csDropDownList;
   EncryptionComboBox.Items.Add('TLS');
-  EncryptionComboBox.Items.Add('TLS Insecure');
+  EncryptionComboBox.Items.Add('Insecure TLS');
   EncryptionComboBox.Items.Add('No TLS');
   EncryptionComboBox.ItemIndex := 0;
   EncryptionComboBox.OnChange := @OnEncryptionChange;
@@ -1248,6 +1253,9 @@ begin
   ReadAgentRegistryValues;
   LoadSilentParameters;
 
+  // apply the change to ui
+  OnLogTypeChange(LogTypeComboBox);
+
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
@@ -1305,17 +1313,16 @@ begin
 
     if PollerInitiatedCheckBox.Checked then
     begin
-      if EncryptionComboBox.Items.IndexOf('TLS Insecure') <> -1 then
-        EncryptionComboBox.Items.Delete(EncryptionComboBox.Items.IndexOf('TLS Insecure'));
+      if EncryptionComboBox.Items.IndexOf('Insecure TLS') <> -1 then
+        EncryptionComboBox.Items.Delete(EncryptionComboBox.Items.IndexOf('Insecure TLS'));
     end
     else
     begin
-      if EncryptionComboBox.Items.IndexOf('TLS Insecure') = -1 then
-        EncryptionComboBox.Items.Insert(1, 'TLS Insecure');
+      if EncryptionComboBox.Items.IndexOf('Insecure TLS') = -1 then
+        EncryptionComboBox.Items.Insert(1, 'Insecure TLS');
     end;
 
-    //select the TLS
-    EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS');
+    // apply the change to ui
     OnEncryptionChange(EncryptionComboBox);
     Result := True;
   end 
