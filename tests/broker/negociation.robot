@@ -70,19 +70,25 @@ BC1
 
 BBDO_300_3100
     [Documentation]    Given a central configured in bbdo 3.0.0 and a rrd cbd configured in 3.1.0, rrd cbd should operate in bbdo 3.0.0
-    ...    Then we wait event of type 131074 (bbdo2 ack)
+    ...    Then we wait event of type 131074 (bbdo2 ack).
     [Tags]    broker    MON-173480
+    Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
-    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+
+    Ctn Config BBDO3    nbEngine=1    version=3.0.0
+
     Ctn Broker Config Add Item    rrd    bbdo_version    3.1.0
-    Ctn Broker Config Add Item    central    bbdo_version    3.0.0
     Ctn Broker Config Add Item    central    event_queue_max_size    ${10}
     Ctn Broker Config Add Item    rrd    event_queue_max_size    ${10}
     Ctn Broker Config Log    central    bbdo    trace
     Ctn Broker Config Log    rrd    bbdo    info
+
+    Ctn Clear Retention
     
     ${start}    Get Current Date
+    Ctn Start Engine
     Ctn Start Broker
 
     ${pid1}    Get Process Id    b1
@@ -95,10 +101,10 @@ BBDO_300_3100
     Should Be True    ${result}    No bbdo downgraded message in rrd logs.
 
     ${content}    Create List    unserialized 20 bytes for event of type 131074
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No bbdo2 ack received.
 
-    [Teardown]    Ctn Kindly Stop Broker
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 *** Keywords ***
 Ctn Start Stop Service
