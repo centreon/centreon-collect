@@ -685,14 +685,14 @@ begin
   if EncryptionEnabled then
   begin
     if PollerInitiatedEnabled then begin
-      if (ExpandConstant('{param:cert|}') <> '') and not(IsPathValid(ExpandConstant('{param:cert|}'))) then
+      if ((ExpandConstant('{param:cert|}') <> '') and not(IsPathValid(ExpandConstant('{param:cert|}')))) or (ExpandConstant('{param:cert|}') = '') then
       begin
         LogToStdOutFile('Missing /CERT when /ENCRYPTION=full/insecure');
         Result := False;
         Exit;
       end;
 
-      if (ExpandConstant('{param:key|}') <> '') and not(IsPathValid(ExpandConstant('{param:key|}'))) then
+      if ((ExpandConstant('{param:key|}') <> '') and not(IsPathValid(ExpandConstant('{param:key|}')))) or (ExpandConstant('{param:key|}') = '') then
       begin
         LogToStdOutFile('Missing /KEY when /ENCRYPTION=full/insecure');
         Result := False;
@@ -1329,7 +1329,7 @@ begin
   else if CurPageID = EncryptionPage.ID then begin
     if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
-        if (not(IsPathValid(PublicCertEdit.Text))) and (PublicCertEdit.Text <> '') then begin
+        if (not(IsPathValid(PublicCertEdit.Text))) or (PublicCertEdit.Text = '') then begin
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
           MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1337,7 +1337,7 @@ begin
           exit;
         end;
 
-        if not(IsPathValid(PrivateKeyEdit.Text)) and (PrivateKeyEdit.Text <> '') then begin
+        if not(IsPathValid(PrivateKeyEdit.Text)) or (PrivateKeyEdit.Text = '') then begin
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
           MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
