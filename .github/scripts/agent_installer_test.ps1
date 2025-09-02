@@ -20,6 +20,12 @@
 
 #Set-PSDebug -Trace 2
 
+$installer_exe  = 'agent\installer\centreon-monitoring-agent.exe'
+$modifier_exe  = 'agent\installer\centreon-monitoring-agent-modify.exe'
+# build the path to the installer and modifier executables
+$installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
+$modifier_exepath = Join-Path -Path (Get-Location) -ChildPath $modifier_exe
+
 function f_start_process([string]$sProcess, [string]$sArgs, [ref]$pOutPut) {
     <#
     .SYNOPSIS
@@ -139,8 +145,8 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
     Write-Host "############################  all install uninstall with flag: $plugins_flag  ############################"
 
     $exe_args = '/S', '--install_cma', $plugins_flag, '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
-    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 0; 'reversed_grpc_streaming' = 0 }
-    test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
+    test_args_to_registry $installer_exepath $exe_args $expected
 
     if (!(Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent)) {
         Write-Host "no registry entry created"
@@ -188,7 +194,7 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
         exit 1
     }
 
-    Write-Host "The followind command will output errors, don't take it into account"
+    Write-Host "The following command will output errors, don't take them into account"
     #the only mean I have found to test key erasure under CI
     #Test-Path doesn't work
     $key_found = true
@@ -214,7 +220,7 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
         exit 1
     }
 
-    Write-Host "The followind command will output errors, don't take it into account"
+    Write-Host "The following command will output errors, don't take them into account"
     #the only mean I have found to test key erasure under CI
     #Test-Path doesn't work
     $key_found = true
@@ -238,14 +244,14 @@ test_all_silent_install_uninstall("--install_embedded_plugins")
 
 Write-Host "############################  installer test  ############################"
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--help"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--help"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 2) {
     Write-Host "bad --help exit code"
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--version"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--version"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 2) {
     Write-Host "bad --version exit code"
@@ -253,70 +259,70 @@ if ($process_info.ExitCode -ne 2) {
 }
 
 #missing mandatory parameters
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no parameter exit code " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no endpoint exit code " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "turlututu"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "turlututu"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad wrong endpoint exit code " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no log file path " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file", "--log_file", "C:"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file", "--log_file", "C:"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad log file path " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_level", "dsfsfd"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_level", "dsfsfd"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad log level " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption" , "full"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and no private_key " $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "--private_key", "C:"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and bad private_key path" $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "--private_key", "C:\Users\Public\private_key.key"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:\Users\Public\private_key.key"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and no certificate" $process_info.ExitCode
     exit 1
 }
 
-$process_info = Start-Process -PassThru  "agent/installer/centreon-monitoring-agent.exe" "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "--private_key", "C:\Users\Public\private_key.key", "--public_cert", "C:"
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:\Users\Public\private_key.key", "--public_cert", "C:"
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and bad certificate path" $process_info.ExitCode
@@ -325,54 +331,54 @@ if ($process_info.ExitCode -ne 1) {
 
 
 $exe_args = '/S', '--install_cma', '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
-$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 0; 'reversed_grpc_streaming' = 0 }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0 }
+test_args_to_registry $installer_exepath $exe_args $expected
 
 $exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.2:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--log_max_file_size", "15", "--log_max_files", "10"
-$expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 0; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; }
+test_args_to_registry $installer_exepath $exe_args $expected
 
-$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.3:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption"
-$expected = @{ 'endpoint' = '127.0.0.3:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 0 }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.3:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption", "full"
+$expected = @{ 'endpoint' = '127.0.0.3:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0 }
+test_args_to_registry $installer_exepath $exe_args $expected
 
-$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.4:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption", "--private_key", "C:\Users crypto\private.key", "--public_cert", "D:\tutu\titi.crt", "--ca", "C:\Users\Public\ca.crt", "--ca_common_name", "tls_ca_name"
-$expected = @{ 'endpoint' = '127.0.0.4:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi.crt'; 'private_key' = 'C:\Users crypto\private.key'; 'ca_certificate' = 'C:\Users\Public\ca.crt'; 'ca_name' = 'tls_ca_name' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.4:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption", "insecure", "--private_key", "C:\Users crypto\private.key", "--public_cert", "D:\tutu\titi.crt", "--ca", "C:\Users\Public\ca.crt", "--ca_common_name", "tls_ca_name"
+$expected = @{ 'endpoint' = '127.0.0.4:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi.crt'; 'private_key' = 'C:\Users crypto\private.key'; 'ca_certificate' = 'C:\Users\Public\ca.crt'; 'ca_name' = 'tls_ca_name' }
+test_args_to_registry $installer_exepath $exe_args $expected
 
-$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption", "--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev"
-$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption", "insecure", "--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev"
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $installer_exepath $exe_args $expected
 
-$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_3", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption","--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev",'--token', 'my_secure_token'
-$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent.exe" $exe_args $expected
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_3", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption", "full", "--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev",'--token', 'my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token' }
+test_args_to_registry $installer_exepath $exe_args $expected
 
 Write-Host "############################  modifier test   ############################"
 
 $exe_args = '/S', '--hostname', "my_host_name_10", "--endpoint", "127.0.0.10:4317", "--no_reverse","--token", "my_secure_token2"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token2' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token2' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
 $exe_args = '/S', "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev2.log", "--log_level", "debug", "--log_max_file_size", "50", "--log_max_files", "20"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'debug'; 'log_file' = 'C:\Users\Public\cma_rev2.log'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'log_max_file_size' = 50; 'log_max_files' = 20; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'debug'; 'log_file' = 'C:\Users\Public\cma_rev2.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'log_max_file_size' = 50; 'log_max_files' = 20; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
 $exe_args = '/S', "--log_type", "event-log", "--log_level", "error"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
 $exe_args = '/S', "--private_key", "C:\Users crypto\private_rev2.key", "--public_cert", "D:\tutu\titi_rev2.crt"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
-$exe_args = '/S', "--ca", "C:\Users\Public\ca_rev2.crt", "--ca_common_name", "tls_ca_name_rev2"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 1; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$exe_args = '/S', "--ca", "C:\Users\Public\ca_rev2.crt", "--ca_common_name", "tls_ca_name_rev2", "--encryption", "insecure"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
 $exe_args = '/S', "--no_encryption"
-$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 0; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
-test_args_to_registry "agent/installer/centreon-monitoring-agent-modify.exe" $exe_args $expected
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
+test_args_to_registry $modifier_exepath $exe_args $expected
 
 
 
