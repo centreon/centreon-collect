@@ -70,7 +70,7 @@ BECNSVC1
     Disconnect From Database
 
     Log To Console    Services are progressively increased from 20 to 28 per host.
-    FOR    ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${1}    ${4}
         Sleep    10s
         ${services_by_host}    Evaluate    20 + 4 * $i
         Log To Console    ${services_by_host} services by host with 50 hosts among 3 pollers.
@@ -88,6 +88,48 @@ BECNSVC1
 	Log To Console    Poller 3 should monitor ${resources_count_3} resources.
 	Check Query Result    SELECT COUNT(*) FROM resources WHERE poller_id=3 AND enabled=1    ==    ${resources_count_3}    retry_timeout=30s    retry_pause=1s
         Disconnect From Database
+
+	# Let's compare the database content and the configuration files
+
+        Log To Console    Check that the hosts configuration files are identical to the database for each poller
+	# Table hosts:
+	${result}    Ctn Hosts Are Identical    1    ${VarRoot}/lib/centreon/config/1/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 1
+
+	${result}    Ctn Hosts Are Identical    2    ${VarRoot}/lib/centreon/config/2/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 2
+
+	${result}    Ctn Hosts Are Identical    3    ${VarRoot}/lib/centreon/config/3/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 3
+	# Table resources:
+	${result}    Ctn Host Resources Are Identical    1    ${VarRoot}/lib/centreon/config/1/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 1
+
+	${result}    Ctn Host Resources Are Identical    2    ${VarRoot}/lib/centreon/config/2/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 2
+
+	${result}    Ctn Host Resources Are Identical    3    ${VarRoot}/lib/centreon/config/3/hosts.cfg
+	Should Be True    ${result}    Hosts are not identical between database and configuration file for poller 3
+
+        Log To Console    Check that the services configuration files are identical to the database for each poller
+	# Table services:
+	${result}    Ctn Services Are Identical    1    ${VarRoot}/lib/centreon/config/1/services.cfg
+	Should Be True    ${result}    Services are not identical between database and configuration file for poller 1
+
+	${result}    Ctn Services Are Identical    2    ${VarRoot}/lib/centreon/config/2/services.cfg
+	Should Be True    ${result}    Services are not identical between database and configuration file for poller 2
+
+	${result}    Ctn Services Are Identical    3    ${VarRoot}/lib/centreon/config/3/services.cfg
+	Should Be True    ${result}    Services are not identical between database and configuration file for poller 3
+	# Table resources:
+	${result}    Ctn Service Resources Are Identical    1    ${VarRoot}/lib/centreon/config/1/services.cfg
+	Should Be True    ${result}    Services (in resources table) are not identical between database and configuration file for poller 1
+
+	${result}    Ctn Service Resources Are Identical    2    ${VarRoot}/lib/centreon/config/2/services.cfg
+	Should Be True    ${result}    Services (in resources table) are not identical between database and configuration file for poller 2
+
+	${result}    Ctn Service Resources Are Identical    3    ${VarRoot}/lib/centreon/config/3/services.cfg
+	Should Be True    ${result}    Services (in resources table) are not identical between database and configuration file for poller 3
     END
     Ctn Stop Engine
     Ctn Kindly Stop Broker

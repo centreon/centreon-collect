@@ -96,9 +96,9 @@ void database_configurator::process() {
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified(),
                               _stream->resources_cache());
-    //    _add_services_mysql(_diff.services().modified());
-    //    _add_service_resources_mysql(_diff.services().modified(),
-    //                                 _stream->resources_cache());
+    _add_services_mysql(_diff.services().modified());
+    _add_service_resources_mysql(_diff.services().modified(),
+                                 _stream->resources_cache());
     //    _add_anomalydetections_mysql(_diff.anomalydetections().modified());
     //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
     //                                          _stream->resources_cache());
@@ -1082,10 +1082,11 @@ void database_configurator::_add_services_mariadb(
   if (!_add_services_stmt) {
     std::string query(
         "INSERT INTO services "
-        "(host_id,description,service_id,action_url,active_checks,check_"
-        "command,check_freshness,check_interval,check_period,default_active_"
-        "checks,default_event_handler_enabled,default_flap_detection,default_"
-        "notify,default_passive_checks,default_process_perfdata,display_name,"
+        "(host_id,description,service_id,action_url,active_checks, "
+        "check_command, check_freshness,check_interval,check_period,"
+        "default_active_checks,default_event_handler_enabled,"
+        "default_flap_detection,default_notify,default_passive_checks,"
+        "default_process_perfdata,display_name,"
         "enabled,event_handler,event_handler_enabled,first_notification_delay,"
         "flap_detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
         "detection_on_unknown,flap_detection_on_warning,freshness_threshold,"

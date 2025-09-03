@@ -1691,7 +1691,8 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
                 cursor.execute(
                     "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
                 result = cursor.fetchall()
-                logger.console(f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1 => {result[0]} <-> {value}")
+                logger.console(
+                    f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1 => {result[0]} <-> {value}")
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
                         return True
@@ -2509,6 +2510,491 @@ def ctn_notify_broker_of_engine_config_change(idx: int):
     Args:
         idx (int): The index of the configuration to notify.
     """
-    logger.console(f"Notify broker of engine config change for poller {idx + 1}")
+    logger.console(
+        f"Notify broker of engine config change for poller {idx + 1}")
     lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
     Path(lck_file).touch()
+
+
+def ctn_hosts_are_identical(poller_id: int, filename: str):
+    """ Check if all hosts of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all hosts are identical to the configuration file, False otherwise.
+    """
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    hosts = {}
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT name, alias, address, check_command, check_period, host_id FROM hosts WHERE enabled=1 AND instance_id={poller_id}")
+            result = cursor.fetchall()
+            if len(result) > 0:
+                with open(filename, 'r') as f:
+                    content = f.readlines()
+                host_id = -1
+                host_name = ""
+                host_alias = ""
+                host_address = ""
+                host_check_command = ""
+                host_check_period = ""
+                for line in content:
+                    line = line.strip()
+                    if line.startswith("define host"):
+                        if host_id > 0:
+                            hosts[host_id] = {
+                                "name": host_name,
+                                "alias": host_alias,
+                                "address": host_address,
+                                "check_command": host_check_command,
+                                "check_period": host_check_period
+                            }
+                        host_name = ""
+                        host_alias = ""
+                        host_address = ""
+                        host_check_command = ""
+                        host_check_period = ""
+                        host_id = -1
+                    elif line.startswith("host_name"):
+                        host_name = line.split()[1]
+                    elif line.startswith("alias"):
+                        host_alias = line.split()[1]
+                    elif line.startswith("address"):
+                        host_address = line.split()[1]
+                    elif line.startswith("check_command"):
+                        host_check_command = line.split()[1]
+                    elif line.startswith("check_period"):
+                        host_check_period = line.split()[1]
+                    elif line.startswith("_HOST_ID") or line.startswith("host_id"):
+                        host_id = int(line.split()[1])
+                if host_id > 0:
+                    print(f"dump host {host_id}")
+                    hosts[host_id] = {
+                        "name": host_name,
+                        "alias": host_alias,
+                        "address": host_address,
+                        "check_command": host_check_command,
+                        "check_period": host_check_period
+                    }
+
+                if len(hosts) == 0:
+                    logger.console("No host found in configuration file")
+                    return False
+                for r in result:
+                    host_id = int(r['host_id'])
+                    if host_id not in hosts:
+                        logger.console(
+                            f"host_id {host_id} not found in configuration file")
+                        return False
+                    host = hosts[host_id]
+                    if r['name'] != host['name'] or r['alias'] != host['alias'] or r['address'] != host['address'] or r['check_command'] != host['check_command'] or r['check_period'] != host['check_period']:
+                        logger.console(
+                            f"host_id {host_id} is different from configuration file")
+                        logger.console(
+                            f"db: name={r['name']}, alias={r['alias']}, address={r['address']}, check_command={r['check_command']}, check_period={r['check_period']}")
+                        logger.console(
+                            f"cfg: name={host['name']}, alias={host['alias']}, address={host['address']}, check_command={host['check_command']}, check_period={host['check_period']}")
+                        return False
+                if len(result) != len(hosts):
+                    logger.console(
+                        "Number of hosts in database is different from configuration file")
+                    return False
+                return True
+            else:
+                logger.console(
+                    f"No host found for poller_id {poller_id} in database")
+                return False
+
+
+def ctn_host_resources_are_identical(poller_id: int, filename: str):
+    """ Check if all hosts of a poller (in the resources table) have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all hosts are identical to the configuration file, False otherwise.
+    """
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    hosts = {}
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT name, alias, address, id FROM resources WHERE parent_id=0 AND enabled=1 AND poller_id={poller_id}")
+            result = cursor.fetchall()
+            if len(result) > 0:
+                with open(filename, 'r') as f:
+                    content = f.readlines()
+                host_id = -1
+                host_name = ""
+                host_alias = ""
+                host_address = ""
+                for line in content:
+                    line = line.strip()
+                    if line.startswith("define host"):
+                        if host_id > 0:
+                            hosts[host_id] = {
+                                "name": host_name,
+                                "alias": host_alias,
+                                "address": host_address,
+                            }
+                        host_name = ""
+                        host_alias = ""
+                        host_address = ""
+                        host_id = -1
+                    elif line.startswith("host_name"):
+                        host_name = line.split()[1]
+                    elif line.startswith("alias"):
+                        host_alias = line.split()[1]
+                    elif line.startswith("address"):
+                        host_address = line.split()[1]
+                    elif line.startswith("_HOST_ID") or line.startswith("host_id"):
+                        host_id = int(line.split()[1])
+                if host_id > 0:
+                    print(f"dump host {host_id}")
+                    hosts[host_id] = {
+                        "name": host_name,
+                        "alias": host_alias,
+                        "address": host_address,
+                    }
+
+                if len(hosts) == 0:
+                    logger.console("No host found in configuration file")
+                    return False
+                for r in result:
+                    host_id = int(r['id'])
+                    if host_id not in hosts:
+                        logger.console(
+                            f"host_id {host_id} not found in configuration file")
+                        return False
+                    host = hosts[host_id]
+                    if r['name'] != host['name'] or r['alias'] != host['alias'] or r['address'] != host['address']:
+                        logger.console(
+                            f"host_id {host_id} is different from configuration file")
+                        logger.console(
+                            f"db: name={r['name']}, alias={r['alias']}, address={r['address']}, check_command={r['check_command']}, check_period={r['check_period']}")
+                        logger.console(
+                            f"cfg: name={host['name']}, alias={host['alias']}, address={host['address']}")
+                        return False
+                if len(result) != len(hosts):
+                    logger.console(
+                        "Number of hosts in database is different from configuration file")
+                    return False
+                return True
+            else:
+                logger.console(
+                    f"No host found for poller_id {poller_id} in database")
+                return False
+
+
+def ctn_services_are_identical(poller_id: int, filename: str):
+    """ Check if all services of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all services are identical to the configuration file, False otherwise.
+    """
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    services = {}
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT s.description, s.check_command, s.check_period, s.max_check_attempts, s.check_interval, s.retry_interval, s.notification_interval, s.notification_period, s.first_notification_delay, s.flap_detection, s.low_flap_threshold, s.high_flap_threshold, s.volatile, s.notes_url, s.action_url, s.icon_image, s.icon_image_alt, h.name AS host_name,s.service_id, h.host_id FROM services s JOIN hosts h ON s.host_id = h.host_id WHERE s.enabled=1 AND h.instance_id={poller_id}")
+            result = cursor.fetchall()
+            if len(result) > 0:
+                with open(filename, 'r') as f:
+                    content = f.readlines()
+                host_name = ""
+                service_description = ""
+                host_id = -1
+                service_id = -1
+                service_check_command = ""
+                service_check_period = ""
+                service_max_check_attempts = -1
+                service_check_interval = -1.0
+                service_retry_interval = -1.0
+                service_active_checks_enabled = ""
+                service_passive_checks_enabled = ""
+                for line in content:
+                    line = line.strip()
+                    if line.startswith("define service"):
+                        if host_id > 0 and service_id > 0:
+                            services[(host_id, service_id)] = {
+                                "host_name": host_name,
+                                "description": service_description,
+                                "check_command": service_check_command,
+                                "check_period": service_check_period,
+                                "max_check_attempts": service_max_check_attempts,
+                                "check_interval": service_check_interval,
+                                "retry_interval": service_retry_interval,
+                                "active_checks_enabled": service_active_checks_enabled,
+                                "passive_checks_enabled": service_passive_checks_enabled
+                            }
+                        host_name = ""
+                        service_description = ""
+                        host_id = -1
+                        service_id = -1
+                        service_check_command = ""
+                        service_check_period = ""
+                        service_max_check_attempts = -1
+                        service_check_interval = -1.0
+                        service_retry_interval = -1.0
+                        service_active_checks_enabled = ""
+                        service_passive_checks_enabled = ""
+                    elif line.startswith("host_name"):
+                        host_name = line.split()[1]
+                        host_id = int(host_name[5:])
+                        logger.console(
+                            f"host_name={host_name}, host_id={host_id}")
+                    elif line.startswith("service_description"):
+                        service_description = line.split()[1]
+                    elif line.startswith("_HOST_ID") or line.startswith("host_id"):
+                        host_id = int(line.split()[1])
+                    elif line.startswith("_SERVICE_ID") or line.startswith("service_id"):
+                        service_id = int(line.split()[1])
+                    elif line.startswith("check_command"):
+                        service_check_command = line.split()[1]
+                    elif line.startswith("check_period"):
+                        service_check_period = line.split()[1]
+                    elif line.startswith("max_check_attempts"):
+                        service_max_check_attempts = int(line.split()[1])
+                    elif line.startswith("check_interval"):
+                        service_check_interval = float(line.split()[1])
+                    elif line.startswith("retry_interval"):
+                        service_retry_interval = float(line.split()[1])
+                    elif line.startswith("active_checks_enabled"):
+                        service_active_checks_enabled = line.split()[1]
+                    elif line.startswith("passive_checks_enabled"):
+                        service_passive_checks_enabled = line.split()[1]
+                if host_id > 0 and service_id > 0:
+                    services[(host_id, service_id)] = {
+                        "host_name": host_name,
+                        "description": service_description,
+                        "check_command": service_check_command,
+                        "check_period": service_check_period,
+                        "max_check_attempts": service_max_check_attempts,
+                        "check_interval": service_check_interval,
+                        "retry_interval": service_retry_interval,
+                        "active_checks_enabled": service_active_checks_enabled,
+                        "passive_checks_enabled": service_passive_checks_enabled
+                    }
+
+                if len(services) == 0:
+                    logger.console("No service found in configuration file")
+                    return False
+                for r in result:
+                    host_id = int(r['host_id'])
+                    service_id = int(r['service_id'])
+                    host_name = r['host_name']
+                    if (host_id, service_id) not in services:
+                        logger.console(
+                            f"service {host_id}:{service_id} for host {host_name} not found in configuration file")
+                        return False
+                    service = services[(host_id, service_id)]
+                    if r['host_name'] != service['host_name']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, host_names are different, db={r['host_name']}, cfg={service['host_name']}")
+                        return False
+                    if r['description'] != service['description']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, descriptions are different, db={r['description']}, cfg={service['description']}")
+                        return False
+                    if r['check_command'] != service['check_command']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, check_commands are different, db={r['check_command']}, cfg={service['check_command']}")
+                        return False
+                    if r['check_period'] != service['check_period']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, check_periods are different, db={r['check_period']}, cfg={service['check_period']}")
+                        return False
+                    if r['max_check_attempts'] != service['max_check_attempts']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, max_check_attempts are different, db={r['max_check_attempts']}, cfg={service['max_check_attempts']}")
+                        return False
+                    if r['check_interval'] != service['check_interval']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, check_intervals are different, db={r['check_interval']}, cfg={service['check_interval']}")
+                        return False
+                    if r['retry_interval'] != service['retry_interval']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, retry_intervals are different, db={r['retry_interval']}, cfg={service['retry_interval']}")
+                        return False
+                if len(result) != len(services):
+                    logger.console(
+                        "Number of services in database is different from configuration file")
+                    return False
+                return True
+            else:
+                logger.console(
+                    f"No service found for poller_id {poller_id} in database")
+                return False
+
+
+def ctn_service_resources_are_identical(poller_id: int, filename: str):
+    """ Check if all services (in the resources table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all services are identical to the configuration file, False otherwise.
+    """
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    services = {}
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT name, max_check_attempts, notes_url, action_url, parent_name,id, parent_id, passive_checks_enabled, active_checks_enabled FROM resources WHERE enabled=1 AND poller_id={poller_id} AND parent_id>0")
+            result = cursor.fetchall()
+            if len(result) > 0:
+                with open(filename, 'r') as f:
+                    content = f.readlines()
+                host_name = ""
+                service_description = ""
+                host_id = -1
+                service_id = -1
+                service_check_command = ""
+                service_check_period = ""
+                service_max_check_attempts = -1
+                service_check_interval = -1.0
+                service_retry_interval = -1.0
+                service_active_checks_enabled = ""
+                service_passive_checks_enabled = ""
+                for line in content:
+                    line = line.strip()
+                    if line.startswith("define service"):
+                        if host_id > 0 and service_id > 0:
+                            services[(host_id, service_id)] = {
+                                "host_name": host_name,
+                                "description": service_description,
+                                "check_command": service_check_command,
+                                "check_period": service_check_period,
+                                "max_check_attempts": service_max_check_attempts,
+                                "check_interval": service_check_interval,
+                                "retry_interval": service_retry_interval,
+                                "active_checks_enabled": service_active_checks_enabled,
+                                "passive_checks_enabled": service_passive_checks_enabled
+                            }
+                        host_name = ""
+                        service_description = ""
+                        host_id = -1
+                        service_id = -1
+                        service_check_command = ""
+                        service_check_period = ""
+                        service_max_check_attempts = -1
+                        service_check_interval = -1.0
+                        service_retry_interval = -1.0
+                        service_active_checks_enabled = -1
+                        service_passive_checks_enabled = -1
+                    elif line.startswith("host_name"):
+                        host_name = line.split()[1]
+                        host_id = int(host_name[5:])
+                        logger.console(
+                            f"host_name={host_name}, host_id={host_id}")
+                    elif line.startswith("service_description"):
+                        service_description = line.split()[1]
+                    elif line.startswith("_HOST_ID") or line.startswith("host_id"):
+                        host_id = int(line.split()[1])
+                    elif line.startswith("_SERVICE_ID") or line.startswith("service_id"):
+                        service_id = int(line.split()[1])
+                    elif line.startswith("check_command"):
+                        service_check_command = line.split()[1]
+                    elif line.startswith("check_period"):
+                        service_check_period = line.split()[1]
+                    elif line.startswith("max_check_attempts"):
+                        service_max_check_attempts = int(line.split()[1])
+                    elif line.startswith("check_interval"):
+                        service_check_interval = float(line.split()[1])
+                    elif line.startswith("retry_interval"):
+                        service_retry_interval = float(line.split()[1])
+                    elif line.startswith("active_checks_enabled"):
+                        service_active_checks_enabled = int(line.split()[1])
+                    elif line.startswith("passive_checks_enabled"):
+                        service_passive_checks_enabled = int(line.split()[1])
+                if host_id > 0 and service_id > 0:
+                    services[(host_id, service_id)] = {
+                        "host_name": host_name,
+                        "description": service_description,
+                        "check_command": service_check_command,
+                        "check_period": service_check_period,
+                        "max_check_attempts": service_max_check_attempts,
+                        "check_interval": service_check_interval,
+                        "retry_interval": service_retry_interval,
+                        "active_checks_enabled": service_active_checks_enabled,
+                        "passive_checks_enabled": service_passive_checks_enabled
+                    }
+
+                if len(services) == 0:
+                    logger.console("No service found in configuration file")
+                    return False
+                for r in result:
+                    host_id = int(r['parent_id'])
+                    service_id = int(r['id'])
+                    host_name = r['parent_name']
+                    if (host_id, service_id) not in services:
+                        logger.console(
+                            f"service {host_id}:{service_id} for host {host_name} not found in configuration file")
+                        return False
+                    service = services[(host_id, service_id)]
+                    if r['parent_name'] != service['host_name']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, host_names are different, db={r['parent_name']}, cfg={service['host_name']}")
+                        return False
+                    if r['name'] != service['description']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, descriptions are different, db={r['name']}, cfg={service['description']}")
+                        return False
+                    if r['passive_checks_enabled'] != service['passive_checks_enabled']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, passive_checks_enabled are different, db={r['passive_checks_enabled']}, cfg={service['passive_checks_enabled']}")
+                        return False
+                    if r['active_checks_enabled'] != service['active_checks_enabled']:
+                        logger.console(
+                            f"In service {host_id}:{service_id}, active_checks_enabled are different, db={r['active_checks_enabled']}, cfg={service['active_checks_enabled']}")
+                        return False
+                if len(result) != len(services):
+                    logger.console(
+                        "Number of services in database (resources table) is different from configuration file")
+                    return False
+                return True
+            else:
+                logger.console(
+                    f"No service found for poller_id {poller_id} in database")
+                return False
