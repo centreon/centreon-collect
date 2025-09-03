@@ -34,11 +34,11 @@ namespace com::centreon::broker::unified_sql {
 void database_configurator::process() {
   /* We start by disabling pollers with full conf. */
   _disable_pollers_with_full_conf();
-  //
-  //  /* Then we process the diff. */
-  //
+
+  /* Then we process the diff. */
+
   /* Disabling removed hosts and services */
-  //_disable_hosts_and_services();
+  _disable_hosts_and_services();
 
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
@@ -68,12 +68,12 @@ void database_configurator::process() {
     //    _add_anomalydetection_resources_mariadb(
     //        _diff.anomalydetections().modified(), _stream->resources_cache());
     //
-    //    /* Disabling removed objects */
-    //    _disable_hosts(_diff.hosts().removed());
-    //    _disable_services_mariadb(_diff.services().removed());
-    //    _disable_services_mariadb(_diff.anomalydetections().removed());
-    //    _disable_service_resources_mariadb(_diff.services().removed());
-    //    _disable_service_resources_mariadb(_diff.anomalydetections().removed());
+    /* Disabling removed objects */
+    _disable_hosts(_diff.hosts().removed());
+    _disable_services_mariadb(_diff.services().removed());
+    _disable_services_mariadb(_diff.anomalydetections().removed());
+    _disable_service_resources_mariadb(_diff.services().removed());
+    _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
     //    _add_severities_mysql(_diff.severities().added(),
@@ -151,6 +151,7 @@ void database_configurator::_disable_hosts(
   if (host_ids.empty())
     return;
 
+  _logger->debug("Disabling {} hosts", host_ids.size());
   std::string query(
       fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
                   fmt::join(host_ids, ",")));
