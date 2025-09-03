@@ -90,7 +90,7 @@ using namespace com::centreon::common;
  * @param logger
  * @param exe_path exe without arguments
  * @param use_setpgid if true, we set process group of child process
- * @param use_stdin if true, we open a stding pipe to child process, if false,
+ * @param use_stdin if true, we open a stdin pipe to child process, if false,
  * we open a stdin pipe, but we close it as soon as child process is created. By
  * doing this, child process will read an eof.
  * @param args command arguments
