@@ -74,6 +74,8 @@ SRSAS
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
 
+    Ctn Set Services Passive    ${0}    service_1
+
     Ctn Start Broker
     Ctn Start Engine
 

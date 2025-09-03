@@ -151,8 +151,22 @@ BEOTEL_TELEGRAF_CHECK_HOST
     Should Be True    ${result}    hosts table not updated
 
 BEOTEL_TELEGRAF_CHECK_SERVICE
-    [Documentation]    we send nagios telegraf formated datas and we expect to get it in check result
+    [Documentation]    Scenario: Handling of OK and CRITICAL check results from Telegraf input
+    ...    Given the OpenTelemetry server is ready
+    ...    When I send a Telegraf-formatted check result with status "OK" to the Engine
+    ...    Then the result should be stored in the Centreon Broker storage database with status "OK"
+
+    ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
+    ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "SOFT"
+
+    ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
+    ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "SOFT"
+
+    ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
+    ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "HARD"
     [Tags]    broker    engine    opentelemetry    mon-34004
+    # Just to avoid issues withthe whitelist.
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule    0    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0}
     Ctn Config Add Otl Connector
@@ -160,7 +174,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
-    Ctn Set Services Passive       0    service_1
+    Ctn Set Services Passive       ${0}    service_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -173,8 +187,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Ctn Config Broker    module
     Ctn Config Broker    rrd
 
-    Ctn ConfigBBDO3    1
-    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
     Ctn Clear Retention
 
     ${start}    Get Current Date
@@ -187,11 +200,10 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
     Sleep    1
 
-    ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
-
+    Log To Console    export metrics
     # feed and check
     ${start}    Ctn Get Round Current Date
-    Log To Console    export metrics
+    ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    0  HARD   OK
@@ -203,7 +215,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Ctn Send Otl To Engine    4317    ${resources_list}
 
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  SOFT  CRITICAL
-    Should Be True    ${result}    services table not updated
+    Should Be True    ${result}    Service 1 should be Critical in soft state
 
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
@@ -212,7 +224,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  HARD  CRITICAL
-    Should Be True    ${result}    services table not updated
+    Should Be True    ${result}    Service 1 should be Critical in hard state
 
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
     [Documentation]    we configure engine with a telegraf conf server and we check telegraf conf file
