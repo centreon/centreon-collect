@@ -69,7 +69,7 @@ jobs:
     #   needs.get-environment.outputs.skip_workflow == 'false' &&
     #   needs.get-environment.outputs.stability == 'testing'
     env:
-      version: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_major_version }}
+      version: ${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}
       version_file: .version.centreon-monitoring-agent
       cmake_file: CMakeLists.txt
     steps:
