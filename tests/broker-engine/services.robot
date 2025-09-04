@@ -74,14 +74,12 @@ SRSAS
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
 
-    Ctn Set Services Passive    ${0}    service_1
-
     Ctn Start Broker
     Ctn Start Engine
 
     Log To Console    Let's wait for the service to be created in the "services" table
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         Sleep    1s
@@ -98,12 +96,11 @@ SRSAS
 
     Ctn Schedule Forced Svc Check    host_1    service_1
 
-    Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
-    FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL    
+    FOR    ${t}    IN RANGE    ${1200}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((None, 2),)    BREAK
-        Sleep    1s
+        Sleep    50ms
     END
     Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
     Disconnect From Database
@@ -126,8 +123,8 @@ HRSAS
     Ctn Start Broker
     Ctn Start Engine
 
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         log to console    ${output}
@@ -146,11 +143,10 @@ HRSAS
     Ctn Schedule Forced Host Check    host_1
 
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
-    FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${1200}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((None, 1),)    BREAK
-        Sleep    1s
+        Sleep    50ms
     END
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database

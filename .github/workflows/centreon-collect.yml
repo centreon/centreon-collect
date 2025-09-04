@@ -18,6 +18,11 @@ on:
         required: true
         default: false
         type: boolean
+      robot_pattern:
+        description: 'filter robot files with regex'
+        required: true
+        default: '.robot'
+        type: string
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -234,6 +239,7 @@ jobs:
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
+      features_pattern: ${{ inputs.robot_pattern }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
