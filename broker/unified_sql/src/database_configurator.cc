@@ -42,8 +42,8 @@ void database_configurator::process() {
 
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
-    //    _add_severities_mariadb(_diff.severities().added(),
-    //                            _stream->severities_cache());
+    _add_severities_mariadb(_diff.severities().added(),
+                            _stream->severities_cache());
     //    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
@@ -55,8 +55,8 @@ void database_configurator::process() {
     //                                            _stream->resources_cache());
     //
     //    /* Modifying existing objects */
-    //    _add_severities_mariadb(_diff.severities().modified(),
-    //                            _stream->severities_cache());
+    _add_severities_mariadb(_diff.severities().modified(),
+                            _stream->severities_cache());
     //    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
     //
     _add_hosts_mariadb(_diff.hosts().modified());
@@ -76,8 +76,8 @@ void database_configurator::process() {
     _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
-    //    _add_severities_mysql(_diff.severities().added(),
-    //                          _stream->severities_cache());
+    _add_severities_mysql(_diff.severities().added(),
+                          _stream->severities_cache());
     //    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
     //    _add_hosts_mysql(_diff.hosts().added());
     //    _add_host_resources_mysql(_diff.hosts().added(),
@@ -90,8 +90,8 @@ void database_configurator::process() {
     //                                          _stream->resources_cache());
     //
     //    /* Modifying existing objects */
-    //    _add_severities_mysql(_diff.severities().modified(),
-    //                          _stream->severities_cache());
+    _add_severities_mysql(_diff.severities().modified(),
+                          _stream->severities_cache());
     //    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified(),
