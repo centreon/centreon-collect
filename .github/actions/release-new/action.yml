@@ -118,7 +118,7 @@ runs:
         # Get previous and new version tags for components
         # If release: all component tags should be checked and compared
         # If hotfix: only the hotfix components tags should be checked and compared
-        for component in ${COMPONENTS_OSS[@]}; do
+        for component in ${COMPONENTS_COLLECT[@]}; do
 
           # get PREVIOUS_MAJOR_VERSION and PREVIOUS_MINOR_VERSION
           PREVIOUS_MAJOR_VERSION=$(git show $PREVIOUS_STABLE_BUNDLE_TAG:.version |grep MAJOR | cut -d '=' -f2)
