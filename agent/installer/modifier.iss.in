@@ -716,7 +716,7 @@ begin
       end;
      end
     else begin
-      if ExpandConstant('{param:ca|}') <> '' and not(IsPathValid(ExpandConstant('{param:ca|}'))) then
+      if (ExpandConstant('{param:ca|}') <> '') and not(IsPathValid(ExpandConstant('{param:ca|}'))) then
         begin
           LogToStdOutFile('Invalid /CA path. Provide a valid absolute path (e.g., C:\certs\ca.crt) when /ENCRYPTION=full/insecure');
           Result := False;

@@ -25,7 +25,7 @@ on:
         default: false
         type: boolean
       force_signing:
-        description: 'Force signing even if not required'
+        description: 'Force signing'
         required: true
         default: false
         type: boolean
@@ -139,11 +139,11 @@ jobs:
 
       - name: Sign agent
         if: |
-          inputs.force_signing == true ||(
-          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+          ( inputs.force_signing == true ||
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled'))
+          ! contains(needs.*.result, 'cancelled')
         uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -166,11 +166,11 @@ jobs:
 
       - name: Sign modifier
         if: |
-          inputs.force_signing == true ||(
-          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+          ( inputs.force_signing == true ||
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled'))
+          ! contains(needs.*.result, 'cancelled')
         uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -192,11 +192,11 @@ jobs:
 
       - name: Sign installer
         if: |
-          inputs.force_signing == true ||(
-          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+          ( inputs.force_signing == true ||
+          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled'))
+          ! contains(needs.*.result, 'cancelled')
         uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
