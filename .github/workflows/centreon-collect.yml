@@ -21,7 +21,7 @@ on:
       robot_pattern:
         description: 'filter robot files with regex'
         required: true
-        default: '.robot'
+        default: '.*robot'
         type: string
   schedule:
     - cron: '30 0 * * 1-5'

@@ -24,11 +24,12 @@ SDER
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    module0    processing    trace
     Ctn Config Broker Sql Output    central    unified_sql
+
     Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    42
     ${start}    Get Current Date
     Ctn Start Broker
@@ -73,6 +74,15 @@ SRSAS
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
+    #in order to execute unified sql loop faster
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    7
+
+    Ctn Clear Retention
+    Ctn Clear Db    services
+    Ctn Clear Db    instances
+    Ctn Clear Db    hosts
 
     Ctn Start Broker
     Ctn Start Engine
@@ -86,21 +96,31 @@ SRSAS
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
-    Ctn Kindly Stop Broker
+    
+    Ctn Broker Config Output Set    module0    central-module-master-output    host    1.0.0.127
+    Ctn Reload Engine
+
+
+    ${start}    Get Current Date
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
 
     Log To Console    Initializing real_state to CRITICAL and state to WARNING
     Execute SQL String
     ...    UPDATE services SET real_state=2, state=1 WHERE description='service_1'
 
-    Ctn Start Broker
-
-    Ctn Schedule Forced Svc Check    host_1    service_1
+    Ctn Broker Config Output Set    module0    central-module-master-output    host    127.0.0.1
+    ${start}    Get Current Date
+    Ctn Reload Engine
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
 
     Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL    
-    FOR    ${t}    IN RANGE    ${1200}
+    FOR    ${t}    IN RANGE    ${6000}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((None, 2),)    BREAK
-        Sleep    50ms
+        Sleep    10ms
     END
     Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
     Disconnect From Database
@@ -119,6 +139,7 @@ HRSAS
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
 
     Ctn Start Broker
     Ctn Start Engine
@@ -143,10 +164,10 @@ HRSAS
     Ctn Schedule Forced Host Check    host_1
 
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
-    FOR    ${t}    IN RANGE    ${1200}
+    FOR    ${t}    IN RANGE    ${6000}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((None, 1),)    BREAK
-        Sleep    50ms
+        Sleep    10ms
     END
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database

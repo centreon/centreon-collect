@@ -37,7 +37,7 @@ on:
       features_pattern:
         required: false
         type: string
-        default: .robot
+        default: .*robot
 
     secrets:
       registry_username:
@@ -111,7 +111,7 @@ jobs:
           cd tests
           FEATURES_PATTERN="${{ inputs.features_pattern }}"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
-             FEATURES_PATTERN=".robot"
+             FEATURES_PATTERN=".*robot"
           fi
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
