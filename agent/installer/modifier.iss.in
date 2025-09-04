@@ -99,6 +99,8 @@ var
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
+//Handles clicks on info bitmap images and displays a context-specific MsgBox for each known control.
+//Compares Sender to known image components and shows the appropriate explanatory message.
 procedure BitmapImageOnClick(Sender: TObject);
 begin
   if Sender = HostInfoBitmapImage then
@@ -129,6 +131,8 @@ begin
     MsgBox('Unknown image clicked!', mbInformation, MB_OK);
 end;
  
+// Updates UI when PollerInitiatedCheckBox is toggled: sets PollerLabel to
+// "Listening interface:" when checked or "Poller endpoint:" when unchecked, and promotes "Insecure TLS" to "TLS" if enabled.
 procedure OnPollerInitiatedToggle(Sender: TObject);
 begin
   if PollerInitiatedCheckBox.Checked then
@@ -141,6 +145,7 @@ begin
     PollerLabel.Caption := 'Poller endpoint:';
 end;
 
+// Updates UI when the log type changes: shows file-path, max-file, and max-number controls when "File" is selected, otherwise hides them.
 procedure OnLogTypeChange(Sender: TObject);
 begin
   if LogTypeComboBox.Text = 'File'  then
@@ -175,6 +180,8 @@ begin
   end;
 end;
 
+// Opens a Save File dialog to select a log or text file and sets LogFileEdit.Text to the chosen path.
+// Sender is the event source (not used by this handler).
 procedure LogFileBrowseFile(Sender: TObject);
 var
   Path : String;
@@ -185,6 +192,7 @@ begin
   end;
 end;
 
+//Allows only digits and backspace in the input; shows an error message for invalid characters and cancels the keystroke.
 procedure NumbersOnlyKeyPress(Sender: TObject; var Key: Char);
 begin
   if Key <> #8 then 
@@ -195,6 +203,8 @@ begin
     end;
 end;
 
+// UI controls based on the selected encryption mode and PollerInitiatedCheckBox.
+// Shows cert/key/token for TLS when poller-initiated; otherwise shows CA (and CommonName for "Insecure TLS") plus token.
 procedure OnEncryptionChange(Sender: TObject);
 begin
   // Hide all encryption-related fields first
@@ -265,6 +275,8 @@ begin
   end
 end;
 
+// Opens a file picker for selecting a .crt certificate file and, if chosen, assigns its path to PublicCertEdit.Text.
+// Intended as the event handler for browsing the public certificate.
 procedure PublicCertBrowseFile(Sender: TObject);
 var
   Path : String;
@@ -275,6 +287,8 @@ begin
   end;
 end;
 
+// Opens a file dialog filtered for .key files and, if a file is selected, sets PrivateKeyEdit.Text to its path.
+// Sender: the control that triggered the browse (not used within the procedure).
 procedure PrivateKeyBrowseFile(Sender: TObject);
 var
   Path : String;
@@ -285,6 +299,8 @@ begin
   end;
 end;
 
+// Opens a file dialog to select a CA certificate (*.crt).
+// If the user selects a file, updates CaEdit.Text with the chosen file path.
 procedure CaBrowseFile(Sender: TObject);
 var
   Path : String;
@@ -664,7 +680,7 @@ begin
   // if logtype = file → log file mandatory
   if LogTypeParam = 'file' then
   begin
-    if (LogFileParam = '') or not(IsPathValid(LogFileParam)) then
+    if not(IsPathValid(LogFileParam)) then
     begin
       LogToStdOutFile('Missing /LOGFILE when /LOGTYPE=file');
       Result := False;
@@ -685,24 +701,24 @@ begin
   if EncryptionEnabled then
   begin
     if PollerInitiatedEnabled then begin
-      if ((ExpandConstant('{param:cert|}') <> '') and not(IsPathValid(ExpandConstant('{param:cert|}')))) or (ExpandConstant('{param:cert|}') = '') then
+      if not(IsPathValid(ExpandConstant('{param:cert|}'))) then
       begin
-        LogToStdOutFile('Missing /CERT when /ENCRYPTION=full/insecure');
+        LogToStdOutFile('Missing or invalid /CERT path. Provide a valid absolute path (e.g., C:\certs\public.crt) when /ENCRYPTION=full/insecure.');
         Result := False;
         Exit;
       end;
 
-      if ((ExpandConstant('{param:key|}') <> '') and not(IsPathValid(ExpandConstant('{param:key|}')))) or (ExpandConstant('{param:key|}') = '') then
+      if not(IsPathValid(ExpandConstant('{param:key|}'))) then
       begin
-        LogToStdOutFile('Missing /KEY when /ENCRYPTION=full/insecure');
+        LogToStdOutFile('Missing or invalid /KEY path. Provide a valid absolute path (e.g., C:\certs\private.key) when /ENCRYPTION=full/insecure.');
         Result := False;
         Exit;
       end;
      end
     else begin
-      if not(ExpandConstant('{param:ca|}') <> '') and not(IsPathValid(ExpandConstant('{param:ca|}'))) then
+      if ExpandConstant('{param:ca|}') <> '' and not(IsPathValid(ExpandConstant('{param:ca|}'))) then
         begin
-          LogToStdOutFile('Missing /CA when /ENCRYPTION=full/insecure');
+          LogToStdOutFile('Invalid /CA path. Provide a valid absolute path (e.g., C:\certs\ca.crt) when /ENCRYPTION=full/insecure');
           Result := False;
           Exit;
         end;
@@ -1329,7 +1345,7 @@ begin
   else if CurPageID = EncryptionPage.ID then begin
     if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
-        if (not(IsPathValid(PublicCertEdit.Text))) or (PublicCertEdit.Text = '') then begin
+        if not(IsPathValid(PublicCertEdit.Text)) then begin
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
           MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1337,7 +1353,7 @@ begin
           exit;
         end;
 
-        if not(IsPathValid(PrivateKeyEdit.Text)) or (PrivateKeyEdit.Text = '') then begin
+        if not(IsPathValid(PrivateKeyEdit.Text)) then begin
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
           MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
