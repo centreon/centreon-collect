@@ -2055,8 +2055,10 @@ bool host::schedule_check(time_t check_time,
   }
 
   /* update the status log */
-  if (!no_update_status_now && next_check_has_changed) {
-    update_status(status_attribute::NEXT_CHECK);
+  if (!no_update_status_now) {
+    if (next_check_has_changed) {
+      update_status(status_attribute::NEXT_CHECK);
+    }
     return true;
   } else
     return false;
