@@ -270,7 +270,7 @@ void database_configurator::_add_severities_mariadb(
     auto key = std::make_pair(msg.key().id(), msg.key().type());
     keys.push_back(key);
 
-    _logger->info("Adding severity id={}, type={}", key.first, key.second);
+    _logger->info("Processing severity id={}, type={}", key.first, key.second);
     bind->set_value_as_u64(0, key.first);
     bind->set_value_as_u32(1, key.second);
     bind->set_value_as_str(
@@ -292,8 +292,16 @@ void database_configurator::_add_severities_mariadb(
         *_add_severities_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Severity with id {} and type {} has severity_id {}",
+                       k.first, k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Severity with id {} and type {} has severity_id {}",
+                       k.first, k.second, cache[k]);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_severities>>: {}", e.what());
   }
@@ -335,8 +343,16 @@ void database_configurator::_add_severities_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Severity with id {} and type {} has severity_id {}",
+                       k.first, k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Severity with id {} and type {} has severity_id {}",
+                       k.first, k.second, cache[k]);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_severities>>: {}", e.what());
   }

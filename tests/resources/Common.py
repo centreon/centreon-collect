@@ -561,7 +561,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
 def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
-    except parser.ParserError:
+    except:
         my_date = datetime.fromtimestamp(date)
 
     # Let's find my_date
@@ -2550,3 +2550,62 @@ def ctn_severities_are_identical(poller_id: int, filename: str, timeout: int = T
     comparator = ConfComparator(poller_id, filename, table="severities",
                                 query="SELECT id, type, name, level, icon_id FROM severities", check_length=False)
     return comparator.compare(timeout)
+
+
+def ctn_check_severity_ids(logfile: str, start):
+    """
+    Check if severity ids are correct in the log file compared to the database.
+    The start date is given to check in the log from that date.
+    We don't check all the rows in the severities table since we just want to
+    check the last insertion/modification of severities given by the logs.
+
+    Args:
+        logfile: The path to the log file.
+        start: The start time to check (as a datetime object or a Unix timestamp).
+
+    Returns: True if severity ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    idx = ctn_find_line_from(lines, start)
+
+    r = re.compile(
+        r".*Severity with id (\d+) and type (\d+) has severity_id (\d+)")
+    from_logs = {}
+    for line in lines[idx:]:
+        m = r.match(line)
+        if m:
+            id = int(m.group(1))
+            type = int(m.group(2))
+            severity_id = int(m.group(3))
+            from_logs[(id, type)] = severity_id
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    logger.console(f"Severities found in logs: {from_logs}")
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, type, severity_id FROM severities")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        id = int(r['id'])
+        type = int(r['type'])
+        severity_id = int(r['severity_id'])
+        if (id, type) not in from_logs:
+            logger.console(f"Severity {(id, type)} not found in logs")
+            continue
+
+        if from_logs[(id, type)] != severity_id:
+            logger.console(
+                f"Severity {(id, type)} has severity_id {from_logs[(id, type)]} in logs and {severity_id} in database")
+            retval = False
+    return retval

@@ -23,7 +23,7 @@ BECSEV1
     Ctn Broker Config Log    module0    processing    error
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    debug
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Clear Retention
@@ -38,6 +38,8 @@ BECSEV1
     Should Be True    ${result}    20 severities should be added/modified
     ${result}    Ctn Severities Are Identical    ${1}    ${VarRoot}/lib/centreon/config/1/severities.cfg
     Should Be True    ${result}    Severities are not identical between database and configuration file for poller 1.
+    ${result}    Ctn Check Severity Ids    ${centralLog}    ${start}
+    Should Be True    ${result}    Severity ids are not correct.
 
     # Modification of the severities configuration
     ${start}    Ctn Get Round Current Date
@@ -51,6 +53,8 @@ BECSEV1
     Should Be True    ${result}    20 severities should be added/modified
     ${result}    Ctn Severities Are Identical    ${1}    ${VarRoot}/lib/centreon/config/1/severities.cfg
     Should Be True    ${result}    Severities are not identical between database and configuration file for poller 1.
+    ${result}    Ctn Check Severity Ids    ${centralLog}    ${start}
+    Should Be True    ${result}    Severity ids are not correct.
 
     # Last Modification
     ${start}    Ctn Get Round Current Date
@@ -63,6 +67,8 @@ BECSEV1
     Should Be True    ${result}    11 severities should be added/modified
     ${result}    Ctn Severities Are Identical    ${1}    ${VarRoot}/lib/centreon/config/1/severities.cfg    timeout=30
     Should Be True    ${result}    Severities are not identical between database and configuration file for poller 1.
+    ${result}    Ctn Check Severity Ids    ${centralLog}    ${start}
+    Should Be True    ${result}    Severity ids are not correct.
 
     Log To Console    Stopping Engine end Broker
     Ctn Stop Engine
