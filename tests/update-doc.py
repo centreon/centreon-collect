@@ -27,7 +27,7 @@ def complete_doc(dico, ff):
     with open(ff, 'r') as f:
         content = f.readlines()
     r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
-    rd = re.compile(r"\s+\.\.\.    \s*(.*)$")
+    rd = re.compile(r"\s+\.\.\.\s*(.*)$")
 
     in_test = False
     in_documentation = False
@@ -56,7 +56,7 @@ def complete_doc(dico, ff):
                     if m.group(1).startswith("Given") or m.group(1).startswith("When"):
                         gherkin = True
                         dico[test_name] = "\n      * " + m.group(1)
-                    elif m.group(1).startswith("Scenario:"):
+                    elif m.group(1).startswith("Scenario:") or m.group(1).startswith("Feature:"):
                         gherkin = True
                         dico[test_name] = m.group(1)
                     else:

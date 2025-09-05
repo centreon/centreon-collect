@@ -11,7 +11,41 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BECSEV1
-    [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table.
+    [Documentation]    Feature: Severity Management between Engine and Broker
+    ...    As a Centreon administrator
+    ...    I want to configure severities in Engine
+    ...    So that Broker stores them correctly in centreon_storage.severities table
+    ...
+    ...    Background:
+    ...        Given Engine is configured with centralized setup
+    ...        And Broker components (central, rrd, module) are configured
+    ...        And Database logging is enabled with debug/trace level
+    ...        And Retention data is cleared
+    ...
+    ...    Scenario: Initial severity configuration
+    ...        Given Engine is configured with 20 severities
+    ...        When Broker and Engine are started
+    ...        Then 20 severities should be added/modified in logs
+    ...        And INSERT statements should be executed in severities table
+    ...        And Configuration file should match database content
+    ...        And Severity IDs should be consistent
+    ...    
+    ...    Scenario: Severity configuration modification
+    ...        Given Initial configuration with 20 severities is loaded
+    ...        When Configuration is modified to 30 severities
+    ...        And Engine configuration change is notified
+    ...        Then 10 additional severities should be added/modified
+    ...        And Configuration file should still match database content
+    ...        And Severity IDs should remain consistent
+    ...    
+    ...    Scenario: Severity configuration reduction
+    ...        Given Configuration with 30 severities is loaded
+    ...        When Configuration is reduced to 11 severities starting at ID 50
+    ...        And Engine configuration change is notified
+    ...        Then 11 severities should be present in final configuration
+    ...        And Unused severities should be implicitly removed
+    ...        And Configuration file should match database content
+    ...        And Severity IDs should be consistent with new range
     [Tags]    broker    engine    protobuf    bbdo    severities    MON-153802
     # Clear Db severities
     Ctn Config Centralized Engine    ${1}
