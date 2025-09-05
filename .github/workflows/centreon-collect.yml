@@ -41,27 +41,27 @@ on:
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
-    paths:
-      - ".version"
-      - ".version.centreon-collect"
-      - bbdo/**
-      - broker/**
-      - ccc/**
-      - clib/**
-      - connectors/**
-      - custom-triplets/**
-      - engine/**
-      - grpc/**
-      - packaging/centreon-collect/**
-      - cmake.sh
-      - cmake-vcpkg.sh
-      - CMakeLists.txt
-      - CMakeListsLinux.txt
-      - vcpkg.json
-      - overlays/**
-      - selinux/**
-      - "!selinux/centreon-common/**"
-      - "!**/test/**"
+    # paths:
+    #   - ".version"
+    #   - ".version.centreon-collect"
+    #   - bbdo/**
+    #   - broker/**
+    #   - ccc/**
+    #   - clib/**
+    #   - connectors/**
+    #   - custom-triplets/**
+    #   - engine/**
+    #   - grpc/**
+    #   - packaging/centreon-collect/**
+    #   - cmake.sh
+    #   - cmake-vcpkg.sh
+    #   - CMakeLists.txt
+    #   - CMakeListsLinux.txt
+    #   - vcpkg.json
+    #   - overlays/**
+    #   - selinux/**
+    #   - "!selinux/centreon-common/**"
+    #   - "!**/test/**"
   push:
     branches:
       - develop
@@ -312,7 +312,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: 'OFF'
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
+      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
