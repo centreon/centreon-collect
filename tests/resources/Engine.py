@@ -36,7 +36,7 @@ from array import array
 from dateutil import parser
 import datetime
 from os import makedirs, chmod, remove
-from os.path import exists, dirname, basename
+from os.path import exists, dirname
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 import db_conf
@@ -115,7 +115,8 @@ class EngineInstance:
                 else:
                     os.remove(item)
         else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config", mode=0o777, exist_ok=True)
+            makedirs(f"{VAR_ROOT}/lib/centreon/config",
+                     mode=0o777, exist_ok=True)
         if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
             shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
 
@@ -156,7 +157,8 @@ class EngineInstance:
                 else:
                     os.remove(item)
         else:
-            makedirs(f"{VAR_ROOT}/lib/centreon/config", mode=0o777, exist_ok=True)
+            makedirs(f"{VAR_ROOT}/lib/centreon/config",
+                     mode=0o777, exist_ok=True)
 
         self.build_configs(hosts, services_by_host, True, 0, bash_checks)
 
@@ -549,9 +551,18 @@ define command {{
         logger.console(retval)
         return retval
 
-    @staticmethod
-    def create_severities(poller: int, nb: int, offset: int):
-        config_file = f"{CONF_DIR}/config{poller}/severities.cfg"
+    def create_severities(self, idx: int, nb: int, offset: int):
+        """
+        Create a severities.cfg file.
+
+        Args:
+            idx: The poller ID
+            nb: The number of severities.
+            offset: an integer used to name the severity "severityXXX" where XXX
+            is the severity ID + offset.
+        """
+        conf_dir = self.get_config_dir(idx)
+        config_file = f"{conf_dir}/severities.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             typ = ["service", "host"]
@@ -965,7 +976,8 @@ def ctn_update_engine_config(num: int, hosts: int = 50, srv_by_host: int = 20, b
     """
     global engine
     if engine is None:
-        raise Exception("EngineInstance not initialized, please call ctn_config_engine first")
+        raise Exception(
+            "EngineInstance not initialized, please call ctn_config_engine first")
     engine.update_configs(num, hosts, srv_by_host, bash_checks)
     for idx in range(num):
         Common.ctn_notify_broker_of_engine_config_change(idx)
@@ -2829,7 +2841,7 @@ def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centr
 
 def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     """
-    Create a severities.cfg file for a given poller.
+    Create a severities.cfg file for a poller.
 
     Args:
         poller (int): Index of the poller.
@@ -2968,13 +2980,14 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
 
 def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
     """
-    Add a reference to a cfg file in the centengine.cfg file at index _poller_.
+    Add a reference to a cfg file in the centengine.cfg file at index 'poller'.
 
     Args:
         poller (int): Poller ID.
         cfg (str): Configuration file name to add.
     """
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
@@ -2982,7 +2995,7 @@ def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
             lines.insert(
                 i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
             break
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+") as ff:
+    with open(f"{conf_dir}/centengine.cfg", "w+") as ff:
         ff.writelines(lines)
 
 
@@ -4881,6 +4894,7 @@ def ctn_engine_check_sh_command_output():
             service_checked[service_id] = 1
     return len(service_checked)
 
+
 def ctn_clear_engine_configurations():
     """
     Clear all Centreon Engine configurations by removing configuration directories
@@ -4892,7 +4906,8 @@ def ctn_clear_engine_configurations():
         os.remove(prot_file)
 
     # Remove existing *.prot files in /{VAR_ROOT}/lib/centreon-broker/pollers-configuration
-    prot_files = glob.glob(f"{VAR_ROOT}/lib/centreon-broker/pollers-configuration/*.prot")
+    prot_files = glob.glob(
+        f"{VAR_ROOT}/lib/centreon-broker/pollers-configuration/*.prot")
     for prot_file in prot_files:
         os.remove(prot_file)
 

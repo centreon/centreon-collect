@@ -42,8 +42,7 @@ void database_configurator::process() {
 
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
-    _add_severities_mariadb(_diff.severities().added(),
-                            _stream->severities_cache());
+    _add_severities_mariadb(_diff.severities().added());
     //    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
@@ -55,8 +54,7 @@ void database_configurator::process() {
     //                                            _stream->resources_cache());
     //
     //    /* Modifying existing objects */
-    _add_severities_mariadb(_diff.severities().modified(),
-                            _stream->severities_cache());
+    _add_severities_mariadb(_diff.severities().modified());
     //    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
     //
     _add_hosts_mariadb(_diff.hosts().modified());
@@ -69,6 +67,7 @@ void database_configurator::process() {
     //        _diff.anomalydetections().modified(), _stream->resources_cache());
     //
     /* Disabling removed objects */
+    _del_severities_mariadb(_diff.severities().removed());
     _disable_hosts(_diff.hosts().removed());
     _disable_services_mariadb(_diff.services().removed());
     _disable_services_mariadb(_diff.anomalydetections().removed());
@@ -76,8 +75,7 @@ void database_configurator::process() {
     _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
-    _add_severities_mysql(_diff.severities().added(),
-                          _stream->severities_cache());
+    _add_severities_mysql(_diff.severities().added());
     //    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
     //    _add_hosts_mysql(_diff.hosts().added());
     //    _add_host_resources_mysql(_diff.hosts().added(),
@@ -90,8 +88,7 @@ void database_configurator::process() {
     //                                          _stream->resources_cache());
     //
     //    /* Modifying existing objects */
-    _add_severities_mysql(_diff.severities().modified(),
-                          _stream->severities_cache());
+    _add_severities_mysql(_diff.severities().modified());
     //    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified(),
@@ -121,29 +118,67 @@ void database_configurator::_disable_pollers_with_full_conf() {
   for (uint64_t instance_id : _diff.full_conf_poller_id())
     _stream->clean_tables(instance_id);
 
+  auto& mysql = _stream->get_mysql();
+
   // Removed hosts are disabled in the hosts table.
   if (!_diff.hosts().removed().empty()) {
     std::string query(
         fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
                     fmt::join(_diff.hosts().removed(), ",")));
-    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                   0);
+    mysql.run_query(query, database::mysql_error::disable_hosts, 0);
 
     // Services of removed hosts are disabled in the services table.
     query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
                         fmt::join(_diff.hosts().removed(), ","));
-    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                   0);
+    mysql.run_query(query, database::mysql_error::disable_hosts, 0);
 
     // Same thing with resources table.
     query = fmt::format(
         "UPDATE resources SET enabled=0 WHERE parent_id IN ({0}) OR (parent_id "
-        "= "
-        "0 AND id IN ({0}))",
+        "= 0 AND id IN ({0}))",
         fmt::join(_diff.hosts().removed(), ","));
-    _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                   0);
+    mysql.run_query(query, database::mysql_error::disable_hosts, 0);
   }
+
+  //// We can't remove not used severities in case of full configurations.
+  // This is not done because with a full conf, we don't know
+  // which severities have been removed. And with a diff, we know that. And when
+  // we mix two kinds of diff, we can't know.
+  //
+  // std::string query(
+  //    "DELETE FROM severities WHERE NOT EXISTS ( SELECT 1 FROM resources WHERE
+  //    " "resources.severity_id = severities.severity_id)");
+  // mysql.run_query(query, database::mysql_error::delete_severities, 0);
+}
+
+void database_configurator::_del_severities_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->severities_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} severities", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_severities_stmt) {
+    std::string query("DELETE FROM severities WHERE id=? AND type=?");
+    _del_severities_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_del_severities_stmt);
+  }
+  auto bind = _del_severities_stmt->create_bind();
+  bind->reserve(keys.size());
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
+    bind->set_value_as_u64(0, msg.id());
+    bind->set_value_as_u32(1, msg.type());
+    bind->next_row();
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
+
+  _del_severities_stmt->set_bind(std::move(bind));
+  mysql.run_statement(*_del_severities_stmt);
 }
 
 void database_configurator::_disable_hosts(
@@ -163,16 +198,16 @@ void database_configurator::_disable_hosts(
  * corresponding to the removed hosts in the diff state.
  */
 void database_configurator::_disable_hosts_and_services() {
+  if (_diff.hosts().removed().empty())
+    return;
+
   // Removed hosts are disabled in the hosts table.
-  std::string query(
-      fmt::format("UPDATE hosts SET enabled=0 WHERE host_id IN ({})",
-                  fmt::join(_diff.hosts().removed(), ",")));
-  _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
-                                 0);
+  _disable_hosts(_diff.hosts().removed());
 
   // Services of removed hosts are disabled in the services table.
-  query = fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
-                      fmt::join(_diff.hosts().removed(), ","));
+  std::string query =
+      fmt::format("UPDATE services SET enabled=0 WHERE host_id IN ({})",
+                  fmt::join(_diff.hosts().removed(), ","));
   _stream->get_mysql().run_query(query, database::mysql_error::disable_hosts,
                                  0);
 
@@ -213,27 +248,31 @@ void database_configurator::_disable_hosts_and_services() {
  */
 void database_configurator::_add_severities_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Severity>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
+        lst) {
+  if (lst.empty())
+    return;
+  auto& cache = _stream->severities_cache();
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_severities_stmt) {
     std::string query(
         "INSERT INTO severities (id,type,name,level,icon_id) VALUES "
-        "(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
-        "id=VALUES(id),type=VALUES(type),name=VALUES(name),level=VALUES(level),"
-        "icon_id=VALUES(icon_id)");
+        "(?,?,?,?,?) ON DUPLICATE KEY UPDATE id=VALUES(id), type=VALUES(type),"
+        "name=VALUES(name), level=VALUES(level), icon_id=VALUES(icon_id)");
     _add_severities_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_severities_stmt);
   }
   auto bind = _add_severities_stmt->create_bind();
+  bind->reserve(lst.size());
 
+  uint32_t count = 0;
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.key().id(), msg.key().type());
     keys.push_back(key);
 
-    bind->set_value_as_u64(0, msg.key().id());
-    bind->set_value_as_u32(1, msg.key().type());
+    _logger->info("Adding severity id={}, type={}", key.first, key.second);
+    bind->set_value_as_u64(0, key.first);
+    bind->set_value_as_u32(1, key.second);
     bind->set_value_as_str(
         2, common::truncate_utf8(msg.severity_name(),
                                  get_centreon_storage_severities_col_size(
@@ -241,7 +280,9 @@ void database_configurator::_add_severities_mariadb(
     bind->set_value_as_u32(3, msg.level());
     bind->set_value_as_u64(4, msg.icon_id());
     bind->next_row();
+    count++;
   }
+  _logger->debug("{} severities added/modified", count);
   _add_severities_stmt->set_bind(std::move(bind));
 
   try {
@@ -265,8 +306,8 @@ void database_configurator::_add_severities_mariadb(
  */
 void database_configurator::_add_severities_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Severity>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
+        lst) {
+  auto& cache = _stream->severities_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint16_t>> keys;
 
@@ -283,11 +324,10 @@ void database_configurator::_add_severities_mysql(
         msg.level(), msg.icon_id()));
     values.emplace_back(value);
   }
-  std::string query(
-      fmt::format("INSERT INTO severities VALUES {} ON DUPLICATE KEY UPDATE "
-                  "id=VALUES(id),type=VALUES(type),name=VALUES(name),level="
-                  "VALUES(level),icon_id=VALUES(icon_id)",
-                  fmt::join(values, ",")));
+  std::string query(fmt::format(
+      "INSERT INTO severities VALUES {} ON DUPLICATE KEY UPDATE "
+      "name=VALUES(name),level=VALUES(level), icon_id=VALUES(icon_id)",
+      fmt::join(values, ",")));
 
   try {
     std::promise<int> promise;

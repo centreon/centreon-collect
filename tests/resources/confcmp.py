@@ -25,6 +25,7 @@
 # It can be used to check if the configuration of Engine is well stored in the centreon_storage database.
 from robot.api import logger
 import pymysql
+import time
 
 DB_HOST = "localhost"
 DB_USER = "centreon"
@@ -37,7 +38,7 @@ class ConfComparator:
     A class to compare a poller cfg file and what Broker wrote in the storage database.
     """
 
-    def __init__(self, poller_id: int, cfg_file: str, table: str = "", query: str = "", obj_name: str = ""):
+    def __init__(self, poller_id: int, cfg_file: str, table: str = "", query: str = "", obj_name: str = "", check_length: bool = True):
         """
         Constructor of the class.
 
@@ -53,11 +54,13 @@ class ConfComparator:
         self.cfg_file = cfg_file
         self.table = table
         self.query = query
+        self.check_length = check_length
 
         # Correspondence between table name and object that is defined in the cfg file
         obj_dict = {
             "hosts": "host",
             "services": "service",
+            "severities": "severit",
         }
         if obj_name == "":
             logger.console(f"Getting obj_dict[{table}]")
@@ -122,6 +125,15 @@ class ConfComparator:
                 {"db_field": "max_check_attempts",
                  "cfg_field": "max_check_attempts", "type": "int"},
             ]
+        elif self.table == "severities":
+            return [
+                {"db_field": "id", "cfg_field": "id", "type": "int"},
+                {"db_field": "type", "cfg_field": "type",
+                 "type": "enum{service=>0,host=>1}"},
+                {"db_field": "name", "cfg_field": "severity_name", "type": "str"},
+                {"db_field": "level", "cfg_field": "level", "type": "int"},
+                {"db_field": "icon_id", "cfg_field": "icon_id", "type": "int"},
+            ]
         else:
             raise TypeError(f"get_data doesn't work with table '{self.table}'")
 
@@ -179,6 +191,14 @@ class ConfComparator:
                             obj[f] = int(line.split()[1])
                         elif t == "float":
                             obj[f] = float(line.split()[1])
+                        elif t.startswith("enum{"):
+                            items = t[5:-1]
+                            items = items.split(",")
+                            value = line.split()[1]
+                            for ff in items:
+                                if ff.startswith(f"{value}=>"):
+                                    obj[f] = int(ff.split("=>")[1])
+                                    break
                         else:
                             raise TypeError(
                                 "Types in data are among str, int or float")
@@ -220,26 +240,54 @@ class ConfComparator:
                     retval.append(row)
         return retval
 
-    def compare(self):
+    def compare(self, timeout: int = 0):
         """
         The main function in ConfComparator, it compares the two contents and
-        returns if they are equivalent or not.
+        returns if they are equivalent or not. Sometimes, the db content can
+        have more items than the file content because we can not always remove
+        them. So we then only check that the file content is a subset of the Db
+        content.
 
+        Args:
+            self: The instance object.
+            timeout: Timeout in seconds to wait before giving up. 0 means no timeout.
         Returns: True if they match, False otherwise.
         """
         file_content = self.build_file_content()
-        db_content = self.build_db_content()
-        file_content = file_content.sort()
-        db_content = db_content.sort()
+        file_content.sort()
 
-        if file_content != db_content:
-            for i, (a, b) in enumerate(zip(file_content, db_content)):
-                if a != b:
-                    logger.console(f"file content at index {i}: {a}")
-                    logger.console(f"db content at index {i}: {b}")
-                    break
-            return False
-        else:
-            # logger.console(f"file content at index 0: {file_content[0]}")
-            # logger.console(f"db content at index 0: {db_content[0]}")
-            return True
+        limit = time.time() + timeout + 1
+        while time.time() < limit:
+            db_content = self.build_db_content()
+            db_content.sort()
+
+            if self.check_length and len(file_content) != len(db_content):
+                logger.console(
+                    f"file content has a length of {len(file_content)} whereas db content length is {len(db_content)}")
+            elif len(file_content) == len(db_content):
+                if file_content != db_content:
+                    logger.console("file content and db content don't match")
+                    for idx, (f, d) in enumerate(zip(file_content, db_content)):
+                        if f != d:
+                            logger.console(
+                                f"Difference at index {idx}: file has {f} whereas db has {d}")
+                else:
+                    return True
+            else:
+                i, j = 0, 0
+                retval = True
+                while i < len(file_content) and j < len(db_content):
+                    if file_content[i] == db_content[j]:
+                        i += 1
+                        j += 1
+                    elif file_content[i] > db_content[j]:
+                        j += 1
+                    else:
+                        logger.console(
+                            f"file content has {file_content[i]} that is not in db content")
+                        retval = False
+                        break
+                if retval:
+                    return True
+            time.sleep(1)
+        return False

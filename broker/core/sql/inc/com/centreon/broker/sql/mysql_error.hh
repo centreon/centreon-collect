@@ -117,6 +117,7 @@ class mysql_error {
     insert_update_agent_information = 81,
     disable_pollers = 82,
     disable_hosts = 83,
+    delete_severities = 84,
   };
 
   static constexpr const char* msg[]{
@@ -204,7 +205,8 @@ class mysql_error {
       "could not update the enabled flag in resources table for service: ",
       "could not insert or update agent_information table: ",
       "could not disable pollers: ",
-      "could not disable hosts: "};
+      "could not disable hosts: ",
+      [84] = "could not delete severities: "};
 
   mysql_error() : _active(false) {}
   mysql_error(mysql_error const& other) = delete;

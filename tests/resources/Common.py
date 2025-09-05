@@ -561,7 +561,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
 def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
-    except:
+    except parser.ParserError:
         my_date = datetime.fromtimestamp(date)
 
     # Let's find my_date
@@ -2105,46 +2105,6 @@ def ctn_create_random_dictionary(nb_entries: int):
     return dict_ret
 
 
-def ctn_extract_event_from_lua_log(file_path: str, field_name: str):
-    """
-    extract_event_from_lua_log
-
-    extract a json object from a lua log file 
-    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
-
-    Args:
-        file1: The first file to compare.
-        file2: The second file to compare.
-
-    Returns: True if they have the same content, False otherwise.
-    """
-
-    with open(file1, "r") as f1:
-        content1 = f1.readlines()
-    with open(file2, "r") as f2:
-        content2 = f2.readlines()
-    r = re.compile(r"(.*) 0x[0-9a-f]+")
-
-    def replace_ptr(line):
-        m = r.match(line)
-        if m:
-            return m.group(1)
-        else:
-            return line
-
-    content1 = list(map(replace_ptr, content1))
-    content2 = list(map(replace_ptr, content2))
-
-    if len(content1) != len(content2):
-        return False
-    for i in range(len(content1)):
-        if content1[i] != content2[i]:
-            logger.console(
-                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
-            return False
-    return True
-
-
 def ctn_protobuf_to_json(protobuf_obj):
     """
     protobuf_to_json
@@ -2574,3 +2534,19 @@ def ctn_service_resources_are_identical(poller_id: int, filename: str):
     comparator = ConfComparator(poller_id, filename, table="resources",
                                 query=f"SELECT name, max_check_attempts, notes_url, action_url, parent_name,id, parent_id, passive_checks_enabled, active_checks_enabled FROM resources WHERE enabled=1 AND poller_id={poller_id} AND parent_id>0", obj_name="service")
     return comparator.compare()
+
+
+def ctn_severities_are_identical(poller_id: int, filename: str, timeout: int = TIMEOUT):
+    """ Check if all severities (in the severities table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id: The poller ID to check.
+        filename: The path to the configuration file.
+        timeout: The timeout value for the check (in seconds, default is TIMEOUT).
+
+    Returns: True if all severities are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, table="severities",
+                                query="SELECT id, type, name, level, icon_id FROM severities", check_length=False)
+    return comparator.compare(timeout)

@@ -3149,11 +3149,9 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     {
       _finish_action(-1, actions::services);
       std::string query(fmt::format(
-          "DELETE services_servicegroups FROM services_servicegroups "
-          "LEFT "
+          "DELETE services_servicegroups FROM services_servicegroups LEFT "
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-          "WHERE "
-          "services_servicegroups.servicegroup_id={} AND "
+          "WHERE services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
           sg.id, sg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);

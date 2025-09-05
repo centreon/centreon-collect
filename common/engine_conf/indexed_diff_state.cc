@@ -59,6 +59,11 @@ void indexed_diff_state::add_diff_state(
           return std::make_pair(obj->key().id(), obj->key().type());
         });
 
+    logger->debug(
+        "{} severities added and {} severities modified in the global diff "
+        "state",
+        _added_severities.size(), _modified_severities.size());
+
     _add_message<Tag, std::pair<uint64_t, uint32_t>>(
         diff_state.mutable_state()->mutable_tags(), _added_tags, _modified_tags,
         _removed_tags, [](Tag* obj) {

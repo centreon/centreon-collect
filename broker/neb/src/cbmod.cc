@@ -79,8 +79,14 @@ cbmod::cbmod(const std::string& config_file,
   broker_state.apply(s);
   broker_state.set_proto_conf(proto_conf);
 
-  _centralized_conf = !proto_conf.empty() &&
-                      broker_state.broker_peer_supports_extended_negotiation();
+  /* I remove the second part of the condition because when Engine starts, it is
+   * not yet connected to the broker, so we cannot know if the broker supports
+   * extended negotiation or not. So we consider that if a protobuf
+   * configuration directory is set, we are in centralized configuration mode.
+   */
+  _centralized_conf =
+      !proto_conf.empty(); /* &&
+      broker_state.broker_peer_supports_extended_negotiation(); */
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
   _use_protobuf = broker_state.get_bbdo_version().major_v > 2;

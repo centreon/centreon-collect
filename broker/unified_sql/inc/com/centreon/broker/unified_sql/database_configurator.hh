@@ -38,6 +38,7 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_service_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_severities_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _del_severities_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_tags_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_customvariables_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
@@ -46,14 +47,13 @@ class database_configurator {
   void _disable_pollers_with_full_conf();
   void _disable_hosts_and_services();
 
-  void _add_severities_mariadb(
+  void _add_severities_mariadb(const ::google::protobuf::RepeatedPtrField<
+                               engine::configuration::Severity>& lst);
+  void _add_severities_mysql(const ::google::protobuf::RepeatedPtrField<
+                             engine::configuration::Severity>& lst);
+  void _del_severities_mariadb(
       const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Severity>& lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache);
-  void _add_severities_mysql(
-      const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Severity>& lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache);
+          com::centreon::engine::configuration::KeyType>& keys);
   void _add_tags_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
           lst,
