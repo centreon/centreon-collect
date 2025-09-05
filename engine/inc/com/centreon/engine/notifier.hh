@@ -45,6 +45,8 @@ class notifier : public checkable {
     STATUS_DOWNTIME_DEPTH = 1 << 0,
     STATUS_NOTIFICATION_NUMBER = 1 << 1,
     STATUS_ACKNOWLEDGEMENT = 1 << 2,
+    NEXT_CHECK = 1 << 3,
+    SHOULD_BE_SCHEDULED = 1 << 4,
     STATUS_ALL = ~0u,
   };
 

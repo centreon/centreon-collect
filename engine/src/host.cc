@@ -1689,7 +1689,8 @@ int host::run_scheduled_check(int check_options, double latency) {
     }
 
     /* update the status log */
-    update_status();
+    update_status(status_attribute::NEXT_CHECK |
+                  status_attribute::SHOULD_BE_SCHEDULED);
 
     /* reschedule the next host check - unless we couldn't find a valid next
      * check time */
@@ -1933,6 +1934,7 @@ bool host::schedule_check(time_t check_time,
 
   /* default is to use the new event */
   int use_original_event = false;
+  bool next_check_has_changed = false;
 
 #ifdef PERFORMANCE_INCREASE_BUT_VERY_BAD_IDEA_INDEED
 /* WARNING! 1/19/07 on-demand async host checks will end up causing mutliple
@@ -2019,6 +2021,7 @@ bool host::schedule_check(time_t check_time,
     else {
       /* reset the next check time (it may be out of sync) */
       set_next_check(temp_event->run_time);
+      next_check_has_changed = true;
 
       engine_logger(dbg_checks, most)
           << "Keeping original host check event (ignoring the new one).";
@@ -2040,6 +2043,7 @@ bool host::schedule_check(time_t check_time,
 
     /* set the next host check time */
     set_next_check(check_time);
+    next_check_has_changed = true;
 
     /* place the new event in the event queue */
     auto new_event{std::make_unique<timed_event>(
@@ -2051,8 +2055,8 @@ bool host::schedule_check(time_t check_time,
   }
 
   /* update the status log */
-  if (!no_update_status_now) {
-    update_status();
+  if (!no_update_status_now && next_check_has_changed) {
+    update_status(status_attribute::NEXT_CHECK);
     return true;
   } else
     return false;
@@ -3605,7 +3609,6 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* reschedule the next check of the host (usually ONLY for scheduled, active
    * checks, unless overridden above) */
-  bool sent = false;
   if (reschedule_check) {
     engine_logger(dbg_checks, more)
         << "Rescheduling next check of host at " << my_ctime(&next_check);
@@ -3648,14 +3651,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
     /* schedule a non-forced check if we can */
     if (get_should_be_scheduled())
-      sent = schedule_check(get_next_check(), CHECK_OPTION_NONE);
+      schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
   }
 
   /* update host status - for both active (scheduled) and passive
    * (non-scheduled) hosts */
-  /* This condition is to avoid to send host status twice. */
-  if (!sent)
-    update_status();
+  update_status();
 
   /* run async checks of all hosts we added above */
   /* don't run a check if one is already executing or we can get by with a
