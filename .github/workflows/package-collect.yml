@@ -24,6 +24,9 @@ on:
       is_nightly:
         required: false
         type: string
+      packages_in_artifact:
+        required: true
+        type: boolean
 jobs:
   package:
     strategy:
