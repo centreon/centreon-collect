@@ -46,24 +46,16 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Set sources.
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SOURCES 
-    ${SRC_DIR}/hex_dump.cc
-    ${SRC_DIR}/perfdata.cc
-    ${SRC_DIR}/pool.cc 
-    ${SRC_DIR}/process_stat.cc 
-    ${SRC_DIR}/process_stat.pb.cc
-    ${SRC_DIR}/process_stat.grpc.pb.cc
-    ${SRC_DIR}/rapidjson_helper.cc
-    ${SRC_DIR}/utf8.cc 
-  )
-else()
-#we need not many things to just compile centreon-monitoring-agent (centagent)
-  set(SOURCES 
-    ${SRC_DIR}/perfdata.cc
-    ${SRC_DIR}/utf8.cc
-  )
-endif()
+set(SOURCES 
+  ${SRC_DIR}/hex_dump.cc
+  ${SRC_DIR}/perfdata.cc
+  ${SRC_DIR}/pool.cc 
+  ${SRC_DIR}/process_stat.cc 
+  ${SRC_DIR}/process_stat.pb.cc
+  ${SRC_DIR}/process_stat.grpc.pb.cc
+  ${SRC_DIR}/rapidjson_helper.cc
+  ${SRC_DIR}/utf8.cc 
+)
 
 # Include directories.
 include_directories("${INCLUDE_DIR}"

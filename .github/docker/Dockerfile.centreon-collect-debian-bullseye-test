@@ -32,7 +32,8 @@ apt-get -y install curl \
     zstd \
     psmisc \
     sudo \
-    perl-base
+    perl-base \
+    dsniff
 
 apt-get clean
 

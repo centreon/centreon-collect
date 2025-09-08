@@ -14,9 +14,7 @@ broker_pb2.pyc
 broker_pb2_grpc.py
 broker_pb2_grpc.pyc
 build
-build_my_host
-build_centos7
-build_alma9
+build_*
 cbd
 cbwd
 cppcheck-build
@@ -65,11 +63,6 @@ Makefile
 log.html
 output.xml
 report.html
-
-# agent
-agent/scripts/centagent.service
-agent/conf/centagent.json
-opentelemetry-proto
 
 # bbdo
 bbdo/*_accessor.hh

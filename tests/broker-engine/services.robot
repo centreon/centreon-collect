@@ -24,11 +24,12 @@ SDER
     Ctn Config BBDO3    1
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    processing    trace
-    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    module0    processing    trace
     Ctn Config Broker Sql Output    central    unified_sql
+
     Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    42
     ${start}    Get Current Date
     Ctn Start Broker
@@ -57,13 +58,16 @@ SDER
         Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((280,),)
+    Disconnect From Database
 
 SRSAS
     [Documentation]
     ...    Given the service "service_1" on "host_1" has its "real_state" set to
     ...    "CRITICAL" in the "services" table
     ...    and its "state" set to "WARNING"
-    ...    When the "cbd" service is started
+    ...    We kill broker engine connection
+    ...    We wait for _update_hosts_and_services_of_instance
+    ...    Then we restore broker engine connection
     ...    Then the "state" of "service_1" is changed to "CRITICAL"
     ...    And the "real_state" of "service_1" in the "services" table is set to NULL
 
@@ -73,35 +77,55 @@ SRSAS
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
+    #in order to execute unified sql loop faster
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    7
+
+    Ctn Clear Retention
+    Ctn Clear Db    services
+    Ctn Clear Db    instances
+    Ctn Clear Db    hosts
 
     Ctn Start Broker
     Ctn Start Engine
 
     Log To Console    Let's wait for the service to be created in the "services" table
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         Sleep    1s
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one service named service_1 in the "services" table
-    Ctn Kindly Stop Broker
+    
+
+    Log To Console    disconnect centengine
+    ${start}    Get Current Date
+    Start Process    tcpkill -9 -i lo port 5669    shell=true    alias=tcpkill    stderr=/tmp/totoerr.log     stdout=/tmp/totoout.log
+
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
 
     Log To Console    Initializing real_state to CRITICAL and state to WARNING
     Execute SQL String
     ...    UPDATE services SET real_state=2, state=1 WHERE description='service_1'
 
-    Ctn Start Broker
+    Log To Console    connect centengine
+    ${start}    Get Current Date
+    Terminate Process    tcpkill
 
-    Ctn Schedule Forced Svc Check    host_1    service_1
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
 
-    Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL
-    FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Log To Console    Let's wait for the real_state to be NULL and state to be CRITICAL    
+    FOR    ${t}    IN RANGE    ${6000}
         ${output}    Query    SELECT real_state, state FROM services WHERE description='service_1' AND enabled=1
         IF    ${output} == ((None, 2),)    BREAK
-        Sleep    1s
+        Sleep    10ms
     END
     Should Be Equal As Strings    ${output}    ((None, 2),)    real_state should be NULL and state should be CRITICAL
     Disconnect From Database
@@ -110,7 +134,9 @@ HRSAS
     [Documentation]
     ...    Given the host "host_1" has its "real_state" set to "DOWN" in the "hosts" table
     ...    and its "state" set to "UP"
-    ...    When the "cbd" service is started
+    ...    We kill broker engine connection
+    ...    We wait for _update_hosts_and_services_of_instance
+    ...    Then we restore broker engine connection
     ...    Then the "state" of "host_1" is changed to "DOWN"
     ...    And the "real_state" of "host_1" in the "hosts" table is set to NULL
 
@@ -120,12 +146,21 @@ HRSAS
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
+    Ctn Broker Config Log    central    sql    trace
+    #in order to execute unified sql loop faster
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    read_timeout    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    7
+
+    Ctn Clear Retention
+    Ctn Clear Db    services
+    Ctn Clear Db    instances
+    Ctn Clear Db    hosts
 
     Ctn Start Broker
     Ctn Start Engine
 
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT count(*) FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((1,),)    BREAK
         log to console    ${output}
@@ -133,22 +168,33 @@ HRSAS
     END
 
     Should Be Equal As Strings    ${output}    ((1,),)    We should have one host named host_1 in the hosts table
-    Ctn Kindly Stop Broker
+
+    Log To Console    disconnect centengine
+    ${start}    Get Current Date
+    Start Process    tcpkill -9 -i lo port 5669    shell=true    alias=tcpkill    stderr=/tmp/totoerr.log     stdout=/tmp/totoout.log
+
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
 
     Log To Console    Initializing real_state to DOWN and state to UP
     Execute SQL String
     ...    UPDATE hosts SET real_state=1, state=0 WHERE name='host_1';
 
-    Ctn Start Broker
+    Log To Console    connect centengine
+    ${start}    Get Current Date
+    Terminate Process    tcpkill
 
-    Ctn Schedule Forced Host Check    host_1
+    ${content}    Create List    _update_hosts_and_services_of_instance
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    _update_hosts_and_services_of_instance not found in logs.
+
 
     Log To Console    Let's wait for the real_state to be NULL and state to be DOWN
-    FOR    ${t}    IN RANGE    ${60}
-        Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${t}    IN RANGE    ${6000}
         ${output}    Query    SELECT real_state, state FROM hosts WHERE name='host_1' AND enabled=1
         IF    ${output} == ((None, 1),)    BREAK
-        Sleep    1s
+        Sleep    10ms
     END
     Should Be Equal As Strings    ${output}    ((None, 1),)    real_state should be NULL and state should be DOWN
     Disconnect From Database

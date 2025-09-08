@@ -112,8 +112,4 @@ set(COLLECT_PATCH 15)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  include(CMakeListsLinux.txt)
-else()
-  include(CMakeListsWindows.txt)
-endif()
+include(CMakeListsLinux.txt)
