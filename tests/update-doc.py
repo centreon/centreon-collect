@@ -93,7 +93,7 @@ From a Centreon host, you need to install Robot Framework
 On AlmaLinux, the following commands should work to initialize your robot tests:
 
 ```bash
-dnf install "Development Tools" python3-devel -y
+dnf install "Development Tools" dsniff python3-devel -y
 
 pip3 install -U robotframework \
         robotframework-databaselibrary \
