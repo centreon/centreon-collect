@@ -67,12 +67,10 @@ class database_configurator {
   void _add_hosts_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
-  void _del_tags_mariadb(
-      const ::google::protobuf::RepeatedPtrField<
-          com::centreon::engine::configuration::KeyType>& keys);
-  void _del_tags_mysql(
-      const ::google::protobuf::RepeatedPtrField<
-          com::centreon::engine::configuration::KeyType>& keys);
+  void _del_tags_mariadb(const ::google::protobuf::RepeatedPtrField<
+                         com::centreon::engine::configuration::KeyType>& keys);
+  void _del_tags_mysql(const ::google::protobuf::RepeatedPtrField<
+                       com::centreon::engine::configuration::KeyType>& keys);
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
@@ -82,16 +80,12 @@ class database_configurator {
           lst);
   void _add_host_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
-          lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+          lst);
   void _add_service_resources_mariadb(
       const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Service>& lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
-  void _add_service_resources_mysql(
-      const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Service>& lst,
-      absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache);
+          engine::configuration::Service>& lst);
+  void _add_service_resources_mysql(const ::google::protobuf::RepeatedPtrField<
+                                    engine::configuration::Service>& lst);
   void _add_services_mariadb(const ::google::protobuf::RepeatedPtrField<
                              engine::configuration::Service>& lst);
   void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<

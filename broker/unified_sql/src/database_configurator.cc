@@ -47,8 +47,7 @@ void database_configurator::process() {
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
     _add_services_mariadb(_diff.services().added());
-    _add_service_resources_mariadb(_diff.services().added(),
-                                   _stream->resources_cache());
+    _add_service_resources_mariadb(_diff.services().added());
     //    _add_anomalydetections_mariadb(_diff.anomalydetections().added());
     //    _add_anomalydetection_resources_mariadb(_diff.anomalydetections().added(),
     //                                            _stream->resources_cache());
@@ -60,8 +59,7 @@ void database_configurator::process() {
     _add_hosts_mariadb(_diff.hosts().modified());
     _add_host_resources_mariadb(_diff.hosts().modified());
     _add_services_mariadb(_diff.services().modified());
-    _add_service_resources_mariadb(_diff.services().modified(),
-                                   _stream->resources_cache());
+    _add_service_resources_mariadb(_diff.services().modified());
     //    _add_anomalydetections_mariadb(_diff.anomalydetections().modified());
     //    _add_anomalydetection_resources_mariadb(
     //        _diff.anomalydetections().modified(), _stream->resources_cache());
@@ -78,12 +76,10 @@ void database_configurator::process() {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added());
     _add_tags_mysql(_diff.tags().added());
-    //    _add_hosts_mysql(_diff.hosts().added());
-    //    _add_host_resources_mysql(_diff.hosts().added(),
-    //                              _stream->resources_cache());
-    //    _add_services_mysql(_diff.services().added());
-    //    _add_service_resources_mysql(_diff.services().added(),
-    //                                 _stream->resources_cache());
+    _add_hosts_mysql(_diff.hosts().added());
+    _add_host_resources_mysql(_diff.hosts().added());
+    _add_services_mysql(_diff.services().added());
+    _add_service_resources_mysql(_diff.services().added());
     //    _add_anomalydetections_mysql(_diff.anomalydetections().added());
     //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().added(),
     //                                          _stream->resources_cache());
@@ -92,11 +88,9 @@ void database_configurator::process() {
     _add_severities_mysql(_diff.severities().modified());
     _add_tags_mysql(_diff.tags().modified());
     _add_hosts_mysql(_diff.hosts().modified());
-    _add_host_resources_mysql(_diff.hosts().modified(),
-                              _stream->resources_cache());
+    _add_host_resources_mysql(_diff.hosts().modified());
     _add_services_mysql(_diff.services().modified());
-    _add_service_resources_mysql(_diff.services().modified(),
-                                 _stream->resources_cache());
+    _add_service_resources_mysql(_diff.services().modified());
     //    _add_anomalydetections_mysql(_diff.anomalydetections().modified());
     //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().modified(),
     //                                          _stream->resources_cache());
@@ -1133,8 +1127,8 @@ void database_configurator::_add_host_resources_mariadb(
  */
 void database_configurator::_add_host_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
+        lst) {
+  auto& cache = _stream->resources_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint64_t>> keys;
 
@@ -2109,8 +2103,8 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
  */
 void database_configurator::_add_service_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
+        lst) {
+  auto& cache = _stream->resources_cache();
   if (lst.empty()) {
     _logger->debug("No service resources to add/update");
     return;
@@ -2203,8 +2197,8 @@ void database_configurator::_add_service_resources_mariadb(
  */
 void database_configurator::_add_service_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
-        lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>& cache) {
+        lst) {
+  auto& cache = _stream->resources_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint64_t>> keys;
 
