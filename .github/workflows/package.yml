@@ -78,6 +78,9 @@ on:
         type: string
         description: The package files cache key
         required: true
+      packages_in_artifact:
+        required: true
+        type: boolean
     secrets:
       registry_username:
         required: true
@@ -124,6 +127,7 @@ jobs:
           release: ${{ inputs.release }}
           commit_hash: ${{ inputs.commit_hash }}
           cache_key: unsigned-${{ inputs.cache_key }}
+          upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
 
       - if: ${{ inputs.package_extension == 'deb' }}
         uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0

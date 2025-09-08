@@ -53,6 +53,10 @@ inputs:
   cache_key:
     description: The package files cache key
     required: true
+  upload_artifacts:
+    description: "Upload packages as artifacts"
+    required: false
+    default: "false"
 
 runs:
   using: composite
@@ -168,7 +172,8 @@ runs:
         ls -lath ..
       shell: bash
 
-    - name: Upload package artifacts
+    - if: inputs.upload_artifacts == 'true'
+      name: Upload package artifacts
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: packages-${{ inputs.package_extension }}-${{ inputs.distrib }}
