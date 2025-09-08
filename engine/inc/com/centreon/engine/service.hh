@@ -206,7 +206,7 @@ class service : public notifier {
                               time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
                       uint32_t options,
-                      bool no_update_status_now = false) override;
+                      bool no_call_update_status = false) override;
   void set_flap(double percent_change,
                 double high_threshold,
                 double low_threshold,

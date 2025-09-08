@@ -183,7 +183,7 @@ class notifier : public checkable {
 
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
-                              bool no_update_status_now) = 0;
+                              bool no_call_update_status) = 0;
 
   /**
    * @brief Update the status of the notifier partially. attributes is a bits

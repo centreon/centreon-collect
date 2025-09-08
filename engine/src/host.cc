@@ -1909,7 +1909,7 @@ int host::run_async_check(int check_options,
  */
 bool host::schedule_check(time_t check_time,
                           uint32_t options,
-                          bool no_update_status_now) {
+                          bool no_call_update_status) {
   engine_logger(dbg_functions, basic) << "schedule_host_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_host_check()");
 
@@ -2055,7 +2055,7 @@ bool host::schedule_check(time_t check_time,
   }
 
   /* update the status log */
-  if (!no_update_status_now) {
+  if (!no_call_update_status) {
     if (next_check_has_changed) {
       update_status(status_attribute::NEXT_CHECK);
     }

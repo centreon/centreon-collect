@@ -2840,11 +2840,11 @@ int service::run_async_check_local(int check_options,
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
  *
  * @return A boolean telling if service_status has been sent or if
- * no_update_status_now is true, if it should be sent.
+ * no_call_update_status is true, if it should be sent.
  */
 bool service::schedule_check(time_t check_time,
                              uint32_t options,
-                             bool no_update_status_now) {
+                             bool no_call_update_status) {
   engine_logger(dbg_functions, basic) << "schedule_service_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_service_check()");
 
@@ -2947,7 +2947,7 @@ bool service::schedule_check(time_t check_time,
     if (!use_original_event) {
       // We're using the new event, so remove the old one.
       events::loop::instance().remove_event(found, events::loop::low);
-      no_update_status_now = true;
+      no_call_update_status = true;
     } else {
       // Reset the next check time (it may be out of sync).
       set_next_check(temp_event->run_time);
@@ -2984,7 +2984,7 @@ bool service::schedule_check(time_t check_time,
                                                 events::loop::low);
 
       if (!active_checks_enabled())
-        no_update_status_now = true;
+        no_call_update_status = true;
     } catch (...) {
       // Update the status log.
       if (next_check_has_changed)
@@ -2994,7 +2994,7 @@ bool service::schedule_check(time_t check_time,
   }
 
   // Update the status log.
-  if (!no_update_status_now && next_check_has_changed)
+  if (!no_call_update_status && next_check_has_changed)
     update_status(status_attribute::NEXT_CHECK);
   return true;
 }
