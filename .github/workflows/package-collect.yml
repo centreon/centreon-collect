@@ -267,6 +267,7 @@ jobs:
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
+          upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
 
       - name: Delete packaging files not needed by cma
         if: ${{ inputs.only_robot_cma }}
@@ -291,6 +292,7 @@ jobs:
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
+          upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
 
       - name: Cleaning not needed packages
         shell: bash

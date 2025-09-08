@@ -297,7 +297,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: ${{ github.event.inputs.legacy_engine != 'false' && 'ON' || 'OFF' }}
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' }}
+      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
