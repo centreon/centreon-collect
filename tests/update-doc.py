@@ -27,20 +27,32 @@ def complete_doc(dico, ff):
     with open(ff, 'r') as f:
         content = f.readlines()
     r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
-    rd = re.compile(r"\s+\.\.\.\s*(.*)$")
+    rd = re.compile(r"\s+\.\.\.(\s*)(.*)$")
 
     in_test = False
     in_documentation = False
     gherkin = False
     test_name = ""
+    indent = 0
     for line in content:
         if in_documentation:
             m = rd.match(line)
             if m:
                 if gherkin:
-                    dico[test_name] += "\n      * " + m.group(1)
+                    txt = m.group(2)
+                    txt = txt.strip()
+                    if len(txt) > 0:
+                        if txt.startswith("Then"):
+                            txt = "*Then*" + txt[4:]
+                        previous_indent = indent
+                        indent = len(m.group(1)) // 4
+                        if previous_indent == indent:
+                            nl = ""
+                        else:
+                            nl = "\n"
+                        dico[test_name] += f"\n  {nl}{' ' * indent} * {m.group(2)}"
                 else:
-                    dico[test_name] += " " + m.group(1)
+                    dico[test_name] += " " + m.group(2)
                 continue
             else:
                 test_name = ""
