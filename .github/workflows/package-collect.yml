@@ -149,15 +149,3 @@ jobs:
       - name: Cleaning not needed packages
         shell: bash
         run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
-<<<<<<< HEAD
-
-      # set condition to true if artifacts are needed
-      - if: ${{ true }}
-        name: Upload package artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
-        with:
-          name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
-          path: ./*.${{ matrix.package_extension }}
-          retention-days: 1
-=======
->>>>>>> bca4ce2dc (enh(ci): fetch upload-artifacts label form api instead of github context (#2735))
