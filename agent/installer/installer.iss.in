@@ -1092,8 +1092,9 @@ begin
   LogFileBrowseButton.Parent := ConfigPage.Surface;
   LogFileBrowseButton.Caption := 'Browse...';
   LogFileBrowseButton.Left := LogFileEdit.Left + LogFileEdit.Width + ScaleX(4) ;
-  LogFileBrowseButton.Top := LogFileEdit.Top;
+  LogFileBrowseButton.Top := LogFileEdit.Top - ScaleY(1);
   LogFileBrowseButton.Width := 75;
+  LogFileBrowseButton.Height := LogFileEdit.Height + ScaleY(2);
   LogFileBrowseButton.OnClick := @LogFileBrowseFile;
   LogFileBrowseButton.Hide;
 
@@ -1179,7 +1180,7 @@ begin
 
   EncryptionLabel := TNewStaticText.Create(EncryptionPage);
   EncryptionLabel.Parent := EncryptionPage.Surface;
-  EncryptionLabel.Top := HostNameEdit.Top;
+  EncryptionLabel.Top := HostNameEdit.Top + ScaleY(2);
   EncryptionLabel.Caption := 'Encryption:';
 
   EncryptionComboBox := TNewComboBox.Create(EncryptionPage);
@@ -1241,7 +1242,7 @@ begin
 
   PublicCertLabel := TNewStaticText.Create(EncryptionPage);
   PublicCertLabel.Parent := EncryptionPage.Surface;
-  PublicCertLabel.Top := TokenLabel.Top + ScaleY(25);
+  PublicCertLabel.Top := TokenLabel.Top + ScaleY(30);
   PublicCertLabel.Caption := 'Public certificate:';
   PublicCertLabel.Hide;
 
@@ -1257,15 +1258,16 @@ begin
   PublicCertBrowseButton.Parent := EncryptionPage.Surface;
   PublicCertBrowseButton.Caption := 'Browse...';
   PublicCertBrowseButton.Left := PublicCertEdit.Left + PublicCertEdit.Width + ScaleX(4);
-  PublicCertBrowseButton.Top := PublicCertEdit.Top;
+  PublicCertBrowseButton.Top := PublicCertEdit.Top - ScaleY(1);
   PublicCertBrowseButton.Width := 75;
+  PublicCertBrowseButton.Height := PublicCertEdit.Height + ScaleY(2);
   PublicCertBrowseButton.OnClick := @PublicCertBrowseFile;
   PublicCertBrowseButton.Hide;
 
   PublicCertInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   PublicCertInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   PublicCertInfoBitmapImage.Parent := EncryptionPage.Surface;
-  PublicCertInfoBitmapImage.Top := PublicCertEdit.Top;
+  PublicCertInfoBitmapImage.Top := PublicCertLabel.Top - ScaleY(2);
   PublicCertInfoBitmapImage.Left := PublicCertBrowseButton.Left + PublicCertBrowseButton.Width + ScaleX(4);
   PublicCertInfoBitmapImage.Center := True;
   PublicCertInfoBitmapImage.Width := 20;
@@ -1307,9 +1309,10 @@ begin
   PrivateKeyBrowseButton := TButton.Create(EncryptionPage);
   PrivateKeyBrowseButton.Parent := EncryptionPage.Surface;
   PrivateKeyBrowseButton.Caption := 'Browse...';
-  PrivateKeyBrowseButton.Left := PrivateKeyEdit.Left + PrivateKeyEdit.Width + 8;
-  PrivateKeyBrowseButton.Top := PrivateKeyEdit.Top;
+  PrivateKeyBrowseButton.Left := PrivateKeyEdit.Left + PrivateKeyEdit.Width + ScaleX(4);
+  PrivateKeyBrowseButton.Top := PrivateKeyEdit.Top - ScaleY(1);
   PrivateKeyBrowseButton.Width := 75;
+  PrivateKeyBrowseButton.Height := PrivateKeyEdit.Height + ScaleY(2);
   PrivateKeyBrowseButton.OnClick := @PrivateKeyBrowseFile;
   PrivateKeyBrowseButton.Hide;
 
@@ -1359,8 +1362,9 @@ begin
   CaBrowseButton.Parent := EncryptionPage.Surface;
   CaBrowseButton.Caption := 'Browse...';
   CaBrowseButton.Left := CaEdit.Left + CaEdit.Width + 8;
-  CaBrowseButton.Top := CaEdit.Top;
+  CaBrowseButton.Top := CaEdit.Top - ScaleY(1);
   CaBrowseButton.Width := 75;
+  CaBrowseButton.Height := CaEdit.Height + ScaleY(2);
   CaBrowseButton.OnClick := @CaBrowseFile;
   CaBrowseButton.Hide;
 
