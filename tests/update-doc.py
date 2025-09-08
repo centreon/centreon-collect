@@ -42,15 +42,23 @@ def complete_doc(dico, ff):
                     txt = m.group(2)
                     txt = txt.strip()
                     if len(txt) > 0:
-                        if txt.startswith("Then"):
-                            txt = "*Then*" + txt[4:]
+                        if txt.startswith("When "):
+                            txt = txt.replace("When", "**When**", 1)
+                        if txt.startswith("Given "):
+                            txt = txt.replace("Given", "**Given**", 1)
+                        if txt.startswith("Then "):
+                            txt = txt.replace("Then", "**Then**", 1)
+                        if txt.startswith("And "):
+                            txt = txt.replace("And", "**And**", 1)
+                        if txt.startswith("Scenario: "):
+                            txt = txt.replace("Scenario:", "**Scenario:**", 1)
                         previous_indent = indent
                         indent = len(m.group(1)) // 4
                         if previous_indent == indent:
                             nl = ""
                         else:
                             nl = "\n"
-                        dico[test_name] += f"\n  {nl}{' ' * indent} * {m.group(2)}"
+                        dico[test_name] += f"\n  {nl}{' ' * indent} * {txt}"
                 else:
                     dico[test_name] += " " + m.group(2)
                 continue
@@ -70,7 +78,8 @@ def complete_doc(dico, ff):
                         dico[test_name] = "\n      * " + m.group(1)
                     elif m.group(1).startswith("Scenario:") or m.group(1).startswith("Feature:"):
                         gherkin = True
-                        dico[test_name] = m.group(1)
+                        txt = m.group(1).replace("Scenario:", "**Scenario:**").replace("Feature:", "**Feature:**").replace("Given", "**Given**")
+                        dico[test_name] = txt
                     else:
                         gherkin = False
                         dico[test_name] = m.group(1)

@@ -683,11 +683,20 @@ passive_checks_enabled 1
                 idx += 1
             ff.write(content)
 
-    @staticmethod
-    def create_tags(poller: int, nb: int, offset: int, tag_type: str):
+    def create_tags(self, idx: int, nb: int, offset: int, tag_type: str):
+        """
+        Create a tags.cfg file.
+
+        Args:
+            idx: The poller ID
+            nb: The number of tags.
+            offset: an integer used to name the severity "tagXXX" where XXX
+            is the tag ID + offset.
+        """
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        conf_dir = self.get_config_dir(idx)
+        config_file = f"{conf_dir}/tags.cfg"
         with open(config_file, "w+") as ff:
             content = ""
             tid = 0

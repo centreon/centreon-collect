@@ -2552,6 +2552,22 @@ def ctn_severities_are_identical(poller_id: int, filename: str, timeout: int = T
     return comparator.compare(timeout)
 
 
+def ctn_tags_are_identical(poller_id: int, filename: str, timeout: int = TIMEOUT):
+    """ Check if all tags (in the tags table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id: The poller ID to check.
+        filename: The path to the configuration file.
+        timeout: The timeout value for the check (in seconds, default is TIMEOUT).
+
+    Returns: True if all tags are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, table="tags",
+                                query="SELECT id, type, name FROM tags", check_length=False)
+    return comparator.compare(timeout)
+
+
 def ctn_check_severity_ids(logfile: str, start):
     """
     Check if severity ids are correct in the log file compared to the database.
@@ -2607,5 +2623,64 @@ def ctn_check_severity_ids(logfile: str, start):
         if from_logs[(id, type)] != severity_id:
             logger.console(
                 f"Severity {(id, type)} has severity_id {from_logs[(id, type)]} in logs and {severity_id} in database")
+            retval = False
+    return retval
+
+
+def ctn_check_tag_ids(logfile: str, start):
+    """
+    Check if tag ids are correct in the log file compared to the database.
+    The start date is given to check in the log from that date.
+    We don't check all the rows in the tags table since we just want to
+    check the last insertion/modification of tags given by the logs.
+
+    Args:
+        logfile: The path to the log file.
+        start: The start time to check (as a datetime object or a Unix timestamp).
+
+    Returns: True if tag ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    idx = ctn_find_line_from(lines, start)
+
+    r = re.compile(
+        r".*Tag with id (\d+) and type (\d+) has tag_id (\d+)")
+    from_logs = {}
+    for line in lines[idx:]:
+        m = r.match(line)
+        if m:
+            id = int(m.group(1))
+            type = int(m.group(2))
+            tag_id = int(m.group(3))
+            from_logs[(id, type)] = tag_id
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    logger.console(f"Tags found in logs: {from_logs}")
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, type, tag_id FROM tags")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        id = int(r['id'])
+        type = int(r['type'])
+        tag_id = int(r['tag_id'])
+        if (id, type) not in from_logs:
+            logger.console(f"Tag {(id, type)} not found in logs")
+            continue
+
+        if from_logs[(id, type)] != tag_id:
+            logger.console(
+                f"Tag {(id, type)} has tag_id {from_logs[(id, type)]} in logs and {tag_id} in database")
             retval = False
     return retval

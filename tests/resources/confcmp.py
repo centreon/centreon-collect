@@ -60,7 +60,8 @@ class ConfComparator:
         obj_dict = {
             "hosts": "host",
             "services": "service",
-            "severities": "severit",
+            "severities": "severity",
+            "tags": "tag",
         }
         if obj_name == "":
             logger.console(f"Getting obj_dict[{table}]")
@@ -133,6 +134,13 @@ class ConfComparator:
                 {"db_field": "name", "cfg_field": "severity_name", "type": "str"},
                 {"db_field": "level", "cfg_field": "level", "type": "int"},
                 {"db_field": "icon_id", "cfg_field": "icon_id", "type": "int"},
+            ]
+        elif self.table == "tags":
+            return [
+                {"db_field": "id", "cfg_field": "id", "type": "int"},
+                {"db_field": "type", "cfg_field": "type",
+                 "type": "enum{servicegroup=>0,hostgroup=>1,servicecategory=>2,hostcategory=>3}"},
+                {"db_field": "name", "cfg_field": "tag_name", "type": "str"},
             ]
         else:
             raise TypeError(f"get_data doesn't work with table '{self.table}'")
