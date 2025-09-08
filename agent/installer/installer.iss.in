@@ -1090,10 +1090,10 @@ begin
 
   LogFileBrowseButton := TButton.Create(ConfigPage);
   LogFileBrowseButton.Parent := ConfigPage.Surface;
-  LogFileBrowseButton.Caption := 'Browse...';
+  LogFileBrowseButton.Caption := '...';
   LogFileBrowseButton.Left := LogFileEdit.Left + LogFileEdit.Width + ScaleX(4) ;
   LogFileBrowseButton.Top := LogFileEdit.Top - ScaleY(1);
-  LogFileBrowseButton.Width := 75;
+  LogFileBrowseButton.Width := 35;
   LogFileBrowseButton.Height := LogFileEdit.Height + ScaleY(2);
   LogFileBrowseButton.OnClick := @LogFileBrowseFile;
   LogFileBrowseButton.Hide;
@@ -1250,16 +1250,16 @@ begin
   PublicCertEdit.Parent := EncryptionPage.Surface;
   PublicCertEdit.Top := PublicCertLabel.Top - ScaleY(3);
   PublicCertEdit.Left := HostNameEdit.Left;
-  PublicCertEdit.Width := EncryptionPage.SurfaceWidth div 2 - 20;
+  PublicCertEdit.Width := EncryptionPage.SurfaceWidth div 2;
   PublicCertEdit.Text := '';
   PublicCertEdit.Hide;
 
   PublicCertBrowseButton := TButton.Create(EncryptionPage);
   PublicCertBrowseButton.Parent := EncryptionPage.Surface;
-  PublicCertBrowseButton.Caption := 'Browse...';
+  PublicCertBrowseButton.Caption := '...';
   PublicCertBrowseButton.Left := PublicCertEdit.Left + PublicCertEdit.Width + ScaleX(4);
   PublicCertBrowseButton.Top := PublicCertEdit.Top - ScaleY(1);
-  PublicCertBrowseButton.Width := 75;
+  PublicCertBrowseButton.Width := 35;
   PublicCertBrowseButton.Height := PublicCertEdit.Height + ScaleY(2);
   PublicCertBrowseButton.OnClick := @PublicCertBrowseFile;
   PublicCertBrowseButton.Hide;
@@ -1302,16 +1302,16 @@ begin
   PrivateKeyEdit.Parent := EncryptionPage.Surface;
   PrivateKeyEdit.Top := PrivateKeyLabel.Top - ScaleY(3);
   PrivateKeyEdit.Left := HostNameEdit.Left;
-  PrivateKeyEdit.Width := EncryptionPage.SurfaceWidth div 2- 20;
+  PrivateKeyEdit.Width := EncryptionPage.SurfaceWidth div 2;
   PrivateKeyEdit.Text := '';
   PrivateKeyEdit.Hide;
 
   PrivateKeyBrowseButton := TButton.Create(EncryptionPage);
   PrivateKeyBrowseButton.Parent := EncryptionPage.Surface;
-  PrivateKeyBrowseButton.Caption := 'Browse...';
+  PrivateKeyBrowseButton.Caption := '...';
   PrivateKeyBrowseButton.Left := PrivateKeyEdit.Left + PrivateKeyEdit.Width + ScaleX(4);
   PrivateKeyBrowseButton.Top := PrivateKeyEdit.Top - ScaleY(1);
-  PrivateKeyBrowseButton.Width := 75;
+  PrivateKeyBrowseButton.Width := 35;
   PrivateKeyBrowseButton.Height := PrivateKeyEdit.Height + ScaleY(2);
   PrivateKeyBrowseButton.OnClick := @PrivateKeyBrowseFile;
   PrivateKeyBrowseButton.Hide;
@@ -1354,16 +1354,16 @@ begin
   CaEdit.Parent := EncryptionPage.Surface;
   CaEdit.Top := CaLabel.Top - ScaleY(3);
   CaEdit.Left := HostNameEdit.Left;
-  CaEdit.Width := EncryptionPage.SurfaceWidth div 2 - 20;
+  CaEdit.Width := EncryptionPage.SurfaceWidth div 2;
   CaEdit.Text := '';
   CaEdit.Hide;
 
   CaBrowseButton := TButton.Create(EncryptionPage);
   CaBrowseButton.Parent := EncryptionPage.Surface;
-  CaBrowseButton.Caption := 'Browse...';
+  CaBrowseButton.Caption := '...';
   CaBrowseButton.Left := CaEdit.Left + CaEdit.Width + 8;
   CaBrowseButton.Top := CaEdit.Top - ScaleY(1);
-  CaBrowseButton.Width := 75;
+  CaBrowseButton.Width := 35;
   CaBrowseButton.Height := CaEdit.Height + ScaleY(2);
   CaBrowseButton.OnClick := @CaBrowseFile;
   CaBrowseButton.Hide;
