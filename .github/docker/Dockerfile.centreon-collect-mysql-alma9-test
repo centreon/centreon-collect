@@ -37,7 +37,8 @@ dnf --best install -y gcc \
     zstd \
     psmisc \
     sudo \
-    iproute
+    iproute \
+    dsniff
 
 dnf clean all
 

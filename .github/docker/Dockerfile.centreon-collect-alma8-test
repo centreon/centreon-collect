@@ -46,7 +46,8 @@ dnf --best install -y \
     procps-ng \
     zstd \
     psmisc \
-    sudo
+    sudo \
+    dsniff
 
 dnf clean all
 
