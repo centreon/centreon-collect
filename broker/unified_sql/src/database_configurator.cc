@@ -43,7 +43,7 @@ void database_configurator::process() {
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
     _add_severities_mariadb(_diff.severities().added());
-    //    _add_tags_mariadb(_diff.tags().added(), _stream->tags_cache());
+    _add_tags_mariadb(_diff.tags().added());
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
     _add_services_mariadb(_diff.services().added());
@@ -55,7 +55,7 @@ void database_configurator::process() {
     //
     //    /* Modifying existing objects */
     _add_severities_mariadb(_diff.severities().modified());
-    //    _add_tags_mariadb(_diff.tags().modified(), _stream->tags_cache());
+    _add_tags_mariadb(_diff.tags().modified());
     //
     _add_hosts_mariadb(_diff.hosts().modified());
     _add_host_resources_mariadb(_diff.hosts().modified());
@@ -68,6 +68,7 @@ void database_configurator::process() {
     //
     /* Disabling removed objects */
     _del_severities_mariadb(_diff.severities().removed());
+    _del_tags_mariadb(_diff.tags().removed());
     _disable_hosts(_diff.hosts().removed());
     _disable_services_mariadb(_diff.services().removed());
     _disable_services_mariadb(_diff.anomalydetections().removed());
@@ -76,7 +77,7 @@ void database_configurator::process() {
   } else {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added());
-    //    _add_tags_mysql(_diff.tags().added(), _stream->tags_cache());
+    _add_tags_mysql(_diff.tags().added());
     //    _add_hosts_mysql(_diff.hosts().added());
     //    _add_host_resources_mysql(_diff.hosts().added(),
     //                              _stream->resources_cache());
@@ -89,7 +90,7 @@ void database_configurator::process() {
     //
     //    /* Modifying existing objects */
     _add_severities_mysql(_diff.severities().modified());
-    //    _add_tags_mysql(_diff.tags().modified(), _stream->tags_cache());
+    _add_tags_mysql(_diff.tags().modified());
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified(),
                               _stream->resources_cache());
@@ -149,8 +150,15 @@ void database_configurator::_disable_pollers_with_full_conf() {
   //    "DELETE FROM severities WHERE NOT EXISTS ( SELECT 1 FROM resources WHERE
   //    " "resources.severity_id = severities.severity_id)");
   // mysql.run_query(query, database::mysql_error::delete_severities, 0);
+  //
+  // Same comment for tags.
 }
 
+/**
+ * @brief Remove severities from the database. (code for MariaDB).
+ *
+ * @param keys The list of keys to remove.
+ */
 void database_configurator::_del_severities_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         com::centreon::engine::configuration::KeyType>& keys) {
@@ -166,7 +174,9 @@ void database_configurator::_del_severities_mariadb(
     _del_severities_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_del_severities_stmt);
   }
-  auto bind = _del_severities_stmt->create_bind();
+  database::mysql_bulk_stmt* stmt =
+      static_cast<database::mysql_bulk_stmt*>(_del_severities_stmt.get());
+  auto bind = stmt->create_bind();
   bind->reserve(keys.size());
 
   for (const auto& msg : keys) {
@@ -177,8 +187,105 @@ void database_configurator::_del_severities_mariadb(
     cache.erase(std::make_pair(msg.id(), msg.type()));
   }
 
-  _del_severities_stmt->set_bind(std::move(bind));
-  mysql.run_statement(*_del_severities_stmt);
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
+}
+
+/**
+ * @brief Remove severities from the database. (code for MySQL).
+ *
+ * @param keys The list of keys to remove.
+ */
+void database_configurator::_del_severities_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->severities_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} severities", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_severities_stmt) {
+    std::string query("DELETE FROM severities WHERE id=? AND type=?");
+    _del_severities_stmt = std::make_unique<mysql_stmt>(query);
+    mysql.prepare_statement(*_del_severities_stmt);
+  }
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
+    _del_severities_stmt->bind_value_as_u64(0, msg.id());
+    _del_severities_stmt->bind_value_as_u32(1, msg.type());
+    mysql.run_statement(*_del_severities_stmt);
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
+}
+
+/**
+ * @brief Remove tags from the database. (code for MariaDB).
+ *
+ * @param keys The list of keys to remove.
+ */
+void database_configurator::_del_tags_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->tags_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} tags", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_tags_stmt) {
+    std::string query("DELETE FROM tags WHERE id=? AND type=?");
+    _del_tags_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_del_tags_stmt);
+  }
+  database::mysql_bulk_stmt* stmt =
+      static_cast<database::mysql_bulk_stmt*>(_del_tags_stmt.get());
+  auto bind = stmt->create_bind();
+  bind->reserve(keys.size());
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    bind->set_value_as_u64(0, msg.id());
+    bind->set_value_as_u32(1, msg.type());
+    bind->next_row();
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
+
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
+}
+
+/**
+ * @brief Remove tags from the database. (code for MySQL).
+ *
+ * @param keys The list of keys to remove.
+ */
+void database_configurator::_del_tags_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->tags_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} tags", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_tags_stmt) {
+    std::string query("DELETE FROM tags WHERE id=? AND type=?");
+    _del_tags_stmt = std::make_unique<mysql_stmt>(query);
+    mysql.prepare_statement(*_del_tags_stmt);
+  }
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    _del_tags_stmt->bind_value_as_u64(0, msg.id());
+    _del_tags_stmt->bind_value_as_u32(1, msg.type());
+    mysql.run_statement(*_del_tags_stmt);
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
 }
 
 void database_configurator::_disable_hosts(
@@ -257,7 +364,7 @@ void database_configurator::_add_severities_mariadb(
   if (!_add_severities_stmt) {
     std::string query(
         "INSERT INTO severities (id,type,name,level,icon_id) VALUES "
-        "(?,?,?,?,?) ON DUPLICATE KEY UPDATE id=VALUES(id), type=VALUES(type),"
+        "(?,?,?,?,?) ON DUPLICATE KEY UPDATE "
         "name=VALUES(name), level=VALUES(level), icon_id=VALUES(icon_id)");
     _add_severities_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_severities_stmt);
@@ -293,13 +400,14 @@ void database_configurator::_add_severities_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      if (!cache.contains(k)) {
+      auto found = cache.find(k);
+      if (found == cache.end()) {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
         cache[k] = first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, cache[k]);
+                       k.first, k.second, found->second);
       }
     }
   } catch (const std::exception& e) {
@@ -383,8 +491,11 @@ void database_configurator::_add_severities_mysql(
  * @param lst The list of messages to add/update.
  */
 void database_configurator::_add_tags_mariadb(
-    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>& lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+        lst) {
+  if (lst.empty())
+    return;
+  auto& cache = _stream->tags_cache();
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_tags_stmt) {
@@ -395,19 +506,24 @@ void database_configurator::_add_tags_mariadb(
     mysql.prepare_statement(*_add_tags_stmt);
   }
   auto bind = _add_tags_stmt->create_bind();
+  bind->reserve(lst.size());
 
+  uint32_t count = 0;
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.key().id(), msg.key().type());
     keys.push_back(key);
 
-    bind->set_value_as_u64(0, msg.key().id());
-    bind->set_value_as_u32(1, msg.key().type());
+    _logger->info("Processing tag id={}, type={}", key.first, key.second);
+    bind->set_value_as_u64(0, key.first);
+    bind->set_value_as_u32(1, key.second);
     bind->set_value_as_str(
         2, common::truncate_utf8(
                msg.tag_name(),
                get_centreon_storage_tags_col_size(centreon_storage_tags_name)));
     bind->next_row();
+    count++;
   }
+  _logger->debug("{} tags added/modified", count);
   _add_tags_stmt->set_bind(std::move(bind));
 
   try {
@@ -417,8 +533,16 @@ void database_configurator::_add_tags_mariadb(
         *_add_tags_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, cache[k]);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_tags>>: {}", e.what());
   }
@@ -430,8 +554,9 @@ void database_configurator::_add_tags_mariadb(
  * @param lst The list of messages to add/update.
  */
 void database_configurator::_add_tags_mysql(
-    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>& lst,
-    absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& cache) {
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+        lst) {
+  auto& cache = _stream->tags_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint16_t>> keys;
 
@@ -457,8 +582,16 @@ void database_configurator::_add_tags_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, cache[k]);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_tags>>: {}", e.what());
   }
@@ -976,8 +1109,17 @@ void database_configurator::_add_host_resources_mariadb(
         *_add_host_resources_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      auto found = cache.find(k);
+      if (found == cache.end()) {
+        _logger->trace("Host resource with id {} has resource_id {}", k,
+                       first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Host resource with id {} has resource_id {}", k,
+                       found->second);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_host_resources>>: {}",
                    e.what());
