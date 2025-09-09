@@ -2124,6 +2124,9 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
       static_cast<nebstruct_host_status_data*>(data);
   const engine::host* eh = static_cast<engine::host*>(hsd->object_ptr);
 
+  // neb_logger->error(" attrib: {} Stacktrace:\n{}", hsd->attributes,
+  //                   get_stack_trace(20));
+
   auto handle_acknowledgement = [](uint16_t state, auto& hscr) {
     auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
     if (it != gl_acknowledgements.end() &&
@@ -2156,20 +2159,26 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
   if (hsd->attributes != engine::host::STATUS_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host_status>()};
     AdaptiveHostStatus& hst = h.get()->mut_obj();
-    if (hsd->attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
+    if (hsd->attributes != engine::notifier::status_attribute::STATUS_NONE) {
       hst.set_host_id(eh->host_id());
-      hst.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
+      if (hsd->attributes & engine::host::STATUS_DOWNTIME_DEPTH) {
+        hst.set_scheduled_downtime_depth(eh->get_scheduled_downtime_depth());
+      }
+      if (hsd->attributes & engine::host::STATUS_NOTIFICATION_NUMBER) {
+        hst.set_notification_number(eh->get_notification_number());
+      }
+      if (hsd->attributes & engine::host::STATUS_ACKNOWLEDGEMENT) {
+        hst.set_acknowledgement_type(eh->get_acknowledgement());
+      }
+      if (hsd->attributes & engine::notifier::status_attribute::NEXT_CHECK) {
+        hst.set_next_check(eh->get_next_check());
+      }
+      if (hsd->attributes &
+          engine::notifier::status_attribute::SHOULD_BE_SCHEDULED) {
+        hst.set_should_be_scheduled(eh->get_should_be_scheduled());
+      }
+      gl_publisher.write(h);
     }
-    if (hsd->attributes & engine::host::STATUS_NOTIFICATION_NUMBER) {
-      hst.set_host_id(eh->host_id());
-      hst.set_notification_number(eh->get_notification_number());
-    }
-    if (hsd->attributes & engine::host::STATUS_ACKNOWLEDGEMENT) {
-      hst.set_host_id(eh->host_id());
-      hst.set_acknowledgement_type(eh->get_acknowledgement());
-    }
-    gl_publisher.write(h);
-
     // Acknowledgement event.
     handle_acknowledgement(state, hst);
   } else {
@@ -3432,6 +3441,7 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   SPDLOG_LOGGER_DEBUG(
       neb_logger, "callbacks: generating pb service status check result event");
 
+  // neb_logger->trace("Stacktrace:\n{}", get_stack_trace(20));
   nebstruct_service_status_data* ds =
       static_cast<nebstruct_service_status_data*>(data);
   const engine::service* es = static_cast<engine::service*>(ds->object_ptr);
@@ -3476,20 +3486,25 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
     auto as = std::make_shared<neb::pb_adaptive_service_status>();
     AdaptiveServiceStatus& asscr = as.get()->mut_obj();
     fill_service_type(asscr, es);
-    if (ds->attributes & engine::service::STATUS_DOWNTIME_DEPTH) {
+    if (ds->attributes != engine::notifier::status_attribute::STATUS_NONE) {
       asscr.set_host_id(es->host_id());
       asscr.set_service_id(es->service_id());
-      asscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
-    }
-    if (ds->attributes & engine::service::STATUS_NOTIFICATION_NUMBER) {
-      asscr.set_host_id(es->host_id());
-      asscr.set_service_id(es->service_id());
-      asscr.set_notification_number(es->get_notification_number());
-    }
-    if (ds->attributes & engine::service::STATUS_ACKNOWLEDGEMENT) {
-      asscr.set_host_id(es->host_id());
-      asscr.set_service_id(es->service_id());
-      asscr.set_acknowledgement_type(es->get_acknowledgement());
+      if (ds->attributes & engine::service::STATUS_DOWNTIME_DEPTH) {
+        asscr.set_scheduled_downtime_depth(es->get_scheduled_downtime_depth());
+      }
+      if (ds->attributes & engine::service::STATUS_NOTIFICATION_NUMBER) {
+        asscr.set_notification_number(es->get_notification_number());
+      }
+      if (ds->attributes & engine::service::STATUS_ACKNOWLEDGEMENT) {
+        asscr.set_acknowledgement_type(es->get_acknowledgement());
+      }
+      if (ds->attributes & engine::notifier::status_attribute::NEXT_CHECK) {
+        asscr.set_next_check(es->get_next_check());
+      }
+      if (ds->attributes &
+          engine::notifier::status_attribute::SHOULD_BE_SCHEDULED) {
+        asscr.set_should_be_scheduled(es->get_should_be_scheduled());
+      }
     }
     gl_publisher.write(as);
 

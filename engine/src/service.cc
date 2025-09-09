@@ -1988,7 +1988,6 @@ int service::handle_async_check_result(
       obsessive_compulsive_service_check_processor();
   }
 
-  bool need_update = false;
   /* reschedule the next service check ONLY for active, scheduled checks */
   if (reschedule_check) {
     engine_logger(dbg_checks, more) << "Rescheduling next check of service at "
@@ -2026,9 +2025,7 @@ int service::handle_async_check_result(
 
     /* schedule a non-forced check if we can */
     if (get_should_be_scheduled()) {
-      /* No update_status is asked but we store in need_update if it is needed,
-       * to send later. */
-      need_update = schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
+      schedule_check(get_next_check(), CHECK_OPTION_NONE, true);
     }
   }
 
@@ -2060,11 +2057,8 @@ int service::handle_async_check_result(
       !active_checks_enabled()) {
     /* set the checked flag */
     set_has_been_checked(true);
-    /* update the current service status log */
-    need_update = true;
   }
-  if (need_update)
-    update_status();
+  update_status();
 
   /* check to see if the service and/or associate host is flapping */
   if (!flapping_check_done) {
@@ -2578,13 +2572,12 @@ int service::run_scheduled_check(int check_options, double latency) {
      * next check time
      * 10/19/07 EG - keep original check options
      */
-    bool sent = false;
     if (get_should_be_scheduled())
-      sent = schedule_check(get_next_check(), check_options);
+      schedule_check(get_next_check(), check_options, true);
 
-    /* update the status log */
-    if (!sent)
-      update_status();
+    update_status(status_attribute::NEXT_CHECK |
+                  status_attribute::SHOULD_BE_SCHEDULED);
+
     return ERROR;
   }
 
@@ -2847,11 +2840,11 @@ int service::run_async_check_local(int check_options,
  *  @param[in] options     Check options (FORCED, FRESHNESS, ...).
  *
  * @return A boolean telling if service_status has been sent or if
- * no_update_status_now is true, if it should be sent.
+ * no_call_update_status is true, if it should be sent.
  */
 bool service::schedule_check(time_t check_time,
                              uint32_t options,
-                             bool no_update_status_now) {
+                             bool no_call_update_status) {
   engine_logger(dbg_functions, basic) << "schedule_service_check()";
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_service_check()");
 
@@ -2880,6 +2873,8 @@ bool service::schedule_check(time_t check_time,
   bool use_original_event = false;
   timed_event_list::iterator found = events::loop::instance().find_event(
       events::loop::low, timed_event::EVENT_SERVICE_CHECK, this);
+
+  bool next_check_has_changed = false;
 
   // We found another service check event for this service in
   // the queue - what should we do?
@@ -2952,10 +2947,11 @@ bool service::schedule_check(time_t check_time,
     if (!use_original_event) {
       // We're using the new event, so remove the old one.
       events::loop::instance().remove_event(found, events::loop::low);
-      no_update_status_now = true;
+      no_call_update_status = true;
     } else {
       // Reset the next check time (it may be out of sync).
       set_next_check(temp_event->run_time);
+      next_check_has_changed = true;
 
       engine_logger(dbg_checks, most)
           << "Keeping original service check event (ignoring the new one).";
@@ -2977,6 +2973,7 @@ bool service::schedule_check(time_t check_time,
     try {
       // Set the next service check time.
       set_next_check(check_time);
+      next_check_has_changed = true;
 
       // Place the new event in the event queue.
       auto new_event{std::make_unique<timed_event>(
@@ -2987,17 +2984,18 @@ bool service::schedule_check(time_t check_time,
                                                 events::loop::low);
 
       if (!active_checks_enabled())
-        no_update_status_now = true;
+        no_call_update_status = true;
     } catch (...) {
       // Update the status log.
-      update_status();
+      if (next_check_has_changed)
+        update_status(status_attribute::NEXT_CHECK);
       throw;
     }
   }
 
   // Update the status log.
-  if (!no_update_status_now)
-    update_status();
+  if (!no_call_update_status && next_check_has_changed)
+    update_status(status_attribute::NEXT_CHECK);
   return true;
 }
 
