@@ -231,9 +231,9 @@ patch_folder_whitelist(){
   fi
   log_info "" "Updating centreon-engine whitelist format"
   # recursively loop through all files in the /etc/centreon-engine-whitelist directory
-  while IFS= read -r -d '' file; do
+  for file in `find /etc/centreon-engine-whitelist -type f`; do
     patch_whitelist "$file"
-  done < <(find /etc/centreon-engine-whitelist -type f -print0)
+  done
 
   return 0
 }

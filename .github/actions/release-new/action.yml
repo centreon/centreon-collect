@@ -84,7 +84,7 @@ runs:
         set -eu
 
         # Variables
-        COMPONENTS_OSS=("centreon-awie" "centreon-dsm" "centreon-ha" "centreon-open-tickets" "centreon-web")
+        COMPONENTS_COLLECT=("centreon-collect" "centreon-monitoring-agent" "centreon-gorgone" "centreon-common")
         PREVIOUS_STABLE_BRANCH_MAJOR_VERSION=""
         declare -a TMP_STABLE_COMPONENT_TAGS=()
         declare -a NEW_STABLE_TAGS=()
@@ -94,6 +94,8 @@ runs:
         RELEASE_CLOUD="" # (0 = not a release cloud, 1 = release cloud)
         MAJOR_VERSION=""
         MINOR_VERSION=""
+        NEW_MAJOR_VERSION=""
+        NEW_MINOR_VERSION=""
         COMPONENT_DIR=""
         PREVIOUS_STABLE_BUNDLE_TAG="${{ steps.get_previous_release_bundle_tag.outputs.previous_stable_bundle_tag }}"
         PREVIOUS_STABLE_COMPONENT_TAG=""
@@ -116,7 +118,7 @@ runs:
         # Get previous and new version tags for components
         # If release: all component tags should be checked and compared
         # If hotfix: only the hotfix components tags should be checked and compared
-        for component in ${COMPONENTS_OSS[@]}; do
+        for component in ${COMPONENTS_COLLECT[@]}; do
 
           # get PREVIOUS_MAJOR_VERSION and PREVIOUS_MINOR_VERSION
           PREVIOUS_MAJOR_VERSION=$(git show $PREVIOUS_STABLE_BUNDLE_TAG:.version |grep MAJOR | cut -d '=' -f2)
