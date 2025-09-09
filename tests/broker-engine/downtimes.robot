@@ -185,6 +185,74 @@ BEDTSVCFIXED
     Ctn Stop engine
     Ctn Kindly Stop Broker
 
+BEDSVCDTDEL
+    [Documentation]    Given a configuration with BBDO3 and a unique downtime set on a service
+    ...    When the downtime is finished
+    ...    Then the downtime is well removed
+    ...    And the number of downtimes is 0
+    [Tags]    broker    engine    downtime    MON-183648
+    # Just to be sure if we were in BBDO2 just before
+    Ctn Clear Logs
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    rrd    debug
+
+    FOR    ${service_id}    IN RANGE    1    1001
+        Ctn Engine Config Set Value    ${0}    service_${service_id}    check_interval    1
+        Ctn Engine Config Set Value    ${0}    service_${service_id}    retry_interval    1
+    END
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Start Broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Log To Console    Let's do some forced service checks
+    ${service_id}    Set Variable    ${1}
+    FOR    ${host_id}    IN RANGE    1    51
+        FOR    ${count}    IN RANGE    20
+            Ctn Schedule Forced Svc Check    host_${host_id}    service_${service_id}
+	    ${service_id}    Set Variable    ${service_id + 1}
+        END
+    END
+    Log To Console    We wait a bit to have service checks processed.
+    Sleep    2m
+    # It's time to schedule some downtimes
+    Log To Console    All the 50 hosts are set in downtime.
+    ${start}    Ctn Get Round Current Date
+    FOR    ${host_id}    IN RANGE    50
+        Ctn Schedule Host Downtime    0    host_${host_id}    ${180}
+    END
+    Sleep    1m
+
+    Log To Console    We should have more than 1000 downtimes enabled.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT count(*) FROM downtimes WHERE start_time >= ${start} AND deletion_time IS NULL    >    ${1000}    retry_timeout=120s    retry_pause=1s
+    Disconnect From Database
+
+    # After one minute, the downtime should be automatically removed
+
+    FOR    ${count}    IN RANGE    180
+        Log To Console    Downtimes will be removed in about ${180 - ${count}} seconds
+	Sleep    1s
+    END
+    ${result}    Ctn Check Number Of Downtimes    ${0}    ${start}    ${60}
+    Should Be True    ${result}    We should have no downtime enabled.
+
+    Log To Console    We wait a bit to be sure all RRD updates are done.
+    Sleep    2m
+    Ctn Stop Engine
+    # We should not find any error in RRD logs even if the downtime has been removed.
+    Ctn Kindly Stop Broker
+
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
     [Tags]    broker    engine    downtime
