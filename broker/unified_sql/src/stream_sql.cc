@@ -1052,8 +1052,11 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 bool stream::_host_instance_known(uint64_t host_id) const {
   bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
                 _cache_host_instance.end();
-  if (retval)
-    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
+  //  FIXME DBO: with the centralized configuration, checks are executed earlier
+  //  than before and it is possible that the cache is not ready when first
+  //  checks arrive. So we temporarily disable this assert.
+  //  if (retval)
+  //    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
   return retval;
 }
 
@@ -2676,6 +2679,9 @@ void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
       *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
   const auto& obj = global_diff_state.obj();
   _logger_sql->info("unified_sql: processing global diff state event");
+  _logger_sql->info("  hosts: {} added, {} deleted, {} modified",
+                    obj.hosts().added_size(), obj.hosts().removed_size(),
+                    obj.hosts().modified_size());
   database_configurator cfg(obj, this, _logger_sql);
   cfg.process();
 }

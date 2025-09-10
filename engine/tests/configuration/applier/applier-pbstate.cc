@@ -92,28 +92,6 @@ static void AddCfgFile(const std::string& filename) {
     oss << l << std::endl;
 }
 
-static void RmConf() {
-  std::remove("/tmp/ad.cfg");
-  std::remove("/tmp/centengine.cfg");
-  std::remove("/tmp/commands.cfg");
-  std::remove("/tmp/connectors.cfg");
-  std::remove("/tmp/contactgroups.cfg");
-  std::remove("/tmp/contacts.cfg");
-  std::remove("/tmp/dependencies.cfg");
-  std::remove("/tmp/hostescalations.cfg");
-  std::remove("/tmp/hostgroups.cfg");
-  std::remove("/tmp/hosts.cfg");
-  std::remove("/tmp/resource.cfg");
-  std::remove("/tmp/servicedependencies.cfg");
-  std::remove("/tmp/serviceescalations.cfg");
-  std::remove("/tmp/servicegroups.cfg");
-  std::remove("/tmp/services.cfg");
-  std::remove("/tmp/severities.cfg");
-  std::remove("/tmp/tags.cfg");
-  std::remove("/tmp/test-config.cfg");
-  std::remove("/tmp/timeperiods.cfg");
-}
-
 enum class ConfigurationObject {
   ANOMALYDETECTION = 0,
   CONTACTGROUP = 1,

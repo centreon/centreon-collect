@@ -1475,3 +1475,12 @@ mysql& stream::get_mysql() {
 bool stream::supports_bulk_prepared_statements() const {
   return _bulk_prepared_statement;
 }
+
+absl::flat_hash_map<std::string, uint64_t>& stream::host_name_id_cache() {
+  return _host_name_id_cache;
+}
+
+absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
+stream::service_description_id_cache() {
+  return _service_description_id_cache;
+}

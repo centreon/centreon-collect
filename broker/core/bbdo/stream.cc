@@ -1245,8 +1245,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       const std::string& config_version =
           obj.has_state() ? obj.state().config_version() : obj.config_version();
       f.close();
-      _logger->debug("BBDO: Sending Engine configuration to poller {}",
-                     _poller_id);
+      uint32_t id = obj.has_state() ? obj.state().poller_id() : obj.poller_id();
+      _logger->debug(
+          "BBDO: Sending Engine configuration to poller {} and from diff state "
+          "{}",
+          _poller_id, id);
       _write(pb_conf);
       config::applier::state::instance().set_available_conf_sent_to_engine_peer(
           _poller_id);

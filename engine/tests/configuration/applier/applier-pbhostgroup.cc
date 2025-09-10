@@ -122,8 +122,9 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  hg_aply.modify_object(pb_indexed_config.mut_hostgroups().at("temphg").get(),
-                        hg);
+  hg_aply.modify_object(
+      pb_indexed_config.mut_hostgroups().at(std::make_pair("temphg", 1)).get(),
+      hg);
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
@@ -173,9 +174,10 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
   ASSERT_NO_THROW(hg_aply.modify_object(
-      pb_indexed_config.mut_hostgroups().at("temphg").get(), hg));
+      pb_indexed_config.mut_hostgroups().at(std::make_pair("temphg", 1)).get(),
+      hg));
 
-  hg_aply.remove_object("temphg");
+  hg_aply.remove_object(std::make_pair("temphg", 1));
   ASSERT_TRUE(pb_indexed_config.hostgroups().empty());
   ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

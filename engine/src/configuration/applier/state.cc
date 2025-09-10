@@ -1276,6 +1276,7 @@ void applier::state::_apply_diff_conf(
       pb_indexed_config.mut_state().mutable_##field()->add_data(item); \
   }
 
+  pb_indexed_config.mut_state().set_poller_id(diff.poller_id());
   APPLY_DIFF(cfg_main);
   APPLY_REPEATED_DIFF(cfg_file);
   APPLY_REPEATED_DIFF(resource_file);
@@ -1374,7 +1375,6 @@ void applier::state::_apply_diff_conf(
   }
   APPLY_DIFF(status_file);
   APPLY_DIFF(poller_name);
-  APPLY_DIFF(poller_id);
   APPLY_DIFF(cached_service_check_horizon);
   APPLY_DIFF(check_orphaned_hosts);
   APPLY_DIFF(check_orphaned_services);
@@ -1537,10 +1537,16 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
       *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
       [](const Host& obj) -> uint64_t { return obj.host_id(); });
-  _apply_ng<configuration::applier::hostgroup, DiffHostgroup, std::string,
-            Hostgroup>(
+  _apply_ng<configuration::applier::hostgroup, DiffHostgroup,
+            std::pair<std::string, uint32_t>, Hostgroup,
+            DiffHostgroup_PairHostgroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
-      [](const Hostgroup& obj) -> std::string { return obj.hostgroup_name(); });
+      [poller_id = cbm->poller_id()](const Hostgroup& obj) {
+        return std::make_pair(obj.hostgroup_name(), poller_id);
+      },
+      [](const DiffHostgroup_PairHostgroupPoller& key) {
+        return std::make_pair(key.hostgroup_name(), key.poller_id());
+      });
 
   // Apply services.
   _apply_ng<configuration::applier::service, DiffService,
@@ -1576,8 +1582,8 @@ void applier::state::_apply_diff_conf(
   // Resolve hosts, services, host groups.
   _resolve<configuration::Host, uint64_t, applier::host>(
       pb_indexed_config.hosts(), err);
-  _resolve<configuration::Hostgroup, std::string, applier::hostgroup>(
-      pb_indexed_config.hostgroups(), err);
+  _resolve<configuration::Hostgroup, std::pair<std::string, uint32_t>,
+           applier::hostgroup>(pb_indexed_config.hostgroups(), err);
 
   // Resolve services.
   _resolve<configuration::Service, std::pair<uint64_t, uint64_t>,

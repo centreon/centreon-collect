@@ -82,11 +82,13 @@ class indexed_diff_state {
       _modified_hostescalations;
   absl::flat_hash_set<uint64_t> _removed_hostescalations;
 
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _added_hostgroups;
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _modified_hostgroups;
-  absl::flat_hash_set<std::string> _removed_hostgroups;
+  absl::flat_hash_set<std::pair<std::string, uint32_t>> _removed_hostgroups;
 
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _added_hosts;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _modified_hosts;
@@ -248,6 +250,45 @@ class indexed_diff_state {
    */
   template <typename Type, typename Key>
   void _add_message(
+      google::protobuf::RepeatedPtrField<Type>* container,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
+      absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
+      absl::flat_hash_set<Key>& removed_set,
+      std::function<Key(Type*)>&& key_builder) {
+    while (container->size() > 0) {
+      auto obj = std::unique_ptr<Type>(container->ReleaseLast());
+      auto found = removed_set.find(key_builder(obj.get()));
+      if (found != removed_set.end()) {
+        /* We have an added message that is also removed, so it is moved. */
+        removed_set.erase(found);
+        modified_map.emplace(key_builder(obj.get()), std::move(obj));
+      } else {
+        added_map.emplace(key_builder(obj.get()), std::move(obj));
+      }
+    }
+  }
+
+  /**
+   * @brief This internal function is used to add messages to the indexed
+   * diff state. It is used when the diff_state added to this just contains
+   * a state message, not a diff message.
+   *
+   * The goal is to add transverse messages like Hostgroups. The same Hostgroup
+   * can be used by several pollers, and each poller has a different definition
+   * of the same Hostgroup. So, instead of just replacing hostgroups, we must
+   * merge them.
+   *
+   * @tparam Type Type of the messages to add.
+   * @tparam Key Type of the key used to index the messages.
+   * @param container The container of messages to add. It is a pointer to one
+   * of the state message containers.
+   * @param added_map The map of this object containing the added messages.
+   * @param modified_map The map of this object containing the modified.
+   * @param removed_set The set of this object containing the removed.
+   * @param key_builder A function that builds the key from the messages.
+   */
+  template <typename Type, typename Key>
+  void _merge_message(
       google::protobuf::RepeatedPtrField<Type>* container,
       absl::flat_hash_map<Key, std::unique_ptr<Type>>& added_map,
       absl::flat_hash_map<Key, std::unique_ptr<Type>>& modified_map,
