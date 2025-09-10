@@ -49,6 +49,19 @@ class result {
   result();
   result(result const& right);
   result(const check_result& check_res);
+  result(uint64_t commandid,
+         timestamp endtime,
+         int exitcode,
+         process::status exitstatus,
+         timestamp starttime,
+         const std::string_view& outpt)
+      : command_id(commandid),
+        end_time(endtime),
+        exit_code(exitcode),
+        exit_status(exitstatus),
+        start_time(starttime),
+        output(outpt) {}
+
   ~result() noexcept;
   result& operator=(result const& right);
   bool operator==(result const& right) const noexcept;
@@ -59,7 +72,7 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump);
 
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

@@ -20,11 +20,15 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include <gtest/gtest.h>
 #include <signal.h>
+#include <spdlog/common.h>
+#include <chrono>
+#include <thread>
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
-#include "com/centreon/process_manager.hh"
 #include "helper.hh"
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -54,38 +58,49 @@ class my_listener : public commands::command_listener {
 
 class Connector : public ::testing::Test {
  public:
+  std::shared_ptr<connector> cmd_connector;
+
   void SetUp() override {
     signal(SIGPIPE, SIG_IGN);
+    commands_logger->set_level(spdlog::level::trace);
     init_config_state();
   }
 
-  void TearDown() override { deinit_config_state(); }
+  void TearDown() override {
+    deinit_config_state();
+    if (cmd_connector) {
+      cmd_connector->stop_connector();
+      cmd_connector.reset();
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+  }
 };
 
 // Given an empty name
 // When the add_command method is called with it as argument,
 // Then it returns a NULL pointer.
 TEST_F(Connector, NewConnector) {
-  ASSERT_THROW(new commands::connector("", "bar"), std::exception);
+  ASSERT_THROW(commands::connector::load("", "bar", g_io_context),
+               std::exception);
 }
 
 TEST_F(Connector, ForwardWithoutName) {
-  auto c = std::make_shared<commands::connector>(
-      "test segfault", "tests/bin_connector_test_run --kill=2");
-  ASSERT_THROW(new commands::forward("", "bar", c), std::exception);
+  cmd_connector = commands::connector::load(
+      "test segfault", "tests/bin_connector_test_run --kill=2", g_io_context);
+  ASSERT_THROW(new commands::forward("", "bar", cmd_connector), std::exception);
 }
 
 TEST_F(Connector, ForwardWithoutCmd) {
-  auto c = std::make_shared<commands::connector>(
-      "test segfault", "tests/bin_connector_test_run --kill=2");
-  ASSERT_THROW(new commands::forward("foo", "", c), std::exception);
+  cmd_connector = commands::connector::load(
+      "test segfault", "tests/bin_connector_test_run --kill=2", g_io_context);
+  ASSERT_THROW(new commands::forward("foo", "", cmd_connector), std::exception);
 }
 
 // Given an already existing command
 // When the add_command method is called with the same name
 // Then it returns a NULL pointer.
 TEST_F(Connector, SimpleConnector) {
-  commands::connector c("toto", "/bin/ls");
+  cmd_connector = commands::connector::load("toto", "/bin/ls", g_io_context);
 }
 
 // This test is just a test of the run command in usual conditions.
@@ -93,9 +108,10 @@ TEST_F(Connector, SimpleConnector) {
 // and we don't control it during the execution of run().
 TEST_F(Connector, RunWithTimeout) {
   nagios_macros macros = nagios_macros();
-  connector cmd_connector("RunWithTimeout", "tests/bin_connector_test_run");
+  cmd_connector = commands::connector::load(
+      "RunWithTimeout", "tests/bin_connector_test_run", g_io_context);
   result res;
-  cmd_connector.run("commande --timeout=on", macros, 1, res);
+  cmd_connector->run("commande --timeout=on", macros, 1, res);
 
   ASSERT_TRUE(res.command_id != 0u);
 }
@@ -103,9 +119,10 @@ TEST_F(Connector, RunWithTimeout) {
 TEST_F(Connector, RunConnectorAsync) {
   auto lstnr{std::make_unique<my_listener>()};
   nagios_macros macros = nagios_macros();
-  connector cmd_connector("RunConnectorAsync", "tests/bin_connector_test_run");
-  cmd_connector.set_listener(lstnr.get());
-  cmd_connector.run("commande", macros, 1, std::make_shared<check_result>());
+  cmd_connector = commands::connector::load(
+      "RunConnectorAsync", "tests/bin_connector_test_run", g_io_context);
+  cmd_connector->set_listener(lstnr.get());
+  cmd_connector->run("commande", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
   int max_timeout{15};
@@ -120,14 +137,15 @@ TEST_F(Connector, RunConnectorAsync) {
 }
 
 TEST_F(Connector, RunWithConnectorSwitchedOff) {
-  connector cmd_connector("RunWithConnectorSwitchedOff",
-                          "tests/bin_connector_test_run");
+  cmd_connector =
+      commands::connector::load("RunWithConnectorSwitchedOff",
+                                "tests/bin_connector_test_run", g_io_context);
   {
     std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
     nagios_macros macros = nagios_macros();
-    cmd_connector.set_listener(lstnr.get());
-    cmd_connector.run("commande --kill=1", macros, 1,
-                      std::make_shared<check_result>());
+    cmd_connector->set_listener(lstnr.get());
+    cmd_connector->run("commande --kill=1", macros, 1,
+                       std::make_shared<check_result>());
 
     int timeout = 0;
     int max_timeout{15};
@@ -137,17 +155,18 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
       ++timeout;
     }
     result res{lstnr->get_result()};
-    ASSERT_EQ(res.command_id, 0u);
-    ASSERT_EQ(res.output, "");
+    ASSERT_NE(res.command_id, 0u);
+    ASSERT_EQ(res.output, "(Process Timeout)");
   }
 }
 
 TEST_F(Connector, RunConnectorSetCommandLine) {
   my_listener lstnr;
   nagios_macros macros = nagios_macros();
-  connector cmd_connector("SetCommandLine", "tests/bin_connector_test_run");
-  cmd_connector.set_listener(&lstnr);
-  cmd_connector.run("commande1", macros, 1, std::make_shared<check_result>());
+  cmd_connector = commands::connector::load(
+      "SetCommandLine", "tests/bin_connector_test_run", g_io_context);
+  cmd_connector->set_listener(&lstnr);
+  cmd_connector->run("commande1", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
   int max_timeout{15};
@@ -161,8 +180,8 @@ TEST_F(Connector, RunConnectorSetCommandLine) {
   ASSERT_EQ(res.output, "commande1");
 
   lstnr.clear();
-  cmd_connector.set_command_line("tests/bin_connector_test_run");
-  cmd_connector.run("commande2", macros, 1, std::make_shared<check_result>());
+  cmd_connector->set_command_line("tests/bin_connector_test_run");
+  cmd_connector->run("commande2", macros, 1, std::make_shared<check_result>());
 
   timeout = 0;
   max_timeout = 15;

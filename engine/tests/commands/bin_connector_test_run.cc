@@ -219,6 +219,9 @@ static int wait(std::string& query) {
     }
     if (!ret)
       return -1;
+    outfile.open("/tmp/test.txt", std::ios_base::app);
+    outfile << "recv " << ret << "bytes" << std::endl;
+    outfile.close();
     data.append(buffer, ret);
     while (data.size() > 0) {
       size_t pos(data.find(ending));

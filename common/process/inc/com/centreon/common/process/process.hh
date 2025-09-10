@@ -72,10 +72,16 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  * It's full asynchronous, and relies on boost v2 process. On linux version, we
  * don't use boost process child process launcher but a spawnp home made one.
  *
- * It's a one shot class not reusable.
- * That's why we pass executable path, arguments and environment with shared
- * pointers in order to not compute, allocate these parameters each time we
- * start the same process.
+ * It manages stdout and stderr in two modes.
+ *   - For one shot process, we start process without stderr and stdout read
+ *     handlers and we get stdout and stderr at process ending.
+ *   - For continuous used process, we start process with stderr and stdout read
+ *     handlers. And these handlers will be called each time child process sends
+ *     data.
+ *
+ * It's a one shot class not reusable. That's why we pass executable path,
+ * arguments and environment with shared pointers in order to not compute,
+ * allocate these parameters each time we start the same process.
  *
  * It also manages a timeout. When child duration goes more than
  * timeout, we kill (-9) child process and we handle child process die the same
@@ -151,9 +157,13 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
                                           const std::string& /*stderr*/
                                           )>;
 
+  using reader_type = std::function<void(const std::string_view&)>;
+
   handler_type _handler;
   std::string _stdout;
+  reader_type _stdout_handler;
   std::string _stderr;
+  reader_type _stderr_handler;
   int _exit_status = e_exit_status::crash;
   int _exit_code = -1;
 
@@ -166,6 +176,10 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   };
 
   std::atomic_uint _completion_flags = 0;
+
+  void _start_process_nolock(
+      handler_type&& handler,
+      const std::chrono::system_clock::duration& timeout);
 
   void _stdin_write_no_lock(const std::shared_ptr<std::string>& data);
   void _stdin_write(const std::shared_ptr<std::string>& data);
@@ -220,12 +234,17 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   static process_args::pointer parse_cmd_line(const std::string_view& cmd_line);
 
-  int get_pid();
+  int get_pid() const;
 
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 
   void start_process(handler_type&& handler,
+                     const std::chrono::system_clock::duration& timeout);
+
+  void start_process(handler_type&& handler,
+                     reader_type&& stdout_handler,
+                     reader_type&& stderr_handler,
                      const std::chrono::system_clock::duration& timeout);
 
   std::string get_stdout() const {
