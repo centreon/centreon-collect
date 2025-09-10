@@ -29,7 +29,7 @@ BECTAG1
     ...        And INSERT statements should be executed in tags table
     ...        And Configuration file should match database content
     ...        And Tag IDs should be consistent
-    ...    
+    ...
     ...    Scenario: Tag configuration modification
     ...        Given Initial configuration with 20 tags is loaded
     ...        When Configuration is modified to 30 tags
@@ -37,7 +37,7 @@ BECTAG1
     ...        Then 10 additional tags should be added/modified
     ...        And Configuration file should still match database content
     ...        And Tag IDs should remain consistent
-    ...    
+    ...
     ...    Scenario: Tag configuration reduction
     ...        Given Configuration with 30 tags is loaded
     ...        When Configuration is reduced to 11 tags starting at ID 50

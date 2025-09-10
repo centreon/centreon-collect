@@ -45,7 +45,7 @@ class indexed_state {
   absl::flat_hash_map<std::string, std::unique_ptr<Contactgroup>>
       _contactgroups;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
-  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+  absl::btree_map<std::pair<std::string, uint32_t>,
                       std::unique_ptr<Hostgroup>>
       _hostgroups;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>
@@ -206,12 +206,12 @@ class indexed_state {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& mut_hosts() {
     return _hosts;
   }
-  const absl::flat_hash_map<std::pair<std::string, uint32_t>,
+  const absl::btree_map<std::pair<std::string, uint32_t>,
                             std::unique_ptr<Hostgroup>>&
   hostgroups() const {
     return _hostgroups;
   }
-  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+  absl::btree_map<std::pair<std::string, uint32_t>,
                       std::unique_ptr<Hostgroup>>&
   mut_hostgroups() {
     return _hostgroups;
