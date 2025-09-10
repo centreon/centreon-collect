@@ -40,7 +40,8 @@ grpc_client_base::grpc_client_base(
   args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
               conf->get_second_keepalive_interval() * 300);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
-  if (!conf->get_ca_name().empty())
+  if (!conf->get_ca_name().empty() &&
+      conf->get_security_mode() == grpc_config::TLS_INSECURE)
     args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
   if (conf->is_compressed()) {
     grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(

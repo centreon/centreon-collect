@@ -181,7 +181,7 @@ int main(int argc, char* argv[]) {
     _signals.async_wait(signal_handler);
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
-        conf.get_endpoint(), conf.use_encryption(),
+        conf.get_endpoint(), conf.get_security_mode(),
         read_file(conf.get_public_cert_file()),
         read_file(conf.get_private_key_file()),
         read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
