@@ -280,12 +280,6 @@ jobs:
       - name: List features
         id: list-features
         run: |
-          cd tests
-          #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
-          FEATURES_PATTERN="${{ inputs.features_pattern }}"
-          if [ "0" = "0${FEATURES_PATTERN}" ]; then
-             FEATURES_PATTERN="^((?!cma).)*$"
-          fi
           echo "features=$(grep -Rl '*** Test Cases ***' gorgone/tests/robot | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
