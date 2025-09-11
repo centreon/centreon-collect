@@ -1,4 +1,4 @@
-/**
+/**s
  * Copyright 2025 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -44,8 +44,8 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_customvariables_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_service_resources_stmt;
-  std::unique_ptr<database::mysql_bulk_stmt> _add_hostgroups_stmt;
-  std::unique_ptr<database::mysql_bulk_stmt> _add_hostgroup_members_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _add_hostgroups_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _add_hostgroup_members_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroups_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroup_members_stmt;
 
@@ -75,6 +75,9 @@ class database_configurator {
                          com::centreon::engine::configuration::KeyType>& keys);
   void _del_tags_mysql(const ::google::protobuf::RepeatedPtrField<
                        com::centreon::engine::configuration::KeyType>& keys);
+  void _del_hostgroups(const ::google::protobuf::RepeatedPtrField<
+                       com::centreon::engine::configuration::
+                           DiffHostgroup_PairHostgroupPoller>& keys);
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);

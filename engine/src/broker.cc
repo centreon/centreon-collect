@@ -2146,6 +2146,9 @@ static void forward_group(int type, const G* group_data) {
  */
 template <typename G>
 static void forward_pb_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Host group.
   if constexpr (std::is_same_v<G, engine::hostgroup>) {
     assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||

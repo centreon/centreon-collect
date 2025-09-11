@@ -26,6 +26,7 @@
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostdependency_helper.hh"
 #include "common/engine_conf/hostescalation_helper.hh"
+#include "common/engine_conf/hostgroup_helper.hh"
 #include "common/engine_conf/service_helper.hh"
 #include "common/engine_conf/servicedependency_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
@@ -549,6 +550,11 @@ void state_helper::expand(configuration::error_cnt& err) {
   // Expand services
   service_helper::expand(pb_config, err, m_host, m_servicegroups);
 
+  std::shared_ptr<spdlog::logger> logger =
+      log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Expanding on poller {}", pb_config.poller_id());
+  // Expand hostgroups
+  hostgroup_helper::expand(pb_config, err);
   // Expand servicegroups
   servicegroup_helper::expand(pb_config, err, m_servicegroups);
 

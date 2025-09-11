@@ -2684,3 +2684,11 @@ def ctn_check_tag_ids(logfile: str, start):
                 f"Tag {(id, type)} has tag_id {from_logs[(id, type)]} in logs and {tag_id} in database")
             retval = False
     return retval
+
+
+def ctn_clear_prot_files():
+    """
+    Remove all .prot files in /tmp directory.
+    """
+    for file in Path('/tmp').rglob('*.prot'):
+        file.unlink()

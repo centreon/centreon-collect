@@ -37,8 +37,9 @@ void indexed_diff_state::add_diff_state(
     const std::shared_ptr<spdlog::logger>& logger) {
   if (diff_state.has_state()) {
     assert(diff_state.state().poller_id() != 0);
+    diff_state.set_poller_id(diff_state.state().poller_id());
     logger->debug("Adding full configuration for poller {}",
-                  diff_state.state().poller_id());
+                  diff_state.poller_id());
     _add_message<Timeperiod, std::string>(
         diff_state.mutable_state()->mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
@@ -93,10 +94,18 @@ void indexed_diff_state::add_diff_state(
     _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
         diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
-        [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+        [poller_id = diff_state.poller_id(), logger](Hostgroup* obj) {
+          logger->debug("Adding hostgroup {} for poller {}",
+                        obj->hostgroup_name(), poller_id);
           return std::make_pair(obj->hostgroup_name(), poller_id);
         });
 
+    logger->debug("There are {} added hostgroups", _added_hostgroups.size());
+    for (auto& hg : _added_hostgroups) {
+      logger->debug("Host group {} on {} with {} members: {}", hg.first.first,
+                    hg.first.second, hg.second->members().data_size(),
+                    fmt::join(hg.second->members().data(), ", "));
+    }
     _add_message<Service, std::pair<uint64_t, uint64_t>>(
         diff_state.mutable_state()->mutable_services(), _added_services,
         _modified_services, _removed_services, [](Service* obj) {

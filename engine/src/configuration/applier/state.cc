@@ -1541,8 +1541,8 @@ void applier::state::_apply_diff_conf(
             std::pair<std::string, uint32_t>, Hostgroup,
             DiffHostgroup_PairHostgroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
-      [poller_id = cbm->poller_id()](const Hostgroup& obj) {
-        return std::make_pair(obj.hostgroup_name(), poller_id);
+      [](const Hostgroup& obj) {
+        return std::make_pair(obj.hostgroup_name(), obj.poller_id());
       },
       [](const DiffHostgroup_PairHostgroupPoller& key) {
         return std::make_pair(key.hostgroup_name(), key.poller_id());

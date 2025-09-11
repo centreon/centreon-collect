@@ -518,25 +518,25 @@ define command {{
 
     @staticmethod
     def create_host_group(id, mbs):
-        retval = """define hostgroup {{
-    hostgroup_id                    {0}
-    hostgroup_name                  hostgroup_{0}
-    alias                           hostgroup_{0}
-    members                         {1}
+        retval = f"""define hostgroup {{
+    hostgroup_id                    {id}
+    hostgroup_name                  hostgroup_{id}
+    alias                           hostgroup_{id}
+    members                         {','.join(mbs)}
 }}
-""".format(id, ",".join(mbs))
+"""
         logger.console(retval)
         return retval
 
     @staticmethod
     def create_service_group(id, mbs):
-        retval = """define servicegroup {{
-    servicegroup_id                    {0}
-    servicegroup_name                  servicegroup_{0}
-    alias                           servicegroup_{0}
-    members                         {1}
+        retval = f"""define servicegroup {{
+    servicegroup_id                    {id}
+    servicegroup_name                  servicegroup_{id}
+    alias                           servicegroup_{id}
+    members                         {','.join(mbs)}
 }}
-""".format(id, ",".join(mbs))
+"""
         logger.console(retval)
         return retval
 
@@ -1724,7 +1724,8 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         members (list): A list of host names.
     """
     mbs = [line for line in members if line in engine.hosts]
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "a+") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/hostgroups.cfg", "a+") as f:
         logger.console(mbs)
         f.write(engine.create_host_group(id_host_group, mbs))
 
@@ -1744,7 +1745,8 @@ def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: li
     """
     mbs = [line for line in members if line in engine.hosts]
     mbs_str = ",".join(mbs)
-    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "w") as f:
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/hostgroups.cfg", "w") as f:
         logger.console(mbs)
         f.write(f"""define hostgroup {{
     hostgroup_id                    {id_host_group}
@@ -3374,12 +3376,13 @@ def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
         poller (int): The ID of the Engine configuration.
         fic (str): What file to remove.
     """
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(
         r"^\s*cfg_file=" + ETC_ROOT + f"/centreon-engine/config{poller}/{fic}")
     linesearch = [line for line in lines if not r.match(line)]
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w") as ff:
+    with open(f"{conf_dir}/centengine.cfg", "w") as ff:
         ff.writelines(linesearch)
 
 
