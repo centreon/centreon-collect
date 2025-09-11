@@ -79,9 +79,9 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  *     handlers. And these handlers will be called each time child process sends
  *     data.
  *
- * It's a one shot class not reusable. That's why we pass executable path,
+ * It's a one shot class not reusable. That's why we can pass executable path,
  * arguments and environment with shared pointers in order to not compute,
- * allocate these parameters each time we start the same process.
+ * and allocate these parameters each time we start the same process.
  *
  * It also manages a timeout. When child duration goes more than
  * timeout, we kill (-9) child process and we handle child process die the same
@@ -152,7 +152,7 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   using handler_type = std::function<void(const process<use_mutex>& proc,
                                           int /*exit_code*/,
-                                          int, /*exit status*/
+                                          e_exit_status, /*exit status*/
                                           const std::string& /*stdout*/,
                                           const std::string& /*stderr*/
                                           )>;
@@ -164,7 +164,7 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   reader_type _stdout_handler;
   std::string _stderr;
   reader_type _stderr_handler;
-  int _exit_status = e_exit_status::crash;
+  e_exit_status _exit_status = e_exit_status::crash;
   int _exit_code = -1;
 
   enum e_completion_flags : unsigned {

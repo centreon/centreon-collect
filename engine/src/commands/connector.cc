@@ -17,19 +17,12 @@
  *
  */
 #include "com/centreon/engine/commands/connector.hh"
-#include <absl/strings/numbers.h>
-#include <absl/synchronization/mutex.h>
-#include <spdlog/spdlog.h>
-#include <boost/system/detail/error_code.hpp>
-#include <chrono>
 
 #include "com/centreon/common/hex_dump.hh"
-#include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/result.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/timestamp.hh"
 
 using namespace com::centreon::engine::commands;
 
@@ -208,7 +201,7 @@ void connector::run(const std::string& processed_cmd,
     SPDLOG_LOGGER_ERROR(_logger, "time out to execute {}", processed_cmd);
     res.command_id = command_id;
     res.exit_code = service::state_unknown;
-    res.exit_status = process::timeout;
+    res.exit_status = common::e_exit_status::timeout;
     res.start_time = start_time;
     res.end_time = timestamp::now();
     res.output = "(Process Timeout)";
@@ -527,14 +520,14 @@ void connector::_recv_query_execute(const std::string_view& data) {
     res.command_id = command_id;
     res.end_time = timestamp::now();
     res.exit_code = service::state_unknown;
-    res.exit_status = process::normal;
+    res.exit_status = common::e_exit_status::normal;
     res.start_time = info.start_time;
 
     uint32_t execution_time((res.end_time - res.start_time).to_mseconds());
 
     // Check if the check timeout.
     if (info.timeout > 0 && execution_time > info.timeout * 1000) {
-      res.exit_status = process::timeout;
+      res.exit_status = common::e_exit_status::timeout;
       res.output = "(Process Timeout)";
     }
     // The check result was properly returned.
@@ -546,14 +539,14 @@ void connector::_recv_query_execute(const std::string_view& data) {
       res.output = (is_executed ? std_out : std_err);
     }
 
-    if (res.exit_status == process::normal) {
+    if (res.exit_status == common::e_exit_status::normal) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "connector::_recv_query_execute: "
                           "id={}, {}",
                           command_id, res);
     }
 
-    if (res.exit_status == process::timeout) {
+    if (res.exit_status == common::e_exit_status::timeout) {
       SPDLOG_LOGGER_ERROR(_logger,
                           "connector::_recv_query_execute timeout of: "
                           "id={}, {}",
@@ -723,7 +716,8 @@ void connector::_second_timer_handler() {
         ++query_iter;
       } else {
         results.emplace_back(query_iter->command_id, now,
-                             service::state_unknown, process::timeout,
+                             service::state_unknown,
+                             common::e_exit_status::timeout,
                              query_iter->start_time, "(Process Timeout)");
         query_iter = timeout_index.erase(query_iter);
       }

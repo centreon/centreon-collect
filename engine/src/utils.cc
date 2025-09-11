@@ -92,7 +92,7 @@ int my_system_r(nagios_macros* mac,
   end_time.tv_sec = res.end_time.to_seconds();
   end_time.tv_usec = res.end_time.to_useconds() - end_time.tv_sec * 1000000ull;
   *exectime = (res.end_time - res.start_time).to_seconds();
-  *early_timeout = res.exit_status == process::timeout;
+  *early_timeout = res.exit_status == common::e_exit_status::timeout;
   if (max_output_length > 0)
     output = res.output.substr(0, max_output_length - 1);
   else

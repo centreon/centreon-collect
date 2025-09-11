@@ -20,17 +20,7 @@
 #ifndef CCE_COMMANDS_CONNECTOR_HH
 #define CCE_COMMANDS_CONNECTOR_HH
 
-#include <absl/base/thread_annotations.h>
-#include <absl/container/flat_hash_map.h>
-#include <boost/asio/system_context.hpp>
-#include <boost/multi_index/indexed_by.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <memory>
-#include "com/centreon/broker/timestamp.hh"
-#include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/command.hh"
-#include "com/centreon/timestamp.hh"
 
 namespace com::centreon::engine {
 namespace commands {
@@ -50,32 +40,30 @@ namespace commands {
  *  @class connector commands/connector.hh
  *  @brief Command is a specific implementation of commands::command.
  *
- *  connector is a specific implementation of commands::command that
- *  is more efficient than a raw command. A connector is an external software
- *  that launches checks and returns when available their result. For example,
- *  we have a perl connector. Since, it centralizes various checks, it compiles
- *  them while reading and then they are are already compiled and can be
- *  executed faster.
+ * connector is a specific implementation of commands::command that
+ * is more efficient than a raw command. A connector is an external software
+ * that launches checks and returns when available their result. For example,
+ * we have a perl connector. Since, it centralizes various checks, it compiles
+ * them while reading and then they are are already compiled and can be
+ * executed faster.
  *
- *  A connector usually executes many checks, whereas a commands::raw works
- *  with only one check. This is a significant difference.
+ * A connector usually executes many checks, whereas a commands::raw works
+ * with only one check. This is a significant difference.
  *
- *  To exchange with scripts executed by the connector, we use specific commands
- *  to the connector. Those internal functions all begins with _recv_query_ or
- *  _send_query_.
+ * To exchange with scripts executed by the connector, we use specific commands
+ * to the connector. Those internal functions all begins with _recv_query_ or
+ * _send_query_.
  *
- *  The connector is connected to an external program named connector and also
- *  has an internal thread used to restart the connector if needed. So, we have
- *  several variables to control all that:
- *  * _is_running: the connector is up and running.
- *  * _try_to_restart: This boolean tells if the connector is stopped, if we
- *    should start it again. Usually it is the case but when we want to stop
- *    everything, we don't want.
- *  * _thread_running: The thread is running, so it is possible to restart the
- *    the connector.
- *  * _thread_action: This enum asks the thread to start/stop the connector.
- *  * _thread_cv: Here is the condition variable used in pair with
- *    _thread_action.
+ * The connector is connected to an external program named connector
+ * It is full asynchronous and relies on asio.
+ * On start, we start connector child process and then we send immediately
+ * engine version. Once connector version is received, checks will start. 
+ * ⚠️ this class is a shared_from_this(), it will not be deleted until you call
+ * stop_connector()
+ * All checks commands are pushed in _queries queue.
+ * It's a double indexed container indexed by command_id and abs_timeout
+ * A one second period timer checks this queue every second and erases from this
+ * queue all timeout commands
  *
  */
 class connector : public command {

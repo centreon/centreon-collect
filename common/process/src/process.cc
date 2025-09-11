@@ -232,6 +232,8 @@ void process<use_mutex>::start_process(
     handler_type&& handler,
     const std::chrono::system_clock::duration& timeout) {
   detail::lock<use_mutex> l(&_protect);
+  _stdout_handler = reader_type();
+  _stderr_handler = reader_type();
   _start_process_nolock(std::move(handler), timeout);
 }
 

@@ -20,9 +20,6 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include <gtest/gtest.h>
 #include <signal.h>
-#include <spdlog/common.h>
-#include <chrono>
-#include <thread>
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
@@ -34,7 +31,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
 
-class my_listener : public commands::command_listener {
+class connector_listener : public commands::command_listener {
  public:
   result const& get_result() const {
     std::lock_guard<std::mutex> guard(_mutex);
@@ -44,16 +41,24 @@ class my_listener : public commands::command_listener {
   void finished(result const& res) throw() override {
     std::lock_guard<std::mutex> guard(_mutex);
     _res = res;
+    std::cout << "output:" << res.output << std::endl;
+    _outputs.insert(res.output);
   }
 
   void clear() {
     _res.command_id = 0u;
     _res.output = "";
+    _outputs.clear();
+  }
+
+  const absl::flat_hash_set<std::string>& get_outputs() const {
+    return _outputs;
   }
 
  private:
   mutable std::mutex _mutex;
   commands::result _res;
+  absl::flat_hash_set<std::string> _outputs;
 };
 
 class Connector : public ::testing::Test {
@@ -117,7 +122,7 @@ TEST_F(Connector, RunWithTimeout) {
 }
 
 TEST_F(Connector, RunConnectorAsync) {
-  auto lstnr{std::make_unique<my_listener>()};
+  auto lstnr{std::make_unique<connector_listener>()};
   nagios_macros macros = nagios_macros();
   cmd_connector = commands::connector::load(
       "RunConnectorAsync", "tests/bin_connector_test_run", g_io_context);
@@ -136,32 +141,47 @@ TEST_F(Connector, RunConnectorAsync) {
   ASSERT_EQ(res.output, "commande");
 }
 
+/**
+ * @brief we send a command and a kill command with a small timeout and other
+ * commands we expect that connector restart fake connector and that all
+ * commands except kill one will be then executed
+ *
+ */
 TEST_F(Connector, RunWithConnectorSwitchedOff) {
   cmd_connector =
       commands::connector::load("RunWithConnectorSwitchedOff",
                                 "tests/bin_connector_test_run", g_io_context);
-  {
-    std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
-    nagios_macros macros = nagios_macros();
-    cmd_connector->set_listener(lstnr.get());
-    cmd_connector->run("commande --kill=1", macros, 1,
-                       std::make_shared<check_result>());
 
-    int timeout = 0;
-    int max_timeout{15};
-    while (timeout < max_timeout && lstnr->get_result().output == "") {
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      set_time(std::time(nullptr) + 1);
-      ++timeout;
-    }
-    result res{lstnr->get_result()};
-    ASSERT_NE(res.command_id, 0u);
-    ASSERT_EQ(res.output, "(Process Timeout)");
+  std::unique_ptr<connector_listener> lstnr(
+      std::make_unique<connector_listener>());
+  nagios_macros macros = nagios_macros();
+  cmd_connector->set_listener(lstnr.get());
+  cmd_connector->run("beforekill", macros, 60,
+                     std::make_shared<check_result>());
+  cmd_connector->run("commande --kill=1", macros, 1,
+                     std::make_shared<check_result>());
+  for (unsigned int ii = 0; ii < 20; ++ii) {
+    cmd_connector->run(fmt::format("commande{}", ii), macros, 60,
+                       std::make_shared<check_result>());
+  }
+
+  int timeout = 0;
+  int max_timeout{15};
+  while (timeout < max_timeout && lstnr->get_outputs().size() < 21) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    set_time(std::time(nullptr) + 1);
+    ++timeout;
+  }
+  ASSERT_EQ(lstnr->get_outputs().size(), 22);
+  EXPECT_TRUE(lstnr->get_outputs().contains("beforekill"));
+  EXPECT_TRUE(lstnr->get_outputs().contains("(Process Timeout)"));
+  for (unsigned int ii = 0; ii < 20; ++ii) {
+    EXPECT_TRUE(lstnr->get_outputs().contains(fmt::format("commande{}", ii)));
   }
 }
 
 TEST_F(Connector, RunConnectorSetCommandLine) {
-  my_listener lstnr;
+  connector_listener lstnr;
   nagios_macros macros = nagios_macros();
   cmd_connector = commands::connector::load(
       "SetCommandLine", "tests/bin_connector_test_run", g_io_context);
