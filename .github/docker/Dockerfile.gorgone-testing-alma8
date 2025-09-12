@@ -5,7 +5,7 @@ ARG IS_CLOUD=0
 
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
-    --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon-gorgone \
+    --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
     bash -e <<EOF
 
 dnf install -y dnf-plugins-core zstd curl mariadb iproute procps lsof
