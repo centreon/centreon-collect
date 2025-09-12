@@ -14,11 +14,11 @@ on:
       - ".version"
       - ".github/docker/Dockerfile.gorgone-testing-*"
       - ".github/workflows/docker-gorgone-testing.yml"
-  pull_request:
-    paths:
-      - ".version"
-      - ".github/docker/Dockerfile.gorgone-testing-*"
-      - ".github/workflows/docker-gorgone-testing.yml"
+  # pull_request:
+  #   paths:
+  #     - ".version"
+  #     - ".github/docker/Dockerfile.gorgone-testing-*"
+  #     - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
   get-environment:
