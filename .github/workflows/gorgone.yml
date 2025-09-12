@@ -394,7 +394,7 @@ jobs:
 
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-environment.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -491,11 +491,20 @@ jobs:
       - name: Run tests
         run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
 
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
       - name: Upload gorgone and robot debug artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: gorgone-debug-${{ matrix.distrib }}-${{ matrix.feature }}
+          name: gorgone-debug-${{ matrix.distrib }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: |
             log.html
             /var/log/centreon-gorgone
