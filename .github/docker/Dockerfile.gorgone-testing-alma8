@@ -5,6 +5,7 @@ ARG IS_CLOUD=0
 
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon-gorgone \
     bash -e <<EOF
 
 dnf install -y dnf-plugins-core zstd curl mariadb iproute procps lsof
@@ -27,6 +28,8 @@ curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
 dnf install -y nodejs
 # Install mockoon (needs nodejs)
 npm install -g -D @mockoon/cli
+
+dnf install -y /tmp/packages-centreon-gorgone/*.rpm
 
 dnf clean all
 

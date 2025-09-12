@@ -194,7 +194,6 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         include:
           - package_extension: rpm
             image: packaging-centreon-collect-alma8
@@ -205,6 +204,7 @@ jobs:
           - package_extension: deb
             image: packaging-centreon-collect-bookworm
             distrib: bookworm
+          # No ubuntu in 24.10, 24.11 or later for now
 
     runs-on: ubuntu-24.04
 
@@ -262,8 +262,86 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
+  dockerize:
+    needs: [get-environment, package]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [alma8]
+    name: dockerize ${{ matrix.distrib }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
+
+      - name: get cached gorgone and perl-libs package
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+          key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.parse-distrib.outputs.distrib_family || steps.parse-distrib.outputs.distrib_name }}
+          fail-on-cache-miss: true
+
+      - run: |
+          mkdir packages-centreon-gorgone
+          mv *.${{ steps.parse-distrib.outputs.package_extension }} packages-centreon-gorgone/
+        shell: bash
+
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Docker build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          file: .github/docker/Dockerfile.gorgone-testing-${{ matrix.distrib }}
+          pull: true
+          push: true
+          load: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+
+      - name: Store image in local archive
+        run: |
+          docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          mkdir -p docker-image
+          docker save --output ./docker-image/gorgone-testing-${{ matrix.distrib }}.tar gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+        shell: bash
+
+      - name: Clear previous docker image from cache
+        run: |
+          curl \
+            -X DELETE \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/centreon/centreon/actions/caches?key=docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+        shell: bash
+
+      - name: Store slim image in cache
+        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ./docker-image
+          key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
   robot-test-list:
-    needs: [get-environment, package, changes]
+    needs: [get-environment, changes, dockerize]
     if: |
       github.repository == 'centreon/centreon-collect' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -280,6 +358,7 @@ jobs:
       - name: List features
         id: list-features
         run: |
+          cd gorgone/tests/robot/tests
           echo "features=$(grep -Rl '*** Test Cases ***' gorgone/tests/robot | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
@@ -295,10 +374,11 @@ jobs:
       matrix:
         # distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
-        include:
-          - package_extension: rpm
-            image: gorgone-testing-alma8
-            distrib: el8
+        distrib: [alma8]
+        # include:
+        #   - package_extension: rpm
+        #     image: gorgone-testing-alma8
+        #     distrib: el8
           # - package_extension: rpm
           #   image: gorgone-testing-alma9
           #   distrib: el9
@@ -308,7 +388,7 @@ jobs:
 
     runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.major_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ needs.get-environment.outputs.major_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -350,30 +430,48 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - name: get cached gorgone and perl-libs package
+      # - name: get cached gorgone and perl-libs package
+      #   uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      #   with:
+      #     path: ./*.${{ matrix.package_extension }}
+      #     key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+      #     fail-on-cache-miss: true
+
+      # - name: Parse distrib name
+      #   id: parse-distrib
+      #   uses: ./.github/actions/parse-distrib
+      #   with:
+      #     distrib: ${{ matrix.distrib }}
+
+      - name: Restore gorgone image from cache
+        id: cache-docker
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        continue-on-error: true
+        timeout-minutes: 6
         with:
-          path: ./*.${{ matrix.package_extension }}
-          key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
-          fail-on-cache-miss: true
+          path: ./docker-image
+          key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
 
-      - name: Parse distrib name
-        id: parse-distrib
-        uses: ./.github/actions/parse-distrib
-        with:
-          distrib: ${{ matrix.distrib }}
-
-      - name: Install gorgone from just built package
-        shell: bash
+      - name: Load gorgone image
+        if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
         run: |
-          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-            apt update
-            apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
-          else
-            dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
-            # in el8 at least, there is a package for the configuration and a package for the actual code.
-            # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
-          fi
+          docker load --input ./docker-image/docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}.tar
+          docker tag gorgone-testing-${{ matrix.distrib }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+        shell: bash
+
+      # - name: Install gorgone from just built package
+      #   shell: bash
+      #   run: |
+      #     if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+      #       apt update
+      #       apt install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+      #     else
+      #       dnf install -y ./centreon-gorgone*${{ steps.parse-distrib.outputs.package_distrib_name }}* ./centreon-perl-libs-common*${{ steps.parse-distrib.outputs.package_distrib_name }}*
+      #       # in el8 at least, there is a package for the configuration and a package for the actual code.
+      #       # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
+      #     fi
 
       - name: Create databases
         run: |
@@ -385,7 +483,7 @@ jobs:
           mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
       - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' ${{ matrix.feature }}
+        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
