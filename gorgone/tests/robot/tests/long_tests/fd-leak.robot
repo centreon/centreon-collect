@@ -10,7 +10,6 @@ check gorgone proxy do not leak file descriptor with a poller
     [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}db_delete_poller.sql
     ${cmd_count_file_descriptor}=    Set Variable    count=0; for pid in \$(ps aux | grep gorgone-proxy | grep -v grep | awk '{ print \$2 }') ; do num=\$(lsof | grep \$pid | wc -l); count=\$((count + \$num)) ; done ; echo \$count
 
-    Sleep    180
     Log To Console    \nStarting the gorgone setup
     Setup Two Gorgone Instances    communication_mode=push_zmq     central_name=push_zmq_gorgone_central    poller_name=push_zmq_gorgone_poller_2
     # We wait for gorgone to be ready, and grab all file descriptor it need.
