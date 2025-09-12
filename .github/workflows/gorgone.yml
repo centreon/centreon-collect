@@ -365,7 +365,7 @@ jobs:
         id: list-features
         run: |
           cd gorgone/tests/robot/tests
-          echo "features=$(grep -Rl '*** Test Cases ***' gorgone/tests/robot | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test-run:
     needs: [get-environment, changes, robot-test-list]
