@@ -80,8 +80,9 @@ def ctn_get_api_log_with_timeout(token: str, node_path='', host='http://127.0.0.
     uri = host + "/api/" + node_path + "log/" + token
     while time.time() < limit_date:
         response = requests.get(uri)
+        logger.console(response)
         (status, output) = parse_json_response(response)
-        logger.console(f"answer of parse_json_response: {output}")
+        logger.info(f"answer of parse_json_response: {output}")
 
         if not status:
             time.sleep(1)
