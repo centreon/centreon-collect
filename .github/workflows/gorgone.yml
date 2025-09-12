@@ -394,11 +394,11 @@ jobs:
 
     runs-on: ubuntu-24.04
     name: ${{ matrix.feature }}
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
-      credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+    # container:
+    #   image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+    #   credentials:
+    #     username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+    #     password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
     services:
       mariadb:
@@ -444,29 +444,38 @@ jobs:
       #     key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
       #     fail-on-cache-miss: true
 
-      # - name: Parse distrib name
-      #   id: parse-distrib
-      #   uses: ./.github/actions/parse-distrib
-      #   with:
-      #     distrib: ${{ matrix.distrib }}
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.distrib }}
 
-      # - name: Restore gorgone image from cache
-      #   id: cache-docker
-      #   uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
-      #   continue-on-error: true
-      #   timeout-minutes: 6
-      #   with:
-      #     path: ./docker-image
-      #     key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-      #   env:
-      #     SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
+      - name: Restore gorgone image from cache
+        id: cache-docker
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        continue-on-error: true
+        timeout-minutes: 6
+        with:
+          path: ./docker-image
+          key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
 
-      # - name: Load gorgone image
-      #   if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
-      #   run: |
-      #     docker load --input ./docker-image/docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}.tar
-      #     docker tag gorgone-testing-${{ matrix.distrib }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
-      #   shell: bash
+      - name: Load gorgone image
+        if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
+        run: |
+          docker load --input ./docker-image/docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}.tar
+          docker tag gorgone-testing-${{ matrix.distrib }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+        shell: bash
+
+      - name: ${{ format('Test {0}', matrix.feature) }}
+        run: |
+          docker run --rm --ulimit core=-1 --security-opt seccomp=unconfined \
+            -v $(pwd):/test_gorgone  \
+            --workdir /test_gorgone \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} \
+            ./.github/scripts/gorgone-test-robot.sh \
+            ${{ matrix.feature }}
 
       # - name: Install gorgone from just built package
       #   shell: bash
@@ -511,6 +520,29 @@ jobs:
             /var/log/centreon-gorgone
             /etc/centreon-gorgone
           retention-days: 1
+
+  robot-test-report:
+    needs: [robot-test-run]
+    if: ${{ !cancelled() }}
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [alma8]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+        if: ${{ contains(needs.robot-test-run.result, 'failure') }}
+        with:
+          name: gorgone-debug-${{ matrix.distrib }}
+          pattern: gorgone-debug-${{ matrix.distrib }}-*
+          retention-days: 1
+
+      - name: Delete merged artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: $gorgone-debug-${{ matrix.distrib }}-*
+          failOnError: false
 
   # deliver-sources:
   #   runs-on: centreon-common
