@@ -393,6 +393,7 @@ jobs:
           #   distrib: bookworm
 
     runs-on: ubuntu-24.04
+    name: ${{ matrix.feature }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
       credentials:
