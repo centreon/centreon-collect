@@ -11,7 +11,8 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 *** Test Cases ***
 BECNHG1
-    [Documentation]    Given a centralized engine with 3 pollers
+    [Documentation]    Scenario: Host group synchronization across 3 pollers in centralized configuration
+    ...    Given a centralized engine with 3 pollers
     ...    And broker is configured with RRD, central module, and SQL debug logging
     ...    And database connections are set to 5 for both SQL and perfdata outputs
     ...    When I start the broker and engine with new generation

@@ -11,20 +11,20 @@ Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 BECNSVC1
-    [Documentation]    GIVEN a Centreon platform with 3 pollers configured
-    ...    AND 50 hosts distributed across pollers (17+17+16)
-    ...    AND initially 20 services per host
-    ...    AND BBDO3 protocol with unified SQL output enabled
+    [Documentation]    Given a Centreon platform with 3 pollers configured
+    ...    And 50 hosts distributed across pollers (17+17+16)
+    ...    And initially 20 services per host
+    ...    And BBDO3 protocol with unified SQL output enabled
     ...
-    ...    WHEN the number of services per host is progressively increased
-    ...    AND the configuration is hot-reloaded 3 times (20→24→28 services/host)
+    ...    When the number of services per host is progressively increased
+    ...    And the configuration is hot-reloaded 3 times (20→24→28 services/host)
     ...
-    ...    THEN each poller should monitor the correct number of resources
-    ...    AND poller 1 should monitor exactly (17 hosts × services) + 17 hosts
-    ...    AND poller 2 should monitor exactly (17 hosts × services) + 17 hosts
-    ...    AND poller 3 should monitor exactly (16 hosts × services) + 16 hosts
-    ...    AND each verification should complete within 30 seconds
-    ...    AND the load balancing should remain stable during scaling
+    ...    Then each poller should monitor the correct number of resources
+    ...    And poller 1 should monitor exactly (17 hosts × services) + 17 hosts
+    ...    And poller 2 should monitor exactly (17 hosts × services) + 17 hosts
+    ...    And poller 3 should monitor exactly (16 hosts × services) + 16 hosts
+    ...    And each verification should complete within 30 seconds
+    ...    And the load balancing should remain stable during scaling
     [Tags]    broker    engine    services    protobuf
     Ctn Clear Engine Configurations
 
