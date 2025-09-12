@@ -14,7 +14,7 @@ fi
 ulimit -c unlimited
 ulimit -S -n 524288
 
-echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
+# echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
