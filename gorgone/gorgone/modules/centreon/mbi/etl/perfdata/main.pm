@@ -122,64 +122,76 @@ sub purgeTables {
         $startAndEndSameMonth = 1;
     }
 
+    my $monthOnly = defined($etl->{run}->{options}->{month_only}) && $etl->{run}->{options}->{month_only} == 1;
+
     if ($etl->{run}->{options}->{nopurge} == 1) {
         # deleting data that will be rewritten
-        if ($etl->{run}->{etlProperties}->{'perfdata.granularity'} ne 'hour' && (!defined($etl->{run}->{options}->{month_only}) || $etl->{run}->{options}->{month_only} == 0)) {
-            if ((!defined($etl->{run}->{options}->{centile_only}) || $etl->{run}->{options}->{centile_only} == 0)) {                
+        if ((!defined($etl->{run}->{options}->{centile_only}) || $etl->{run}->{options}->{centile_only} == 0)) {
+            if (!$monthOnly &&
+                $etl->{run}->{etlProperties}->{'perfdata.granularity'} ne 'hour') {
                 deleteEntriesForRebuild($etl, name => 'mod_bi_metricdailyvalue', start => $daily_start, end => $daily_end);
-
-                if ($etl->{run}->{etlProperties}->{'perfdata.granularity'} ne "day" && (!defined($etl->{run}->{options}->{month_only}) || $etl->{run}->{options}->{month_only} == 0)) {
-                    deleteEntriesForRebuild($etl, name => 'mod_bi_metrichourlyvalue', start => $hourly_start, end => $hourly_end);
-                }
-          
-                #Deleting monthly data only if start and end are not in the same month
-                if (!$startAndEndSameMonth) {
-                    deleteEntriesForRebuild($etl, name => 'mod_bi_metricmonthcapacity', start => $firstDayOfMonth, end => $daily_end);
-                }
             }
-           
-            if ((!defined($etl->{run}->{options}->{no_centile}) || $etl->{run}->{options}->{no_centile} == 0)) {
-                if (defined($etl->{run}->{etlProperties}->{'centile.day'}) && $etl->{run}->{etlProperties}->{'centile.day'} eq '1') {
-                    deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentiledailyvalue', start => $daily_start, end => $daily_end);
-                }
-                if (defined($etl->{run}->{etlProperties}->{'centile.week'}) && $etl->{run}->{etlProperties}->{'centile.week'} eq '1') {
-                    deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentileweeklyvalue', start => $daily_start, end => $daily_end);
-                }
-            
-                if (defined($etl->{run}->{etlProperties}->{'centile.month'}) && $etl->{run}->{etlProperties}->{'centile.month'} eq '1' && !$startAndEndSameMonth) {
-                    deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentilemonthlyvalue', start => $firstDayOfMonth, end => $daily_end);
-                }
+
+            if (!$monthOnly &&
+                $etl->{run}->{etlProperties}->{'perfdata.granularity'} ne "day") {
+                deleteEntriesForRebuild($etl, name => 'mod_bi_metrichourlyvalue', start => $hourly_start, end => $hourly_end);
+            }
+
+            #Deleting monthly data only if start and end are not in the same month
+            if (!$startAndEndSameMonth) {
+                deleteEntriesForRebuild($etl, name => 'mod_bi_metricmonthcapacity', start => $firstDayOfMonth, end => $daily_end);
+            }
+        }
+
+        if ((!defined($etl->{run}->{options}->{no_centile}) || $etl->{run}->{options}->{no_centile} == 0)) {
+            if (!$monthOnly &&
+                defined($etl->{run}->{etlProperties}->{'centile.day'}) && $etl->{run}->{etlProperties}->{'centile.day'} eq '1') {
+                deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentiledailyvalue', start => $daily_start, end => $daily_end);
+            }
+            if (!$monthOnly &&
+                defined($etl->{run}->{etlProperties}->{'centile.week'}) && $etl->{run}->{etlProperties}->{'centile.week'} eq '1') {
+                deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentileweeklyvalue', start => $daily_start, end => $daily_end);
+            }
+
+            if (!$startAndEndSameMonth &&
+                defined($etl->{run}->{etlProperties}->{'centile.month'}) && $etl->{run}->{etlProperties}->{'centile.month'} eq '1') {
+                deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentilemonthlyvalue', start => $firstDayOfMonth, end => $daily_end);
             }
         }
     } else {
         # deleting and recreating tables, recreating partitions for daily and hourly tables
-        if ($etl->{run}->{etlProperties}->{'perfdata.granularity'} ne "hour" && (!defined($etl->{run}->{options}->{month_only}) || $etl->{run}->{options}->{month_only} == 0)) {
-            if ((!defined($etl->{run}->{options}->{centile_only}) || $etl->{run}->{options}->{centile_only} == 0)) {
+        if ((!defined($etl->{run}->{options}->{centile_only}) || $etl->{run}->{options}->{centile_only} == 0)) {
+            if (!$monthOnly &&
+                $etl->{run}->{etlProperties}->{'perfdata.granularity'} ne 'hour') {
                 emptyTableForRebuild($etl, name => 'mod_bi_metricdailyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
-
-                emptyTableForRebuild($etl, name => 'mod_bi_metricmonthcapacity', column => 'time_id');
             }
-        
-            if ((!defined($etl->{run}->{options}->{no_centile}) || $etl->{run}->{options}->{no_centile} == 0)) {
-                #Managing Daily Centile table
-                if (defined($etl->{run}->{etlProperties}->{'centile.day'}) && $etl->{run}->{etlProperties}->{'centile.day'} eq '1') {
-                    emptyTableForRebuild($etl, name => 'mod_bi_metriccentiledailyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
-                }
-                #Managing Weekly Centile table
-                if (defined($etl->{run}->{etlProperties}->{'centile.week'}) && $etl->{run}->{etlProperties}->{'centile.week'} eq '1') {
-                    emptyTableForRebuild($etl, name => 'mod_bi_metriccentileweeklyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
-                }
-                #Managing Monthly Centile table
-                if (defined($etl->{run}->{etlProperties}->{'centile.month'}) && $etl->{run}->{etlProperties}->{'centile.month'} eq '1') {
-                    emptyTableForRebuild($etl, name => 'mod_bi_metriccentilemonthlyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
-                }
+
+            if (!$monthOnly &&
+                $etl->{run}->{etlProperties}->{'perfdata.granularity'} ne "day") {
+                emptyTableForRebuild($etl, name => 'mod_bi_metrichourlyvalue', column => 'time_id', start => $hourly_start, end => $hourly_end);
+            }
+
+            if (!$startAndEndSameMonth) {
+                emptyTableForRebuild($etl, name => 'mod_bi_metricmonthcapacity', column => 'time_id', start => $firstDayOfMonth, end => $daily_end);
             }
         }
-      
-        if ($etl->{run}->{etlProperties}->{'perfdata.granularity'} ne "day" && 
-            (!defined($etl->{run}->{options}->{month_only}) || $etl->{run}->{options}->{month_only} == 0) && 
-            (!defined($etl->{run}->{options}->{centile_only}) || $etl->{run}->{options}->{centile_only} == 0)) {
-            emptyTableForRebuild($etl, name => 'mod_bi_metrichourlyvalue', column => 'time_id', start => $hourly_start, end => $hourly_end);
+
+        if ((!defined($etl->{run}->{options}->{no_centile}) || $etl->{run}->{options}->{no_centile} == 0)) {
+            #Managing Daily Centile table
+            if (!$monthOnly &&
+                defined($etl->{run}->{etlProperties}->{'centile.day'}) && $etl->{run}->{etlProperties}->{'centile.day'} eq '1') {
+                emptyTableForRebuild($etl, name => 'mod_bi_metriccentiledailyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
+            }
+            #Managing Weekly Centile table
+            if (!$monthOnly &&
+                defined($etl->{run}->{etlProperties}->{'centile.week'}) && $etl->{run}->{etlProperties}->{'centile.week'} eq '1') {
+                emptyTableForRebuild($etl, name => 'mod_bi_metriccentileweeklyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
+            }
+            #Managing Monthly Centile table
+            if (!$startAndEndSameMonth &&
+                defined($etl->{run}->{etlProperties}->{'centile.month'}) && $etl->{run}->{etlProperties}->{'centile.month'} eq '1') {
+                emptyTableForRebuild($etl, name => 'mod_bi_metriccentilemonthlyvalue', column => 'time_id', start => $daily_start, end => $daily_end);
+            }
         }
     }
 }
