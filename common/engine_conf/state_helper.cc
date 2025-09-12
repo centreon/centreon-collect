@@ -550,9 +550,6 @@ void state_helper::expand(configuration::error_cnt& err) {
   // Expand services
   service_helper::expand(pb_config, err, m_host, m_servicegroups);
 
-  std::shared_ptr<spdlog::logger> logger =
-      log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Expanding on poller {}", pb_config.poller_id());
   // Expand hostgroups
   hostgroup_helper::expand(pb_config, err);
   // Expand servicegroups

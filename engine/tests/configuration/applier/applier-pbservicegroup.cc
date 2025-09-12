@@ -75,8 +75,8 @@ TEST_F(ApplierServicegroup, PbModifyServicegroupFromConfig) {
   ASSERT_TRUE(it->second->get_alias() == "test");
 
   sg.set_alias("test_renamed");
-  aply.modify_object(pb_indexed_config.mut_servicegroups().at("test").get(),
-                     sg);
+  aply.modify_object(
+      pb_indexed_config.mut_servicegroups().at({"test", 1}).get(), sg);
   it = engine::servicegroup::servicegroups.find("test");
   ASSERT_TRUE(it->second->get_alias() == "test_renamed");
 }
@@ -207,7 +207,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   aply_grp.resolve_object(*grp, err);
   ASSERT_TRUE(grp->members().data().size() == 1);
 
-  auto found = pb_indexed_config.servicegroups().find("big_group");
+  auto found = pb_indexed_config.servicegroups().find({"big_group", 1});
   ASSERT_TRUE(found != pb_indexed_config.servicegroups().end());
   ASSERT_EQ(found->second->members().data().size(), 1);
 }
@@ -262,12 +262,12 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   aply_grp.resolve_object(*grp, err);
   ASSERT_TRUE(grp->members().data().size() == 1);
 
-  auto found = pb_indexed_config.servicegroups().find("big_group");
+  auto found = pb_indexed_config.servicegroups().find({"big_group", 1});
   ASSERT_TRUE(found != pb_indexed_config.servicegroups().end());
   ASSERT_EQ(found->second->members().data().size(), 1);
 
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 2u);
-  aply_grp.remove_object("big_group");
+  aply_grp.remove_object({"big_group", 1});
   ASSERT_EQ(engine::servicegroup::servicegroups.size(), 1u);
 }
 

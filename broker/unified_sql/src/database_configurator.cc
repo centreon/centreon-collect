@@ -31,6 +31,9 @@ using com::centreon::engine::configuration::ActionServiceOn;
 
 namespace com::centreon::broker::unified_sql {
 
+/**
+ * @brief Execute the configuration process.
+ */
 void database_configurator::process() {
   /* We start by disabling pollers with full conf. */
   _disable_pollers_with_full_conf();
@@ -78,6 +81,7 @@ void database_configurator::process() {
     _disable_service_resources_mariadb(_diff.services().removed());
     _disable_service_resources_mariadb(_diff.anomalydetections().removed());
     _del_hostgroups(_diff.hostgroups().removed());
+    _del_servicegroups(_diff.servicegroups().removed());
   } else {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added());
@@ -87,6 +91,7 @@ void database_configurator::process() {
     _add_services_mysql(_diff.services().added());
     _add_service_resources_mysql(_diff.services().added());
     _add_hostgroups_mysql(_diff.hostgroups().added());
+    _add_servicegroups_mysql(_diff.servicegroups().added());
     //    _add_anomalydetections_mysql(_diff.anomalydetections().added());
     //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().added(),
     //                                          _stream->resources_cache());
@@ -110,6 +115,7 @@ void database_configurator::process() {
     _disable_service_resources_mysql(_diff.services().removed());
     _disable_service_resources_mysql(_diff.anomalydetections().removed());
     _del_hostgroups(_diff.hostgroups().removed());
+    _del_servicegroups(_diff.servicegroups().removed());
   }
   _stream->get_mysql().commit();
 }
@@ -2597,6 +2603,11 @@ void database_configurator::_add_customvariables_mysql(
   mysql.run_query(query);
 }
 
+/**
+ * @brief Add host groups into the database (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
 void database_configurator::_add_hostgroups_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Hostgroup>& lst) {
@@ -2632,10 +2643,6 @@ void database_configurator::_add_hostgroups_mariadb(
     cache.insert({msg.hostgroup_id(), msg.hostgroup_name()});
   }
   _logger->debug("Adding/updating {} host groups", count);
-  _logger->debug("ADD Current hostgroups cache:");
-  for (auto& [key, value] : cache.left) {
-    _logger->debug("* {}: {}", key, value);
-  }
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -2655,9 +2662,6 @@ void database_configurator::_add_hostgroups_mariadb(
       continue;
 
     for (const auto& member : msg_hg.members().data()) {
-      _logger->debug("{} items in host cache", hosts_cache.size());
-      for (auto& item : hosts_cache)
-        _logger->debug("* {}", item.first);
       auto found = hosts_cache.find(member);
       if (found == hosts_cache.end()) {
         _logger->error(
@@ -2680,6 +2684,11 @@ void database_configurator::_add_hostgroups_mariadb(
   }
 }
 
+/**
+ * @brief Add host groups into the database (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
 void database_configurator::_add_hostgroups_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Hostgroup>& lst) {
@@ -2709,11 +2718,17 @@ void database_configurator::_add_hostgroups_mysql(
   mysql.run_query(query);
 }
 
+/**
+ * @brief Add service groups into the database (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
 void database_configurator::_add_servicegroups_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Servicegroup>& lst) {
+  auto& cache = _stream->servicegroups_cache();
   if (lst.empty()) {
-    _logger->debug("No need to add/update host groups, list empty");
+    _logger->debug("No need to add/update service groups, list empty");
     return;
   }
 
@@ -2725,7 +2740,8 @@ void database_configurator::_add_servicegroups_mariadb(
     _add_servicegroups_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_servicegroups_stmt);
   }
-  auto bind = _add_servicegroups_stmt->create_bind();
+  auto* stmt = static_cast<mysql_bulk_stmt*>(_add_servicegroups_stmt.get());
+  auto bind = stmt->create_bind();
 
   uint32_t count = 0;
   for (const auto& msg : lst) {
@@ -2737,10 +2753,14 @@ void database_configurator::_add_servicegroups_mariadb(
                                  get_centreon_storage_servicegroups_col_size(
                                      centreon_storage_servicegroups_name)));
     count++;
+    cache.left.erase(msg.servicegroup_id());
+    cache.right.erase(msg.servicegroup_name());
+    cache.insert({msg.servicegroup_id(), msg.servicegroup_name()});
   }
   _logger->debug("Adding/updateing {} service groups", count);
-  _add_servicegroups_stmt->set_bind(std::move(bind));
-  mysql.run_statement(*_add_servicegroups_stmt);
+
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
 
   if (!_add_servicegroup_members_stmt) {
     std::string query(
@@ -2750,9 +2770,10 @@ void database_configurator::_add_servicegroups_mariadb(
     mysql.prepare_statement(*_add_servicegroup_members_stmt);
   }
 
+  stmt = static_cast<mysql_bulk_stmt*>(_add_servicegroup_members_stmt.get());
+  auto bind_members = stmt->create_bind();
   auto& hosts_cache = _stream->host_name_id_cache();
   auto& services_cache = _stream->service_description_id_cache();
-  auto bind_members = _add_servicegroup_members_stmt->create_bind();
   for (const auto& msg_sg : lst) {
     if (msg_sg.members().data().empty())
       continue;
@@ -2775,24 +2796,34 @@ void database_configurator::_add_servicegroups_mariadb(
             member.second(), member.first(), msg_sg.servicegroup_name());
         continue;
       }
-
       bind_members->set_value_as_i32(0, fnd_host->second);
       bind_members->set_value_as_i32(1, fnd_service->second);
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
+      _logger->info(
+          "enabling membership of service {}:{} to service group {} on "
+          "instance {}",
+          fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
+          _stream->hosts_instances_cache()[fnd_host->second]);
       bind_members->next_row();
     }
   }
   if (!bind_members->empty()) {
-    _add_servicegroups_stmt->set_bind(std::move(bind_members));
-    mysql.run_statement(*_add_servicegroups_stmt);
+    stmt->set_bind(std::move(bind_members));
+    mysql.run_statement(*stmt);
   }
 }
 
+/**
+ * @brief Add service groups into the database (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
 void database_configurator::_add_servicegroups_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Servicegroup>& lst) {
+  auto& cache = _stream->servicegroups_cache();
   if (lst.empty()) {
-    _logger->debug("No need to add/update host groups, list empty");
+    _logger->debug("No need to add/update service groups, list empty");
     return;
   }
 
@@ -2805,6 +2836,9 @@ void database_configurator::_add_servicegroups_mysql(
                              get_centreon_storage_servicegroups_col_size(
                                  centreon_storage_servicegroups_name))));
     values.emplace_back(value);
+    cache.left.erase(msg.servicegroup_id());
+    cache.right.erase(msg.servicegroup_name());
+    cache.insert({msg.servicegroup_id(), msg.servicegroup_name()});
   }
   std::string query(
       fmt::format("INSERT INTO servicegroups VALUES {} ON DUPLICATE KEY UPDATE "
@@ -2813,10 +2847,14 @@ void database_configurator::_add_servicegroups_mysql(
   mysql.run_query(query);
 }
 
+/**
+ * @brief Delete hostgroups from the database.
+ *
+ * @param keys The list of hostgroup/poller_id pairs to delete.
+ */
 void database_configurator::_del_hostgroups(
     const ::google::protobuf::RepeatedPtrField<
-        com::centreon::engine::configuration::
-            DiffHostgroup_PairHostgroupPoller>& keys) {
+        com::centreon::engine::configuration::PairGroupPoller>& keys) {
   auto& cache = _stream->hostgroups_cache();
 
   if (keys.empty())
@@ -2826,10 +2864,10 @@ void database_configurator::_del_hostgroups(
   mysql& mysql = _stream->get_mysql();
 
   for (const auto& msg : keys) {
-    auto found = cache.right.find(msg.hostgroup_name());
+    auto found = cache.right.find(msg.group_name());
     if (found == cache.right.end()) {
       _logger->debug("hostgroup '{}' not found, cannot delete it",
-                     msg.hostgroup_name());
+                     msg.group_name());
     } else {
       _logger->debug("Removing poller {} hosts from hostgroup {}",
                      msg.poller_id(), found->second);
@@ -2837,6 +2875,43 @@ void database_configurator::_del_hostgroups(
           "DELETE hosts_hostgroups FROM hosts_hostgroups "
           "INNER JOIN hosts ON hosts_hostgroups.host_id = hosts.host_id WHERE "
           "hosts_hostgroups.hostgroup_id = {} AND hosts.instance_id = {}",
+          found->second, msg.poller_id()));
+      mysql.run_query(query);
+      cache.right.erase(found);
+    }
+  }
+}
+
+/**
+ * @brief Delete servicegroups from the database.
+ *
+ * @param keys The list of servicegroup/poller_id pairs to delete.
+ */
+void database_configurator::_del_servicegroups(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::PairGroupPoller>& keys) {
+  auto& cache = _stream->servicegroups_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} servicegroups", keys.size());
+  mysql& mysql = _stream->get_mysql();
+
+  for (const auto& msg : keys) {
+    auto found = cache.right.find(msg.group_name());
+    if (found == cache.right.end()) {
+      _logger->debug("servicegroup '{}' not found, cannot delete it",
+                     msg.group_name());
+    } else {
+      _logger->debug("Removing poller {} services from servicegroup {}",
+                     msg.poller_id(), found->second);
+      std::string query(fmt::format(
+          "DELETE services_servicegroups FROM services_servicegroups "
+          "INNER JOIN services ON services_servicegroups.service_id = "
+          "services.service_id WHERE "
+          "services_servicegroups.servicegroup_id = {} AND "
+          "services.instance_id = {}",
           found->second, msg.poller_id()));
       mysql.run_query(query);
       cache.right.erase(found);

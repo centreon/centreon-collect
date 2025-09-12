@@ -108,11 +108,13 @@ class indexed_diff_state {
       _modified_anomalydetections;
   absl::flat_hash_set<std::pair<uint64_t, uint64_t>> _removed_anomalydetections;
 
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _added_servicegroups;
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _modified_servicegroups;
-  absl::flat_hash_set<std::string> _removed_servicegroups;
+  absl::flat_hash_set<std::pair<std::string, uint32_t>> _removed_servicegroups;
 
   absl::flat_hash_map<uint64_t, std::unique_ptr<Servicedependency>>
       _added_servicedependencies;

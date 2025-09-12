@@ -94,9 +94,7 @@ void indexed_diff_state::add_diff_state(
     _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
         diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
-        [poller_id = diff_state.poller_id(), logger](Hostgroup* obj) {
-          logger->debug("Adding hostgroup {} for poller {}",
-                        obj->hostgroup_name(), poller_id);
+        [poller_id = diff_state.poller_id()](Hostgroup* obj) {
           return std::make_pair(obj->hostgroup_name(), poller_id);
         });
 
@@ -119,10 +117,12 @@ void indexed_diff_state::add_diff_state(
           return std::make_pair(obj->host_id(), obj->service_id());
         });
 
-    _add_message<Servicegroup, std::string>(
+    _add_message<Servicegroup, std::pair<std::string, uint32_t>>(
         diff_state.mutable_state()->mutable_servicegroups(),
         _added_servicegroups, _modified_servicegroups, _removed_servicegroups,
-        [](Servicegroup* obj) { return obj->servicegroup_name(); });
+        [poller_id = diff_state.poller_id()](Servicegroup* obj) {
+          return std::make_pair(obj->servicegroup_name(), poller_id);
+        });
 
     _add_message<Hostdependency, uint64_t>(
         diff_state.mutable_state()->mutable_hostdependencies(),
@@ -203,16 +203,14 @@ void indexed_diff_state::add_diff_state(
         _removed_hosts, [](Host* obj) { return obj->host_id(); });
 
     _add_diff_message<DiffHostgroup, Hostgroup,
-                      std::pair<std::string, uint32_t>,
-                      DiffHostgroup_PairHostgroupPoller>(
+                      std::pair<std::string, uint32_t>, PairGroupPoller>(
         diff_state.mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
         [poller_id = diff_state.poller_id()](Hostgroup* obj) {
           return std::make_pair(obj->hostgroup_name(), poller_id);
         },
-        [](const DiffHostgroup_PairHostgroupPoller& proto_key) {
-          return std::make_pair(proto_key.hostgroup_name(),
-                                proto_key.poller_id());
+        [](const PairGroupPoller& proto_key) {
+          return std::make_pair(proto_key.group_name(), proto_key.poller_id());
         });
 
     _add_diff_message<DiffService, Service, std::pair<uint64_t, uint64_t>,
@@ -237,10 +235,16 @@ void indexed_diff_state::add_diff_state(
           return std::make_pair(proto_key.host_id(), proto_key.service_id());
         });
 
-    _add_diff_message<DiffServicegroup, Servicegroup, std::string>(
+    _add_diff_message<DiffServicegroup, Servicegroup,
+                      std::pair<std::string, uint32_t>, PairGroupPoller>(
         diff_state.mutable_servicegroups(), _added_servicegroups,
         _modified_servicegroups, _removed_servicegroups,
-        [](Servicegroup* obj) { return obj->servicegroup_name(); });
+        [poller_id = diff_state.poller_id()](Servicegroup* obj) {
+          return std::make_pair(obj->servicegroup_name(), poller_id);
+        },
+        [](const PairGroupPoller& proto_key) {
+          return std::make_pair(proto_key.group_name(), proto_key.poller_id());
+        });
 
     _add_diff_message<DiffHostdependency, Hostdependency, uint64_t>(
         diff_state.mutable_hostdependencies(), _added_hostdependencies,
@@ -399,7 +403,7 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
   state.mutable_hostgroups()->clear_removed();
   for (const auto& k : _removed_hostgroups) {
     auto* to_remove = state.mutable_hostgroups()->add_removed();
-    to_remove->set_hostgroup_name(k.first);
+    to_remove->set_group_name(k.first);
     to_remove->set_poller_id(k.second);
   }
 
@@ -449,8 +453,11 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
     state.mutable_servicegroups()->mutable_modified()->AddAllocated(
         v.release());
   state.mutable_servicegroups()->clear_removed();
-  for (const std::string& k : _removed_servicegroups)
-    state.mutable_servicegroups()->add_removed(k);
+  for (const auto& k : _removed_servicegroups) {
+    auto* to_remove = state.mutable_servicegroups()->add_removed();
+    to_remove->set_group_name(k.first);
+    to_remove->set_poller_id(k.second);
+  }
 
   state.mutable_servicedependencies()->clear_added();
   for (auto& [k, v] : _added_servicedependencies)

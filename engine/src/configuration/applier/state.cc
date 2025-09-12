@@ -1538,14 +1538,13 @@ void applier::state::_apply_diff_conf(
       *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
       [](const Host& obj) -> uint64_t { return obj.host_id(); });
   _apply_ng<configuration::applier::hostgroup, DiffHostgroup,
-            std::pair<std::string, uint32_t>, Hostgroup,
-            DiffHostgroup_PairHostgroupPoller>(
+            std::pair<std::string, uint32_t>, Hostgroup, PairGroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
       [](const Hostgroup& obj) {
         return std::make_pair(obj.hostgroup_name(), obj.poller_id());
       },
-      [](const DiffHostgroup_PairHostgroupPoller& key) {
-        return std::make_pair(key.hostgroup_name(), key.poller_id());
+      [](const PairGroupPoller& key) {
+        return std::make_pair(key.group_name(), key.poller_id());
       });
 
   // Apply services.
@@ -1572,12 +1571,15 @@ void applier::state::_apply_diff_conf(
       });
 
   // Apply servicegroups.
-  _apply_ng<configuration::applier::servicegroup, DiffServicegroup, std::string,
-            Servicegroup>(*diff.mutable_servicegroups(),
-                          pb_indexed_config.mut_servicegroups(),
-                          [](const Servicegroup& obj) -> std::string {
-                            return obj.servicegroup_name();
-                          });
+  _apply_ng<configuration::applier::servicegroup, DiffServicegroup,
+            std::pair<std::string, uint32_t>, Servicegroup, PairGroupPoller>(
+      *diff.mutable_servicegroups(), pb_indexed_config.mut_servicegroups(),
+      [](const Servicegroup& obj) {
+        return std::make_pair(obj.servicegroup_name(), obj.poller_id());
+      },
+      [](const PairGroupPoller& key) {
+        return std::make_pair(key.group_name(), key.poller_id());
+      });
 
   // Resolve hosts, services, host groups.
   _resolve<configuration::Host, uint64_t, applier::host>(
@@ -1595,8 +1597,8 @@ void applier::state::_apply_diff_conf(
                                       err);
 
   // Resolve service groups.
-  _resolve<configuration::Servicegroup, std::string, applier::servicegroup>(
-      pb_indexed_config.servicegroups(), err);
+  _resolve<configuration::Servicegroup, std::pair<std::string, uint32_t>,
+           applier::servicegroup>(pb_indexed_config.servicegroups(), err);
 
   // Apply host dependencies.
   _apply_ng<configuration::applier::hostdependency, DiffHostdependency, size_t,

@@ -479,7 +479,8 @@ void applier::service::_expand_service_memberships(
   // Browse service groups.
   for (auto& sg_name : obj.servicegroups().data()) {
     // Find service group.
-    auto found = s.mut_servicegroups().find(sg_name);
+    auto found =
+        s.mut_servicegroups().find(std::make_pair(sg_name, cbm->poller_id()));
     if (found == s.mut_servicegroups().end())
       throw engine_error() << fmt::format(
           "Could not add service '{}' of host '{}' to non-existing service "

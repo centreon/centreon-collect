@@ -708,15 +708,17 @@ message Hostescalation {
 }
 
 /* Ignore */
+message PairGroupPoller {
+  string group_name = 1;
+  uint32 poller_id = 2;
+}
+
+/* Ignore */
 message DiffHostgroup {
   /* Added hostgroups */
   repeated Hostgroup added = 1;
   /* Removed hostgroups given by their key in the old list. */
-  message PairHostgroupPoller {
-    string hostgroup_name = 1;
-    uint32 poller_id = 2;
-  }
-  repeated PairHostgroupPoller removed = 2;
+  repeated PairGroupPoller removed = 2;
   /* Modified hostgroups */
   repeated Hostgroup modified = 3;
 }
@@ -864,7 +866,7 @@ message DiffServicegroup {
   /* Added servicegroup */
   repeated Servicegroup added = 1;
   /* Removed servicegroups given by there key in the old list. */
-  repeated string removed = 2;
+  repeated PairGroupPoller removed = 2;
   /* Modified servicegroups */
   repeated Servicegroup modified = 3;
 }
@@ -880,6 +882,12 @@ message Servicegroup {
   uint32 servicegroup_id = 7;
   StringSet servicegroup_members = 8;
   string servicegroup_name = 9;
+  /* The Servicegroup message is the point of view of a Servicegroup from a
+   * Poller. It doesn't represent the Servicegroup itself. So when we work with
+   * differences of Servicegroup, we need to know on which Poller this
+   * difference is. In other words, If a message is the point of view of a
+   * poller, it is worth to know which poller. */
+  uint32 poller_id = 10;
 }
 
 /* Ignore */
@@ -1131,5 +1139,5 @@ message DiffState {
   State state = 145;
   /* This field is needed when a full conf is given to the unified_sql stream.
    * Before adding/modifying elements, we have to disable the previous ones. */
-   repeated uint64 full_conf_poller_id = 146;
+  repeated uint64 full_conf_poller_id = 146;
 }

@@ -75,9 +75,12 @@ class database_configurator {
                          com::centreon::engine::configuration::KeyType>& keys);
   void _del_tags_mysql(const ::google::protobuf::RepeatedPtrField<
                        com::centreon::engine::configuration::KeyType>& keys);
-  void _del_hostgroups(const ::google::protobuf::RepeatedPtrField<
-                       com::centreon::engine::configuration::
-                           DiffHostgroup_PairHostgroupPoller>& keys);
+  void _del_hostgroups(
+      const ::google::protobuf::RepeatedPtrField<
+          com::centreon::engine::configuration::PairGroupPoller>& keys);
+  void _del_servicegroups(
+      const ::google::protobuf::RepeatedPtrField<
+          com::centreon::engine::configuration::PairGroupPoller>& keys);
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);

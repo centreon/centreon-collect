@@ -53,7 +53,8 @@ class indexed_state {
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
                       std::unique_ptr<Anomalydetection>>
       _anomalydetections;
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _servicegroups;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Hostdependency>>
       _hostdependencies;
@@ -235,11 +236,13 @@ class indexed_state {
   services() const {
     return _services;
   }
-  const absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  const absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                            std::unique_ptr<Servicegroup>>&
   servicegroups() const {
     return _servicegroups;
   }
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>&
   mut_servicegroups() {
     return _servicegroups;
   }
