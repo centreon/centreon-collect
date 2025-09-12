@@ -129,15 +129,12 @@ def parse_json_response(response):
         return False, api_json
 
     if 'error' in api_json and api_json['error'] == "no_log":
-        logger.console('gorgone api didnt sent back any logs')
         return False, 'gorgone api didnt sent back any logs'
     for log_detail in api_json["data"]:
-        logger.console(log_detail)
         if log_detail["code"] == 1:
             return False, log_detail
         if log_detail["code"] == 100:
             return True, log_detail
-    logger.console('No log and no error found in gorgone api response.')
     return False, 'No log and no error found in gorgone api response.'
 
 
