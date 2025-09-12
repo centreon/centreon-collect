@@ -100,8 +100,9 @@ void indexed_diff_state::add_diff_state(
 
     logger->debug("There are {} added hostgroups", _added_hostgroups.size());
     for (auto& hg : _added_hostgroups) {
-      logger->debug("Host group {} on {} with {} members: {}", hg.first.first,
-                    hg.first.second, hg.second->members().data_size(),
+      logger->debug("Host group {} on poller {} with {} members: {}",
+                    hg.first.first, hg.first.second,
+                    hg.second->members().data_size(),
                     fmt::join(hg.second->members().data(), ", "));
     }
     _add_message<Service, std::pair<uint64_t, uint64_t>>(

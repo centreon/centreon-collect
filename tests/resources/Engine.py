@@ -1730,6 +1730,43 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         f.write(engine.create_host_group(id_host_group, mbs))
 
 
+def ctn_remove_host_group(index: int, id_host_group: int):
+    """
+    Remove a host group from the engine instance index.
+
+    Args:
+        index (int): index of the configuration (from 0)
+        id_host_group (int): ID of the host group to remove.
+    """
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/hostgroups.cfg", "r") as f:
+        lines = f.readlines()
+
+    hostgroup_id = re.compile(rf"^\s*hostgroup_id\s+{id_host_group}\s*$")
+    hostgroup_begin = re.compile(r"^define hostgroup {$")
+    hostgroup_end = re.compile(r"^}$")
+    hostgroup_begin_idx = 0
+    while True:
+        if (hostgroup_begin_idx >= len(lines)):
+            break
+        if (hostgroup_begin.match(lines[hostgroup_begin_idx])):
+            for hostgroup_line_idx in range(hostgroup_begin_idx, len(lines)):
+                if (hostgroup_id.match(lines[hostgroup_line_idx])):
+                    for end_serv_line in range(hostgroup_line_idx, len(lines)):
+                        if hostgroup_end.match(lines[end_serv_line]):
+                            del lines[hostgroup_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif hostgroup_end.match(lines[hostgroup_line_idx]):
+                    hostgroup_begin_idx = hostgroup_line_idx
+                    break
+        else:
+            hostgroup_begin_idx = hostgroup_begin_idx + 1
+
+    with open(f"{config_dir}/hostgroups.cfg", "w") as f:
+        f.writelines(lines)
+
+
 def ctn_rename_host_group(index: int, id_host_group: int, name: str, members: list):
     """
     Rename a host group on the engine instance index. It also modifies its members.
