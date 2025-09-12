@@ -465,7 +465,7 @@ jobs:
         if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
         run: |
           docker load --input ./docker-image/gorgone-testing-${{ matrix.distrib }}.tar
-          docker tag gorgone-testing-${{ matrix.distrib }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          docker tag gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
         shell: bash
 
       - name: ${{ format('Test {0}', matrix.feature) }}
