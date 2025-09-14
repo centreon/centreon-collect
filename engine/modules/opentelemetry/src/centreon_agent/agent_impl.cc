@@ -220,13 +220,15 @@ static bool add_command_to_agent_conf(
   if (plugins_cmdline.empty()) {
     SPDLOG_LOGGER_ERROR(
         logger,
-        "no add command: agent: {} serv: {}, no plugins cmd_line found in {}",
+        "Failed to add command for agent '{}', service '{}': plugins command "
+        "line is empty (original command line: '{}')",
         peer, service, cmd_line);
     return false;
   }
 
   SPDLOG_LOGGER_TRACE(
-      logger, "add command to agent: {}, serv: {}, cmd {} plugins cmd_line {}",
+      logger,
+      "Add command to agent: {}, serv: {}, cmd {} plugins command line {}",
       peer, service, cmd_name, cmd_line);
 
   com::centreon::agent::Service* serv = cnf->add_services();
@@ -309,8 +311,8 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
-        SPDLOG_LOGGER_ERROR(_logger, "no command found for agent {}",
-                            get_peer());
+        SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} (host: {})",
+                            get_peer(), _agent_info->init().host());
       }
     }
     if (!_last_sent_config ||
@@ -320,11 +322,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       _last_sent_config = new_conf;
     } else {
       new_conf.reset();
-      SPDLOG_LOGGER_DEBUG(_logger, "no need to update conf to {}", get_peer());
+      SPDLOG_LOGGER_DEBUG(_logger, "No need to update conf for agent: {}",
+                          get_peer());
     }
   }
   if (new_conf) {
-    SPDLOG_LOGGER_DEBUG(_logger, "send conf to {}", get_peer());
+    SPDLOG_LOGGER_DEBUG(_logger, "Send conf to agent: {}", get_peer());
     _write(new_conf);
   }
 }

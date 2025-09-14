@@ -91,7 +91,11 @@ bool get_otel_commands(const std::string& host_name,
 
   auto hst_iter = host::hosts.find(host_name);
   if (hst_iter == host::hosts.end()) {
-    SPDLOG_LOGGER_ERROR(logger, "unknown host:{}", host_name);
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "Agent with host name '{}' not found in host list; unable to extract "
+        "OpenTelemetry commands for this agent",
+        host_name);
     return false;
   }
   std::shared_ptr<host> hst = hst_iter->second;
