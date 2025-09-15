@@ -471,6 +471,7 @@ jobs:
       - name: ${{ format('Test {0}', matrix.feature) }}
         run: |
           docker run --rm --ulimit core=-1 --security-opt seccomp=unconfined \
+            --add-host=host.docker.internal:host-gateway \
             -v $(pwd):/test_gorgone  \
             --workdir /test_gorgone \
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} \
