@@ -26,11 +26,6 @@ while true ; do
 done
 set -e
 
-# ulimit -c unlimited
-# ulimit -S -n 524288
-
-# echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
-
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "CREATE DATABASE \`centreon\`"
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
 mysql -h ${MYSQL_HOST} -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
