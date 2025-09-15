@@ -39,4 +39,4 @@ mysql -h ${MYSQL_HOST} -u root -ppassword 'centreon' < /usr/local/src/centreon/c
 mysql -h ${MYSQL_HOST} -u root -ppassword 'centreon-storage' < /usr/local/src/centreon/centreon/www/install/createTablesCentstorage.sql
 
 echo "##### Starting tests #####"
-robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${test_file}
+robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' ${test_file}
