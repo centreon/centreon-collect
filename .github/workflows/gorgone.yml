@@ -491,12 +491,25 @@ jobs:
           docker tag gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
         shell: bash
 
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
       - name: ${{ format('Test {0}', matrix.feature) }}
         env:
           GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
-          docker compose -f ./.github/docker/docker-compose.yml up
+          docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
+          docker compose -f ./.github/docker/docker-compose.yml down
 
       # - name: Install gorgone from just built package
       #   shell: bash
@@ -522,24 +535,13 @@ jobs:
       # - name: Run tests
       #   run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
 
-      - name: Replace / with - in the feature path
-        id: feature-path
-        if: always()
-        run: |
-          feature_name="${{ matrix.feature }}"
-          feature_name_with_dash="${feature_name//\//-}"
-          echo "Modified Feature Name: $feature_name_with_dash"
-          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
-
       - name: Upload gorgone and robot debug artifacts
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: gorgone-debug-${{ matrix.distrib }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: |
-            log.html
-            /var/log/centreon-gorgone
-            /etc/centreon-gorgone
+            /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
           retention-days: 1
 
   robot-test-report:
@@ -562,7 +564,7 @@ jobs:
       - name: Delete merged artifacts
         uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
         with:
-          name: $gorgone-debug-${{ matrix.distrib }}-*
+          name: gorgone-debug-${{ matrix.distrib }}-*
           failOnError: false
 
   # deliver-sources:
