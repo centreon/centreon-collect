@@ -506,6 +506,7 @@ jobs:
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
+          mkdir -p /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
           docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
           docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
           docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
