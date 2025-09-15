@@ -92,7 +92,6 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    Sleep 30
     ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=5
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}

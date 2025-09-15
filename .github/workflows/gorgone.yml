@@ -506,11 +506,6 @@ jobs:
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
-          mkdir -p /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
-          docker compose -f ./.github/docker/docker-compose.yml down
 
       # - name: Install gorgone from just built package
       #   shell: bash
@@ -535,6 +530,17 @@ jobs:
 
       # - name: Run tests
       #   run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
+
+      - name: Get gorgone container logs
+        if: failure()
+        env:
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
+        run: |
+          mkdir -p /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()

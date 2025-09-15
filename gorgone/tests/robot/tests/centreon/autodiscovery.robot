@@ -37,7 +37,7 @@ Test Service Disco don't interpret bash
     [Arguments]    ${poller_name}
     ${start_date}=   Get Current Date    increment=-1s
 
-    ${http_body}=    Get File    ${ROOT_CONFIG}${/}autodiscovery/service-injection-http-bodys.json
+    ${http_body}=    Get File    ${ROOT_CONFIG}${/}autodiscovery/service-injection-http-body.json
     ${response}=    POST  http://127.0.0.1:8085/api/centreon/autodiscovery/services    data=${http_body}
     Log To Console    ${response.json()}
 
