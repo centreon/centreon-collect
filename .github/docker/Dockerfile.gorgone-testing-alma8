@@ -3,6 +3,8 @@ FROM almalinux:8
 ARG VERSION
 ARG IS_CLOUD
 
+COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
+
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
     --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
