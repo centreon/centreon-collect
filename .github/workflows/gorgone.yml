@@ -461,9 +461,9 @@ jobs:
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           mkdir -p /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()
@@ -471,7 +471,7 @@ jobs:
         with:
           name: gorgone-debug-${{ matrix.distrib }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: |
-            /tmp/${{ steps.feature-path.outputs.feature_name_with_dash }}
+            /tmp/gorgone-debug
           retention-days: 1
 
   robot-test-report:
