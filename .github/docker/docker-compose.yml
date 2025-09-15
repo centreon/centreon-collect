@@ -10,7 +10,7 @@ services:
         source: ../..
         target: /test_gorgone
     working_dir: /test_gorgone
-    entrypoint: "./.github/scripts/gorgone-test-robot.sh"
+    entrypoint: ["./.github/scripts/gorgone-test-robot.sh", "${FEATURE}"]
 
   mariadb:
     image: "${MARIADB_IMAGE:-bitnamilegacy/mariadb:10.11}"

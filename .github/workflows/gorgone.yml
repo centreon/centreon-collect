@@ -494,14 +494,9 @@ jobs:
       - name: ${{ format('Test {0}', matrix.feature) }}
         env:
           GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
-
-          docker run --rm --ulimit core=-1 --security-opt seccomp=unconfined \
-            -v $(pwd):/test_gorgone  \
-            --workdir /test_gorgone \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} \
-            ./.github/scripts/gorgone-test-robot.sh \
-            ${{ matrix.feature }}
+          docker compose -f ./.github/docker/docker-compose.yml up
 
       # - name: Install gorgone from just built package
       #   shell: bash
@@ -515,17 +510,17 @@ jobs:
       #       # this is not the case for debian, and for now I don't know why it was made any different between the 2 Os.
       #     fi
 
-      - name: Create databases
-        run: |
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
-          mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
-          mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
-          mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
+      # - name: Create databases
+      #   run: |
+      #     mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+      #     mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
+      #     mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
+      #     mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+      #     mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+      #     mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 
-      - name: Run tests
-        run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
+      # - name: Run tests
+      #   run: robot -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests/${{ matrix.feature }}
 
       - name: Replace / with - in the feature path
         id: feature-path
