@@ -1276,6 +1276,7 @@ void applier::state::_apply_diff_conf(
       pb_indexed_config.mut_state().mutable_##field()->add_data(item); \
   }
 
+  pb_indexed_config.mut_state().set_poller_id(diff.poller_id());
   APPLY_DIFF(cfg_main);
   APPLY_REPEATED_DIFF(cfg_file);
   APPLY_REPEATED_DIFF(resource_file);
@@ -1374,7 +1375,6 @@ void applier::state::_apply_diff_conf(
   }
   APPLY_DIFF(status_file);
   APPLY_DIFF(poller_name);
-  APPLY_DIFF(poller_id);
   APPLY_DIFF(cached_service_check_horizon);
   APPLY_DIFF(check_orphaned_hosts);
   APPLY_DIFF(check_orphaned_services);

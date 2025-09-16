@@ -403,6 +403,10 @@ class stream : public io::stream {
 
   database::mysql_stmt _agent_information_insert_update;
 
+  /* FIXME DBO: We already need the global cache. It isn't already there, so
+   * we introduce a minimal set of it there. */
+  absl::flat_hash_map<std::string, uint64_t> _host_name_id_cache;
+
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
@@ -477,7 +481,6 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
@@ -509,6 +512,7 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
+  void clean_tables(uint32_t instance_id);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
   static const multiplexing::muxer_filter& get_forbidden_filter();
@@ -526,6 +530,18 @@ class stream : public io::stream {
   void remove_poller(const std::shared_ptr<io::data>& d);
   void process_stop(const std::shared_ptr<io::data>& d);
   void update() override;
+  mysql& get_mysql();
+  bool supports_bulk_prepared_statements() const;
+
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
+  resources_cache() {
+    return _resources_cache;
+  }
+
+  std::unordered_map<uint32_t, uint32_t>& hosts_instances_cache() {
+    return _cache_host_instance;
+  }
+  absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

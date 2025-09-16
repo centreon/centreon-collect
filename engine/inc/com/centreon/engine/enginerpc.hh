@@ -17,5 +17,5 @@ class enginerpc final {
   void shutdown();
 };
 
-}
+}  // namespace com::centreon::engine
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */
