@@ -56,6 +56,7 @@ void database_configurator::process() {
     //                                            _stream->resources_cache());
     _add_hostgroups_mariadb(_diff.hostgroups().added());
     _add_servicegroups_mariadb(_diff.servicegroups().added());
+    _add_host_parents_mariadb(_diff.hosts().added(), action::ADDED);
 
     /* Modifying existing objects */
     _add_severities_mariadb(_diff.severities().modified());
@@ -71,6 +72,7 @@ void database_configurator::process() {
     //
     _add_hostgroups_mariadb(_diff.hostgroups().modified());
     _add_servicegroups_mariadb(_diff.servicegroups().modified());
+    _add_host_parents_mariadb(_diff.hosts().modified(), action::MODIFIED);
 
     /* Disabling removed objects */
     _del_severities_mariadb(_diff.severities().removed());
@@ -82,6 +84,7 @@ void database_configurator::process() {
     _disable_service_resources_mariadb(_diff.anomalydetections().removed());
     _del_hostgroups(_diff.hostgroups().removed());
     _del_servicegroups(_diff.servicegroups().removed());
+    _del_host_parents(_diff.hosts().removed());
   } else {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added());
@@ -92,6 +95,7 @@ void database_configurator::process() {
     _add_service_resources_mysql(_diff.services().added());
     _add_hostgroups_mysql(_diff.hostgroups().added());
     _add_servicegroups_mysql(_diff.servicegroups().added());
+    _add_host_parents_mysql(_diff.hosts().added(), action::ADDED);
     //    _add_anomalydetections_mysql(_diff.anomalydetections().added());
     //    _add_anomalydetection_resources_mysql(_diff.anomalydetections().added(),
     //                                          _stream->resources_cache());
@@ -108,6 +112,7 @@ void database_configurator::process() {
     //                                          _stream->resources_cache());
     _add_hostgroups_mysql(_diff.hostgroups().modified());
     _add_servicegroups_mysql(_diff.servicegroups().modified());
+    _add_host_parents_mysql(_diff.hosts().modified(), action::MODIFIED);
     //    /* Disabling removed objects */
     _disable_hosts(_diff.hosts().removed());
     _disable_services_mysql(_diff.services().removed());
@@ -116,6 +121,7 @@ void database_configurator::process() {
     _disable_service_resources_mysql(_diff.anomalydetections().removed());
     _del_hostgroups(_diff.hostgroups().removed());
     _del_servicegroups(_diff.servicegroups().removed());
+    _del_host_parents(_diff.hosts().removed());
   }
   _stream->get_mysql().commit();
 }
@@ -150,6 +156,12 @@ void database_configurator::_disable_pollers_with_full_conf() {
         fmt::join(_diff.hosts().removed(), ","));
     mysql.run_query(query, database::mysql_error::disable_hosts, 0);
   }
+
+  // Little cleanup in hostgroups
+  std::string query(
+      "DELETE FROM hostgroups WHERE NOT EXISTS (SELECT 1 FROM hosts_hostgroups "
+      "WHERE hostgroups.hostgroup_id = hosts_hostgroups.hostgroup_id)");
+  mysql.run_query(query);
 
   //// We can't remove not used severities in case of full configurations.
   // This is not done because with a full conf, we don't know
@@ -2757,7 +2769,7 @@ void database_configurator::_add_servicegroups_mariadb(
     cache.right.erase(msg.servicegroup_name());
     cache.insert({msg.servicegroup_id(), msg.servicegroup_name()});
   }
-  _logger->debug("Adding/updateing {} service groups", count);
+  _logger->debug("Adding/updating {} service groups", count);
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -2800,7 +2812,7 @@ void database_configurator::_add_servicegroups_mariadb(
       bind_members->set_value_as_i32(1, fnd_service->second);
       bind_members->set_value_as_i32(2, msg_sg.servicegroup_id());
       _logger->info(
-          "enabling membership of service {}:{} to service group {} on "
+          "enabling membership of service ({}:{}) to service group {} on "
           "instance {}",
           fnd_host->second, fnd_service->second, msg_sg.servicegroup_id(),
           _stream->hosts_instances_cache()[fnd_host->second]);
@@ -2848,6 +2860,145 @@ void database_configurator::_add_servicegroups_mysql(
 }
 
 /**
+ * @brief Add host parents into the database. A list of hosts is given, and
+ * for each host, we have the list of its pants. (code for MariaDB).
+ *
+ * @param lst The list of Host messages to add/update.
+ * @param act The action that triggered this addition (ADDED or MODIFIED).
+ */
+void database_configurator::_add_host_parents_mariadb(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+        lst,
+    const action& act) {
+  if (lst.empty())
+    return;
+
+  _logger->debug("Adding parents to hosts");
+  mysql& mysql = _stream->get_mysql();
+  if (act == action::MODIFIED) {
+    /* We remove all parents before re-adding them */
+    std::list<uint64_t> host_ids;
+    auto& hosts_cache = _stream->host_name_id_cache();
+    for (const auto& msg : lst)
+      host_ids.push_back(msg.host_id());
+    std::string query(
+        fmt::format("DELETE FROM hosts_hosts_parents WHERE child_id IN ({})",
+                    fmt::join(host_ids, ",")));
+    mysql.run_query(query);
+  }
+  if (!_add_host_parents_stmt) {
+    std::string query(
+        "INSERT INTO hosts_hosts_parents (child_id,parent_id) VALUES "
+        "(?,?) ON DUPLICATE KEY UPDATE child_id=VALUES(child_id),"
+        "parent_id=VALUES(parent_id)");
+    _add_host_parents_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_add_host_parents_stmt);
+  }
+  auto* stmt = static_cast<mysql_bulk_stmt*>(_add_host_parents_stmt.get());
+  auto bind = stmt->create_bind();
+  uint32_t count = 0;
+  for (const auto& msg : lst) {
+    for (const std::string& h : msg.parents().data()) {
+      auto found = _stream->host_name_id_cache().find(h);
+      if (found == _stream->host_name_id_cache().end()) {
+        _logger->error(
+            "Host '{}' does not exist, so cannot add it as parent of host '{}'",
+            h, msg.host_name());
+        continue;
+      }
+      bind->set_value_as_i32(0, msg.host_id());
+      bind->set_value_as_i32(1, found->second);
+      _logger->debug("Adding host {} as parent of host {}", found->second,
+                     msg.host_id());
+      bind->next_row();
+      count++;
+    }
+  }
+  if (count > 0) {
+    _logger->debug("{} host parents added", count);
+    stmt->set_bind(std::move(bind));
+    _stream->get_mysql().run_statement(*stmt);
+  }
+}
+
+/**
+ * @brief Add host parents into the database. A list of hosts is given, and
+ * for each host, we have the list of its pants. (code for Mysql).
+ *
+ * @param lst The list of Host messages to add/update.
+ * @param act The action that triggered this addition (ADDED or MODIFIED).
+ */
+void database_configurator::_add_host_parents_mysql(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
+        lst,
+    const action& act) {
+  if (lst.empty())
+    return;
+
+  _logger->debug("Adding parents to hosts");
+  mysql& mysql = _stream->get_mysql();
+  if (act == action::MODIFIED) {
+    /* We remove all parents before re-adding them */
+    std::list<uint64_t> host_ids;
+    auto& hosts_cache = _stream->host_name_id_cache();
+    for (const auto& msg : lst)
+      host_ids.push_back(msg.host_id());
+    std::string query(
+        fmt::format("DELETE FROM hosts_hosts_parents WHERE child_id IN ({})",
+                    fmt::join(host_ids, ",")));
+    mysql.run_query(query);
+  }
+  if (!_add_host_parents_stmt) {
+    std::string query(
+        "INSERT INTO hosts_hosts_parents (child_id,parent_id) VALUES "
+        "(?,?) ON DUPLICATE KEY UPDATE child_id=VALUES(child_id),"
+        "parent_id=VALUES(parent_id)");
+    _add_host_parents_stmt = std::make_unique<mysql_stmt>(query);
+    mysql.prepare_statement(*_add_host_parents_stmt);
+  }
+
+  uint32_t count = 0;
+  for (const auto& msg : lst) {
+    for (const std::string& h : msg.parents().data()) {
+      auto found = _stream->host_name_id_cache().find(h);
+      if (found == _stream->host_name_id_cache().end()) {
+        _logger->error(
+            "Host '{}' does not exist, so cannot add it as parent of host '{}'",
+            h, msg.host_name());
+        continue;
+      }
+      _add_host_parents_stmt->bind_value_as_i32(0, msg.host_id());
+      _add_host_parents_stmt->bind_value_as_i32(1, found->second);
+      _logger->debug("Adding host {} as parent of host {}", found->second,
+                     msg.host_id());
+      mysql.run_statement(*_add_host_parents_stmt);
+      count++;
+    }
+  }
+  if (count > 0)
+    _logger->debug("{} host parents added", count);
+}
+
+/**
+ * @brief Delete host parents or children from the database.
+ *
+ * @param lst The list of host IDs to delete parents/children from.
+ */
+void database_configurator::_del_host_parents(
+    const ::google::protobuf::RepeatedField<uint64_t>& lst) {
+  if (lst.empty())
+    return;
+
+  _logger->debug("Removing parents from {} hosts", lst.size());
+  mysql& mysql = _stream->get_mysql();
+  std::string query(
+      fmt::format("DELETE FROM hosts_hosts_parents WHERE child_id IN ({0}) OR "
+                  "parent_id IN ({0})",
+                  fmt::join(lst, ",")));
+  mysql.run_query(query);
+}
+
+/**
  * @brief Delete hostgroups from the database.
  *
  * @param keys The list of hostgroup/poller_id pairs to delete.
@@ -2877,9 +3028,13 @@ void database_configurator::_del_hostgroups(
           "hosts_hostgroups.hostgroup_id = {} AND hosts.instance_id = {}",
           found->second, msg.poller_id()));
       mysql.run_query(query);
-      cache.right.erase(found);
     }
   }
+  // Little cleanup in hostgroups
+  std::string query(
+      "DELETE FROM hostgroups WHERE NOT EXISTS (SELECT 1 FROM hosts_hostgroups "
+      "WHERE hostgroups.hostgroup_id = hosts_hostgroups.hostgroup_id)");
+  mysql.run_query(query);
 }
 
 /**
@@ -2908,15 +3063,19 @@ void database_configurator::_del_servicegroups(
                      msg.poller_id(), found->second);
       std::string query(fmt::format(
           "DELETE services_servicegroups FROM services_servicegroups "
-          "INNER JOIN services ON services_servicegroups.service_id = "
-          "services.service_id WHERE "
-          "services_servicegroups.servicegroup_id = {} AND "
-          "services.instance_id = {}",
+          "INNER JOIN hosts ON services_servicegroups.host_id = "
+          "hosts.host_id WHERE services_servicegroups.servicegroup_id = {} AND "
+          "hosts.instance_id = {}",
           found->second, msg.poller_id()));
       mysql.run_query(query);
-      cache.right.erase(found);
     }
   }
+  // Little cleanup in servicegroups
+  std::string query(
+      "DELETE FROM servicegroups WHERE NOT EXISTS (SELECT 1 FROM "
+      "services_servicegroups WHERE servicegroups.servicegroup_id = "
+      "services_servicegroups.servicegroup_id)");
+  mysql.run_query(query);
 }
 
 }  // namespace com::centreon::broker::unified_sql

@@ -35,7 +35,7 @@ import opentelemetry.proto.metrics.v1.metrics_pb2
 from array import array
 from dateutil import parser
 import datetime
-from os import makedirs, chmod, remove
+from os import makedirs, chmod
 from os.path import exists, dirname
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
@@ -1144,7 +1144,8 @@ def ctn_engine_config_replace_value_in_services(idx: int, desc: str, key: str, v
         key (str): Name of the parameter to change.
         value (str): New value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
     r = re.compile(rf"^\s*service_description\s+{desc}\s*$")
@@ -1207,7 +1208,8 @@ def ctn_engine_config_delete_value_in_hosts(idx: int, desc: str, key: str, file:
         file (str): The file to modify, default value 'hosts.cfg'
     """
 
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/{file}"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -1661,11 +1663,12 @@ def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: s
         old_host_name (str): name of the host wanted to be renamed
         new_host_name (str): new name of the host
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{old_host_name}\s*$")
 
     for i in range(len(lines)):
         if host_name.match(lines[i]):
@@ -1686,12 +1689,13 @@ def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
         key (str): the parameter whose value must change.
         value (str): the new value to set.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/hosts.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    key_name = re.compile(r"^\s*" + key)
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    key_name = re.compile(rf"^\s*{key}")
+    host_name = re.compile(rf"^\s*host_name\s+{host}\s*$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
     replaced = False
@@ -1850,8 +1854,8 @@ def ctn_add_service_group(index: int, id_service_group: int, members: list):
         id_service_group (int): ID of the new service group.
         members (list): A list of its members.
     """
-    with open(
-            ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/servicegroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_service_group(id_service_group, members))
 
@@ -3322,11 +3326,12 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
     Add a parent host to an host.
 
     Args:
-        poller: index of the Engine configuration (from 0)
+        poller: Index of the Engine configuration (from 0)
         host: child host name.
         parent_host: host name of the parent of the child host.
     """
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+    config_dir = engine.get_config_dir(poller)
+    with open(f"{config_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*host_name\s+{host}$")
     for i in range(len(lines)):
@@ -3335,7 +3340,7 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
                 i + 1, f"    parents                        {parent_host}\n")
             break
 
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{config_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -3410,14 +3415,14 @@ def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     Remove a config file reference from the centengine.cfg.
 
     Args:
-        poller (int): The ID of the Engine configuration.
+        poller (int): The index of the Engine configuration (from 0).
         fic (str): What file to remove.
     """
     conf_dir = engine.get_config_dir(poller)
     with open(f"{conf_dir}/centengine.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(
-        r"^\s*cfg_file=" + ETC_ROOT + f"/centreon-engine/config{poller}/{fic}")
+        rf"^\s*cfg_file={ETC_ROOT}/centreon-engine/config{poller}/{fic}")
     linesearch = [line for line in lines if not r.match(line)]
     with open(f"{conf_dir}/centengine.cfg", "w") as ff:
         ff.writelines(linesearch)
@@ -3980,11 +3985,12 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     Set the status of a check command.
 
     Args:
-        idx: ID of the Engine configuration.
+        idx: Index of the Engine configuration.
         cmd_name: Name of the command we work on.
         status: 0, 1, 2 or 3.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/commands.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
 
@@ -4468,23 +4474,23 @@ def ctn_send_otl_to_engine_secure(target: str, resource_metrics: list, cert: str
             logger.console(f"gRPC server not ready: {e}")
 
 
-def ctn_get_host_info_grpc(id:  int):
+def ctn_get_host_info_grpc(host_id:  int):
     """
     Retrieve host information via a gRPC call.
 
     Args:
-        id: The identifier of the host to retrieve.
+        host_id: The identifier of the host to retrieve.
 
     Returns:
         A dictionary containing the host informations, if successfully retrieved.
     """
-    if id is not None:
+    if host_id is not None:
         limit = time.time() + 30
         while time.time() < limit:
             time.sleep(1)
             with grpc.insecure_channel("127.0.0.1:50001") as channel:
                 stub = engine_pb2_grpc.EngineStub(channel)
-                request = engine_pb2.NameOrIdIdentifier(id=id)
+                request = engine_pb2.NameOrIdIdentifier(id=host_id)
                 try:
                     host = stub.GetHost(request)
                     host_dict = MessageToDict(
@@ -4767,7 +4773,7 @@ def ctn_check_key_value_existence(data_list, key, value):
 
 def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
     """
-    Delete a element in the file given for the Engine configuration idx.
+    Delete an element in the file given for the Engine configuration idx.
 
     Args:
         idx (int): Index of the Engine configuration (from 0)
@@ -4775,7 +4781,8 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         key (str): The parameter that will be deleted.
         file (str): The file to delete the key from.
     """
-    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    config_dir = engine.get_config_dir(idx)
+    filename = f"{config_dir}/{file}"
 
     with open(filename, "r") as f:
         content = f.read()

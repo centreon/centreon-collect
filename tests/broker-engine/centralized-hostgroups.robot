@@ -78,7 +78,7 @@ BECNHG3
     Check Query Result    SELECT COUNT(*) FROM hosts_hostgroups WHERE hostgroup_id=1    ==    ${12}    retry_timeout=30s    retry_pause=2s
     Disconnect From Database
 
-    FOR    ${i}    IN RANGE    1
+    FOR    ${i}    IN RANGE    4
         Log To Console	  Remove hostgroup on poller ${i + 1}
         Ctn Config Engine Remove Cfg File    ${i}    hostgroups.cfg
         Ctn Notify Broker Of Engine Config Change    ${i}

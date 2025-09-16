@@ -1804,7 +1804,19 @@ def ctn_check_field_db_value(request: str, value, timeout: int):
     return False
 
 
-def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
+def ctn_check_host_status(host: str, value: int, typ: int, in_resources: bool, timeout: int = TIMEOUT):
+    """
+    Check the status of a host in the database
+
+    Args:
+        host: the name of the host
+        value: the expected status value
+        typ: 0 for SOFT, 1 for HARD
+        in_resources: True to check in resources table, False to check in hosts table
+        timeout: timeout in seconds (default: TIMEOUT)
+    Returns:
+        True if the host has the expected status, False otherwise
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1831,7 +1843,7 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
                 result = cursor.fetchall()
                 logger.console(f"{result}")
                 if len(result) > 0:
-                    if int(result[0][key]) == value and int(result[0][confirmed]) == t:
+                    if int(result[0][key]) == value and int(result[0][confirmed]) == typ:
                         return True
         time.sleep(1)
     return False

@@ -84,7 +84,7 @@ int my_system_r(nagios_macros* mac,
   // time to start command.
   gettimeofday(&start_time, nullptr);
 
-   commands::raw raw_cmd("system", cmd);
+  commands::raw raw_cmd("system", cmd);
   commands::result res;
   raw_cmd.run(cmd, *mac, timeout, res);
 
@@ -400,11 +400,13 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling) {
     checks::checker::deinit();
-    /* Before stopping, we stop all the connectors that are not already finished. */
+    /* Before stopping, we stop all the connectors that are not already
+     * finished. */
     for (auto& c : commands::connector::connectors)
       c.second->stop_connector();
 
-    /* Before stopping, we destroy all the running checks that are not already finished. */
+    /* Before stopping, we destroy all the running checks that are not already
+     * finished. */
     com::centreon::engine::commands::command::commands.clear();
 
     neb_free_callback_list();
@@ -499,4 +501,19 @@ std::string get_stack_trace(int max_depth) {
   }
 
   return result;
+}
+
+void update_rpc_server(const std::string& listen_address, uint16_t port) {
+  if (rpc) {
+    rpc->shutdown();
+    rpc.reset();
+  }
+  rpc = std::make_unique<enginerpc>(listen_address, port);
+}
+
+void stop_rpc_server() {
+  if (rpc) {
+    rpc->shutdown();
+    rpc.reset();
+  }
 }

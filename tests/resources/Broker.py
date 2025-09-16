@@ -33,7 +33,6 @@ from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
 import json
-import glob
 import os.path
 import grpc
 import broker_pb2
@@ -1032,7 +1031,6 @@ def ctn_broker_config_add_item(name, key, value):
     """
     conf = current_configs[name]
     conf["centreonBroker"][key] = value
-    output = json.dumps(conf, indent=2)
 
 
 def ctn_broker_config_remove_item(name, key):

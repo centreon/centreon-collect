@@ -26,6 +26,11 @@ using com::centreon::engine::configuration::DiffState;
 
 namespace com::centreon::broker::unified_sql {
 class database_configurator {
+  enum action {
+    ADDED,
+    MODIFIED,
+    DELETED,
+  };
   const DiffState& _diff;
   stream* _stream;
   std::shared_ptr<spdlog::logger> _logger;
@@ -48,6 +53,7 @@ class database_configurator {
   std::unique_ptr<database::mysql_stmt_base> _add_hostgroup_members_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroups_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroup_members_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _add_host_parents_stmt;
 
   void _disable_pollers_with_full_conf();
   void _disable_hosts_and_services();
@@ -142,6 +148,14 @@ class database_configurator {
                                   engine::configuration::Servicegroup>& lst);
   void _add_servicegroups_mysql(const ::google::protobuf::RepeatedPtrField<
                                 engine::configuration::Servicegroup>& lst);
+  void _add_host_parents_mariadb(const ::google::protobuf::RepeatedPtrField<
+                                     engine::configuration::Host>& lst,
+                                 const action& act);
+  void _add_host_parents_mysql(const ::google::protobuf::RepeatedPtrField<
+                                   engine::configuration::Host>& lst,
+                               const action& act);
+  void _del_host_parents(
+      const ::google::protobuf::RepeatedField<uint64_t>& lst);
 
  public:
   database_configurator(const DiffState& diff,

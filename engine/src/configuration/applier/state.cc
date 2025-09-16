@@ -1283,8 +1283,21 @@ void applier::state::_apply_diff_conf(
   APPLY_DIFF(instance_heartbeat_interval);
   APPLY_DIFF(check_service_freshness);
   APPLY_DIFF(enable_flap_detection);
-  APPLY_DIFF(rpc_listen_address);
-  APPLY_DIFF(grpc_port);
+  bool server_changed = false;
+  if (diff.has_rpc_listen_address()) {
+    pb_indexed_config.mut_state().set_rpc_listen_address(
+        diff.rpc_listen_address());
+    server_changed = true;
+  }
+  if (diff.has_grpc_port()) {
+    pb_indexed_config.mut_state().set_grpc_port(diff.grpc_port());
+    server_changed = true;
+  }
+
+  if (server_changed) {
+    update_rpc_server(pb_indexed_config.state().rpc_listen_address(),
+                      pb_indexed_config.state().grpc_port());
+  }
   if (!diff.users().empty()) {
     pb_indexed_config.mut_state().clear_users();
     for (auto& item : diff.users())
