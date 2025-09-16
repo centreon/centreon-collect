@@ -140,7 +140,8 @@ process<use_mutex>::process(
     bool use_setpgid,
     bool use_stdin,
     const process::shared_env& env)
-    : _use_setpgid(use_setpgid),
+    : _args(parse_cmd_line(cmd_line)),
+      _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
       _logger(logger),
@@ -149,7 +150,6 @@ process<use_mutex>::process(
       _stdout_pipe(*io_context),
       _stderr_pipe(*io_context),
       _stdin_pipe(*io_context) {
-  _args = parse_cmd_line(cmd_line);
   SPDLOG_LOGGER_TRACE(_logger, "create process {:p}",
                       static_cast<const void*>(this));
 }

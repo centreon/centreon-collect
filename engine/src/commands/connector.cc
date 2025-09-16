@@ -44,7 +44,7 @@ connector::connector(const std::string& connector_name,
       _state(e_state::not_started),
       _logger(commands_logger),
       _io_context(io_context),
-      _second_timer(*io_context) {
+      _timeout_timer(*io_context) {
   bool enable_environment_macros = pb_config.enable_environment_macros();
   if (enable_environment_macros) {
     SPDLOG_LOGGER_WARN(runtime_logger,
@@ -73,7 +73,7 @@ std::shared_ptr<connector> connector::load(
     command_listener* listener) {
   std::shared_ptr<connector> ret(
       new connector(connector_name, connector_line, io_context, listener));
-  ret->_second_timer_start();
+  ret->_timeout_timer_start();
   return ret;
 }
 
@@ -225,9 +225,16 @@ void connector::set_command_line(const std::string& command_line) {
 }
 
 /**
- * @brief stdout recv handler
+ * @brief Handles data received from the standard output stream of the
+ * associated process.
  *
- *  @param[in] data  stdout data sent by connector.
+ * This function is called whenever new data is available on the stdout of the
+ * managed process. It checks if the data originates from the expected process,
+ * and process response(s).
+ *
+ * @param caller Shared pointer to the process instance emitting the stdout
+ * data.
+ * @param data   The data received from the process's stdout stream.
  */
 void connector::_on_stdout_recv(
     const std::shared_ptr<common::process<true>>& caller,
@@ -284,6 +291,10 @@ void connector::_on_stdout_recv(
       SPDLOG_LOGGER_TRACE(_logger,
                           "connector::data_is_available: request id={}", id);
 
+      if (id >= tab_recv_query.size() || !tab_recv_query[id]) {
+        SPDLOG_LOGGER_ERROR(_logger, "unknown query type: {}", id);
+        continue;
+      }
       if (first_sep >= str.size()) {
         SPDLOG_LOGGER_ERROR(_logger,
                             "no response data received from connector {} for "
@@ -299,9 +310,16 @@ void connector::_on_stdout_recv(
 }
 
 /**
- * @brief stderr recv handler
+ * @brief Handles data received from the standard error stream of the associated
+ * process.
  *
- *  @param[in] data  stderr data sent by connector.
+ * This function is called whenever new data is available on the standard error
+ * (stderr) output of the managed process. It checks if the data originates from
+ * the expected process, and logs the error message using the configured logger.
+ *
+ * @param caller Shared pointer to the process instance emitting the stderr
+ * data.
+ * @param data   The data received from the process's standard error stream.
  */
 void connector::_on_stderr_recv(
     const std::shared_ptr<common::process<true>>& caller,
@@ -313,10 +331,10 @@ void connector::_on_stderr_recv(
 }
 
 /**
- *  Provide by process_listener interface. Call at the end
- *  of the process execution.
+ *  Called at the end of the process execution. It checks if the event
+ *  originates from the expected process.
  *
- *  @param[in] p  The process to finished.
+ *  @param[in] caller Shared pointer to the ended process instance
  */
 void connector::_on_process_end(const common::process<true>& caller) {
   try {
@@ -356,7 +374,7 @@ void connector::stop_connector() {
 void connector::_connector_close() {
   std::lock_guard l(_lock);
 
-  _second_timer.cancel();
+  _timeout_timer.cancel();
   // Exit if connector is not running.
   if (_state == e_state::not_started)
     return;
@@ -687,19 +705,30 @@ void connector::_send_query_version_nolock() {
   _process->write_to_stdin(query);
 }
 
-void connector::_second_timer_start() {
+/**
+ * @brief start timeout timer that will expire in one second
+ *
+ */
+void connector::_timeout_timer_start() {
   std::lock_guard l(_lock);
-  _second_timer.expires_after(std::chrono::seconds(1));
-  _second_timer.async_wait(
+  _timeout_timer.expires_after(std::chrono::seconds(1));
+  _timeout_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
         if (!err) {
-          me->_second_timer_handler();
-          me->_second_timer_start();
+          me->_timeout_timer_handler();
+          me->_timeout_timer_start();
         }
       });
 }
 
-void connector::_second_timer_handler() {
+/**
+ * @brief this handler called every second will check expired commands and then
+ * generate a timeout result
+ * expired commands are also removed from _queries queue so their results will
+ * be ignored
+ *
+ */
+void connector::_timeout_timer_handler() {
   // check time out for commands
   timestamp now = timestamp::now();
   std::vector<result> results;

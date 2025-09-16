@@ -57,7 +57,7 @@ namespace commands {
  * The connector is connected to an external program named connector
  * It is full asynchronous and relies on asio.
  * On start, we start connector child process and then we send immediately
- * engine version. Once connector version is received, checks will start. 
+ * engine version. Once connector version is received, checks will start.
  * ⚠️ this class is a shared_from_this(), it will not be deleted until you call
  * stop_connector()
  * All checks commands are pushed in _queries queue.
@@ -113,7 +113,7 @@ class connector : public command {
   mutable absl::Mutex _results_m;
   std::shared_ptr<spdlog::logger> _logger;
   std::shared_ptr<asio::io_context> _io_context;
-  asio::system_timer _second_timer ABSL_GUARDED_BY(_lock);
+  asio::system_timer _timeout_timer ABSL_GUARDED_BY(_lock);
 
   void _connector_close();
   void _connector_start_nolock() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_lock);
@@ -134,8 +134,8 @@ class connector : public command {
                        const std::string_view& data);
   void _on_process_end(const common::process<true>& caller);
 
-  void _second_timer_start();
-  void _second_timer_handler();
+  void _timeout_timer_start();
+  void _timeout_timer_handler();
 
   connector(std::string const& connector_name,
             std::string const& connector_line,
