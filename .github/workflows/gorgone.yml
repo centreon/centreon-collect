@@ -337,8 +337,8 @@ jobs:
           context: .
           file: .github/docker/Dockerfile.gorgone-testing-${{ matrix.distrib }}
           build-args: |
-            "VERSION=24.10"
-            "IS_CLOUD=0"
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
+            "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
