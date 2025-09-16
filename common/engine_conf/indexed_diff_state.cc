@@ -32,8 +32,14 @@ namespace com::centreon::engine::configuration {
  * @param diff_state DiffState to merge with this global diff state. Once
  * merged, this diff state is almost empty.
  */
-void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
+void indexed_diff_state::add_diff_state(
+    configuration::DiffState& diff_state,
+    const std::shared_ptr<spdlog::logger>& logger) {
   if (diff_state.has_state()) {
+    assert(diff_state.state().poller_id() != 0);
+    diff_state.set_poller_id(diff_state.state().poller_id());
+    logger->debug("Adding full configuration for poller {}",
+                  diff_state.poller_id());
     _add_message<Timeperiod, std::string>(
         diff_state.mutable_state()->mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
@@ -55,6 +61,11 @@ void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
           return std::make_pair(obj->key().id(), obj->key().type());
         });
 
+    logger->debug(
+        "{} severities added and {} severities modified in the global diff "
+        "state",
+        _added_severities.size(), _modified_severities.size());
+
     _add_message<Tag, std::pair<uint64_t, uint32_t>>(
         diff_state.mutable_state()->mutable_tags(), _added_tags, _modified_tags,
         _removed_tags, [](Tag* obj) {
@@ -75,10 +86,14 @@ void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
                                  _added_hosts, _modified_hosts, _removed_hosts,
                                  [](Host* obj) { return obj->host_id(); });
 
+    logger->debug("There are {} added hosts", _added_hosts.size());
+
     _add_message<Hostgroup, std::string>(
         diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
         [](Hostgroup* obj) { return obj->hostgroup_name(); });
+
+    logger->debug("There are {} added hostgroups", _added_hostgroups.size());
 
     _add_message<Service, std::pair<uint64_t, uint64_t>>(
         diff_state.mutable_state()->mutable_services(), _added_services,
@@ -124,6 +139,8 @@ void indexed_diff_state::add_diff_state(configuration::DiffState& diff_state) {
 
     _full_conf_poller_id.push_back(diff_state.state().poller_id());
   } else {
+    logger->debug("Adding differential configuration for poller {}",
+                  diff_state.poller_id());
     _add_diff_message<DiffTimeperiod, Timeperiod, std::string>(
         diff_state.mutable_timeperiods(), _added_timeperiods,
         _modified_timeperiods, _removed_timeperiods,
