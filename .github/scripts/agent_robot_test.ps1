@@ -40,11 +40,6 @@ mkdir reports
 
 reg import agent/conf/centagent.reg
 
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_type -Value file
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name host -Value host_1
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_level -Value trace
-
-
 #windows can connect to linux on localhost but linux must use host ip
 $my_host_name = $env:COMPUTERNAME
 
@@ -61,15 +56,14 @@ openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout reverse_server_grpc.key -out reverse_server_grpc.crt -subj "/CN=${my_host_name}"
 
 
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value localhost:4317
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reversed_grpc_streaming -Value 0
 $agent_log_path = $current_dir + "\reports\centagent.log"
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
-#Start agent
-$agent_process = Start-Process -PassThru -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\centagent_stdout.log -RedirectStandardError reports\centagent_stderr.log 
-
-Write-Host ($agent_process | Format-Table | Out-String)
+#The first agent (agent initiated connection, no encryption is started by installer, others will be started manually)
+$installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
+$installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
+Write-Host "install agent only  (agent initiated connection, no encryption)"
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace'
+Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
 
 Start-Sleep -Seconds 1
 
@@ -81,8 +75,8 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name to
 $agent_log_path = $current_dir + "\reports\encrypted_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
+Write-Host "start manually agent (agent initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_centagent_stdout.log -RedirectStandardError reports\encrypted_centagent_stderr.log
-
 
 Start-Sleep -Seconds 1
 
@@ -94,6 +88,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name re
 $agent_log_path = $current_dir + "\reports\reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
+Write-Host "start manually agent (poller initiated connection, no encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\reversed_centagent_stdout.log -RedirectStandardError reports\reversed_centagent_stderr.log
 
 Start-Sleep -Seconds 1
@@ -107,6 +102,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name to
 $agent_log_path = $current_dir + "\reports\encrypted_reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
 
+Write-Host "start manually agent (poller initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
 $uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
