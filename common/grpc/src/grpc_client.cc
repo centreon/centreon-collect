@@ -60,19 +60,28 @@ grpc_client_base::grpc_client_base(
   }
   std::shared_ptr<::grpc::ChannelCredentials> creds;
   if (conf->is_crypted()) {
-    ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
-                                              conf->get_cert()};
-    SPDLOG_LOGGER_INFO(
-        _logger,
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
-        conf->get_hostport(), conf->get_cert().substr(0, 10),
-        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
-    creds = ::grpc::SslCredentials(ssl_opts);
+    if (conf->get_skip_server_certificate_verification()) {
+      ::grpc::experimental::TlsChannelCredentialsOptions options;
+      options.set_verify_server_certs(false);
+      creds = ::grpc::experimental::TlsCredentials(options);
+      SPDLOG_LOGGER_INFO(_logger, "insecure encrypted connection to {}",
+                         conf->get_hostport());
+    } else {
+      ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
+                                                conf->get_cert()};
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+          conf->get_hostport(), conf->get_cert().substr(0, 10),
+          conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
+      creds = ::grpc::SslCredentials(ssl_opts);
+    }
     if (!_conf->get_token().empty()) {
       std::shared_ptr<::grpc::CallCredentials> jwt =
           ::grpc::AccessTokenCredentials(_conf->get_token());
       creds = ::grpc::CompositeChannelCredentials(creds, jwt);
     }
+    // SSL_CTX_set_cert_verify_callback()
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted connection to {}",
                        conf->get_hostport());

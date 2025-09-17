@@ -77,6 +77,8 @@ class grpc_config {
   std::string _token;
   std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
 
+  bool _skip_server_certificate_verification;
+
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
@@ -84,14 +86,16 @@ class grpc_config {
       : _compress(false),
         _second_keepalive_interval(30),
         _second_max_reconnect_backoff(0),
-        _max_message_length(0) {}
+        _max_message_length(0),
+        _skip_server_certificate_verification(false) {}
 
   grpc_config(const std::string& hostp)
       : _hostport(hostp),
         _compress(false),
         _second_keepalive_interval(30),
         _second_max_reconnect_backoff(0),
-        _max_message_length(0) {}
+        _max_message_length(0),
+        _skip_server_certificate_verification(false) {}
 
   grpc_config(const std::string& hostp, bool crypted)
       : _hostport(hostp),
@@ -99,7 +103,8 @@ class grpc_config {
         _compress(false),
         _second_keepalive_interval(30),
         _second_max_reconnect_backoff(0),
-        _max_message_length(0) {}
+        _max_message_length(0),
+        _skip_server_certificate_verification(false) {}
 
   grpc_config(const std::string& hostp,
               bool crypted,
@@ -118,7 +123,8 @@ class grpc_config {
         _compress(compression),
         _second_keepalive_interval(second_keepalive_interval),
         _second_max_reconnect_backoff(0),
-        _max_message_length(0) {}
+        _max_message_length(0),
+        _skip_server_certificate_verification(false) {}
 
   // used to construct grpc config for agent
   grpc_config(const std::string& hostp,
@@ -145,8 +151,9 @@ class grpc_config {
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
         _token{token},
-        _trusted_tokens(std::make_shared<absl::flat_hash_set<std::string>>(
-            trusted_tokens)) {}
+        _trusted_tokens(
+            std::make_shared<absl::flat_hash_set<std::string>>(trusted_tokens)),
+        _skip_server_certificate_verification(false) {}
 
   // use to construct grpc config for engine
   grpc_config(
@@ -174,7 +181,8 @@ class grpc_config {
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
         _token(token),
-        _trusted_tokens{trusted_tokens} {}
+        _trusted_tokens{trusted_tokens},
+        _skip_server_certificate_verification(false) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -198,6 +206,14 @@ class grpc_config {
   const std::shared_ptr<absl::flat_hash_set<std::string>>&
   get_trusted_tokens() {
     return _trusted_tokens;
+  }
+
+  void set_skip_server_certificate_verification(bool value) {
+    _skip_server_certificate_verification = value;
+  }
+
+  bool get_skip_server_certificate_verification() const {
+    return _skip_server_certificate_verification;
   }
 
   bool operator==(const grpc_config& right) const {
