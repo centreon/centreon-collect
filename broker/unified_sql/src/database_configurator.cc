@@ -47,24 +47,40 @@ void database_configurator::process() {
     /* Adding new objects */
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
+    _add_services_mariadb(_diff.services().added());
+    _add_service_resources_mariadb(_diff.services().added());
 
     /* Modifying existing objects */
     _add_hosts_mariadb(_diff.hosts().modified());
     _add_host_resources_mariadb(_diff.hosts().modified());
+    _add_services_mariadb(_diff.services().modified());
+    _add_service_resources_mariadb(_diff.services().modified());
 
     /* Disabling removed objects */
     _disable_hosts(_diff.hosts().removed());
+    _disable_services_mariadb(_diff.services().removed());
+    _disable_services_mariadb(_diff.anomalydetections().removed());
+    _disable_service_resources_mariadb(_diff.services().removed());
+    _disable_service_resources_mariadb(_diff.anomalydetections().removed());
   } else {
     /* Adding new objects */
     _add_hosts_mysql(_diff.hosts().added());
     _add_host_resources_mysql(_diff.hosts().added());
+    _add_services_mysql(_diff.services().added());
+    _add_service_resources_mysql(_diff.services().added());
 
     /* Modifying existing objects */
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified());
+    _add_services_mysql(_diff.services().modified());
+    _add_service_resources_mysql(_diff.services().modified());
 
     /* Disabling removed objects */
     _disable_hosts(_diff.hosts().removed());
+    _disable_services_mysql(_diff.services().removed());
+    _disable_services_mysql(_diff.anomalydetections().removed());
+    _disable_service_resources_mysql(_diff.services().removed());
+    _disable_service_resources_mysql(_diff.anomalydetections().removed());
   }
   _stream->get_mysql().commit();
 }
@@ -668,6 +684,419 @@ void database_configurator::_add_host_resources_mysql(
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_host_resources>>: {}",
                    e.what());
+  }
+}
+
+/**
+ * @brief Add services into the database. (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_services_mariadb(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
+        lst) {
+  if (lst.empty()) {
+    _logger->debug("No need to add/update services, list empty");
+    return;
+  }
+
+  mysql& mysql = _stream->get_mysql();
+  if (!_add_services_stmt) {
+    std::string query(
+        "INSERT INTO services "
+        "(host_id,description,service_id,action_url,active_checks, "
+        "check_command, check_freshness,check_interval,check_period,"
+        "default_active_checks,default_event_handler_enabled,"
+        "default_flap_detection,default_notify,default_passive_checks,"
+        "default_process_perfdata,display_name,"
+        "enabled,event_handler,event_handler_enabled,first_notification_delay,"
+        "flap_detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
+        "detection_on_unknown,flap_detection_on_warning,freshness_threshold,"
+        "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
+        "check_attempts,notes,notes_url,notification_interval,notification_"
+        "period,notify,notify_on_critical,notify_on_downtime,notify_on_"
+        "flapping,notify_on_recovery,notify_on_unknown,notify_on_warning,"
+        "obsess_over_service,passive_checks,process_perfdata,retain_nonstatus_"
+        "information,retain_status_information,retry_interval,stalk_on_"
+        "critical,stalk_on_ok,stalk_on_unknown,stalk_on_warning) VALUES "
+        "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
+        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        "description=VALUES(description),action_url=VALUES(action_url),active_"
+        "checks=VALUES(active_checks),check_command=VALUES(check_command),"
+        "check_freshness=VALUES(check_freshness),check_interval=VALUES(check_"
+        "interval),check_period=VALUES(check_period),default_active_checks="
+        "VALUES(default_active_checks),default_event_handler_enabled=VALUES("
+        "default_event_handler_enabled),default_flap_detection=VALUES(default_"
+        "flap_detection),default_notify=VALUES(default_notify),default_passive_"
+        "checks=VALUES(default_passive_checks),default_process_perfdata=VALUES("
+        "default_process_perfdata),display_name=VALUES(display_name),enabled="
+        "VALUES(enabled),event_handler=VALUES(event_handler),event_handler_"
+        "enabled=VALUES(event_handler_enabled),first_notification_delay=VALUES("
+        "first_notification_delay),flap_detection=VALUES(flap_detection),flap_"
+        "detection_on_critical=VALUES(flap_detection_on_critical),flap_"
+        "detection_on_ok=VALUES(flap_detection_on_ok),flap_detection_on_"
+        "unknown=VALUES(flap_detection_on_unknown),flap_detection_on_warning="
+        "VALUES(flap_detection_on_warning),freshness_threshold=VALUES("
+        "freshness_threshold),high_flap_threshold=VALUES(high_flap_threshold),"
+        "icon_image=VALUES(icon_image),icon_image_alt=VALUES(icon_image_alt),"
+        "low_flap_threshold=VALUES(low_flap_threshold),max_check_attempts="
+        "VALUES(max_check_attempts),notes=VALUES(notes),notes_url=VALUES(notes_"
+        "url),notification_interval=VALUES(notification_interval),notification_"
+        "period=VALUES(notification_period),notify=VALUES(notify),notify_on_"
+        "critical=VALUES(notify_on_critical),notify_on_downtime=VALUES(notify_"
+        "on_downtime),notify_on_flapping=VALUES(notify_on_flapping),notify_on_"
+        "recovery=VALUES(notify_on_recovery),notify_on_unknown=VALUES(notify_"
+        "on_unknown),notify_on_warning=VALUES(notify_on_warning),obsess_over_"
+        "service=VALUES(obsess_over_service),passive_checks=VALUES(passive_"
+        "checks),process_perfdata=VALUES(process_perfdata),retain_nonstatus_"
+        "information=VALUES(retain_nonstatus_information),retain_status_"
+        "information=VALUES(retain_status_information),retry_interval=VALUES("
+        "retry_interval),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_"
+        "ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
+        "stalk_on_warning=VALUES(stalk_on_warning)");
+    _add_services_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_add_services_stmt);
+  }
+  auto bind = _add_services_stmt->create_bind();
+
+  uint32_t count = 0;
+  for (const auto& msg : lst) {
+    _logger->debug("Processing service {}:{}", msg.host_id(), msg.service_id());
+    bind->set_value_as_i32(0, msg.host_id());
+    bind->set_value_as_str(
+        1, common::truncate_utf8(msg.service_description(),
+                                 get_centreon_storage_services_col_size(
+                                     centreon_storage_services_description)));
+    bind->set_value_as_i32(2, msg.service_id());
+    bind->set_value_as_str(
+        3, common::truncate_utf8(msg.action_url(),
+                                 get_centreon_storage_services_col_size(
+                                     centreon_storage_services_action_url)));
+    bind->set_value_as_bool(4, msg.checks_active());
+    bind->set_value_as_str(
+        5, common::truncate_utf8(msg.check_command(),
+                                 get_centreon_storage_services_col_size(
+                                     centreon_storage_services_check_command)));
+    bind->set_value_as_bool(6, msg.check_freshness());
+    bind->set_value_as_f64(7, msg.check_interval());
+    bind->set_value_as_str(
+        8, common::truncate_utf8(msg.check_period(),
+                                 get_centreon_storage_services_col_size(
+                                     centreon_storage_services_check_period)));
+    bind->set_value_as_bool(9, msg.checks_active());
+    bind->set_value_as_bool(10, msg.event_handler_enabled());
+    bind->set_value_as_bool(11, msg.flap_detection_enabled());
+    bind->set_value_as_bool(12, msg.notifications_enabled());
+    bind->set_value_as_bool(13, msg.checks_passive());
+    bind->set_value_as_bool(14, msg.process_perf_data());
+    bind->set_value_as_str(
+        15, common::truncate_utf8(msg.display_name(),
+                                  get_centreon_storage_services_col_size(
+                                      centreon_storage_services_display_name)));
+    bind->set_value_as_bool(16, true);
+    bind->set_value_as_str(
+        17,
+        common::truncate_utf8(msg.event_handler(),
+                              get_centreon_storage_services_col_size(
+                                  centreon_storage_services_event_handler)));
+    bind->set_value_as_bool(18, msg.event_handler_enabled());
+    bind->set_value_as_f64(19, msg.first_notification_delay());
+    bind->set_value_as_bool(20, msg.flap_detection_enabled());
+    bind->set_value_as_bool(21, msg.flap_detection_options() &
+                                    ActionServiceOn::action_svc_critical);
+    bind->set_value_as_bool(
+        22, msg.flap_detection_options() & ActionServiceOn::action_svc_ok);
+    bind->set_value_as_bool(
+        23, msg.flap_detection_options() & ActionServiceOn::action_svc_unknown);
+    bind->set_value_as_bool(
+        24, msg.flap_detection_options() & ActionServiceOn::action_svc_warning);
+    bind->set_value_as_f64(25, msg.freshness_threshold());
+    bind->set_value_as_f64(26, msg.high_flap_threshold());
+    bind->set_value_as_str(
+        27, common::truncate_utf8(msg.icon_image(),
+                                  get_centreon_storage_services_col_size(
+                                      centreon_storage_services_icon_image)));
+    bind->set_value_as_str(
+        28,
+        common::truncate_utf8(msg.icon_image_alt(),
+                              get_centreon_storage_services_col_size(
+                                  centreon_storage_services_icon_image_alt)));
+    bind->set_value_as_f64(29, msg.low_flap_threshold());
+    bind->set_value_as_i32(30, msg.max_check_attempts());
+    bind->set_value_as_str(
+        31, common::truncate_utf8(msg.notes(),
+                                  get_centreon_storage_services_col_size(
+                                      centreon_storage_services_notes)));
+    bind->set_value_as_str(
+        32, common::truncate_utf8(msg.notes_url(),
+                                  get_centreon_storage_services_col_size(
+                                      centreon_storage_services_notes_url)));
+    bind->set_value_as_f64(33, msg.notification_interval());
+    if (msg.has_notification_period())
+      bind->set_value_as_str(
+          34, common::truncate_utf8(
+                  msg.notification_period(),
+                  get_centreon_storage_services_col_size(
+                      centreon_storage_services_notification_period)));
+    else
+      bind->set_null_str(34);
+    bind->set_value_as_bool(35, msg.notifications_enabled());
+    bind->set_value_as_bool(
+        36, msg.notification_options() & ActionServiceOn::action_svc_critical);
+    bind->set_value_as_bool(
+        37, msg.notification_options() & ActionServiceOn::action_svc_downtime);
+    bind->set_value_as_bool(
+        38, msg.notification_options() & ActionServiceOn::action_svc_flapping);
+    bind->set_value_as_bool(
+        39, msg.notification_options() & ActionServiceOn::action_svc_ok);
+    bind->set_value_as_bool(
+        40, msg.notification_options() & ActionServiceOn::action_svc_unknown);
+    bind->set_value_as_bool(
+        41, msg.notification_options() & ActionServiceOn::action_svc_warning);
+    bind->set_value_as_bool(42, msg.obsess_over_service());
+    bind->set_value_as_bool(43, msg.checks_passive());
+    bind->set_value_as_bool(44, msg.process_perf_data());
+    bind->set_value_as_bool(45, msg.retain_nonstatus_information());
+    bind->set_value_as_bool(46, msg.retain_status_information());
+    bind->set_value_as_f64(47, msg.retry_interval());
+    bind->set_value_as_bool(
+        48, msg.stalking_options() & ActionServiceOn::action_svc_critical);
+    bind->set_value_as_bool(
+        49, msg.stalking_options() & ActionServiceOn::action_svc_ok);
+    bind->set_value_as_bool(
+        50, msg.stalking_options() & ActionServiceOn::action_svc_unknown);
+    bind->set_value_as_bool(
+        51, msg.stalking_options() & ActionServiceOn::action_svc_warning);
+    bind->next_row();
+    count++;
+  }
+  _logger->debug("Adding/updating {} services", count);
+  _add_services_stmt->set_bind(std::move(bind));
+  mysql.run_statement(*_add_services_stmt);
+}
+
+/**
+ * @brief Add services into the database. (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_services_mysql(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
+        lst) {
+  mysql& mysql = _stream->get_mysql();
+
+  std::vector<std::string> values;
+  for (const auto& msg : lst) {
+    std::string value(fmt::format(
+        "({},'{}',{},'{}',{},'{}',{},{},'{}',{},{},{},{},{},{},'{}',1,'{}',{},{"
+        "},{},{},{},{},{},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},{},{},{},{"
+        "},{},{},{},{},{},{},{},{},{},{},{},{})",
+        msg.host_id(),
+        misc::string::escape(msg.service_description(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_description)),
+        msg.service_id(),
+        misc::string::escape(msg.action_url(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_action_url)),
+        msg.checks_active(),
+        misc::string::escape(msg.check_command(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_check_command)),
+        msg.check_freshness(), msg.check_interval(),
+        misc::string::escape(msg.check_period(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_check_period)),
+        msg.checks_active(), msg.event_handler_enabled(),
+        msg.flap_detection_enabled(), msg.notifications_enabled(),
+        msg.checks_passive(), msg.process_perf_data(),
+        misc::string::escape(msg.display_name(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_display_name)),
+        misc::string::escape(msg.event_handler(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_event_handler)),
+        msg.event_handler_enabled(), msg.first_notification_delay(),
+        msg.flap_detection_enabled(),
+        msg.flap_detection_options() & ActionServiceOn::action_svc_critical ? 1
+                                                                            : 0,
+        msg.flap_detection_options() & ActionServiceOn::action_svc_ok ? 1 : 0,
+        msg.flap_detection_options() & ActionServiceOn::action_svc_unknown ? 1
+                                                                           : 0,
+        msg.flap_detection_options() & ActionServiceOn::action_svc_warning ? 1
+                                                                           : 0,
+        msg.freshness_threshold(), msg.high_flap_threshold(),
+        misc::string::escape(msg.icon_image(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_icon_image)),
+        misc::string::escape(msg.icon_image_alt(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_icon_image_alt)),
+        msg.low_flap_threshold(), msg.max_check_attempts(),
+        misc::string::escape(msg.notes(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_notes)),
+        misc::string::escape(msg.notes_url(),
+                             get_centreon_storage_services_col_size(
+                                 centreon_storage_services_notes_url)),
+        msg.notification_interval(),
+        msg.has_notification_period()
+            ? misc::string::escape(
+                  msg.notification_period(),
+                  get_centreon_storage_services_col_size(
+                      centreon_storage_services_notification_period))
+            : NULL,
+        msg.notifications_enabled(),
+        msg.notification_options() & ActionServiceOn::action_svc_critical ? 1
+                                                                          : 0,
+        msg.notification_options() & ActionServiceOn::action_svc_downtime ? 1
+                                                                          : 0,
+        msg.notification_options() & ActionServiceOn::action_svc_flapping ? 1
+                                                                          : 0,
+        msg.notification_options() & ActionServiceOn::action_svc_ok ? 1 : 0,
+        msg.notification_options() & ActionServiceOn::action_svc_unknown ? 1
+                                                                         : 0,
+        msg.notification_options() & ActionServiceOn::action_svc_warning ? 1
+                                                                         : 0,
+        msg.obsess_over_service(), msg.checks_passive(),
+        msg.process_perf_data(), msg.retain_nonstatus_information(),
+        msg.retain_status_information(), msg.retry_interval(),
+        msg.stalking_options() & ActionServiceOn::action_svc_critical ? 1 : 0,
+        msg.stalking_options() & ActionServiceOn::action_svc_ok ? 1 : 0,
+        msg.stalking_options() & ActionServiceOn::action_svc_unknown ? 1 : 0,
+        msg.stalking_options() & ActionServiceOn::action_svc_warning ? 1 : 0));
+    values.emplace_back(value);
+  }
+  std::string query(fmt::format(
+      "INSERT INTO services VALUES {} ON DUPLICATE KEY UPDATE "
+      "description=VALUES(description),action_url=VALUES(action_url),active_"
+      "checks=VALUES(active_checks),check_command=VALUES(check_command),check_"
+      "freshness=VALUES(check_freshness),check_interval=VALUES(check_interval),"
+      "check_period=VALUES(check_period),default_active_checks=VALUES(default_"
+      "active_checks),default_event_handler_enabled=VALUES(default_event_"
+      "handler_enabled),default_flap_detection=VALUES(default_flap_detection),"
+      "default_notify=VALUES(default_notify),default_passive_checks=VALUES("
+      "default_passive_checks),default_process_perfdata=VALUES(default_process_"
+      "perfdata),display_name=VALUES(display_name),enabled=VALUES(enabled),"
+      "event_handler=VALUES(event_handler),event_handler_enabled=VALUES(event_"
+      "handler_enabled),first_notification_delay=VALUES(first_notification_"
+      "delay),flap_detection=VALUES(flap_detection),flap_detection_on_critical="
+      "VALUES(flap_detection_on_critical),flap_detection_on_ok=VALUES(flap_"
+      "detection_on_ok),flap_detection_on_unknown=VALUES(flap_detection_on_"
+      "unknown),flap_detection_on_warning=VALUES(flap_detection_on_warning),"
+      "freshness_threshold=VALUES(freshness_threshold),high_flap_threshold="
+      "VALUES(high_flap_threshold),icon_image=VALUES(icon_image),icon_image_"
+      "alt=VALUES(icon_image_alt),low_flap_threshold=VALUES(low_flap_threshold)"
+      ",max_check_attempts=VALUES(max_check_attempts),notes=VALUES(notes),"
+      "notes_url=VALUES(notes_url),notification_interval=VALUES(notification_"
+      "interval),notification_period=VALUES(notification_period),notify=VALUES("
+      "notify),notify_on_critical=VALUES(notify_on_critical),notify_on_"
+      "downtime=VALUES(notify_on_downtime),notify_on_flapping=VALUES(notify_on_"
+      "flapping),notify_on_recovery=VALUES(notify_on_recovery),notify_on_"
+      "unknown=VALUES(notify_on_unknown),notify_on_warning=VALUES(notify_on_"
+      "warning),obsess_over_service=VALUES(obsess_over_service),passive_checks="
+      "VALUES(passive_checks),process_perfdata=VALUES(process_perfdata),retain_"
+      "nonstatus_information=VALUES(retain_nonstatus_information),retain_"
+      "status_information=VALUES(retain_status_information),retry_interval="
+      "VALUES(retry_interval),stalk_on_critical=VALUES(stalk_on_critical),"
+      "stalk_on_ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_"
+      "unknown),stalk_on_warning=VALUES(stalk_on_warning)",
+      fmt::join(values, ",")));
+  mysql.run_query(query);
+}
+
+/**
+ * @brief Disable services in the database. (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_disable_services_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::HostServiceId>& lst) {
+  mysql& mysql = _stream->get_mysql();
+  if (!_disable_services_stmt) {
+    _disable_services_stmt = std::make_unique<mysql_bulk_stmt>(
+        "UPDATE services SET enabled=0 WHERE host_id=? AND service_id=?");
+    mysql.prepare_statement(*_disable_services_stmt);
+  }
+  auto* stmt = static_cast<mysql_bulk_stmt*>(_disable_services_stmt.get());
+  auto bind = stmt->create_bind();
+
+  for (const auto& msg : lst) {
+    bind->set_value_as_i32(0, msg.host_id());
+    bind->set_value_as_i32(1, msg.service_id());
+    bind->next_row();
+  }
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
+}
+
+/**
+ * @brief Disable services in the database. (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_disable_services_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::HostServiceId>& lst) {
+  mysql& mysql = _stream->get_mysql();
+  if (!_disable_services_stmt) {
+    _disable_services_stmt = std::make_unique<mysql_stmt>(
+        "UPDATE services SET enabled=0 WHERE host_id=? AND service_id=?");
+    mysql.prepare_statement(*_disable_services_stmt);
+  }
+  for (const auto& msg : lst) {
+    _disable_services_stmt->bind_value_as_i32(0, msg.host_id());
+    _disable_services_stmt->bind_value_as_i32(1, msg.service_id());
+    mysql.run_statement(*_disable_services_stmt);
+  }
+}
+
+/**
+ * @brief Disable services in the database. (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_disable_service_resources_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::HostServiceId>& lst) {
+  mysql& mysql = _stream->get_mysql();
+  if (!_disable_service_resources_stmt) {
+    _disable_service_resources_stmt = std::make_unique<mysql_bulk_stmt>(
+        "UPDATE resources SET enabled=0 WHERE parent_id=? AND id=?");
+    mysql.prepare_statement(*_disable_service_resources_stmt);
+  }
+  auto* stmt =
+      static_cast<mysql_bulk_stmt*>(_disable_service_resources_stmt.get());
+  auto bind = stmt->create_bind();
+
+  for (const auto& msg : lst) {
+    bind->set_value_as_i64(0, msg.host_id());
+    bind->set_value_as_i64(1, msg.service_id());
+    bind->next_row();
+  }
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
+}
+
+/**
+ * @brief Disable services in the database. (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_disable_service_resources_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        engine::configuration::HostServiceId>& lst) {
+  mysql& mysql = _stream->get_mysql();
+  if (!_disable_service_resources_stmt) {
+    _disable_service_resources_stmt = std::make_unique<mysql_stmt>(
+        "UPDATE resources SET enabled=0 WHERE parent_id=? AND id=?");
+    mysql.prepare_statement(*_disable_service_resources_stmt);
+  }
+  for (const auto& msg : lst) {
+    _disable_service_resources_stmt->bind_value_as_i64(0, msg.host_id());
+    _disable_service_resources_stmt->bind_value_as_i64(1, msg.service_id());
+    mysql.run_statement(*_disable_service_resources_stmt);
   }
 }
 

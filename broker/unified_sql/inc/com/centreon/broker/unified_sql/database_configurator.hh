@@ -37,7 +37,12 @@ class database_configurator {
   database::mysql_stmt _enable_hosts;
   std::unique_ptr<database::mysql_bulk_stmt> _add_host_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_hosts_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_service_resources_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
+
   std::unique_ptr<database::mysql_bulk_stmt> _add_customvariables_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _disable_service_resources_stmt;
 
   void _disable_pollers_with_full_conf();
   void _disable_hosts_and_services();
@@ -55,6 +60,16 @@ class database_configurator {
   void _add_host_resources_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  void _add_service_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Service>& lst);
+  void _add_service_resources_mysql(const ::google::protobuf::RepeatedPtrField<
+                                    engine::configuration::Service>& lst);
+  void _add_services_mariadb(const ::google::protobuf::RepeatedPtrField<
+                             engine::configuration::Service>& lst);
+  void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<
+                           engine::configuration::Service>& lst);
+
   void _add_customvariables_mariadb(
       uint64_t host_id,
       uint64_t service_id,
@@ -65,6 +80,16 @@ class database_configurator {
       uint64_t service_id,
       const ::google::protobuf::RepeatedPtrField<
           engine::configuration::CustomVariable>& lst);
+  void _disable_services_mariadb(const ::google::protobuf::RepeatedPtrField<
+                                 engine::configuration::HostServiceId>& lst);
+  void _disable_services_mysql(const ::google::protobuf::RepeatedPtrField<
+                               engine::configuration::HostServiceId>& lst);
+  void _disable_service_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::HostServiceId>& lst);
+  void _disable_service_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::HostServiceId>& lst);
 
  public:
   database_configurator(const DiffState& diff,

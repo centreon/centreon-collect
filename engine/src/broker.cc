@@ -940,6 +940,9 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
