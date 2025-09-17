@@ -45,18 +45,18 @@ BECNSG1
     Should Be True    ${result}    One of the new service groups not found in logs.
 
 BECNSG2
-[Documentation]    Feature: Service Groups Management with Unified SQL Database
-...
-...    Scenario: Create 4 service groups (3 services each) across 4 pollers, then progressively
-...    remove servicegroups.cfg files to validate database consistency.
-...
-...    Given: 4 Engine pollers + central Broker with unified SQL + BBDO3 + debug logs
-...    When: Create service groups and add servicegroups.cfg to each poller
-...    Then: Database should show 12 associations in services_servicegroups table
-...    When: Remove servicegroups.cfg from pollers sequentially
-...    Then: Associations should decrease by 3 for each removal (12→9→6→3→0)
-...
-...    Validates: Service group associations are correctly maintained during config changes
+    [Documentation]    Feature: Service Groups Management with Unified SQL Database
+    ...
+    ...    Scenario: Create 4 service groups (3 services each) across 4 pollers, then progressively
+    ...    remove servicegroups.cfg files to validate database consistency.
+    ...
+    ...    Given: 4 Engine pollers + central Broker with unified SQL + BBDO3 + debug logs
+    ...    When: Create service groups and add servicegroups.cfg to each poller
+    ...    Then: Database should show 12 associations in services_servicegroups table
+    ...    When: Remove servicegroups.cfg from pollers sequentially
+    ...    Then: Associations should decrease by 3 for each removal (12→9→6→3→0)
+    ...
+    ...    Validates: Service group associations are correctly maintained during config changes
     [Tags]    broker    engine    servicegroup    unified_sql    MON-153802
     Ctn Config Centralized Engine    ${4}
     Ctn Config Broker    rrd

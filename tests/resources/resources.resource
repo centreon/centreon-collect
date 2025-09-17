@@ -100,7 +100,7 @@ Ctn Start Broker
 
     IF    ${newGeneration}
 	${count}    Ctn Get Engines Count
-	Ctn Config BBDO3    ${count}    3.1.0
+	Ctn Config BBDO3    ${count}    3.1.0    ${only_central}
         Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     END
     Log To Console    Flushing broker configuration
@@ -218,10 +218,10 @@ Ctn Stop Processes
     Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False
     ${count}    Ctn Get Engines Count
     IF    ${newGeneration}
-        Ctn Config BBDO3    ${count}    3.1.0
+        Ctn Config BBDO3    ${count}    3.1.0    ${central_only}
     END
     Ctn Broker Config Flush    ${False}
     FOR    ${idx}    IN RANGE    0    ${count}

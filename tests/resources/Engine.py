@@ -370,18 +370,18 @@ class EngineInstance:
         """
         self.last_service_id += 1
         service_id = self.last_service_id
-        retval = """define anomalydetection {{
-    host_id {0}
-    host_name host_{0}
-    internal_id {4}
-    service_id {1}
-    service_description      anomaly_{1}
-    dependent_service_id {2}
-    metric_name {3}
-    sensitivity {5}
+        retval = f"""define anomalydetection {{
+    host_id {host_id}
+    host_name host_{host_id}
+    internal_id {self.anomaly_detection_internal_id}
+    service_id {service_id}
+    service_description      anomaly_{service_id}
+    dependent_service_id {dependent_service_id}
+    metric_name {metric_name}
+    sensitivity {sensitivity}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-}} """.format(host_id, service_id, dependent_service_id, metric_name, self.anomaly_detection_internal_id, sensitivity)
+}} """
         self.anomaly_detection_internal_id += 1
         return retval
 
@@ -947,7 +947,7 @@ define contact {
             f.writelines(lines)
 
     def centengine_conf_add_anomaly(self):
-        config_dir = f"{CONF_DIR}/config0"
+        config_dir = self.get_config_dir(0)
         with open(f"{config_dir}/centengine.cfg", "r") as f:
             lines = f.readlines()
         with open(f"{config_dir}/centengine.cfg", "w") as f:
@@ -1940,8 +1940,8 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
     Returns:
         The ID of the new anomaly detection.
     """
-    with open(
-            f"{ETC_ROOT}/centreon-engine/config{index}/anomaly_detection.cfg", "a+") as f:
+    config_dir = engine.get_config_dir(index)
+    with open(f"{config_dir}/anomaly_detection.cfg", "a+") as f:
         to_append = engine.ctn_create_anomaly_detection(
             host_id, dependent_service_id, metric_name, sensitivity)
         lst = to_append.split('\n')
@@ -1952,7 +1952,6 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
         else:
             raise Exception(
                 "Impossible to get the service id from '{}'".format(good))
-            m = 0
         f.write(to_append)
     engine.centengine_conf_add_anomaly()
     return retval
