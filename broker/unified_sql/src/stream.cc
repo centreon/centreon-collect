@@ -590,10 +590,15 @@ void stream::_load_caches() {
 
     try {
       mysql_result res{future_severity.get()};
+      _logger_sql->debug("loading severities cache");
       while (_mysql.fetch_row(res)) {
         _severities_cache[{res.value_as_u64(1),
                            static_cast<uint16_t>(res.value_as_u32(2))}] =
             res.value_as_u64(0);
+        _logger_sql->trace(
+            "loading severities cache: id={} type={} severity_id={}",
+            res.value_as_u64(1), static_cast<uint16_t>(res.value_as_u32(2)),
+            res.value_as_u64(0));
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",

@@ -536,6 +536,10 @@ class stream : public io::stream {
   mysql& get_mysql();
   bool supports_bulk_prepared_statements() const;
 
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>&
+  severities_cache() {
+    return _severities_cache;
+  }
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
   resources_cache() {
     return _resources_cache;

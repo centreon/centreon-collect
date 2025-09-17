@@ -33,8 +33,6 @@ from subprocess import getoutput
 import subprocess as subp
 from robot.api import logger
 import json
-from pathlib import Path
-import glob
 import os.path
 import grpc
 import broker_pb2
@@ -560,21 +558,25 @@ def ctn_broker_config_flush(is_broker: bool=True):
     for name, conf in current_configs.items():
         filename = ''
         if is_broker:
-            logger.console(f"Writing broker configuration for {name}")
             if name == 'central':
                 filename = "central-broker.json"
             elif name == 'central_map':
                 filename = "central-broker.json"
             elif name == 'rrd':
                 filename = "central-rrd.json"
+            else:
+                continue
+            logger.console(f"Writing broker (broker) configuration for {name}")
         else:
-            logger.console(f"Writing broker configuration for {name}")
             if name.startswith('module'):
                 filename = "central-{}.json".format(name)
-        if len(filename) > 0:
-            conf = current_configs[name]
-            with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
-                f.write(json.dumps(conf, indent=2))
+            else:
+                continue
+            logger.console(f"Writing broker (module) configuration for {name}")
+
+        conf = current_configs[name]
+        with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+            f.write(json.dumps(conf, indent=2))
 
 
 def ctn_broker_config_reset():
@@ -1029,7 +1031,6 @@ def ctn_broker_config_add_item(name, key, value):
     """
     conf = current_configs[name]
     conf["centreonBroker"][key] = value
-    output = json.dumps(conf, indent=2)
 
 
 def ctn_broker_config_remove_item(name, key):
@@ -2763,6 +2764,7 @@ def ctn_set_broker_log_level(port, log, level, timeout=TIMEOUT):
         timeout: A timeout in seconds, 30s by default.
     """
     limit = time.time() + timeout
+    res = ""
     while time.time() < limit:
         logger.console("Try to call SetLogLevel")
         time.sleep(1)
@@ -3170,13 +3172,10 @@ def ctn_init_data_bin_without_partition():
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
-    now = int(time.time())
-    before = now - 60
-    after = now + 3600
     with connection:
         with connection.cursor() as cursor:
             cursor.execute("DROP TABLE IF EXISTS data_bin")
-            sql = f"""CREATE TABLE `data_bin` (
+            sql = """CREATE TABLE `data_bin` (
   `id_metric` int(11) DEFAULT NULL,
   `ctime` int(11) DEFAULT NULL,
   `value` float DEFAULT NULL,
@@ -3237,14 +3236,3 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
-
-
-def ctn_notify_broker_of_engine_config_change(idx: int):
-    """
-    Notify the broker of a change in the engine configuration.
-
-    Args:
-        idx (int): The index of the configuration to notify.
-    """
-    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
-    Path(lck_file).touch()

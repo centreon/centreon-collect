@@ -235,6 +235,9 @@ void broker_adaptive_severity_data(int type, engine::severity* es) {
                 BROKER_ADAPTIVE_DATA))
     return;
 
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating protobuf severity event");
 
