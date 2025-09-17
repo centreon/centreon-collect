@@ -27,7 +27,7 @@ jobs:
     with:
       version_file: CMakeLists.txt
 
-  checkmarx-analysis:
+  code_scan
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
