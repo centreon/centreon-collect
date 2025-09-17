@@ -66,15 +66,20 @@ endif()
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/run/mysqld/mysqld.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
   message(STATUS "rpm based os")
   add_definitions("-DMYSQL_SOCKET=\"/var/lib/mysql/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib64/mariadb/plugin\"")
 else()
   message(STATUS "other os: ${OS_DISTRIBUTOR}")
   add_definitions("-DMYSQL_SOCKET=\"/tmp/mysql.sock\"")
-  add_definitions("-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\"")
+  add_definitions(
+    "-DDEFAULT_MARIADB_EXTENSION_DIR=\"/usr/lib/x86_64-linux-gnu/libmariadb3/plugin\""
+  )
 endif()
 
 include_directories(
@@ -116,7 +121,7 @@ add_custom_command(
     WORKING_DIRECTORY ${SRC_DIR})
 
 add_custom_target(target_broker_message DEPENDS "${SRC_DIR}/broker.pb.cc"
-                                                  "${SRC_DIR}/broker.pb.h")
+                                                "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc
@@ -308,7 +313,7 @@ add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.pb.h
   )
 
-add_dependencies(pb_broker_lib process_stat pb_common_lib)
+add_dependencies(pb_broker_lib process_stat pb_common_lib engine_conf)
 
 target_link_libraries(pb_broker_lib
   PRIVATE
