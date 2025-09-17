@@ -194,6 +194,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;
   }
+  static void decide_confirmation_and_next_delay(
+      const check::pointer& check,
+      unsigned status,
+      std::chrono::seconds& next_delay);
+
 };
 
 /**

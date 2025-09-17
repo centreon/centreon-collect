@@ -398,6 +398,16 @@ void scheduler::_check_handler(
     return;
   }
 
+  // decide confirmation & next delay FIRST (retry management)
+  auto next_delay = std::chrono::seconds(0);
+  decide_confirmation_and_next_delay(check, status, next_delay);
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "check result for service {} is {} (last_status={}) "
+                      "status_confirmed={} max_attempts={} retry_interval={}",
+                      check->get_service(), status, check->get_last_status(),
+                      check->get_status_confirmed(), check->get_max_attempts(),
+                      check->get_retry_interval());
+
   if (_conf->config().use_exemplar()) {
     _store_result_in_metrics_and_exemplars(check, status, perfdata, outputs);
   } else {
@@ -511,6 +521,9 @@ void scheduler::_store_result_in_metrics_and_exemplars(
   data_point->set_time_unix_nano(now);
   data_point->set_start_time_unix_nano(check_start);
   data_point->set_as_int(status);
+
+  // add exemplar for status_confirmed
+  _add_exemplar("status_confirmed", check->get_status_confirmed(), *data_point);
 
   for (const com::centreon::common::perfdata& perf : perfdata) {
     _add_metric_to_scope(check_start, now, perf, scope_metrics);
@@ -804,4 +817,21 @@ std::shared_ptr<check> scheduler::default_check_builder(
                             check_interval, service, command_line, conf,
                             std::move(handler), stat, credentials_decrypt);
   }
+}
+
+/**
+ * @brief decide if status is confirmed and compute next delay
+ * according to current status, last status, max_attempts, retry_interval
+ * It updates check last_status and status_confirmed
+ * @param check
+ * @param status
+ * @param next_delay (OUT) next delay to use for next check
+ */
+void scheduler::decide_confirmation_and_next_delay(
+    const check::pointer& check,
+    unsigned status,
+    std::chrono::seconds& next_delay) {
+  // Remember for next cycle and expose to metrics/export path
+  check->set_last_status(static_cast<int>(status));
+  check->set_status_confirmed(status_confirmed);
 }

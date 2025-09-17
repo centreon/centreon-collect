@@ -138,6 +138,19 @@ bool agent_check_result_builder::build_result_from_metrics(
   const auto& last_sample = status_metric->second.rbegin();
   last_time = last_sample->get_nano_timestamp();
   res.set_return_code(last_sample->get_value());
+  for (const auto& exemplar : last_sample->get_exemplars()) {
+    if (exemplar.filtered_attributes().size() == 1 &&
+        exemplar.filtered_attributes().begin()->key() == "status_confirmed") {
+      if (exemplar.as_int() == 1) {
+        res.set_check_options(res.get_check_options() |
+                              CHECK_OPTION_PASSIVE_IS_HARD);
+      } else {
+        res.set_check_options(res.get_check_options() |
+                              CHECK_OPTION_PASSIVE_IS_SOFT);
+      }
+      break;
+    }
+  }
 
   // output of plugins is stored in description metric field
   std::string output = last_sample->get_metric().description();

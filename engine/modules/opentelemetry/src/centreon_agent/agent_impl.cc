@@ -211,6 +211,8 @@ static bool add_command_to_agent_conf(
     uint64_t host_id,
     uint64_t service_id,
     uint32_t check_interval,
+    uint32_t retry_interval,
+    uint32_t max_attempts,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& peer,
@@ -244,6 +246,8 @@ static bool add_command_to_agent_conf(
     serv->set_command_line(plugins_cmdline);
   }
   serv->set_check_interval(check_interval * pb_config.interval_length());
+  serv->set_retry_interval(retry_interval);
+  serv->set_max_attempts(max_attempts);
 
   return true;
 }
@@ -303,11 +307,13 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
               const std::string& service, uint64_t host_id, uint64_t service_id,
-              uint32_t check_interval,
+              uint32_t check_interval, uint32_t retry_interval,
+              uint32_t max_attempts,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(
                 cmd_name, cmd_line, service, host_id, service_id,
-                check_interval, cnf, logger, peer, crypt_credentials);
+                check_interval, retry_interval, max_attempts, cnf, logger, peer,
+                crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {

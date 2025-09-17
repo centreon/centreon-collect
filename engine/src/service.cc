@@ -21,6 +21,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -2030,6 +2031,13 @@ int service::handle_async_check_result(
               get_stalk_on(critical)))
       log_event();
   }
+
+  /* ───────────────────── CMA FORCE THE SERVICE STATUS ──────────────────── */
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_HARD)
+    set_state_type(hard);
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_SOFT)
+    set_state_type(soft);
+  /* ─────────────────────────────────────────────────────────────────────── */
 
   /* send data to event broker */
   broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
