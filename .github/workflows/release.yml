@@ -13,7 +13,6 @@ on:
       - ".jira/**"
       - "tests/**"
       - ".deepsource.toml"
-      - ".veracode-exclusions"
       - "README.md"
       - "sonar-project.properties"
   workflow_dispatch:
