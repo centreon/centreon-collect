@@ -451,6 +451,7 @@ void indexed_state::diff_with_new_config(
       result->mutable_##field()->add_data(item);                               \
   }
 
+  result->set_poller_id(new_state.poller_id());
   SET_IF_CHANGED(cfg_main);
   SET_REPEATED_IF_CHANGED(cfg_file);
 
@@ -537,7 +538,6 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(command_file);
   SET_IF_CHANGED(status_file);
   SET_IF_CHANGED(poller_name);
-  SET_IF_CHANGED(poller_id);
   SET_IF_CHANGED(cached_service_check_horizon);
   SET_IF_CHANGED(check_orphaned_hosts);
   SET_IF_CHANGED(check_orphaned_services);
