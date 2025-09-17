@@ -351,8 +351,8 @@ void stream::_load_caches() {
   _mysql.run_query_and_get_result("SELECT host_id,instance_id FROM hosts",
                                   std::move(promise_hi));
 
-  /* hostgroups => _hostgroup_cache */
-  _mysql.run_query_and_get_result("SELECT hostgroup_id FROM hostgroups",
+  /* hostgroups => _hostgroups_cache */
+  _mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
                                   std::move(promise_hg));
 
   /* servicegroups => _servicegroup_cache */
@@ -488,14 +488,15 @@ void stream::_load_caches() {
                   e.what());
   }
 
-  /* hostgroups => _hostgroup_cache */
-  _hostgroup_cache.clear();
+  /* hostgroups => _hostgroups_cache */
+  _hostgroups_cache.clear();
   try {
     mysql_result res(future_hg.get());
     while (_mysql.fetch_row(res)) {
-      int32_t hg_id = res.value_as_i32(0);
+      uint32_t hg_id = res.value_as_i32(0);
+      std::string name = res.value_as_str(1);
       if (hg_id > 0)
-        _hostgroup_cache.insert(hg_id);
+        _hostgroups_cache.insert({hg_id, name});
       else
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -1484,3 +1485,8 @@ absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
 stream::service_description_id_cache() {
   return _service_description_id_cache;
 }
+
+boost::bimap<uint32_t, std::string>& stream::hostgroups_cache() {
+  return _hostgroups_cache;
+}
+

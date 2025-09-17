@@ -19,6 +19,8 @@
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 
+#include <boost/bimap.hpp>
+
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -285,7 +287,7 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger_sql;
   std::shared_ptr<spdlog::logger> _logger_sto;
 
-  absl::flat_hash_set<uint32_t> _hostgroup_cache;
+  boost::bimap<uint32_t, std::string> _hostgroups_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
@@ -554,6 +556,7 @@ class stream : public io::stream {
   absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
   absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
   service_description_id_cache();
+  boost::bimap<uint32_t, std::string>& hostgroups_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

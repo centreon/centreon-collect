@@ -2067,6 +2067,9 @@ void broker_external_command(int type, int command_type, char* command_args) {
 
 template <typename G>
 static void forward_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
 
@@ -2143,6 +2146,9 @@ static void forward_group(int type, const G* group_data) {
  */
 template <typename G>
 static void forward_pb_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Host group.
   if constexpr (std::is_same_v<G, engine::hostgroup>) {
     assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
@@ -2296,6 +2302,9 @@ static void forward_group_member(int type,
 static void forward_group_member(int type,
                                  const engine::service* object,
                                  const engine::servicegroup* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(
       neb_logger,
@@ -2353,6 +2362,9 @@ static void forward_group_member(int type,
  */
 template <typename G, typename R>
 static void forward_pb_group_member(int type, const R* object, const G* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb group member event");

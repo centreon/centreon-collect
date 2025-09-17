@@ -708,11 +708,17 @@ message Hostescalation {
 }
 
 /* Ignore */
+message PairGroupPoller {
+  string group_name = 1;
+  uint32 poller_id = 2;
+}
+
+/* Ignore */
 message DiffHostgroup {
   /* Added hostgroups */
   repeated Hostgroup added = 1;
   /* Removed hostgroups given by their key in the old list. */
-  repeated string removed = 2;
+  repeated PairGroupPoller removed = 2;
   /* Modified hostgroups */
   repeated Hostgroup modified = 3;
 }
@@ -720,13 +726,17 @@ message DiffHostgroup {
 /* Ignore */
 message Hostgroup {
   Object obj = 1;
-  string action_url = 2;
-  string alias = 3;
-  uint32 hostgroup_id = 4;
+  uint32 hostgroup_id = 2;
+  string action_url = 3;
+  string alias = 4;
   string hostgroup_name = 5;
   StringSet members = 6;
   string notes = 7;
   string notes_url = 8;
+  /* The Hostgroup message is the point of view of a Hostgroup from a Poller.
+   * It doesn't represent the Hostgroup itself. So when we work with differences
+   * of Hostgroups, we need to know on which Poller this difference is. */
+  uint32 poller_id = 9;
 }
 
 /* Ignore */

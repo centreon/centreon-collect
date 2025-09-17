@@ -27,6 +27,7 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
+#include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/common/utf8.hh"
@@ -1232,7 +1233,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
     _host_group_insupdate << hg;
     _mysql.run_statement(_host_group_insupdate,
                          database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.id);
+    _hostgroups_cache.insert({hg.id, hg.name});
   }
   // Delete group.
   else {
@@ -1257,7 +1258,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.id, hg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.id);
+      _hostgroups_cache.left.erase(hg.id);
     }
   }
   _add_action(conn, actions::hostgroups);
@@ -1289,7 +1290,9 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
     _pb_host_group_insupdate << *hgd;
     _mysql.run_statement(_pb_host_group_insupdate,
                          database::mysql_error::store_host_group, conn);
-    _hostgroup_cache.insert(hg.hostgroup_id());
+    _hostgroups_cache.left.erase(hg.hostgroup_id());
+    _hostgroups_cache.right.erase(hg.name());
+    _hostgroups_cache.left.insert(std::make_pair(hg.hostgroup_id(), hg.name()));
   }
   // Delete group.
   else {
@@ -1313,7 +1316,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
                       "hosts.instance_id={}",
                       hg.hostgroup_id(), hg.poller_id()));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _hostgroup_cache.erase(hg.hostgroup_id());
+      _hostgroups_cache.left.erase(hg.hostgroup_id());
     }
   }
   _add_action(conn, actions::hostgroups);
@@ -1367,7 +1370,8 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
 
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id]) {
-      if (_hostgroup_cache.find(hgm.group_id) == _hostgroup_cache.end()) {
+      if (_hostgroups_cache.left.find(hgm.group_id) ==
+          _hostgroups_cache.left.end()) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of "
@@ -1384,7 +1388,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         _host_group_insupdate << hg;
         _mysql.run_statement(_host_group_insupdate,
                              database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.group_id);
+        _hostgroups_cache.insert({hgm.group_id, hgm.group_name});
       }
 
       _host_group_member_insert << hgm;
@@ -1482,7 +1486,8 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
 
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id()]) {
-      if (_hostgroup_cache.find(hgm.hostgroup_id()) == _hostgroup_cache.end()) {
+      if (_hostgroups_cache.left.find(hgm.hostgroup_id()) ==
+          _hostgroups_cache.left.end()) {
         SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of members",
@@ -1499,7 +1504,10 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         _pb_host_group_insupdate << hg;
         _mysql.run_statement(_pb_host_group_insupdate,
                              database::mysql_error::store_host_group, conn);
-        _hostgroup_cache.insert(hgm.hostgroup_id());
+        _hostgroups_cache.left.erase(hgm.hostgroup_id());
+        _hostgroups_cache.right.erase(hgm.name());
+        _hostgroups_cache.left.insert(
+            std::make_pair(hgm.hostgroup_id(), hgm.name()));
       }
 
       _pb_host_group_member_insert << hgmp;
@@ -2679,6 +2687,11 @@ void stream::_process_pb_global_diff_state(const std::shared_ptr<io::data>& d) {
       *std::static_pointer_cast<neb::pb_global_diff_state>(d).get());
   const auto& obj = global_diff_state.obj();
   _logger_sql->info("unified_sql: processing global diff state event");
+  _logger_sql->info("  hosts: {} added, {} deleted, {} modified",
+                    obj.hosts().added_size(), obj.hosts().removed_size(),
+                    obj.hosts().modified_size());
+  database_configurator cfg(obj, this, _logger_sql);
+  cfg.process();
 }
 
 /**

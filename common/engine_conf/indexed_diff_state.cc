@@ -88,10 +88,12 @@ void indexed_diff_state::add_diff_state(
 
     logger->debug("There are {} added hosts", _added_hosts.size());
 
-    _add_message<Hostgroup, std::string>(
+    _add_message<Hostgroup, std::pair<std::string, uint32_t>>(
         diff_state.mutable_state()->mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
-        [](Hostgroup* obj) { return obj->hostgroup_name(); });
+        [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+          return std::make_pair(obj->hostgroup_name(), poller_id);
+        });
 
     logger->debug("There are {} added hostgroups", _added_hostgroups.size());
 
@@ -188,10 +190,16 @@ void indexed_diff_state::add_diff_state(
         diff_state.mutable_hosts(), _added_hosts, _modified_hosts,
         _removed_hosts, [](Host* obj) { return obj->host_id(); });
 
-    _add_diff_message<DiffHostgroup, Hostgroup, std::string>(
+    _add_diff_message<DiffHostgroup, Hostgroup,
+                      std::pair<std::string, uint32_t>, PairGroupPoller>(
         diff_state.mutable_hostgroups(), _added_hostgroups,
         _modified_hostgroups, _removed_hostgroups,
-        [](Hostgroup* obj) { return obj->hostgroup_name(); });
+        [poller_id = diff_state.poller_id()](Hostgroup* obj) {
+          return std::make_pair(obj->hostgroup_name(), poller_id);
+        },
+        [](const PairGroupPoller& proto_key) {
+          return std::make_pair(proto_key.group_name(), proto_key.poller_id());
+        });
 
     _add_diff_message<DiffService, Service, std::pair<uint64_t, uint64_t>,
                       HostServiceId>(
@@ -375,8 +383,11 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
   for (auto& [k, v] : _modified_hostgroups)
     state.mutable_hostgroups()->mutable_modified()->AddAllocated(v.release());
   state.mutable_hostgroups()->clear_removed();
-  for (const std::string& k : _removed_hostgroups)
-    state.mutable_hostgroups()->add_removed(k);
+  for (const auto& k : _removed_hostgroups) {
+    auto* to_remove = state.mutable_hostgroups()->add_removed();
+    to_remove->set_group_name(k.first);
+    to_remove->set_poller_id(k.second);
+  }
 
   state.mutable_hosts()->clear_added();
   for (auto& [k, v] : _added_hosts)

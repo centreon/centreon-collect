@@ -203,7 +203,7 @@ void applier::servicedependency::_expand_services(
   // Host groups.
   for (auto& hgn : hg) {
     // Find host group
-    auto found = s.hostgroups().find(hgn);
+    auto found = s.hostgroups().find(std::make_pair(hgn, cbm->poller_id()));
     if (found == s.hostgroups().end())
       throw engine_error() << fmt::format("Could not resolve host group '{}'",
                                           hgn);

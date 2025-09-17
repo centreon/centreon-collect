@@ -1537,10 +1537,15 @@ void applier::state::_apply_diff_conf(
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(
       *diff.mutable_hosts(), pb_indexed_config.mut_hosts(),
       [](const Host& obj) -> uint64_t { return obj.host_id(); });
-  _apply_ng<configuration::applier::hostgroup, DiffHostgroup, std::string,
-            Hostgroup>(
+  _apply_ng<configuration::applier::hostgroup, DiffHostgroup,
+            std::pair<std::string, uint32_t>, Hostgroup, PairGroupPoller>(
       *diff.mutable_hostgroups(), pb_indexed_config.mut_hostgroups(),
-      [](const Hostgroup& obj) -> std::string { return obj.hostgroup_name(); });
+      [](const Hostgroup& obj) {
+        return std::make_pair(obj.hostgroup_name(), obj.poller_id());
+      },
+      [](const PairGroupPoller& key) {
+        return std::make_pair(key.group_name(), key.poller_id());
+      });
 
   // Apply services.
   _apply_ng<configuration::applier::service, DiffService,
@@ -1576,8 +1581,8 @@ void applier::state::_apply_diff_conf(
   // Resolve hosts, services, host groups.
   _resolve<configuration::Host, uint64_t, applier::host>(
       pb_indexed_config.hosts(), err);
-  _resolve<configuration::Hostgroup, std::string, applier::hostgroup>(
-      pb_indexed_config.hostgroups(), err);
+  _resolve<configuration::Hostgroup, std::pair<std::string, uint32_t>,
+           applier::hostgroup>(pb_indexed_config.hostgroups(), err);
 
   // Resolve services.
   _resolve<configuration::Service, std::pair<uint64_t, uint64_t>,

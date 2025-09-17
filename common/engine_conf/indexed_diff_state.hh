@@ -82,11 +82,13 @@ class indexed_diff_state {
       _modified_hostescalations;
   absl::flat_hash_set<uint64_t> _removed_hostescalations;
 
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _added_hostgroups;
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
       _modified_hostgroups;
-  absl::flat_hash_set<std::string> _removed_hostgroups;
+  absl::flat_hash_set<std::pair<std::string, uint32_t>> _removed_hostgroups;
 
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _added_hosts;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _modified_hosts;
