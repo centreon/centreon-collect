@@ -288,7 +288,7 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger_sto;
 
   boost::bimap<uint32_t, std::string> _hostgroups_cache;
-  absl::flat_hash_set<uint32_t> _servicegroup_cache;
+  boost::bimap<uint32_t, std::string> _servicegroups_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
@@ -557,6 +557,7 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
   service_description_id_cache();
   boost::bimap<uint32_t, std::string>& hostgroups_cache();
+  boost::bimap<uint32_t, std::string>& servicegroups_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

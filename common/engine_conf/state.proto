@@ -866,7 +866,7 @@ message DiffServicegroup {
   /* Added servicegroup */
   repeated Servicegroup added = 1;
   /* Removed servicegroups given by there key in the old list. */
-  repeated string removed = 2;
+  repeated PairGroupPoller removed = 2;
   /* Modified servicegroups */
   repeated Servicegroup modified = 3;
 }
@@ -882,6 +882,12 @@ message Servicegroup {
   uint32 servicegroup_id = 7;
   StringSet servicegroup_members = 8;
   string servicegroup_name = 9;
+  /* The Servicegroup message is the point of view of a Servicegroup from a
+   * Poller. It doesn't represent the Servicegroup itself. So when we work with
+   * differences of Servicegroup, we need to know on which Poller this
+   * difference is. In other words, If a message is the point of view of a
+   * poller, it is worth to know which poller. */
+  uint32 poller_id = 10;
 }
 
 /* Ignore */

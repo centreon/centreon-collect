@@ -3146,7 +3146,9 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     _service_group_insupdate << sg;
     _mysql.run_statement(_service_group_insupdate,
                          database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.id);
+    _servicegroups_cache.left.erase(sg.id);
+    _servicegroups_cache.right.erase(sg.name);
+    _servicegroups_cache.left.insert({sg.id, sg.name});
   }
   // Delete group.
   else {
@@ -3163,15 +3165,12 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
     {
       _finish_action(-1, actions::services);
       std::string query(fmt::format(
-          "DELETE services_servicegroups FROM services_servicegroups "
-          "LEFT "
+          "DELETE services_servicegroups FROM services_servicegroups LEFT "
           "JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
-          "WHERE "
-          "services_servicegroups.servicegroup_id={} AND "
+          "WHERE services_servicegroups.servicegroup_id={} AND "
           "hosts.instance_id={}",
           sg.id, sg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.id);
     }
   }
   _add_action(conn, actions::servicegroups);
@@ -3202,7 +3201,8 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
     _pb_service_group_insupdate << sgp;
     _mysql.run_statement(_pb_service_group_insupdate,
                          database::mysql_error::store_service_group, conn);
-    _servicegroup_cache.insert(sg.servicegroup_id());
+    _servicegroups_cache.left.insert(
+        std::make_pair(sg.servicegroup_id(), sg.name()));
   }
   // Delete group.
   else {
@@ -3227,7 +3227,6 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
           "hosts.instance_id={}",
           sg.servicegroup_id(), sg.poller_id()));
       _mysql.run_query(query, database::mysql_error::empty, conn);
-      _servicegroup_cache.erase(sg.servicegroup_id());
     }
   }
   _add_action(conn, actions::servicegroups);
@@ -3274,7 +3273,8 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.group_id) == _servicegroup_cache.end()) {
+    if (_servicegroups_cache.left.find(sgm.group_id) ==
+        _servicegroups_cache.left.end()) {
       SPDLOG_LOGGER_ERROR(_logger_sql,
                           "unified_sql: service group {} does not exist - "
                           "insertion before insertion "
@@ -3291,7 +3291,9 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
       _service_group_insupdate << sg;
       _mysql.run_statement(_service_group_insupdate,
                            database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.group_id);
+      _servicegroups_cache.left.erase(sgm.group_id);
+      _servicegroups_cache.right.erase(sgm.group_name);
+      _servicegroups_cache.insert({sgm.group_id, sgm.group_name});
     }
 
     _service_group_member_insert << sgm;
@@ -3383,8 +3385,8 @@ void stream::_process_pb_service_group_member(
     }
 
     /* If the group does not exist, we create it. */
-    if (_servicegroup_cache.find(sgm.servicegroup_id()) ==
-        _servicegroup_cache.end()) {
+    if (_servicegroups_cache.left.find(sgm.servicegroup_id()) ==
+        _servicegroups_cache.left.end()) {
       SPDLOG_LOGGER_ERROR(
           _logger_sql,
           "SQL: service group {} does not exist - insertion before insertion "
@@ -3402,7 +3404,10 @@ void stream::_process_pb_service_group_member(
       _pb_service_group_insupdate << sg;
       _mysql.run_statement(_pb_service_group_insupdate,
                            database::mysql_error::store_service_group, conn);
-      _servicegroup_cache.insert(sgm.servicegroup_id());
+      _servicegroups_cache.left.erase(sgm.servicegroup_id());
+      _servicegroups_cache.right.erase(sgm.name());
+      _servicegroups_cache.left.insert(
+          std::make_pair(sgm.servicegroup_id(), sgm.name()));
     }
 
     _pb_service_group_member_insert << sgmp;

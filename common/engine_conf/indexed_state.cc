@@ -275,8 +275,9 @@ void indexed_state::_index() {
   }
   while (!_state->servicegroups().empty()) {
     Servicegroup* servicegroup = _state->mutable_servicegroups()->ReleaseLast();
-    _servicegroups.emplace(servicegroup->servicegroup_name(),
-                           std::unique_ptr<Servicegroup>(servicegroup));
+    _servicegroups.emplace(
+        std::make_pair(servicegroup->servicegroup_name(), _state->poller_id()),
+        std::unique_ptr<Servicegroup>(servicegroup));
   }
   while (!_state->hostdependencies().empty()) {
     Hostdependency* hostdependency =
@@ -411,9 +412,17 @@ void indexed_state::diff_with_new_config(
       result->mutable_anomalydetections());
 
   /* Diff on servicegroups */
-  _diff<Servicegroup, DiffServicegroup, std::string>(
+  _diff<Servicegroup, DiffServicegroup, std::pair<std::string, uint32_t>,
+        PairGroupPoller>(
       new_state.mutable_servicegroups(), _servicegroups, logger,
-      [](Servicegroup* obj) { return obj->servicegroup_name(); },
+      [poller_id = new_state.poller_id()](Servicegroup* obj) {
+        return std::make_pair(obj->servicegroup_name(), poller_id);
+      },
+      [](PairGroupPoller* key_type,
+         const std::pair<std::string, uint32_t>& key) {
+        key_type->set_group_name(key.first);
+        key_type->set_poller_id(key.second);
+      },
       result->mutable_servicegroups());
 
   /* Diff on hostdependencies */

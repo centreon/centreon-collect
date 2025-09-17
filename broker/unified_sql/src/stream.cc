@@ -355,9 +355,9 @@ void stream::_load_caches() {
   _mysql.run_query_and_get_result("SELECT hostgroup_id, name FROM hostgroups",
                                   std::move(promise_hg));
 
-  /* servicegroups => _servicegroup_cache */
-  _mysql.run_query_and_get_result("SELECT servicegroup_id FROM servicegroups",
-                                  std::move(promise_sg));
+  /* servicegroups => _servicegroups_cache */
+  _mysql.run_query_and_get_result(
+      "SELECT servicegroup_id, name FROM servicegroups", std::move(promise_sg));
 
   /* metrics => _metric_cache */
   _mysql.run_query_and_get_result(
@@ -507,19 +507,20 @@ void stream::_load_caches() {
     throw msg_fmt("SQL: could not get the list of hostgroups id: {}", e.what());
   }
 
-  /* servicegroups => _servicegroup_cache */
-  _servicegroup_cache.clear();
+  /* servicegroups => _servicegroups_cache */
+  _servicegroups_cache.clear();
   try {
     mysql_result res(future_sg.get());
     while (_mysql.fetch_row(res)) {
-      int32_t sg_id = res.value_as_i32(0);
-      if (sg_id <= 0)
+      uint32_t sg_id = res.value_as_i32(0);
+      std::string name = res.value_as_str(1);
+      if (sg_id > 0)
+        _servicegroups_cache.insert({sg_id, name});
+      else
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
             "unified_sql: the 'servicegroups' table contains rows with "
             "servicegroup_id <= 0, you should remove them.");
-      else
-        _servicegroup_cache.insert(sg_id);
     }
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of servicegroups id: {}",
@@ -1490,3 +1491,6 @@ boost::bimap<uint32_t, std::string>& stream::hostgroups_cache() {
   return _hostgroups_cache;
 }
 
+boost::bimap<uint32_t, std::string>& stream::servicegroups_cache() {
+  return _servicegroups_cache;
+}

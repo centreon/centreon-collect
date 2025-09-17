@@ -530,13 +530,13 @@ define command {{
 
     @staticmethod
     def create_service_group(id, mbs):
-        retval = """define servicegroup {{
-    servicegroup_id                    {0}
-    servicegroup_name                  servicegroup_{0}
-    alias                           servicegroup_{0}
-    members                         {1}
+        retval = f"""define servicegroup {{
+    servicegroup_id                    {id}
+    servicegroup_name                  servicegroup_{id}
+    alias                           servicegroup_{id}
+    members                         {','.join(mbs)}
 }}
-""".format(id, ",".join(mbs))
+"""
         logger.console(retval)
         return retval
 
@@ -1854,8 +1854,8 @@ def ctn_add_service_group(index: int, id_service_group: int, members: list):
         id_service_group (int): ID of the new service group.
         members (list): A list of its members.
     """
-    with open(
-            ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+") as f:
+    conf_dir = engine.get_config_dir(index)
+    with open(f"{conf_dir}/servicegroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_service_group(id_service_group, members))
 
