@@ -41,6 +41,8 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_severities_stmt;
   std::unique_ptr<database::mysql_stmt_base> _del_severities_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_tags_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _del_tags_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_customvariables_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_services_stmt;
   std::unique_ptr<database::mysql_stmt_base> _disable_service_resources_stmt;
@@ -58,10 +60,19 @@ class database_configurator {
   void _del_severities_mysql(
       const ::google::protobuf::RepeatedPtrField<
           com::centreon::engine::configuration::KeyType>& keys);
-
+  void _add_tags_mariadb(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+          lst);
+  void _add_tags_mysql(
+      const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+          lst);
   void _add_hosts_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
+  void _del_tags_mariadb(const ::google::protobuf::RepeatedPtrField<
+                         com::centreon::engine::configuration::KeyType>& keys);
+  void _del_tags_mysql(const ::google::protobuf::RepeatedPtrField<
+                       com::centreon::engine::configuration::KeyType>& keys);
   void _add_hosts_mysql(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);

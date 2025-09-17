@@ -286,6 +286,9 @@ void broker_adaptive_tag_data(int type, engine::tag* et) {
                 BROKER_ADAPTIVE_DATA))
     return;
 
+  if (cbm->centralized_conf())
+    return;
+
   /* Make callbacks. */
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating protobuf tag event");
 

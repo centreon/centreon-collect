@@ -46,6 +46,7 @@ void database_configurator::process() {
   if (_stream->supports_bulk_prepared_statements()) {
     /* Adding new objects */
     _add_severities_mariadb(_diff.severities().added());
+    _add_tags_mariadb(_diff.tags().added());
     _add_hosts_mariadb(_diff.hosts().added());
     _add_host_resources_mariadb(_diff.hosts().added());
     _add_services_mariadb(_diff.services().added());
@@ -53,6 +54,8 @@ void database_configurator::process() {
 
     /* Modifying existing objects */
     _add_severities_mariadb(_diff.severities().modified());
+    _add_tags_mariadb(_diff.tags().modified());
+
     _add_hosts_mariadb(_diff.hosts().modified());
     _add_host_resources_mariadb(_diff.hosts().modified());
     _add_services_mariadb(_diff.services().modified());
@@ -60,6 +63,7 @@ void database_configurator::process() {
 
     /* Disabling removed objects */
     _del_severities_mariadb(_diff.severities().removed());
+    _del_tags_mariadb(_diff.tags().removed());
     _disable_hosts(_diff.hosts().removed());
     _disable_services_mariadb(_diff.services().removed());
     _disable_services_mariadb(_diff.anomalydetections().removed());
@@ -68,6 +72,7 @@ void database_configurator::process() {
   } else {
     /* Adding new objects */
     _add_severities_mysql(_diff.severities().added());
+    _add_tags_mysql(_diff.tags().added());
     _add_hosts_mysql(_diff.hosts().added());
     _add_host_resources_mysql(_diff.hosts().added());
     _add_services_mysql(_diff.services().added());
@@ -75,6 +80,7 @@ void database_configurator::process() {
 
     /* Modifying existing objects */
     _add_severities_mysql(_diff.severities().modified());
+    _add_tags_mysql(_diff.tags().modified());
     _add_hosts_mysql(_diff.hosts().modified());
     _add_host_resources_mysql(_diff.hosts().modified());
     _add_services_mysql(_diff.services().modified());
@@ -203,6 +209,73 @@ void database_configurator::_del_severities_mysql(
     _del_severities_stmt->bind_value_as_u64(0, msg.id());
     _del_severities_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_severities_stmt);
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
+}
+
+/**
+ * @brief Remove tags from the database. (code for MariaDB).
+ *
+ * @param keys The list of keys to remove.
+ */
+void database_configurator::_del_tags_mariadb(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->tags_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} tags", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_tags_stmt) {
+    std::string query("DELETE FROM tags WHERE id=? AND type=?");
+    _del_tags_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_del_tags_stmt);
+  }
+  database::mysql_bulk_stmt* stmt =
+      static_cast<database::mysql_bulk_stmt*>(_del_tags_stmt.get());
+  auto bind = stmt->create_bind();
+  bind->reserve(keys.size());
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    bind->set_value_as_u64(0, msg.id());
+    bind->set_value_as_u32(1, msg.type());
+    bind->next_row();
+    cache.erase(std::make_pair(msg.id(), msg.type()));
+  }
+
+  stmt->set_bind(std::move(bind));
+  mysql.run_statement(*stmt);
+}
+
+/**
+ * @brief Remove tags from the database. (code for MySQL).
+ *
+ * @param keys The list of keys to remove.
+ */
+void database_configurator::_del_tags_mysql(
+    const ::google::protobuf::RepeatedPtrField<
+        com::centreon::engine::configuration::KeyType>& keys) {
+  auto& cache = _stream->tags_cache();
+
+  if (keys.empty())
+    return;
+
+  _logger->debug("Removing {} tags", keys.size());
+  mysql& mysql = _stream->get_mysql();
+  if (!_del_tags_stmt) {
+    std::string query("DELETE FROM tags WHERE id=? AND type=?");
+    _del_tags_stmt = std::make_unique<mysql_stmt>(query);
+    mysql.prepare_statement(*_del_tags_stmt);
+  }
+
+  for (const auto& msg : keys) {
+    _logger->info("deleting tag id={} ; type={}", msg.id(), msg.type());
+    _del_tags_stmt->bind_value_as_u64(0, msg.id());
+    _del_tags_stmt->bind_value_as_u32(1, msg.type());
+    mysql.run_statement(*_del_tags_stmt);
     cache.erase(std::make_pair(msg.id(), msg.type()));
   }
 }
@@ -374,6 +447,204 @@ void database_configurator::_add_severities_mysql(
   }
 }
 
+// clang-format off
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_tags
+ * Return: absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>
+ * Key: {key::id, key::type}
+ * Protobuf message: engine::configuration::Tag
+ * Description: Add tags into the database.
+ * Table: tags
+ * Data:
+ *  FIELD                 & TYPE   & COL NAME    & C_TYPE & OPTIONS
+ *  ---------------------------------------------------------------
+ *  ${0}                  & uint64 & tag_id      & uint64 & AU
+ *  key::id               & uint64 & id          & uint64 &
+ *  key::type             & uint32 & type        & uint32 &
+ *  tag_name              & string & name        & string &
+ *
+ */
+// clang-format on
+/**
+ * @brief Add tags into the database. (code for MariaDB).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_tags_mariadb(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+        lst) {
+  if (lst.empty())
+    return;
+  auto& cache = _stream->tags_cache();
+  std::list<std::pair<uint64_t, uint16_t>> keys;
+  mysql& mysql = _stream->get_mysql();
+  if (!_add_tags_stmt) {
+    std::string query(
+        "INSERT INTO tags (id,type,name) VALUES (?,?,?) ON DUPLICATE KEY "
+        "UPDATE id=VALUES(id),type=VALUES(type),name=VALUES(name)");
+    _add_tags_stmt = std::make_unique<mysql_bulk_stmt>(query);
+    mysql.prepare_statement(*_add_tags_stmt);
+  }
+  auto bind = _add_tags_stmt->create_bind();
+  bind->reserve(lst.size());
+
+  uint32_t count = 0;
+  for (const auto& msg : lst) {
+    auto key = std::make_pair(msg.key().id(), msg.key().type());
+    keys.push_back(key);
+
+    _logger->info("Processing tag id={}, type={}", key.first, key.second);
+    bind->set_value_as_u64(0, key.first);
+    bind->set_value_as_u32(1, key.second);
+    bind->set_value_as_str(
+        2, common::truncate_utf8(
+               msg.tag_name(),
+               get_centreon_storage_tags_col_size(centreon_storage_tags_name)));
+    bind->next_row();
+    count++;
+  }
+  _logger->debug("{} tags added/modified", count);
+  _add_tags_stmt->set_bind(std::move(bind));
+
+  try {
+    std::promise<uint64_t> promise;
+    std::future<uint64_t> future = promise.get_future();
+    mysql.run_statement_and_get_int<uint64_t>(
+        *_add_tags_stmt, std::move(promise),
+        mysql_task::int_type::LAST_INSERT_ID);
+    int first_id = future.get();
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, cache[k]);
+      }
+    }
+  } catch (const std::exception& e) {
+    _logger->error("Error while executing <<_add_tags>>: {}", e.what());
+  }
+}
+
+/**
+ * @brief Add tags into the database. (code for MySQL).
+ *
+ * @param lst The list of messages to add/update.
+ */
+void database_configurator::_add_tags_mysql(
+    const ::google::protobuf::RepeatedPtrField<engine::configuration::Tag>&
+        lst) {
+  if (lst.empty())
+    return;
+  auto& cache = _stream->tags_cache();
+  std::list<std::pair<uint64_t, uint16_t>> keys;
+  mysql& mysql = _stream->get_mysql();
+
+  std::vector<std::string> values;
+  for (const auto& msg : lst) {
+    auto key = std::make_pair(msg.key().id(), msg.key().type());
+    keys.push_back(key);
+
+    std::string value(fmt::format(
+        "({},{},'{}')", msg.key().id(), msg.key().type(),
+        misc::string::escape(msg.tag_name(), get_centreon_storage_tags_col_size(
+                                                 centreon_storage_tags_name))));
+    values.emplace_back(value);
+  }
+  std::string query(fmt::format(
+      "INSERT (id,type,name) INTO tags VALUES {} ON DUPLICATE KEY UPDATE "
+      "id=VALUES(id),type=VALUES(type),name=VALUES(name)",
+      fmt::join(values, ",")));
+
+  try {
+    std::promise<int> promise;
+    std::future<int> future = promise.get_future();
+    mysql.run_query_and_get_int(query, std::move(promise),
+                                mysql_task::int_type::LAST_INSERT_ID);
+    int first_id = future.get();
+    for (auto& k : keys) {
+      if (!cache.contains(k)) {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
+                       k.second, cache[k]);
+      }
+    }
+  } catch (const std::exception& e) {
+    _logger->error("Error while executing <<_add_tags>>: {}", e.what());
+  }
+}
+
+// clang-format off
+/** Database configuration
+ * Query: INSERT ON DUPLICATE KEY UPDATE
+ * Method: _add_hosts
+ * Protobuf message: engine::configuration::Host
+ * Description: Add hosts into the database.
+ * Table: hosts
+ * Data:
+ *   FIELD                                                                  & TYPE   & COL NAME                      & C_TYPE & OPTIONS
+ *   ----------------------------------------------------------------------------------------------------------------------------------
+ *   host_id                                                                & uint64 & host_id                       & int32  & U
+ *   host_name                                                              & string & name                          & string &
+ *   poller_id                                                              & uint64 & instance_id                   & int32  &
+ *   action_url                                                             & string & action_url                    & string &
+ *   checks_active                                                          & bool   & active_checks                 & bool   &
+ *   address                                                                & string & address                       & string &
+ *   alias                                                                  & string & alias                         & string &
+ *   check_command                                                          & string & check_command                 & string &
+ *   check_freshness                                                        & bool   & check_freshness               & bool   &
+ *   check_interval                                                         & uint32 & check_interval                & double &
+ *   check_period                                                           & string & check_period                  & string &
+ *   checks_active                                                          & bool   & default_active_checks         & bool   &
+ *   event_handler_enabled                                                  & bool   & default_event_handler_enabled & bool   &
+ *   flap_detection_enabled                                                 & bool   & default_flap_detection        & bool   &
+ *   notifications_enabled                                                  & bool   & default_notify                & bool   &
+ *   checks_passive                                                         & bool   & default_passive_checks        & bool   &
+ *   process_perf_data                                                      & bool   & default_process_perfdata      & bool   &
+ *   display_name                                                           & string & display_name                  & string &
+ *   ${true}                                                                & bool   & enabled                       & bool   &
+ *   event_handler                                                          & string & event_handler                 & string &
+ *   event_handler_enabled                                                  & bool   & event_handler_enabled         & bool   &
+ *   first_notification_delay                                               & uint32 & first_notification_delay      & double &
+ *   flap_detection_enabled                                                 & bool   & flap_detection                & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_down}        & bool   & flap_detection_on_down        & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_unreachable} & bool   & flap_detection_on_unreachable & bool   &
+ *   ${msg.flap_detection_options() & ActionHostOn::action_hst_up}          & bool   & flap_detection_on_up          & bool   &
+ *   freshness_threshold                                                    & uint32 & freshness_threshold           & double &
+ *   high_flap_threshold                                                    & uint32 & high_flap_threshold           & double &
+ *   icon_image                                                             & string & icon_image                    & string &
+ *   icon_image_alt                                                         & string & icon_image_alt                & string &
+ *   low_flap_threshold                                                     & uint32 & low_flap_threshold            & double &
+ *   max_check_attempts                                                     & uint32 & max_check_attempts            & int32  &
+ *   notes                                                                  & string & notes                         & string &
+ *   notes_url                                                              & string & notes_url                     & string &
+ *   notification_interval                                                  & uint32 & notification_interval         & double &
+ *   notification period                                                    & string & notification_period           & string &
+ *   notifications_enabled                                                  & bool   & notify                        & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_down}          & bool   & notify_on_down                & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_downtime}      & bool   & notify_on_downtime            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_flapping}      & bool   & notify_on_flapping            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_up}            & bool   & notify_on_recovery            & bool   &
+ *   ${msg.notification_options() & ActionHostOn::action_hst_unreachable}   & bool   & notify_on_unreachable         & bool   &
+ *   obsess_over_host                                                       & bool   & obsess_over_host              & bool   &
+ *   checks_passive                                                         & bool   & passive_checks                & bool   &
+ *   process_perf_data                                                      & bool   & process_perfdata              & bool   &
+ *   retain_nonstatus_information                                           & bool   & retain_nonstatus_information  & bool   &
+ *   retain_status_information                                              & bool   & retain_status_information     & bool   &
+ *   retry_interval                                                         & uint32 & retry_interval                & double &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_down}              & bool   & stalk_on_down                 & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_unreachable}       & bool   & stalk_on_unreachable          & bool   &
+ *   ${msg.stalking_options() & ActionHostOn::action_hst_up}                & bool   & stalk_on_up                   & bool   &
+ *   statusmap_image                                                        & string & statusmap_image               & string &
+ *   timezone                                                               & string & timezone                      & string & O
+ */
+// clang-format on
 /**
  * @brief Add hosts into the database. (code for MariaDB).
  *

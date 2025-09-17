@@ -540,6 +540,9 @@ class stream : public io::stream {
   severities_cache() {
     return _severities_cache;
   }
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
+    return _tags_cache;
+  }
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
   resources_cache() {
     return _resources_cache;
