@@ -32,18 +32,68 @@
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class grpc_test : public ::testing::Test {
+ protected:
+  static std::string _key;
+  static std::string _crt;
+
  public:
   static void SetUpTestSuite() {
-    system(
-        "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout "
-        "common_grpc_test.key -out common_grpc_test.crt -subj '/CN=localhost'");
-  }
+    EVP_PKEY* pkey = EVP_PKEY_new();
+    BIGNUM* e = BN_new();
+    BN_set_word(e, RSA_F4);  // 65537
+    RSA* rsa = RSA_new();
+    assert(RSA_generate_key_ex(rsa, 2048, e, NULL));
+    EVP_PKEY_assign_RSA(pkey, rsa);  // Transfère la propriété à pkey
+    BN_free(e);
 
-  static void TearDownTestSuite() {
-    ::remove("common_grpc_test.key");
-    ::remove("common_grpc_test.crt");
+    // Créer un certificat X.509 auto-signé
+    X509* cert = X509_new();
+    ASN1_INTEGER_set(X509_get_serialNumber(cert), 1);
+    X509_gmtime_adj(X509_get_notBefore(cert), 0);
+    X509_gmtime_adj(X509_get_notAfter(cert), 60 * 60 * 24 * 365);  // 1 an
+    X509_set_pubkey(cert, pkey);
+
+    X509_NAME* name = X509_get_subject_name(cert);
+    X509_NAME_add_entry_by_txt(name, "C", MBSTRING_ASC, (unsigned char*)"FR",
+                               -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
+                               (unsigned char*)"InMemoryCorp", -1, -1, 0);
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
+                               (unsigned char*)"localhost", -1, -1, 0);
+    X509_set_issuer_name(cert, name);
+
+    assert(X509_sign(cert, pkey, EVP_sha256()));
+
+    // Sauvegarder dans des buffers mémoire (BIOs)
+    BIO* cert_bio = BIO_new(BIO_s_mem());
+    BIO* key_bio = BIO_new(BIO_s_mem());
+
+    assert(PEM_write_bio_X509(cert_bio, cert));
+
+    assert(PEM_write_bio_PrivateKey(key_bio, pkey, NULL, NULL, 0, NULL, NULL));
+
+    // Extraire les données en mémoire
+    BUF_MEM* cert_buf;
+    BUF_MEM* key_buf;
+    BIO_get_mem_ptr(cert_bio, &cert_buf);
+    BIO_get_mem_ptr(key_bio, &key_buf);
+
+    _crt.assign(cert_buf->data, cert_buf->length);
+    _key.assign(key_buf->data, key_buf->length);
+
+    BIO_free(cert_bio);
+    BIO_free(key_bio);
+    EVP_PKEY_free(pkey);
+    X509_free(cert);
+
+    EVP_cleanup();
+    CRYPTO_cleanup_all_ex_data();
+    ERR_free_strings();
   }
 };
+
+std::string grpc_test::_key;
+std::string grpc_test::_crt;
 
 namespace com::centreon::common::grpc::test {
 class server_reactor
@@ -187,31 +237,18 @@ class grpc_client : public common::grpc::grpc_client_base {
 
 }  // namespace com::centreon::common::grpc::test
 
-static std::string read_file(const std::string& name) {
-  std::ifstream is(name);
-  if (is) {
-    std::stringstream buffer;
-    buffer << is.rdbuf();
-    is.close();
-    return buffer.str();
-  }
-  return {};
-}
-
 using namespace com::centreon::common::grpc;
 
 TEST_F(grpc_test, with_cert_verify) {
   std::shared_ptr<grpc_config> server_conf = std::make_shared<grpc_config>(
-      "localhost:7894", true, read_file("common_grpc_test.crt"),
-      read_file("common_grpc_test.key"), "", "", false, 60);
+      "localhost:7894", true, _crt, _key, "", "", false, 60);
 
   std::shared_ptr<test::grpc_server> server =
       std::make_shared<test::grpc_server>(server_conf);
   server->start();
 
   std::shared_ptr<grpc_config> client_conf = std::make_shared<grpc_config>(
-      "localhost:7894", true, "", "", read_file("common_grpc_test.crt"), "",
-      false, 60);
+      "localhost:7894", true, "", "", _crt, "", false, 60);
   std::shared_ptr<test::grpc_client> client =
       std::make_shared<test::grpc_client>(client_conf);
 
@@ -225,8 +262,7 @@ TEST_F(grpc_test, with_cert_verify) {
 
 TEST_F(grpc_test, with_cert_verify_but_without_cert) {
   std::shared_ptr<grpc_config> server_conf = std::make_shared<grpc_config>(
-      "localhost:7895", true, read_file("common_grpc_test.crt"),
-      read_file("common_grpc_test.key"), "", "", false, 60);
+      "localhost:7895", true, _crt, _key, "", "", false, 60);
 
   std::shared_ptr<test::grpc_server> server =
       std::make_shared<test::grpc_server>(server_conf);
@@ -247,8 +283,7 @@ TEST_F(grpc_test, with_cert_verify_but_without_cert) {
 
 TEST_F(grpc_test, without_cert_verify) {
   std::shared_ptr<grpc_config> server_conf = std::make_shared<grpc_config>(
-      "localhost:7896", true, read_file("common_grpc_test.crt"),
-      read_file("common_grpc_test.key"), "", "", false, 60);
+      "localhost:7896", true, _crt, _key, "", "", false, 60);
 
   std::shared_ptr<test::grpc_server> server =
       std::make_shared<test::grpc_server>(server_conf);
