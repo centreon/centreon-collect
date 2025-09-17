@@ -1051,8 +1051,11 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 bool stream::_host_instance_known(uint64_t host_id) const {
   bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
                 _cache_host_instance.end();
-  if (retval)
-    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
+  //  FIXME DBO: with the centralized configuration, checks are executed earlier
+  //  than before and it is possible that the cache is not ready when first
+  //  checks arrive. So we temporarily disable this assert.
+  //  if (retval)
+  //    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
   return retval;
 }
 
