@@ -42,6 +42,7 @@ class cbmod {
 
   // Unstarted downtimes.
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
+  bool _centralized_conf = false;
 
  public:
   cbmod(const std::filesystem::path& proto_conf);
@@ -82,6 +83,7 @@ class cbmod {
   void reload();
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   void set_diff_state_applied(const std::string& config_version);
+  bool centralized_conf() const;
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
