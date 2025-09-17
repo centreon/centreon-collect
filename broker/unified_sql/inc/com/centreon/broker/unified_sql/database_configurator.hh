@@ -35,6 +35,9 @@ class database_configurator {
   stream* _stream;
   std::shared_ptr<spdlog::logger> _logger;
   database::mysql_stmt _enable_hosts;
+  std::unique_ptr<database::mysql_bulk_stmt>
+      _add_anomalydetection_resources_stmt;
+  std::unique_ptr<database::mysql_bulk_stmt> _add_anomalydetections_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_host_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_hosts_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_service_resources_stmt;
@@ -103,7 +106,18 @@ class database_configurator {
                              engine::configuration::Service>& lst);
   void _add_services_mysql(const ::google::protobuf::RepeatedPtrField<
                            engine::configuration::Service>& lst);
-
+  void _add_anomalydetections_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
+  void _add_anomalydetections_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
+  void _add_anomalydetection_resources_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
+  void _add_anomalydetection_resources_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          engine::configuration::Anomalydetection>& lst);
   void _add_customvariables_mariadb(
       uint64_t host_id,
       uint64_t service_id,
