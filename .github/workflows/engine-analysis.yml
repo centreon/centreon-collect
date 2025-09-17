@@ -27,7 +27,7 @@ jobs:
     with:
       version_file: CMakeLists.txt
 
-  code_scan
+  code_scan:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -44,6 +44,6 @@ jobs:
       cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
 
   set-skip-label:
-    needs: [get-environment, checkmarx-analysis]
+    needs: [get-environment, code_scan]
     if: needs.get-environment.outputs.skip_workflow == 'false'
     uses: ./.github/workflows/set-pull-request-skip-label.yml
