@@ -147,6 +147,8 @@ extern uint32_t instance_heartbeat_interval;
 extern std::unique_ptr<com::centreon::common::crypto::aes256>
     credentials_decrypt;
 
+extern std::unique_ptr<com::centreon::engine::enginerpc> rpc;
+
 void init_loggers();
 
 #endif /* !CCE_GLOBALS_HH */

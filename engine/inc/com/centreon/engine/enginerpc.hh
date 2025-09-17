@@ -2,6 +2,8 @@
 #define CCE_ENGINERPC_ENGINERPC_HH
 
 #include <grpcpp/server.h>
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
 #include "engine_impl.hh"
 
 namespace com::centreon::engine {

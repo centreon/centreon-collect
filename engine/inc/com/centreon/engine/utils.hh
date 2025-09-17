@@ -22,6 +22,7 @@
 #ifndef CCE_UTILS_HH
 #define CCE_UTILS_HH
 
+#include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 #ifdef __cplusplus
@@ -91,4 +92,8 @@ inline int get_raw_command_line_r(
 }
 
 std::string get_stack_trace(int max_depth = 64);
+
+void update_rpc_server(const std::string& listen_address, uint16_t port);
+void stop_rpc_server();
+
 #endif  // !CCE_UTILS_HH
