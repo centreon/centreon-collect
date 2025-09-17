@@ -2841,6 +2841,11 @@ void stream::_process_pb_adaptive_host_status(
     if (hscr.has_scheduled_downtime_depth())
       query += fmt::format("scheduled_downtime_depth={},",
                            hscr.scheduled_downtime_depth());
+    if (hscr.has_next_check())
+      query += fmt::format(" next_check={},", hscr.next_check());
+    if (hscr.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           hscr.should_be_scheduled() ? 1 : 0);
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={}", hscr.host_id());
@@ -4780,6 +4785,11 @@ void stream::_process_pb_adaptive_service_status(
     if (sscr.has_scheduled_downtime_depth())
       buf_query += fmt::format("scheduled_downtime_depth={},",
                                sscr.scheduled_downtime_depth());
+    if (sscr.has_next_check())
+      buf_query += fmt::format(" next_check={},", sscr.next_check());
+    if (sscr.has_should_be_scheduled())
+      buf_query += fmt::format(" should_be_scheduled='{}',",
+                               sscr.should_be_scheduled() ? 1 : 0);
     if (buf_query.size() > query.size()) {
       buf_query.resize(buf_query.size() - 1);
       buf_query += fmt::format(" WHERE host_id={} AND service_id={}",
