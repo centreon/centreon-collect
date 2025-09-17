@@ -3985,6 +3985,9 @@ static void forward_relation(int type,
 static void forward_pb_relation(int type,
                                 const engine::host* hst,
                                 const engine::host* dep_hst) noexcept {
+  if (!cbm->use_protobuf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
 
@@ -4403,6 +4406,9 @@ void broker_relation_data(int type,
   if (!cbm || !(pb_indexed_config.state().event_broker_options() &
                 BROKER_RELATION_DATA))
     return;
+  if (cbm->centralized_conf())
+    return;
+
   if (!hst || !dep_hst || svc || dep_svc)
     return;
 

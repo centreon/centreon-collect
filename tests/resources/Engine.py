@@ -3326,11 +3326,12 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
     Add a parent host to an host.
 
     Args:
-        poller: index of the Engine configuration (from 0)
+        poller: Index of the Engine configuration (from 0)
         host: child host name.
         parent_host: host name of the parent of the child host.
     """
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+    config_dir = engine.get_config_dir(poller)
+    with open(f"{config_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
     r = re.compile(rf"^\s*host_name\s+{host}$")
     for i in range(len(lines)):
@@ -3339,7 +3340,7 @@ def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):
                 i + 1, f"    parents                        {parent_host}\n")
             break
 
-    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+    with open(f"{config_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
 
