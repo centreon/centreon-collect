@@ -36,6 +36,7 @@ jobs:
     with:
       module_directory: broker
       module_name: centreon-broker
+      exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
