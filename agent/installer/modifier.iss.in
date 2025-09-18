@@ -793,11 +793,11 @@ begin
   HostInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   HostInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   HostInfoBitmapImage.Parent := ConfigPage.Surface;
-  HostInfoBitmapImage.Top := HostLabel.Top- ScaleY(2);
+  HostInfoBitmapImage.Top := HostLabel.Top- ScaleY(3);
   HostInfoBitmapImage.Left := HostNameEdit.Left + HostNameEdit.Width + ScaleX(4);
   HostInfoBitmapImage.Center := True;
-  HostInfoBitmapImage.Width := 20;
-  HostInfoBitmapImage.Height := 20;
+  HostInfoBitmapImage.Width := 24;
+  HostInfoBitmapImage.Height := 24;
   HostInfoBitmapImage.Stretch := True;
   HostInfoBitmapImage.Cursor := crHand;
   HostInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -832,11 +832,11 @@ begin
   PollerInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   PollerInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   PollerInfoBitmapImage.Parent := ConfigPage.Surface;
-  PollerInfoBitmapImage.Top := PollerLabel.Top- ScaleY(2);
+  PollerInfoBitmapImage.Top := PollerLabel.Top- ScaleY(3);
   PollerInfoBitmapImage.Left := PollerEndpointEdit.Left + PollerEndpointEdit.Width + ScaleX(4);
   PollerInfoBitmapImage.Center := True;
-  PollerInfoBitmapImage.Width := 20;
-  PollerInfoBitmapImage.Height := 20;
+  PollerInfoBitmapImage.Width := 24;
+  PollerInfoBitmapImage.Height := 24;
   PollerInfoBitmapImage.Stretch := True;
   PollerInfoBitmapImage.Cursor := crHand;
   PollerInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -867,11 +867,11 @@ begin
   PollerInitiatedInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   PollerInitiatedInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   PollerInitiatedInfoBitmapImage.Parent := ConfigPage.Surface;
-  PollerInitiatedInfoBitmapImage.Top := PollerInitiatedCheckBox.Top - ScaleY(2);
+  PollerInitiatedInfoBitmapImage.Top := PollerInitiatedCheckBox.Top - ScaleY(3);
   PollerInitiatedInfoBitmapImage.Left := PollerEndpointEdit.Width - ScaleX(4);
   PollerInitiatedInfoBitmapImage.Center := True;
-  PollerInitiatedInfoBitmapImage.Width := 20;
-  PollerInitiatedInfoBitmapImage.Height := 20;
+  PollerInitiatedInfoBitmapImage.Width := 24;
+  PollerInitiatedInfoBitmapImage.Height := 24;
   PollerInitiatedInfoBitmapImage.Stretch := True;
   PollerInitiatedInfoBitmapImage.Cursor := crHand;
   PollerInitiatedInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -977,11 +977,11 @@ begin
   MaxFileInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   MaxFileInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   MaxFileInfoBitmapImage.Parent := ConfigPage.Surface;
-  MaxFileInfoBitmapImage.Top := MaxFileLabel.Top - ScaleY(2);
+  MaxFileInfoBitmapImage.Top := MaxFileLabel.Top - ScaleY(3);
   MaxFileInfoBitmapImage.Left := MaxFileEdit.Left + MaxFileEdit.Width + ScaleX(4);
   MaxFileInfoBitmapImage.Center := True;
-  MaxFileInfoBitmapImage.Width := 20;
-  MaxFileInfoBitmapImage.Height := 20;
+  MaxFileInfoBitmapImage.Width := 24;
+  MaxFileInfoBitmapImage.Height := 24;
   MaxFileInfoBitmapImage.Stretch := True;
   MaxFileInfoBitmapImage.Cursor := crHand;
   MaxFileInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1007,11 +1007,11 @@ begin
   MaxNumberInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   MaxNumberInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   MaxNumberInfoBitmapImage.Parent := ConfigPage.Surface;
-  MaxNumberInfoBitmapImage.Top := MaxNumberLabel.Top - ScaleY(2);
+  MaxNumberInfoBitmapImage.Top := MaxNumberLabel.Top - ScaleY(3);
   MaxNumberInfoBitmapImage.Left := MaxNumberEdit.Left + MaxNumberEdit.Width + ScaleX(4);
   MaxNumberInfoBitmapImage.Center := True;
-  MaxNumberInfoBitmapImage.Width := 20;
-  MaxNumberInfoBitmapImage.Height := 20;
+  MaxNumberInfoBitmapImage.Width := 24;
+  MaxNumberInfoBitmapImage.Height := 24;
   MaxNumberInfoBitmapImage.Stretch := True;
   MaxNumberInfoBitmapImage.Cursor := crHand;
   MaxNumberInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1060,11 +1060,11 @@ begin
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   TokenInfoBitmapImage.Parent := EncryptionPage.Surface;
-  TokenInfoBitmapImage.Top := TokenLabel.Top - ScaleY(2);
+  TokenInfoBitmapImage.Top := TokenLabel.Top - ScaleY(3);
   TokenInfoBitmapImage.Left := TokenEdit.Left + TokenEdit.Width + ScaleX(4);
   TokenInfoBitmapImage.Center := True;
-  TokenInfoBitmapImage.Width := 20;
-  TokenInfoBitmapImage.Height := 20;
+  TokenInfoBitmapImage.Width := 24;
+  TokenInfoBitmapImage.Height := 24;
   TokenInfoBitmapImage.Stretch := True;
   TokenInfoBitmapImage.Cursor := crHand;
   TokenInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1113,11 +1113,11 @@ begin
   PublicCertInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   PublicCertInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   PublicCertInfoBitmapImage.Parent := EncryptionPage.Surface;
-  PublicCertInfoBitmapImage.Top := PublicCertLabel.Top - ScaleY(2);
+  PublicCertInfoBitmapImage.Top := PublicCertLabel.Top - ScaleY(3);
   PublicCertInfoBitmapImage.Left := PublicCertBrowseButton.Left + PublicCertBrowseButton.Width + ScaleX(4);
   PublicCertInfoBitmapImage.Center := True;
-  PublicCertInfoBitmapImage.Width := 20;
-  PublicCertInfoBitmapImage.Height := 20;
+  PublicCertInfoBitmapImage.Width := 24;
+  PublicCertInfoBitmapImage.Height := 24;
   PublicCertInfoBitmapImage.Stretch := True;
   PublicCertInfoBitmapImage.Cursor := crHand;
   PublicCertInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1165,11 +1165,11 @@ begin
   PrivateKeyInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   PrivateKeyInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   PrivateKeyInfoBitmapImage.Parent := EncryptionPage.Surface;
-  PrivateKeyInfoBitmapImage.Top := PrivateKeyLabel.Top - ScaleY(2);
+  PrivateKeyInfoBitmapImage.Top := PrivateKeyLabel.Top - ScaleY(3);
   PrivateKeyInfoBitmapImage.Left := PrivateKeyBrowseButton.Left + PrivateKeyBrowseButton.Width + ScaleX(4);
   PrivateKeyInfoBitmapImage.Center := True;
-  PrivateKeyInfoBitmapImage.Width := 20;
-  PrivateKeyInfoBitmapImage.Height := 20;
+  PrivateKeyInfoBitmapImage.Width := 24;
+  PrivateKeyInfoBitmapImage.Height := 24;
   PrivateKeyInfoBitmapImage.Stretch := True;
   PrivateKeyInfoBitmapImage.Cursor := crHand;
   PrivateKeyInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1217,11 +1217,11 @@ begin
   CaInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   CaInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   CaInfoBitmapImage.Parent := EncryptionPage.Surface;
-  CaInfoBitmapImage.Top := CaLabel.Top - ScaleY(2);
+  CaInfoBitmapImage.Top := CaLabel.Top - ScaleY(3);
   CaInfoBitmapImage.Left := CaBrowseButton.Left + CaBrowseButton.Width + ScaleX(4);
   CaInfoBitmapImage.Center := True;
-  CaInfoBitmapImage.Width := 20;
-  CaInfoBitmapImage.Height := 20;
+  CaInfoBitmapImage.Width := 24;
+  CaInfoBitmapImage.Height := 24;
   CaInfoBitmapImage.Stretch := True;
   CaInfoBitmapImage.Cursor := crHand;
   CaInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1260,11 +1260,11 @@ begin
   CommonNameInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   CommonNameInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
   CommonNameInfoBitmapImage.Parent := EncryptionPage.Surface;
-  CommonNameInfoBitmapImage.Top := CommonNameLabel.Top - ScaleY(2);
+  CommonNameInfoBitmapImage.Top := CommonNameLabel.Top - ScaleY(3);
   CommonNameInfoBitmapImage.Left := CommonNameEdit.Left + CommonNameEdit.Width + ScaleX(4);
   CommonNameInfoBitmapImage.Center := True;
-  CommonNameInfoBitmapImage.Width := 20;
-  CommonNameInfoBitmapImage.Height := 20;
+  CommonNameInfoBitmapImage.Width := 24;
+  CommonNameInfoBitmapImage.Height := 24;
   CommonNameInfoBitmapImage.Stretch := True;
   CommonNameInfoBitmapImage.Cursor := crHand;
   CommonNameInfoBitmapImage.OnClick := @BitmapImageOnClick;
@@ -1296,10 +1296,6 @@ begin
     HostWarningBitmapImage.Hide;
     PollerWarningBitmapImage.Hide;
     LogFileWarningBitmapImage.Hide;
-    PublicCertWarningBitmapImage.Hide;
-    PrivateKeyWarningBitmapImage.Hide;
-    CaWarningBitmapImage.Hide;
-    TokenWarningBitmapImage.Hide;
     
     if HostNameEdit.Text = '' then begin
       HostWarningBitmapImage.Hint := 'Please select at least one component before continuing.';
@@ -1347,6 +1343,10 @@ begin
     Result := True;
   end 
   else if CurPageID = EncryptionPage.ID then begin
+    PublicCertWarningBitmapImage.Hide;
+    PrivateKeyWarningBitmapImage.Hide;
+    CaWarningBitmapImage.Hide;
+    TokenWarningBitmapImage.Hide;
     if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
         if not(IsPathValid(PublicCertEdit.Text)) then begin
