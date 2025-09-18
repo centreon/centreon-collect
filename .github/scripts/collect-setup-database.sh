@@ -13,7 +13,12 @@ distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
     #workaround of forbidden execution of mysqld
-    cp /usr/sbin/mysqld /usr/sbin/mysqldtoto
+    if [ -f /usr/libexec/mysqld ]; then
+      cp /usr/libexec/mysqld /usr/sbin/mysqldtoto
+    else
+      cp /usr/sbin/mysqld /usr/sbin/mysqldtoto
+    fi
+
     /usr/sbin/mysqldtoto --user=root --initialize-insecure
     /usr/sbin/mysqldtoto --user=root &
 
