@@ -28,15 +28,16 @@ jobs:
     with:
       version_file: CMakeLists.txt
 
-  checkmarx-analysis:
+  code_scan:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       github.event.pull_request.draft != 'true'
-    uses: ./.github/workflows/checkmarx-analysis.yml
+    uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
       module_directory: bbdo
-      module_name: centreon-collect-bbdo
+      module_name: centreon-collect-bbdo-${{ needs.get-environment.outputs.linked_dev_branch }}
+      exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
       cx_tenant: ${{ secrets.AST_RND_SCANS_TENANT }}
@@ -44,6 +45,6 @@ jobs:
       cx_client_secret: ${{ secrets.AST_RND_SCANS_CLIENT_SECRET }}
 
   set-skip-label:
-    needs: [get-environment, checkmarx-analysis]
+    needs: [get-environment, code_scan]
     if: needs.get-environment.outputs.skip_workflow == 'false'
     uses: ./.github/workflows/set-pull-request-skip-label.yml
