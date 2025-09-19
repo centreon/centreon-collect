@@ -36,7 +36,7 @@ jobs:
     uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
       module_directory: agent
-      module_name: centreon-collect-agent
+      module_name: centreon-collect-agent-${{ needs.get-environment.outputs.linked_dev_branch }}
       exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
