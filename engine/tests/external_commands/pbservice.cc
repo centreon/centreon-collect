@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/process_manager.hh"
 #include "common/engine_conf/service_helper.hh"
 #include "helper.hh"
 
