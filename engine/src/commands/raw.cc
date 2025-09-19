@@ -187,13 +187,13 @@ void raw::run(std::string const& processed_cmd,
   res.start_time = p.start_time();
   res.end_time = p.end_time();
   res.exit_code = p.exit_code();
-  res.exit_status = p.exit_status();
+  res.exit_status = static_cast<common::e_exit_status>(p.exit_status());
 
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.exit_code = service::state_unknown;
     res.output = "(Process Timeout)";
-  } else if (res.exit_status == process::crash || res.exit_code < -1 ||
-             res.exit_code > 3)
+  } else if (res.exit_status == common::e_exit_status::crash ||
+             res.exit_code < -1 || res.exit_code > 3)
     res.exit_code = service::state_unknown;
 
   engine_logger(dbg_commands, basic) << "raw::run: end process: "
@@ -300,13 +300,13 @@ void raw::finished(process& p) noexcept {
     res.start_time = p.start_time();
     res.end_time = p.end_time();
     res.exit_code = p.exit_code();
-    res.exit_status = p.exit_status();
+    res.exit_status = static_cast<common::e_exit_status>(p.exit_status());
 
-    if (res.exit_status == process::timeout) {
+    if (res.exit_status == common::e_exit_status::timeout) {
       res.exit_code = service::state_unknown;
       res.output = "(Process Timeout)";
-    } else if ((res.exit_status == process::crash) || (res.exit_code < -1) ||
-               (res.exit_code > 3))
+    } else if ((res.exit_status == common::e_exit_status::crash) ||
+               (res.exit_code < -1) || (res.exit_code > 3))
       res.exit_code = service::state_unknown;
 
     engine_logger(dbg_commands, basic)

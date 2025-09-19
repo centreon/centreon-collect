@@ -114,7 +114,7 @@ void commands::command::set_command_line(const std::string& command_line) {
 }
 
 /**
- *  Set the command listener.
+ *  Set the command listener. ⚠️ no thread safe, used only for tests
  *
  *  @param[in] listener  The listener who catch events.
  */
