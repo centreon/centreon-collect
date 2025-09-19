@@ -19,7 +19,7 @@
 #ifndef CCE_COMMANDS_RESULT_HH
 #define CCE_COMMANDS_RESULT_HH
 
-#include "com/centreon/process.hh"
+#include "com/centreon/common/process/process.hh"
 #include "com/centreon/timestamp.hh"
 
 namespace com::centreon::engine {
@@ -42,13 +42,26 @@ class result {
   uint64_t command_id;
   timestamp end_time;
   int exit_code;
-  process::status exit_status;
+  common::e_exit_status exit_status;
   timestamp start_time;
   std::string output;
 
   result();
   result(result const& right);
   result(const check_result& check_res);
+  result(uint64_t commandid,
+         timestamp endtime,
+         int exitcode,
+         common::e_exit_status exitstatus,
+         timestamp starttime,
+         const std::string_view& outpt)
+      : command_id(commandid),
+        end_time(endtime),
+        exit_code(exitcode),
+        exit_status(exitstatus),
+        start_time(starttime),
+        output(outpt) {}
+
   ~result() noexcept;
   result& operator=(result const& right);
   bool operator==(result const& right) const noexcept;
@@ -59,7 +72,7 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump);
 
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

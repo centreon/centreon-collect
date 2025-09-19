@@ -187,7 +187,7 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   }
   std::this_thread::sleep_for(std::chrono::seconds(1));
   ASSERT_EQ(lstnr->get_result().exit_code, 0);
-  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().exit_status, common::e_exit_status::normal);
   ASSERT_EQ(lstnr->get_result().output, "tutu");
   struct stat file_stat;
   ASSERT_EQ(stat(path, &file_stat), 0);
@@ -199,7 +199,7 @@ TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
   ASSERT_EQ(lstnr->get_result().exit_code, 0);
-  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().exit_status, common::e_exit_status::normal);
   ASSERT_EQ(lstnr->get_result().output, "tutu");
   ASSERT_EQ(stat(path, &file_stat), 0);
   ASSERT_EQ(file_stat.st_size, 4);
@@ -236,7 +236,7 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   }
   std::this_thread::sleep_for(std::chrono::seconds(1));
   ASSERT_EQ(lstnr->get_result().exit_code, 0);
-  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().exit_status, common::e_exit_status::normal);
   ASSERT_EQ(lstnr->get_result().output, "tutu");
   struct stat file_stat;
   ASSERT_EQ(stat(path, &file_stat), 0);
@@ -250,7 +250,7 @@ TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
   ASSERT_EQ(lstnr->get_result().exit_code, 0);
-  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().exit_status, common::e_exit_status::normal);
   ASSERT_EQ(lstnr->get_result().output, "tutu");
   ASSERT_EQ(stat(path, &file_stat), 0);
   ASSERT_EQ(file_stat.st_size, 8);
