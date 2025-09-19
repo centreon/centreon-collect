@@ -38,7 +38,9 @@ namespace asio = boost::asio;
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <rapidjson/document.h>
 

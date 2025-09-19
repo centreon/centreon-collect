@@ -40,10 +40,11 @@ ENGINE_MANY_CHECKS
 ENGINE_MANY_CHECK_OK
     [Documentation]    Given a engine with many services and a command shared between several services
     ...                We expect correct check result in logs and we checks returned args and service macros
+    ...                All odd indexed services use perl connector to do checks
     [Tags]    engine    MON-177740
 
     #10 hosts of 50 services
-    Ctn Config Engine    ${1}    ${10}    ${50}
+    Ctn Config Engine    ${1}    ${10}    ${100}
     Ctn Config Broker    module
     Ctn Broker Config Log    module0    core    error
     Ctn Broker Config Log    module0    neb    error
@@ -51,7 +52,7 @@ ENGINE_MANY_CHECK_OK
     Ctn Engine Config Set Value    0    log_level_commands    trace
     Ctn Clear Retention
 
-    FOR    ${i}    IN RANGE    ${1}    ${501}
+    FOR    ${i}    IN RANGE    ${1}    ${1001}
         ${serv_desc}    Catenate    SEPARATOR=    service_    ${i} 
         Ctn Engine Config Replace Value In Services    0    ${serv_desc}   check_interval    1
     END
@@ -72,4 +73,4 @@ ENGINE_MANY_CHECK_OK
     # this is the purpose of the following function	
     ${nb_check_ok}    Ctn Engine Check Command Output
 
-    Should Be Equal    ${nb_check_ok}    ${500}    we should have 500 services checked
+    Should Be Equal    ${nb_check_ok}    ${1000}    we should have 500 services checked

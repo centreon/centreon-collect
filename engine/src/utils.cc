@@ -34,7 +34,7 @@
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
-#include "com/centreon/engine/commands/raw.hh"
+#include "com/centreon/engine/commands/raw_v2.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -90,14 +90,15 @@ int my_system_r(nagios_macros* mac,
                         *early_timeout, service::state_ok,
                         const_cast<char*>(cmd.c_str()), nullptr, nullptr);
 
-  commands::raw raw_cmd("system", cmd);
+  std::shared_ptr<commands::raw_v2> raw_cmd =
+      std::make_shared<commands::raw_v2>(g_io_context, "system", cmd);
   commands::result res;
-  raw_cmd.run(cmd, *mac, timeout, res);
+  raw_cmd->run(cmd, *mac, timeout, res);
 
   end_time.tv_sec = res.end_time.to_seconds();
   end_time.tv_usec = res.end_time.to_useconds() - end_time.tv_sec * 1000000ull;
   *exectime = (res.end_time - res.start_time).to_seconds();
-  *early_timeout = res.exit_status == process::timeout;
+  *early_timeout = res.exit_status == common::e_exit_status::timeout;
   if (max_output_length > 0)
     output = res.output.substr(0, max_output_length - 1);
   else
@@ -421,11 +422,13 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling && !verify_config) {
     checks::checker::deinit();
-    /* Before stopping, we stop all the connectors that are not already finished. */
+    /* Before stopping, we stop all the connectors that are not already
+     * finished. */
     for (auto& c : commands::connector::connectors)
       c.second->stop_connector();
 
-    /* Before stopping, we destroy all the running checks that are not already finished. */
+    /* Before stopping, we destroy all the running checks that are not already
+     * finished. */
     com::centreon::engine::commands::command::commands.clear();
 
     neb_free_callback_list();

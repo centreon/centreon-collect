@@ -384,10 +384,10 @@ void checker::finished(commands::result const& res) noexcept {
                        .tv_usec = res.end_time.to_useconds() % 1000000ll};
 
   result->set_finish_time(tv);
-  result->set_early_timeout(res.exit_status == process::timeout);
+  result->set_early_timeout(res.exit_status == common::e_exit_status::timeout);
   result->set_return_code(res.exit_code);
-  result->set_exited_ok(res.exit_status == process::normal ||
-                        res.exit_status == process::timeout);
+  result->set_exited_ok(res.exit_status == common::e_exit_status::normal ||
+                        res.exit_status == common::e_exit_status::timeout);
   result->set_output(res.output);
 
   // Queue check result.
@@ -518,7 +518,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.command_id = 0;
     res.end_time = timestamp::now();
     res.exit_code = service::state_unknown;
-    res.exit_status = process::normal;
+    res.exit_status = common::e_exit_status::normal;
     res.output = reason;
     res.start_time = res.end_time;
   };
@@ -567,11 +567,11 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
 #ifdef LEGACY_CONF
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_cmd, end_cmd, execution_time,
-                        config->host_check_timeout(),
-                        res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, res.output.c_str(), nullptr);
+  broker_system_command(
+      NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE, start_cmd,
+      end_cmd, execution_time, config->host_check_timeout(),
+      res.exit_status == common::e_exit_status::timeout, res.exit_code,
+      tmp_processed_cmd, res.output.c_str(), nullptr);
 #else
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
                         start_cmd, end_cmd, execution_time,
@@ -589,7 +589,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 #else
   uint32_t host_check_timeout = pb_config.host_check_timeout();
 #endif
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              host_check_timeout);
     engine_logger(log_runtime_warning, basic)

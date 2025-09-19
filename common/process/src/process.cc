@@ -140,7 +140,8 @@ process<use_mutex>::process(
     bool use_setpgid,
     bool use_stdin,
     const process::shared_env& env)
-    : _use_setpgid(use_setpgid),
+    : _args(parse_cmd_line(cmd_line)),
+      _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
       _logger(logger),
@@ -149,7 +150,8 @@ process<use_mutex>::process(
       _stdout_pipe(*io_context),
       _stderr_pipe(*io_context),
       _stdin_pipe(*io_context) {
-  _args = parse_cmd_line(cmd_line);
+  SPDLOG_LOGGER_TRACE(_logger, "create process {:p}",
+                      static_cast<const void*>(this));
 }
 
 template <bool use_mutex>
@@ -177,6 +179,8 @@ process_args::pointer process<use_mutex>::parse_cmd_line(
  */
 template <bool use_mutex>
 process<use_mutex>::~process() {
+  SPDLOG_LOGGER_TRACE(_logger, "delete process {:p}",
+                      static_cast<const void*>(this));
   if (_proc) {
     delete _proc;
   }
@@ -189,7 +193,7 @@ process<use_mutex>::~process() {
  * @return int
  */
 template <bool use_mutex>
-int process<use_mutex>::get_pid() {
+int process<use_mutex>::get_pid() const {
   detail::lock<use_mutex> l(&_protect);
   if (_proc) {
     return _proc->proc.id();
@@ -203,15 +207,51 @@ int process<use_mutex>::get_pid() {
  * we also start an asynchronous read on process fd to be aware of child process
  * termination
  *
- * @param enable_stdin On Windows set it to false if you doesn't want to write
- * on child stdin
+ * @param handler handler called at the end of child process
+ * @param stdout_handler handler called each time child process write something
+ * to stdout
+ * @param stderr_handler handler called each time child process write something
+ * to stderr
+ * @param timeout child process will be called at this end of this timeout, pass
+ * {} to avoid it
  */
 template <bool use_mutex>
 void process<use_mutex>::start_process(
     handler_type&& handler,
+    reader_type&& stdout_handler,
+    reader_type&& stderr_handler,
+    const std::chrono::system_clock::duration& timeout) {
+  detail::lock<use_mutex> l(&_protect);
+  _stdout_handler = std::move(stdout_handler);
+  _stderr_handler = std::move(stderr_handler);
+  _start_process_nolock(std::move(handler), timeout);
+}
+
+template <bool use_mutex>
+void process<use_mutex>::start_process(
+    handler_type&& handler,
+    const std::chrono::system_clock::duration& timeout) {
+  detail::lock<use_mutex> l(&_protect);
+  _stdout_handler = reader_type();
+  _stderr_handler = reader_type();
+  _start_process_nolock(std::move(handler), timeout);
+}
+
+/**
+ * @brief start a new process, if a previous one is running, it's killed
+ * In this function, we start child process and stdout, stderr asynchronous read
+ * we also start an asynchronous read on process fd to be aware of child process
+ * termination
+ *
+ * @param handler handler called at the end of child process
+ * @param timeout child process will be called at this end of this timeout, pass
+ * {} to avoid it
+ */
+template <bool use_mutex>
+void process<use_mutex>::_start_process_nolock(
+    handler_type&& handler,
     const std::chrono::system_clock::duration& timeout) {
   SPDLOG_LOGGER_DEBUG(_logger, "start process: {}", *_args);
-  detail::lock<use_mutex> l(&_protect);
   _handler = std::move(handler);
 
   if (_completion_flags) {
@@ -447,12 +487,14 @@ template <bool use_mutex>
 void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
                                          size_t nb_read) {
   bool eof = false;
+  std::string received;
   {
     detail::lock<use_mutex> l(&_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
-        SPDLOG_LOGGER_DEBUG(_logger, "fail read from stdout of process {}: {}",
-                            *_args, err.message());
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "pid:{} end read from stdout of process {}: {}",
+                            _proc->proc.handle().id(), *_args, err.message());
       } else {
         SPDLOG_LOGGER_ERROR(_logger,
                             "fail read from stdout of process {}: {} {}",
@@ -463,10 +505,18 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
     } else {
       SPDLOG_LOGGER_TRACE(_logger, " process: {} read from stdout: {}", *_args,
                           std::string_view(_stdout_read_buffer, nb_read));
-      _stdout.append(_stdout_read_buffer, nb_read);
+      if (!_stdout_handler) {
+        _stdout.append(_stdout_read_buffer, nb_read);
+      } else {
+        received.assign(_stdout_read_buffer, nb_read);
+      }
       _stdout_read();
     }
   }
+  if (!received.empty()) {
+    _stdout_handler(received);
+  }
+
   if (eof) {
     _on_completion();
   }
@@ -507,12 +557,14 @@ template <bool use_mutex>
 void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
                                          size_t nb_read) {
   bool eof = false;
+  std::string received;
   {
     detail::lock<use_mutex> l(&_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
-        SPDLOG_LOGGER_DEBUG(_logger, "fail read from stderr of process {}: {}",
-                            *_args, err.message());
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "pid:{} end read from stderr of process {}: {}",
+                            _proc->proc.handle().id(), *_args, err.message());
       } else {
         SPDLOG_LOGGER_ERROR(_logger,
                             "fail read from stderr of process {}: {} {}",
@@ -523,10 +575,19 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
     } else {
       SPDLOG_LOGGER_TRACE(_logger, " process: {} read from stdout: {}", *_args,
                           std::string_view(_stderr_read_buffer, nb_read));
-      _stderr.append(_stderr_read_buffer, nb_read);
+      if (!_stderr_handler) {
+        _stderr.append(_stderr_read_buffer, nb_read);
+      } else {
+        received.assign(_stderr_read_buffer, nb_read);
+      }
       _stderr_read();
     }
   }
+
+  if (!received.empty()) {
+    _stderr_handler(received);
+  }
+
   if (eof) {
     _on_completion();
   }
