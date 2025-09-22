@@ -103,7 +103,7 @@ BECNSG2
     END
 
 BECNSG3
-    [Documentation]    Test about lua cache. But the centralized configuration currently breaks the broker cache.
+    [Documentation]    FIXME DBO: This test is broken because we currently have no cache. Test about lua cache. But the centralized configuration currently breaks the broker cache.
     ...    FIXME: we have to fix this test when the centralized broker cache will be done.
     [Tags]    broker    engine    servicegroup    MON-153802
     Ctn Config Centralized Engine    ${3}
