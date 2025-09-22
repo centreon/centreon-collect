@@ -1660,6 +1660,8 @@ void database_configurator::_disable_service_resources_mysql(
     _disable_service_resources_stmt->bind_value_as_i64(0, msg.host_id());
     _disable_service_resources_stmt->bind_value_as_i64(1, msg.service_id());
     mysql.run_statement(*_disable_service_resources_stmt);
+    _logger->trace("Disabling service resource with id {}:{}", msg.host_id(),
+                   msg.service_id());
   }
 }
 
@@ -1672,6 +1674,10 @@ void database_configurator::_add_anomalydetections_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
   mysql& mysql = _stream->get_mysql();
+  if (lst.empty()) {
+    _logger->debug("No need to add/update anomaly detections, list empty");
+    return;
+  }
   if (!_add_anomalydetections_stmt) {
     std::string query(
         "INSERT INTO services "
@@ -1688,9 +1694,9 @@ void database_configurator::_add_anomalydetections_mariadb(
         "notify_on_unknown,notify_on_warning,obsess_over_service,passive_"
         "checks,process_perfdata,retain_nonstatus_information,retain_status_"
         "information,retry_interval,stalk_on_critical,stalk_on_ok,stalk_on_"
-        "unknown,stalk_on_warning) VALUES "
+        "unknown,stalk_on_warning, state, state_type) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1) ON DUPLICATE KEY UPDATE "
         "description=VALUES(description),action_url=VALUES(action_url),active_"
         "checks=VALUES(active_checks),check_freshness=VALUES(check_freshness),"
         "check_interval=VALUES(check_interval),default_active_checks=VALUES("
@@ -1722,7 +1728,8 @@ void database_configurator::_add_anomalydetections_mariadb(
         "information=VALUES(retain_status_information),retry_interval=VALUES("
         "retry_interval),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_"
         "ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
-        "stalk_on_warning=VALUES(stalk_on_warning)");
+        "stalk_on_warning=VALUES(stalk_on_warning),state=COALESCE(state,4), "
+        "state_type=COALESCE(state_type, 1)");
     _add_anomalydetections_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_anomalydetections_stmt);
   }
@@ -1841,13 +1848,28 @@ void database_configurator::_add_anomalydetections_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
   mysql& mysql = _stream->get_mysql();
+  if (lst.empty()) {
+    _logger->debug("No need to add/update anomaly detections, list empty");
+    return;
+  }
 
   std::vector<std::string> values;
+  values.reserve(lst.size());
+  std::string notification_period;
   for (const auto& msg : lst) {
+    if (msg.has_notification_period()) {
+      notification_period = fmt::format(
+          "'{}'", misc::string::escape(
+                      msg.notification_period(),
+                      get_centreon_storage_services_col_size(
+                          centreon_storage_services_notification_period)));
+    } else
+      notification_period = "NULL";
+
     std::string value(fmt::format(
         "({},'{}',{},'{}',{},{},{},{},{},{},{},{},{},'{}',1,'{}',{},{},{},{},{}"
-        ",{},{},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},{},{},{},{},{},{},{}"
-        ",{},{},{},{},{},{},{},{},{})",
+        ",{},{},{},{},'{}','{}',{},{},'{}','{}',{},{},{},{},{},{},{},{},{},{}"
+        ",{},{},{},{},{},{},{},{},{},4,1)",
         msg.host_id(),
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_services_col_size(
@@ -1889,13 +1911,7 @@ void database_configurator::_add_anomalydetections_mysql(
         misc::string::escape(msg.notes_url(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_notes_url)),
-        msg.notification_interval(),
-        msg.has_notification_period()
-            ? misc::string::escape(
-                  msg.notification_period(),
-                  get_centreon_storage_services_col_size(
-                      centreon_storage_services_notification_period))
-            : NULL,
+        msg.notification_interval(), notification_period,
         msg.notifications_enabled(),
         msg.notification_options() & ActionServiceOn::action_svc_critical ? 1
                                                                           : 0,
@@ -1918,7 +1934,22 @@ void database_configurator::_add_anomalydetections_mysql(
     values.emplace_back(value);
   }
   std::string query(fmt::format(
-      "INSERT INTO services VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO services "
+      "(host_id,description,service_id,action_url,active_checks,check_"
+      "freshness,check_interval,default_active_checks,default_event_handler_"
+      "enabled,default_flap_detection,default_notify,default_passive_checks,"
+      "default_process_perfdata,display_name,enabled,event_handler,event_"
+      "handler_enabled,first_notification_delay,flap_detection,flap_"
+      "detection_on_critical,flap_detection_on_ok,flap_detection_on_unknown,"
+      "flap_detection_on_warning,freshness_threshold,high_flap_threshold,"
+      "icon_image,icon_image_alt,low_flap_threshold,max_check_attempts,notes,"
+      "notes_url,notification_interval,notification_period,notify,notify_on_"
+      "critical,notify_on_downtime,notify_on_flapping,notify_on_recovery,"
+      "notify_on_unknown,notify_on_warning,obsess_over_service,passive_"
+      "checks,process_perfdata,retain_nonstatus_information,retain_status_"
+      "information,retry_interval,stalk_on_critical,stalk_on_ok,stalk_on_"
+      "unknown,stalk_on_warning, state, state_type) VALUES {} ON DUPLICATE KEY "
+      "UPDATE "
       "description=VALUES(description),action_url=VALUES(action_url),active_"
       "checks=VALUES(active_checks),check_freshness=VALUES(check_freshness),"
       "check_interval=VALUES(check_interval),default_active_checks=VALUES("
@@ -1949,7 +1980,9 @@ void database_configurator::_add_anomalydetections_mysql(
       "information),retain_status_information=VALUES(retain_status_information)"
       ",retry_interval=VALUES(retry_interval),stalk_on_critical=VALUES(stalk_"
       "on_critical),stalk_on_ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES("
-      "stalk_on_unknown),stalk_on_warning=VALUES(stalk_on_warning)",
+      "stalk_on_unknown),stalk_on_warning=VALUES(stalk_on_warning), "
+      "state=COALESCE("
+      "state,4), state_type=COALESCE(state_type, 1)",
       fmt::join(values, ",")));
   mysql.run_query(query);
 }
@@ -2191,7 +2224,8 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
   if (!_add_anomalydetection_resources_stmt) {
     std::string query(
         "INSERT INTO resources "
-        "(id,parent_id,internal_id,type,status,status_ordered,status_confirmed,"
+        "(id,parent_id,internal_id,type,status,status_ordered,status_"
+        "confirmed,"
         "max_check_attempts,poller_id,severity_id,name,alias,parent_name,"
         "notes_url,notes,action_url,notifications_enabled,"
         "passive_checks_enabled,active_checks_enabled,enabled) VALUES "
@@ -2205,7 +2239,8 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
         "VALUES(parent_name),notes_url=VALUES(notes_url),notes=VALUES(notes),"
         "action_url=VALUES(action_url),notifications_enabled=VALUES("
         "notifications_enabled),passive_checks_enabled=VALUES(passive_checks_"
-        "enabled),active_checks_enabled=VALUES(active_checks_enabled),enabled="
+        "enabled),active_checks_enabled=VALUES(active_checks_enabled),"
+        "enabled="
         "VALUES(enabled)");
     _add_anomalydetection_resources_stmt =
         std::make_unique<mysql_bulk_stmt>(query);
@@ -2265,8 +2300,19 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
         *_add_anomalydetection_resources_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      auto found = cache.find(k);
+      if (found == cache.end()) {
+        _logger->trace(
+            "Anomaly detection resource with id {}:{} has resource_id {}",
+            k.first, k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace(
+            "Anomaly detection resource with id {}:{} has resource_id {}",
+            k.first, k.second, found->second);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error(
         "Error while executing <<_add_anomalydetection_resources>>: {}",
@@ -2275,13 +2321,17 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
 }
 
 /**
- * @brief Add anomaly detections into the resources database. (code for MySQL).
+ * @brief Add anomaly detections into the resources database. (code for
+ * MySQL).
  *
  * @param lst The list of messages to add/update.
  */
 void database_configurator::_add_anomalydetection_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
+  if (lst.empty())
+    return;
+
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint64_t>> keys;
   auto& cache = _stream->resources_cache();
@@ -2292,9 +2342,11 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     keys.push_back(key);
 
     std::string value(fmt::format(
-        "({},{},NULL,{},{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},1)",
+        "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
+        "1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
-        _stream->hosts_instances_cache()[msg.host_id()], msg.severity_id(),
+        _stream->hosts_instances_cache()[msg.host_id()],
+        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2317,7 +2369,13 @@ void database_configurator::_add_anomalydetection_resources_mysql(
                                msg.customvariables());
   }
   std::string query(fmt::format(
-      "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO resources "
+      "(id,parent_id,internal_id,type,status,status_ordered,status_"
+      "confirmed,"
+      "max_check_attempts,poller_id,severity_id,name,alias,parent_name,"
+      "notes_url,notes,action_url,notifications_enabled,"
+      "passive_checks_enabled,active_checks_enabled,enabled) VALUES {} ON "
+      "DUPLICATE KEY UPDATE "
       "internal_id=VALUES(internal_id),type=VALUES(type),max_check_attempts="
       "VALUES(max_check_attempts),poller_id=VALUES(poller_id),severity_id="
       "VALUES(severity_id),name=VALUES(name),alias=VALUES(alias),parent_name="
@@ -2334,8 +2392,19 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      auto found = cache.find(k);
+      if (found == cache.end()) {
+        _logger->trace(
+            "Anomaly detection resource with id {}:{} has resource_id {}",
+            k.first, k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace(
+            "Anomaly detection resource with id {}:{} has resource_id {}",
+            k.first, k.second, found->second);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error(
         "Error while executing <<_add_anomalydetection_resources>>: {}",
@@ -2344,7 +2413,8 @@ void database_configurator::_add_anomalydetection_resources_mysql(
 }
 
 /**
- * @brief Add custom variables into the resources database. (code for MariaDB).
+ * @brief Add custom variables into the resources database. (code for
+ * MariaDB).
  *
  * @param lst The list of messages to add/update.
  */

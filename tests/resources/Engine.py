@@ -381,7 +381,8 @@ class EngineInstance:
     sensitivity {sensitivity}
     status_change 1
     thresholds_file /tmp/anomaly_threshold.json
-}} """
+}}
+"""
         self.anomaly_detection_internal_id += 1
         return retval
 
@@ -950,8 +951,11 @@ define contact {
         config_dir = self.get_config_dir(0)
         with open(f"{config_dir}/centengine.cfg", "r") as f:
             lines = f.readlines()
+        r = re.compile(r"^cfg_file=.*anomaly_detection.cfg")
+        if any(r.match(line) for line in lines):
+            return
         with open(f"{config_dir}/centengine.cfg", "w") as f:
-            f.writelines(f"cfg_file={config_dir}/anomaly_detection.cfg\n")
+            f.writelines(f"cfg_file={ETC_ROOT}/centreon-engine/config0/anomaly_detection.cfg\n")
             f.writelines(lines)
 
 
@@ -1955,6 +1959,92 @@ def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id:
         f.write(to_append)
     engine.centengine_conf_add_anomaly()
     return retval
+
+
+def ctn_delete_anomaly_detection_at_index(index: int, row_idx: int):
+    """
+    Delete an anomaly detection at the given row index in the anomaly_detection.cfg file of the engine instance index.
+
+    Args:
+        index (int): index of the Engine configuration (from 0)
+        row_idx (int): Row index of the anomaly detection to delete (from 0)
+    """
+    config_dir = engine.get_config_dir(index)
+    filename = f"{config_dir}/anomaly_detection.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    ad_begin = re.compile(r"^define anomalydetection {$")
+    ad_end = re.compile(r"^}$")
+    ad_begin_idx = 0
+    current_row = -1
+    while ad_begin_idx < len(lines):
+        if (ad_begin.match(lines[ad_begin_idx])):
+            current_row += 1
+            if current_row == row_idx:
+                for end_ad_line in range(ad_begin_idx, len(lines)):
+                    if ad_end.match(lines[end_ad_line]):
+                        del lines[ad_begin_idx:end_ad_line + 1]
+                        break
+                break
+            else:
+                for ad_line_idx in range(ad_begin_idx, len(lines)):
+                    if ad_end.match(lines[ad_line_idx]):
+                        ad_begin_idx = ad_line_idx
+                        break
+        else:
+            ad_begin_idx = ad_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_modify_anomaly_detection(index: int, service_id: int, field: str, value: str):
+    """
+    Modify a field of an anomaly detection in the anomaly_detection.cfg file of the engine instance index.
+
+    Args:
+        index (int): index of the Engine configuration (from 0)
+        service_id (int): ID of the service containing the anomaly detection to modify.
+        field (str): The field to modify.
+        value (str): The new value to set.
+    """
+    logger.console(f"Modifying anomaly detection {service_id} field {field} to {value}")
+    config_dir = engine.get_config_dir(index)
+    filename = f"{config_dir}/anomaly_detection.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    ad_begin = re.compile(r"^define anomalydetection {")
+    ad_end = re.compile(r"^}$")
+    ad_service_id = re.compile(rf"^\s*service_id\s+{service_id}\s*$")
+    ad_field = re.compile(rf"^\s*{field}\s+[\w\.,]+\s*$")
+
+    inside = False
+    my_service = None
+    l_field = None
+
+    for i, line in enumerate(lines):
+        if inside:
+            if ad_end.match(line):
+                inside = False
+                if my_service == service_id and l_field is not None:
+                    lines[l_field] = f"    {field}              {value}\n"
+                my_service, l_field = None, None
+                continue
+            m = ad_service_id.match(line)
+            if m:
+                my_service = service_id
+            else:
+                m = ad_field.match(line)
+                if m:
+                    l_field = i
+        else:
+            if ad_begin.match(line):
+                inside = True
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_clone_engine_config_to_db():
