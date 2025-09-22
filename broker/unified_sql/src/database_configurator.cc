@@ -2478,12 +2478,15 @@ void database_configurator::_add_customvariables_mysql(
     uint64_t service_id,
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::CustomVariable>& lst) {
+  if (lst.empty())
+    return;
+
   mysql& mysql = _stream->get_mysql();
 
   std::vector<std::string> values;
   for (const auto& msg : lst) {
     std::string value(fmt::format(
-        "({},{},'{}','{}','{}',{},1,0)", host_id, service_id,
+        "({},{},'{}','{}','{}',{},0)", host_id, service_id,
         misc::string::escape(msg.name(),
                              get_centreon_storage_customvariables_col_size(
                                  centreon_storage_customvariables_name)),
@@ -2497,9 +2500,11 @@ void database_configurator::_add_customvariables_mysql(
     values.emplace_back(value);
   }
   std::string query(fmt::format(
-      "INSERT INTO customvariables VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO customvariables "
+      "(host_id,service_id,name,default_value,value,type,modified) VALUES {} "
+      "ON DUPLICATE KEY UPDATE "
       "default_value=VALUES(default_value),value=VALUES(value),type=VALUES("
-      "type),enabled=VALUES(enabled),modified=VALUES(modified)",
+      "type),modified=VALUES(modified)",
       fmt::join(values, ",")));
   mysql.run_query(query);
 }
