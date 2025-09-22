@@ -117,7 +117,7 @@ class host : public notifier {
                       time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
                       uint32_t options,
-                      bool no_update_status_now = false) override;
+                      bool no_call_update_status = false) override;
   void check_for_flapping(bool update,
                           bool actual_check,
                           bool allow_flapstart_notification);

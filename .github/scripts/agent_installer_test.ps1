@@ -26,12 +26,6 @@ $modifier_exe  = 'agent\installer\centreon-monitoring-agent-modify.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 $modifier_exepath = Join-Path -Path (Get-Location) -ChildPath $modifier_exe
 
-$installer_exe  = 'agent\installer\centreon-monitoring-agent.exe'
-$modifier_exe  = 'agent\installer\centreon-monitoring-agent-modify.exe'
-# build the path to the installer and modifier executables
-$installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
-$modifier_exepath = Join-Path -Path (Get-Location) -ChildPath $modifier_exe
-
 function f_start_process([string]$sProcess, [string]$sArgs, [ref]$pOutPut) {
     <#
     .SYNOPSIS

@@ -65,8 +65,9 @@ void applier::connector::add_object(const configuration::Connector& obj) {
             command_line.substr(otel_pos + _otel_fake_exe.length())),
         &checks::checker::instance());
   } else {
-    auto cmd = std::make_shared<commands::connector>(
-        obj.connector_name(), command_line, &checks::checker::instance());
+    auto cmd =
+        commands::connector::load(obj.connector_name(), command_line,
+                                  g_io_context, &checks::checker::instance());
     commands::connector::connectors[obj.connector_name()] = cmd;
   }
 }
@@ -130,9 +131,9 @@ void applier::connector::modify_object(
     } else {
       // old otel_connector => connector
       if (commands::otel_connector::remove(new_obj.connector_name())) {
-        auto cmd = std::make_shared<commands::connector>(
-            new_obj.connector_name(), command_line,
-            &checks::checker::instance());
+        auto cmd = commands::connector::load(new_obj.connector_name(),
+                                             command_line, g_io_context,
+                                             &checks::checker::instance());
         commands::connector::connectors[new_obj.connector_name()] = cmd;
 
       } else {
