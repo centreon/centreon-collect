@@ -273,6 +273,11 @@ jobs:
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
+          - image: packaging-centreon-collect-vcpkg-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-noble
             distrib: noble
             package_extension: deb
