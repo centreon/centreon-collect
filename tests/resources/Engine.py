@@ -941,8 +941,8 @@ define contact {
         config_dir = "{}/config0".format(CONF_DIR)
         with open(f"{config_dir}/centengine.cfg", "r") as f:
             lines = f.readlines()
-        lines_to_prep = ["cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
-                         "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-services.cfg\n"]
+        lines_to_prep = [f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-command.cfg\n", f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
+                         f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-host.cfg\n", f"cfg_file={ETC_ROOT}/centreon-engine/config0/centreon-bam-services.cfg\n"]
         with open(f"{config_dir}/centengine.cfg", "w") as f:
             f.writelines(lines_to_prep)
             f.writelines(lines)
