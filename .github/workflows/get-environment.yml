@@ -72,7 +72,8 @@ jobs:
       release: ${{ steps.get_release.outputs.release }}
       cma_major_version: ${{ steps.get_version.outputs.cma_major_version }}
       cma_minor_version: ${{ steps.get_version.outputs.cma_minor_version }}
-      stability: ${{ steps.get_stability.outputs.stability }}
+      #stability: ${{ steps.get_stability.outputs.stability }}
+      stability: unstable
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
