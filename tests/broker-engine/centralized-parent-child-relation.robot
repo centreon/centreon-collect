@@ -64,23 +64,18 @@ BECPN0
     END
     Should Be Equal As Strings    ${output}    ((2, 1),)    host parent not inserted
 
-#    # This piece of code has been removed because with the centralized configuration, we cannot set
-#    # the host status when it is created. The previous version was aware of the status of the host
-#    # stored in the retention.dat file. And in case of a real new host, this state was set to PENDING.
-#    # Currently, we don't have the information.
-#
-#    # check if host_1 is pending
-#    ${result}    Ctn Check Host Status    host_1    4    1    True
-#    Should Be True    ${result}    host_1 should be pending
+    # check if host_1 is pending
+    ${result}    Ctn Check Host Status    host_1    4    1    True
+    Should Be True    ${result}    host_1 should be pending
 
-#    ${result}    Ctn Check Host Status    host_2    4    1    True
-#    Should Be True    ${result}    host_2 should be pending
+    ${result}    Ctn Check Host Status    host_2    4    1    True
+    Should Be True    ${result}    host_2 should be pending
 
-#    ${content}    Create List    INITIAL HOST STATE: host_1;
-#    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-#    Should Be True
-#    ...    ${result}
-#    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     Ctn Process Host Check Result    host_1    0    host_1 UP
 
