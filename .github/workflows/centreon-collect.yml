@@ -483,6 +483,8 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: jammy
+            arch: amd64
           - distrib: noble
             arch: amd64
 
@@ -517,7 +519,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm, noble, jammy]
 
     steps:
       - name: Checkout sources
