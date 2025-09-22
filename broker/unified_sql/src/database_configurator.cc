@@ -702,10 +702,10 @@ void database_configurator::_add_hosts_mariadb(
         "down,notify_on_downtime,notify_on_flapping,notify_on_recovery,notify_"
         "on_unreachable,obsess_over_host,passive_checks,process_perfdata,"
         "retain_nonstatus_information,retain_status_information,retry_interval,"
-        "stalk_on_down,stalk_on_unreachable,stalk_on_up,statusmap_image,"
-        "timezone) VALUES "
+        "stalk_on_down,stalk_on_unreachable,stalk_on_up,state,state_type, "
+        "statusmap_image,timezone) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1,?,?) ON DUPLICATE KEY UPDATE "
         "name=VALUES(name),instance_id=VALUES(instance_id),action_url=VALUES("
         "action_url),active_checks=VALUES(active_checks),address=VALUES("
         "address),alias=VALUES(alias),check_command=VALUES(check_command),"
@@ -736,8 +736,9 @@ void database_configurator::_add_hosts_mariadb(
         "retain_nonstatus_information),retain_status_information=VALUES(retain_"
         "status_information),retry_interval=VALUES(retry_interval),stalk_on_"
         "down=VALUES(stalk_on_down),stalk_on_unreachable=VALUES(stalk_on_"
-        "unreachable),stalk_on_up=VALUES(stalk_on_up),statusmap_image=VALUES("
-        "statusmap_image),timezone=VALUES(timezone)");
+        "unreachable),stalk_on_up=VALUES(stalk_on_up),state=COALESCE(state, 4),"
+        "state_type=COALESCE(state_type, 1),"
+        "statusmap_image=VALUES(statusmap_image),timezone=VALUES(timezone)");
     _add_hosts_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_hosts_stmt);
   }
@@ -871,14 +872,27 @@ void database_configurator::_add_hosts_mariadb(
 void database_configurator::_add_hosts_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
+  if (lst.empty()) {
+    _logger->debug("No need to add/update hosts, list empty");
+    return;
+  }
+
   mysql& mysql = _stream->get_mysql();
 
   std::vector<std::string> values;
+  std::string timezone;
   for (const auto& msg : lst) {
+    if (msg.has_timezone()) {
+      timezone = fmt::format(
+          "'{}'", misc::string::escape(msg.timezone(),
+                                       get_centreon_storage_hosts_col_size(
+                                           centreon_storage_hosts_timezone)));
+    } else
+      timezone = "NULL";
     std::string value(fmt::format(
         "({},'{}',{},'{}',{},'{}','{}','{}',{},{},'{}',{},{},{},{},{},{},'{}',"
         "1,'{}',{},{},{},{},{},{},{},{},'{}','{}',{},{},'{}','{}',{},{},{},{},{"
-        "},{},{},{},{},{},{},{},{},{},{},{},'{}','{}')",
+        "},{},{},{},{},{},{},{},{},{},{},{},4, 1, '{}',{})",
         msg.host_id(),
         misc::string::escape(
             msg.host_name(),
@@ -944,15 +958,25 @@ void database_configurator::_add_hosts_mysql(
         misc::string::escape(msg.statusmap_image(),
                              get_centreon_storage_hosts_col_size(
                                  centreon_storage_hosts_statusmap_image)),
-        msg.has_timezone()
-            ? misc::string::escape(msg.timezone(),
-                                   get_centreon_storage_hosts_col_size(
-                                       centreon_storage_hosts_timezone))
-            : NULL));
+        timezone));
     values.emplace_back(value);
   }
   std::string query(fmt::format(
-      "INSERT INTO hosts VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO hosts "
+      "(host_id,name,instance_id,action_url,active_checks,address,alias,"
+      "check_command,check_freshness,check_interval,check_period,default_"
+      "active_checks,default_event_handler_enabled,default_flap_detection,"
+      "default_notify,default_passive_checks,default_process_perfdata,"
+      "display_name,enabled,event_handler,event_handler_enabled,first_"
+      "notification_delay,flap_detection,flap_detection_on_down,flap_"
+      "detection_on_unreachable,flap_detection_on_up,freshness_threshold,"
+      "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
+      "check_attempts,notes,notes_url,notification_interval,notify,notify_on_"
+      "down,notify_on_downtime,notify_on_flapping,notify_on_recovery,notify_"
+      "on_unreachable,obsess_over_host,passive_checks,process_perfdata,"
+      "retain_nonstatus_information,retain_status_information,retry_interval,"
+      "stalk_on_down,stalk_on_unreachable,stalk_on_up,state,state_type, "
+      "statusmap_image,timezone) VALUES {} ON DUPLICATE KEY UPDATE "
       "name=VALUES(name),instance_id=VALUES(instance_id),action_url=VALUES("
       "action_url),active_checks=VALUES(active_checks),address=VALUES(address),"
       "alias=VALUES(alias),check_command=VALUES(check_command),check_freshness="
@@ -982,8 +1006,9 @@ void database_configurator::_add_hosts_mysql(
       "VALUES(retain_nonstatus_information),retain_status_information=VALUES("
       "retain_status_information),retry_interval=VALUES(retry_interval),stalk_"
       "on_down=VALUES(stalk_on_down),stalk_on_unreachable=VALUES(stalk_on_"
-      "unreachable),stalk_on_up=VALUES(stalk_on_up),statusmap_image=VALUES("
-      "statusmap_image),timezone=VALUES(timezone)",
+      "unreachable),stalk_on_up=VALUES(stalk_on_up),state=COALESCE(state, 4), "
+      "state_type=COALESCE(state_type, 1), "
+      "statusmap_image=VALUES(statusmap_image),timezone=VALUES(timezone)",
       fmt::join(values, ",")));
   mysql.run_query(query);
 }
@@ -998,22 +1023,24 @@ void database_configurator::_add_host_resources_mariadb(
         lst) {
   auto& cache = _stream->resources_cache();
   auto& hosts_instances_cache = _stream->hosts_instances_cache();
-  if (lst.empty()) {
-    _logger->debug("No service resources to add/update");
+  if (lst.empty())
     return;
-  }
+
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_host_resources_stmt) {
     std::string query(
-        "INSERT INTO resources "
-        "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
-        "id,name,alias,address,parent_name,icon_id,notes_url,notes,action_url,"
-        "notifications_enabled,passive_checks_enabled,active_checks_enabled,"
-        "enabled) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE "
-        "KEY UPDATE "
-        "parent_id=VALUES(parent_id),internal_id=VALUES(internal_id),type="
-        "VALUES(type),max_check_attempts=VALUES(max_check_attempts),poller_id="
+        "INSERT INTO resources (id,parent_id,internal_id,type,status, "
+        "status_ordered, status_confirmed,max_check_attempts,poller_id,"
+        "severity_id,name,alias,address, parent_name,icon_id,notes_url,"
+        "notes,action_url, notifications_enabled,passive_checks_enabled,"
+        "active_checks_enabled, enabled) VALUES"
+        "(?,?,?,?,4,1,1,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON "
+        "DUPLICATE KEY UPDATE parent_id=VALUES(parent_id), "
+        "internal_id=VALUES(internal_id),type=VALUES(type), "
+        "status=COALESCE(status, 4), status_ordered=COALESCE(status_ordered,1),"
+        "status_confirmed=COALESCE(status_confirmed,1),"
+        "max_check_attempts=VALUES(max_check_attempts),poller_id="
         "VALUES(poller_id),severity_id=VALUES(severity_id),name=VALUES(name),"
         "alias=VALUES(alias),address=VALUES(address),parent_name=VALUES(parent_"
         "name),icon_id=VALUES(icon_id),notes_url=VALUES(notes_url),notes="
@@ -1119,7 +1146,11 @@ void database_configurator::_add_host_resources_mariadb(
 void database_configurator::_add_host_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
         lst) {
+  if (lst.empty())
+    return;
+
   auto& cache = _stream->resources_cache();
+  auto& hosts_instances_cache = _stream->hosts_instances_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint64_t>> keys;
 
@@ -1130,10 +1161,10 @@ void database_configurator::_add_host_resources_mysql(
     keys.push_back(key);
 
     std::string value(fmt::format(
-        "({},{},NULL,{},{},{},{},'{}','{}','{}',NULL,{},'{}','{}','{}',{},{},{}"
-        ",1)",
+        "({},{},NULL,{},4,1,1,{},{},{},'{}','{}','{}',NULL,{},'{}','{}','{}',{}"
+        ",{},{},1)",
         msg.host_id(), 0, 1, msg.max_check_attempts(), msg.poller_id(),
-        msg.severity_id(),
+        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
         misc::string::escape(msg.host_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -1158,9 +1189,14 @@ void database_configurator::_add_host_resources_mysql(
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
     hosts_cache.insert_or_assign(msg.host_name(), msg.host_id());
+    hosts_instances_cache.insert_or_assign(msg.host_id(), msg.poller_id());
   }
   std::string query(fmt::format(
-      "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO resources (id,parent_id,internal_id,type,status, "
+      "status_ordered, status_confirmed,max_check_attempts,poller_id,"
+      "severity_id,name,alias,address, parent_name,icon_id,notes_url,"
+      "notes,action_url, notifications_enabled,passive_checks_enabled,"
+      "active_checks_enabled, enabled) VALUES {} ON DUPLICATE KEY UPDATE "
       "parent_id=VALUES(parent_id),internal_id=VALUES(internal_id),type=VALUES("
       "type),max_check_attempts=VALUES(max_check_attempts),poller_id=VALUES("
       "poller_id),severity_id=VALUES(severity_id),name=VALUES(name),alias="
@@ -1217,9 +1253,10 @@ void database_configurator::_add_services_mariadb(
         "flapping,notify_on_recovery,notify_on_unknown,notify_on_warning,"
         "obsess_over_service,passive_checks,process_perfdata,retain_nonstatus_"
         "information,retain_status_information,retry_interval,stalk_on_"
-        "critical,stalk_on_ok,stalk_on_unknown,stalk_on_warning) VALUES "
+        "critical,stalk_on_ok,stalk_on_unknown,stalk_on_warning,state, "
+        "state_type) VALUES "
         "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?"
-        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        ",?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,4,1) ON DUPLICATE KEY UPDATE "
         "description=VALUES(description),action_url=VALUES(action_url),active_"
         "checks=VALUES(active_checks),check_command=VALUES(check_command),"
         "check_freshness=VALUES(check_freshness),check_interval=VALUES(check_"
@@ -1389,11 +1426,20 @@ void database_configurator::_add_services_mysql(
   mysql& mysql = _stream->get_mysql();
 
   std::vector<std::string> values;
+  std::string notification_period;
   for (const auto& msg : lst) {
+    if (msg.has_notification_period()) {
+      notification_period = fmt::format(
+          "'{}'", misc::string::escape(
+                      msg.notification_period(),
+                      get_centreon_storage_services_col_size(
+                          centreon_storage_services_notification_period)));
+    } else
+      notification_period = "NULL";
     std::string value(fmt::format(
         "({},'{}',{},'{}',{},'{}',{},{},'{}',{},{},{},{},{},{},'{}',1,'{}',{},{"
-        "},{},{},{},{},{},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},{},{},{},{"
-        "},{},{},{},{},{},{},{},{},{},{},{},{})",
+        "},{},{},{},{},{},{},{},'{}','{}',{},{},'{}','{}',{},{},{},{},{},{},{"
+        "},{},{},{},{},{},{},{},{},{},{},{},{},4,1)",
         msg.host_id(),
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_services_col_size(
@@ -1402,25 +1448,26 @@ void database_configurator::_add_services_mysql(
         misc::string::escape(msg.action_url(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_action_url)),
-        msg.checks_active(),
+        msg.checks_active() ? 1 : 0,
         misc::string::escape(msg.check_command(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_check_command)),
-        msg.check_freshness(), msg.check_interval(),
+        msg.check_freshness() ? 1 : 0, msg.check_interval(),
         misc::string::escape(msg.check_period(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_check_period)),
-        msg.checks_active(), msg.event_handler_enabled(),
-        msg.flap_detection_enabled(), msg.notifications_enabled(),
-        msg.checks_passive(), msg.process_perf_data(),
+        msg.checks_active() ? 1 : 0, msg.event_handler_enabled() ? 1 : 0,
+        msg.flap_detection_enabled() ? 1 : 0,
+        msg.notifications_enabled() ? 1 : 0, msg.checks_passive() ? 1 : 0,
+        msg.process_perf_data() ? 1 : 0,
         misc::string::escape(msg.display_name(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_display_name)),
         misc::string::escape(msg.event_handler(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_event_handler)),
-        msg.event_handler_enabled(), msg.first_notification_delay(),
-        msg.flap_detection_enabled(),
+        msg.event_handler_enabled() ? 1 : 0, msg.first_notification_delay(),
+        msg.flap_detection_enabled() ? 1 : 0,
         msg.flap_detection_options() & ActionServiceOn::action_svc_critical ? 1
                                                                             : 0,
         msg.flap_detection_options() & ActionServiceOn::action_svc_ok ? 1 : 0,
