@@ -396,9 +396,9 @@ void mysql_connection::_commit(mysql_task* t) {
 void mysql_connection::_prepare(mysql_task* t) {
   mysql_task_prepare* task(static_cast<mysql_task_prepare*>(t));
   if (_stmt.find(task->id) != _stmt.end()) {
-    SPDLOG_LOGGER_ERROR(_logger,
-                        "mysql_connection: Statement already prepared: {} ({})",
-                        task->id, task->query);
+    SPDLOG_LOGGER_INFO(_logger,
+                       "mysql_connection: Statement already prepared: {} ({})",
+                       task->id, task->query);
     return;
   }
 
