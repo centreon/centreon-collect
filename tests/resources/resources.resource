@@ -36,11 +36,9 @@ Ctn Config BBDO3
 	Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Add Item    central    bbdo_version    ${version}
     END
-    IF    not ${only_central}
-        FOR    ${i}    IN RANGE    ${nbEngine}
-            ${mod}    Catenate    SEPARATOR=    module    ${i}
-            Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
-        END
+    FOR    ${i}    IN RANGE    ${nbEngine}
+        ${mod}    Catenate    SEPARATOR=    module    ${i}
+        Ctn Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
     # We replace the global Bbdo2 Variable to False
     Ctn Set Bbdo2    ${False}
