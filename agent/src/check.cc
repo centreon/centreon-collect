@@ -138,7 +138,14 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,
              const checks_statistics::pointer& stat)
-    : _start_expected(first_start_expected, check_interval),
+    : _start_expected_normal(first_start_expected,
+                             serv.check_interval()
+                                 ? std::chrono::seconds(serv.check_interval())
+                                 : std::chrono::seconds(60)),
+      _start_expected_retry(first_start_expected,
+                            serv.retry_interval()
+                                ? std::chrono::seconds(serv.retry_interval())
+                                : std::chrono::seconds(60)),
       _service(serv),
       _conf(cnf),
       _time_out_timer(*io_context),
@@ -241,10 +248,6 @@ void check::on_completion(
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
   if (start_check_index == _running_check_index) {
-    SPDLOG_LOGGER_TRACE(_logger,
-                        "end check for service {} cmd: {} status:{} output: {}",
-                        _service.service_description(), get_command_name(),
-                        status, outputs.empty() ? "" : outputs.front());
     _time_out_timer.cancel();
     _running_check = false;
     ++_running_check_index;
@@ -321,4 +324,67 @@ std::optional<bool> check::get_bool(const std::string& cmd_name,
                               cmd_name, field_name);
   }
   return value;
+}
+
+/**
+ * @brief decide if status is confirmed and compute next delay
+ * according to current status, last status, max_attempts, retry_interval
+ * It updates check last_status and status_confirmed
+ * @param check
+ * @param status
+ * @param next_delay (OUT) next delay to use for next check
+ */
+void check::calcul_status_confirmation(unsigned status) {
+  const int last_status = get_last_status();
+  const bool prev_confirmed = get_status_confirmed();
+  const bool is_ok = (status == e_status::ok);
+  const int max_attempts = std::max<int>(1, get_max_attempts());
+  const bool was_problem = (last_status > 0);
+
+  // ---- Case 1: OK (recovery handling) --------------------------------------
+  if (is_ok) {
+    // OK inherits HARD/SOFT from *previous* problem confirmation.
+    // - If previous problem was HARD, the recovery is HARD (status_confirmed =
+    // true).
+    // - If previous problem was SOFT, the recovery is SOFT (status_confirmed =
+    // false).
+    if (was_problem) {
+      set_status_confirmed(prev_confirmed);
+      // - If previous confirmed was true, reset attempts.
+      if (prev_confirmed)
+        set_current_attempt(1);
+      else {
+        // it s a soft recovery
+        increment_cur_attempt();
+      }
+
+    } else {
+      // - If previous ok was HARD, nothing to do (confirmed = true).
+      // - if last_status == -1 it s the first status we consider it as hard ok
+      // - If previous ok was SOFT, SOFT recovery.
+      if (!prev_confirmed) {
+        set_status_confirmed(true);
+        set_current_attempt(1);
+      }
+    }
+
+  } else {
+    // ---- Case 2: Non-OK (SOFT/HARD problem progression)
+    // - If was_problem, increment attempt.
+    // - If coming from OK or a different non-OK, reset attempt to 1.
+
+    if (was_problem && get_current_attempt() < max_attempts) {
+      increment_cur_attempt();
+      set_status_confirmed(false);
+    } else if (!was_problem) {
+      set_current_attempt(1);
+      set_status_confirmed(false);
+    }
+
+    if (get_current_attempt() >= max_attempts) {
+      set_status_confirmed(true);  // Problem is now HARD.
+    }
+  }
+
+  set_last_status(status);
 }

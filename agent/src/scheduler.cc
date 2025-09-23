@@ -61,8 +61,6 @@ void scheduler::_start() {
   _check_time_step =
       time_step(_next_send_time_point, std::chrono::milliseconds(100));
   update(_conf);
-  _start_send_timer();
-  _start_check_timer();
 }
 
 /**
@@ -217,10 +215,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     std::map<uint32_t, std::vector<const Service*>> group_serv;
     for (const auto& serv : conf->config().services()) {
       uint32_t check_interval = serv.check_interval();
-      if (check_interval == 0) {
-        check_interval = 60;  // one minute by default
+      uint32_t retry_interval = serv.retry_interval();
+      auto min_interval = std::min(check_interval, retry_interval);
+      if (min_interval == 0) {
+        min_interval = 60;  // one minute by default
       }
-      group_serv[check_interval].push_back(&serv);
+      group_serv[min_interval].push_back(&serv);
     }
 
     srand(time(nullptr));
@@ -228,14 +228,16 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
         (group_serv.begin()->first * 1000) / nb_check);
     // in order to avoid collision when we will use a time_step equal to
     // first_inter_check_delay / 2 with a little random
+    // first_inter_check_delay <= 1 ms the count/10 is 0
+    if (first_inter_check_delay.count() / 10 == 0) {
+      first_inter_check_delay = std::chrono::milliseconds(10);
+    }
+
     duration time_unit = first_inter_check_delay / 2 +
                          std::chrono::milliseconds(
                              rand() % (first_inter_check_delay.count() / 10));
 
-    std::chrono::seconds accuracy(conf->config().max_check_interval_error());
-    if (accuracy.count() == 0) {
-      accuracy = std::chrono::seconds(5);
-    }
+    std::chrono::seconds accuracy = std::chrono::seconds(5);
     // we need to respect check_interval accuracy
     while (1) {
       bool need_to_continue = false;
@@ -324,7 +326,10 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 
   _conf = conf;
 
+  // launch immediately check
+  _active_check = 0;  // when update conf, we need to reset active check count
   _start_waiting_check();
+  // send the timer
   _start_check_timer();
 }
 
@@ -390,23 +395,21 @@ void scheduler::_check_handler(
     unsigned status,
     const std::list<com::centreon::common::perfdata>& perfdata,
     const std::list<std::string>& outputs) {
-  SPDLOG_LOGGER_DEBUG(_logger, "end check for service {} command {}",
-                      check->get_service(), check->get_command_line());
-
   // conf has changed => no repush for next check
   if (check->get_conf() != _conf) {
     return;
   }
 
-  // decide confirmation & next delay FIRST (retry management)
-  auto next_delay = std::chrono::seconds(0);
-  decide_confirmation_and_next_delay(check, status, next_delay);
+  // decide for confirmation
+  check->calcul_status_confirmation(status);
+
   SPDLOG_LOGGER_DEBUG(_logger,
-                      "check result for service {} is {} (last_status={}) "
-                      "status_confirmed={} max_attempts={} retry_interval={}",
-                      check->get_service(), status, check->get_last_status(),
-                      check->get_status_confirmed(), check->get_max_attempts(),
-                      check->get_retry_interval());
+                      "end check for service {} command {}, status {} {} "
+                      "CA:{}/{} , outputs: {}",
+                      check->get_service(), check->get_command_line(), status,
+                      check->get_status_confirmed() ? "HARD" : "SOFT",
+                      check->get_current_attempt(), check->get_max_attempts(),
+                      outputs.front());
 
   if (_conf->config().use_exemplar()) {
     _store_result_in_metrics_and_exemplars(check, status, perfdata, outputs);
@@ -524,6 +527,7 @@ void scheduler::_store_result_in_metrics_and_exemplars(
 
   // add exemplar for status_confirmed
   _add_exemplar("status_confirmed", check->get_status_confirmed(), *data_point);
+  _add_exemplar("current_attempt", check->get_current_attempt(), *data_point);
 
   for (const com::centreon::common::perfdata& perf : perfdata) {
     _add_metric_to_scope(check_start, now, perf, scope_metrics);
@@ -699,6 +703,23 @@ void scheduler::_add_exemplar(
 }
 
 /**
+ * @brief add an exemplar to metric
+ *
+ * @param label
+ * @param value
+ * @param data_point
+ */
+void scheduler::_add_exemplar(
+    const char* label,
+    int value,
+    ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point) {
+  auto exemplar = data_point.add_exemplars();
+  auto attrib = exemplar->add_filtered_attributes();
+  attrib->set_key(label);
+  exemplar->set_as_int(value);
+}
+
+/**
  * @brief build a check object from command lline
  *
  * @param io_context
@@ -817,21 +838,4 @@ std::shared_ptr<check> scheduler::default_check_builder(
                             check_interval, service, command_line, conf,
                             std::move(handler), stat, credentials_decrypt);
   }
-}
-
-/**
- * @brief decide if status is confirmed and compute next delay
- * according to current status, last status, max_attempts, retry_interval
- * It updates check last_status and status_confirmed
- * @param check
- * @param status
- * @param next_delay (OUT) next delay to use for next check
- */
-void scheduler::decide_confirmation_and_next_delay(
-    const check::pointer& check,
-    unsigned status,
-    std::chrono::seconds& next_delay) {
-  // Remember for next cycle and expose to metrics/export path
-  check->set_last_status(static_cast<int>(status));
-  check->set_status_confirmed(status_confirmed);
 }

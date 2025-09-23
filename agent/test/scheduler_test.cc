@@ -816,3 +816,364 @@ TEST_F(scheduler_test, can_decrypt) {
   EXPECT_EQ(check_created->get_process_args()->get_exe_path(), "/usr/bin/ls");
   EXPECT_EQ(check_created->get_process_args()->get_args()[0], "*.*");
 }
+
+/*
+ * struct to store data about a check execution
+ * used by scripted_check to store data about each check execution
+ */
+struct datapoint {
+  unsigned status;
+  int last_status;
+  time_point time;
+  bool confirmed;
+  unsigned current_attempt;
+  unsigned id_data;
+};
+
+/**
+ * @brief: scripted check that perform status change on each execution
+ * We use it to test retry interval and check interval usage
+ */
+class scripted_check : public check {
+  asio::system_timer _completion_timer;
+  std::vector<unsigned> _statuses;
+  size_t idx = 0;
+  duration _completion_delay;
+
+ public:
+  static std::map<scripted_check*, std::vector<datapoint>> map_check_starts;
+  static std::mutex check_m;
+
+  unsigned _id = 0;
+
+  scripted_check(const std::shared_ptr<asio::io_context>& io_context,
+                 const std::shared_ptr<spdlog::logger>& logger,
+                 time_point exp,
+                 duration check_interval,
+                 const Service& serv,
+                 const engine_to_agent_request_ptr& cnf,
+                 duration completion_delay,
+                 check::completion_handler&& handler,
+                 const checks_statistics::pointer& stat,
+                 std::vector<unsigned> statuses)
+      : check(io_context,
+              logger,
+              exp,
+              check_interval,
+              serv,
+              cnf,
+              std::move(handler),
+              stat),
+        _completion_timer(*io_context),
+        _statuses(std::move(statuses)),
+        _completion_delay(completion_delay) {}
+
+  void start_check(const duration& timeout) override {
+    {
+      std::lock_guard l(check_m);
+      _id++;
+      datapoint dp{};
+      dp.time = std::chrono::system_clock::now();
+      dp.id_data = _id;
+      map_check_starts[this].push_back(std::move(dp));
+    }
+    if (!_start_check(timeout)) {
+      return;
+    }
+    _completion_timer.expires_after(_completion_delay);
+    _completion_timer.async_wait([me = std::static_pointer_cast<scripted_check>(
+                                      shared_from_this()),
+                                  this,
+                                  check_running_index =
+                                      _get_running_check_index()](
+                                     [[maybe_unused]] const boost::system::
+                                         error_code& err) {
+      // save the last status and status confirmed
+      {
+        std::lock_guard l(check_m);
+        unsigned current_attempt = me->get_current_attempt();
+        bool confirmed = me->get_status_confirmed();
+        unsigned last_status = me->get_last_status();
+        // perform status change
+        me->calcul_status_confirmation(_statuses[idx % _statuses.size()]);
+
+        if (me->_id == map_check_starts[this].back().id_data) {
+          map_check_starts[this].back().status =
+              _statuses[idx % _statuses.size()];
+          map_check_starts[this].back().last_status = last_status;
+          map_check_starts[this].back().confirmed = me->get_status_confirmed();
+          map_check_starts[this].back().current_attempt =
+              me->get_current_attempt();
+        } else {
+          SPDLOG_ERROR(
+              "skipping datapoint for check {} id_data={} current_id={}",
+              get_service(), map_check_starts[this].back().id_data, me->_id);
+        }
+
+        // restore last status and confirmed it will be done in the handler
+        // check builder
+        me->set_last_status(last_status);
+        me->set_status_confirmed(confirmed);
+        me->set_current_attempt(current_attempt);
+      }
+
+      me->on_completion(
+          check_running_index, _statuses[idx % _statuses.size()],
+          com::centreon::common::perfdata::parse_perfdata(
+              0, 0,
+              "rta=0,031ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,109ms;;;; "
+              "rtmin=0,011ms;;;;",
+              _logger),
+          {fmt::format("Command OK: {}", me->get_command_line())});
+
+      idx++;
+    });
+  }
+};
+
+std::map<scripted_check*, std::vector<datapoint>>
+    scripted_check::map_check_starts;
+std::mutex scripted_check::check_m;
+
+/* function that calculate if delta is about expected with a tolerance
+ * return true if delta is in [expected - tol, expected + tol]
+ * return false otherwise and log error
+ */
+static bool delta_about(const time_point& after,
+                        const time_point& before,
+                        std::chrono::milliseconds expected,
+                        std::chrono::milliseconds tol) {
+  const auto d =
+      std::chrono::duration_cast<std::chrono::milliseconds>(after - before);
+  if (d < (expected - tol) || d > (expected + tol)) {
+    SPDLOG_ERROR(
+        "delta={}ms not in [{}, {}]ms (expected ~{}ms) "
+        "(after={}, before={})",
+        d.count(), (expected - tol).count(), (expected + tol).count(),
+        expected.count(), after, before);
+    return false;
+  }
+  return true;
+}
+
+/* Test: retry uses retry_interval for soft failures until hard, then uses
+  check_interval. Single service: check_interval=3s, retry_interval=1s,
+  max_attempts=3. Expected deltas between starts: ~3s, ~1s, ~1s, ~3s. */
+TEST_F(scheduler_test, retry_interval_is_used_until_hard_then_check_interval) {
+  {
+    std::lock_guard lk(scripted_check::check_m);
+    scripted_check::map_check_starts.clear();
+  }
+
+  // Build config with one service and explicit retry + attempts
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(1);
+  cnf->set_max_concurrent_checks(5);
+  cnf->set_check_timeout(5);
+  cnf->set_use_exemplar(true);
+
+  auto* serv = cnf->add_services();
+  serv->set_service_description("svc_retry_vs_normal");
+  serv->set_command_name("cmd_retry_vs_normal");
+  serv->set_command_line("cmdline");
+  serv->set_check_interval(3);
+  serv->set_retry_interval(1);
+  serv->set_max_attempts(3);
+  serv->set_host_id(1);
+  serv->set_service_id(1);
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      []([[maybe_unused]] const std::shared_ptr<MessageFromAgent>&) {},
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, duration check_interval,
+         const Service& service, const engine_to_agent_request_ptr& req,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+        // OK hard, CRIT soft1, CRIT soft1, CRIT hard, OK hard , OK hard
+        std::vector<unsigned> status_script = {
+            static_cast<unsigned>(e_status::ok),
+            static_cast<unsigned>(e_status::critical),
+            static_cast<unsigned>(e_status::critical),
+            static_cast<unsigned>(e_status::critical),
+            static_cast<unsigned>(e_status::ok),
+            static_cast<unsigned>(e_status::ok)};
+        return std::make_shared<scripted_check>(
+            io_context, logger, start_expected, check_interval, service, req,
+            std::chrono::milliseconds(10), std::move(handler), stat,
+            std::move(status_script));
+      });
+
+  scheduler_closer closer(sched);
+
+  // Wait long enough to see 6 starts:
+  //  start0, +~3s, +~1s, +~1s,+~3s, +~3s  => total ~11s (+ margins)
+  std::this_thread::sleep_for(std::chrono::milliseconds(14000));
+
+  std::vector<datapoint> starts_copy;
+  {
+    std::lock_guard lk(scripted_check::check_m);
+    ASSERT_EQ(scripted_check::map_check_starts.size(), 1u);
+    starts_copy = scripted_check::map_check_starts.begin()->second;
+  }
+
+  // print for each check the starting time
+
+  for (size_t i = 0; i < starts_copy.size(); ++i) {
+    SPDLOG_INFO(
+        "check start[{}] id_data={} time={} status={} last_status={} "
+        "confirmed={} current_attempt={}",
+        i, starts_copy[i].id_data, starts_copy[i].time, starts_copy[i].status,
+        starts_copy[i].last_status, starts_copy[i].confirmed,
+        starts_copy[i].current_attempt);
+  }
+
+  ASSERT_GE(starts_copy.size(), 5u);
+  // deltas: [~3s, ~1s, ~1s, ~3s, ~3s]
+  ASSERT_PRED5(
+      [](const time_point& a0, const time_point& a1, const time_point& a2,
+         const time_point& a3, const time_point& a4) {
+        return delta_about(a1, a0, std::chrono::milliseconds(3000),
+                           std::chrono::milliseconds(600)) &&  // ok hard
+               delta_about(a2, a1, std::chrono::milliseconds(1000),
+                           std::chrono::milliseconds(
+                               600)) &&  // retry #1 non soft 1 sec
+               delta_about(
+                   a3, a2, std::chrono::milliseconds(1000),
+                   std::chrono::milliseconds(600))  // retry #2 hard 1 sec
+               && delta_about(a4, a3, std::chrono::milliseconds(3000),
+                              std::chrono::milliseconds(600));  //  no ok  HARD
+      },
+      starts_copy[0].time, starts_copy[1].time, starts_copy[2].time,
+      starts_copy[3].time, starts_copy[4].time);
+}
+
+/**
+ * multiple_services_intervals_are_respected
+ *
+ * Build a scheduler with 100 services that have different check_interval,
+ * retry_interval and max_attempts. Each service uses scripted_check to
+ * produce deterministic status sequences. The test runs long enough to
+ * record multiple starts per service and verifies that the time between
+ * consecutive starts equals either the service's check_interval (if the
+ * previous result was confirmed) or its retry_interval otherwise, within
+ * a 600 ms tolerance.
+ */
+TEST_F(scheduler_test, multiple_services_intervals_are_respected) {
+  {
+    std::lock_guard lk(scripted_check::check_m);
+    scripted_check::map_check_starts.clear();
+  }
+
+  // Build config with one service and explicit retry + attempts
+  auto conf = std::make_shared<com::centreon::agent::MessageToAgent>();
+  auto cnf = conf->mutable_config();
+  cnf->set_export_period(1);
+  cnf->set_max_concurrent_checks(5);
+  cnf->set_check_timeout(5);
+  cnf->set_use_exemplar(true);
+
+  for (int i = 0; i < 100; ++i) {
+    auto* serv = cnf->add_services();
+    serv->set_service_description(fmt::format("svc_{}", i));
+    serv->set_command_name(fmt::format("cmd_{}", i));
+    serv->set_command_line("/bin/true");
+    serv->set_check_interval(3 + (i % 3));
+    serv->set_retry_interval(1 + (i % 3));
+    serv->set_max_attempts(3 + (i % 3));
+    serv->set_host_id(1);
+    serv->set_service_id(i + 1);
+  }
+
+  std::shared_ptr<scheduler> sched = scheduler::load(
+      g_io_context, spdlog::default_logger(), "my_host", conf,
+      []([[maybe_unused]] const std::shared_ptr<MessageFromAgent>&) {},
+      [](const std::shared_ptr<asio::io_context>& io_context,
+         const std::shared_ptr<spdlog::logger>& logger,
+         time_point start_expected, duration check_interval,
+         const Service& service, const engine_to_agent_request_ptr& req,
+         check::completion_handler&& handler,
+         const checks_statistics::pointer& stat,
+         const std::shared_ptr<com::centreon::common::crypto::aes256>&) {
+        std::vector<unsigned> status_script;
+        // Three deterministic scenarios to exercise Nagios-like state
+        // transitions:
+        // scenario 0: OK -> WARNING -> CRITICAL -> CRITICAL -> CRITICAL -> OK
+        // scenario 1: CRITICAL -> OK -> CRITICAL -> CRITICAL -> OK -> OK
+        // scenario 2: UNKNOWN -> WARNING -> CRITICAL -> WARNING -> OK -> OK
+        static const e_status scenario0[] = {
+            e_status::ok,       e_status::warning,  e_status::critical,
+            e_status::critical, e_status::critical, e_status::ok};
+        static const e_status scenario1[] = {
+            e_status::critical, e_status::ok, e_status::critical,
+            e_status::critical, e_status::ok, e_status::ok};
+        static const e_status scenario2[] = {
+            e_status::unknown, e_status::warning, e_status::critical,
+            e_status::warning, e_status::ok,      e_status::ok};
+
+        // Choose scenario based on service id to distribute test cases across
+        // services.
+        const uint64_t sid = service.service_id() ? service.service_id() : 0;
+        const e_status* choices = nullptr;
+        switch (sid % 3) {
+          case 0:
+            choices = scenario0;
+            break;
+          case 1:
+            choices = scenario1;
+            break;
+          default:
+            choices = scenario2;
+            break;
+        }
+
+        for (int i = 0; i < 6; ++i)
+          status_script.push_back(static_cast<unsigned>(choices[i]));
+
+        return std::make_shared<scripted_check>(
+            io_context, logger, start_expected, check_interval, service, req,
+            std::chrono::milliseconds(10), std::move(handler), stat,
+            std::move(status_script));
+      });
+
+  scheduler_closer closer(sched);
+
+  // Wait long enough to see 6 starts:
+  // worst case (3+3) * 6 = 36s (+ margins)
+  std::this_thread::sleep_for(std::chrono::milliseconds(38000));
+
+  std::map<scripted_check*, std::vector<datapoint>> starts_copy;
+  {
+    std::lock_guard lk(scripted_check::check_m);
+    ASSERT_EQ(scripted_check::map_check_starts.size(), 100u);
+    starts_copy = scripted_check::map_check_starts;
+  }
+
+  // check if the interval are respected for each service
+  for (const auto& [check, starts] : starts_copy) {
+    for (size_t i = 1; i < starts.size(); ++i) {
+      uint64_t check_interval = check->get_check_interval_service();
+      uint64_t retry_interval = check->get_retry_interval();
+
+      // for debugging
+      //  SPDLOG_INFO(
+      //      "check {} start[{}] id_data={} time={} status={} last_status={} "
+      //      "confirmed={} current_attempt={}/{}, check_interval={}s "
+      //      ",check_retry={}s",
+      //      check->get_service(), i, starts[i].id_data, starts[i].time,
+      //      starts[i].status, starts[i].last_status, starts[i].confirmed,
+      //      starts[i].current_attempt, check->get_max_attempts(),
+      //      check_interval, retry_interval);
+
+      ASSERT_TRUE(
+          delta_about(starts[i].time, starts[i - 1].time,
+                      starts[i - 1].confirmed
+                          ? std::chrono::milliseconds(check_interval * 1000)
+                          : std::chrono::milliseconds(retry_interval * 1000),
+                      std::chrono::milliseconds(600)));
+    }
+  }
+}

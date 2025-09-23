@@ -144,6 +144,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const char* label,
       bool value,
       ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
+  void _add_exemplar(
+      const char* label,
+      int value,
+      ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
 
   void _start_waiting_check();
 
@@ -194,11 +198,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   engine_to_agent_request_ptr get_last_message_to_agent() const {
     return _conf;
   }
-  static void decide_confirmation_and_next_delay(
-      const check::pointer& check,
-      unsigned status,
-      std::chrono::seconds& next_delay);
-
 };
 
 /**

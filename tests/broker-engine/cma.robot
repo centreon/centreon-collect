@@ -211,7 +211,13 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
 
 
 BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
-    [Documentation]    agent check host with reversed connection and we expect to get it in check result
+    [Documentation]    Given an Engine configured with an OpenTelemetry server module and an OTEL connector, and service_1 configured as passive to use the "otel_check" command
+    ...    When the check command 456 is set to fail (CRITICAL)
+    ...    Then the service should enter SOFT states on successive retry attempts
+    ...    And there must be three distinct SOFT attempts (three different last_check timestamps, each strictly increasing)
+    ...    Then after retries are exhausted the service must transit to a HARD CRITICAL state
+    ...    When the check command 456 is set to OK
+    ...    Then the service must transit to a HARD OK state with output "Test check 456"
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
 

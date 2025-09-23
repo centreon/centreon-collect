@@ -86,9 +86,7 @@ message AgentConfiguration {
   bool use_exemplar = 6;
   // list of services with their commands
   repeated Service services = 7;
-  // when we calculate checks scheduling, we adjust time step in order to
-  // respect all checks interval at max_check_interval_error rounded
-  uint32 max_check_interval_error = 8;
+  uint32 unused = 8; // unused slot
   // encryption keys to decrypt and crypt commands
   string key = 9;
   string salt = 10;

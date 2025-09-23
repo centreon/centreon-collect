@@ -139,8 +139,8 @@ bool agent_check_result_builder::build_result_from_metrics(
   last_time = last_sample->get_nano_timestamp();
   res.set_return_code(last_sample->get_value());
   for (const auto& exemplar : last_sample->get_exemplars()) {
-    if (exemplar.filtered_attributes().size() == 1 &&
-        exemplar.filtered_attributes().begin()->key() == "status_confirmed") {
+    auto key = exemplar.filtered_attributes().begin()->key();
+    if (key == "status_confirmed") {
       if (exemplar.as_int() == 1) {
         res.set_check_options(res.get_check_options() |
                               CHECK_OPTION_PASSIVE_IS_HARD);
@@ -148,7 +148,8 @@ bool agent_check_result_builder::build_result_from_metrics(
         res.set_check_options(res.get_check_options() |
                               CHECK_OPTION_PASSIVE_IS_SOFT);
       }
-      break;
+    } else if (key == "current_attempt") {
+      res.set_current_attempt(exemplar.as_int());
     }
   }
 

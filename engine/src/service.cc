@@ -1395,11 +1395,17 @@ int service::handle_async_check_result(
     }
   }
 
-  if (_last_state == state_ok && _current_state != _last_state)
-    set_current_attempt(1);
-  else if (get_state_type() == soft &&
-           get_current_attempt() < max_check_attempts())
-    add_current_attempt(1);
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
+    // for passive checks, we get attempt from CMA
+    set_current_attempt(queued_check_result.get_current_attempt());
+  } else {
+    if (_last_state == state_ok && _current_state != _last_state)
+      set_current_attempt(1);
+    else if (get_state_type() == soft &&
+             get_current_attempt() < max_check_attempts())
+      add_current_attempt(1);
+  }
 
   engine_logger(dbg_checks, most)
       << "ST: " << (get_state_type() == soft ? "SOFT" : "HARD")
@@ -1454,7 +1460,11 @@ int service::handle_async_check_result(
    */
   if (state_change || hard_state_change) {
     /* reschedule the service check */
-    reschedule_check = true;
+    if (queued_check_result.get_check_options() &
+        (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+      reschedule_check = false;  // false for CMA results checks
+    else
+      reschedule_check = true;
 
     /* reset notification times */
     set_last_notification(static_cast<time_t>(0));
