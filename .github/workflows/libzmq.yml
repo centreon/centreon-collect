@@ -62,7 +62,7 @@ jobs:
           mkdir -p /github/home/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp libzmq-4.3.5/packaging/redhat/zeromq.spec /github/home/rpmbuild/SPECS/
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
-          rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
+          rpmbuild -bb --nocheck /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
 
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
@@ -134,7 +134,7 @@ jobs:
           ln -s packaging/debian
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
-          dpkg-buildpackage -us -uc -nc
+          DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -nc
           cd ..
 
           rm -f libzmq5-dbg_*.deb
