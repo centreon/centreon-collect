@@ -7,8 +7,8 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - lua-curl/**
+    # paths:
+    #   - lua-curl/**
   push:
     branches:
       - develop
@@ -139,9 +139,13 @@ jobs:
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
   deliver-rpm:
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled')
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -168,14 +172,19 @@ jobs:
           version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          # stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   deliver-deb:
+    # if: |
+    #   needs.get-environment.outputs.skip_workflow == 'false' &&
+    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+    #   ! cancelled() &&
+    #   ! contains(needs.*.result, 'failure') &&
+    #   ! contains(needs.*.result, 'cancelled')
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -203,7 +212,8 @@ jobs:
           version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          # stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
