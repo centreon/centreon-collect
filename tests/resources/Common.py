@@ -830,6 +830,20 @@ def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int,
 
 
 def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    ctn_check_service_status_with_timeout
+    Check the status of a service within a specified timeout period.
+
+    Args:
+        hostname (str): The name of the host.
+        service_desc (str): The description of the service.
+        status (int): The expected status to check for.
+        timeout (int): The timeout period in seconds.
+        state_type (str, optional): The type of state to check for. Defaults to "SOFT".
+                                    Can be "SOFT" or "HARD".
+    Returns:
+        bool: True if the expected status is found within the timeout period, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -2704,3 +2718,79 @@ def ctn_clear_prot_files():
     """
     for file in Path('/tmp').rglob('*.prot'):
         file.unlink()
+
+def ctn_check_resource_ids(typ: str, logfile: str):
+    """
+    Check if resource ids are correct in the log file compared to the database.
+    We check all the rows in the resources table.
+
+    Args:
+        typ: The type of resource to check (e.g., "host", "service", "AD").
+        logfile: The path to the log file.
+
+    Returns: True if resource ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    types = {
+            "host": [1, "Host", "host"],
+            "service": [0, "Service", "service"],
+            "AD": [4, "Anomaly detection", "service"],
+            }
+
+    r_add = re.compile(rf".*{types[typ][1]} resource with id (\d+):(\d+) has resource_id (\d+)")
+    r_del = re.compile(rf".*Disabling {types[typ][2]} resource with id (\d+):(\d+)")
+    from_logs = {}
+    for line in lines:
+        m = r_add.match(line)
+        if m:
+            parent_id = int(m.group(1))
+            id = int(m.group(2))
+            resource_id = int(m.group(3))
+            logger.console(f"New resource from logs {(parent_id, id)}, resource_id={resource_id}")
+            from_logs[(parent_id, id)] = resource_id
+        else:
+            m = r_del.match(line)
+            if m:
+                parent_id = int(m.group(1))
+                id = int(m.group(2))
+                if (parent_id, id) in from_logs:
+                    logger.console(f"Resource {(parent_id, id)} deleted, removing it from list")
+                    del from_logs[(parent_id, id)]
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    logger.console(f"Resources found in logs: {from_logs}")
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT resource_id, id, parent_id FROM resources WHERE enabled=1 AND type={types[typ][0]}")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        logger.console(f"result: {r}")
+        id = int(r['id'])
+        parent_id = int(r['parent_id'])
+        resource_id = int(r['resource_id'])
+        if (parent_id, id) not in from_logs:
+            logger.console(f"Resource {(parent_id, id)} not found in logs")
+            continue
+
+        if from_logs[(parent_id, id)] != resource_id:
+            logger.console(
+                f"Resource {(id, type)} has resource_id {from_logs[(id, type)]} in logs and {resource_id} in database")
+            retval = False
+    if (len(from_logs) != len(result)):
+        logger.console(f"Number of resources in logs ({len(from_logs)}) is different from number of resources in database ({len(result)})")
+        logger.console(f"Resources in logs: {from_logs}")
+        logger.console(f"Resources in DB: {result}")
+        retval = False
+    return retval
+

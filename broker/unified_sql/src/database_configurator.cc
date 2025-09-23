@@ -1252,7 +1252,8 @@ void database_configurator::_add_services_mariadb(
         "information=VALUES(retain_status_information),retry_interval=VALUES("
         "retry_interval),stalk_on_critical=VALUES(stalk_on_critical),stalk_on_"
         "ok=VALUES(stalk_on_ok),stalk_on_unknown=VALUES(stalk_on_unknown),"
-        "stalk_on_warning=VALUES(stalk_on_warning)");
+        "stalk_on_warning=VALUES(stalk_on_warning),state=COALESCE(state, 4),"
+        "state_type=COALESCE(state_type, 1)");
     _add_services_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_services_stmt);
   }
@@ -1382,6 +1383,9 @@ void database_configurator::_add_services_mariadb(
 void database_configurator::_add_services_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
+  if (lst.empty())
+    return;
+
   mysql& mysql = _stream->get_mysql();
 
   std::vector<std::string> values;
@@ -1438,14 +1442,8 @@ void database_configurator::_add_services_mysql(
         misc::string::escape(msg.notes_url(),
                              get_centreon_storage_services_col_size(
                                  centreon_storage_services_notes_url)),
-        msg.notification_interval(),
-        msg.has_notification_period()
-            ? misc::string::escape(
-                  msg.notification_period(),
-                  get_centreon_storage_services_col_size(
-                      centreon_storage_services_notification_period))
-            : NULL,
-        msg.notifications_enabled(),
+        msg.notification_interval(), notification_period,
+        msg.notifications_enabled() ? 1 : 0,
         msg.notification_options() & ActionServiceOn::action_svc_critical ? 1
                                                                           : 0,
         msg.notification_options() & ActionServiceOn::action_svc_downtime ? 1
@@ -1457,9 +1455,10 @@ void database_configurator::_add_services_mysql(
                                                                          : 0,
         msg.notification_options() & ActionServiceOn::action_svc_warning ? 1
                                                                          : 0,
-        msg.obsess_over_service(), msg.checks_passive(),
-        msg.process_perf_data(), msg.retain_nonstatus_information(),
-        msg.retain_status_information(), msg.retry_interval(),
+        msg.obsess_over_service() ? 1 : 0, msg.checks_passive() ? 1 : 0,
+        msg.process_perf_data() ? 1 : 0,
+        msg.retain_nonstatus_information() ? 1 : 0,
+        msg.retain_status_information() ? 1 : 0, msg.retry_interval(),
         msg.stalking_options() & ActionServiceOn::action_svc_critical ? 1 : 0,
         msg.stalking_options() & ActionServiceOn::action_svc_ok ? 1 : 0,
         msg.stalking_options() & ActionServiceOn::action_svc_unknown ? 1 : 0,
@@ -1467,7 +1466,23 @@ void database_configurator::_add_services_mysql(
     values.emplace_back(value);
   }
   std::string query(fmt::format(
-      "INSERT INTO services VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO services "
+      "(host_id,description,service_id,action_url,active_checks, "
+      "check_command, check_freshness,check_interval,check_period,"
+      "default_active_checks,default_event_handler_enabled,"
+      "default_flap_detection,default_notify,default_passive_checks,"
+      "default_process_perfdata,display_name,"
+      "enabled,event_handler,event_handler_enabled,first_notification_delay,"
+      "flap_detection,flap_detection_on_critical,flap_detection_on_ok,flap_"
+      "detection_on_unknown,flap_detection_on_warning,freshness_threshold,"
+      "high_flap_threshold,icon_image,icon_image_alt,low_flap_threshold,max_"
+      "check_attempts,notes,notes_url,notification_interval,notification_"
+      "period,notify,notify_on_critical,notify_on_downtime,notify_on_"
+      "flapping,notify_on_recovery,notify_on_unknown,notify_on_warning,"
+      "obsess_over_service,passive_checks,process_perfdata,retain_nonstatus_"
+      "information,retain_status_information,retry_interval,stalk_on_"
+      "critical,stalk_on_ok,stalk_on_unknown,stalk_on_warning,state, "
+      "state_type) VALUES {} ON DUPLICATE KEY UPDATE "
       "description=VALUES(description),action_url=VALUES(action_url),active_"
       "checks=VALUES(active_checks),check_command=VALUES(check_command),check_"
       "freshness=VALUES(check_freshness),check_interval=VALUES(check_interval),"
@@ -1573,6 +1588,8 @@ void database_configurator::_disable_service_resources_mariadb(
     bind->set_value_as_i64(0, msg.host_id());
     bind->set_value_as_i64(1, msg.service_id());
     bind->next_row();
+    _logger->trace("Disabling service resource with id {}:{}", msg.host_id(),
+                   msg.service_id());
   }
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
@@ -1909,24 +1926,29 @@ static uint32_t get_service_type(const engine::configuration::Service& msg) {
 void database_configurator::_add_service_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
-  auto& cache = _stream->resources_cache();
   if (lst.empty()) {
     _logger->debug("No service resources to add/update");
     return;
   }
+
+  auto& cache = _stream->resources_cache();
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_service_resources_stmt) {
     std::string query(
         "INSERT INTO resources "
-        "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
-        "id,name,alias,parent_name,notes_url,notes,action_url,notifications_"
-        "enabled,passive_checks_enabled,active_checks_enabled,enabled) VALUES "
-        "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
-        "internal_id=VALUES(internal_id),type=VALUES(type),max_check_attempts="
-        "VALUES(max_check_attempts),poller_id=VALUES(poller_id),severity_id="
-        "VALUES(severity_id),name=VALUES(name),alias=VALUES(alias),parent_name="
-        "VALUES(parent_name),notes_url=VALUES(notes_url),notes=VALUES(notes),"
+        "(id,parent_id,internal_id,type,status,status_ordered,"
+        "status_confirmed,max_check_attempts,poller_id,severity_id,name,alias,"
+        "parent_name, notes_url,notes,action_url,notifications_enabled,"
+        "passive_checks_enabled,active_checks_enabled,enabled) VALUES "
+        "(?,?,?,?,4,1,1,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        "internal_id=VALUES(internal_id),type=VALUES(type),status=COALESCE("
+        "status,4),status_ordered=COALESCE(status_ordered,1),"
+        "status_confirmed=COALESCE(status_confirmed,1),"
+        "max_check_attempts=VALUES(max_check_attempts),"
+        "poller_id=VALUES(poller_id),severity_id=VALUES(severity_id),"
+        "name=VALUES(name),alias=VALUES(alias),parent_name=VALUES(parent_name),"
+        "notes_url=VALUES(notes_url),notes=VALUES(notes),"
         "action_url=VALUES(action_url),notifications_enabled=VALUES("
         "notifications_enabled),passive_checks_enabled=VALUES(passive_checks_"
         "enabled),active_checks_enabled=VALUES(active_checks_enabled),enabled="
@@ -1978,8 +2000,9 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_bool(16, true);
     bind->next_row();
     _add_customvariables_mariadb(msg.host_id(), 0, msg.customvariables());
-    services_cache[std::make_pair(msg.host_id(), msg.service_description())] =
-        msg.service_id();
+    services_cache.insert_or_assign(
+        std::make_pair(msg.host_id(), msg.service_description()),
+        msg.service_id());
   }
   _add_service_resources_stmt->set_bind(std::move(bind));
 
@@ -2015,20 +2038,30 @@ void database_configurator::_add_service_resources_mariadb(
 void database_configurator::_add_service_resources_mysql(
     const ::google::protobuf::RepeatedPtrField<engine::configuration::Service>&
         lst) {
+  if (lst.empty()) {
+    _logger->debug("No service resources to add/update");
+    return;
+  }
+
   auto& cache = _stream->resources_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint64_t>> keys;
 
   std::vector<std::string> values;
+  values.reserve(lst.size());
+  auto& services_cache = _stream->service_description_id_cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), msg.service_id());
     keys.push_back(key);
 
     std::string value(fmt::format(
-        "({},{},NULL,{},{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},1)",
+        "({},{},NULL,{},4, 1, "
+        "1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
+        "1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
         msg.max_check_attempts(),
-        _stream->hosts_instances_cache()[msg.host_id()], msg.severity_id(),
+        _stream->hosts_instances_cache()[msg.host_id()],
+        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2048,9 +2081,17 @@ void database_configurator::_add_service_resources_mysql(
         msg.checks_active()));
     values.emplace_back(value);
     _add_customvariables_mysql(msg.host_id(), 0, msg.customvariables());
+    services_cache.insert_or_assign(
+        std::make_pair(msg.host_id(), msg.service_description()),
+        msg.service_id());
   }
   std::string query(fmt::format(
-      "INSERT INTO resources VALUES {} ON DUPLICATE KEY UPDATE "
+      "INSERT INTO resources "
+      "(id,parent_id,internal_id,type,status,status_ordered,"
+      "status_confirmed,max_check_attempts,poller_id,severity_id,name,alias,"
+      "parent_name, notes_url,notes,action_url,notifications_enabled,"
+      "passive_checks_enabled,active_checks_enabled,enabled) VALUES {} ON "
+      "DUPLICATE KEY UPDATE "
       "internal_id=VALUES(internal_id),type=VALUES(type),max_check_attempts="
       "VALUES(max_check_attempts),poller_id=VALUES(poller_id),severity_id="
       "VALUES(severity_id),name=VALUES(name),alias=VALUES(alias),parent_name="
@@ -2067,8 +2108,17 @@ void database_configurator::_add_service_resources_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
-    for (auto& k : keys)
-      cache[k] = first_id++;
+    for (auto& k : keys) {
+      auto found = cache.find(k);
+      if (found == cache.end()) {
+        _logger->trace("Service resource with id {}:{} has resource_id {}",
+                       k.first, k.second, first_id);
+        cache[k] = first_id++;
+      } else {
+        _logger->trace("Service resource with id {}:{} has resource_id {}",
+                       k.first, k.second, found->second);
+      }
+    }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_service_resources>>: {}",
                    e.what());
@@ -2084,19 +2134,27 @@ void database_configurator::_add_service_resources_mysql(
 void database_configurator::_add_anomalydetection_resources_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::Anomalydetection>& lst) {
+  if (lst.empty()) {
+    _logger->debug("No anomaly detection resources to add/update");
+    return;
+  }
+  auto& cache = _stream->resources_cache();
   std::list<std::pair<uint64_t, uint64_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_anomalydetection_resources_stmt) {
-    auto& cache = _stream->resources_cache();
     std::string query(
         "INSERT INTO resources "
-        "(id,parent_id,internal_id,type,max_check_attempts,poller_id,severity_"
-        "id,name,alias,parent_name,notes_url,notes,action_url,notifications_"
-        "enabled,passive_checks_enabled,active_checks_enabled,enabled) VALUES "
-        "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
-        "internal_id=VALUES(internal_id),type=VALUES(type),max_check_attempts="
-        "VALUES(max_check_attempts),poller_id=VALUES(poller_id),severity_id="
-        "VALUES(severity_id),name=VALUES(name),alias=VALUES(alias),parent_name="
+        "(id,parent_id,internal_id,type,status,status_ordered,status_confirmed,"
+        "max_check_attempts,poller_id,severity_id,name,alias,parent_name,"
+        "notes_url,notes,action_url,notifications_enabled,"
+        "passive_checks_enabled,active_checks_enabled,enabled) VALUES "
+        "(?,?,?,?,4,1,1,?,?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+        "internal_id=VALUES(internal_id),type=VALUES(type),status=COALESCE("
+        "status,4),status_ordered=COALESCE(status_ordered,1),"
+        "status_confirmed=COALESCE(status_confirmed,1),"
+        "max_check_attempts=VALUES(max_check_attempts),"
+        "poller_id=VALUES(poller_id),severity_id=VALUES(severity_id),"
+        "name=VALUES(name),alias=VALUES(alias),parent_name="
         "VALUES(parent_name),notes_url=VALUES(notes_url),notes=VALUES(notes),"
         "action_url=VALUES(action_url),notifications_enabled=VALUES("
         "notifications_enabled),passive_checks_enabled=VALUES(passive_checks_"
