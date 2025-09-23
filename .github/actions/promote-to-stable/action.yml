@@ -36,6 +36,9 @@ runs:
 
     - name: Promote RPM packages to stable
       if: ${{ startsWith(inputs.distrib, 'el') }}
+      env:
+        JF_URL: https://packages.centreon.com
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
       run: |
         set -eux
 
@@ -97,6 +100,10 @@ runs:
             jf rt upload "$ARTIFACT_DL" "$TARGET_PATH" --flat
           done
 
+          if [ "${{ inputs.stability }}" == "stable" ]; then
+            curl -H "Authorization: Bearer ${{ env.JF_ACCESS_TOKEN }}" -X POST "${{ env.JF_URL }}/artifactory/api/yum/$ROOT_REPO_PATH?path=/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH&async=1"
+          fi
+
           # Cleanup before next round of candidates
           rm -f *.rpm
         done
@@ -105,6 +112,9 @@ runs:
 
     - name: Promote DEB packages to stable
       if: ${{ contains(fromJSON('["bullseye", "bookworm"]'), inputs.distrib) }}
+      env:
+        JF_URL: https://packages.centreon.com
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
       run: |
         set -eux
 
@@ -161,6 +171,9 @@ runs:
           jf rt upload "$ARTIFACT_DL" "$TARGET_PATH" --deb "${{ inputs.distrib }}/main/$ARCH" --flat
         done
 
-        rm -f *.deb
+        if [ "${{ inputs.stability }}" == "stable" ]; then
+          curl -H "Authorization: Bearer ${{ env.JF_ACCESS_TOKEN }}" -X POST "${{ env.JF_URL }}/artifactory/api/deb/reindex/$ROOT_REPO_PATH-stable?async=1"
+        fi
 
+        rm -f *.deb
       shell: bash
