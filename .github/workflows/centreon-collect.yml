@@ -273,6 +273,11 @@ jobs:
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
+          - image: packaging-centreon-collect-vcpkg-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-noble
             distrib: noble
             package_extension: deb
@@ -483,6 +488,8 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: jammy
+            arch: amd64
           - distrib: noble
             arch: amd64
 
@@ -517,7 +524,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm, noble, jammy]
 
     steps:
       - name: Checkout sources
