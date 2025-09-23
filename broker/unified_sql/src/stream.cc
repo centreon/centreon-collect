@@ -223,9 +223,7 @@ stream::stream(const database_config& dbcfg,
   _state = running;
   _action.resize(_mysql.connections_count());
 
-  // FIXME DBO
-  _bulk_prepared_statement = false;
-  //_bulk_prepared_statement = _mysql.support_bulk_statement();
+  _bulk_prepared_statement = _mysql.support_bulk_statement();
   _logger_sql->info("Unified sql stream connected to '{}' Server",
                     _mysql.get_server_version());
 
