@@ -6,6 +6,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      build_cma_tooling:
+        description: 'build cma build tool image for old os'
+        required: true
+        default: false
+        type: boolean
   push:
     branches:
       - develop
@@ -113,6 +119,70 @@ jobs:
           pull: false
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_BASE_NAME }}-vcpkg-${{ matrix.distrib }}${{ env.IMAGE_SUFFIX }}:${{ needs.get-environment.outputs.packaging_img_version }}
+
+  # create vcpkg image in order to compile cma on old OS such as centos7
+  dockerize-cma:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      github.repository == 'centreon/centreon-collect'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: centos7
+
+    runs-on: centreon-collect
+
+    name: build docker image ${{ matrix.distrib }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+        with:
+          driver-opts: image=${{ vars.DOCKER_PROXY_REGISTRY_URL }}/moby/buildkit:buildx-stable-1
+      - name: build tooling image cma-tooling-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_tool_img_version }}
+        if: inputs.build_cma_tooling
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+        with:
+          file: .github/docker/Dockerfile.cma-tooling-${{ matrix.distrib }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          platforms: 'linux/amd64'
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/cma-tooling-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_tool_img_version }}
+
+      - name: build vcpkg image cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_packaging_img_version }}
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+        with:
+          file: .github/docker/Dockerfile.cma-vcpkg-${{ matrix.distrib }}
+          context: .
+          build-args: |
+            "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
+            "CMA_TOOLING_VERSION=${{ needs.get-environment.outputs.cma_tool_img_version }}"
+          platforms: 'linux/amd64'
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_packaging_img_version }}
 
   set-skip-label:
     needs: [get-environment, dockerize]

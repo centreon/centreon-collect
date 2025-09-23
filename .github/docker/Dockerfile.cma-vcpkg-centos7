@@ -1,0 +1,41 @@
+ARG REGISTRY_URL
+ARG CMA_TOOLING_VERSION
+
+FROM ${REGISTRY_URL}/cma-tooling-centos7:${CMA_TOOLING_VERSION}
+#FROM cma_tooling_centos7
+
+COPY vcpkg-agent.json /src/vcpkg.json
+COPY overlays /overlays
+COPY custom-triplets /custom-triplets
+COPY CMakeLists* /src/
+COPY CMakePresets.json /src/
+
+RUN bash -e <<EOF
+
+#we use vcpkg openssl port as centos provides openssl 1.1
+/bin/rm -rf /overlays/openssl
+
+cd /
+git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+
+export VCPKG_ROOT=/vcpkg
+export PATH=\$VCPKG_ROOT:\$PATH
+export PKG_CONFIG_PATH=/usr/lib64/pkgconfig:\$PKG_CONFIG_PATH
+
+export CC=/usr/local/bin/gcc
+export CXX=/usr/local/bin/g++
+export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+
+
+/vcpkg/vcpkg install \
+  --clean-after-build \
+  --overlay-triplets=/custom-triplets \
+  --triplet x64-linux-release \
+  --vcpkg-root /vcpkg \
+  --x-wait-for-lock \
+  --x-manifest-root=/src \
+  --x-install-root=vcpkg_installed \
+  --overlay-ports=/overlays
+
+EOF

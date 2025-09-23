@@ -1,0 +1,84 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/centos:7
+#FROM centos:7
+
+#COPY gcc-9.5.0.tar.xz /root
+
+RUN bash -e <<EOF
+
+#official centos 7 no available
+
+sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
+sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
+
+echo "install some packages"
+
+yum clean all
+yum makecache 
+yum -y upgrade 
+yum -y update 
+yum -y install make wget epel-release ninja-build
+yum groupinstall -y "Development Tools"
+yum install -y zlib-devel perl-IPC-Cmd-0.80-4.el7
+
+#compile and install gcc 9.5
+echo "compile and install gcc 9.5 with " $(lscpu -p | grep -v '#' | wc -l) "cpu"
+
+cd /root
+wget https://ftp.gnu.org/gnu/gcc/gcc-9.5.0/gcc-9.5.0.tar.xz 
+tar -xf gcc-9.5.0.tar.xz
+
+cd gcc-9.5.0
+./contrib/download_prerequisites && mkdir build-gcc && cd build-gcc
+../configure --disable-multilib --enable-languages=c,c++
+make -j $(lscpu -p | grep -v '#' | wc -l) 
+make install
+
+#compile and install cmake
+echo "compile and install cmake"
+
+cd /root
+wget https://cmake.org/files/v3.30/cmake-3.30.9-linux-x86_64.sh
+bash cmake-3.30.9-linux-x86_64.sh --skip-license
+rm -f cmake-3.30.9-linux-x86_64.sh
+cp -rp bin/* /usr/bin/
+cp -rp share/* /usr/share/
+
+#compile and install git 2.38.5
+echo "compile and install git 2.38.5"
+
+wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.5.tar.gz
+tar -xzf git-2.38.5.tar.gz
+cd git-2.38.5
+make configure
+./configure --prefix=/usr
+make -j $(lscpu -p | grep -v '#' | wc -l) && make install
+
+
+#compile pkg-config from pkgconf (bug on original)
+echo "compile pkg-config from pkgconf"
+
+cd /root
+git clone --depth 1 -b pkgconf-1.4.0 https://github.com/pkgconf/pkgconf.git
+cd pkgconf
+./autogen.sh
+./configure --prefix=/usr --libdir=/usr/lib64
+make -j $(lscpu -p | grep -v '#' | wc -l) && make install
+mv /usr/bin/pkg-config /usr/bin/pkg-config.original
+ln -s /usr/bin/pkgconf /usr/bin/pkg-config
+
+#nfpm
+echo "download and install nfpm"
+cd /root
+wget https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm-2.41.1-1.x86_64.rpm
+rpm -i nfpm-2.41.1-1.x86_64.rpm 
+
+#a little cleanup
+cd /root 
+#/bin/rm -rf gcc-9.5.0 gcc-9.5.0.tar.xz  git-2.34.1 git-2.34.1.tar.gz pkgconf
+
+mkdir /src
+
+EOF
+
