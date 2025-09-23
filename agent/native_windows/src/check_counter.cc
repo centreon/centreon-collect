@@ -452,10 +452,11 @@ void check_counter::start_check(const duration& timeout) {
       });
     } else {
       // if we need two samples, we need to wait for the second one
-      time_point end_measure = std::chrono::system_clock::now() + timeout;
-      end_measure -= std::chrono::seconds(1);
+      duration wait_duration =
+          std::min(get_raw_start_expected().get_step() / 2,
+                   timeout - std::chrono::milliseconds(500));
 
-      _measure_timer.expires_at(end_measure);
+      _measure_timer.expires_after(wait_duration);
       _measure_timer.async_wait(
           [me = shared_from_this(),
            start_check_index = _get_running_check_index()](
