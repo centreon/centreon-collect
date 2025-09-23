@@ -19,7 +19,7 @@
 # Global options.
 project("Centreon common" C CXX)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ${COMPILE_ONLY_AGENT})
   add_subdirectory(log_v2)
   add_subdirectory(engine_conf)
 endif()
@@ -33,13 +33,20 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SOURCES
-      ${SRC_DIR}/hex_dump.cc
-      ${SRC_DIR}/perfdata.cc
-      ${SRC_DIR}/pool.cc
-      ${SRC_DIR}/rapidjson_helper.cc
-      ${SRC_DIR}/utf8.cc
-      ${SRC_DIR}/file.cc)
+  if (${COMPILE_ONLY_AGENT})
+    # we need not many things to just compile centreon-monitoring-agent
+    # (centagent)
+    set(SOURCES ${SRC_DIR}/perfdata.cc ${SRC_DIR}/rapidjson_helper.cc
+                ${SRC_DIR}/utf8.cc)
+  else()
+    set(SOURCES
+        ${SRC_DIR}/hex_dump.cc
+        ${SRC_DIR}/perfdata.cc
+        ${SRC_DIR}/pool.cc
+        ${SRC_DIR}/rapidjson_helper.cc
+        ${SRC_DIR}/utf8.cc
+        ${SRC_DIR}/file.cc)
+  endif()
 else()
   add_compile_options("/wd5232")
   # we need not many things to just compile centreon-monitoring-agent
@@ -58,7 +65,7 @@ set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ${COMPILE_ONLY_AGENT})
   add_subdirectory(http)
   add_subdirectory(vault)
   add_subdirectory(process_stat)

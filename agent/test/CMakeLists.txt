@@ -57,24 +57,43 @@ set_target_properties(
              RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(
-    ut_agent
-    PRIVATE centagent_lib
-            centreon_common
-            centreon_process
-            ctncrypto
-            GTest::gtest
-            GTest::gtest_main
-            GTest::gmock
-            GTest::gmock_main
-            Boost::program_options
-            stdc++fs
-            gRPC::grpc++
-            fmt::fmt
-            pthread
-            crypto
-            ssl)
-  add_dependencies(ut_agent centreon_common centagent_lib process_stat)
+  if (${COMPILE_ONLY_AGENT})
+    target_link_libraries(
+      ut_agent
+      PRIVATE centagent_lib
+              centreon_common
+              centreon_process
+              ctncrypto
+              GTest::gtest
+              GTest::gtest_main
+              GTest::gmock
+              GTest::gmock_main
+              Boost::program_options
+              -static-libgcc -static-libstdc++
+              stdc++fs
+              gRPC::grpc++
+              fmt::fmt)
+    add_dependencies(ut_agent centreon_common centagent_lib)
+  else()
+    target_link_libraries(
+      ut_agent
+      PRIVATE centagent_lib
+              centreon_common
+              centreon_process
+              ctncrypto
+              GTest::gtest
+              GTest::gtest_main
+              GTest::gmock
+              GTest::gmock_main
+              Boost::program_options
+              -static-libgcc -static-libstdc++
+              stdc++fs
+              gRPC::grpc++
+              fmt::fmt
+              crypto
+              ssl)
+    add_dependencies(ut_agent centreon_common centagent_lib process_stat)
+  endif()
 else()
   target_link_libraries(
     ut_agent

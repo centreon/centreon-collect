@@ -46,7 +46,7 @@
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-#ifndef _WIN32
+#if !defined _WIN32 && !defined COMPILE_ONLY_AGENT
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif

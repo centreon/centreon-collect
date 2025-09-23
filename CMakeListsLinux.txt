@@ -65,6 +65,7 @@ if(WITH_ASAN)
 endif()
 
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
+set(COMPILE_ONLY_AGENT OFF)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
 

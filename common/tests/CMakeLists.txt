@@ -20,7 +20,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/common/inc
       )
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" AND NOT ${COMPILE_ONLY_AGENT})
   add_executable(
     ut_common
     absl_flyweight_factory_test.cc
@@ -84,35 +84,57 @@ file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
 add_test(NAME tests COMMAND ut_common)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  target_link_libraries(
-    ut_common
-    PRIVATE centreon_common
-            process_stat
-            ctncrypto
-            centreon_http
-            centreon_process
-            ctncrypto
-            protobuf::libprotobuf
-            engine_conf
-            Boost::program_options
-            re2::re2
-            log_v2
-            OpenSSL::SSL
-            OpenSSL::Crypto
-            GTest::gtest
-            GTest::gtest_main
-            GTest::gmock
-            GTest::gmock_main
-            absl::any
-            absl::log
-            absl::base
-            absl::bits
-            fmt::fmt
-            pthread)
+  if (${COMPILE_ONLY_AGENT})
+    target_link_libraries(
+      ut_common
+      PRIVATE centreon_common
+              centreon_process
+              ctncrypto
+              protobuf::libprotobuf
+              re2::re2
+              OpenSSL::SSL
+              OpenSSL::Crypto
+              GTest::gtest
+              GTest::gtest_main
+              GTest::gmock
+              GTest::gmock_main
+              absl::any
+              absl::log
+              absl::base
+              absl::bits
+              fmt::fmt
+              pthread)
 
-  add_dependencies(ut_common centreon_common process_stat ctncrypto
-                   centreon_http)
+    add_dependencies(ut_common centreon_common ctncrypto)
+  else()
+    target_link_libraries(
+      ut_common
+      PRIVATE centreon_common
+              process_stat
+              centreon_http
+              centreon_process
+              ctncrypto
+              protobuf::libprotobuf
+              engine_conf
+              Boost::program_options
+              re2::re2
+              log_v2
+              OpenSSL::SSL
+              OpenSSL::Crypto
+              GTest::gtest
+              GTest::gtest_main
+              GTest::gmock
+              GTest::gmock_main
+              absl::any
+              absl::log
+              absl::base
+              absl::bits
+              fmt::fmt
+              pthread)
 
+    add_dependencies(ut_common centreon_common process_stat ctncrypto
+                    centreon_http)
+  endif()
 else()
   target_link_libraries(
     ut_common
@@ -138,6 +160,9 @@ else()
 endif()
 
 set_property(TARGET ut_common PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_compile_definitions(ut_common PUBLIC OS_DISTRIBUTOR=${OS_DISTRIBUTOR})
+target_compile_definitions(ut_common PUBLIC OS_VERSION=${os_version})
 
 target_precompile_headers(ut_common PRIVATE
                           ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

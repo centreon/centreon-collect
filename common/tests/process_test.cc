@@ -135,12 +135,20 @@ TEST_F(process_test, echo) {
   EXPECT_EQ(to_wait->get_stderr(), "");
 }
 
+/**
+ * @brief ON centos7, posix_spawnp does not check existence of executable, so no
+ * exception is thrown. It does not matter as process callback will return an
+ * error
+ *
+ */
+#if OS_VERSION != 7
 TEST_F(process_test, throw_on_error) {
   using namespace std::literals;
   std::shared_ptr<process_wait> to_wait(
       new process_wait(g_io_context, _logger, "turlututu", {"hello"s}));
   ASSERT_THROW(to_wait->start_process(), std::exception);
 }
+#endif
 
 TEST_F(process_test, script_error) {
   using namespace std::literals;

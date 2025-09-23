@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <linux/close_range.h>
+// #include <linux/close_range.h>
 #include <spawn.h>
 #include <sys/syscall.h>
 

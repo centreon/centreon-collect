@@ -156,14 +156,9 @@ TEST_F(check_exec_test, bad_command) {
   cond.wait(l);
   ASSERT_EQ(status, 3);
   ASSERT_EQ(outputs.size(), 1);
-#ifdef _WIN32
-  // message is language dependant
-  ASSERT_GE(outputs.begin()->size(), 20);
-#else
-  ASSERT_EQ(*outputs.begin(),
-            "Fail to execute /usr/bad_path/turlututu titi toto : No such file "
-            "or directory");
-#endif
+  ASSERT_GE(outputs.begin()->size(), 50);
+  ASSERT_EQ(outputs.begin()->substr(0, 50),
+            "Fail to execute /usr/bad_path/turlututu titi toto:");
 }
 
 TEST_F(check_exec_test, recurse_not_lock) {

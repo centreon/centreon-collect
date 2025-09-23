@@ -1,0 +1,21 @@
+{
+  "dependencies": [
+    {
+      "name": "abseil",
+      "features": [
+        "cxx17"
+      ]
+    },
+    "fmt",
+    "grpc",
+    "spdlog",
+    "boost-asio",
+    "boost-multi-index",
+    "boost-process",
+    "boost-program-options",
+    "openssl",
+    "rapidjson",
+    "boost-flyweight",
+    "gtest"
+  ]
+}

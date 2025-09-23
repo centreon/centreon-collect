@@ -133,7 +133,7 @@ void check_exec::start_check(const duration& timeout) {
                });
   } catch (const std::exception& e) {
     std::string output =
-        fmt::format("Fail to execute {} : {}", get_command_line(), e.what());
+        fmt::format("Fail to execute {}: {}", get_command_line(), e.what());
     SPDLOG_LOGGER_ERROR(_logger, " serv {} {}", get_service(), output);
     asio::post(*_io_context, [me = check::shared_from_this(),
                               start_check_index = _get_running_check_index(),
@@ -162,8 +162,17 @@ void check_exec::on_completion(unsigned running_index,
   std::list<std::string> outputs;
   std::list<com::centreon::common::perfdata> perfs;
 
-  // split multi line output
-  outputs = absl::StrSplit(std_out, absl::ByAnyChar("\r\n"), absl::SkipEmpty());
+  if (std_out.empty() &&
+      (exit_code < e_status::ok || exit_code > e_status::unknown)) {
+    outputs.emplace_back(fmt::format("Fail to execute {}: exit_code: {}",
+                                     get_command_line(), exit_code));
+    exit_code = e_status::unknown;
+  } else {
+    // split multi line output
+    outputs =
+        absl::StrSplit(std_out, absl::ByAnyChar("\r\n"), absl::SkipEmpty());
+  }
+
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
