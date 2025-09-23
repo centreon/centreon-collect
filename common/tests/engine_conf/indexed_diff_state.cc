@@ -32,8 +32,11 @@ class IndexedDiffState : public ::testing::Test {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  void SetUp() override { _logger = log_v2::instance().get(log_v2::BBDO); }
-  void TearDown() override {}
+  void SetUp() override {
+    log_v2::load("indexedDiffState");
+    _logger = log_v2::instance().get(log_v2::BBDO);
+  }
+  void TearDown() override { log_v2::unload(); }
 };
 
 TEST_F(IndexedDiffState, AddCommand) {
