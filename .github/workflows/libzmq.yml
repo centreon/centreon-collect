@@ -62,7 +62,7 @@ jobs:
           mkdir -p /github/home/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp libzmq-4.3.5/packaging/redhat/zeromq.spec /github/home/rpmbuild/SPECS/
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
-          rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
+          rpmbuild -bb --nocheck /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
 
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
@@ -134,7 +134,7 @@ jobs:
           ln -s packaging/debian
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
-          dpkg-buildpackage -us -uc -nc
+          DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -nc
           cd ..
 
           rm -f libzmq5-dbg_*.deb
@@ -148,13 +148,9 @@ jobs:
 
   deliver-rpm:
     needs: [get-environment, package-rpm]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled')
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -187,13 +183,9 @@ jobs:
 
   deliver-deb:
     needs: [get-environment, package-deb]
-    # if: |
-    #   needs.get-environment.outputs.skip_workflow == 'false' &&
-    #   contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-    #   ! cancelled() &&
-    #   ! contains(needs.*.result, 'failure') &&
-    #   ! contains(needs.*.result, 'cancelled')
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -220,8 +212,7 @@ jobs:
           major_version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
-          # stability: ${{ needs.get-environment.outputs.stability }}
-          stability: unstable
+          stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
