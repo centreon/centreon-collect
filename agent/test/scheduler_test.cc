@@ -336,6 +336,8 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
     serv->set_command_name(fmt::format("command{}", serv_index + 1));
     serv->set_command_line("/usr/bin/ls");
     serv->set_check_interval(5 + (rand() % 5));
+    serv->set_max_attempts(1);
+    serv->set_retry_interval(1);
     if (serv->check_interval() < min_interval) {
       min_interval = serv->check_interval();
     }

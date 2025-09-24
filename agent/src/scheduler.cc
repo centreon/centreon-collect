@@ -212,14 +212,20 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     }
 
     // first we group checks by check_interval
-    std::map<uint32_t, std::vector<const Service*>> group_serv;
-    for (const auto& serv : conf->config().services()) {
+    std::map<uint32_t, std::vector<Service*>> group_serv;
+    for (auto& serv : *conf->mutable_config()->mutable_services()) {
+      if (serv.check_interval() == 0) {
+        serv.set_check_interval(60);  // one minute by default
+      }
+      if (serv.retry_interval() == 0) {
+        serv.set_retry_interval(60);  // one minute by default
+      }
+      if (serv.max_attempts() == 0) {
+        serv.set_max_attempts(1);  // one attempt by default
+      }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();
       auto min_interval = std::min(check_interval, retry_interval);
-      if (min_interval == 0) {
-        min_interval = 60;  // one minute by default
-      }
       group_serv[min_interval].push_back(&serv);
     }
 
@@ -325,9 +331,6 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
-
-  // launch immediately check
-  _active_check = 0;  // when update conf, we need to reset active check count
   _start_waiting_check();
   // send the timer
   _start_check_timer();

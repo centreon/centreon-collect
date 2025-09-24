@@ -187,6 +187,8 @@ TEST_F(check_test, nagios_confirmation_and_retry_soft_recovery) {
   // simulate previous non-OK soft state
   checker->set_last_status(2);           // previous status was non-OK
   checker->set_status_confirmed(false);  // previous was NOT confirmed (soft)
+  checker->set_current_attempt(1);
+  ASSERT_EQ(checker->get_max_attempts(), 3);
 
   checker->calcul_status_confirmation(0);  // now OK
 
@@ -194,7 +196,7 @@ TEST_F(check_test, nagios_confirmation_and_retry_soft_recovery) {
   // OK
   EXPECT_FALSE(checker->get_status_confirmed());
   EXPECT_EQ(checker->get_last_status(), 0);
-  EXPECT_EQ(checker->get_current_attempt(), 1);
+  EXPECT_EQ(checker->get_current_attempt(), 2);
 
   // further OK
   checker->calcul_status_confirmation(0);  // now OK
