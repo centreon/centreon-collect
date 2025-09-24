@@ -57,7 +57,7 @@ TEST_F(check_health_test, no_threshold_no_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -103,7 +103,7 @@ TEST_F(check_health_test, no_threshold_reverse) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -149,7 +149,7 @@ TEST_F(check_health_test, threshold_1) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -201,7 +201,7 @@ TEST_F(check_health_test, threshold_2) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -253,7 +253,7 @@ TEST_F(check_health_test, threshold_3) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -305,7 +305,7 @@ TEST_F(check_health_test, threshold_4) {
   stats->add_duration_stat("command2", 25s);
 
   check_health checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

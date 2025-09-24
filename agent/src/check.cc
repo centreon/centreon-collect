@@ -122,8 +122,6 @@ const std::array<std::string_view, 4> check::status_label = {
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv
  * @param command_name
  * @param cmd_line
@@ -133,7 +131,6 @@ const std::array<std::string_view, 4> check::status_label = {
 check::check(const std::shared_ptr<asio::io_context>& io_context,
              const std::shared_ptr<spdlog::logger>& logger,
              time_point first_start_expected,
-             duration check_interval,
              const Service& serv,
              const engine_to_agent_request_ptr& cnf,
              completion_handler&& handler,

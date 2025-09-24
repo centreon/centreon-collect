@@ -90,7 +90,6 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
-              std::chrono::seconds(1),
               serv,
               nullptr,
               handler,

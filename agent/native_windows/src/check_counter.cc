@@ -53,7 +53,6 @@ std::wstring string_to_wide_string(const std::string& string) {
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
  * @param args
  * @param cnf
@@ -63,7 +62,6 @@ check_counter::check_counter(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
     const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
@@ -72,7 +70,6 @@ check_counter::check_counter(
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
             cnf,
             std::move(handler),

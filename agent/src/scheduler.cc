@@ -293,12 +293,8 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
                             next, serv.service_description());
       }
       try {
-        std::chrono::seconds check_interval(serv.check_interval());
-        if (!check_interval.count()) {
-          check_interval = std::chrono::seconds(60);
-        }
         auto check_to_schedule = _check_builder(
-            _io_context, _logger, next, check_interval, serv, conf,
+            _io_context, _logger, next, serv, conf,
             [me = shared_from_this()](
                 const std::shared_ptr<check>& check, unsigned status,
                 const std::list<com::centreon::common::perfdata>& perfdata,
@@ -739,7 +735,6 @@ std::shared_ptr<check> scheduler::default_check_builder(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
     const Service& service,
     const engine_to_agent_request_ptr& conf,
     check::completion_handler&& handler,
@@ -757,7 +752,7 @@ std::shared_ptr<check> scheduler::default_check_builder(
                           "Fail to decrypt command line for service {} : {}",
                           service.service_description(), e.what());
       return check_dummy::load(
-          io_context, logger, first_start_expected, check_interval, service,
+          io_context, logger, first_start_expected, service,
           fmt::format("Unable to decrypt command line {}", e.what()), conf,
           std::move(handler), stat);
     }
@@ -781,50 +776,50 @@ std::shared_ptr<check> scheduler::default_check_builder(
       }
 
       if (check_type == "cpu_percentage"sv) {
-        return std::make_shared<check_cpu>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+        return std::make_shared<check_cpu>(io_context, logger,
+                                           first_start_expected, service, *args,
+                                           conf, std::move(handler), stat);
       } else if (check_type == "health"sv) {
         return std::make_shared<check_health>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
         return std::make_shared<check_uptime>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "storage"sv) {
         return std::make_shared<check_drive_size>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "memory"sv) {
         return std::make_shared<check_memory>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "service"sv) {
         return std::make_shared<check_service>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "counter"sv) {
         return std::make_shared<check_counter>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "tasksched"sv) {
         return std::make_shared<check_sched>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "files"sv) {
         return std::make_shared<check_files>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
         return check_event_log::load(io_context, logger, first_start_expected,
-                                     check_interval, service, *args, conf,
-                                     std::move(handler), stat);
+                                     service, *args, conf, std::move(handler),
+                                     stat);
       } else if (check_type == "process_nscp"sv) {
         return std::make_shared<check_process>(
-            io_context, logger, first_start_expected, check_interval, service,
-            *args, conf, std::move(handler), stat);
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
 #endif
       } else {
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
@@ -833,12 +828,12 @@ std::shared_ptr<check> scheduler::default_check_builder(
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
-                               check_interval, service, std::string(e.what()),
-                               conf, std::move(handler), stat);
+                               service, std::string(e.what()), conf,
+                               std::move(handler), stat);
     }
   } catch (const std::exception&) {
-    return check_exec::load(io_context, logger, first_start_expected,
-                            check_interval, service, command_line, conf,
-                            std::move(handler), stat, credentials_decrypt);
+    return check_exec::load(io_context, logger, first_start_expected, service,
+                            command_line, conf, std::move(handler), stat,
+                            credentials_decrypt);
   }
 }

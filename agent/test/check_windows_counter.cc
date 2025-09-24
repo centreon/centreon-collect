@@ -52,7 +52,7 @@ TEST_F(counter_check_windows_test, constructor) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -71,8 +71,7 @@ TEST_F(counter_check_windows_test, constructor) {
     "use_english": true
 })"_json;
   check_counter checker1(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args1,
-      nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args1, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -91,8 +90,7 @@ TEST_F(counter_check_windows_test, constructor) {
         "use_english": true
         })"_json;
   check_counter checker2(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args2,
-      nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args2, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -120,7 +118,7 @@ TEST_F(counter_check_windows_test, single_return) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -160,7 +158,7 @@ TEST_F(counter_check_windows_test, multiple_return) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -200,7 +198,7 @@ TEST_F(counter_check_windows_test, need_two_samples) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -247,7 +245,7 @@ TEST_F(counter_check_windows_test, complex_rules) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -286,7 +284,7 @@ TEST_F(counter_check_windows_test, complex_rules_2) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -325,7 +323,7 @@ TEST_F(counter_check_windows_test, complex_rules_3) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -363,7 +361,7 @@ TEST_F(counter_check_windows_test, complex_rules_4) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -407,7 +405,7 @@ TEST_F(counter_check_windows_test, complex_rules_5) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -446,7 +444,7 @@ TEST_F(counter_check_windows_test, complex_rules_6) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -486,7 +484,7 @@ TEST_F(counter_check_windows_test, complex_rules_7) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -523,7 +521,7 @@ TEST_F(counter_check_windows_test, complex_rules_8) {
     })"_json;
 
   check_counter checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
