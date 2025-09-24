@@ -109,6 +109,11 @@ jobs:
     name: package ${{ inputs.distrib }} ${{ inputs.arch }}
 
     steps:
+      - name: use gcc 9.5 librairies
+        if: ${{ inputs.distrib }} == 'centos7'
+        run: |
+          export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 

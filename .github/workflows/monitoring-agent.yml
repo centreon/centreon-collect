@@ -100,7 +100,7 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.stability == 'turlututu' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -237,11 +237,51 @@ jobs:
             build_windows\agent\Release\centagent.exe
             build_windows\agent\Release\centagent.pdb
 
-  unit-test-linux:
+
+  unit-test-linux-new:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: alma8
+            image: packaging-centreon-collect-vcpkg
+          # - distrib: alma9
+          #   image: packaging-centreon-collect-vcpkg
+          # - distrib: bullseye
+          #   image: packaging-centreon-collect-vcpkg
+          # - distrib: bookworm
+          #   image: packaging-centreon-collect-vcpkg
+          # - distrib: jammy
+          #   image: packaging-centreon-collect-vcpkg
+          - distrib: noble
+            image: packaging-centreon-collect-vcpkg
+          - distrib: centos7
+            image: packaging-cma-vcpkg
+
+
+    runs-on: centreon-collect
+    name: unit test -new ${{ matrix.distrib }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - name: Login to Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      - name: docker pull
+        run: /usr/bin/docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+
+  unit-test-linux:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'turlututu'
     strategy:
       fail-fast: false
       matrix:
@@ -350,7 +390,7 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
+      needs.get-environment.outputs.stability == 'turlututu' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
