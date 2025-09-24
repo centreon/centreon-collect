@@ -56,8 +56,16 @@ on:
         type: string
       only_robot_cma:
         required: false
+        description: if true, we not compile all collect, but only components used by cma robot test (agent, engine broker and some broker modules )
         type: boolean
         default: false
+      compile_only_agent:
+        required: false
+        description: if true, we compile only agent and a small part of common needed by a agent
+        type: boolean
+        default: false
+
+
     secrets:
       collect_s3_access_key:
         required: true
@@ -90,6 +98,7 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
       ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
+      COMPILE_ONLY_AGENT: ${{ inputs.compile_only_agent && 'ON' || 'OFF' }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
@@ -184,6 +193,7 @@ jobs:
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DLEGACY_ENGINE=${{ inputs.legacy_engine }} \
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
+                  -DCOMPILE_ONLY_AGENT=$COMPILE_ONLY_AGENT
                   -S .
 
           ninja -Cbuild
@@ -225,23 +235,10 @@ jobs:
       - name: Generate Mandatory CMA debug files
         if: ${{ inputs.only_robot_cma }}
         run: |
-          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
-            echo "Making a debug file of $file"
-            objcopy --merge-notes --only-keep-debug $file $file.debug
-            objcopy --strip-debug $file
-            objcopy --add-gnu-debuglink $file.debug $file
-          done
-          exe=("build/broker/cbd"
-               "build/engine/centengine"
-               "build/engine/centenginestats"
-               "build/ccc/ccc"
-               "build/agent/centagent")
-          for file in "${exe[@]}"; do
-            echo "Making a debug file of $file"
-            objcopy --merge-notes --only-keep-debug $file $file.debug
-            objcopy --strip-debug $file
-            objcopy --add-gnu-debuglink $file.debug $file
-          done
+          echo "Making a debug file of build/agent/centagent"
+          objcopy --merge-notes --only-keep-debug build/agent/centagent build/agent/centagent.debug
+          objcopy --strip-debug build/agent/centagent
+          objcopy --add-gnu-debuglink build/agent/centagent.debug build/agent/centagent
         shell: bash
 
       - if: ${{ inputs.build_debug_packages == false }}
