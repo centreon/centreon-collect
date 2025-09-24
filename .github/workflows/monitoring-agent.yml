@@ -248,25 +248,18 @@ jobs:
         include:
           - distrib: alma8
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: alma9
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: bullseye
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: bookworm
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: jammy
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: noble
             image: packaging-centreon-collect-vcpkg
-            checksum: ${{ needs.get-environment.outputs.packaging_img_version }}
           - distrib: centos7
-            image: cma-vcpkg
-            checksum: ${{ needs.get-environment.outputs.cma_packaging_img_version }}
+            image: packaging-cma-vcpkg
 
 
     runs-on: centreon-collect
@@ -278,7 +271,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ matrix.checksum }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -419,7 +412,7 @@ jobs:
             runner: centreon-collect
             arch: amd64
             compile_only_agent: false
-          - image: cma-vcpkg-centos7
+          - image: packaging-cma-vcpkg-centos7
             distrib: centos7
             package_extension: rpm
             runner: centreon-collect

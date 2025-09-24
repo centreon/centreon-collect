@@ -193,7 +193,7 @@ jobs:
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DLEGACY_ENGINE=${{ inputs.legacy_engine }} \
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
-                  -DCOMPILE_ONLY_AGENT=$COMPILE_ONLY_AGENT
+                  -DCOMPILE_ONLY_AGENT=$COMPILE_ONLY_AGENT \
                   -S .
 
           ninja -Cbuild

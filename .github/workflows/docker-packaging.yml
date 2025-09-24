@@ -167,14 +167,14 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/cma-tooling-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_tool_img_version }}
 
-      - name: build vcpkg image cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_packaging_img_version }}
+      - name: build vcpkg image packaging-cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
         with:
-          file: .github/docker/Dockerfile.cma-vcpkg-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.packaging-cma-${{ matrix.distrib }}
           context: .
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
@@ -182,7 +182,7 @@ jobs:
           platforms: 'linux/amd64'
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.cma_packaging_img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-cma-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
 
   set-skip-label:
     needs: [get-environment, dockerize]

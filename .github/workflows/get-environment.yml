@@ -63,9 +63,6 @@ on:
       cma_tool_img_version:
         description: "cma tooling (gcc, git..) docker image version (checksum of Dockerfile.cma-tooling*)"
         value: ${{ jobs.get-environment.outputs.cma_tool_img_version }}
-      cma_packaging_img_version:
-        description: "docker image version for cma only packaging for old OSs (vcpkg-agent checksum)"
-        value: ${{ jobs.get-environment.outputs.cma_packaging_img_version }}
       skip_workflow:
         description: "if the current workflow should be skipped"
         value: ${{ jobs.get-environment.outputs.skip_workflow }}
@@ -95,7 +92,6 @@ jobs:
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
       test_img_version: ${{ steps.get_docker_images_version.outputs.test_img_version }}
       cma_tool_img_version: ${{ steps.get_docker_images_version.outputs.cma_tool_img_version }}
-      cma_packaging_img_version: ${{ steps.get_docker_images_version.outputs.cma_packaging_img_version }}
       skip_workflow: ${{ steps.skip_workflow.outputs.result }}
       labels: ${{ steps.has_skip_label.outputs.labels }}
 
@@ -131,13 +127,13 @@ jobs:
             return hasSkipLabel;
 
       - name: Checkout sources (current branch)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: ${{ steps.has_skip_label.outputs.result == 'true' && 100 || 1 }}
 
       # get latest major version to detect cloud / on-prem versions
       - name: Checkout sources (develop branch)
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           ref: develop
           path: centreon-develop
@@ -651,8 +647,6 @@ jobs:
           CMA_TOOL_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.cma-tooling*` | md5sum | awk '{print substr($1, 0, 8)}')
           echo "cma_tool_img_version=$CMA_TOOL_IMG_VERSION" >> $GITHUB_OUTPUT
 
-          CMA_PACKAGING_IMG_VERSION=$(cat `ls .github/docker/Dockerfile.cma-*` vcpkg-agent.json | md5sum | awk '{print substr($1, 0, 8)}')
-          echo "cma_packaging_img_version=$CMA_PACKAGING_IMG_VERSION" >> $GITHUB_OUTPUT
       - name: Display info in job summary
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
@@ -676,7 +670,6 @@ jobs:
               ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
               ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
               ['cma_tool_img_version', '${{ steps.get_docker_images_version.outputs.cma_tool_img_version }}'],
-              ['cma_packaging_img_version', '${{ steps.get_docker_images_version.outputs.cma_packaging_img_version }}'],
               ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],
               ['labels', '${{ steps.has_skip_label.outputs.labels }}'],
             ];
