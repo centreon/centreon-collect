@@ -12,18 +12,22 @@ RUN bash -e <<EOF
 sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*.repo
 sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*.repo
 
-echo "Install some packages"
+echo
+echo "----------------------------------------- Install some packages -----------------------------------------"
+echo
 
 yum clean all
 yum makecache 
 yum -y upgrade 
 yum -y update 
-yum -y install make wget epel-release ninja-build
+yum -y install make wget epel-release ninja-build selinux-policy-devel
 yum groupinstall -y "Development Tools"
 yum install -y zlib-devel perl-IPC-Cmd-0.80-4.el7
 
 #compile and install gcc 9.5
-echo "Compile and install gcc 9.5 with " $(lscpu -p | grep -v '#' | wc -l) "cpu"
+echo
+echo "----------------------------------------- Compile and install gcc 9.5 with " $(lscpu -p | grep -v '#' | wc -l) "cpu -----------------------------------------"
+echo
 
 cd /root
 wget https://ftp.gnu.org/gnu/gcc/gcc-9.5.0/gcc-9.5.0.tar.xz 
@@ -34,12 +38,14 @@ cd gcc-9.5.0
 ../configure --disable-multilib --enable-languages=c,c++
 make -j $(lscpu -p | grep -v '#' | wc -l) 
 make install
+cd /root
 /bin/rm -rf gcc-9.5.0 gcc-9.5.0.tar.xz
 
 #compile and install cmake
-echo "Install cmake"
+echo
+echo "----------------------------------------- Install cmake -----------------------------------------"
+echo
 
-cd /root
 wget https://cmake.org/files/v3.30/cmake-3.30.9-linux-x86_64.sh
 bash cmake-3.30.9-linux-x86_64.sh --skip-license
 rm -f cmake-3.30.9-linux-x86_64.sh
@@ -49,7 +55,9 @@ rm -rf cmake-3.30.9-linux-x86_64.sh bin doc share
 
 
 #install ninja
-echo "install ninja"
+echo
+echo "----------------------------------------- Install ninja -----------------------------------------"
+echo
 wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
 unzip ninja-linux.zip
 mv ninja /usr/local/bin
@@ -57,7 +65,9 @@ rm ninja-linux.zip
 
 
 #compile and install git 2.38.5
-echo "Install git 2.38.5"
+echo
+echo "----------------------------------------- Install git 2.38.5 -----------------------------------------"
+echo
 
 wget https://mirrors.edge.kernel.org/pub/software/scm/git/git-2.38.5.tar.gz
 tar -xzf git-2.38.5.tar.gz
@@ -65,12 +75,14 @@ cd git-2.38.5
 make configure
 ./configure --prefix=/usr
 make -j $(lscpu -p | grep -v '#' | wc -l) && make install
+cd /root
 rm -rf git-2.34.1 git-2.34.1.tar.gz
 
 #compile pkg-config from pkgconf (bug on original)
-echo "Compile and install pkg-config from pkgconf"
+echo
+echo "----------------------------------------- Compile and install pkg-config from pkgconf -----------------------------------------"
+echo
 
-cd /root
 git clone --depth 1 -b pkgconf-1.4.0 https://github.com/pkgconf/pkgconf.git
 cd pkgconf
 ./autogen.sh
@@ -81,7 +93,9 @@ ln -s /usr/bin/pkgconf /usr/bin/pkg-config
 rm -rf pkgconf
 
 #nfpm
-echo "Install nfpm"
+echo
+echo "----------------------------------------- Install nfpm -----------------------------------------"
+echo
 
 cd /root
 wget https://github.com/goreleaser/nfpm/releases/download/v2.41.1/nfpm-2.41.1-1.x86_64.rpm

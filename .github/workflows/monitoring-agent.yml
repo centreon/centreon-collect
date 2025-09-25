@@ -238,50 +238,11 @@ jobs:
             build_windows\agent\Release\centagent.pdb
 
 
-  unit-test-linux-new:
-    needs: [get-environment]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: alma8
-            image: packaging-centreon-collect-vcpkg
-          # - distrib: alma9
-          #   image: packaging-centreon-collect-vcpkg
-          # - distrib: bullseye
-          #   image: packaging-centreon-collect-vcpkg
-          # - distrib: bookworm
-          #   image: packaging-centreon-collect-vcpkg
-          # - distrib: jammy
-          #   image: packaging-centreon-collect-vcpkg
-          - distrib: noble
-            image: packaging-centreon-collect-vcpkg
-          - distrib: centos7
-            image: packaging-cma-vcpkg
-
-
-    runs-on: centreon-collect
-    name: unit test -new ${{ matrix.distrib }}
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - name: Login to Registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      - name: docker pull
-        run: /usr/bin/docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
-
   unit-test-linux:
     needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability == 'turlututu'
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
@@ -303,81 +264,28 @@ jobs:
 
 
     runs-on: centreon-collect
-    env:
-      SCCACHE_PATH: "/usr/bin/sccache"
-      SCCACHE_BUCKET: "centreon-github-sccache"
-      SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
-
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
-      credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-
     name: unit test ${{ matrix.distrib }}
-
     steps:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Install sccache
+      - name: Login to Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      - name: load image ${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+        run: /usr/bin/docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      - name: Compile and execute unit tests
         run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
-
-          ${SCCACHE_PATH} --start-server
-        shell: bash
-
-      - name: Compile centreon-collect
-        run: |
-          CMAKE="cmake"
-          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
-
-          export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
-
-          mv /root/.cache /github/home/
-
-          CXXFLAGS="-Wall -Wextra" $CMAKE \
-                  -B build \
-                  -DVCPKG_OVERLAY_TRIPLETS=/custom-triplets \
-                  -DVCPKG_TARGET_TRIPLET=x64-linux-release \
-                  -DVCPKG_OVERLAY_PORTS=/overlays \
-                  -GNinja \
-                  -DCMAKE_BUILD_TYPE=Debug \
-                  -DWITH_PREFIX=/usr \
-                  -DWITH_TESTING=On \
-                  -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ \
-                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=Off \
-                  -DCOMPILE_ONLY_AGENT=ON \
-                  -S .
-
-          ninja -Cbuild
-          ninja -Cbuild install
-        shell: bash
-
-      - name: Cache statistics
-        run: ${SCCACHE_PATH} --show-stats
-        shell: bash
-
-      - name: Stop sccache server
-        run: ${SCCACHE_PATH} --stop-server
-        shell: bash
-
-      - name: Run agent common unit tests
-        run: |
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
-        working-directory: build
-        shell: bash
-
+          /usr/bin/docker run --rm \
+          -v .:/src \
+          -e SCCACHE_BUCKET="centreon-github-sccache" \
+          -e SCCACHE_REGION="eu-west-1" \
+          -e AWS_ACCESS_KEY_ID="${{ secrets.COLLECT_S3_ACCESS_KEY }}" \
+          -e AWS_SECRET_ACCESS_KEY="${{ secrets.COLLECT_S3_SECRET_KEY }}" \
+           ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }} \
+           bash /src/.github/scripts/compile-execute-cma-ut.sh
       - name: Upload test results
         if: ${{ failure() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -386,6 +294,8 @@ jobs:
           path: "build/ut_*.xml"
           retention-days: 1
 
+
+ 
   package-linux:
     needs: [get-environment, check-version-consistency]
     if: |
