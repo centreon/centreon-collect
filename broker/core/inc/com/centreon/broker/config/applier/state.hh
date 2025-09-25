@@ -22,6 +22,7 @@
 #include <absl/container/btree_map.h>
 #include <boost/asio/steady_timer.hpp>
 #include "absl/synchronization/mutex.h"
+#include "broker/core/cache/broker_cache.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/file/directory_watcher.hh"
@@ -100,6 +101,9 @@ class state {
    * _cache_config_dir and are copied once Broker has written them in the
    * storage database. */
   std::filesystem::path _pollers_config_dir;
+
+  /* This is the Broker's global cache. */
+  com::centreon::broker::cache::broker_cache_v2 _global_cache;
 
   modules _modules;
 

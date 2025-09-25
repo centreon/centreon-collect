@@ -305,6 +305,7 @@ endif()
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
+add_subdirectory(core/cache)
 
 add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.grpc.pb.cc
