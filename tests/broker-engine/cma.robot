@@ -225,8 +225,8 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
         # if last check did not increase retry the check output until max 10 times
             Log To Console    last_check did not increase, retrying the Service Output
             ${tries}    Evaluate    ${tries} + 1
-            IF    ${tries} >= 10
-                Log To Console    Reached maximum 10 retries, breaking.
+            IF    ${tries} >= 30
+                Log To Console    Reached maximum 30 retries, breaking.
                 Exit For Loop
             END
         END
