@@ -174,7 +174,7 @@ TEST_F(check_test, no_timeout) {
   ASSERT_EQ(output, "output dummy_check of my_command_line");
 }
 
-// non ok soft  ->  ok soft
+// non ok soft  ->  ok soft -> ok hard
 TEST_F(check_test, nagios_confirmation_and_retry_soft_recovery) {
   // prepare a dummy checker
   std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
@@ -222,6 +222,36 @@ TEST_F(check_test, nagios_confirmation_and_retry_hard_recovery) {
   // hard recovery: should be confirmed and last_status updated to OK
   EXPECT_TRUE(checker->get_status_confirmed());
   EXPECT_EQ(checker->get_last_status(), 0);
+}
+
+// 1st check ok hard
+TEST_F(check_test, first_check_ok_hard) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  checker->calcul_status_confirmation(0);  // now OK
+
+  // hard
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+}
+
+// 1st check Nok soft
+TEST_F(check_test, first_check_nok_hard) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  checker->calcul_status_confirmation(2);  // NOK
+
+  // hard
+  EXPECT_FALSE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
 }
 
 // max attemps 3 : init ok hard -> non ok soft -> non ok soft -> non ok hard ->

@@ -137,7 +137,7 @@ class time_step {
 
   void set_next_exact(time_point tp) {
     _start_point = tp;
-    _step_index = 1;  // next call to value will return tp + step
+    _step_index = 0;  // next call to value will return tp + step
   }
 };
 
@@ -225,19 +225,18 @@ class check : public std::enable_shared_from_this<check> {
       if (get_status_confirmed()) {
         // soft -> hard: jump out of retry cadence; wait at least one full
         // normal step
-        _start_expected_normal.set_next_exact(min_tp);
+        _start_expected_normal.set_next_exact(_start_expected_retry.value());
       } else {
         // hard -> soft: jump out of normal cadence; wait at least one full
         // retry step
-        _start_expected_retry.set_next_exact(min_tp);
+        _start_expected_retry.set_next_exact(_start_expected_normal.value());
       }
+    }
+    // no state change: keep current cadence, but never schedule before now
+    if (get_status_confirmed()) {
+      _start_expected_normal.increment_to_after_min(min_tp);
     } else {
-      // no state change: keep current cadence, but never schedule before now
-      if (get_status_confirmed()) {
-        _start_expected_normal.increment_to_after_min(min_tp);
-      } else {
-        _start_expected_retry.increment_to_after_min(min_tp);
-      }
+      _start_expected_retry.increment_to_after_min(min_tp);
     }
 
     last_confirmed = get_status_confirmed();

@@ -327,9 +327,13 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
+
+  // first start check in waiting queue
   _start_waiting_check();
-  // send the timer
+  // start send timer and check timer
+  // safe because the expire_at cancel the previous timer
   _start_check_timer();
+  _start_send_timer();
 }
 
 /**
@@ -431,6 +435,12 @@ void scheduler::_check_handler(
       // slot yet reserved => try next
       ++steps;
     }
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "next check expected at {} for {}, slot time "
+                        "{} [index : {}] , check insert at index {}",
+                        check->get_start_expected(), check->get_service(),
+                        slot_search.value(), slot_search.get_step_index(),
+                        steps);
   }
 }
 

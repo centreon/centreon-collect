@@ -201,16 +201,19 @@ static bool tempo_check_assert_pred(const time_point& after,
 static bool tempo_check_assert_pred3(const time_point& after,
                                      const time_point& before,
                                      const unsigned min_second_check_interval) {
-  std::chrono::milliseconds expected_interval(min_second_check_interval * 1000 /
-                                              20);
-  if ((after - before) <= expected_interval - std::chrono::milliseconds(250)) {
-    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
-                 before, min_second_check_interval);
-    return false;
-  }
-  if ((after - before) >= expected_interval + std::chrono::milliseconds(250)) {
-    SPDLOG_ERROR("after={}, before={} min_second_check_interval={}", after,
-                 before, min_second_check_interval);
+  const std::chrono::milliseconds delta =
+      std::chrono::duration_cast<std::chrono::milliseconds>(after - before);
+
+  const std::chrono::milliseconds expected(
+      std::chrono::milliseconds(min_second_check_interval * 1000 / 20));
+  const std::chrono::milliseconds tol(250);
+
+  if (delta < expected - tol || delta > expected + tol) {
+    SPDLOG_ERROR(
+        "delta={}ms expected={}ms±{}ms (min_second_check_interval={}) "
+        "after={}, before={}",
+        delta.count(), expected.count(), tol.count(), min_second_check_interval,
+        after, before);
     return false;
   }
   return true;
@@ -328,9 +331,9 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
     serv->set_command_line("/usr/bin/ls");
     serv->set_check_interval(5 + (rand() % 5));
     serv->set_max_attempts(1);
-    serv->set_retry_interval(1);
+    serv->set_retry_interval(1 + (rand() % 5));
     if (serv->check_interval() < min_interval) {
-      min_interval = serv->check_interval();
+      min_interval = std::min(serv->check_interval(), serv->retry_interval());
     }
   }
 
@@ -352,7 +355,9 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
 
   scheduler_closer closer(sched);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(6100));
+  // the time that we wait is less than the min interval to be sure that
+  // we are in the first round of checks
+  std::this_thread::sleep_for(std::chrono::milliseconds(4000));
 
   {
     std::lock_guard l(tempo_check::check_starts_m);
@@ -364,7 +369,11 @@ TEST_F(scheduler_test, correct_schedule_diff_intervals) {
         first = false;
       } else {
         ASSERT_NE(previous.first, check_time.first);
-        // check if we have a delay of 250ms between two checks
+        // check if we have a delay of 450ms between two checks
+        SPDLOG_INFO(
+            "Checking tempo_check delay for serv{}: after={}, before={}",
+            check_time.first->get_service(), check_time.second,
+            previous.second);
         ASSERT_PRED3(tempo_check_assert_pred3, check_time.second,
                      previous.second, min_interval);
       }

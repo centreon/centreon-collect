@@ -34,7 +34,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
 
@@ -76,7 +76,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     #wait for new data from agent
     ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
@@ -100,7 +100,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
     Ctn Engine Config Add Value    0    credentials_encryption    1
     
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
@@ -149,7 +149,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
     #wait for new data from agent
     ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
@@ -169,8 +169,10 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
 
@@ -199,8 +201,47 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
     
+    ${i}    Set Variable    1
+    ${prev_last_check}    Set Variable    None
+    ${tries}    Set Variable    0
+    ${last_checks}    Create List
+
+    # Let's wait for service to be in SOFT state 3 times with different last_check timestamp 
+    WHILE    ${i} < 4
+        ${res}    ${content}    Ctn Check Service Output Resource Status With Timeout RT    host_1    service_1    60    ${start_int}    2    SOFT    Test check 456
+        Should Be True    ${res}    soft state not reached
+
+        # check that last_check increased if yes store it
+        IF    '${prev_last_check}' != 'None' and ${prev_last_check} < ${content}[last_check]
+            Append To List    ${last_checks}    ${content}[last_check]
+            ${prev_last_check}    Set Variable    ${content}[last_check]
+            ${i}    Evaluate    ${i} + 1
+        ELSE IF    '${prev_last_check}' == 'None'
+        # first iteration
+            Append To List    ${last_checks}    ${content}[last_check]
+            ${prev_last_check}    Set Variable    ${content}[last_check]
+            ${i}    Evaluate    ${i} + 1
+        ELSE
+        # if last check did not increase retry the check output until max 10 times
+            Log To Console    last_check did not increase, retrying the Service Output
+            ${tries}    Evaluate    ${tries} + 1
+            IF    ${tries} >= 10
+                Log To Console    Reached maximum 10 retries, breaking.
+                Exit For Loop
+            END
+        END
+
+        Log To Console    Soft #${i} last_check=${content}[last_check] prev_last_check=${prev_last_check} tries=${tries} the i : ${i}
+        Sleep    1s
+    END
+    Log To Console    last_checks=${last_checks}
+    # 1er soft , 2eme soft , 3eme soft ,4eme hard
+    ${len_last_checks}    Get Length    ${last_checks}
+    Should Be Equal As Integers    ${len_last_checks}    3    There should be exactly three distinct SOFT attempts
+
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    2  HARD  Test check 456
     Should Be True    ${result}    resources table not updated
+
 
     ${start}    Ctn Get Round Current Date
     #service_1 check ok
@@ -231,7 +272,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -295,8 +336,9 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive    0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
     Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
@@ -354,7 +396,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive    ${0}    host_1 
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -411,7 +453,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
     Ctn Set Hosts Passive    ${0}    host_1 
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -462,7 +504,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS
     Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
     Ctn Set Hosts Passive    ${0}    host_1 
     Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
     Ctn Engine Config Add Value    0    credentials_encryption    1
@@ -510,8 +552,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "cpu_percentage"}    OTEL connector
 
@@ -580,8 +623,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "storage", "args": { "free": true, "unit": "%"}}    OTEL connector
 
@@ -650,8 +694,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "uptime"}    OTEL connector
 
@@ -718,8 +763,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "memory"}    OTEL connector
 
@@ -787,8 +833,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    otel_check   {"check": "service"}    OTEL connector
 
@@ -854,9 +901,11 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Set Services Passive       0    service_[1-2]
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
-    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
@@ -923,12 +972,16 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    # we use 3 services with different intervals and we expect to find these intervals in data_bin
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    health_check
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
     Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    retry_interval    2
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    health_check
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    3
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    retry_interval    3
     Ctn Set Services Passive       0    service_[1-3]
 
 
@@ -980,8 +1033,9 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
 
     Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
@@ -1104,8 +1158,9 @@ BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
 
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   turlututu    OTEL connector
 
@@ -1186,7 +1241,7 @@ NON_TLS_CONNECTION_WARNING
     Ctn Wait For Otel Server To Be Ready    ${start}
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
     # check if the agent is in windows or not, to get the right log path
@@ -1246,7 +1301,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
     # check if the agent is in windows or not, to get the right log path
@@ -1254,7 +1309,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
     IF    '${cur_dir}' == 'None'
         # not windows 
             ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
             Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED // THIS IS NOT ALLOWED IN PRODUCTION.
     ELSE
         # in windows ,Ctn Start Agent doesn't create the agent
@@ -1447,12 +1502,12 @@ NON_TLS_CONNECTION_WARNING_FULL
     Sleep    1s
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
 
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     Sleep    3580s
     ${start}    Get Current Date
@@ -1516,11 +1571,11 @@ NON_TLS_CONNECTION_WARNING_FULL_REVERSED
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    22
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
     
     ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
     Sleep    3580s
     ${start}    Get Current Date
@@ -1621,8 +1676,9 @@ BEOTEL_CENTREON_AGENT_CHECK_PROCESS
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
@@ -1697,7 +1753,10 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Set Value    0    interval_length    10
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
     Ctn Set Services Passive       0    service_1
 
     Ctn Engine Config Add Command    ${0}    agent_process_check
@@ -1766,7 +1825,10 @@ BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Set Value    0    interval_length    10
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
     Ctn Set Services Passive       0    service_1
 
     Ctn Engine Config Add Command    ${0}    agent_tasksched_check
@@ -1835,7 +1897,10 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ...    0
     ...    OTEL connector
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Set Value    0    interval_length    10
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_ok
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    3
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    2
     Ctn Set Services Passive       0    service_1
 
     Ctn Engine Config Add Command    ${0}    agent_files_check_ok
@@ -2031,8 +2096,9 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     # create a host with otel_check_icmp command
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
-    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
@@ -2214,8 +2280,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
     Ctn Set Hosts Passive    ${0}    host_1 
-    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
-    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
     Ctn Engine Config Set Value    0    log_level_functions    warning
@@ -2292,6 +2359,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    cma_check_icmp    ${echo_command}    CMA connector
     Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
 
     Ctn Engine Config Add Command
     ...    ${0}
@@ -2300,6 +2370,8 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     ...    TEL connector
     Ctn Engine Config Replace Value In Hosts    ${0}    host_2    check_command    otel_check_icmp2
     Ctn Set Hosts Passive  ${0}  host_2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_2    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_2    retry_interval    1
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
     Ctn Engine Config Set Value    0    log_level_functions    warning
@@ -2381,8 +2453,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    cma_check_icmp    ${echo_command}    CMA connector
     Ctn Set Hosts Passive    ${0}    host_1
-    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
-    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
 
     Ctn Engine Config Add Command
     ...    ${0}
@@ -2643,7 +2716,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1 
     Ctn Engine Config Set Value    0    interval_length    2
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
@@ -2713,8 +2786,9 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
-    Ctn Engine Config Set Value    0    interval_length    10
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
 
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}  otel_check_icmp    ${echo_command}    OTEL connector
@@ -2765,6 +2839,8 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command not allowed by whitelist.
 
+    # Force delete directory and all its contents
+    Remove Directory    /etc/centreon-engine-whitelist    recursive=True
 
 BEOTEL_CENTREON_AGENT_FORCE_CHECK
     [Documentation]    Given an agent host with 20 services checked by centagent, we force check to 10nth service and then to the host and 
@@ -2821,7 +2897,7 @@ BEOTEL_CENTREON_AGENT_FORCE_CHECK
     Ctn Schedule Forced Service Check    host_1    service_10
 
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_10    30    ${start_int}    0  HARD  OK - 127.0.0.1
-    Should Be True    ${result}    resources table not updated
+    Should Be True    ${result}    Resources table was not updated for host_1/service_10 after forced service check
 
     ${start}    Get Current Date
     Ctn Schedule Forced Host Check    host_1
