@@ -196,6 +196,8 @@ overrides:
       - perl(lib)
       - perl(Safe)
       - perl(Tie::File) # required by MBI module
+    recommends:
+      - logrotate
   deb:
     depends:
       - libdatetime-perl
@@ -230,6 +232,8 @@ overrides:
       - librrds-perl
       - perl-base
       - perl-modules
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon gorgone daemon
