@@ -190,6 +190,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
+    Ctn Clear Db    resources
     Ctn Clear Retention
 
     ${start}    Ctn Get Round Current Date
