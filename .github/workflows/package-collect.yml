@@ -88,8 +88,9 @@ on:
       jira_api_token:
         required: true
 jobs:
-  package:
+  package-old:
     runs-on: ${{ inputs.runner }}
+    if: 1 == 0
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -109,11 +110,6 @@ jobs:
     name: package ${{ inputs.distrib }} ${{ inputs.arch }}
 
     steps:
-      - name: use gcc 9.5 librairies
-        if: ${{ inputs.distrib }} == 'centos7'
-        run: |
-          export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
-
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
@@ -298,3 +294,162 @@ jobs:
       - name: Cleaning not needed packages
         run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
         shell: bash
+
+  package:
+    runs-on: ${{ inputs.runner }}
+
+    env:
+      SCCACHE_PATH: "/usr/bin/sccache"
+      SCCACHE_BUCKET: "centreon-github-sccache"
+      SCCACHE_REGION: "eu-west-1"
+      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+      ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
+      COMPILE_ONLY_AGENT: ${{ inputs.compile_only_agent && 'ON' || 'OFF' }}
+      ARCH: ${{ inputs.arch }}
+
+    name: package ${{ inputs.distrib }} ${{ inputs.arch }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Login to Registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: load image ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
+        run: /usr/bin/docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }}
+
+      - name: Start container
+        run: |
+          /usr/bin/docker create --name package-cont \
+          -v .:/src \
+          -e SCCACHE_BUCKET="centreon-github-sccache" \
+          -e SCCACHE_REGION="eu-west-1" \
+          -e AWS_ACCESS_KEY_ID="${{ secrets.collect_s3_access_key }}" \
+          -e AWS_SECRET_ACCESS_KEY="${{ secrets.collect_s3_secret_key }}" \
+          -e ONLY_ROBOT_CMA="${{ inputs.only_robot_cma && 'ON' || 'OFF' }}" \
+          -e COMPILE_ONLY_AGENT="${{ inputs.compile_only_agent && 'ON' || 'OFF' }}" \
+          -e ARCH="${{ inputs.arch }}" \
+          ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image }}:${{ inputs.img_version }} \
+          bash -c "sleep infinity"
+          /usr/bin/docker container start package-cont
+
+      - name: Compile sources
+        run: docker exec package-cont bash /src/.github/scripts/compile-collect.sh
+
+      - name: Generate selinux binaries
+        if: ${{ inputs.package_extension == 'rpm' }}
+        run: |
+          if [[ "${{ inputs.only_robot_cma }}" == "true" ]]; then
+            MODULES=("centreon-monitoring-agent")
+          else
+            MODULES=("centreon-engine" "centreon-broker")
+          fi
+
+          cd selinux
+          for MODULE in "${MODULES[@]}"; do
+              cd $MODULE
+              sed -i "s/@VERSION@/24.10.1/g" $MODULE.te
+              /usr/bin/docker exec -w /src/selinux/$MODULE package-cont make -f /usr/share/selinux/devel/Makefile
+              cd -
+          done
+          cd ..
+        shell: bash
+
+      - name: Remove selinux packaging files on debian
+        if: ${{ inputs.package_extension == 'deb' }}
+        run: rm -f packaging/centreon-*/*-selinux.yaml
+        shell: bash
+
+
+      - name: Generate debug files
+        if: ${{ ! inputs.only_robot_cma }}
+        run: |
+          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
+            echo "Making a debug file of $file"
+            /usr/bin/docker exec -w /src package-cont bash .github/scripts/generate-debug-file.sh $file
+          done
+          exe=("build/broker/cbd"
+               "build/broker/watchdog/cbwd"
+               "build/engine/centengine"
+               "build/engine/centenginestats"
+               "build/connectors/perl/centreon_connector_perl"
+               "build/connectors/ssh/centreon_connector_ssh"
+               "build/ccc/ccc"
+               "build/agent/centagent")
+          for file in "${exe[@]}"; do
+            echo "Making a debug file of $file"
+            /usr/bin/docker exec -w /src package-cont bash .github/scripts/generate-debug-file.sh $file
+          done
+        shell: bash
+
+      - name: Generate Mandatory CMA debug files
+        if: ${{ inputs.only_robot_cma }}
+        run: |
+          echo "Making a debug file of build/agent/centagent"
+          /usr/bin/docker exec -w /src package-cont bash .github/scripts/generate-debug-file.sh build/agent/centagent
+        shell: bash
+
+      - if: ${{ inputs.build_debug_packages == false }}
+        run: rm -f packaging/centreon-{collect,monitoring-agent}/*debuginfo*.yaml
+        shell: bash
+
+      - name: Package centreon-monitoring-agent
+        if: false && ${{ inputs.only_robot_cma }}
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "packaging/centreon-monitoring-agent/*.yaml"
+          module_name: "centreon-monitoring-agent"
+          distrib: ${{ inputs.distrib }}
+          package_extension: ${{ inputs.package_extension }}
+          major_version: ${{ inputs.cma_major_version }}
+          minor_version: ${{ inputs.cma_minor_version }}
+          release: ${{ inputs.release }}
+          arch: ${{ inputs.arch }}
+          commit_hash: ${{ inputs.commit_hash }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-monitoring-agent-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
+          stability: ${{ inputs.stability }}
+          upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
+
+      - name: Delete packaging files not needed by cma
+        if: false && ${{ inputs.only_robot_cma }}
+        run: |
+          rm -f packaging/centreon-collect/centreon-{connector,*-selinux*,collect,broker-graphite.,broker-influxdb.,broker-victoria-metrics.,engine-bench.,broker*debuginfo,clib-debuginfo,engine*debuginfo}*
+        shell: bash
+
+      - name: Package centreon-collect
+        if: false
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
+          module_name: "centreon-collect"
+          distrib: ${{ inputs.distrib }}
+          package_extension: ${{ inputs.package_extension }}
+          major_version: ${{ inputs.major_version }}
+          minor_version: ${{ inputs.minor_version }}
+          release: ${{ inputs.release }}
+          arch: ${{ inputs.arch }}
+          commit_hash: ${{ inputs.commit_hash }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
+          rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
+          rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
+          stability: ${{ inputs.stability }}
+          upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
+
+      - name: Cleaning not needed packages
+        run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
+        shell: bash
+      
+      - name: stop container
+        run: |
+          /usr/bin/docker stop package-cont
+          /usr/bin/docker rm package-cont

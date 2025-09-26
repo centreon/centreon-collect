@@ -18,24 +18,16 @@
 # For more information : contact@centreon.com
 #
 
-set -e
+cd /src
 
-export UNIT_TEST=ON
-export COMPILE_ONLY_AGENT=ON
-export ONLY_ROBOT_CMA=ON
+file=$1
 
+echo "----------------------------------------- Generate $file.debug --------------------------------------"
 
-sh /src/.github/scripts/compile-collect.sh
-
-echo
-echo "---------------------------------------- Run agent common unit tests -----------------------------------"
-echo
-
-if [ -e /usr/local/bin/gcc ]; then
-  export LD_LIBRARY_PATH=/usr/local/lib64:$LD_LIBRARY_PATH
+objcopy --merge-notes --only-keep-debug $file $file.debug 2>/dev/null
+#--merge-notes option is not available on centos7
+if [ $? -ne 0 ]; then
+    objcopy --only-keep-debug $file $file.debug
 fi
-
-
-cd /src/build
-tests/ut_common --gtest_output=xml:ut_common.xml
-tests/ut_agent --gtest_output=xml:ut_agent.xml
+objcopy --strip-debug $file
+objcopy --add-gnu-debuglink $file.debug $file

@@ -100,7 +100,6 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability == 'turlututu' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -284,6 +283,7 @@ jobs:
           -e SCCACHE_REGION="eu-west-1" \
           -e AWS_ACCESS_KEY_ID="${{ secrets.COLLECT_S3_ACCESS_KEY }}" \
           -e AWS_SECRET_ACCESS_KEY="${{ secrets.COLLECT_S3_SECRET_KEY }}" \
+          -e ARCH="amd64" \
            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }} \
            bash /src/.github/scripts/compile-execute-cma-ut.sh
       - name: Upload test results
@@ -300,7 +300,6 @@ jobs:
     needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability == 'turlututu' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')

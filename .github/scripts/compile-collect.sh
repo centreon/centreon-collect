@@ -19,12 +19,22 @@
 #
 
 set -e
+set -x
+
+
+env
 
 echo
 echo "---------------------------------------- Install sccache ------------------------------------------------"
 echo
 
 export SCCACHE_PATH="/usr/bin/sccache"
+
+#lighter vcpkg than collect one
+if [ "${COMPILE_ONLY_AGENT}" = "ON" ]; then
+    mv /src/vcpkg-agent.json /src/vcpkg.json
+fi
+
 
 if [ "${ARCH}" = "amd64" ]; then
     wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
@@ -35,6 +45,7 @@ elif [ "${ARCH}" = "arm64" ]; then
     tar xzf sccache-v0.9.1-aarch64-unknown-linux-musl.tar.gz
     mv sccache-v0.9.1-aarch64-unknown-linux-musl/sccache /usr/bin/
 fi
+
 ${SCCACHE_PATH} --start-server
 
 echo
