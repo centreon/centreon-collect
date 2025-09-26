@@ -52,6 +52,8 @@ overrides:
       - centreon-broker-devel
     provides:
       - centreon-broker-devel
+    recommends:
+      - logrotate
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
@@ -62,6 +64,8 @@ overrides:
       - centreon-broker-dev
     provides:
       - centreon-broker-dev
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon Broker's shared library.
