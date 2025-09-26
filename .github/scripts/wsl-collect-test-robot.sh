@@ -34,10 +34,12 @@ cd tests
 echo "####################### Run Centreon Collect Robot Tests #######################"
 
 robot -e unstable $test_file
-
+$result=$?
+echo "robot result: $result"
 echo "####################### End of Centreon Collect Robot Tests #######################"
 
-if [ -d failed ] ; then
+if [ $result -ne 0 ] ; then
+    mkdir -p failed
     echo "failure save logs in ${PWD}/../reports"
     cp -rp failed ../reports/windows-cma-failed
     cp log.html ../reports/windows-cma-log.html
