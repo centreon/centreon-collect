@@ -169,7 +169,7 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Set Value    0    interval_length    60
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
     Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
     Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
@@ -212,28 +212,13 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
         ${res}    ${content}    Ctn Check Service Output Resource Status With Timeout RT    host_1    service_1    60    ${start_int}    2    SOFT    Test check 456
         Should Be True    ${res}    soft state not reached
 
-        # check that last_check increased if yes store it
-        IF    '${prev_last_check}' != 'None' and ${prev_last_check} < ${content}[last_check]
-            Append To List    ${last_checks}    ${content}[last_check]
-            ${prev_last_check}    Set Variable    ${content}[last_check]
-            ${i}    Evaluate    ${i} + 1
-        ELSE IF    '${prev_last_check}' == 'None'
-        # first iteration
-            Append To List    ${last_checks}    ${content}[last_check]
-            ${prev_last_check}    Set Variable    ${content}[last_check]
-            ${i}    Evaluate    ${i} + 1
-        ELSE
-        # if last check did not increase retry the check output until max 10 times
-            Log To Console    last_check did not increase, retrying the Service Output
-            ${tries}    Evaluate    ${tries} + 1
-            IF    ${tries} >= 30
-                Log To Console    Reached maximum 30 retries, breaking.
-                Exit For Loop
-            END
-        END
-
-        Log To Console    Soft #${i} last_check=${content}[last_check] prev_last_check=${prev_last_check} tries=${tries} the i : ${i}
-        Sleep    1s
+        sleep    1s
+        ${start_int}    Ctn Get Round Current Date
+        Append To List    ${last_checks}    ${content}[last_check]
+        Log To Console    Soft #${i} last_check=${content}[last_check]
+        Ctn Schedule Forced Service Check    host_1    service_1
+        ${i}    Evaluate    ${i} + 1
+ 
     END
     Log To Console    last_checks=${last_checks}
     # 1er soft , 2eme soft , 3eme soft ,4eme hard
@@ -247,6 +232,8 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     ${start}    Ctn Get Round Current Date
     #service_1 check ok
     Ctn Set Command Status    456    ${0}
+    
+    Ctn Schedule Forced Service Check    host_1    service_1
 
     ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
     Should Be True    ${result}    resources table not updated
