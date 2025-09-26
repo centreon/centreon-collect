@@ -24,7 +24,7 @@ source /.venv/bin/activate
 # Install Robotframework
 apt-get install -y python3 python3-dev python3-pip
 
-/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-examples
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-examples robotframework-httpctrl robotframework-requests
 /.venv/bin/pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
 
 echo "##### Starting tests ##### with params: $JSON_TEST_PARAMS"
