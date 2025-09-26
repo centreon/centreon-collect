@@ -27,52 +27,7 @@ runs:
     - name: Parse distrib
       id: parse-distrib
       run: |
-        if [[ "${{ inputs.distrib }}" == "centos7" || "${{ inputs.distrib }}" == "el7" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="."
-          PACKAGE_VERSION_SEPARATOR="-"
-          PACKAGE_DISTRIB_NAME="el7"
-          PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
-        elif [[ "${{ inputs.distrib }}" == "alma8" || "${{ inputs.distrib }}" == "el8" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="."
-          PACKAGE_VERSION_SEPARATOR="-"
-          PACKAGE_DISTRIB_NAME="el8"
-          PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
-        elif [[ "${{ inputs.distrib }}" == "alma9" || "${{ inputs.distrib }}" == "el9" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="."
-          PACKAGE_VERSION_SEPARATOR="-"
-          PACKAGE_DISTRIB_NAME="el9"
-          PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
-        elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="+"
-          PACKAGE_VERSION_SEPARATOR="_"
-          PACKAGE_DISTRIB_NAME="deb11u1"
-          PACKAGE_EXTENSION="deb"
-          DISTRIB_FAMILY="debian"
-        elif [[ "${{ inputs.distrib }}" == "bookworm" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="+"
-          PACKAGE_VERSION_SEPARATOR="_"
-          PACKAGE_DISTRIB_NAME="deb12u1"
-          PACKAGE_EXTENSION="deb"
-          DISTRIB_FAMILY="debian"
-        elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="-"
-          PACKAGE_VERSION_SEPARATOR="_"
-          PACKAGE_DISTRIB_NAME="0ubuntu.22.04"
-          PACKAGE_EXTENSION="deb"
-          DISTRIB_FAMILY="ubuntu"
-        elif [[ "${{ inputs.distrib }}" == "noble" ]]; then
-          PACKAGE_DISTRIB_SEPARATOR="-"
-          PACKAGE_VERSION_SEPARATOR="_"
-          PACKAGE_DISTRIB_NAME="0ubuntu.24.04"
-          PACKAGE_EXTENSION="deb"
-          DISTRIB_FAMILY="ubuntu"
-        else
-          echo "::error::Distrib ${{ inputs.distrib }} cannot be parsed"
-          exit 1
-        fi
+        source .github/scripts/parse_distrib.sh ${{ inputs.distrib }}
         echo "package_distrib_separator=$PACKAGE_DISTRIB_SEPARATOR" >> $GITHUB_OUTPUT
         echo "package_version_separator=$PACKAGE_VERSION_SEPARATOR" >> $GITHUB_OUTPUT
         echo "package_distrib_name=$PACKAGE_DISTRIB_NAME" >> $GITHUB_OUTPUT
