@@ -160,6 +160,9 @@ overrides:
       - centreon-engine-devel
       - centreon-engine-bench
       - centreon-broker-cbmod
+    recommends:
+      - logrotate
+
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
@@ -184,6 +187,8 @@ overrides:
       - centreon-engine-dev
       - centreon-engine-bench
       - centreon-broker-cbmod
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.
