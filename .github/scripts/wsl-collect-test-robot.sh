@@ -1,5 +1,5 @@
 #!/bin/bash
-set -x
+set -e
 
 test_file=$1
 
@@ -35,13 +35,24 @@ echo "####################### Run Centreon Collect Robot Tests #################
 
 robot -e unstable $test_file
 $result=$?
-echo "robot result: $result"
 echo "####################### End of Centreon Collect Robot Tests #######################"
 
-if [ $result -ne 0 ] ; then
+if [ $result -ne 0 ]; then
+    echo "Robot tests failed with exit code: $result"
     mkdir -p failed
-    echo "failure save logs in ${PWD}/../reports"
-    cp -rp failed ../reports/windows-cma-failed
-    cp log.html ../reports/windows-cma-log.html
-    cp output.xml ../reports/windows-cma-output.xml
+    echo "Failure detected, saving logs in ${PWD}/../reports"
+    
+    # Create reports directory if it doesn't exist
+    mkdir -p ../reports
+    
+    # Copy logs if they exist
+    [ -d failed ] && cp -rp failed ../reports/windows-cma-failed
+    [ -f log.html ] && cp log.html ../reports/windows-cma-log.html
+    [ -f output.xml ] && cp output.xml ../reports/windows-cma-output.xml
+    [ -f report.html ] && cp report.html ../reports/windows-cma-report.html
+    
+    echo "Logs saved to ../reports/"
+    exit 1
+else
+    echo "All robot tests passed successfully"
 fi
