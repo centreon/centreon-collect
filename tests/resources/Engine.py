@@ -69,6 +69,7 @@ class EngineInstance:
         self.last_host_group_id = 0
         self.commands_count = 50
         self.instances = count
+        self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
         self.build_configs(hosts, srv_by_host, 0, sh_command)
@@ -191,6 +192,7 @@ class EngineInstance:
     def _create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
+        self.host_cmd[hid] = f"checkh{hid}"
         a = hid % 255
         q = hid // 255
         b = q % 255
@@ -1685,6 +1687,20 @@ def ctn_get_service_command_id(service: int):
     return engine.service_cmd[service][8:]
 
 
+def ctn_get_host_command(host: int):
+    """
+    Get the command of the host with the given ID.
+
+    Args:
+        host (int): ID of the host.
+
+    Returns:
+        The command name.
+    """
+    global engine
+    return engine.host_cmd[host]
+
+
 def ctn_change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
     """
     Update the normal check interval for a service.
@@ -2630,6 +2646,64 @@ def ctn_add_severity_to_services(poller: int, severity_id: int, svc_lst):
 
     with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
         ff.writelines(lines)
+
+
+def ctn_set_command_connector(poller: int, cmd: str, conn: str):
+    """
+    Set the connector for a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        conn (str): Connector name.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    for i, line in enumerate(lines):
+        m = r.match(line)
+        if m:
+            lines.insert(i + 1, f"    connector          {conn}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
+
+
+def ctn_set_check_command(poller: int, cmd: str, check_cmd: str):
+    """
+    Set the check command of a command.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        cmd (str): Command name.
+        check_cmd (str): the check command.
+    """
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "r") as f:
+        lines = f.readlines()
+    r = re.compile(rf"^\s*command_name\s*({cmd})\s*$")
+    r_cmd = re.compile(r"^\s*command_line")
+    r_end = re.compile(r"^\s*}\s*$")
+    in_cmd = False
+    for i, line in enumerate(lines):
+        if not in_cmd:
+            m = r.match(line)
+            if m:
+                in_cmd = True
+        else:
+            m = r_cmd.match(line)
+            if m:
+                lines[i] = f"    command_line                    {check_cmd}\n"
+                in_cmd = False
+                break
+            m = r_end.match(line)
+            if m:
+                lines.insert(
+                    i, f"    command_line                    {check_cmd}\n")
+                break
+
+    with open(f"{CONF_DIR}/config{poller}/commands.cfg", "w") as f:
+        f.writelines(lines)
 
 
 def ctn_set_services_passive(poller: int, srv_regex):
