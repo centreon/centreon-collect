@@ -49,7 +49,7 @@ sub getAllEntries {
 	my $sth = $db->query({ query => $query });
 	my @entries = ();
 	while (my $row = $sth->fetchrow_hashref()) {
-		push @entries, $row->{"hc_id"}.";".$row->{"hc_name"};
+		push @entries, [ $row->{"hc_id"}, $row->{"hc_name"} ];
 	}
 	$sth->finish();
 	return (\@entries);
@@ -73,10 +73,9 @@ sub getEntryIds {
 sub entryExists {
 	my $self = shift;
 	my ($value, $entries) = (shift, shift);
-	foreach(@$entries) {
-		if ($value eq $_) {
-			return 1;
-		}
+	foreach my $entry (@$entries) {
+		my $diff = grep { $entry->[$_] ne $value->[$_] } 0..$#$entry;
+		return 1 unless $diff;
 	}
 	return 0;
 }
@@ -94,9 +93,9 @@ sub insert {
 	my $counter = 0;
 	
 	my $existingEntries = $self->getAllEntries;
-	foreach (@$data) {
-		if (!$self->entryExists($_, $existingEntries)) {
-			my ($hc_id, $hc_name) = split(";", $_);
+	foreach my $entry (@$data) {
+		if (!$self->entryExists($entry, $existingEntries)) {
+			my ($hc_id, $hc_name) = @$entry;
 			$sth->bind_param(1, $hc_id);
 			$sth->bind_param(2, $hc_name);
 			$sth->execute;

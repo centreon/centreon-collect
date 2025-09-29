@@ -26,7 +26,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -90,11 +89,11 @@ void contactgroup::clear_members() {
   _members.clear();
 }
 
-contact_map_unsafe& contactgroup::get_members() {
+contact_map& contactgroup::get_members() {
   return _members;
 }
 
-contact_map_unsafe const& contactgroup::get_members() const {
+const contact_map& contactgroup::get_members() const {
   return _members;
 }
 
@@ -106,8 +105,8 @@ void contactgroup::set_alias(std::string const& alias) {
   _alias = alias;
 }
 
-std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
-  for (contactgroup_map_unsafe::const_iterator it{obj.begin()}, end{obj.end()};
+std::ostream& operator<<(std::ostream& os, const contactgroup_map& obj) {
+  for (contactgroup_map::const_iterator it = obj.begin(), end = obj.end();
        it != end; ++it) {
     os << it->first;
     if (std::next(it) != end)
@@ -121,7 +120,7 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
   int errors{0};
 
-  for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
+  for (contact_map::iterator it = _members.begin(), end = _members.end();
        it != end; ++it) {
     /* Check members */
     if (!it->second) {

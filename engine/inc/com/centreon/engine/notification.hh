@@ -51,7 +51,7 @@ class notification {
       uint32_t notification_interval,
       bool escalated = false,
       const std::set<std::string>& notified_contact = std::set<std::string>());
-  int execute(std::unordered_set<contact*> const& to_notify);
+  int execute(const std::unordered_set<std::shared_ptr<contact>>& to_notify);
   notifier::reason_type get_reason() const;
   uint32_t get_notification_interval() const;
   bool sent_to(const std::string& user) const;
