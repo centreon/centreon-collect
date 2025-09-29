@@ -1,4 +1,4 @@
-name: agent-analysis
+name: monitoring-agent-analysis
 run-name: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true')) && format('{0} nightly {1}', github.workflow, github.ref_name) || '' }}
 
 concurrency:
