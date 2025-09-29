@@ -72,10 +72,16 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  * It's full asynchronous, and relies on boost v2 process. On linux version, we
  * don't use boost process child process launcher but a spawnp home made one.
  *
- * It's a one shot class not reusable.
- * That's why we pass executable path, arguments and environment with shared
- * pointers in order to not compute, allocate these parameters each time we
- * start the same process.
+ * It manages stdout and stderr in two modes.
+ *   - For one shot process, we start process without stderr and stdout read
+ *     handlers and we get stdout and stderr at process ending.
+ *   - For continuous used process, we start process with stderr and stdout read
+ *     handlers. And these handlers will be called each time child process sends
+ *     data.
+ *
+ * It's a one shot class not reusable. That's why we can pass executable path,
+ * arguments and environment with shared pointers in order to not compute,
+ * and allocate these parameters each time we start the same process.
  *
  * It also manages a timeout. When child duration goes more than
  * timeout, we kill (-9) child process and we handle child process die the same
@@ -119,19 +125,20 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   using shared_env = std::shared_ptr<boost::process::v2::process_environment>;
 
  private:
-  process_args::pointer _args;
-  bool _use_setpgid;
-  bool _use_stdin;
-  shared_env _env;
-  std::deque<std::shared_ptr<std::string>> _stdin_write_queue;
+  const process_args::pointer _args;
+  const bool _use_setpgid;
+  const bool _use_stdin;
+  const shared_env _env;
+  std::deque<std::shared_ptr<std::string>> _stdin_write_queue
+      ABSL_GUARDED_BY(_protect);
   bool _write_pending = false;
-  std::shared_ptr<spdlog::logger> _logger;
+  const std::shared_ptr<spdlog::logger> _logger;
 
-  std::shared_ptr<asio::io_context> _io_context;
-  asio::system_timer _timeout_timer;
-  asio::readable_pipe _stdout_pipe;
-  asio::readable_pipe _stderr_pipe;
-  asio::writable_pipe _stdin_pipe;
+  const std::shared_ptr<asio::io_context> _io_context;
+  asio::system_timer _timeout_timer ABSL_GUARDED_BY(_protect);
+  asio::readable_pipe _stdout_pipe ABSL_GUARDED_BY(_protect);
+  asio::readable_pipe _stderr_pipe ABSL_GUARDED_BY(_protect);
+  asio::writable_pipe _stdin_pipe ABSL_GUARDED_BY(_protect);
   detail::boost_process* _proc = nullptr;
   /**
    * @brief workaround
@@ -146,15 +153,19 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   using handler_type = std::function<void(const process<use_mutex>& proc,
                                           int /*exit_code*/,
-                                          int, /*exit status*/
+                                          e_exit_status, /*exit status*/
                                           const std::string& /*stdout*/,
                                           const std::string& /*stderr*/
                                           )>;
 
+  using reader_type = std::function<void(const std::string_view&)>;
+
   handler_type _handler;
-  std::string _stdout;
-  std::string _stderr;
-  int _exit_status = e_exit_status::crash;
+  std::string _stdout ABSL_GUARDED_BY(_protect);
+  reader_type _stdout_handler;
+  std::string _stderr ABSL_GUARDED_BY(_protect);
+  reader_type _stderr_handler;
+  e_exit_status _exit_status = e_exit_status::crash;
   int _exit_code = -1;
 
   enum e_completion_flags : unsigned {
@@ -167,7 +178,12 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   std::atomic_uint _completion_flags = 0;
 
-  void _stdin_write_no_lock(const std::shared_ptr<std::string>& data);
+  void _start_process_nolock(handler_type&& handler,
+                             const std::chrono::system_clock::duration& timeout)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+
+  void _stdin_write_no_lock(const std::shared_ptr<std::string>& data)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void _stdin_write(const std::shared_ptr<std::string>& data);
 
   void _stdout_read();
@@ -220,12 +236,17 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   static process_args::pointer parse_cmd_line(const std::string_view& cmd_line);
 
-  int get_pid();
+  int get_pid() const;
 
   template <typename string_class>
   void write_to_stdin(const string_class& content);
 
   void start_process(handler_type&& handler,
+                     const std::chrono::system_clock::duration& timeout);
+
+  void start_process(handler_type&& handler,
+                     reader_type&& stdout_handler,
+                     reader_type&& stderr_handler,
                      const std::chrono::system_clock::duration& timeout);
 
   std::string get_stdout() const {
@@ -266,7 +287,8 @@ process<use_mutex>::process(
     bool use_stdin,
     const std::initializer_list<string_type>& args,
     const shared_env& env)
-    : _use_setpgid(use_setpgid),
+    : _args(std::make_shared<process_args>(exe_path, args)),
+      _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
       _logger(logger),
@@ -274,9 +296,7 @@ process<use_mutex>::process(
       _timeout_timer(*io_context),
       _stdout_pipe(*io_context),
       _stderr_pipe(*io_context),
-      _stdin_pipe(*io_context) {
-  _args = std::make_shared<process_args>(exe_path, args);
-}
+      _stdin_pipe(*io_context) {}
 
 /**
  * @brief write string to child process stdin
