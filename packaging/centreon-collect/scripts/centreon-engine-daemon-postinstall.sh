@@ -280,8 +280,7 @@ if [ "$1" = "configure" ] ; then
     /var/lib/centreon-engine \
     /var/log/centreon-engine
   chmod -R g+w \
-    /etc/centreon-engine
-  chmod -R 0755 \
+    /etc/centreon-engine \
     /var/log/centreon-engine
 fi
 
