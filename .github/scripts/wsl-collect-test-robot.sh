@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 test_file=$1
 
@@ -34,7 +33,7 @@ cd tests
 echo "####################### Run Centreon Collect Robot Tests #######################"
 
 robot -e unstable $test_file
-$result=$?
+result=$?
 echo "####################### End of Centreon Collect Robot Tests #######################"
 
 if [ $result -ne 0 ]; then
