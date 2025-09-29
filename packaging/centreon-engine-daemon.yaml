@@ -136,6 +136,9 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-devel
+    recommends:
+      - logrotate
+
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
@@ -150,6 +153,8 @@ overrides:
     provides:
       - centreon-engine-extcommands
       - centreon-engine-dev
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon Engine Daemon is the daemon to schedule checks.

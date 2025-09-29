@@ -55,6 +55,9 @@ overrides:
     provides:
       - centreon-broker-storage
       - centreon-broker-core-devel
+    recommends:
+      - logrotate
+
   deb:
     depends:
       - ${LUA_VERSION}
@@ -76,6 +79,8 @@ overrides:
       - centreon-broker-storage
       - centreon-broker-core-dev
       - centreon-broker-caching-sha2-password
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon Broker's shared library.
