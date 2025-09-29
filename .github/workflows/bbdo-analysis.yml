@@ -66,7 +66,7 @@ jobs:
     uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
       module_directory: bbdo
-      module_name: centreon-collect-bbdo-${{ needs.get-environment.outputs.linked_dev_branch }}
+      module_name: centreon-bbdo-${{ needs.get-environment.outputs.linked_dev_branch }}
       exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}
