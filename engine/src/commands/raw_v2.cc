@@ -326,8 +326,9 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
     // exit called by pool thread
     new_process->start_process(
         [me = weak_from_this(), command_id, start = time(nullptr)](
-            const common::process<true>& proc, int exit_code, int exit_status,
-            const std::string& std_out, const std::string& std_err) {
+            const common::process<true>& proc, int exit_code,
+            common::e_exit_status exit_status, const std::string& std_out,
+            const std::string& std_err) {
           std::shared_ptr<raw_v2> parent =
               std::static_pointer_cast<raw_v2>(me.lock());
           if (parent) {
@@ -371,7 +372,7 @@ void raw_v2::_on_complete(const common::process<true>& proc,
                           uint64_t command_id,
                           time_t start,
                           int exit_code,
-                          int exit_status,
+                          common::e_exit_status exit_status,
                           const std::string& std_out,
                           const std::string& std_err) {
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw_v2::_on_complete: {} id={}",
@@ -389,13 +390,13 @@ void raw_v2::_on_complete(const common::process<true>& proc,
   res.end_time = time(nullptr);
   res.exit_code = exit_code;
   res.output = !std_out.empty() ? std_out : std_err;
-  res.exit_status = static_cast<process::status>(exit_status);
+  res.exit_status = exit_status;
 
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.exit_code = service::state_unknown;
     res.output = "(Process Timeout)";
-  } else if ((res.exit_status == process::crash) || (res.exit_code < -1) ||
-             (res.exit_code > 3))
+  } else if ((res.exit_status == common::e_exit_status::crash) ||
+             (res.exit_code < -1) || (res.exit_code > 3))
     res.exit_code = service::state_unknown;
 
   SPDLOG_LOGGER_TRACE(_commands_logger, "raw::finished: name:{} id={}, {}",
@@ -454,14 +455,14 @@ void raw_v2::run(const std::string& processed_cmd,
     new_process->start_process(
         [me = shared_from_this(), command_id, start = time(nullptr), &waiter,
          &done, &res](const common::process<true>&, int exit_code,
-                      int exit_status, const std::string& std_out,
-                      const std::string& std_err) {
+                      common::e_exit_status exit_status,
+                      const std::string& std_out, const std::string& std_err) {
           absl::MutexLock lck(&waiter);
           res.command_id = command_id;
           res.start_time = start;
           res.end_time = time(nullptr);
           res.exit_code = exit_code;
-          res.exit_status = static_cast<process::status>(exit_status);
+          res.exit_status = exit_status;
           res.output = !std_out.empty() ? std_out : std_err;
           done = true;
         },
@@ -479,11 +480,11 @@ void raw_v2::run(const std::string& processed_cmd,
   absl::MutexLock lck(&waiter);
   waiter.Await(absl::Condition(&done));
 
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.exit_code = service::state_unknown;
     res.output = "(Process Timeout)";
-  } else if (res.exit_status == process::crash || res.exit_code < -1 ||
-             res.exit_code > 3)
+  } else if (res.exit_status == common::e_exit_status::crash ||
+             res.exit_code < -1 || res.exit_code > 3)
     res.exit_code = service::state_unknown;
 
   SPDLOG_LOGGER_TRACE(_commands_logger,
