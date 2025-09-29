@@ -32,7 +32,7 @@ contents:
   - dst: "/var/log/centreon-broker"
     type: dir
     file_info:
-      mode: 0755
+      mode: 0775
       owner: centreon-broker
       group: centreon-broker
 
