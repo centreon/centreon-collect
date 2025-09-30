@@ -1,5 +1,8 @@
 name: clib-analysis
+<<<<<<< HEAD
 run-name: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true')) && format('{0} nightly {1}', github.workflow, github.ref_name) || '' }}
+=======
+>>>>>>> 24.04.x
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -7,12 +10,15 @@ concurrency:
 
 on:
   workflow_dispatch:
+<<<<<<< HEAD
     inputs:
       nightly_manual_trigger:
         description: 'Set to true for nightly run'
         required: true
         default: false
         type: boolean
+=======
+>>>>>>> 24.04.x
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -33,6 +39,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
+<<<<<<< HEAD
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   dispatch-to-maintained-branches:
@@ -57,6 +64,8 @@ jobs:
         shell: bash
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+=======
+>>>>>>> 24.04.x
 
   code_scan:
     needs: [get-environment]
@@ -66,7 +75,11 @@ jobs:
     uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
       module_directory: clib
+<<<<<<< HEAD
       module_name: centreon-clib-dev-${{ needs.get-environment.outputs.major_version }}.x
+=======
+      module_name: centreon-collect-client-dev-${{ needs.get-environment.outputs.major_version }}.x
+>>>>>>> 24.04.x
       exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}

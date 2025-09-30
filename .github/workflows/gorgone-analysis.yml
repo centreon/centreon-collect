@@ -7,12 +7,15 @@ concurrency:
 
 on:
   workflow_dispatch:
+<<<<<<< HEAD
     inputs:
       nightly_manual_trigger:
         description: 'Set to true for nightly run'
         required: true
         default: false
         type: boolean
+=======
+>>>>>>> 24.04.x
   schedule:
     - cron: '30 0 * * 1-5'
   pull_request:
@@ -35,6 +38,7 @@ jobs:
       version_file: .version.centreon-gorgone
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
+<<<<<<< HEAD
   dispatch-to-maintained-branches:
     needs: [get-environment]
     if: |
@@ -58,6 +62,8 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+=======
+>>>>>>> 24.04.x
   code_scan:
     needs: [get-environment]
     if: |
