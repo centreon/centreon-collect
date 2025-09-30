@@ -497,20 +497,30 @@ sub getlog {
     my %filters = ();
     my ($filter, $filter_append) = ('', '');
     my @bind_values = ();
-    foreach ((['id', '>'], ['token', '='], ['ctime', '>'], ['etime', '>'], ['code', '='])) {
+    foreach ((['id', '>'], ['token', '='], ['code', '='])) {
         if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
             $filter .= $filter_append . $_->[0] . ' ' . $_->[1] . ' ?';
             $filter_append = ' AND ';
             push @bind_values, $data->{ $_->[0] };
         }
     }
-
+    # sqlite don't round correctly float. to be sure the same log is not sent over and over we round to 4 digits
+    # (input should contains 5 digit as it use time::hires)
+    foreach ((['ctime', '>'], ['etime', '>'])){
+        if (defined($data->{$_->[0]}) && $data->{$_->[0]} ne '') {
+            $filter .= $filter_append . "ROUND(" . $_->[0] . ', 4) ' . $_->[1] . ' ROUND( ?, 4)';
+            $filter_append = ' AND ';
+            push @bind_values, $data->{ $_->[0] };
+        }
+    }
     if ($filter eq '') {
         return (GORGONE_ACTION_FINISH_KO, { message => 'need at least one filter' });
     }
 
     my $query = "SELECT * FROM gorgone_history WHERE " . $filter;
-    $query .= " ORDER BY id DESC LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " ORDER BY id DESC ";
+    $query .= "LIMIT " . $data->{limit} if (defined($data->{limit}) && $data->{limit} ne '');
+    $query .= " OFFSET " . $data->{offset} if (defined($data->{offset}) && $data->{offset} ne '');
 
     my ($status, $sth) = $options{gorgone}->{db_gorgone}->query({ query => $query, bind_values => \@bind_values });
     if ($status == -1) {
