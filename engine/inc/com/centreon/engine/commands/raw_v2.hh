@@ -86,7 +86,7 @@ class raw_v2 : public command {
                     uint64_t command_id,
                     time_t start,
                     int exit_code,
-                    int exit_status,
+                    common::e_exit_status exit_status,
                     const std::string& std_out,
                     const std::string& std_err);
 

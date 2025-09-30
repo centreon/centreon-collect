@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/process_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
