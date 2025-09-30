@@ -67,7 +67,7 @@ $installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"', '/HOST=h
 $proc = Start-Process -FilePath $installer_exepath -ArgumentList $installer_args -PassThru
 $proc.WaitForExit()
 
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 5
 
 #encrypted version
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ${current_dir}/server_grpc.crt
@@ -80,7 +80,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name lo
 Write-Host "start manually agent (agent initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_centagent_stdout.log -RedirectStandardError reports\encrypted_centagent_stderr.log
 
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 5
 
 #Start reverse agent
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ""
@@ -93,7 +93,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name lo
 Write-Host "start manually agent (poller initiated connection, no encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\reversed_centagent_stdout.log -RedirectStandardError reports\reversed_centagent_stderr.log
 
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 5
 
 #reversed and encrypted
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name private_key -Value ${current_dir}/reverse_server_grpc.key
