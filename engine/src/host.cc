@@ -1560,9 +1560,14 @@ int host::handle_async_check_result_3x(
   }
 
   /******************* PROCESS THE CHECK RESULTS ******************/
-
+  // before processing the check result, we force current attempt to cma
+  // attempts , only for passive checks cma
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+    set_current_attempt(max_check_attempts());
   /* process the host check result */
-  process_check_result_3x(hst_res, old_plugin_output, CHECK_OPTION_NONE,
+  process_check_result_3x(hst_res, old_plugin_output,
+                          queued_check_result.get_check_options(),
                           reschedule_check, true, cached_host_check_horizon);
 
   engine_logger(dbg_checks, more)
@@ -1578,6 +1583,15 @@ int host::handle_async_check_result_3x(
 
   /* high resolution end time for event broker */
   gettimeofday(&end_time_hires, nullptr);
+
+  /* ───────────────────── CMA FORCE THE HOST STATUS ──────────────────── */
+  // this only for passive checks that come from CMA guarded by
+  // CHECK_OPTION_PASSIVE_IS_HARD or CHECK_OPTION_PASSIVE_IS_SOFT
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_HARD)
+    set_state_type(hard);
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_SOFT)
+    set_state_type(soft);
+  /* ─────────────────────────────────────────────────────────────────────── */
 
   /* send data to event broker */
   broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
@@ -3116,9 +3130,11 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
   /* we have to adjust current attempt # for passive checks, as it isn't done
    * elsewhere */
-  if (get_check_type() == check_passive)
-    adjust_check_attempt(false);
-
+  if (!(check_options &
+        (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))) {
+    if (get_check_type() == check_passive)
+      adjust_check_attempt(false);
+  }
   /* log passive checks - we need to do this here, as some my bypass external
    * commands by getting dropped in checkresults dir */
   if (get_check_type() == check_passive) {

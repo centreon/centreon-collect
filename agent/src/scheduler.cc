@@ -215,13 +215,13 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
     std::map<uint32_t, std::vector<Service*>> group_serv;
     for (auto& serv : *conf->mutable_config()->mutable_services()) {
       if (serv.check_interval() == 0) {
-        serv.set_check_interval(60);  // one minute by default
+        serv.set_check_interval(300);  // five minutes by default
       }
       if (serv.retry_interval() == 0) {
         serv.set_retry_interval(60);  // one minute by default
       }
       if (serv.max_attempts() == 0) {
-        serv.set_max_attempts(1);  // one attempt by default
+        serv.set_max_attempts(3);  // three attempt by default
       }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();
@@ -402,9 +402,6 @@ void scheduler::_check_handler(
   if (check->get_conf() != _conf) {
     return;
   }
-
-  // decide for confirmation
-  check->calcul_status_confirmation(status);
 
   SPDLOG_LOGGER_DEBUG(_logger,
                       "end check for service {} command {}, status {} {} "

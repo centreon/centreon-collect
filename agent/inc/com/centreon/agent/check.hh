@@ -187,7 +187,7 @@ class check : public std::enable_shared_from_this<check> {
   bool _status_confirmed = true; /* we consider the status as confirmed */
   unsigned int _last_status =
       e_status::ok; /* for initial state we consider it as OK */
-  bool last_confirmed = true;
+  bool _last_confirmed = true;
 
  protected:
   std::shared_ptr<asio::io_context> _io_context;
@@ -221,7 +221,7 @@ class check : public std::enable_shared_from_this<check> {
   virtual ~check() = default;
 
   void increment_start_expected_to_after_min_timepoint(time_point min_tp) {
-    if (last_confirmed != get_status_confirmed()) {
+    if (_last_confirmed != get_status_confirmed()) {
       if (get_status_confirmed()) {
         // soft -> hard: jump out of retry cadence; wait at least one full
         // normal step
@@ -232,14 +232,14 @@ class check : public std::enable_shared_from_this<check> {
         _start_expected_retry.set_next_exact(_start_expected_normal.value());
       }
     }
+    _last_confirmed = get_status_confirmed();
+
     // no state change: keep current cadence, but never schedule before now
     if (get_status_confirmed()) {
       _start_expected_normal.increment_to_after_min(min_tp);
     } else {
       _start_expected_retry.increment_to_after_min(min_tp);
     }
-
-    last_confirmed = get_status_confirmed();
   }
 
   time_point get_start_expected() const {

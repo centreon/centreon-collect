@@ -138,7 +138,7 @@ check::check(const std::shared_ptr<asio::io_context>& io_context,
     : _start_expected_normal(first_start_expected,
                              serv.check_interval()
                                  ? std::chrono::seconds(serv.check_interval())
-                                 : std::chrono::seconds(60)),
+                                 : std::chrono::seconds(300)),
       _start_expected_retry(first_start_expected,
                             serv.retry_interval()
                                 ? std::chrono::seconds(serv.retry_interval())
@@ -250,6 +250,7 @@ void check::on_completion(
     ++_running_check_index;
     _stat->add_duration_stat(get_command_name(),
                              std::chrono::system_clock::now() - _last_start);
+    calcul_status_confirmation(status);
     _completion_handler(shared_from_this(), status, perfdata, outputs);
   }
 }
@@ -329,7 +330,6 @@ std::optional<bool> check::get_bool(const std::string& cmd_name,
  * It updates check last_status and status_confirmed
  * @param check
  * @param status
- * @param next_delay (OUT) next delay to use for next check
  */
 void check::calcul_status_confirmation(unsigned status) {
   const int last_status = get_last_status();
