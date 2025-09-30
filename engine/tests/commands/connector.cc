@@ -23,6 +23,7 @@
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
+#include "com/centreon/engine/globals.hh"
 #include "helper.hh"
 
 extern std::shared_ptr<asio::io_context> g_io_context;
