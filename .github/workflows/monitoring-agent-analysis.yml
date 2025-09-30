@@ -57,6 +57,7 @@ jobs:
         shell: bash
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   code_scan:
     needs: [get-environment]
     if: |
