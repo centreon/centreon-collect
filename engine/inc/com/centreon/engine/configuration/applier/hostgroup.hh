@@ -36,7 +36,7 @@ class hostgroup {
   void add_object(const configuration::Hostgroup& obj);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
-  void remove_object(const std::string& key);
+  void remove_object(const std::pair<std::string, uint32_t>& key);
   void resolve_object(const configuration::Hostgroup& obj, error_cnt& err);
 };
 

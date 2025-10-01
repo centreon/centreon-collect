@@ -498,7 +498,7 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src
 
 # centenginestats target.
 add_executable(centenginestats "${SRC_DIR}/centenginestats.cc")
-add_dependencies(centenginestats centreon_clib)
+add_dependencies(centenginestats centreon_clib pb_neb_lib)
 target_link_libraries(centenginestats PRIVATE centreon_clib fmt::fmt absl::log absl::base absl::log_internal_check_op)
 
 target_precompile_headers(centenginestats PRIVATE ${PRECOMP_HEADER})
@@ -533,8 +533,8 @@ target_link_libraries(
   centengine
   PRIVATE centreon_clib
   log_v2
-  enginerpc
   -Wl,--whole-archive
+  enginerpc
   centreon_grpc
   -Wl,--no-whole-archive
   centreon_http

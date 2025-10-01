@@ -35,12 +35,14 @@ import shutil
 import string
 from dateutil import parser
 from datetime import datetime, timedelta
+from pathlib import Path
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from concurrent import futures
 import grpc
 import grpc_stream_pb2_grpc
 import state_pb2
+from confcmp import ConfComparator
 
 
 def import_robot_resources():
@@ -828,6 +830,20 @@ def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int,
 
 
 def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    """
+    ctn_check_service_status_with_timeout
+    Check the status of a service within a specified timeout period.
+
+    Args:
+        hostname (str): The name of the host.
+        service_desc (str): The description of the service.
+        status (int): The expected status to check for.
+        timeout (int): The timeout period in seconds.
+        state_type (str, optional): The type of state to check for. Defaults to "SOFT".
+                                    Can be "SOFT" or "HARD".
+    Returns:
+        bool: True if the expected status is found within the timeout period, False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1690,6 +1706,8 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
                 cursor.execute(
                     "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
                 result = cursor.fetchall()
+                logger.console(
+                    f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1 => {result[0]} <-> {value}")
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:
                         return True
@@ -1800,7 +1818,19 @@ def ctn_check_field_db_value(request: str, value, timeout: int):
     return False
 
 
-def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, timeout: int = TIMEOUT):
+def ctn_check_host_status(host: str, value: int, typ: int, in_resources: bool, timeout: int = TIMEOUT):
+    """
+    Check the status of a host in the database
+
+    Args:
+        host: the name of the host
+        value: the expected status value
+        typ: 0 for SOFT, 1 for HARD
+        in_resources: True to check in resources table, False to check in hosts table
+        timeout: timeout in seconds (default: TIMEOUT)
+    Returns:
+        True if the host has the expected status, False otherwise
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1827,7 +1857,7 @@ def ctn_check_host_status(host: str, value: int, t: int, in_resources: bool, tim
                 result = cursor.fetchall()
                 logger.console(f"{result}")
                 if len(result) > 0:
-                    if int(result[0][key]) == value and int(result[0][confirmed]) == t:
+                    if int(result[0][key]) == value and int(result[0][confirmed]) == typ:
                         return True
         time.sleep(1)
     return False
@@ -2099,46 +2129,6 @@ def ctn_create_random_dictionary(nb_entries: int):
         dict_ret[create_random_string(10)] = create_random_string(10)
 
     return dict_ret
-
-
-def ctn_extract_event_from_lua_log(file_path: str, field_name: str):
-    """
-    extract_event_from_lua_log
-
-    extract a json object from a lua log file 
-    Example: Wed Feb  7 15:30:11 2024: INFO: {"_type":196621, "category":3, "element":13, "resource_metrics":{}
-
-    Args:
-        file1: The first file to compare.
-        file2: The second file to compare.
-
-    Returns: True if they have the same content, False otherwise.
-    """
-
-    with open(file1, "r") as f1:
-        content1 = f1.readlines()
-    with open(file2, "r") as f2:
-        content2 = f2.readlines()
-    r = re.compile(r"(.*) 0x[0-9a-f]+")
-
-    def replace_ptr(line):
-        m = r.match(line)
-        if m:
-            return m.group(1)
-        else:
-            return line
-
-    content1 = list(map(replace_ptr, content1))
-    content2 = list(map(replace_ptr, content2))
-
-    if len(content1) != len(content2):
-        return False
-    for i in range(len(content1)):
-        if content1[i] != content2[i]:
-            logger.console(
-                f"Files are different at line {i + 1}: first => << {content1[i].strip()} >> and second => << {content2[i].strip()} >>")
-            return False
-    return True
 
 
 def ctn_protobuf_to_json(protobuf_obj):
@@ -2498,3 +2488,309 @@ def ctn_check_state_configurations_are_equal(file1, file2):
     dico2 = MessageToDict(pb2)
 
     return compare_dicts(dico1, dico2)
+
+
+def ctn_notify_broker_of_engine_config_change(idx: int):
+    """
+    Notify the broker of a change in the engine configuration.
+
+    Args:
+        idx (int): The index of the configuration to notify.
+    """
+    logger.console(
+        f"Notify broker of engine config change for poller {idx + 1}")
+    lck_file = f"{VAR_ROOT}/lib/centreon/config/{idx + 1}.lck"
+    Path(lck_file).touch()
+
+
+def ctn_hosts_are_identical(poller_id: int, filename: str):
+    """ Check if all hosts of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all hosts are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, "hosts")
+    return comparator.compare()
+
+
+def ctn_host_resources_are_identical(poller_id: int, filename: str):
+    """ Check if all hosts of a poller (in the resources table) have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all hosts are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, "resources",
+                                query=f"SELECT name, alias, address, id FROM resources WHERE parent_id=0 AND enabled=1 AND poller_id={poller_id}", obj_name="host")
+    return comparator.compare()
+
+
+def ctn_services_are_identical(poller_id: int, filename: str):
+    """ Check if all services of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all services are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, "services",
+                                query=f"SELECT s.description, s.check_command, s.check_period, s.max_check_attempts, s.check_interval, s.retry_interval, s.notification_interval, s.notification_period, s.first_notification_delay, s.flap_detection, s.low_flap_threshold, s.high_flap_threshold, s.volatile, s.notes_url, s.action_url, s.icon_image, s.icon_image_alt, h.name AS host_name,s.service_id, h.host_id FROM services s JOIN hosts h ON s.host_id = h.host_id WHERE s.enabled=1 AND h.instance_id={poller_id}")
+    return comparator.compare()
+
+
+def ctn_service_resources_are_identical(poller_id: int, filename: str):
+    """ Check if all services (in the resources table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id (int): The poller ID to check.
+        filename (str): The path to the configuration file.
+
+    Returns: True if all services are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, table="resources",
+                                query=f"SELECT name, max_check_attempts, notes_url, action_url, parent_name,id, parent_id, passive_checks_enabled, active_checks_enabled FROM resources WHERE enabled=1 AND poller_id={poller_id} AND parent_id>0", obj_name="service")
+    return comparator.compare()
+
+
+def ctn_severities_are_identical(poller_id: int, filename: str, timeout: int = TIMEOUT):
+    """ Check if all severities (in the severities table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id: The poller ID to check.
+        filename: The path to the configuration file.
+        timeout: The timeout value for the check (in seconds, default is TIMEOUT).
+
+    Returns: True if all severities are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, table="severities",
+                                query="SELECT id, type, name, level, icon_id FROM severities", check_length=False)
+    return comparator.compare(timeout)
+
+
+def ctn_tags_are_identical(poller_id: int, filename: str, timeout: int = TIMEOUT):
+    """ Check if all tags (in the tags table) of a poller have the same configuration as in the configuration file.
+
+    Args:
+        poller_id: The poller ID to check.
+        filename: The path to the configuration file.
+        timeout: The timeout value for the check (in seconds, default is TIMEOUT).
+
+    Returns: True if all tags are identical to the configuration file, False otherwise.
+    """
+
+    comparator = ConfComparator(poller_id, filename, table="tags",
+                                query="SELECT id, type, name FROM tags", check_length=False)
+    return comparator.compare(timeout)
+
+
+def ctn_check_severity_ids(logfile: str, start):
+    """
+    Check if severity ids are correct in the log file compared to the database.
+    The start date is given to check in the log from that date.
+    We don't check all the rows in the severities table since we just want to
+    check the last insertion/modification of severities given by the logs.
+
+    Args:
+        logfile: The path to the log file.
+        start: The start time to check (as a datetime object or a Unix timestamp).
+
+    Returns: True if severity ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    idx = ctn_find_line_from(lines, start)
+
+    r = re.compile(
+        r".*Severity with id (\d+) and type (\d+) has severity_id (\d+)")
+    from_logs = {}
+    for line in lines[idx:]:
+        m = r.match(line)
+        if m:
+            id = int(m.group(1))
+            type = int(m.group(2))
+            severity_id = int(m.group(3))
+            from_logs[(id, type)] = severity_id
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    logger.console(f"Severities found in logs: {from_logs}")
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, type, severity_id FROM severities")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        id = int(r['id'])
+        type = int(r['type'])
+        severity_id = int(r['severity_id'])
+        if (id, type) not in from_logs:
+            logger.console(f"Severity {(id, type)} not found in logs")
+            continue
+
+        if from_logs[(id, type)] != severity_id:
+            logger.console(
+                f"Severity {(id, type)} has severity_id {from_logs[(id, type)]} in logs and {severity_id} in database")
+            retval = False
+    return retval
+
+
+def ctn_check_tag_ids(logfile: str, start):
+    """
+    Check if tag ids are correct in the log file compared to the database.
+    The start date is given to check in the log from that date.
+    We don't check all the rows in the tags table since we just want to
+    check the last insertion/modification of tags given by the logs.
+
+    Args:
+        logfile: The path to the log file.
+        start: The start time to check (as a datetime object or a Unix timestamp).
+
+    Returns: True if tag ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    idx = ctn_find_line_from(lines, start)
+
+    r = re.compile(
+        r".*Tag with id (\d+) and type (\d+) has tag_id (\d+)")
+    from_logs = {}
+    for line in lines[idx:]:
+        m = r.match(line)
+        if m:
+            id = int(m.group(1))
+            type = int(m.group(2))
+            tag_id = int(m.group(3))
+            from_logs[(id, type)] = tag_id
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    logger.console(f"Tags found in logs: {from_logs}")
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT id, type, tag_id FROM tags")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        id = int(r['id'])
+        type = int(r['type'])
+        tag_id = int(r['tag_id'])
+        if (id, type) not in from_logs:
+            logger.console(f"Tag {(id, type)} not found in logs")
+            continue
+
+        if from_logs[(id, type)] != tag_id:
+            logger.console(
+                f"Tag {(id, type)} has tag_id {from_logs[(id, type)]} in logs and {tag_id} in database")
+            retval = False
+    return retval
+
+
+def ctn_clear_prot_files():
+    """
+    Remove all .prot files in /tmp directory.
+    """
+    for file in Path('/tmp').rglob('*.prot'):
+        file.unlink()
+
+def ctn_check_resource_ids(typ: str, logfile: str):
+    """
+    Check if resource ids are correct in the log file compared to the database.
+    We check all the rows in the resources table.
+
+    Args:
+        typ: The type of resource to check (e.g., "host", "service", "AD").
+        logfile: The path to the log file.
+
+    Returns: True if resource ids are correct, False otherwise.
+    """
+    with open(logfile, "r") as f:
+        lines = f.readlines()
+
+    types = {
+            "host": [1, "Host", "host"],
+            "service": [0, "Service", "service"],
+            "AD": [4, "Anomaly detection", "service"],
+            }
+
+    r_add = re.compile(rf".*{types[typ][1]} resource with id (\d+):(\d+) has resource_id (\d+)")
+    r_del = re.compile(rf".*Disabling {types[typ][2]} resource with id (\d+):(\d+)")
+    from_logs = {}
+    for line in lines:
+        m = r_add.match(line)
+        if m:
+            parent_id = int(m.group(1))
+            id = int(m.group(2))
+            resource_id = int(m.group(3))
+            logger.console(f"New resource from logs {(parent_id, id)}, resource_id={resource_id}")
+            from_logs[(parent_id, id)] = resource_id
+        else:
+            m = r_del.match(line)
+            if m:
+                parent_id = int(m.group(1))
+                id = int(m.group(2))
+                if (parent_id, id) in from_logs:
+                    logger.console(f"Resource {(parent_id, id)} deleted, removing it from list")
+                    del from_logs[(parent_id, id)]
+
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    logger.console(f"Resources found in logs: {from_logs}")
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT resource_id, id, parent_id FROM resources WHERE enabled=1 AND type={types[typ][0]}")
+            result = cursor.fetchall()
+
+    retval = True
+    for r in result:
+        logger.console(f"result: {r}")
+        id = int(r['id'])
+        parent_id = int(r['parent_id'])
+        resource_id = int(r['resource_id'])
+        if (parent_id, id) not in from_logs:
+            logger.console(f"Resource {(parent_id, id)} not found in logs")
+            continue
+
+        if from_logs[(parent_id, id)] != resource_id:
+            logger.console(
+                f"Resource {(id, type)} has resource_id {from_logs[(id, type)]} in logs and {resource_id} in database")
+            retval = False
+    if (len(from_logs) != len(result)):
+        logger.console(f"Number of resources in logs ({len(from_logs)}) is different from number of resources in database ({len(result)})")
+        logger.console(f"Resources in logs: {from_logs}")
+        logger.console(f"Resources in DB: {result}")
+        retval = False
+    return retval
+

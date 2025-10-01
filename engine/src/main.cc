@@ -380,11 +380,7 @@ int main(int argc, char* argv[]) {
 
           const std::string& listen_address = new_conf->rpc_listen_address();
 
-          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
-              new enginerpc(listen_address, port), [](enginerpc* rpc) {
-                rpc->shutdown();
-                delete rpc;
-              });
+          update_rpc_server(listen_address, port);
 
           // Parse retention.
           retention::state state;
@@ -527,6 +523,7 @@ int main(int argc, char* argv[]) {
   cbm.reset();
   g_io_context->stop();
   com::centreon::common::pool::unload();
+  stop_rpc_server();
 
   return retval;
 }

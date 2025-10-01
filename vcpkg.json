@@ -33,6 +33,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-bimap",
+      "platform": "linux"
+    },
+    {
       "name": "boost-container",
       "platform": "linux"
     },

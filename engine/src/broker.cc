@@ -235,6 +235,9 @@ void broker_adaptive_severity_data(int type, engine::severity* es) {
                 BROKER_ADAPTIVE_DATA))
     return;
 
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating protobuf severity event");
 
@@ -281,6 +284,9 @@ void broker_adaptive_tag_data(int type, engine::tag* et) {
   /* Config check. */
   if (!cbm || !(pb_indexed_config.state().event_broker_options() &
                 BROKER_ADAPTIVE_DATA))
+    return;
+
+  if (cbm->centralized_conf())
     return;
 
   /* Make callbacks. */
@@ -483,6 +489,9 @@ static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
                             const engine::host* eh) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host event protobuf");
@@ -937,6 +946,9 @@ static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
                                const engine::service* es) {
+  if (cbm->centralized_conf())
+    return;
+
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -2055,6 +2067,9 @@ void broker_external_command(int type, int command_type, char* command_args) {
 
 template <typename G>
 static void forward_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating group event");
 
@@ -2131,6 +2146,9 @@ static void forward_group(int type, const G* group_data) {
  */
 template <typename G>
 static void forward_pb_group(int type, const G* group_data) {
+  if (cbm->centralized_conf())
+    return;
+
   // Host group.
   if constexpr (std::is_same_v<G, engine::hostgroup>) {
     assert(NEBTYPE_HOSTGROUP_ADD == type || NEBTYPE_HOSTGROUP_UPDATE == type ||
@@ -2284,6 +2302,9 @@ static void forward_group_member(int type,
 static void forward_group_member(int type,
                                  const engine::service* object,
                                  const engine::servicegroup* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(
       neb_logger,
@@ -2341,6 +2362,9 @@ static void forward_group_member(int type,
  */
 template <typename G, typename R>
 static void forward_pb_group_member(int type, const R* object, const G* group) {
+  if (cbm->centralized_conf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb group member event");
@@ -3961,6 +3985,9 @@ static void forward_relation(int type,
 static void forward_pb_relation(int type,
                                 const engine::host* hst,
                                 const engine::host* dep_hst) noexcept {
+  if (!cbm->use_protobuf())
+    return;
+
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb relation event");
 
@@ -4102,8 +4129,7 @@ template <bool proto>
 static void send_instance_configuration() {
   neb_logger->info(
       "init: sending initial instance configuration loading event, poller "
-      "id: "
-      "{}",
+      "id: {}",
       cbm->poller_id());
   if constexpr (proto) {
     auto ic = std::make_shared<neb::pb_instance_configuration>();
@@ -4121,21 +4147,21 @@ static void send_instance_configuration() {
 
 template <bool proto>
 static void send_initial_configuration() {
-  // if (config::applier::state::instance().broker_needs_update()) {
-  SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
-  send_severity_list();
-  send_tag_list();
-  send_host_list<proto>();
-  send_service_list<proto>();
-  send_custom_variables_list<proto>();
-  send_downtimes_list<proto>();
-  send_host_parents_list<proto>();
-  send_host_group_list<proto>();
-  send_service_group_list<proto>();
-  //    } else {
-  //      SPDLOG_LOGGER_INFO(_neb_logger,
-  //                         "init: No need to send poller configuration");
-  //  }
+  if (!cbm->centralized_conf()) {
+    SPDLOG_LOGGER_INFO(neb_logger, "init: sending poller configuration");
+    send_severity_list();
+    send_tag_list();
+    send_host_list<proto>();
+    send_service_list<proto>();
+    send_custom_variables_list<proto>();
+    send_downtimes_list<proto>();
+    send_host_parents_list<proto>();
+    send_host_group_list<proto>();
+    send_service_group_list<proto>();
+  } else {
+    SPDLOG_LOGGER_INFO(neb_logger,
+                       "init: No need to send poller configuration");
+  }
   send_instance_configuration<proto>();
 }
 
@@ -4380,6 +4406,9 @@ void broker_relation_data(int type,
   if (!cbm || !(pb_indexed_config.state().event_broker_options() &
                 BROKER_RELATION_DATA))
     return;
+  if (cbm->centralized_conf())
+    return;
+
   if (!hst || !dep_hst || svc || dep_svc)
     return;
 

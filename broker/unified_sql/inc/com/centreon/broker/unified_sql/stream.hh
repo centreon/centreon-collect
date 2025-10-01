@@ -19,6 +19,8 @@
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 
+#include <boost/bimap.hpp>
+
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -285,8 +287,8 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger_sql;
   std::shared_ptr<spdlog::logger> _logger_sto;
 
-  absl::flat_hash_set<uint32_t> _hostgroup_cache;
-  absl::flat_hash_set<uint32_t> _servicegroup_cache;
+  boost::bimap<uint32_t, std::string> _hostgroups_cache;
+  boost::bimap<uint32_t, std::string> _servicegroups_cache;
 
   /* The queue of metrics sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
@@ -403,6 +405,13 @@ class stream : public io::stream {
 
   database::mysql_stmt _agent_information_insert_update;
 
+  /* FIXME DBO: We already need the global cache. It isn't already there, so
+   * we introduce a minimal set of it there. */
+  absl::flat_hash_map<std::string, uint64_t> _host_name_id_cache;
+  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>
+      _service_description_id_cache;
+  absl::flat_hash_map<std::string, uint32_t> _instance_name_id_cache;
+
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
@@ -477,7 +486,6 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();
@@ -509,6 +517,7 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   ~stream() noexcept ABSL_LOCKS_EXCLUDED(_barrier_timer_m);
+  void clean_tables(uint32_t instance_id);
 
   static const multiplexing::muxer_filter& get_muxer_filter();
   static const multiplexing::muxer_filter& get_forbidden_filter();
@@ -526,6 +535,29 @@ class stream : public io::stream {
   void remove_poller(const std::shared_ptr<io::data>& d);
   void process_stop(const std::shared_ptr<io::data>& d);
   void update() override;
+  mysql& get_mysql();
+  bool supports_bulk_prepared_statements() const;
+
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>&
+  severities_cache() {
+    return _severities_cache;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t>& tags_cache() {
+    return _tags_cache;
+  }
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t>&
+  resources_cache() {
+    return _resources_cache;
+  }
+
+  std::unordered_map<uint32_t, uint32_t>& hosts_instances_cache() {
+    return _cache_host_instance;
+  }
+  absl::flat_hash_map<std::string, uint64_t>& host_name_id_cache();
+  absl::flat_hash_map<std::pair<uint64_t, std::string>, uint64_t>&
+  service_description_id_cache();
+  boost::bimap<uint32_t, std::string>& hostgroups_cache();
+  boost::bimap<uint32_t, std::string>& servicegroups_cache();
 };
 }  // namespace unified_sql
 }  // namespace com::centreon::broker

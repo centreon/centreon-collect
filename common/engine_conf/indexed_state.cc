@@ -253,8 +253,9 @@ void indexed_state::_index() {
   }
   while (!_state->hostgroups().empty()) {
     Hostgroup* hostgroup = _state->mutable_hostgroups()->ReleaseLast();
-    _hostgroups.emplace(hostgroup->hostgroup_name(),
-                        std::unique_ptr<Hostgroup>(hostgroup));
+    _hostgroups.emplace(
+        std::make_pair(hostgroup->hostgroup_name(), _state->poller_id()),
+        std::unique_ptr<Hostgroup>(hostgroup));
   }
   while (!_state->services().empty()) {
     Service* service = _state->mutable_services()->ReleaseLast();
@@ -274,8 +275,9 @@ void indexed_state::_index() {
   }
   while (!_state->servicegroups().empty()) {
     Servicegroup* servicegroup = _state->mutable_servicegroups()->ReleaseLast();
-    _servicegroups.emplace(servicegroup->servicegroup_name(),
-                           std::unique_ptr<Servicegroup>(servicegroup));
+    _servicegroups.emplace(
+        std::make_pair(servicegroup->servicegroup_name(), _state->poller_id()),
+        std::unique_ptr<Servicegroup>(servicegroup));
   }
   while (!_state->hostdependencies().empty()) {
     Hostdependency* hostdependency =
@@ -371,9 +373,17 @@ void indexed_state::diff_with_new_config(
       [](Host* obj) { return obj->host_id(); }, result->mutable_hosts());
 
   /* Diff on hostgroups */
-  _diff<Hostgroup, DiffHostgroup, std::string>(
+  _diff<Hostgroup, DiffHostgroup, std::pair<std::string, uint32_t>,
+        PairGroupPoller>(
       new_state.mutable_hostgroups(), _hostgroups, logger,
-      [](Hostgroup* obj) { return obj->hostgroup_name(); },
+      [poller_id = new_state.poller_id()](Hostgroup* obj) {
+        return std::make_pair(obj->hostgroup_name(), poller_id);
+      },
+      [](PairGroupPoller* key_type,
+         const std::pair<std::string, uint32_t>& key) {
+        key_type->set_group_name(key.first);
+        key_type->set_poller_id(key.second);
+      },
       result->mutable_hostgroups());
 
   /* Diff on services */
@@ -402,9 +412,17 @@ void indexed_state::diff_with_new_config(
       result->mutable_anomalydetections());
 
   /* Diff on servicegroups */
-  _diff<Servicegroup, DiffServicegroup, std::string>(
+  _diff<Servicegroup, DiffServicegroup, std::pair<std::string, uint32_t>,
+        PairGroupPoller>(
       new_state.mutable_servicegroups(), _servicegroups, logger,
-      [](Servicegroup* obj) { return obj->servicegroup_name(); },
+      [poller_id = new_state.poller_id()](Servicegroup* obj) {
+        return std::make_pair(obj->servicegroup_name(), poller_id);
+      },
+      [](PairGroupPoller* key_type,
+         const std::pair<std::string, uint32_t>& key) {
+        key_type->set_group_name(key.first);
+        key_type->set_poller_id(key.second);
+      },
       result->mutable_servicegroups());
 
   /* Diff on hostdependencies */
@@ -451,6 +469,7 @@ void indexed_state::diff_with_new_config(
       result->mutable_##field()->add_data(item);                               \
   }
 
+  result->set_poller_id(new_state.poller_id());
   SET_IF_CHANGED(cfg_main);
   SET_REPEATED_IF_CHANGED(cfg_file);
 
@@ -537,7 +556,6 @@ void indexed_state::diff_with_new_config(
   SET_IF_CHANGED(command_file);
   SET_IF_CHANGED(status_file);
   SET_IF_CHANGED(poller_name);
-  SET_IF_CHANGED(poller_id);
   SET_IF_CHANGED(cached_service_check_horizon);
   SET_IF_CHANGED(check_orphaned_hosts);
   SET_IF_CHANGED(check_orphaned_services);

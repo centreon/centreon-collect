@@ -65,19 +65,23 @@ cbmod::cbmod(const std::string& config_file,
   s.mut_log_conf().allow_only_atomic_changes(true);
   com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
                                                engine_conf_version, s);
+
+  auto& broker_state =
+      com::centreon::broker::config::applier::state::instance();
+
   try {
     log_v2::instance().apply(s.log_conf());
   } catch (const std::exception& e) {
     log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
   }
 
-  com::centreon::broker::config::applier::state::instance().apply(s);
-  com::centreon::broker::config::applier::state::instance().set_proto_conf(
-      proto_conf);
+  broker_state.apply(s);
+  broker_state.set_proto_conf(proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
-  _use_protobuf =
-      config::applier::state::instance().get_bbdo_version().major_v > 2;
+  _use_protobuf = broker_state.get_bbdo_version().major_v > 2;
+
+  _centralized_conf = !proto_conf.empty() && _use_protobuf;
 }
 
 /**
@@ -416,5 +420,15 @@ std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
 void cbmod::set_diff_state_applied(const std::string& config_version) {
   config::applier::state::instance().set_engine_conf(config_version);
   config::applier::state::instance().set_diff_state_applied(true);
+}
+
+/**
+ * @brief Tells us if the configuration is managed in a centralized way (i.e.
+ * using protobuf configuration directory).
+ *
+ * @return True if the configuration is centralized, false otherwise.
+ */
+bool cbmod::centralized_conf() const {
+  return _centralized_conf;
 }
 }  // namespace com::centreon::broker::neb

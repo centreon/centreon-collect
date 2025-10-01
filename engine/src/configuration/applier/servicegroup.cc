@@ -70,7 +70,8 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
 
   // Add service group to the global configuration set.
   pb_indexed_config.mut_servicegroups().emplace(
-      obj.servicegroup_name(), std::make_unique<Servicegroup>(obj));
+      std::make_pair(obj.servicegroup_name(), 0),
+      std::make_unique<Servicegroup>(obj));
 
   // Create servicegroup.
   auto sg = std::make_shared<engine::servicegroup>(
@@ -149,12 +150,14 @@ void applier::servicegroup::modify_object(
  *
  *  @param[in] idw  Index of the servicegroup to remove in the configuration.
  */
-void applier::servicegroup::remove_object(const std::string& key) {
+void applier::servicegroup::remove_object(
+    const std::pair<std::string, uint32_t>& key) {
   // Logging.
-  config_logger->debug("Removing servicegroup '{}'", key);
+  config_logger->debug("Removing servicegroup '{}'", key.first);
 
   // Find service group.
-  servicegroup_map::iterator it = engine::servicegroup::servicegroups.find(key);
+  servicegroup_map::iterator it =
+      engine::servicegroup::servicegroups.find(key.first);
   if (it != engine::servicegroup::servicegroups.end()) {
     // Notify event broker.
     broker_group(NEBTYPE_SERVICEGROUP_DELETE, it->second.get());

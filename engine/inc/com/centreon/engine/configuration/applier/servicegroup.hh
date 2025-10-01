@@ -33,7 +33,7 @@ class servicegroup {
   void add_object(const configuration::Servicegroup& obj);
   void modify_object(configuration::Servicegroup* to_modify,
                      const configuration::Servicegroup& new_object);
-  void remove_object(const std::string& key);
+  void remove_object(const std::pair<std::string, uint32_t>& key);
   void resolve_object(const configuration::Servicegroup& obj, error_cnt& err);
 
  private:

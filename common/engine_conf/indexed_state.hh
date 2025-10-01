@@ -45,13 +45,16 @@ class indexed_state {
   absl::flat_hash_map<std::string, std::unique_ptr<Contactgroup>>
       _contactgroups;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>> _hosts;
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>> _hostgroups;
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>
+      _hostgroups;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::unique_ptr<Service>>
       _services;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
                       std::unique_ptr<Anomalydetection>>
       _anomalydetections;
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>
       _servicegroups;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Hostdependency>>
       _hostdependencies;
@@ -204,11 +207,13 @@ class indexed_state {
   absl::flat_hash_map<uint64_t, std::unique_ptr<Host>>& mut_hosts() {
     return _hosts;
   }
-  const absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>&
+  const absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                            std::unique_ptr<Hostgroup>>&
   hostgroups() const {
     return _hostgroups;
   }
-  absl::flat_hash_map<std::string, std::unique_ptr<Hostgroup>>&
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Hostgroup>>&
   mut_hostgroups() {
     return _hostgroups;
   }
@@ -231,11 +236,13 @@ class indexed_state {
   services() const {
     return _services;
   }
-  const absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  const absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                            std::unique_ptr<Servicegroup>>&
   servicegroups() const {
     return _servicegroups;
   }
-  absl::flat_hash_map<std::string, std::unique_ptr<Servicegroup>>&
+  absl::flat_hash_map<std::pair<std::string, uint32_t>,
+                      std::unique_ptr<Servicegroup>>&
   mut_servicegroups() {
     return _servicegroups;
   }
