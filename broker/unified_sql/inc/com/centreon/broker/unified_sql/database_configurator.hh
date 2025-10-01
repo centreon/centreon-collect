@@ -55,7 +55,7 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroup_members_stmt;
   std::unique_ptr<database::mysql_stmt_base> _add_host_parents_stmt;
 
-  void _disable_pollers_with_full_conf();
+  void _disable_resources_for_pollers_with_full_conf();
   void _disable_hosts_and_services();
 
   void _add_severities_mariadb(const ::google::protobuf::RepeatedPtrField<

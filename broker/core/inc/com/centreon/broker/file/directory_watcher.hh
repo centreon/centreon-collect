@@ -73,7 +73,7 @@ class directory_watcher {
     }
 
     std::pair<uint32_t, std::string_view>& operator*() {
-      _watcher->_logger->error(
+      _watcher->_logger->trace(
           "directory_watcher: current: {}, offset: {}, bytes_read: {}, end "
           "reached {}",
           _current.second, _offset, _watcher->_bytes_read,
@@ -85,7 +85,7 @@ class directory_watcher {
       _offset += sizeof(inotify_event) + _event->len;
       _event = reinterpret_cast<inotify_event*>(_watcher->_buffer + _offset);
       _update_current();
-      _watcher->_logger->error(
+      _watcher->_logger->trace(
           "directory_watcher: offset: {}, bytes_read: {}, end reached {}",
           _offset, _watcher->_bytes_read, *this == _watcher->end());
       return *this;

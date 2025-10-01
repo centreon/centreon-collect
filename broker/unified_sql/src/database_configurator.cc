@@ -36,7 +36,7 @@ namespace com::centreon::broker::unified_sql {
  */
 void database_configurator::process() {
   /* We start by disabling pollers with full conf. */
-  _disable_pollers_with_full_conf();
+  _disable_resources_for_pollers_with_full_conf();
 
   /* Then we process the diff. */
 
@@ -129,7 +129,7 @@ void database_configurator::process() {
  * for the pollers whose configuration is fully received. This is needed because
  * we don't know which hosts and services have been removed.
  */
-void database_configurator::_disable_pollers_with_full_conf() {
+void database_configurator::_disable_resources_for_pollers_with_full_conf() {
   for (uint64_t instance_id : _diff.full_conf_poller_id())
     _stream->clean_tables(instance_id);
 
@@ -399,14 +399,14 @@ void database_configurator::_add_severities_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
-        cache[k] = first_id++;
+        first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, found->second);
+                       k.first, k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
@@ -460,14 +460,14 @@ void database_configurator::_add_severities_mysql(
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
-        cache[k] = first_id++;
+        first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, found->second);
+                       k.first, k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
@@ -543,13 +543,14 @@ void database_configurator::_add_tags_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      if (!cache.contains(k)) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
                        k.second, first_id);
-        cache[k] = first_id++;
+        first_id++;
       } else {
         _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, cache[k]);
+                       k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
@@ -594,13 +595,14 @@ void database_configurator::_add_tags_mysql(
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      if (!cache.contains(k)) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
                        k.second, first_id);
-        cache[k] = first_id++;
+        first_id++;
       } else {
         _logger->trace("Tag with id {} and type {} has tag_id {}", k.first,
-                       k.second, cache[k]);
+                       k.second, inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
@@ -1122,14 +1124,14 @@ void database_configurator::_add_host_resources_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Host resource with id {} has resource_id {}", k,
                        first_id);
-        cache[k] = first_id++;
+        first_id++;
       } else {
         _logger->trace("Host resource with id {} has resource_id {}", k,
-                       found->second);
+                       inserted.first->second);
       }
     }
   } catch (const std::exception& e) {
@@ -2094,15 +2096,14 @@ void database_configurator::_add_service_resources_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Service resource with id {}:{} has resource_id {}",
                        k.first, k.second, first_id);
-        cache[k] = first_id++;
-      } else {
+        first_id++;
+      } else
         _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, found->second);
-      }
+                       k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_service_resources>>: {}",
@@ -2189,15 +2190,14 @@ void database_configurator::_add_service_resources_mysql(
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace("Service resource with id {}:{} has resource_id {}",
                        k.first, k.second, first_id);
-        cache[k] = first_id++;
-      } else {
+        first_id++;
+      } else
         _logger->trace("Service resource with id {}:{} has resource_id {}",
-                       k.first, k.second, found->second);
-      }
+                       k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
     _logger->error("Error while executing <<_add_service_resources>>: {}",
@@ -2301,17 +2301,16 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace(
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, first_id);
-        cache[k] = first_id++;
-      } else {
+        first_id++;
+      } else
         _logger->trace(
             "Anomaly detection resource with id {}:{} has resource_id {}",
-            k.first, k.second, found->second);
-      }
+            k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
     _logger->error(
@@ -2393,17 +2392,16 @@ void database_configurator::_add_anomalydetection_resources_mysql(
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
     for (auto& k : keys) {
-      auto found = cache.find(k);
-      if (found == cache.end()) {
+      auto inserted = cache.emplace(k, first_id);
+      if (inserted.second) {
         _logger->trace(
             "Anomaly detection resource with id {}:{} has resource_id {}",
             k.first, k.second, first_id);
-        cache[k] = first_id++;
-      } else {
+        first_id++;
+      } else
         _logger->trace(
             "Anomaly detection resource with id {}:{} has resource_id {}",
-            k.first, k.second, found->second);
-      }
+            k.first, k.second, inserted.first->second);
     }
   } catch (const std::exception& e) {
     _logger->error(
