@@ -100,8 +100,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
     Ctn Set Hosts Passive  ${0}  host_1
     Ctn Engine Config Set Value    0    interval_length    10
+
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
     Ctn Engine Config Add Value    0    credentials_encryption    1
+
     
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
 
@@ -421,7 +423,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
-    Ctn Engine Config Add Value    0    credentials_encryption    1
     
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
 
