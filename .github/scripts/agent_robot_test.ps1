@@ -63,7 +63,9 @@ $installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 Write-Host "install agent only  (agent initiated connection, no encryption)"
 $installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace'
-Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
+# Better: get the process, wait
+$proc = Start-Process -FilePath $installer_exepath -ArgumentList $installer_args -PassThru
+$proc.WaitForExit()
 
 Start-Sleep -Seconds 5
 

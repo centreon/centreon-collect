@@ -126,7 +126,7 @@ TEST_F(check_files_test, default_behavior) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -171,7 +171,7 @@ TEST_F(check_files_test, test_filter) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -219,7 +219,7 @@ TEST_F(check_files_test, warning_status) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -265,7 +265,7 @@ TEST_F(check_files_test, critical_status) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -308,7 +308,7 @@ TEST_F(check_files_test, version) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -412,7 +412,7 @@ TEST_F(check_files_test, regex_failures) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -467,7 +467,7 @@ TEST_F(check_files_test, pattern_matching) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -536,8 +536,7 @@ TEST_F(check_files_test, no_dangling_pointer) {
   {
     auto checker = std::make_shared<check_files>(
         g_io_context, spdlog::default_logger(),
-        std::chrono::system_clock::now(), std::chrono::seconds(1), serv,
-        check_args, nullptr,
+        std::chrono::system_clock::now(), serv, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -592,7 +591,7 @@ TEST_F(check_files_test, two_checks_same_path) {
 
   auto checker = std::make_shared<check_files>(
       g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), serv, check_args, nullptr,
+      serv, check_args, nullptr,
       [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
           [[maybe_unused]] int status,
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

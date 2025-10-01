@@ -359,7 +359,6 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
  * @param args
  * @param cnf
@@ -368,7 +367,6 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
 check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
                            const std::shared_ptr<spdlog::logger>& logger,
                            time_point first_start_expected,
-                           duration check_interval,
                            const Service& serv,
                            const rapidjson::Value& args,
                            const engine_to_agent_request_ptr& cnf,
@@ -377,7 +375,6 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
     : native_check_base(io_context,
                         logger,
                         first_start_expected,
-                        check_interval,
                         serv,
                         args,
                         cnf,
