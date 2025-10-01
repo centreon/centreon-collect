@@ -1564,7 +1564,7 @@ int host::handle_async_check_result_3x(
   // attempts , only for passive checks cma
   if (queued_check_result.get_check_options() &
       (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
-    set_current_attempt(max_check_attempts());
+    set_current_attempt(queued_check_result.get_current_attempt());
   /* process the host check result */
   process_check_result_3x(hst_res, old_plugin_output,
                           queued_check_result.get_check_options(),
