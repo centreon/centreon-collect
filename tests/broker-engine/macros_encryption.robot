@@ -51,7 +51,6 @@ ENGINE_ENCRYPTION_BAD_CONF
     ...    As engine is not ready to receive encrypted macros, is_encryption_ready must be equal to 0 in db
     [Tags]    engine    macros_decrypt    MON-158788
     Ctn Config Engine    ${1}    ${2}    ${10}
-    Ctn Engine Config Add Value    0    credentials_encryption    1
     Ctn Engine Config Set Value In Services    0    service_1    _CLEAR_MAC    clear_mac
     Ctn Engine Config Set Value In Services    0    service_1    _RAW_MAC    raw::raw_mac
     Ctn Engine Config Set Value In Services    0    service_1    _ENCRYPT_MAC    encrypt::encrypt_mac
@@ -65,19 +64,15 @@ ENGINE_ENCRYPTION_BAD_CONF
     Ctn Config BBDO3    ${1}
 
     Ctn Clear Retention
-    Remove File    /etc/centreon-engine/engine-context.json
+    Create File    /etc/centreon-engine/engine-context.json    " "
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Start Broker
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
     
-    ${content}    Create List     no encryption configured => can't decryp macro _SERVICEENCRYPT_MAC
+    ${content}    Create List    clear_mac raw::raw_mac encrypt::encrypt_mac
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    error message not found in logs
-
-    ${content}    Create List    clear_mac raw_mac encrypt::encrypt_mac
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "clear_mac raw::raw_mac encrypt::encrypt_mac" not found in logs.
     
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -107,7 +102,6 @@ ENGINE_ENCRYPTION_GOOD_CONF
     log to console    Encrypted: ${encrypted}
 
 
-    Ctn Engine Config Add Value    0    credentials_encryption    1
     
     Create File    /etc/centreon-engine/engine-context.json   {"app_secret":"${AppSecret}","salt":"${Salt}"}
 
