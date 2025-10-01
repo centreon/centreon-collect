@@ -234,8 +234,7 @@ static bool add_command_to_agent_conf(
   serv->set_command_name(cmd_name);
   serv->set_host_id(host_id);
   serv->set_service_id(service_id);
-  if (encrypt_credentials && pb_config.credentials_encryption() &&
-      credentials_decrypt) {
+  if (encrypt_credentials && credentials_decrypt) {
     serv->set_command_line("encrypt::" +
                            credentials_decrypt->encrypt(plugins_cmdline));
   } else {
@@ -275,7 +274,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           "Agent is not credentials encrypted ready, Engine will send no "
           "encrypted credentials to agent {}",
           *new_conf);
-    } else if (pb_config.credentials_encryption() && credentials_decrypt) {
+    } else if (credentials_decrypt) {
       cnf->set_key(
           common::crypto::base64_encode(credentials_decrypt->first_key()));
       cnf->set_salt(

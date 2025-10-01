@@ -427,7 +427,6 @@ void applier::state::_apply(const configuration::State& new_cfg,
   pb_config.set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
   pb_config.set_broker_module_cfg_file(new_cfg.broker_module_cfg_file());
-  pb_config.set_credentials_encryption(new_cfg.credentials_encryption());
   pb_config.clear_user();
   for (auto& p : new_cfg.user())
     pb_config.mutable_user()->at(p.first) = p.second;
@@ -1554,11 +1553,8 @@ void applier::state::_processing(configuration::State& new_cfg,
         }
       }
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "credentials_encryption is set but we can not read {}: {}",
-          _engine_context_path, e.what());
-      throw;
+      SPDLOG_LOGGER_ERROR(config_logger, "We can not read {}: {}",
+                          _engine_context_path, e.what());
     }
 
     // Apply new global on the current state.
