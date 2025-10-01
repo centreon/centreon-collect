@@ -361,8 +361,6 @@ TEST_F(
     ~cred_eraser() { ::credentials_decrypt.reset(); }
   };
 
-  pb_config.set_credentials_encryption(true);
-
   cred_eraser eraser;
 
   absl::Mutex mut;
