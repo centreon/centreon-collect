@@ -70,7 +70,10 @@ VICT_ONE_CHECK_METRIC
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
-    [Documentation]    victoria metrics status output
+    [Documentation]    Given a Victoria Metrics setup with Centreon Broker
+    ...                When a service check result is processed
+    ...                Then the service status transitions through OK, WARNING, and CRITICAL states
+    ...                And the corresponding status updates are sent to Victoria Metrics
     [Tags]    broker    engine    victoria_metrics
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -125,6 +128,9 @@ VICT_ONE_CHECK_STATUS
 
     # service warning
     ${start}    Ctn Get Round Current Date
+
+    #we wait one second in order to avoid rrd problem with previous Ctn Process Service Result Hard
+    Sleep    1s
     Ctn Process Service Result Hard
     ...    host_16
     ...    service_314
