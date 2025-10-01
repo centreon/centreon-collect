@@ -91,7 +91,6 @@ class check_counter : public check {
   check_counter(const std::shared_ptr<asio::io_context>& io_context,
                 const std::shared_ptr<spdlog::logger>& logger,
                 time_point first_start_expected,
-                duration check_interval,
                 const Service& serv,
                 const rapidjson::Value& args,
                 const engine_to_agent_request_ptr& cnf,

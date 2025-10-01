@@ -39,7 +39,6 @@ using namespace com::centreon::agent;
  * @param io_context Shared pointer to an asio::io_context object.
  * @param logger Shared pointer to an spdlog::logger object.
  * @param first_start_expected The expected first start time point.
- * @param check_interval The interval duration for checks.
  * @param serv The service.
  * @param args The JSON arguments for configuration.
  * @param cnf Shared pointer to the engine to agent request configuration.
@@ -52,7 +51,6 @@ check_event_log::check_event_log(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
     const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
@@ -61,7 +59,6 @@ check_event_log::check_event_log(
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
             cnf,
             std::move(handler),
@@ -128,7 +125,6 @@ check_event_log::check_event_log(
  * @param io_context Shared pointer to an asio::io_context object.
  * @param logger Shared pointer to an spdlog::logger object.
  * @param first_start_expected The expected first start time point.
- * @param check_interval The interval duration for checks.
  * @param serv The service.
  * @param args The JSON arguments for configuration.
  * @param cnf Shared pointer to the engine to agent request configuration.
@@ -141,14 +137,13 @@ std::shared_ptr<check_event_log> check_event_log::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
     const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
     check::completion_handler&& handler,
     const checks_statistics::pointer& stat) {
   std::shared_ptr<check_event_log> ret = std::make_shared<check_event_log>(
-      io_context, logger, first_start_expected, check_interval, serv, args, cnf,
+      io_context, logger, first_start_expected, serv, args, cnf,
       std::move(handler), stat);
 
   ret->_data->start();

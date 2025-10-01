@@ -505,7 +505,6 @@ void ::check_files_detail::check_files_thread::async_get_files(
  * @param logger Shared pointer to the logger instance for logging messages.
  * @param first_start_expected The expected time point for the first check
  * execution.
- * @param check_interval The interval duration between checks.
  * @param serv The service.
  * @param args RapidJSON value containing additional arguments for
  * configuration.
@@ -519,7 +518,6 @@ void ::check_files_detail::check_files_thread::async_get_files(
 check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
-                         duration check_interval,
                          const Service& serv,
                          const rapidjson::Value& args,
                          const engine_to_agent_request_ptr& cnf,
@@ -528,7 +526,6 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
             cnf,
             std::move(handler),

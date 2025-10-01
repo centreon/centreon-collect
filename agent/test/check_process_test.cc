@@ -35,7 +35,6 @@ struct test_check_process : public check_process {
   test_check_process(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
-                     duration check_interval,
                      const Service& serv,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
@@ -44,7 +43,6 @@ struct test_check_process : public check_process {
       : check_process(io_context,
                       logger,
                       first_start_expected,
-                      check_interval,
                       serv,
                       args,
                       cnf,
@@ -87,7 +85,7 @@ TEST_F(check_process_test, output_no_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -247,7 +245,7 @@ TEST_F(check_process_test, output_verbose) {
 
   using namespace std::string_literals;
   test_check_process checker(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       []([[maybe_unused]] const std::shared_ptr<check>& caller,
          [[maybe_unused]] int status,
          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&

@@ -101,6 +101,12 @@ jobs:
           ipconfig /all
           Write-Host "ip address show"
           wsl ip address show
+
+      # Install Inno Setup (ISCC) and expose its path
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
         shell: powershell

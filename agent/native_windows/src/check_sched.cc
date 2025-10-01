@@ -73,7 +73,6 @@ static DateInfo date_to_info(DATE date) {
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
  * @param args
  * @param cnf
@@ -82,7 +81,6 @@ static DateInfo date_to_info(DATE date) {
 check_sched::check_sched(const std::shared_ptr<asio::io_context>& io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
                          time_point first_start_expected,
-                         duration check_interval,
                          const Service& serv,
                          const rapidjson::Value& args,
                          const engine_to_agent_request_ptr& cnf,
@@ -91,7 +89,6 @@ check_sched::check_sched(const std::shared_ptr<asio::io_context>& io_context,
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
             cnf,
             std::move(handler),
