@@ -48,12 +48,12 @@ jobs:
             distrib: bullseye
           - runner: centreon-collect-arm64
             distrib: bullseye
-          - runner: centreon-collect
-            distrib: jammy
-          - runner: centreon-collect-arm64
-            distrib: jammy
-          - runner: centreon-collect
-            distrib: noble
+          # - runner: centreon-collect
+          #   distrib: jammy
+          # - runner: centreon-collect-arm64
+          #   distrib: jammy
+          # - runner: centreon-collect
+          #   distrib: noble
 
     runs-on: ${{ matrix.runner }}
 

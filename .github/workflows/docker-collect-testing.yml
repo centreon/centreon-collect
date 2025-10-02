@@ -70,15 +70,15 @@ jobs:
           - runner: centreon-collect-arm64
             distrib: bullseye
             database: mariadb
-          - runner: centreon-collect
-            distrib: jammy
-            database: mariadb
-          - runner: centreon-collect-arm64
-            distrib: jammy
-            database: mariadb
-          - runner: centreon-collect
-            distrib: noble
-            database: mariadb
+          # - runner: centreon-collect
+          #   distrib: jammy
+          #   database: mariadb
+          # - runner: centreon-collect-arm64
+          #   distrib: jammy
+          #   database: mariadb
+          # - runner: centreon-collect
+          #   distrib: noble
+          #   database: mariadb
 
     runs-on: ${{ matrix.runner }}
 
