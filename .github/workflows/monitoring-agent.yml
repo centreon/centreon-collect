@@ -231,8 +231,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        #distrib: [alma8, alma9, bullseye, bookworm, jammy, noble]
-        distrib: [alma8, alma9, bullseye, bookworm]
+        distrib: [alma8, alma9, bullseye, bookworm, jammy, noble]
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -374,21 +373,21 @@ jobs:
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
-          # - image: packaging-centreon-collect-vcpkg-jammy
-          #   distrib: jammy
-          #   package_extension: deb
-          #   runner: centreon-collect
-          #   arch: amd64
-          # - image: packaging-centreon-collect-vcpkg-jammy-arm64
-          #   distrib: jammy
-          #   package_extension: deb
-          #   runner: centreon-collect-arm64
-          #   arch: arm64
-          # - image: packaging-centreon-collect-vcpkg-noble
-          #   distrib: noble
-          #   package_extension: deb
-          #   runner: centreon-collect
-          #   arch: amd64
+          - image: packaging-centreon-collect-vcpkg-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
+          - image: packaging-centreon-collect-vcpkg-jammy-arm64
+            distrib: jammy
+            package_extension: deb
+            runner: centreon-collect-arm64
+            arch: arm64
+          - image: packaging-centreon-collect-vcpkg-noble
+            distrib: noble
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -489,20 +488,20 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-          # - distrib: jammy
-          #   image: centreon-collect-mariadb-jammy-arm64-test
-          #   package_extension: deb
-          #   arch: arm64
-          #   database_type: mariadb
-          #   test_group_name: robot_test-mariadb-jammy-arm64
-          #   tests_params: '{}'
-          # - distrib: jammy
-          #   image: centreon-collect-mariadb-jammy-test
-          #   package_extension: deb
-          #   arch: amd64
-          #   database_type: mariadb
-          #   test_group_name: robot_test-jammy-amd64
-          #   tests_params: '{}'
+          - distrib: jammy
+            image: centreon-collect-mariadb-jammy-arm64-test
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+            test_group_name: robot_test-mariadb-jammy-arm64
+            tests_params: '{}'
+          - distrib: jammy
+            image: centreon-collect-mariadb-jammy-test
+            package_extension: deb
+            arch: amd64
+            database_type: mariadb
+            test_group_name: robot_test-jammy-amd64
+            tests_params: '{}'
 
     name: ${{ matrix.test_group_name }}
 
@@ -592,12 +591,12 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
-          # - distrib: jammy
-          #   arch: amd64
-          # - distrib: jammy
-          #   arch: arm64
-          # - distrib: noble
-          #   arch: amd64
+          - distrib: jammy
+            arch: amd64
+          - distrib: jammy
+            arch: arm64
+          - distrib: noble
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
