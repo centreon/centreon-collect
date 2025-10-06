@@ -165,8 +165,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    resources table not updated
 
-
-BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
+BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     [Documentation]    Given an Engine configured with an OpenTelemetry server module 
 ...    And the check command  return CRITICAL
 ...    When the broker, engine and agent are started and repeated/forced checks are scheduled for service_1
@@ -175,6 +174,158 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 ...    Then after retries are exhausted the service must transition to a HARD CRITICAL state with output "Test check 456"
 ...    When the check command 456 is changed to return OK and a forced check is scheduled
 ...    Then the service must transition to a HARD OK state with output "Test check 456"
+    [Tags]    broker    engine    opentelemetry    MON-63843
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    60
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
+
+    ${check_cmd}  Ctn Check Pl Command   --id 456
+
+    Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    #service_1 check fail CRITICAL
+    Ctn Set Command Status    456    ${2}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Db    resources
+    Ctn Clear Retention
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    ${i}    Set Variable    1
+    ${prev_last_check}    Set Variable    None
+    ${tries}    Set Variable    0
+    ${last_checks}    Create List
+
+    # Let's wait for service to be in SOFT state 3 times with different last_check timestamp 
+    WHILE    ${i} < 4
+        ${res}    ${content}    Ctn Check Service Output Resource Status With Timeout RT    host_1    service_1    60    ${start_int}    2    SOFT    Test check 456
+        Should Be True    ${res}    soft state not reached
+
+        sleep    1s
+        ${start_int}    Ctn Get Round Current Date
+        Append To List    ${last_checks}    ${content}[last_check]
+        Log To Console    Soft #${i} last_check=${content}[last_check]
+        Ctn Schedule Forced Service Check    host_1    service_1
+        ${i}    Evaluate    ${i} + 1
+ 
+    END
+    Log To Console    last_checks=${last_checks}
+    # 1er soft , 2eme soft , 3eme soft ,4eme hard
+    ${len_last_checks}    Get Length    ${last_checks}
+    Should Be Equal As Integers    ${len_last_checks}    3    There should be exactly three distinct SOFT attempts
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    2  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
+
+
+    ${start}    Ctn Get Round Current Date
+    #service_1 check ok
+    Ctn Set Command Status    456    ${0}
+    
+    Ctn Schedule Forced Service Check    host_1    service_1
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    0  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
+
+BEOTEL_CENTREON_AGENT_CHECK_SERVICE_FRESHNESS
+    [Documentation]    Given an 
+    [Tags]    broker    engine    opentelemetry    MON-162182
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    3
+    Ctn Engine Config Set Value In Services    ${0}    service_1    check_freshness    1
+    Ctn Engine Config Set Value In Services    ${0}    service_1    freshness_threshold    30
+
+    ${check_cmd}  Ctn Check Pl Command   --id 456
+
+    Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    #service_1 check fail CRITICAL
+    Ctn Set Command Status    456    ${0}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Db    resources
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    ${i}    Set Variable    1
+    ${prev_last_check}    Set Variable    None
+    ${tries}    Set Variable    0
+    ${last_checks}    Create List
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    80    ${start_int}    0  HARD  Test check 456
+    Should Be True    ${result}    resources table not updated
+
+    Ctn Kindly Stop Agent
+    Sleep    35s
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60    ${start_int}    3  HARD  (Execute command failed) 
+    Should Be True    ${result}    resources table not updated
+
+BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
+    [Documentation]    agent check host with reversed connection and we expect to get it in check result
     [Tags]    broker    engine    opentelemetry    MON-63843
     Ctn Config Engine    ${1}    ${2}    ${2}
 
