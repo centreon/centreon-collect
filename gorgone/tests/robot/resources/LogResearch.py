@@ -127,6 +127,7 @@ def parse_json_response(response):
     # as the time of writing, status code is always 200 because webapp autodiscovery module always expect a 200.
     if response.status_code != 200 and response.status_code != 404:
         return False, api_json
+    logger.debug(f"rest api response: {api_json}")
 
     if 'error' in api_json and api_json['error'] == "no_log":
         return False, 'gorgone api didnt sent back any logs'
