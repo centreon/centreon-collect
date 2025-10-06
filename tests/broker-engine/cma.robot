@@ -263,8 +263,17 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE
     Should Be True    ${result}    resources table not updated
 
 BEOTEL_CENTREON_AGENT_CHECK_SERVICE_FRESHNESS
-    [Documentation]    Given an 
+    [Documentation]    Given Centreon Engine is configured with an OpenTelemetry server module
+...    And broker, engine and agent are started and the OTEL server is ready
+...    When the agent executes checks under normal operation
+...    Then service_1 MUST be recorded as HARD OK (status 0) with output "Test check 456"
+...    When the agent is stopped and no new check results arrive for a period exceeding the freshness_threshold (30 seconds)
+...    Then service_1 MUST transition to HARD UNKNOWN (status 3) with output "(Execute command failed)"
     [Tags]    broker    engine    opentelemetry    MON-162182
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux agent version"
+
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
