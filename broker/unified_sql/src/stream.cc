@@ -45,9 +45,6 @@ const std::string stream::_index_data_insert_request(
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
-const std::array<int, 5> stream::hst_ordered_status{0, 4, 2, 0, 1};
-const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
-
 static constexpr int32_t queue_timer_duration = 10;
 
 constexpr void (stream::*const stream::neb_processing_table[])(
@@ -238,8 +235,10 @@ stream::stream(const database_config& dbcfg,
   absl::MutexLock l(&_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait([this](const boost::system::error_code& err) {
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
-    _check_queues(err);
+    if (!err) {
+      absl::ReaderMutexLock lck(&_barrier_timer_m);
+      _check_queues(err);
+    }
   });
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
@@ -275,8 +274,7 @@ stream::~stream() noexcept {
     _comments->force_ready();
   if (_logs)
     _logs->force_ready();
-  boost::system::error_code ec;
-  _check_queues(ec);
+  _check_queues({});
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 
