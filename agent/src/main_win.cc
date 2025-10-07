@@ -168,11 +168,6 @@ int _main(bool service_start) {
   check_drive_size_detail::drive_size_thread::os_fs_stats =
       check_drive_size_detail::os_fs_stats;
 
-  if (service_start)
-    SPDLOG_INFO("centreon-monitoring-agent service start");
-  else
-    SPDLOG_INFO("centreon-monitoring-agent start");
-
   const std::string logger_name = "centreon-monitoring-agent";
 
   auto create_event_logger = []() {
@@ -220,7 +215,18 @@ int _main(bool service_start) {
 
   set_grpc_logger();
 
-  SPDLOG_LOGGER_INFO(g_logger, "centreon-monitoring-agent start");
+  if (service_start)
+    SPDLOG_LOGGER_INFO(
+        g_logger,
+        "centreon-monitoring-agent service started with registry configuration "
+        "{} ",
+        g_service_name);
+  else
+    SPDLOG_LOGGER_INFO(
+        g_logger,
+        "centreon-monitoring-agent start with registry configuration {} ",
+        g_service_name);
+
   std::shared_ptr<com::centreon::common::grpc::grpc_config> grpc_conf;
 
   try {
