@@ -253,7 +253,10 @@ BEDB4
     Ctn Stop engine
 
 BDBM1
-    [Documentation]    start broker/engine and then start MariaDB => connection is established
+    [Documentation]    Given the broker and engine are configured and started
+    ...    When MariaDB is restarted
+    ...    Then the connection between the broker/engine and MariaDB should be successfully established and 
+    ...    number of connections in the stats file should be equal to the configured connections_count
     [Tags]    broker    sql    start-stop
     @{lst}    Create List    1    6
     FOR    ${c}    IN    @{lst}
@@ -271,10 +274,11 @@ BDBM1
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
         Should Be True    ${result}    Message about the disconnection between cbd and the database is missing
         Ctn Start Mysql
-        ${result}    Ctn Get Broker Stats Size    central    mysql manager
+        ${expected}    Evaluate    ${c} + 1
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${expected}    ${60}
         Should Be True
-        ...    ${result} >= ${c} + 1
-        ...    The stats file should contain at least ${c} + 1 connections to the database.
+        ...    ${result} >= ${expected}
+        ...    The stats file should contain at least ${c} connections to the database.
         Ctn Kindly Stop Broker
         Ctn Stop engine
     END
@@ -385,7 +389,8 @@ BDBMU1
         Ctn Start Mysql
         ${result}    Ctn Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
         Should Be True    ${result}    No stats on mysql manager found
-        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
+        ${expected}    Evaluate    ${c} + 1
+        ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${expected}    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
         Ctn Kindly Stop Broker
         Ctn Stop Engine
