@@ -10,6 +10,9 @@ inputs:
   token_download_centreon_com:
     description: "The token to call download.centreon.com api"
     required: false
+  is_cloud:
+    description: "Release context (cloud or not cloud)"
+    required: true
 
 runs:
   using: "composite"
@@ -20,6 +23,7 @@ runs:
         FILE_PATTERN: ${{ inputs.file_pattern }}
         GITHUB_RELEASE: ${{ inputs.github_release }}
         TOKEN_DOWNLOAD_CENTREON_COM: ${{ inputs.token_download_centreon_com }}
+        IS_CLOUD: ${{ inputs.is_cloud }}
       with:
         script: |
           const path = require('path');
