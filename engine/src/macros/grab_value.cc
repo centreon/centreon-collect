@@ -1107,16 +1107,10 @@ int grab_macro_value_r(nagios_macros* mac,
   }
 
   // some macros are encrypted?
-  if (pb_config.credentials_encryption()) {
+  if (credentials_decrypt) {
     if (!output.compare(0, 5, "raw::")) {
       output.erase(0, 5);
     } else if (!output.compare(0, 9, "encrypt::")) {
-      if (!credentials_decrypt) {
-        SPDLOG_LOGGER_ERROR(macros_logger,
-                            "no encryption configured => can't decryp macro {}",
-                            macro_name);
-        return ERROR;
-      }
       try {
         output =
             credentials_decrypt->decrypt(std::string_view(output).substr(9));
@@ -1127,7 +1121,6 @@ int grab_macro_value_r(nagios_macros* mac,
       }
     }
   }
-
   return result;
 }
 
