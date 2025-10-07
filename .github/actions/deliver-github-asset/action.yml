@@ -10,9 +10,6 @@ inputs:
   token_download_centreon_com:
     description: "The token to call download.centreon.com api"
     required: false
-  is_cloud:
-    description: "Release context (cloud or not cloud)"
-    required: true
 
 runs:
   using: "composite"
