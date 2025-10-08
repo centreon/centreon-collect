@@ -91,7 +91,7 @@ Test Async Action Module
 
 
 Post Action Endpoint
-    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}
+    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20250900
 
     # Ideally, Gorgone should not allow any bash interpretation on command it execute.
     # As there is a whitelist in gorgone, if there was no bash interpretation we could allow only our required binary and be safe.
