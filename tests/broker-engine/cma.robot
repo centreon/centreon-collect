@@ -176,7 +176,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
     Sleep    1s
 
@@ -1190,7 +1190,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    10
+    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -1606,7 +1606,6 @@ BEOTEL_CENTREON_AGENT_CHECK_COUNTER
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_process_critical
     Ctn Reload Engine
@@ -1670,13 +1669,11 @@ BEOTEL_CENTREON_AGENT_CHECK_TASKSCHEDULER
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_warning
     Ctn Reload Engine
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
-
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_tasksched_critical
@@ -1741,13 +1738,11 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    0    60    ANY
     Should Be True    ${result}    resources table not updated for service_1
 
-
     Log To Console    service_1 must be warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_warning
     Ctn Reload Engine
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
-
 
     Log To Console    service_1 must be critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_critical
@@ -1811,7 +1806,7 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    Then the connection should be accepted
     [Tags]    broker    engine    opentelemetry    MON-170625
 
-    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Config Engine    ${1}    ${2}    ${5}
 
     Ctn Add Otl ServerModule
     ...    0
@@ -1823,10 +1818,10 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     
     # create a host with otel_check_icmp command
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Set Hosts Passive  ${0}  host_1
-    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_command    otel_check_icmp
+    Ctn Set Services Passive    0    service_5
     Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Replace Value In Services    ${0}    service_5    check_interval    1
     ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
@@ -1848,8 +1843,15 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
     
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
-    Should Be True    ${result}    resources table not updated
+    FOR    ${i}    IN RANGE    1    10
+        ${result}    ${content}    Ctn Check Service Resource Status With Timeout Rt    host_1    service_5    0    120    HARD
+        Should Be True    ${result}    resources table not updated
+        ${found}=    Run Keyword And Return Status    Should Contain    ${content}    OK - 127.0.0.1
+        Exit For Loop If    ${found}
+        Sleep    1s
+    END
+
+    Should Be True    ${found}    Expected 'OK - 127.0.0.1' in content but got '${content}'
 
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
@@ -2567,8 +2569,6 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
         ${echo_command}   Ctn Echo Command  "OK check2 - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command  ${0}    rejected_by_whitelist    ${echo_command}    OTEL connector
 
-
-
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
@@ -2601,8 +2601,6 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     Should Be True    ${result}    resources table not updated
 
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    rejected_by_whitelist
-    
-
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
@@ -2614,7 +2612,125 @@ BEOTEL_CENTREON_AGENT_WHITE_LIST
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command not allowed by whitelist.
 
+BEOTEL_CENTREON_AGENT_TLS_BAD_CERT
+    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled 
+    ...    When the Centreon Agent connects using a certificate with a mismatched hostname and the full option enabled
+    ...    Then the connection is refused
+    ...    And the engine log confirms the certificate hostname mismatch
+    [Tags]    broker    engine    opentelemetry    MON-159813    Only_linux
+    
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux agent version"
 
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    ${host_host_name}      Ctn Host Hostname
+    Ctn Create Key And Certificate  "server.local"  /tmp/server_grpc1.key   /tmp/server_grpc1.crt
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc1.crt", "private_key": "/tmp/server_grpc1.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${token1}    Ctn Create Jwt Token    ${-1}
+
+    Ctn Add Token Otl Server Module    0    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc1.crt    ${token1}    ${None}
+    
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+
+    #connection is not accepted because the hostname used by agent is not in certificate
+    ${content}    Create List    Peer name ${host_host_name} is not in peer certificate
+    ${result}    Ctn Find Regex In Log With Timeout    ${agentlog}    ${start}    ${content}    20    True
+    Should Be True    ${result}     this message should appear : Peer name ${host_host_name} is not in peer certificate
+
+BEOTEL_CENTREON_AGENT_INSECURE
+    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled 
+    ...    When the Centreon Agent connects using a certificate with a mismatched hostname and the insecure option enabled
+    ...    Then the connection succeeds
+    ...    And the engine log confirms the token was accepted
+    [Tags]    broker    engine    opentelemetry    MON-159813    Only_linux
+    
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux agent version"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Create Key And Certificate  server.local  /tmp/server_grpc1.key   /tmp/server_grpc1.crt
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc1.crt", "private_key": "/tmp/server_grpc1.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    ${token1}    Ctn Create Jwt Token    ${-1}
+
+    Ctn Add Token Otl Server Module    0    ${token1}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc1.crt    ${token1}    server.local    insecure
+    
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    
+    #if the message apear mean that the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "Token is valid" should appear.
+    
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

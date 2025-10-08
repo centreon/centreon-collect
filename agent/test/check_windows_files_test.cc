@@ -519,6 +519,7 @@ TEST_F(check_files_test, pattern_matching) {
 }
 
 // Test for dangling pointers in check_files class
+// destroying check_files does not crash
 TEST_F(check_files_test, no_dangling_pointer) {
   using namespace com::centreon::common::literals;
   std::string json_str = fmt::format(R"({{

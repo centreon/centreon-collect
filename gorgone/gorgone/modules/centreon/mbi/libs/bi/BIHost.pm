@@ -56,14 +56,14 @@ sub getHostsInfo {
 		if (defined($result{$row->{'host_id'}})) {
 			my $tab_ref = $result{$row->{'host_id'}};
 			my @tab = @$tab_ref;
-			push @tab , $row->{"host_id"}.";".$row->{"host_name"}.";".
-									$row->{"hg_id"}.";".$row->{"hg_name"}.";".
-									$row->{"hc_id"}.";".$row->{"hc_name"};
+			push @tab , [ $row->{"host_id"}, $row->{"host_name"},
+									$row->{"hg_id"}, $row->{"hg_name"},
+									$row->{"hc_id"}, $row->{"hc_name"} ];
 			$result{$row->{'host_id'}} = \@tab;
 		}else {
-			my @tab = ($row->{"host_id"}.";".$row->{"host_name"}.";".
-									$row->{"hg_id"}.";".$row->{"hg_name"}.";".
-									$row->{"hc_id"}.";".$row->{"hc_name"});
+			my @tab = [ $row->{"host_id"}, $row->{"host_name"},
+									$row->{"hg_id"}, $row->{"hg_name"},
+									$row->{"hc_id"}, $row->{"hc_name"} ];
 			$result{$row->{'host_id'}} = \@tab;
 		}
 	}
@@ -113,10 +113,10 @@ sub insertIntoTable {
 	$inst->begin_work;
 	my $counter = 0;
 	
-	foreach (@$data) {
-		my ($host_id, $host_name, $hg_id, $hg_name, $hc_id, $hc_name) = split(";", $_);
+	foreach my $entry (@$data) {
+		my ($host_id, $host_name, $hg_id, $hg_name, $hc_id, $hc_name) = @$entry;
 		$sth->bind_param(1, $host_id);
-		$sth->bind_param(2, $host_name);
+		$sth->bind_param(2, $host_name // '');
 		$sth->bind_param(3, $hg_id);
 		$sth->bind_param(4, $hg_name);
 		$sth->bind_param(5, $hc_id);

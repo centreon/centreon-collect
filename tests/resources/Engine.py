@@ -1142,11 +1142,20 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    r = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines.insert(i + 1, f"    {key}              {value}\n")
-            break
+    r_name = re.compile(rf"^\s*contact_name\s+{desc}\s*$")
+    r_key = re.compile(rf"^\s*{key}\s+[\w\.,]+\s*$")
+    in_block = False
+    for i, line in enumerate(lines):
+        if not in_block:
+            if r_name.match(line):
+                in_block = True
+        else:
+            if r_key.match(line):
+                lines[i] = f"    {key}                     {value}\n"
+                break
+            elif line.strip() == "}":
+                lines.insert(i, f"    {key}                     {value}\n")
+                break
 
     with open(filename, "w") as f:
         f.writelines(lines)
@@ -3663,7 +3672,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, wit
     if "centreon_agent" in json_load:
         if "reverse_connections" in json_load["centreon_agent"]:
             for obj in json_load["centreon_agent"]["reverse_connections"]:
-                if "encryption" in obj and obj["encryption"] == True:
+                if "encryption" in obj and (obj["encryption"] == True or obj["encryption"] == "full" or obj["encryption"] == "insecure" or obj["encryption"] == "true"):
                     obj["token"] = token
 
     with open(otl_server_config_path, "w") as f:
@@ -3694,7 +3703,7 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
 
     # Check if "trusted_tokens" already exists
     if "otel_server" in data and "encryption" in data["otel_server"]:
-        if data["otel_server"]["encryption"] == True:
+        if data["otel_server"]["encryption"] == "full" or data["otel_server"]["encryption"] == "insecure" or data["otel_server"]["encryption"] == True or data["otel_server"]["encryption"] == "true":
             if "trusted_tokens" in data["otel_server"]:
                 if token not in data["otel_server"]["trusted_tokens"]:
                     data["otel_server"]["trusted_tokens"].append(token)

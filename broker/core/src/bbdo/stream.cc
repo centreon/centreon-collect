@@ -804,6 +804,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   if (d->type() == version_response::static_type()) {
     std::shared_ptr<version_response> v(
         std::static_pointer_cast<version_response>(d));
+    bbdo_version other_version(v->bbdo_major, v->bbdo_minor, v->bbdo_patch);
     if (v->bbdo_major != _bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
           _logger,
@@ -829,6 +830,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       SPDLOG_LOGGER_DEBUG(
           _logger, "BBDO: sending welcome packet (available extensions: {})",
           extensions);
+      if (other_version < _bbdo_version) {
+        _bbdo_version = other_version;
+        SPDLOG_LOGGER_INFO(_logger, "bbdo version downgraded to {}.{}.{}",
+                           _bbdo_version.major_v, _bbdo_version.minor_v,
+                           _bbdo_version.patch);
+      }
+
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome_packet(
@@ -840,6 +848,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   } else {
     std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
     const auto& pb_version = w->obj().version();
+    bbdo_version other_version(pb_version.major(), pb_version.minor(),
+                               pb_version.patch());
     if (pb_version.major() != _bbdo_version.major_v) {
       SPDLOG_LOGGER_ERROR(
           _logger,
@@ -865,6 +875,13 @@ void stream::negotiate(stream::negotiation_type neg) {
       SPDLOG_LOGGER_DEBUG(
           _logger, "BBDO: sending welcome packet (available extensions: {})",
           extensions);
+      if (other_version < _bbdo_version) {
+        _bbdo_version = other_version;
+        SPDLOG_LOGGER_INFO(_logger, "bbdo version downgraded to {}.{}.{}",
+                           _bbdo_version.major_v, _bbdo_version.minor_v,
+                           _bbdo_version.patch);
+      }
+
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
       auto welcome(std::make_shared<pb_welcome>());
@@ -1053,7 +1070,10 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
                                ->obj()
                                .acknowledged_events());
         break;
-      case stop::static_type():
+      case stop::static_type(): {
+        SPDLOG_LOGGER_INFO(_logger, "BBDO: received stop from peer");
+        send_event_acknowledgement();
+      } break;
       case pb_stop::static_type(): {
         SPDLOG_LOGGER_INFO(
             _logger, "BBDO: received stop from peer with ID {}",

@@ -213,9 +213,9 @@ int grab_custom_macro_value_r(nagios_macros* mac,
         return (ERROR);
 
       /* concatenate macro values for all contactgroup members */
-      for (contact_map_unsafe::const_iterator
-               it{cg_it->second->get_members().begin()},
-           end{cg_it->second->get_members().end()};
+      for (contact_map::const_iterator
+               it = cg_it->second->get_members().begin(),
+               end = cg_it->second->get_members().end();
            it != end; ++it) {
         if (!it->second)
           continue;
@@ -604,9 +604,9 @@ int grab_standard_contactgroup_macro(
 
     case MACRO_CONTACTGROUPMEMBERS:
       /* get the member list */
-      for (contact_map_unsafe::const_iterator
-               it{temp_contactgroup->get_members().begin()},
-           end{temp_contactgroup->get_members().end()};
+      for (contact_map::const_iterator
+               it = temp_contactgroup->get_members().begin(),
+               end = temp_contactgroup->get_members().end();
            it != end; ++it) {
         if (it->second->get_name().empty())
           continue;
@@ -673,7 +673,7 @@ std::string clean_macro_chars(std::string const& macro, int options) {
       if (ch < 32 || ch == 127)
         continue;
 
-        /* illegal user-specified characters */
+      /* illegal user-specified characters */
 #ifdef LEGACY_CONF
       if (config->illegal_output_chars().find(ch) == std::string::npos)
         retval[y++] = retval[x];

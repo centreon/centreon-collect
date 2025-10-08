@@ -66,6 +66,28 @@ TEST(config, bad_log_level) {
   ASSERT_THROW(config conf(_json_config_path), std::exception);
 }
 
+TEST(config, encryption_default_no) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "compression": true,
+    "ca_common_name":"toto",
+    "token":"token1"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+  ASSERT_EQ(conf.get_token(), "token1");
+  ASSERT_EQ(conf.get_ca_name(), "toto");
+  ASSERT_FALSE(conf.use_encryption());
+  ASSERT_TRUE(conf.get_security_mode() ==
+              com::centreon::common::grpc::grpc_config::NONE);
+}
+
 TEST(config, token) {
   ::remove(_json_config_path.c_str());
   std::ofstream f(_json_config_path);
@@ -74,15 +96,19 @@ TEST(config, token) {
     "host":"127.0.0.1",
     "endpoint":"host1.domain2:4317",
     "port":2500,
-    "encryption":true,
+    "encryption":"full",
     "compression": true,
-    "ca_name":"toto",
+    "ca_common_name":"toto",
     "token":"token1"
 })";
   f.close();
 
   config conf(_json_config_path);  // Declare and initialize conf
   ASSERT_EQ(conf.get_token(), "token1");
+  ASSERT_EQ(conf.get_ca_name(), "toto");
+  ASSERT_TRUE(conf.use_encryption());
+  ASSERT_TRUE(conf.get_security_mode() ==
+              com::centreon::common::grpc::grpc_config::TLS_SECURE);
 }
 
 TEST(config, reversed_grpc_streaming_token) {
@@ -93,14 +119,62 @@ TEST(config, reversed_grpc_streaming_token) {
     "host":"127.0.0.1",
     "endpoint":"host1.domain2:4317",
     "port":2500,
-    "encryption":true,
+    "encryption":"insecure",
     "compression": true,
     "reversed_grpc_streaming":true,
-    "ca_name":"toto",
+    "ca_common_name":"toto",
     "token":"token1"
 })";
   f.close();
 
   config conf(_json_config_path);  // Declare and initialize conf
   ASSERT_TRUE(conf.get_trusted_tokens().contains("token1"));
+  ASSERT_TRUE(conf.use_encryption());
+  ASSERT_TRUE(conf.get_security_mode() ==
+              com::centreon::common::grpc::grpc_config::TLS_INSECURE);
+}
+TEST(config, old_fields) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "encryption":"full",
+    "compression": true,
+    "reversed_grpc_streaming":true,
+    "ca_name":"toto",
+    "ca_certificate":"/path/to/ca.crt",
+    "token":"token1"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+
+  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_name(), "toto");
+}
+
+TEST(config, new_fields) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "encryption":"full",
+    "compression": true,
+    "reversed_grpc_streaming":true,
+    "ca_common_name":"toto",
+    "ca":"/path/to/ca.crt",
+    "token":"token1"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+
+  ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
+  ASSERT_EQ(conf.get_ca_name(), "toto");
 }

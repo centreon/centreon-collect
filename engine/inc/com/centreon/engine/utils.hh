@@ -89,4 +89,5 @@ inline int get_raw_command_line_r(
                                 macro_options);
 }
 
+std::string get_stack_trace(int max_depth = 64);
 #endif  // !CCE_UTILS_HH

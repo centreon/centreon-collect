@@ -1,7 +1,11 @@
 name: centreon-collect
 run-name: |
   ${{
-    (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true'))
+    (github.event_name == 'schedule' ||
+     (github.event_name == 'workflow_dispatch' &&
+      (github.event.inputs.nightly_manual_trigger == 'true' || github.event.inputs.robot_pattern != '^((?!cma).)*$')
+     )
+    )
     && format('collect nightly {0}', github.ref_name)
     || ''
   }}
@@ -23,6 +27,11 @@ on:
         required: true
         default: true
         type: boolean
+      robot_pattern:
+        description: 'filter robot files with regex'
+        required: true
+        default: '^((?!cma).)*$'
+        type: string
       packages_in_artifact:
         description: 'Save packages in artifacts'
         required: true
@@ -38,6 +47,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
+      - ".version"
       - ".version.centreon-collect"
       - bbdo/**
       - broker/**
@@ -56,8 +66,6 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
   push:
     branches:
@@ -66,6 +74,7 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
+      - ".version"
       - ".version.centreon-collect"
       - bbdo/**
       - broker/**
@@ -84,8 +93,6 @@ on:
       - overlays/**
       - selinux/**
       - "!selinux/centreon-common/**"
-      - "!.veracode-exclusions"
-      - "!veracode.json"
       - "!**/test/**"
 
 jobs:
@@ -93,7 +100,32 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+      nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
+
+  check-version-consistency:
+    runs-on: ubuntu-24.04
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'testing'
+    env:
+      version: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}
+      version_file: .version.centreon-collect
+      cmake_file: CMakeLists.txt
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Check ${{ env.version_file }}
+        uses: ./.github/actions/check-version-consistency
+        with:
+          file: ${{ env.version_file }}
+          version: ${{ env.version }}
+
+      - name: Check ${{ env.cmake_file }}
+        uses: ./.github/actions/check-version-consistency
+        with:
+          file: ${{ env.cmake_file }}
+          version: ${{ env.version }}
 
   unit-test:
     needs: [get-environment]
@@ -121,7 +153,7 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit test ${{ matrix.distrib }}
+    name: unit-test ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
@@ -209,25 +241,14 @@ jobs:
           path: "build/ut_*.xml"
           retention-days: 1
 
-      - name: Create Jira ticket on nightly build failure
-        if: |
-          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
-          failure() &&
-          startsWith(github.ref_name, 'dev')
-        uses: ./.github/actions/create-jira-ticket
-        with:
-          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
-          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
-          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
-          module_name: "centreon-collect"
-          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
-          ticket_squad: "DevSecOps"
-
   package:
-    needs: [get-environment]
+    needs: [get-environment, check-version-consistency]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     strategy:
       fail-fast: false
       matrix:
@@ -252,6 +273,11 @@ jobs:
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
+          - image: packaging-centreon-collect-vcpkg-jammy
+            distrib: jammy
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-noble
             distrib: noble
             package_extension: deb
@@ -314,6 +340,13 @@ jobs:
             database_type: mariadb
             test_group_name: robot_test-mariadb-el8-amd64
             tests_params: '{}'
+          - distrib: el8
+            image: centreon-collect-mysql-alma8-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mysql
+            test_group_name: robot_test-mysql-el8-amd64
+            tests_params: '{}'
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
@@ -350,7 +383,7 @@ jobs:
             test_group_name: robot_test-mariadb-el9-amd64-grpc
             tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
-    name: ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.test_group_name }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
@@ -364,7 +397,7 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: '^((?!cma).)*$'
+      features_pattern: ${{ inputs.robot_pattern }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -421,7 +454,7 @@ jobs:
           - distrib: el9
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: deliver-rpm ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -439,20 +472,6 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-      - name: Create Jira ticket on nightly build failure
-        if: |
-          needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
-          failure() &&
-          startsWith(github.ref_name, 'dev')
-        uses: ./.github/actions/create-jira-ticket
-        with:
-          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
-          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
-          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
-          module_name: "centreon-collect"
-          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
-          ticket_squad: "DevSecOps"
-
   deliver-deb:
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -469,10 +488,12 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: jammy
+            arch: amd64
           - distrib: noble
             arch: amd64
 
-    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: deliver-deb ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -490,22 +511,6 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-      - name: Create Jira ticket on nightly build failure
-        if: |
-          needs.get-environment.outputs.is_nightly == 'true' &&
-          github.run_attempt == 1 &&
-          failure() &&
-          startsWith(github.ref_name, 'dev') &&
-          github.repository == 'centreon/centreon-collect'
-        uses: ./.github/actions/create-jira-ticket
-        with:
-          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
-          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
-          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
-          module_name: "centreon-collect"
-          ticket_labels: '["Nightly", "Pipeline", "nightly-${{ github.ref_name }}", "${{ github.job }}"]'
-          ticket_squad: "DevSecOps"
-
   promote:
     needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
@@ -519,7 +524,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm, noble, jammy]
 
     steps:
       - name: Checkout sources
@@ -569,3 +574,27 @@ jobs:
             echo "Cache $row was deleted."
           done <<< "$cache_keys"
         shell: bash
+
+  create-jira-nightly-ticket:
+    runs-on: ubuntu-24.04
+    needs: [
+      get-environment,
+      deliver-rpm,
+      deliver-deb
+    ]
+    if: |
+      needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
+      (failure() || cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) &&
+      github.repository == 'centreon/centreon-collect'
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Create Jira ticket based on nightly build failure
+        uses: ./.github/actions/create-jira-ticket
+        with:
+          jira_base_url: ${{ secrets.JIRA_BASE_URL }}
+          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
+          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          module_name: "centreon-collect"
+          ticket_reason_for_creation: "Nightly"

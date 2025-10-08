@@ -98,7 +98,7 @@ reversed_agent_encrypted_config = f"""
     "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
-def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None):
+def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None, ca_common_name: str = None, security_mode: str = "full"):
     """ctn_config_centreon_agent
     Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption) 
     Args:
@@ -117,17 +117,20 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         else:
             ff.write(agent_config)
         if key_path is not None or cert_path is not None or ca_path is not None:
-            ff.write(",\n  \"encryption\":true")
+            ff.write(f",\n  \"encryption\":\"{security_mode}\"")
         if key_path is not None:
             ff.write(f",\n  \"private_key\":\"{key_path}\"")
         if cert_path is not None:
             ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
         if ca_path is not None:
-            ff.write(f",\n  \"ca_certificate\":\"{ca_path}\"")
+            ff.write(f",\n  \"ca\":\"{ca_path}\"")
+        if ca_common_name is not None:
+            ff.write(f",\n  \"ca_common_name\":\"{ca_common_name}\"")
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
 
         ff.write("\n}\n")
+
 
 def ctn_config_set_value(key: str, value: str):
     """ctn_config_set_value
@@ -137,7 +140,7 @@ def ctn_config_set_value(key: str, value: str):
         value: value to set
     """
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
-    
+
     with open(f"{CONF_DIR}/centagent.json", "r+") as ff:
         content = json.load(ff)
         print(content)
@@ -145,7 +148,6 @@ def ctn_config_set_value(key: str, value: str):
         ff.seek(0)
         ff.truncate()
         json.dump(content, ff, indent=4)
-        
 
 
 def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None):
@@ -168,13 +170,13 @@ def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = Non
             ff.write(reversed_agent_config)
         ff.write(",\n  \"reversed_grpc_streaming\":true")
         if key_path is not None or cert_path is not None or ca_path is not None:
-            ff.write(",\n  \"encryption\":true")
+            ff.write(",\n  \"encryption\":\"full\"")
         if key_path is not None:
             ff.write(f",\n  \"private_key\":\"{key_path}\"")
         if cert_path is not None:
             ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
         if ca_path is not None:
-            ff.write(f",\n  \"ca_certificate\":\"{ca_path}\"")
+            ff.write(f",\n  \"ca\":\"{ca_path}\"")
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
         ff.write("\n}\n")

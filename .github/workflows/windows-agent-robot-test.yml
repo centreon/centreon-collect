@@ -104,7 +104,7 @@ jobs:
           Write-Host "ip address show"
           wsl ip address show
       - name: Compile Agent
-        run: .github/scripts/windows-agent-compile.ps1
+        run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off
         shell: powershell
 
       - name: install database

@@ -40,8 +40,8 @@ const std::string_view config::config_schema(R"(
             "pattern": "[\\w\\.:]+:\\w+"
         },
         "encryption": {
-            "description": "Set to true to enable https. Default: false",
-            "type": "boolean"
+            "description": "full: mean tls secure connection , insecure: tls without server certificate verification, no: plain text",
+            "enum": ["full", "insecure", "no"]
         },
         "public_cert": {
             "description": "Path of the public certificate file .crt",
@@ -55,7 +55,15 @@ const std::string_view config::config_schema(R"(
             "description": "Path of the SSL CA file .crt",
             "type": "string"
         },
+        "ca": {
+            "description": "Path of the SSL CA file .crt",
+            "type": "string"
+        },
         "ca_name": {
+            "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
+            "type": "string"
+        },
+        "ca_common_name": {
             "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
             "type": "string"
         },
@@ -105,6 +113,10 @@ const std::string_view config::config_schema(R"(
     "required": [
         "endpoint"
     ],
+    "allOf": [
+        { "not": { "required": ["ca_common_name", "ca_name"] } },
+        { "not": { "required": ["ca", "ca_certificate"] } }
+    ],
     "type": "object"
 }
 
@@ -148,11 +160,26 @@ config::config(const std::string& path) {
   _log_file = json_config.get_string("log_file", "");
   _log_max_file_size = json_config.get_unsigned("log_max_file_size", 0);
   _log_max_files = json_config.get_unsigned("log_max_files", 0);
-  _encryption = json_config.get_bool("encryption", false);
+
+  const std::string& encryption = json_config.get_string("encryption", "no");
+  if (encryption == "full") {
+    _security_mode = common::grpc::grpc_config::TLS_SECURE;
+  } else if (encryption == "insecure") {
+    _security_mode = common::grpc::grpc_config::TLS_INSECURE;
+  } else {
+    _security_mode = common::grpc::grpc_config::NONE;
+  }
+
   _public_cert_file = json_config.get_string("public_cert", "");
   _private_key_file = json_config.get_string("private_key", "");
-  _ca_certificate_file = json_config.get_string("ca_certificate", "");
-  _ca_name = json_config.get_string("ca_name", "");
+  _ca_certificate_file = json_config.get_string("ca", "");
+  if (_ca_certificate_file.empty()) {
+    _ca_certificate_file = json_config.get_string("ca_certificate", "");
+  }
+  _ca_name = json_config.get_string("ca_common_name", "");
+  if (_ca_name.empty()) {
+    _ca_name = json_config.get_string("ca_name", "");
+  }
   _host = json_config.get_string("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
