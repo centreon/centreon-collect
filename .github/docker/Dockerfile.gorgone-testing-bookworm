@@ -27,7 +27,7 @@ pymysql robotframework-requests robotframework-jsonlibrary
 curl -fsSL https://deb.nodesource.com/setup_20.x | bash - &&\
 apt-get install -y nodejs
 # Install mockoon (needs nodejs)
-npm install -g -D @mockoon/cli
+npm install -g -D @mockoon/cli@9.3.0
 
 VERSION_CODENAME=\$(
   . /etc/os-release
