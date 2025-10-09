@@ -25,6 +25,3 @@ ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-engine
 
-[Install]
-WantedBy=centreon.service
-
