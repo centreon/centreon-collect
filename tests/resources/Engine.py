@@ -573,14 +573,18 @@ define command {{
             ff.write(content)
 
     @staticmethod
-    def create_template_file(poller: int, typ: str, what: str, ids):
+    def create_template_file(poller: int, typ: str, what: str, ids, first_template_index: int):
         if typ == "hostescalation" or typ == "serviceescalation":
             config_file = f"{CONF_DIR}/config{poller}/escalationTemplates.cfg"
         else:
             config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
-        with open(config_file, "w+") as ff:
+        if first_template_index <= 1:
+            file_open_option = "w+"
+        else:
+            file_open_option = "a+"
+        with open(config_file, file_open_option) as ff:
             content = ""
-            idx = 1
+            idx = first_template_index
             for i in ids:
                 content += f"""define {typ} {{
 name                   {typ}_template_{idx}
@@ -2786,7 +2790,7 @@ def ctn_create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostg
     engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 
-def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
+def ctn_create_template_file(poller: int, typ: str, what: str, ids: list, first_template_index: int = 1):
     """
     Create a template file of the form "{typ}Templates.cfg". This should be as
     generic as possible. In fact, not so generic...
@@ -2796,8 +2800,9 @@ def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
         typ (str): service, host, ...
         what (str): A string. It depends on what type of template.
         ids (list): For each integer in this list, a template is defined.
+        first_template_index (int): index of the first created template (example host_template_<first_template_index>)
     """
-    engine.create_template_file(poller, typ, what, ids)
+    engine.create_template_file(poller, typ, what, ids, first_template_index)
 
 
 def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
