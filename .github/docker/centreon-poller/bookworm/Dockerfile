@@ -4,6 +4,8 @@ ARG VERSION
 ARG IS_CLOUD
 ARG STABILITY
 
+ENV DEBIAN_FRONTEND=noninteractive
+
 COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
@@ -30,7 +32,7 @@ APT::Install-Suggests "false";
 
 apt-get update
 
-apt-get install -y wget gnupg2 ca-certificates
+apt-get install -y wget gnupg2 ca-certificates python3 software-properties-common
 
 VERSION_CODENAME=\$(
   . /etc/os-release
