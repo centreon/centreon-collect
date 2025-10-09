@@ -25,3 +25,5 @@ ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-engine
 
+[Install]
+WantedBy=multi-user.target

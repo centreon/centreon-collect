@@ -26,3 +26,5 @@ Type=simple
 User=centreon-broker
 UMask=0002
 
+[Install]
+WantedBy=multi-user.target
