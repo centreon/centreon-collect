@@ -18,10 +18,6 @@
 
 [Unit]
 Description=Centreon Engine
-PartOf=centreon.service
-After=centreon.service
-ReloadPropagatedFrom=centreon.service
-After=cbd.service
 
 [Service]
 ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine -b @CMAKE_INSTALL_FULL_SYSCONFDIR@/centreon-broker/central-module.json @PREFIX_ENGINE_CONF@/centengine.cfg
