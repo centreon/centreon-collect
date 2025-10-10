@@ -15,10 +15,10 @@ Please include a short resume of the changes and what is the purpose of PR. Any 
 
 ## Target serie
 
-- [ ] 22.10.x
 - [ ] 23.10.x
 - [ ] 24.04.x
 - [ ] 24.10.x
+- [ ] 25.10.x
 - [ ] master
 
 <h2> How this pull request can be tested ? </h2>
