@@ -78,12 +78,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name lo
 Write-Host "start manually agent (agent initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone" -RedirectStandardOutput reports\encrypted_centagent_stdout.log -RedirectStandardError reports\encrypted_centagent_stderr.log
 
-<<<<<<< HEAD
-Start-Sleep -Seconds 1
-=======
-
 Start-Sleep -Seconds 5
->>>>>>> 24.10.x
 
 #Start reverse agent
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ""
