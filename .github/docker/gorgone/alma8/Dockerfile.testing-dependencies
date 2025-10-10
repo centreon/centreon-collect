@@ -1,27 +1,24 @@
-FROM almalinux:9
+FROM almalinux:8
 
 ARG VERSION=25.10
 ARG IS_CLOUD=0
 
-COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
-
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
-    --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
     bash -e <<EOF
 
 echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
 echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
-dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
-dnf config-manager --set-enabled crb
+dnf install -y dnf-plugins-core zstd curl mariadb iproute epel-release procps lsof
+dnf config-manager --set-enabled 'powertools'
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
-  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el9/centreon-${VERSION}-internal.repo
+  dnf config-manager --add-repo https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal/${VERSION}/el8/centreon-${VERSION}-internal.repo
   sed -i "s#packages.centreon.com/rpm-standard-internal#$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/rpm-standard-internal#" /etc/yum.repos.d/centreon-${VERSION}-internal.repo
 else
-  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el9/centreon-${VERSION}.repo
+  dnf config-manager --add-repo https://packages.centreon.com/rpm-standard/${VERSION}/el8/centreon-${VERSION}.repo
 fi
 dnf config-manager --set-enabled 'centreon*'
 
@@ -35,8 +32,6 @@ dnf install -y nodejs
 # Install mockoon (needs nodejs)
 npm install -g -D @mockoon/cli@9.3.0
 npm cache clean --force
-
-dnf install -y /tmp/packages-centreon-gorgone/*.rpm
 
 dnf clean all
 
