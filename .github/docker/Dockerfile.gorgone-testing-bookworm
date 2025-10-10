@@ -3,11 +3,22 @@ FROM debian:bookworm
 ARG VERSION=25.10
 ARG IS_CLOUD=0
 
+COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
     bash -e <<EOF
+
+echo '
+Acquire::Retries "10";
+Acquire::https::Timeout "300";
+Acquire::http::Timeout "300";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+' > /etc/apt/apt.conf.d/99custom
 
 apt-get update
 
@@ -20,14 +31,16 @@ software-properties-common jq mariadb-client iproute2 procps lsof
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
 pip3 install --break-system-packages --no-cache-dir \
-robotframework robotframework-examples robotframework-databaselibrary \
-pymysql robotframework-requests robotframework-jsonlibrary
+  robotframework robotframework-examples robotframework-databaselibrary \
+  pymysql robotframework-requests robotframework-jsonlibrary
+pip3 cache purge
 
 # Install nodejs
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash - &&\
+curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt-get install -y nodejs
 # Install mockoon (needs nodejs)
 npm install -g -D @mockoon/cli@9.3.0
+npm cache clean --force
 
 VERSION_CODENAME=\$(
   . /etc/os-release
@@ -35,16 +48,24 @@ VERSION_CODENAME=\$(
 )
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
-  echo "deb https://$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME):$(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)@packages.centreon.com/apt-standard-internal/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
+  echo "deb https://packages.centreon.com/apt-standard-internal/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
+  echo "machine packages.centreon.com" > $APT_AUTH_CONF_FILE
+  echo "login $(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME)" >> $APT_AUTH_CONF_FILE
+  echo "password $(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_PASSWORD)" >> $APT_AUTH_CONF_FILE
+  chmod 600 $APT_AUTH_CONF_FILE
 else
-  echo "deb https://packages.centreon.com/  \$VERSION_CODENAME-${VERSION}-stable main" | tee -a /etc/apt/sources.list.d/centreon-stable.list
-  echo "deb https://packages.centreon.com/  \$VERSION_CODENAME-${VERSION}-testing main" | tee -a /etc/apt/sources.list.d/centreon-testing.list
-  echo "deb https://packages.centreon.com/  \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
+  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-stable main" | tee -a /etc/apt/sources.list.d/centreon-stable.list
+  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-testing main" | tee -a /etc/apt/sources.list.d/centreon-testing.list
+  echo "deb https://packages.centreon.com/apt-standard/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
 fi
 echo "deb https://packages.centreon.com/apt-plugins-stable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-stable.list
 echo "deb https://packages.centreon.com/apt-plugins-testing/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-testing.list
 echo "deb https://packages.centreon.com/apt-plugins-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
 wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+
+apt-get update
+
+apt-get install -y /tmp/packages-centreon-gorgone/*.deb
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*

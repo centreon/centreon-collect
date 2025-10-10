@@ -3,9 +3,16 @@ FROM almalinux:9
 ARG VERSION=25.10
 ARG IS_CLOUD=0
 
+COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
+
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
+    --mount=type=bind,src=packages-centreon-gorgone,dst=/tmp/packages-centreon-gorgone \
     bash -e <<EOF
+
+echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
+echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
+echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
 dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
@@ -20,12 +27,16 @@ dnf config-manager --set-enabled 'centreon*'
 
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
+pip3.11 cache purge
 
 # Install nodejs
-curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
+curl -fsSL https://rpm.nodesource.com/setup_24.x | bash -
 dnf install -y nodejs
 # Install mockoon (needs nodejs)
 npm install -g -D @mockoon/cli@9.3.0
+npm cache clean --force
+
+dnf install -y /tmp/packages-centreon-gorgone/*.rpm
 
 dnf clean all
 

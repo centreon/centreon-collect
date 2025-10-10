@@ -1,7 +1,7 @@
 FROM almalinux:8
 
 ARG VERSION=25.10
-ARG IS_CLOUD
+ARG IS_CLOUD=0
 
 COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
 
@@ -15,7 +15,6 @@ echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
 echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
 dnf install -y dnf-plugins-core zstd curl mariadb iproute procps lsof
-dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm
 dnf config-manager --set-enabled 'powertools'
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
@@ -28,7 +27,7 @@ dnf config-manager --set-enabled 'centreon*'
 
 dnf install -y python3.11 python3.11-pip
 pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
-pip3 cache purge
+pip3.11 cache purge
 
 # Install nodejs
 curl -fsSL https://rpm.nodesource.com/setup_24.x | bash -

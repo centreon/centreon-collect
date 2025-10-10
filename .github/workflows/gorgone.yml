@@ -271,7 +271,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8]
+        distrib: [alma8, alma9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
     name: dockerize ${{ matrix.distrib }}
     steps:
       - name: Checkout sources
@@ -401,9 +401,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # distrib: [el8, el9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [alma8, alma9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
-        distrib: [alma8]
 
     runs-on: ubuntu-24.04
     name: ${{ matrix.feature }}
