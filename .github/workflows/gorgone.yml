@@ -405,7 +405,7 @@ jobs:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
     runs-on: ubuntu-24.04
-    name: ${{ matrix.feature }}
+    name: ${{ matrix.feature }} ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
@@ -479,7 +479,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8]
+        distrib: [alma8, alma9, bookworm]
     runs-on: ubuntu-24.04
     steps:
       - name: Merge Artifacts
