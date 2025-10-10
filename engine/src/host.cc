@@ -22,6 +22,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -1341,8 +1342,12 @@ int host::handle_async_check_result_3x(
 
   /*
    * clear the freshening flag (it would have been set if this host was
-   * determined to be stale) */
-  if (queued_check_result.get_check_options() & CHECK_OPTION_FRESHNESS_CHECK)
+   * determined to be stale)
+   * NOTE: we clear the flag for cma checks results
+   */
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_FRESHNESS_CHECK | CHECK_OPTION_PASSIVE_IS_HARD |
+       CHECK_OPTION_PASSIVE_IS_SOFT))
     set_is_being_freshened(false);
 
   /* DISCARD INVALID FRESHNESS CHECK RESULTS */
@@ -3773,43 +3778,39 @@ void host::check_result_freshness() {
   time(&current_time);
 
   /* check all hosts... */
-  for (host_map::iterator it{host::hosts.begin()}, end{host::hosts.end()};
-       it != end; ++it) {
+  for (const auto& [host_name, host_ptr] : host::hosts) {
     /* skip hosts we shouldn't be checking for freshness */
-    if (!it->second->check_freshness_enabled())
+    if (!host_ptr->check_freshness_enabled())
       continue;
 
     /* skip hosts that have both active and passive checks disabled */
-    if (!it->second->active_checks_enabled() &&
-        !it->second->passive_checks_enabled())
+    if (!host_ptr->active_checks_enabled() &&
+        !host_ptr->passive_checks_enabled())
       continue;
 
     /* skip hosts that are currently executing (problems here will be caught by
      * orphaned host check) */
-    if (it->second->get_is_executing())
+    if (host_ptr->get_is_executing() && !host_ptr->is_cma_host())
       continue;
 
     /* skip hosts that are already being freshened */
-    if (it->second->get_is_being_freshened())
+    if (host_ptr->get_is_being_freshened())
       continue;
 
     // See if the time is right...
     {
-      timezone_locker lock(it->second->get_timezone());
-      if (!check_time_against_period(current_time,
-                                     it->second->check_period_ptr))
+      timezone_locker lock(host_ptr->get_timezone());
+      if (!check_time_against_period(current_time, host_ptr->check_period_ptr))
         continue;
     }
-
     /* the results for the last check of this host are stale */
-    if (!it->second->is_result_fresh(current_time, true)) {
+    if (!host_ptr->is_result_fresh(current_time, true)) {
       /* set the freshen flag */
-      it->second->set_is_being_freshened(true);
+      host_ptr->set_is_being_freshened(true);
 
       /* schedule an immediate forced check of the host */
-      it->second->schedule_check(
-          current_time,
-          CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK);
+      host_ptr->schedule_check(current_time, CHECK_OPTION_FORCE_EXECUTION |
+                                                 CHECK_OPTION_FRESHNESS_CHECK);
     }
   }
 }
@@ -3883,6 +3884,9 @@ void host::check_for_orphaned() {
 
     /* skip hosts that are not currently executing */
     if (!it->second->get_is_executing())
+      continue;
+
+    if (it->second->is_cma_host())
       continue;
 
     /* determine the time at which the check results should have come in (allow
@@ -4039,6 +4043,24 @@ void host::resolve(uint32_t& w, uint32_t& e) {
         "unreachable options as well",
         get_display_name());
     warnings++;
+  }
+
+  /* check if the host has a CMA cmd */
+  bool is_cma = false;
+  if (get_check_command_ptr()) {
+    if (get_check_command_ptr()->get_type() == commands::command::e_type::otel)
+      is_cma = true;
+    if (get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      is_cma =
+          std::static_pointer_cast<commands::forward>(get_check_command_ptr())
+              ->get_sub_command()
+              ->get_type() == commands::command::e_type::otel;
+    }
+  }
+  set_is_cma_host(is_cma);
+  if (is_cma) {
+    config_logger->info("Host '{}' is detected as a CMA host.", name());
   }
 
   w += warnings;
