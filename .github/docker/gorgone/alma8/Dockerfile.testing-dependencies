@@ -35,8 +35,10 @@ npm cache clean --force
 
 dnf install -y \
   "perl-Libssh-Session" \
+  "perl-Mojolicious" \
   "perl(lib)" \
   "perl(Clone)" \
+  "perl(DateTime)" \
   "perl(DBD::mysql)" \
   "perl(EV)" \
   "perl(HTTP::Daemon::SSL)" \

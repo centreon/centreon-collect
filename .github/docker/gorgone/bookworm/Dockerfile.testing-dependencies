@@ -67,10 +67,12 @@ apt-get install -y \
   perl-base \
   perl-modules \
   libclone-choose-perl \
+  libdatetime-perl \
   libdbd-mysql-perl \
   libev-perl \
   libhttp-daemon-ssl-perl \
   libjson-perl \
+  libmojolicious-perl \
   libnet-curl-perl \
   librrds-perl \
   libssh-session-perl \

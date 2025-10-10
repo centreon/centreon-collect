@@ -108,6 +108,8 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
+    name: unit tests ${{ matrix.distrib }}
+
     services:
       mariadb:
         image: mariadb:10.11
