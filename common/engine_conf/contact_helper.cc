@@ -37,7 +37,7 @@ contact_helper::contact_helper(Contact* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      Contact::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -114,16 +114,15 @@ void contact_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Contact object, in other words set its default
  * values.
  */
-void contact_helper::_init() {
+void contact_helper::set_default_values() {
   Contact* obj = static_cast<Contact*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_can_submit_commands(true);
-  obj->set_host_notifications_enabled(true);
-  obj->set_host_notification_options(action_hst_none);
-  obj->set_retain_nonstatus_information(true);
-  obj->set_retain_status_information(true);
-  obj->set_service_notification_options(action_svc_none);
-  obj->set_service_notifications_enabled(true);
+  DEFAULT_PB_FIELD_SET(can_submit_commands, true);
+  DEFAULT_PB_FIELD_SET(host_notifications_enabled, true);
+  DEFAULT_PB_FIELD_SET(host_notification_options, action_hst_none);
+  DEFAULT_PB_FIELD_SET(retain_nonstatus_information, true);
+  DEFAULT_PB_FIELD_SET(retain_status_information, true);
+  DEFAULT_PB_FIELD_SET(service_notification_options, action_svc_none);
+  DEFAULT_PB_FIELD_SET(service_notifications_enabled, true);
 }
 
 /**

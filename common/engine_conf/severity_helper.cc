@@ -40,7 +40,7 @@ severity_helper::severity_helper(Severity* obj)
                          {"severity_type", "type"},
                      },
                      Severity::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -103,10 +103,11 @@ void severity_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Severity object, in other words set its default
  * values.
  */
-void severity_helper::_init() {
+void severity_helper::set_default_values() {
   Severity* obj = static_cast<Severity*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->mutable_key()->set_id(0);
-  obj->mutable_key()->set_type(SeverityType::none);
+  if (!obj->has_key()) {
+    obj->mutable_key()->set_id(0);
+    obj->mutable_key()->set_type(SeverityType::none);
+  }
 }
 }  // namespace com::centreon::engine::configuration

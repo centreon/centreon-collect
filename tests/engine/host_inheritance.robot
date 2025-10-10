@@ -45,8 +45,13 @@ EHI0
     Ctn Add Host Group    ${0}    ${1}    ["host_2","host_3"]
 
     # Operation in host
-    Ctn Add Template To Hosts    0    host_template_1    [1,3]
+    Ctn Add Template To Hosts    0    host_template_1    [3]
     Ctn Add Template To Hosts    0    host_template_2    [2]
+    Ctn Add Template To Hosts    0    host_template_1, host_template_3    [1]
+
+    Ctn Create Template File    ${0}    host    _CV2    ["testC"]    3
+
+
     Ctn Engine Config Delete Value In Hosts    0    host_1    alias
     Ctn Engine Config Delete Value In Hosts    0    host_1    check_period
     Ctn Engine Config Delete Value In Hosts    0    host_1    address
@@ -122,7 +127,7 @@ EHI0
     ...    statusmap_image
     ...    template_statusmap_image
     ...    hostTemplates.cfg
-    Ctn Engine Config Set Value In Hosts    0    host_template_1    check_interval    2    hostTemplates.cfg
+    Ctn Engine Config Set Value In Hosts    0    host_template_3    check_interval    2    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts    0    host_template_1    retry_interval    1    hostTemplates.cfg
     Ctn Engine Config Set Value In Hosts
     ...    0

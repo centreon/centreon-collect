@@ -30,8 +30,6 @@ namespace com::centreon::engine::configuration {
  * several methods to help the developer to fill the message fields.
  */
 class hostgroup_helper : public message_helper {
-  void _init();
-
  public:
   hostgroup_helper(Hostgroup* obj);
   ~hostgroup_helper() noexcept = default;

@@ -284,6 +284,8 @@ void parser::_parse_object_definitions(const std::string& path,
             }
           }
           if (obj.register_()) {
+            // final object => we apply default values
+            _pb_helper[msg.get()]->set_default_values();
             switch (otype) {
               case message_helper::contact:
                 pb_config->mutable_contacts()->AddAllocated(

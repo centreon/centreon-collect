@@ -49,7 +49,7 @@ host_helper::host_helper(Host* obj)
                          {"severity", "severity_id"},
                      },
                      Host::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -259,33 +259,34 @@ void host_helper::check_validity(error_cnt& err) const {
 /**
  * @brief Initializer of the Host object, in other words set its default values.
  */
-void host_helper::_init() {
+void host_helper::set_default_values() {
   Host* obj = static_cast<Host*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_checks_active(true);
-  obj->set_checks_passive(true);
-  obj->set_check_freshness(false);
-  obj->set_check_interval(5);
-  obj->set_event_handler_enabled(true);
-  obj->set_first_notification_delay(0);
-  obj->set_flap_detection_enabled(true);
-  obj->set_flap_detection_options(action_hst_up | action_hst_down |
-                                  action_hst_unreachable);
-  obj->set_freshness_threshold(0);
-  obj->set_high_flap_threshold(0);
-  obj->set_low_flap_threshold(0);
-  obj->set_max_check_attempts(3);
-  obj->set_notifications_enabled(true);
-  obj->set_notification_interval(0);
-  obj->set_notification_options(action_hst_up | action_hst_down |
-                                action_hst_unreachable | action_hst_flapping |
-                                action_hst_downtime);
-  obj->set_obsess_over_host(true);
-  obj->set_process_perf_data(true);
-  obj->set_retain_nonstatus_information(true);
-  obj->set_retain_status_information(true);
-  obj->set_retry_interval(1);
-  obj->set_stalking_options(action_hst_none);
+  DEFAULT_PB_FIELD_SET(checks_active, true)
+  DEFAULT_PB_FIELD_SET(checks_passive, true)
+  DEFAULT_PB_FIELD_SET(check_freshness, false);
+  DEFAULT_PB_FIELD_SET(check_interval, 5);
+  DEFAULT_PB_FIELD_SET(event_handler_enabled, true);
+  DEFAULT_PB_FIELD_SET(first_notification_delay, 0);
+  DEFAULT_PB_FIELD_SET(flap_detection_enabled, true);
+  DEFAULT_PB_FIELD_SET(
+      flap_detection_options,
+      (action_hst_up | action_hst_down | action_hst_unreachable));
+  DEFAULT_PB_FIELD_SET(freshness_threshold, 0);
+  DEFAULT_PB_FIELD_SET(high_flap_threshold, 0);
+  DEFAULT_PB_FIELD_SET(low_flap_threshold, 0);
+  DEFAULT_PB_FIELD_SET(max_check_attempts, 3);
+  DEFAULT_PB_FIELD_SET(notifications_enabled, true);
+  DEFAULT_PB_FIELD_SET(notification_interval, 0);
+  DEFAULT_PB_FIELD_SET(
+      notification_options,
+      (action_hst_up | action_hst_down | action_hst_unreachable |
+       action_hst_flapping | action_hst_downtime));
+  DEFAULT_PB_FIELD_SET(obsess_over_host, true);
+  DEFAULT_PB_FIELD_SET(process_perf_data, true);
+  DEFAULT_PB_FIELD_SET(retain_nonstatus_information, true);
+  DEFAULT_PB_FIELD_SET(retain_status_information, true);
+  DEFAULT_PB_FIELD_SET(retry_interval, 1);
+  DEFAULT_PB_FIELD_SET(stalking_options, action_hst_none);
 }
 
 /**
