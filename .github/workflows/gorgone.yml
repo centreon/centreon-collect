@@ -67,12 +67,10 @@ jobs:
             trigger_unit_tests:
               - 'gorgone/**'
               - 'perl-libs/**'
-              - '.github/**'
             trigger_robot_tests:
               - 'gorgone/!(tests)/**'
               - 'gorgone/tests/robot/**'
               - 'perl-libs/**'
-              - '.github/**'
             trigger_delivery:
               - 'gorgone/!(tests)/**'
               - 'perl-libs/!(lib)/**'
@@ -391,7 +389,7 @@ jobs:
             https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
         shell: bash
 
-      - name: Store slim image in cache
+      - name: Store docker image in cache
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ./docker-image

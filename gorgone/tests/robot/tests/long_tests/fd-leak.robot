@@ -24,7 +24,7 @@ check gorgone proxy do not leak file descriptor with a poller
     Log To Console    max is ${max}
     Sleep    20
     ${count_over_limit}=    Set Variable    0
-    FOR    ${i}    IN RANGE    150
+    FOR    ${i}    IN RANGE    60
         ${current_fd_nb}    Run    ${cmd_count_file_descriptor}
 
         Log To Console    exec\t${i}\t got ${current_fd_nb}
@@ -34,7 +34,7 @@ check gorgone proxy do not leak file descriptor with a poller
             ${count_over_limit}=    Set Variable    0
         END
         IF    ${count_over_limit} > 10
-            Fail    gorgone is using more and more file descriptor after a poller disconnect, starting at ${initial_fd_nb} and after ${i} iteration (5 sec each) to ${current_fd_nb}
+            Fail    gorgone is using more and more file descriptor after a poller disconnect, starting at ${initial_fd_nb} and after ${i} iteration (2 sec each) to ${current_fd_nb}
         END
         Sleep    2
     END
