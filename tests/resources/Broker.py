@@ -1457,13 +1457,14 @@ def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_broker_stats_size(name: str, key: str, min_expected_value: int, timeout=TIMEOUT):
     """
     Return the number of items under the given key in the stats file.
 
     Args:
         name: The broker instance name among central, rrd and module%d.
         key: The key to work with.
+        min_expected_value: min value expected
         timeout (int, optional): Defaults to TIMEOUT = 30s.
 
     *Example:*
@@ -1471,7 +1472,7 @@ def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
     | ${size} | Get Broker Stats Size | central | poller | # 2 |
     """
     limit = time.time() + timeout
-    retval = 0
+    value = 0
     while time.time() < limit:
         if name == 'central':
             filename = "central-broker-master-stats.json"
@@ -1493,12 +1494,10 @@ def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
             value = len(conf[key])
         else:
             value = 0
-        if value > retval:
-            retval = value
-        elif retval != 0:
-            return retval
+        if value >= min_expected_value:
+            return value
         time.sleep(5)
-    return retval
+    return value
 
 
 def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):

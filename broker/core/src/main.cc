@@ -110,10 +110,8 @@ static void reload_engine_context(
       }
     }
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(
-        core_logger, "credentials_encryption is set but we can not read {}: {}",
-        _engine_context_path, e.what());
-    throw;
+    SPDLOG_LOGGER_ERROR(core_logger, "We can not read {}: {}",
+                        _engine_context_path, e.what());
   }
 }
 

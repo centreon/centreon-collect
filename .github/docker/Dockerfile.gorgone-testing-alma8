@@ -1,6 +1,6 @@
 FROM almalinux:8
 
-ARG VERSION
+ARG VERSION=25.10
 ARG IS_CLOUD
 
 COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
@@ -34,7 +34,7 @@ pip3 cache purge
 curl -fsSL https://rpm.nodesource.com/setup_24.x | bash -
 dnf install -y nodejs
 # Install mockoon (needs nodejs)
-npm install -g -D @mockoon/cli
+npm install -g -D @mockoon/cli@9.3.0
 npm cache clean --force
 
 dnf install -y /tmp/packages-centreon-gorgone/*.rpm

@@ -21,6 +21,7 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -1394,11 +1395,17 @@ int service::handle_async_check_result(
     }
   }
 
-  if (_last_state == state_ok && _current_state != _last_state)
-    set_current_attempt(1);
-  else if (get_state_type() == soft &&
-           get_current_attempt() < max_check_attempts())
-    add_current_attempt(1);
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
+    // for passive checks, we get attempt from CMA
+    set_current_attempt(queued_check_result.get_current_attempt());
+  } else {
+    if (_last_state == state_ok && _current_state != _last_state)
+      set_current_attempt(1);
+    else if (get_state_type() == soft &&
+             get_current_attempt() < max_check_attempts())
+      add_current_attempt(1);
+  }
 
   engine_logger(dbg_checks, most)
       << "ST: " << (get_state_type() == soft ? "SOFT" : "HARD")
@@ -1453,7 +1460,11 @@ int service::handle_async_check_result(
    */
   if (state_change || hard_state_change) {
     /* reschedule the service check */
-    reschedule_check = true;
+    if (queued_check_result.get_check_options() &
+        (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+      reschedule_check = false;  // false for CMA results checks
+    else
+      reschedule_check = true;
 
     /* reset notification times */
     set_last_notification(static_cast<time_t>(0));
@@ -2030,6 +2041,13 @@ int service::handle_async_check_result(
               get_stalk_on(critical)))
       log_event();
   }
+
+  /* ───────────────────── CMA FORCE THE SERVICE STATUS ──────────────────── */
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_HARD)
+    set_state_type(hard);
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_SOFT)
+    set_state_type(soft);
+  /* ─────────────────────────────────────────────────────────────────────── */
 
   /* send data to event broker */
   broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),

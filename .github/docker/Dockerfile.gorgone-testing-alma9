@@ -1,6 +1,6 @@
 FROM almalinux:9
 
-ARG VERSION=24.10
+ARG VERSION=25.10
 ARG IS_CLOUD=0
 
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -25,7 +25,7 @@ pip3.11 install robotframework robotframework-examples robotframework-databaseli
 curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
 dnf install -y nodejs
 # Install mockoon (needs nodejs)
-npm install -g -D @mockoon/cli
+npm install -g -D @mockoon/cli@9.3.0
 
 dnf clean all
 
