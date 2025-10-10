@@ -259,6 +259,8 @@ class host : public notifier {
   std::list<hostgroup*>& get_parent_groups();
 
   std::string get_check_command_line(nagios_macros* macros);
+  bool is_cma_host() const { return _is_cma_host; }
+  void set_is_cma_host(bool is_cma) { _is_cma_host = is_cma; }
 
  private:
   void _switch_all_services_to_unknown();
@@ -293,6 +295,7 @@ class host : public notifier {
   enum host_state _current_state;
 
   std::list<hostgroup*> _hostgroups;
+  bool _is_cma_host{false};
 };
 
 }  // namespace com::centreon::engine
