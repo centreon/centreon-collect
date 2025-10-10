@@ -143,7 +143,11 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
 
     Write-Host "############################  all install uninstall with flag: $plugins_flag  ############################"
 
+<<<<<<< HEAD
     $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS="agent,plugins"', $plugins_flag, '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317'
+=======
+    $exe_args = '/S', '--install_cma', $plugins_flag, '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
+>>>>>>> 24.10.x
     $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
     test_args_to_registry $installer_exepath $exe_args $expected
 
@@ -243,6 +247,7 @@ test_all_silent_install_uninstall("/PLUGINSRC=embedded")
 
 Write-Host "############################  installer test  ############################"
 
+<<<<<<< HEAD
 # $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "--help"
 # Wait-Process -Id $process_info.Id
 # if ($process_info.ExitCode -ne 2) {
@@ -259,69 +264,123 @@ Write-Host "############################  installer test  ######################
 
 #missing mandatory parameters
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/TYPE=custom /COMPONENTS=agent"
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--help"
+Wait-Process -Id $process_info.Id
+if ($process_info.ExitCode -ne 2) {
+    Write-Host "bad --help exit code"
+    exit 1
+}
+
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--version"
+Wait-Process -Id $process_info.Id
+if ($process_info.ExitCode -ne 2) {
+    Write-Host "bad --version exit code"
+    exit 1
+}
+
+#missing mandatory parameters
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no parameter exit code " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/TYPE=custom /COMPONENTS=agent", "/HOST=toto"
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no endpoint exit code " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/TYPE=custom /COMPONENTS=agent", "/HOST=toto", "/ENDPOINT=turlututu"
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "turlututu"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad wrong endpoint exit code " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/LOGTYPE=File"
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad no log file path " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/LOGTYPE=File", '/LOGFILE="C:"'
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_type", "file", "--log_file", "C:"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad log file path " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", '/LOGLEVEL=dsfsfd'
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--log_level", "dsfsfd"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "bad log level " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/REVERSE=true", "/LOGTYPE=File", '/LOGFILE="C:\Users\Public\cma.log"', "/ENCRYPTION=full"
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption" , "full"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and no private_key " $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/REVERSE=true", "/LOGTYPE=File", '/LOGFILE="C:\Users\Public\cma.log"', "/ENCRYPTION=full", '/KEY="C:"'
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and bad private_key path" $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/REVERSE=true", "/LOGTYPE=File", '/LOGFILE="C:\Users\Public\cma.log"', "/ENCRYPTION=full", '/KEY="C:\Users\Public\private_key.key"'
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:\Users\Public\private_key.key"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and no certificate" $process_info.ExitCode
     exit 1
 }
 
+<<<<<<< HEAD
 $process_info = Start-Process -PassThru  $installer_exepath "/VERYSILENT", "/type=custom /components=agent", "/HOST=toto", "/ENDPOINT=127.0.0.1:4317", "/REVERSE=true", "/LOGTYPE=File", '/LOGFILE="C:\Users\Public\cma.log"', "/ENCRYPTION=full", '/KEY="C:\Users\Public\private_key.key"', '/CERT="C:"'
+=======
+$process_info = Start-Process -PassThru  $installer_exepath "/S", "--install_cma", "--hostname", "toto", "--endpoint", "127.0.0.1:4317", "--reverse", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--encryption", "full", "--private_key", "C:\Users\Public\private_key.key", "--public_cert", "C:"
+>>>>>>> 24.10.x
 Wait-Process -Id $process_info.Id
 if ($process_info.ExitCode -ne 1) {
     Write-Host "reverse mode, encryption and bad certificate path" $process_info.ExitCode
@@ -332,6 +391,7 @@ $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name
 $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
 test_args_to_registry $installer_exepath $exe_args $expected
 
+<<<<<<< HEAD
 $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.2:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/MAXFILESIZE=15', '/MAXNUMBER=10'
 $expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; }
 test_args_to_registry $installer_exepath $exe_args $expected
@@ -350,10 +410,35 @@ test_args_to_registry $installer_exepath $exe_args $expected
 
 $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_3', '/ENDPOINT=127.0.0.5:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/LOGLEVEL=trace', '/ENCRYPTION=full', '/REVERSE=true', '/KEY="C:\Users crypto\private_rev.key"', '/CERT="D:\tutu\titi_rev.crt"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev', '/TOKEN=my_secure_token'
 $expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'full'; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev'; 'token' = 'my_secure_token' }
+=======
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_1", "--endpoint", "127.0.0.1:4317"
+$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0 }
+test_args_to_registry $installer_exepath $exe_args $expected
+
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.2:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--log_max_file_size", "15", "--log_max_files", "10"
+$expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; }
+test_args_to_registry $installer_exepath $exe_args $expected
+
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.3:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption", "full"
+$expected = @{ 'endpoint' = '127.0.0.3:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0 }
+test_args_to_registry $installer_exepath $exe_args $expected
+
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.4:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma.log", "--log_level", "trace", "--encryption", "insecure", "--private_key", "C:\Users crypto\private.key", "--public_cert", "D:\tutu\titi.crt", "--ca", "C:\Users\Public\ca.crt", "--ca_common_name", "tls_ca_name"
+$expected = @{ 'endpoint' = '127.0.0.4:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi.crt'; 'private_key' = 'C:\Users crypto\private.key'; 'ca_certificate' = 'C:\Users\Public\ca.crt'; 'ca_name' = 'tls_ca_name' }
+test_args_to_registry $installer_exepath $exe_args $expected
+
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_2", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption", "insecure", "--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev"
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $installer_exepath $exe_args $expected
+
+$exe_args = '/S', '--install_cma', '--hostname', "my_host_name_3", "--endpoint", "127.0.0.5:4317", "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev.log", "--log_level", "trace", "--encryption", "full", "--reverse", "--private_key", "C:\Users crypto\private_rev.key", "--public_cert", "D:\tutu\titi_rev.crt", "--ca", "C:\Users\Public\ca_rev.crt", "--ca_common_name", "tls_ca_name_rev",'--token', 'my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token' }
+>>>>>>> 24.10.x
 test_args_to_registry $installer_exepath $exe_args $expected
 
 Write-Host "############################  modifier test   ############################"
 
+<<<<<<< HEAD
 $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_10', '/ENDPOINT=127.0.0.10:4317', '/REVERSE=false', '/TOKEN=my_secure_token2', '/LOGTYPE=File', '/LOGLEVEL=trace', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/ENCRYPTION=insecure', '/CERT="D:\tutu\titi_rev.crt"', '/KEY="C:\Users crypto\private_rev.key"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev', '/TOKEN=my_secure_token'
 $expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'insecure'; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev'; 'token' = 'my_secure_token2' }
 test_args_to_registry $modifier_exepath $exe_args $expected
@@ -376,6 +461,30 @@ test_args_to_registry $modifier_exepath $exe_args $expected
 
 $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_10', '/ENDPOINT=127.0.0.10:4317', '/LOGTYPE=event-log', '/LOGLEVEL=error', '/ENCRYPTION=no', '/CERT="D:\tutu\titi_rev2.crt"', '/KEY="C:\Users crypto\private_rev2.key"', '/CA="C:\Users\Public\ca_rev2.crt"', '/COMMONNAME=tls_ca_name_rev2'
 $expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
+=======
+$exe_args = '/S', '--hostname', "my_host_name_10", "--endpoint", "127.0.0.10:4317", "--no_reverse","--token", "my_secure_token2"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token2' }
+test_args_to_registry $modifier_exepath $exe_args $expected
+
+$exe_args = '/S', "--log_type", "file", "--log_file", "C:\Users\Public\cma_rev2.log", "--log_level", "debug", "--log_max_file_size", "50", "--log_max_files", "20"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'File'; 'log_level' = 'debug'; 'log_file' = 'C:\Users\Public\cma_rev2.log'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'log_max_file_size' = 50; 'log_max_files' = 20; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
+
+$exe_args = '/S', "--log_type", "event-log", "--log_level", "error"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
+
+$exe_args = '/S', "--private_key", "C:\Users crypto\private_rev2.key", "--public_cert", "D:\tutu\titi_rev2.crt"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "full"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev' }
+test_args_to_registry $modifier_exepath $exe_args $expected
+
+$exe_args = '/S', "--ca", "C:\Users\Public\ca_rev2.crt", "--ca_common_name", "tls_ca_name_rev2", "--encryption", "insecure"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "insecure"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
+test_args_to_registry $modifier_exepath $exe_args $expected
+
+$exe_args = '/S', "--no_encryption"
+$expected = @{ 'endpoint' = '127.0.0.10:4317'; 'host' = 'my_host_name_10'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = "no"; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi_rev2.crt'; 'private_key' = 'C:\Users crypto\private_rev2.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev2.crt'; 'ca_name' = 'tls_ca_name_rev2' }
+>>>>>>> 24.10.x
 test_args_to_registry $modifier_exepath $exe_args $expected
 
 
