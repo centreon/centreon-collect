@@ -14,7 +14,7 @@ echo 'install_weak_deps=False' >> /etc/dnf/dnf.conf
 echo 'max_parallel_downloads=10' >> /etc/dnf/dnf.conf
 echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
-dnf install -y dnf-plugins-core zstd mariadb iproute epel-release procps lsof
+dnf install -y dnf-plugins-core zstd curl mariadb iproute epel-release procps lsof
 dnf config-manager --set-enabled crb
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
