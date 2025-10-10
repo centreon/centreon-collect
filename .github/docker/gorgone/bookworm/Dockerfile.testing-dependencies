@@ -2,7 +2,6 @@ FROM debian:bookworm
 
 ARG VERSION=25.10
 ARG IS_CLOUD=0
-ARG APT_AUTH_CONF_FILE="/etc/apt/auth.conf.d/centreon-${VERSION}-internal.conf"
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -46,6 +45,7 @@ VERSION_CODENAME=\$(
 )
 
 if [[ "${IS_CLOUD}" == "true" ]]; then
+  APT_AUTH_CONF_FILE="/etc/apt/auth.conf.d/centreon-${VERSION}-internal.conf"
   echo "deb https://packages.centreon.com/apt-standard-internal/ \$VERSION_CODENAME-${VERSION}-unstable main" | tee -a /etc/apt/sources.list.d/centreon-unstable.list
   echo "machine packages.centreon.com" > $APT_AUTH_CONF_FILE
   echo "login $(cat /run/secrets/ARTIFACTORY_INTERNAL_REPO_USERNAME)" >> $APT_AUTH_CONF_FILE
