@@ -662,174 +662,169 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
           continue;
       }
 
-      if ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
-          !msg_helper->changed(f->index())) {
-        if (f->is_repeated()) {
-          switch (f->cpp_type()) {
-            case FieldDescriptor::CPPTYPE_STRING: {
-              size_t count = refl->FieldSize(*tmpl, f);
-              for (size_t j = 0; j < count; ++j) {
-                const std::string& s =
-                    refl->GetRepeatedStringReference(*tmpl, f, j, &tmp_str);
-                size_t count_msg = refl->FieldSize(*msg, f);
-                std::string tmp_str1;
-                bool found = false;
-                for (size_t k = 0; k < count_msg; ++k) {
-                  const std::string& s1 =
-                      refl->GetRepeatedStringReference(*msg, f, k, &tmp_str1);
-                  if (s1 == s) {
-                    found = true;
-                    break;
-                  }
-                }
-                if (!found)
-                  refl->AddString(msg, f, s);
-              }
-              msg_helper->set_changed(f->index());
-            } break;
-            case FieldDescriptor::CPPTYPE_MESSAGE: {
-              size_t count = refl->FieldSize(*tmpl, f);
-              for (size_t j = 0; j < count; ++j) {
-                const Message& m = refl->GetRepeatedMessage(*tmpl, f, j);
-                const Descriptor* d = m.GetDescriptor();
-                size_t count_msg = refl->FieldSize(*msg, f);
-                bool found = false;
-                for (size_t k = 0; k < count_msg; ++k) {
-                  const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
-                  const Descriptor* d1 = m1.GetDescriptor();
-                  if (d && d1) {
-                    if (d->name() == "PairUint64_32" &&
-                        d1->name() == "PairUint64_32") {
-                      const PairUint64_32& p =
-                          static_cast<const PairUint64_32&>(m);
-                      const PairUint64_32& p1 =
-                          static_cast<const PairUint64_32&>(m1);
-                      if (p.first() == p1.first() &&
-                          p.second() == p1.second()) {
-                        found = true;
-                        break;
-                      }
-                    } else if (d->name() == "CustomVariable" &&
-                               d1->name() == "CustomVariable") {
-                      const CustomVariable& cv =
-                          static_cast<const CustomVariable&>(m);
-                      const CustomVariable& cv1 =
-                          static_cast<const CustomVariable&>(m1);
-                      if (cv.name() == cv1.name()) {
-                        _logger->info("same name");
-                        found = true;
-                        break;
-                      }
-                    } else {
-                      assert("not good at all" == nullptr);
-                    }
-                  }
-                }
-                if (!found) {
-                  Message* new_m = refl->AddMessage(msg, f);
-                  new_m->CopyFrom(m);
+      if (f->is_repeated()) {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING: {
+            size_t count = refl->FieldSize(*tmpl, f);
+            for (size_t j = 0; j < count; ++j) {
+              const std::string& s =
+                  refl->GetRepeatedStringReference(*tmpl, f, j, &tmp_str);
+              size_t count_msg = refl->FieldSize(*msg, f);
+              std::string tmp_str1;
+              bool found = false;
+              for (size_t k = 0; k < count_msg; ++k) {
+                const std::string& s1 =
+                    refl->GetRepeatedStringReference(*msg, f, k, &tmp_str1);
+                if (s1 == s) {
+                  found = true;
+                  break;
                 }
               }
-              msg_helper->set_changed(f->index());
-            } break;
-            default:
-              _logger->error(
-                  "Repeated type f->cpp_type = {} not managed in the "
-                  "inheritence.",
-                  static_cast<uint32_t>(f->cpp_type()));
-              assert(124 == 294);
-          }
-        } else {
-          switch (f->cpp_type()) {
-            case FieldDescriptor::CPPTYPE_STRING:
-              refl->SetString(msg, f, refl->GetString(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_BOOL:
-              refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_INT32:
-              refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_UINT32:
-              refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_UINT64:
-              refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_ENUM:
-              refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
-              msg_helper->set_changed(f->index());
-              break;
-            case FieldDescriptor::CPPTYPE_MESSAGE: {
-              Message* m = refl->MutableMessage(msg, f);
-              const Descriptor* d = m->GetDescriptor();
-
-              if (d && d->name() == "StringSet") {
-                StringSet* orig_set =
-                    static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
-                StringSet* set =
-                    static_cast<StringSet*>(refl->MutableMessage(msg, f));
-                if (set->additive()) {
-                  for (auto& v : orig_set->data()) {
-                    bool found = false;
-                    for (auto& s : *set->mutable_data()) {
-                      if (s == v) {
-                        found = true;
-                        break;
-                      }
+              if (!found)
+                refl->AddString(msg, f, s);
+            }
+          } break;
+          case FieldDescriptor::CPPTYPE_MESSAGE: {
+            size_t count = refl->FieldSize(*tmpl, f);
+            for (size_t j = 0; j < count; ++j) {
+              const Message& m = refl->GetRepeatedMessage(*tmpl, f, j);
+              const Descriptor* d = m.GetDescriptor();
+              size_t count_msg = refl->FieldSize(*msg, f);
+              bool found = false;
+              for (size_t k = 0; k < count_msg; ++k) {
+                const Message& m1 = refl->GetRepeatedMessage(*msg, f, k);
+                const Descriptor* d1 = m1.GetDescriptor();
+                if (d && d1) {
+                  if (d->name() == "PairUint64_32" &&
+                      d1->name() == "PairUint64_32") {
+                    const PairUint64_32& p =
+                        static_cast<const PairUint64_32&>(m);
+                    const PairUint64_32& p1 =
+                        static_cast<const PairUint64_32&>(m1);
+                    if (p.first() == p1.first() && p.second() == p1.second()) {
+                      found = true;
+                      break;
                     }
-                    if (!found)
-                      set->add_data(v);
-                  }
-                } else if (set->data().empty())
-                  *set->mutable_data() = orig_set->data();
-
-              } else if (d && d->name() == "StringList") {
-                StringList* orig_lst =
-                    static_cast<StringList*>(refl->MutableMessage(tmpl, f));
-                StringList* lst =
-                    static_cast<StringList*>(refl->MutableMessage(msg, f));
-                if (lst->additive()) {
-                  for (auto& v : orig_lst->data())
-                    lst->add_data(v);
-                } else if (lst->data().empty())
-                  *lst->mutable_data() = orig_lst->data();
-              } else if (d && d->name() == "PairStringSet") {
-                PairStringSet* orig_pair =
-                    static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
-                PairStringSet* pair =
-                    static_cast<PairStringSet*>(refl->MutableMessage(msg, f));
-                if (pair->additive()) {
-                  for (auto& v : orig_pair->data()) {
-                    bool found = false;
-                    for (auto& s : *pair->mutable_data()) {
-                      if (s.first() == v.first() && s.second() == v.second()) {
-                        found = true;
-                        break;
-                      }
+                  } else if (d->name() == "CustomVariable" &&
+                             d1->name() == "CustomVariable") {
+                    const CustomVariable& cv =
+                        static_cast<const CustomVariable&>(m);
+                    const CustomVariable& cv1 =
+                        static_cast<const CustomVariable&>(m1);
+                    if (cv.name() == cv1.name()) {
+                      _logger->info("same name");
+                      found = true;
+                      break;
                     }
-                    if (!found)
-                      pair->add_data()->CopyFrom(v);
+                  } else {
+                    assert("not good at all" == nullptr);
                   }
-                } else if (pair->data().empty())
-                  *pair->mutable_data() = orig_pair->data();
-              } else {
-                refl->MutableMessage(msg, f)->CopyFrom(
-                    refl->GetMessage(*tmpl, f));
+                }
               }
-              msg_helper->set_changed(f->index());
-            } break;
+              if (!found) {
+                Message* new_m = refl->AddMessage(msg, f);
+                new_m->CopyFrom(m);
+              }
+            }
+          } break;
+          default:
+            _logger->error(
+                "Repeated type f->cpp_type = {} not managed in the "
+                "inheritence.",
+                static_cast<uint32_t>(f->cpp_type()));
+            assert(124 == 294);
+        }
+      } else if (refl->HasField(*tmpl, f) &&
+                 ((oof && !refl->GetOneofFieldDescriptor(*msg, oof)) ||
+                  !msg_helper->changed(f->index()))) {
+        switch (f->cpp_type()) {
+          case FieldDescriptor::CPPTYPE_STRING:
+            refl->SetString(msg, f, refl->GetString(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_BOOL:
+            refl->SetBool(msg, f, refl->GetBool(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_INT32:
+            refl->SetInt32(msg, f, refl->GetInt32(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_UINT32:
+            refl->SetUInt32(msg, f, refl->GetUInt32(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_UINT64:
+            refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_ENUM:
+            refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
+            msg_helper->set_changed(f->index());
+            break;
+          case FieldDescriptor::CPPTYPE_MESSAGE: {
+            Message* m = refl->MutableMessage(msg, f);
+            const Descriptor* d = m->GetDescriptor();
 
-            default:
-              _logger->error("Entry '{}' of type {} not managed in merge",
-                             f->name(), f->type_name());
-              assert(123 == 293);
-          }
+            if (d && d->name() == "StringSet") {
+              StringSet* orig_set =
+                  static_cast<StringSet*>(refl->MutableMessage(tmpl, f));
+              StringSet* set =
+                  static_cast<StringSet*>(refl->MutableMessage(msg, f));
+              if (set->additive()) {
+                for (auto& v : orig_set->data()) {
+                  bool found = false;
+                  for (auto& s : *set->mutable_data()) {
+                    if (s == v) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (!found)
+                    set->add_data(v);
+                }
+              } else if (set->data().empty())
+                *set->mutable_data() = orig_set->data();
+
+            } else if (d && d->name() == "StringList") {
+              StringList* orig_lst =
+                  static_cast<StringList*>(refl->MutableMessage(tmpl, f));
+              StringList* lst =
+                  static_cast<StringList*>(refl->MutableMessage(msg, f));
+              if (lst->additive()) {
+                for (auto& v : orig_lst->data())
+                  lst->add_data(v);
+              } else if (lst->data().empty())
+                *lst->mutable_data() = orig_lst->data();
+            } else if (d && d->name() == "PairStringSet") {
+              PairStringSet* orig_pair =
+                  static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
+              PairStringSet* pair =
+                  static_cast<PairStringSet*>(refl->MutableMessage(msg, f));
+              if (pair->additive()) {
+                for (auto& v : orig_pair->data()) {
+                  bool found = false;
+                  for (auto& s : *pair->mutable_data()) {
+                    if (s.first() == v.first() && s.second() == v.second()) {
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (!found)
+                    pair->add_data()->CopyFrom(v);
+                }
+              } else if (pair->data().empty())
+                *pair->mutable_data() = orig_pair->data();
+            } else {
+              refl->MutableMessage(msg, f)->CopyFrom(
+                  refl->GetMessage(*tmpl, f));
+            }
+          } break;
+
+          default:
+            _logger->error("Entry '{}' of type {} not managed in merge",
+                           f->name(), f->type_name());
+            assert(123 == 293);
         }
       }
     }

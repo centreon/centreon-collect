@@ -71,7 +71,7 @@ EMTI1
     ...                When the templates are configured with custom variables
     ...                Then the custom variables should be correctly inherited and accessible
     [Tags]    engine    hosts    MON-188984
-    Ctn Config Engine    ${1}    ${5}    ${5}
+    Ctn Config Engine    ${1}    ${1}    ${5}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -82,6 +82,12 @@ EMTI1
     Ctn Create Tags File    ${0}    ${40}
     Ctn Create Template File    ${0}    host    _CV    ["testA"]
     Ctn Create Template File    ${0}    host    _CV1    ["testB"]    2
+    Ctn Create Template File    ${0}    host    _CV2    ["testC"]    3
+    Ctn Engine Config Delete Value In Hosts    0    host_1    check_period
+
+    Ctn Engine Config Set Value In Hosts    0    host_template_2    use    host_template_3    hostTemplates.cfg
+
+    Ctn Engine Config Set Value In Hosts    0    host_template_3    check_period    24x7    hostTemplates.cfg
 
 
     Ctn Config Engine Add Cfg File    ${0}    hostTemplates.cfg
@@ -100,6 +106,7 @@ EMTI1
 
     ${output}    Ctn Get Host Info Grpc    ${1}
     Log To Console    ${output}[customVariables]
+    Log To Console    ${output}[checkPeriod]
 
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    KEY1    VAL1
     Should Be True    ${ret}    customVariables_KEY1:Should Be VAL1
@@ -109,3 +116,8 @@ EMTI1
 
     ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV1    testB
     Should Be True    ${ret}    customVariables_CV1:Should Be testB
+
+    ${ret}    Ctn Check Key Value Existence    ${output}[customVariables]    CV2    testC
+    Should Be True    ${ret}    customVariables_CV1:Should Be testB
+
+    Should Be Equal    ${output}[checkPeriod]    24x7    check_period not set
