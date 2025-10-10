@@ -67,6 +67,7 @@ jobs:
             trigger_unit_tests:
               - 'gorgone/**'
               - 'perl-libs/**'
+              - '.github/**'
             trigger_robot_tests:
               - 'gorgone/!(tests)/**'
               - 'gorgone/tests/robot/**'

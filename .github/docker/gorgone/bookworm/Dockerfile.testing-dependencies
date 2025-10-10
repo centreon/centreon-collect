@@ -63,6 +63,20 @@ wget -O- https://packages.centreon.com/api/security/keypair/APT-GPG-KEY/public |
 
 apt-get update
 
+apt-get install -y \
+  perl-base \
+  perl-modules \
+  libclone-choose-perl \
+  libdbd-mysql-perl \
+  libev-perl \
+  libhttp-daemon-ssl-perl \
+  libjson-perl \
+  libnet-curl-perl \
+  librrds-perl \
+  libssh-session-perl \
+  libxml-simple-perl \
+  libzmq-ffi-perl
+
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
