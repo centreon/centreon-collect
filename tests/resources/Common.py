@@ -248,7 +248,7 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int, ag
             log, date, content, regex=True, agent_format=agent_format)
         if ok:
             return True, c
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find regex '{c}' from {date} during {timeout}s")
     return False, c
 
@@ -262,7 +262,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs
         ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
     return False
 
@@ -281,7 +281,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
         ok, c = ctn_find_in_log(log, date, content, regex=False)
         if ok:
             return ok, c
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
     return False, None
 

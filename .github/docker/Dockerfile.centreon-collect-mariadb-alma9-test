@@ -13,6 +13,7 @@ dnf config-manager --set-enabled crb
 dnf install -y epel-release
 
 dnf install --best -y \
+    dsniff \
     gcc \
     gcc-c++ \
     gdb \
