@@ -57,6 +57,7 @@ class HostFlappingNotification : public TestEngine {
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
     hst_hlp.hook("contacts", "admin");
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst, err);
     host_map const& hm{engine::host::hosts};
@@ -73,6 +74,7 @@ class HostFlappingNotification : public TestEngine {
     hst_child_hlp.hook("parents", "test_host");
     hst_child.set_host_id(13);
     hst_child_hlp.hook("contacts", "admin");
+    hst_child_hlp.set_default_values();
     hst_aply.add_object(hst_child);
     hst_aply.resolve_object(hst_child, err);
 

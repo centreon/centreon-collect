@@ -104,7 +104,18 @@ void tag_helper::check_validity(error_cnt& err) const {
 void tag_helper::_init() {
   Tag* obj = static_cast<Tag*>(mut_obj());
   obj->mutable_obj()->set_register_(true);
-  obj->mutable_key()->set_id(0);
-  obj->mutable_key()->set_type(-1);
+  if (!obj->has_key()) {
+    auto mut_key = obj->mutable_key();
+    mut_key->set_id(0);
+    mut_key->set_type(-1);
+  } else {
+    auto mut_key = obj->mutable_key();
+    if (!mut_key->has_id()) {
+      mut_key->set_id(0);
+    }
+    if (!mut_key->has_type()) {
+      mut_key->set_type(-1);
+    }
+  }
 }
 }  // namespace com::centreon::engine::configuration

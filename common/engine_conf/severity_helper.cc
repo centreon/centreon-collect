@@ -106,8 +106,17 @@ void severity_helper::check_validity(error_cnt& err) const {
 void severity_helper::set_default_values() {
   Severity* obj = static_cast<Severity*>(mut_obj());
   if (!obj->has_key()) {
-    obj->mutable_key()->set_id(0);
-    obj->mutable_key()->set_type(SeverityType::none);
+    auto mut_key = obj->mutable_key();
+    mut_key->set_id(0);
+    mut_key->set_type(SeverityType::none);
+  } else {
+    auto mut_key = obj->mutable_key();
+    if (!mut_key->has_id()) {
+      mut_key->set_id(0);
+    }
+    if (!mut_key->has_type()) {
+      mut_key->set_type(SeverityType::none);
+    }
   }
 }
 }  // namespace com::centreon::engine::configuration

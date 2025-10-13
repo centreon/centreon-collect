@@ -68,11 +68,12 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
   hst.set_check_command("cmd");
   svc.set_check_command("cmd");
 
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
-
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   hst_aply.expand_objects(pb_config);
@@ -122,11 +123,12 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
   hst.set_check_command("cmd");
   svc.set_check_command("cmd");
 
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
-
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   hst_aply.expand_objects(pb_config);
@@ -177,11 +179,12 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
   hst.set_check_command("cmd");
   svc.set_check_command("cmd");
 
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(1);
-
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
 
   hst_aply.expand_objects(pb_config);

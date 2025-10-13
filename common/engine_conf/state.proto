@@ -296,8 +296,8 @@ message Point3d {
 }
 
 message KeyType {
-  uint64 id = 1;
-  uint32 type = 2;
+  optional uint64 id = 1;
+  optional uint32 type = 2;
 }
 
 message DaysArray {
