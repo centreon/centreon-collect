@@ -1984,9 +1984,9 @@ begin
       Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
       Exec(ExpandConstant('{sys}\sc.exe'), ' delete "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
     end;
-  end
   // add a sleep here to ensure services are fully stopped before deleting registry keys & files
   Sleep(2000);
+  end
   else if CurStep = usPostUninstall then
   begin
     // Remove registry keys for selected agents
