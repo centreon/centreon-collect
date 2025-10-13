@@ -392,7 +392,7 @@ test_args_to_registry $modifier_exepath $exe_args $expected $modifier_instance
 
 Write-Host "############################  uninstall test   ############################"
 
-$process_info = Start-Process -PassThru  "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT" "/AGENTINSTANCE=CentreonMonitoringAgent2,CentreonMonitoringAgent3"
+$process_info = Start-Process -PassThru  "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT /AGENTINSTANCE=CentreonMonitoringAgent2,CentreonMonitoringAgent3"
 
 Write-Host "The following command will output errors, don't take them into account"
 #the only mean I have found to test key erasure under CI
@@ -412,7 +412,7 @@ if ($key_found) {
 
 $key_found = true
 try {
-    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent2
+    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent3
 }
 catch { 
     $key_found = false
