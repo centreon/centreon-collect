@@ -83,7 +83,6 @@ fi
 apt-get update
 dpkg -i /tmp/packages-centreon/*.deb || true
 apt-get -y --no-install-recommends -f install
-rm -rf /tmp/packages-centreon
 apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false dpkg
 rm -rf /var/lib/apt/lists/* /tmp/*
 
