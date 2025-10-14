@@ -93,8 +93,6 @@ apt-get update
 apt-get install -y /tmp/packages-centreon/centreon-*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/*
-# dpkg -i /tmp/packages-centreon/*.deb || true
-#apt-get -y --no-install-recommends -f install
 
 EOF
 
@@ -116,6 +114,8 @@ EXPOSE 5670
 EXPOSE 51002
 
 WORKDIR /usr/share/centreon
+
+USER centreon-engine
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
 
