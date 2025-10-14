@@ -81,17 +81,11 @@ elif [[ "$STABILITY" == "stable" ]]; then
 fi
 
 apt-get update
-dpkg -i /tmp/packages-centreon/*.deb || true
-apt-get -y --no-install-recommends -f install
-apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false dpkg
-rm -rf /var/lib/apt/lists/* /tmp/*
-
-# apt-get install -y /tmp/packages-centreon/centreon-*.deb
-# apt-get clean
-
-# systemctl stop cbd
-# systemctl stop centengine
---mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon
+apt-get install -y /tmp/packages-centreon/centreon-*.deb
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+# dpkg -i /tmp/packages-centreon/*.deb || true
+#apt-get -y --no-install-recommends -f install
 
 EOF
 
