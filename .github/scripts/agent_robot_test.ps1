@@ -62,50 +62,50 @@ $agent_log_path = $current_dir + "\reports\centagent.log"
 $installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 Write-Host "install agent only  (agent initiated connection, no encryption)"
-$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace'
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent1', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace'
+
 # Better: get the process, wait
-$proc = Start-Process -FilePath $installer_exepath -ArgumentList $installer_args -PassThru
-$proc.WaitForExit()
+Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
 
 Start-Sleep -Seconds 5
 
 #encrypted version
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ${current_dir}/server_grpc.crt
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value localhost:4318
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value full
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name token -Value eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name ca_certificate -Value ${current_dir}/server_grpc.crt
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name endpoint -Value localhost:4318
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name encryption -Value full
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name token -Value eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8
 $agent_log_path = $current_dir + "\reports\encrypted_centagent.log"
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name log_file -Value $agent_log_path
 
 Write-Host "start manually agent (agent initiated connection, encryption)"
-Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent" -RedirectStandardOutput reports\encrypted_centagent_stdout.log -RedirectStandardError reports\encrypted_centagent_stderr.log
+Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\encrypted_centagent_stdout.log -RedirectStandardError reports\encrypted_centagent_stderr.log
 
 Start-Sleep -Seconds 5
 
 #Start reverse agent
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name ca_certificate -Value ""
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value no
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4320
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name reversed_grpc_streaming -Value 1
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name ca_certificate -Value ""
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name encryption -Value no
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name endpoint -Value 0.0.0.0:4320
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name reversed_grpc_streaming -Value 1
 $agent_log_path = $current_dir + "\reports\reverse_centagent.log"
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name log_file -Value $agent_log_path
 
 Write-Host "start manually agent (poller initiated connection, no encryption)"
-Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent" -RedirectStandardOutput reports\reversed_centagent_stdout.log -RedirectStandardError reports\reversed_centagent_stderr.log
+Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\reversed_centagent_stdout.log -RedirectStandardError reports\reversed_centagent_stderr.log
 
 Start-Sleep -Seconds 5
 
 #reversed and encrypted
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name private_key -Value ${current_dir}/reverse_server_grpc.key
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name public_cert -Value ${current_dir}/reverse_server_grpc.crt
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name encryption -Value full
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name endpoint -Value 0.0.0.0:4321
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name token -Value eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name private_key -Value ${current_dir}/reverse_server_grpc.key
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name public_cert -Value ${current_dir}/reverse_server_grpc.crt
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name encryption -Value full
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name endpoint -Value 0.0.0.0:4321
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name token -Value eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8
 $agent_log_path = $current_dir + "\reports\encrypted_reverse_centagent.log"
-Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent  -Name log_file -Value $agent_log_path
+Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name log_file -Value $agent_log_path
 
 Write-Host "start manually agent (poller initiated connection, encryption)"
-Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
+Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
 $uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
 $d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
