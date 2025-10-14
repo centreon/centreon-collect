@@ -51,15 +51,7 @@ bool contact_helper::hook(std::string_view key, std::string_view value) {
   /* Since we use key to get back the good key value, it is faster to give key
    * by copy to the method. We avoid one key allocation... */
   key = validate_key(key);
-  if (key == "contact_name") {
-    obj->set_contact_name(std::string(value));
-    set_changed(obj->descriptor()->FindFieldByName("contact_name")->index());
-    if (obj->alias().empty()) {
-      obj->set_alias(obj->contact_name());
-      set_changed(obj->descriptor()->FindFieldByName("alias")->index());
-    }
-    return true;
-  } else if (key == "host_notification_options") {
+  if (key == "host_notification_options") {
     uint16_t options = action_hst_none;
     if (fill_host_notification_options(&options, value)) {
       obj->set_host_notification_options(options);
@@ -90,7 +82,6 @@ bool contact_helper::hook(std::string_view key, std::string_view value) {
     return true;
   } else if (key.compare(0, 7, "address") == 0) {
     obj->add_address(value.data(), value.size());
-    set_changed(obj->descriptor()->FindFieldByName("address")->index());
     return true;
   }
   return false;
@@ -123,6 +114,9 @@ void contact_helper::set_default_values() {
   DEFAULT_PB_FIELD_SET(retain_status_information, true);
   DEFAULT_PB_FIELD_SET(service_notification_options, action_svc_none);
   DEFAULT_PB_FIELD_SET(service_notifications_enabled, true);
+  if (obj->has_contact_name() && obj->alias().empty()) {
+    obj->set_alias(obj->contact_name());
+  }
 }
 
 /**

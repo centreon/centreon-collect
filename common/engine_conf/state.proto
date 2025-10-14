@@ -633,8 +633,8 @@ message Hostgroup {
   Object obj = 1;
   optional string action_url = 2;
   optional string alias = 3;
-  optional uint32 hostgroup_id = 4;
-  optional string hostgroup_name = 5;
+  uint32 hostgroup_id = 4;
+  string hostgroup_name = 5;
   StringSet members = 6;
   optional string notes = 7;
   optional string notes_url = 8;
@@ -736,9 +736,9 @@ message Servicegroup {
   PairStringSet members = 4;
   optional string notes = 5;
   optional string notes_url = 6;
-  optional uint32 servicegroup_id = 7;
+  uint32 servicegroup_id = 7;
   StringSet servicegroup_members = 8;
-  optional string servicegroup_name = 9;
+  string servicegroup_name = 9;
 }
 
 message Severity {

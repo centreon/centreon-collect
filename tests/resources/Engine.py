@@ -489,19 +489,25 @@ define command {{
             ff.write(content)
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str):
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str, create_default_values: bool):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
-            content = f"""define {type}escalation {{
+            if create_default_values:
+                content = f"""define {type}escalation {{
     ;escalation_name                esc{name}
     escalation_period              24x7
     escalation_options             """
-            if type == "service":
-                content += "w,c,r\nservicegroup_name"
-            else:
-                content += "all\nhostgroup_name"
-            content += f"""              {SG}
+                if type == "service":
+                    content += "w,c,r\nservicegroup_name"
+                else:
+                    content += "all\nhostgroup_name"
+                content += f"""              {SG}
     contact_groups                 {contactgroup}
+    }}
+    """
+            else:
+                content = f"""define {type}escalation {{
+    ;escalation_name                esc{name}
     }}
     """
             ff.write(content)
@@ -2725,7 +2731,7 @@ def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str = "service"):
+def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str = "service", create_default_values: bool = True):
     """
     Create an escalations.cfg file for a given poller.
 
@@ -2734,8 +2740,10 @@ def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: s
         name (int): name of escalations (not used).
         SG (str): name of a service group.
         contactgroup (str): name of a contact group.
+        create_default_values: True if you want to fill escalation
     """
-    engine.create_escalations_file(poller, name, SG, contactgroup, type)
+    engine.create_escalations_file(
+        poller, name, SG, contactgroup, type, create_default_values)
 
 
 def ctn_create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
