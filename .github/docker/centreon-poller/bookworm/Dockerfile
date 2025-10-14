@@ -8,6 +8,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 
+RUN set -eux; \
+    printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d; \
+    chmod +x /usr/sbin/policy-rc.d; \
+    # create harmless systemctl shim so maintainer scripts calling it don't print errors
+    printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl; \
+    chmod +x /bin/systemctl
+
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
@@ -65,8 +72,8 @@ apt-get update
 apt-get install -y /tmp/packages-centreon/centreon-*.deb
 apt-get clean
 
-systemctl stop cbd
-systemctl stop centengine
+# systemctl stop cbd
+# systemctl stop centengine
 
 EOF
 
