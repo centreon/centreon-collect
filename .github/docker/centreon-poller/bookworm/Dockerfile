@@ -8,13 +8,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 
-RUN set -eux; \
-    printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d; \
-    chmod +x /usr/sbin/policy-rc.d; \
-    # create harmless systemctl shim so maintainer scripts calling it don't print errors
-    printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl; \
-    chmod +x /bin/systemctl &&\
-    groupadd -g 900 centreon &&\
+RUN groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
     groupadd -g 901 centreon-engine &&\
     useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine &&\
@@ -90,10 +84,15 @@ elif [[ "$STABILITY" == "stable" ]]; then
   for i in \$( ls /etc/apt/sources.list.d/centreon*{unstable,testing}* ); do mv \$i \$i.disabled; done
 fi
 
+printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d
+chmod +x /usr/sbin/policy-rc.d
+printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
+chmod +x /bin/systemctl
+
 apt-get update
 apt-get install -y /tmp/packages-centreon/centreon-*.deb
 apt-get clean
-rm -rf /var/lib/apt/lists/*
+rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
@@ -116,7 +115,7 @@ EXPOSE 51002
 
 WORKDIR /usr/share/centreon
 
-USER centreon-engine
+# USER centreon-engine
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
 
