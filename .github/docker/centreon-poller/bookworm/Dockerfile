@@ -96,6 +96,10 @@ rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
+RUN echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.json &&\
+    mkdir -p /var/lib/centreon/centplugins/ &&\
+    chown centreon-engine:centreon-engine /var/lib/centreon/centplugins/
+
 COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /var/lib/centreon-engine
 COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
