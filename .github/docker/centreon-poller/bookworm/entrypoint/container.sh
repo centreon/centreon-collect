@@ -5,7 +5,7 @@ set -e
 
 # Run each startup script located in BASEDIR.
 # ls is required to ensure that the scripts are properly sorted by name.
-BASEDIR="/usr/share/centreon/container.d"
+BASEDIR="/var/lib/centreon-engine/container.d"
 for file in `ls $BASEDIR` ; do
   case "$file" in
     *_background*)
