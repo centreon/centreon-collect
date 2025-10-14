@@ -96,7 +96,7 @@ rm -rf /var/lib/apt/lists/*
 
 EOF
 
-COPY --chmod=755 ./.github/docker/centreon-poller/bookworm/entrypoint /usr/share/centreon
+COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /usr/share/centreon
 COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
 COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
