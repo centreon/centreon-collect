@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:12-slim
 
 ARG VERSION
 ARG IS_CLOUD
@@ -51,7 +51,16 @@ APT::Install-Suggests "false";
 
 apt-get update
 
-apt-get install -y wget gnupg2 ca-certificates python3 software-properties-common
+apt-get install -y  wget \
+                    gnupg2 \
+                    ca-certificates \
+                    python3 \
+                    python3.11-venv \
+                    software-properties-common \
+                    libmariadb3 \
+                    monitoring-plugins-basic \
+                    sudo
+                    
 
 VERSION_CODENAME=\$(
   . /etc/os-release
