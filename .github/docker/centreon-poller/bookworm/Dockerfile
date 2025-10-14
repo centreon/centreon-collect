@@ -13,9 +13,8 @@ RUN set -eux; \
     chmod +x /usr/sbin/policy-rc.d; \
     # create harmless systemctl shim so maintainer scripts calling it don't print errors
     printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl; \
-    chmod +x /bin/systemctl
-
-RUN groupadd -g 900 centreon &&\
+    chmod +x /bin/systemctl &&\
+    groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
     groupadd -g 901 centreon-engine &&\
     useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine &&\
