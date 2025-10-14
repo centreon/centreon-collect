@@ -7,6 +7,8 @@ ARG STABILITY
 ENV DEBIAN_FRONTEND=noninteractive
 
 # COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
+RUN apt-get update && \
+    apt upgrade -y
 
 RUN groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
@@ -43,8 +45,6 @@ APT::Install-Suggests "false";
 ######################################
 # install and configure repositories #
 ######################################
-
-apt-get update
 
 apt-get install -y  wget \
                     gnupg2 \
@@ -96,8 +96,7 @@ rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
-COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /usr/share/centreon
-COPY --chmod=755 ./.github/docker/centreon-poller/init/* /etc/init.d/
+COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /var/lib/centreon-engine
 COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
 
 # grpc central-module
@@ -113,10 +112,10 @@ EXPOSE 5670
 # grpc central-rrd
 EXPOSE 51002
 
-WORKDIR /usr/share/centreon
+WORKDIR /var/lib/centreon-engine
 
-# USER centreon-engine
+USER centreon-engine
 
-ENTRYPOINT ["/usr/share/centreon/container.sh"]
+ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
 
 CMD ["uvicorn", "api_control:app", "--host", "0.0.0.0", "--port", "8000"]
