@@ -6,7 +6,7 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
+# COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 
 RUN set -eux; \
     printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d; \
@@ -14,6 +14,19 @@ RUN set -eux; \
     # create harmless systemctl shim so maintainer scripts calling it don't print errors
     printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl; \
     chmod +x /bin/systemctl
+
+RUN groupadd -g 900 centreon &&\
+    useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
+    groupadd -g 901 centreon-engine &&\
+    useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine &&\
+    groupadd -g 902 centreon-broker &&\
+    useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -c "Centreon Broker"  -s /bin/bash centreon-broker &&\
+    groupadd -g 903 centreon-gorgone &&\
+    useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -c "Centreon Gorgone"  -s /bin/bash centreon-gorgone &&\
+    usermod -aG centreon-broker centreon-engine  && \
+    usermod -aG centreon-engine centreon-broker && \
+    usermod -aG centreon-gorgone centreon-engine && \
+    usermod -aG sudo centreon-engine
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -94,6 +107,8 @@ EXPOSE 5670
 # grpc central-rrd
 EXPOSE 51002
 
+WORKDIR /usr/share/centreon
+
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
 
-CMD ["/bin/bash"]
+CMD ["uvicorn", "api_control:app", "--host", "0.0.0.0", "--port", "8000"]
