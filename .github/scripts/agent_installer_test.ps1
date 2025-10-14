@@ -202,15 +202,14 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
         exit 1
     }
 
-    Write-Host "The following command will output errors, don't take them into account"
     #the only mean I have found to test key erasure under CI
     #Test-Path doesn't work
-    $key_found = true
+    $key_found = $true
     try {
-        Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
+        Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent -ErrorAction Stop
     }
     catch { 
-        $key_found = false
+        $key_found = $false
     }
 
     if ($key_found) {
@@ -228,15 +227,14 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
         exit 1
     }
 
-    Write-Host "The following command will output errors, don't take them into account"
     #the only mean I have found to test key erasure under CI
     #Test-Path doesn't work
-    $key_found = true
+    $key_found = $true
     try {
-        Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent
+        Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent -ErrorAction Stop
     }
     catch { 
-        $key_found = false
+        $key_found = $false
     }
 
     if ($key_found) {
@@ -393,16 +391,16 @@ test_args_to_registry $modifier_exepath $exe_args $expected $modifier_instance
 Write-Host "############################  uninstall test   ############################"
 
 $process_info = Start-Process -PassThru  "C:\Program Files\Centreon\unins000.exe" "/VERYSILENT /AGENTINSTANCE=CentreonMonitoringAgent2,CentreonMonitoringAgent3"
+Wait-Process -Id $process_info.Id
 
-Write-Host "The following command will output errors, don't take them into account"
 #the only mean I have found to test key erasure under CI
 #Test-Path doesn't work
-$key_found = true
+$key_found = $true
 try {
-    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent2
+    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent2 -ErrorAction Stop
 }
 catch { 
-    $key_found = false
+    $key_found = $false
 }
 
 if ($key_found) {
@@ -410,12 +408,12 @@ if ($key_found) {
     exit 1
 }
 
-$key_found = true
+$key_found = $true
 try {
-    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent3
+    Get-ChildItem -Path HKLM:\Software\Centreon\CentreonMonitoringAgent3 -ErrorAction Stop
 }
 catch { 
-    $key_found = false
+    $key_found = $false
 }
 
 if ($key_found) {
