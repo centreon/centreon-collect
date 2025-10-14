@@ -25,6 +25,7 @@ RUN set -eux; \
     usermod -aG centreon-broker centreon-engine  && \
     usermod -aG centreon-engine centreon-broker && \
     usermod -aG centreon-gorgone centreon-engine && \
+    usermod -aG centreon centreon-engine && \
     usermod -aG sudo centreon-engine
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
