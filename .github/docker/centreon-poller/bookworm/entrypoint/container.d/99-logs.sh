@@ -5,3 +5,5 @@ echo "Centreon is ready"
 
 # tail -f \
 #   /var/log/centreon-engine/centengine.log
+
+exec "$@"

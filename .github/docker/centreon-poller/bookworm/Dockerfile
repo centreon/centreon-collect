@@ -95,3 +95,5 @@ EXPOSE 5670
 EXPOSE 51002
 
 ENTRYPOINT ["/usr/share/centreon/container.sh"]
+
+CMD ["/bin/bash"]
