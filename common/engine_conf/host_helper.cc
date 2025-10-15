@@ -66,10 +66,6 @@ bool host_helper::hook(std::string_view key, std::string_view value) {
   if (key == "host_name") {
     obj->set_host_name(std::string(value));
     set_changed(obj->descriptor()->FindFieldByName("host_name")->index());
-    if (obj->alias().empty()) {
-      obj->set_alias(obj->host_name());
-      set_changed(obj->descriptor()->FindFieldByName("alias")->index());
-    }
     return true;
   } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
@@ -287,6 +283,10 @@ void host_helper::set_default_values() {
   DEFAULT_PB_FIELD_SET(retain_status_information, true);
   DEFAULT_PB_FIELD_SET(retry_interval, 1);
   DEFAULT_PB_FIELD_SET(stalking_options, action_hst_none);
+  if (obj->alias().empty() && obj->has_host_name()) {
+    obj->set_alias(obj->host_name());
+    set_changed(obj->descriptor()->FindFieldByName("alias")->index());
+  }
 }
 
 /**
