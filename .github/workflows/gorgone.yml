@@ -278,8 +278,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
-    name: dockerize ${{ matrix.distrib }}
+        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+    name: dockerize ${{ matrix.operating_system }}
     env:
       project: gorgone-testing
     steps:
@@ -297,22 +297,22 @@ jobs:
         id: parse-distrib
         uses: ./.github/actions/parse-distrib
         with:
-          distrib: ${{ matrix.distrib }}
+          distrib: ${{ matrix.operating_system }}
 
       - name: Get FROM image tag
         id: from_image_version
         run: |
           FROM_IMAGE_VERSION="${{ needs.get-environment.outputs.major_version }}"
-          FROM_IMAGE="gorgone-testing-dependencies-${{ matrix.distrib }}"
+          FROM_IMAGE="gorgone-testing-dependencies-${{ matrix.operating_system }}"
           IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.head_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
             FROM_IMAGE_VERSION="${{ github.head_ref || github.ref_name }}"
-            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.distrib }}."
+            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
           else
             IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.base_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
             if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
               FROM_IMAGE_VERSION="${{ github.base_ref || github.ref_name }}"
-              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.distrib }}."
+              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
             fi
           fi
 
@@ -364,20 +364,20 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
-          file: .github/docker/gorgone/${{ matrix.distrib }}/Dockerfile.testing
+          file: .github/docker/gorgone/${{ matrix.operating_system }}/Dockerfile.testing
           build-args: |
             "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
             "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
           pull: true
           push: true
           load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
 
       - name: Store image in local archive
         run: |
-          docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
           mkdir -p docker-image
-          docker save --output ./docker-image/gorgone-testing-${{ matrix.distrib }}.tar gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          docker save --output ./docker-image/gorgone-testing-${{ matrix.operating_system }}.tar gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
         shell: bash
 
       - name: Clear previous docker image from cache
@@ -386,14 +386,14 @@ jobs:
             -X DELETE \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+            https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
         shell: bash
 
       - name: Store docker image in cache
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
           path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
 
   robot-test-list:
     needs: [get-environment, changes, dockerize]
@@ -437,7 +437,7 @@ jobs:
         include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
 
     runs-on: ubuntu-24.04
-    name: ${{ matrix.feature }} ${{ matrix.distrib }}
+    name: ${{ matrix.feature }} ${{ matrix.operating_system }}
 
     steps:
       - name: Checkout sources
@@ -447,7 +447,7 @@ jobs:
         id: parse-distrib
         uses: ./.github/actions/parse-distrib
         with:
-          distrib: ${{ matrix.distrib }}
+          distrib: ${{ matrix.operating_system }}
 
       - name: Restore gorgone image from cache
         id: cache-docker
@@ -456,15 +456,15 @@ jobs:
         timeout-minutes: 6
         with:
           path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
         env:
           SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
 
       - name: Load gorgone image
         if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
         run: |
-          docker load --input ./docker-image/gorgone-testing-${{ matrix.distrib }}.tar
-          docker tag gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          docker load --input ./docker-image/gorgone-testing-${{ matrix.operating_system }}.tar
+          docker tag gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
         shell: bash
 
       - name: Replace / with - in the feature path
@@ -478,7 +478,7 @@ jobs:
 
       - name: ${{ format('Test {0}', matrix.feature) }}
         env:
-          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
@@ -488,7 +488,7 @@ jobs:
       - name: Get gorgone container logs
         if: failure()
         env:
-          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
         run: |
           mkdir -p /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}
@@ -500,7 +500,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: gorgone-debug-${{ matrix.distrib }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
+          name: gorgone-debug-${{ matrix.operating_system }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: |
             /tmp/gorgone-debug
           retention-days: 1
@@ -522,14 +522,14 @@ jobs:
         uses: actions/upload-artifact/merge@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         if: ${{ contains(needs.robot-test-run.result, 'failure') }}
         with:
-          name: gorgone-debug-${{ matrix.distrib }}
-          pattern: gorgone-debug-${{ matrix.distrib }}-*
+          name: gorgone-debug-${{ matrix.operating_system }}
+          pattern: gorgone-debug-${{ matrix.operating_system }}-*
           retention-days: 1
 
       - name: Delete merged artifacts
         uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
         with:
-          name: gorgone-debug-${{ matrix.distrib }}-*
+          name: gorgone-debug-${{ matrix.operating_system }}-*
           failOnError: false
 
   deliver-sources:
