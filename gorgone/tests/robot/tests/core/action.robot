@@ -39,6 +39,7 @@ action module with ${communication_mode} communcation mode
     ...    poller_config=${poller_config}
 
     Setup Sudo
+    Ctn Prepare package manager
 
     # first we test the api without waiting for the output of the command.
     # check by default the api launch the query in local
