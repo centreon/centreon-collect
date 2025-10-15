@@ -433,8 +433,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bookworm]  # No ubuntu in 24.10, 24.11 or later for now
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
+        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
 
     runs-on: ubuntu-24.04
     name: ${{ matrix.feature }} ${{ matrix.distrib }}
@@ -506,15 +506,16 @@ jobs:
           retention-days: 1
 
   robot-test-report:
-    needs: [robot-test-run]
+    needs: [get-environment, robot-test-run]
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bookworm]
+        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
     runs-on: ubuntu-24.04
     steps:
       - name: Merge Artifacts
