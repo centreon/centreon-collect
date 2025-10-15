@@ -38,7 +38,7 @@ tag_helper::tag_helper(Tag* obj)
                          {"tag_type", "type"},
                      },
                      Tag::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -101,9 +101,8 @@ void tag_helper::check_validity(error_cnt& err) const {
 /**
  * @brief Initializer of the Tag object, in other words set its default values.
  */
-void tag_helper::_init() {
+void tag_helper::set_default_values() {
   Tag* obj = static_cast<Tag*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
   if (!obj->has_key()) {
     auto mut_key = obj->mutable_key();
     mut_key->set_id(0);
