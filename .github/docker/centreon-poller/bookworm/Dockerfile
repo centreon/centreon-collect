@@ -90,16 +90,15 @@ printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
 chmod +x /bin/systemctl
 
 apt-get update
-apt-get install -y /tmp/packages-centreon/centreon-engine*.deb /tmp/packages-centreon/centreon-clib*.deb
+apt-get install -y /tmp/packages-centreon/centreon*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
 RUN echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.json &&\
-    mkdir -p /var/lib/centreon/centplugins/ /var/log/centreon-broker/ &&\
-    chown centreon-engine:centreon-engine /var/lib/centreon/centplugins/ &&\
-    chown centreon-broker:centreon-broker /var/log/centreon-broker/ 
+    mkdir -p /var/lib/centreon/centplugins/ &&\
+    chown centreon-engine:centreon-engine /var/lib/centreon/centplugins/
 
 COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /var/lib/centreon-engine
 COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
