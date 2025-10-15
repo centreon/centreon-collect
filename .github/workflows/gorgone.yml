@@ -409,7 +409,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-    name: robot-test ${{ matrix.operating_system }}-${{ matrix.database }}
+    name: robot-test ${{ matrix.operating_system }}
     uses: ./.github/workflows/robot-test-gorgone.yml
     with:
       distrib: ${{ matrix.operating_system }}

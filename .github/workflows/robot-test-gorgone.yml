@@ -37,7 +37,7 @@ jobs:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
     runs-on: ubuntu-24.04
-    name: ${{ matrix.feature }} ${{ inputs.distrib }}
+    name: ${{ matrix.feature }}
 
     steps:
       - name: Checkout sources
