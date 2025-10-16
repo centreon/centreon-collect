@@ -203,6 +203,7 @@ configuration::Host TestEngine::new_pb_configuration_host(
   hst.set_host_name(hostname);
   hst.set_address("127.0.0.1");
   hst.set_host_id(hst_id);
+  hst_hlp.set_default_values();
   fill_string_group(hst.mutable_contacts(), contacts);
 
   configuration::Command cmd;
@@ -259,6 +260,7 @@ configuration::Hostescalation TestEngine::new_pb_configuration_hostescalation(
   he_hlp.hook("escalation_options", "d,u,r");
   he_hlp.hook("host_name", hostname);
   he_hlp.hook("contact_groups", contactgroup);
+  he_hlp.set_default_values();
   return he;
 }
 
@@ -287,6 +289,7 @@ configuration::Service TestEngine::new_pb_configuration_service(
   else
     svc.set_host_id(12);
 
+  svc_hlp.set_default_values();
   configuration::Command cmd;
   configuration::command_helper cmd_hlp(&cmd);
   if (cmd_index >= 0) {
@@ -327,6 +330,7 @@ TestEngine::new_pb_configuration_anomalydetection(
 
   // We fake here the expand_object on configuration::service
   ad.set_host_id(12);
+  ad_hlp.set_default_values();
 
   return ad;
 }

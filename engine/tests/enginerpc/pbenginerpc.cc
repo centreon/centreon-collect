@@ -81,6 +81,7 @@ class EngineRpc : public TestEngine {
     hst_child.set_address("127.0.0.1");
     hst_child_hlp.hook("parents", "test_host");
     hst_child.set_host_id(42);
+    hst_child_hlp.set_default_values();
     hst_aply2.add_object(hst_child);
 
     configuration::Host hst;
@@ -88,6 +89,7 @@ class EngineRpc : public TestEngine {
     hst = new_pb_configuration_host("test_host", "admin");
     configuration::applier::host hst_aply;
     hst.set_host_id(12);
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
 
     hst_aply.resolve_object(hst, err);

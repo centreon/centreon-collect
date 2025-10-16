@@ -32,14 +32,15 @@ size_t hostdependency_key(const Hostdependency& hd);
  * several methods to help the developer to fill the message fields.
  */
 class hostdependency_helper : public message_helper {
-  void _init();
-
  public:
   hostdependency_helper(Hostdependency* obj);
   ~hostdependency_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       State& s,
       error_cnt& err,
