@@ -65,6 +65,7 @@ class ServiceFlappingNotification : public TestEngine {
     hst.set_check_command("cmd");
     hst.set_checks_active(false);
     hst.set_checks_passive(true);
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst, err);
 
@@ -79,7 +80,7 @@ class ServiceFlappingNotification : public TestEngine {
 
     // We fake here the expand_object on configuration::service
     svc.set_host_id(12);
-
+    svc_hlp.set_default_values();
     svc_aply.add_object(svc);
     svc_aply.resolve_object(svc, err);
 

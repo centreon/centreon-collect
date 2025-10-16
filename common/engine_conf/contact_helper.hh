@@ -30,8 +30,6 @@ namespace com::centreon::engine::configuration {
  * several methods to help the developer to fill the message fields.
  */
 class contact_helper : public message_helper {
-  void _init();
-
  public:
   contact_helper(Contact* obj);
   ~contact_helper() noexcept = default;
@@ -41,6 +39,9 @@ class contact_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,

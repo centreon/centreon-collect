@@ -31,8 +31,6 @@ namespace com::centreon::engine::configuration {
  * several methods to helper the developer to fill the message fields.
  */
 class anomalydetection_helper : public message_helper {
-  void _init();
-
  public:
   anomalydetection_helper(Anomalydetection* obj);
   ~anomalydetection_helper() noexcept = default;
@@ -42,6 +40,8 @@ class anomalydetection_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+
+  void set_default_values() override;
 };
 }  // namespace com::centreon::engine::configuration
 
