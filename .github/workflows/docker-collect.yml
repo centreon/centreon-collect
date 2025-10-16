@@ -70,7 +70,7 @@ jobs:
         image: [centreon-engine, centreon-broker]
         distrib: [bookworm]
 
-    name: dockerize centreon-poller-${{ matrix.distrib }}
+    name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources

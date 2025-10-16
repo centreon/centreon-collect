@@ -100,8 +100,8 @@ RUN echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.jso
     mkdir -p /var/lib/centreon/centplugins/ &&\
     chown centreon-engine:centreon-engine /var/lib/centreon/centplugins/
 
-COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-poller/bookworm/entrypoint /var/lib/centreon-engine
-COPY --chmod=600 ./.github/docker/centreon-poller/sudoersCentreon /etc/sudoers.d/centreon
+COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-broker/bookworm/entrypoint /var/lib/centreon-engine
+COPY --chmod=600 ./.github/docker/centreon-broker/sudoersCentreon /etc/sudoers.d/centreon
 
 # grpc central-module
 EXPOSE 51003
