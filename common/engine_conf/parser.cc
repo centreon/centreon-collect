@@ -284,6 +284,8 @@ void parser::_parse_object_definitions(const std::string& path,
             }
           }
           if (obj.register_()) {
+            // final object => we apply default values
+            _pb_helper[msg.get()]->set_default_values();
             switch (otype) {
               case message_helper::contact:
                 pb_config->mutable_contacts()->AddAllocated(
@@ -685,7 +687,11 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (!found)
                   refl->AddString(msg, f, s);
               }
-              msg_helper->set_changed(f->index());
+              // in conf files address are referenced by address1, address2....
+              // so we have to merge them
+              if (f->name() != "address") {
+                msg_helper->set_changed(f->index());
+              }
             } break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               size_t count = refl->FieldSize(*tmpl, f);
@@ -716,7 +722,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                       const CustomVariable& cv1 =
                           static_cast<const CustomVariable&>(m1);
                       if (cv.name() == cv1.name()) {
-                        _logger->info("same name");
+                        _logger->debug("same name");
                         found = true;
                         break;
                       }
@@ -730,7 +736,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   new_m->CopyFrom(m);
                 }
               }
-              msg_helper->set_changed(f->index());
+              // tags and custom variables are merged among templates
+              if (f->name() != "tags" && f->name() != "customvariables") {
+                msg_helper->set_changed(f->index());
+              }
             } break;
             default:
               _logger->error(
@@ -786,9 +795,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     if (!found)
                       set->add_data(v);
                   }
-                } else if (set->data().empty())
+                } else if (set->data().empty()) {
                   *set->mutable_data() = orig_set->data();
-
+                  set->set_additive(orig_set->additive());
+                }
               } else if (d && d->name() == "StringList") {
                 StringList* orig_lst =
                     static_cast<StringList*>(refl->MutableMessage(tmpl, f));
@@ -797,8 +807,10 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 if (lst->additive()) {
                   for (auto& v : orig_lst->data())
                     lst->add_data(v);
-                } else if (lst->data().empty())
+                } else if (lst->data().empty()) {
                   *lst->mutable_data() = orig_lst->data();
+                  lst->set_additive(orig_lst->additive());
+                }
               } else if (d && d->name() == "PairStringSet") {
                 PairStringSet* orig_pair =
                     static_cast<PairStringSet*>(refl->MutableMessage(tmpl, f));
@@ -816,13 +828,15 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                     if (!found)
                       pair->add_data()->CopyFrom(v);
                   }
-                } else if (pair->data().empty())
+                } else if (pair->data().empty()) {
                   *pair->mutable_data() = orig_pair->data();
+                  pair->set_additive(orig_pair->additive());
+                }
               } else {
                 refl->MutableMessage(msg, f)->CopyFrom(
                     refl->GetMessage(*tmpl, f));
+                msg_helper->set_changed(f->index());
               }
-              msg_helper->set_changed(f->index());
             } break;
 
             default:

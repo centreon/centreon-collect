@@ -52,7 +52,7 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      Serviceescalation::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -142,13 +142,12 @@ void serviceescalation_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Serviceescalation object, in other words set its
  * default values.
  */
-void serviceescalation_helper::_init() {
+void serviceescalation_helper::set_default_values() {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_escalation_options(action_se_none);
-  obj->set_first_notification(-2);
-  obj->set_last_notification(-2);
-  obj->set_notification_interval(0);
+  DEFAULT_PB_FIELD_SET(escalation_options, action_se_none);
+  DEFAULT_PB_FIELD_SET(first_notification, -2);
+  DEFAULT_PB_FIELD_SET(last_notification, -2);
+  DEFAULT_PB_FIELD_SET(notification_interval, 0);
 }
 
 /**

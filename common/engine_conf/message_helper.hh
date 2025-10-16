@@ -24,6 +24,14 @@
 #include <absl/strings/str_split.h>
 #include "common/engine_conf/state.pb.h"
 
+/**
+ * @brief a little macro used in helpers::set_default_values()
+ *
+ */
+#define DEFAULT_PB_FIELD_SET(field_name, value) \
+  if (!obj->has_##field_name())                 \
+    obj->set_##field_name(value);
+
 namespace com::centreon::engine::configuration {
 
 /**
@@ -255,6 +263,11 @@ class message_helper {
     return retval;
   }
   bool set(const std::string_view& key, const std::string_view& value);
+  // after parsing config files we apply default values to not setted fields if
+  // it's not a template
+  // register value is yet setted in xxx_helper constructor, no need to modify
+  // it here
+  virtual void set_default_values() {}
 };
 }  // namespace com::centreon::engine::configuration
 

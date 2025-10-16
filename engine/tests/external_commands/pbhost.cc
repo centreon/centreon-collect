@@ -44,6 +44,7 @@ TEST_F(HostExternalCommand, AddHostDowntime) {
   hst.set_host_name("test_srv");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);
@@ -74,6 +75,7 @@ TEST_F(HostExternalCommand, AddHostDowntimeByIpAddress) {
   hst.set_host_name("test_srv");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);
@@ -105,11 +107,13 @@ TEST_F(HostExternalCommand, AddHostComment) {
   hst.set_host_name("test_srv");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   hst2.set_host_name("test_srv2");
   hst2.set_address("127.0.0.1");
   hst2.set_host_id(2);
+  hst2_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst2));
 
   set_time(20000);
