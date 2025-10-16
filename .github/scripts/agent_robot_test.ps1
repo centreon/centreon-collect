@@ -75,7 +75,8 @@ $agent_log_path = $current_dir + "\reports\encrypted_centagent.log"
 $installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 Write-Host "install agent only  (agent initiated connection, encryption)"
-$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent2', '/HOST=host_1', '/ENDPOINT=localhost:4318', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/ENCRYPTION=full',"/CA=${current_dir}/server_grpc.crt",'/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8'
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent2', '/HOST=host_1', '/ENDPOINT=localhost:4318', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/ENCRYPTION=full',"/CA=${current_dir}\server_grpc.crt",'/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8'
+Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
 
 Start-Sleep -Seconds 5
 
@@ -103,6 +104,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name l
 
 Write-Host "start manually agent (poller initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
+
 
 $uptime = (Get-WmiObject -Class Win32_OperatingSystem).LastBootUpTime #dtmf format
 $d_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($uptime)  #datetime format
