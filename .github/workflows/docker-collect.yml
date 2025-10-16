@@ -64,11 +64,10 @@ jobs:
   dockerize:
     needs: [get-environment, package]
     runs-on: ubuntu-24.04
-    env:
-      project: centreon-poller
     strategy:
       fail-fast: false
       matrix:
+        image: [centreon-engine, centreon-broker]
         distrib: [bookworm]
 
     name: dockerize centreon-poller-${{ matrix.distrib }}
@@ -113,7 +112,7 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          file: .github/docker/${{ env.project }}/${{ matrix.distrib }}/Dockerfile
+          file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile
           context: .
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
@@ -121,7 +120,7 @@ jobs:
             "STABILITY=${{ needs.get-environment.outputs.stability }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.project }}-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ github.head_ref || github.ref_name }}
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
