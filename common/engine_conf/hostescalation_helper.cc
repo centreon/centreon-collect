@@ -57,7 +57,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"contact_groups", "contactgroups"},
                      },
                      Hostescalation::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -127,13 +127,12 @@ void hostescalation_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Hostescalation object, in other words set its
  * default values.
  */
-void hostescalation_helper::_init() {
+void hostescalation_helper::set_default_values() {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_escalation_options(action_he_none);
-  obj->set_first_notification(-2);
-  obj->set_last_notification(-2);
-  obj->set_notification_interval(0);
+  DEFAULT_PB_FIELD_SET(escalation_options, action_he_none);
+  DEFAULT_PB_FIELD_SET(first_notification, -2);
+  DEFAULT_PB_FIELD_SET(last_notification, -2);
+  DEFAULT_PB_FIELD_SET(notification_interval, 0);
 }
 
 /**

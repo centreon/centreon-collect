@@ -30,8 +30,6 @@ namespace com::centreon::engine::configuration {
  * several methods to help the developer to fill the message fields.
  */
 class command_helper : public message_helper {
-  void _init();
-
  public:
   command_helper(Command* obj);
   ~command_helper() noexcept = default;

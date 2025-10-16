@@ -66,7 +66,7 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
               {"execution_failure_criteria", "execution_failure_options"},
           },
           Hostdependency::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -154,12 +154,11 @@ void hostdependency_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Hostdependency object, in other words set its
  * default values.
  */
-void hostdependency_helper::_init() {
+void hostdependency_helper::set_default_values() {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_execution_failure_options(action_hd_none);
-  obj->set_inherits_parent(false);
-  obj->set_notification_failure_options(action_hd_none);
+  DEFAULT_PB_FIELD_SET(execution_failure_options, action_hd_none);
+  DEFAULT_PB_FIELD_SET(inherits_parent, false);
+  DEFAULT_PB_FIELD_SET(notification_failure_options, action_hd_none);
 }
 
 /**

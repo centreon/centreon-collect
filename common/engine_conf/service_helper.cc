@@ -48,7 +48,7 @@ service_helper::service_helper(Service* obj)
                          {"severity", "severity_id"},
                      },
                      Service::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -214,35 +214,36 @@ void service_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Service object, in other words set its default
  * values.
  */
-void service_helper::_init() {
+void service_helper::set_default_values() {
   Service* obj = static_cast<Service*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_acknowledgement_timeout(0);
-  obj->set_checks_active(true);
-  obj->set_checks_passive(true);
-  obj->set_check_freshness(0);
-  obj->set_check_interval(5);
-  obj->set_event_handler_enabled(true);
-  obj->set_first_notification_delay(0);
-  obj->set_flap_detection_enabled(true);
-  obj->set_flap_detection_options(action_svc_ok | action_svc_warning |
-                                  action_svc_unknown | action_svc_critical);
-  obj->set_freshness_threshold(0);
-  obj->set_high_flap_threshold(0);
-  obj->set_is_volatile(false);
-  obj->set_low_flap_threshold(0);
-  obj->set_max_check_attempts(3);
-  obj->set_notifications_enabled(true);
-  obj->set_notification_interval(0);
-  obj->set_notification_options(action_svc_ok | action_svc_warning |
-                                action_svc_critical | action_svc_unknown |
-                                action_svc_flapping | action_svc_downtime);
-  obj->set_obsess_over_service(true);
-  obj->set_process_perf_data(true);
-  obj->set_retain_nonstatus_information(true);
-  obj->set_retain_status_information(true);
-  obj->set_retry_interval(1);
-  obj->set_stalking_options(action_svc_none);
+  DEFAULT_PB_FIELD_SET(acknowledgement_timeout, 0);
+  DEFAULT_PB_FIELD_SET(checks_active, true);
+  DEFAULT_PB_FIELD_SET(checks_passive, true);
+  DEFAULT_PB_FIELD_SET(check_freshness, 0);
+  DEFAULT_PB_FIELD_SET(check_interval, 5);
+  DEFAULT_PB_FIELD_SET(event_handler_enabled, true);
+  DEFAULT_PB_FIELD_SET(first_notification_delay, 0);
+  DEFAULT_PB_FIELD_SET(flap_detection_enabled, true);
+  DEFAULT_PB_FIELD_SET(flap_detection_options,
+                       (action_svc_ok | action_svc_warning |
+                        action_svc_unknown | action_svc_critical));
+  DEFAULT_PB_FIELD_SET(freshness_threshold, 0);
+  DEFAULT_PB_FIELD_SET(high_flap_threshold, 0);
+  DEFAULT_PB_FIELD_SET(is_volatile, false);
+  DEFAULT_PB_FIELD_SET(low_flap_threshold, 0);
+  DEFAULT_PB_FIELD_SET(max_check_attempts, 3);
+  DEFAULT_PB_FIELD_SET(notifications_enabled, true);
+  DEFAULT_PB_FIELD_SET(notification_interval, 0);
+  DEFAULT_PB_FIELD_SET(
+      notification_options,
+      (action_svc_ok | action_svc_warning | action_svc_critical |
+       action_svc_unknown | action_svc_flapping | action_svc_downtime));
+  DEFAULT_PB_FIELD_SET(obsess_over_service, true);
+  DEFAULT_PB_FIELD_SET(process_perf_data, true);
+  DEFAULT_PB_FIELD_SET(retain_nonstatus_information, true);
+  DEFAULT_PB_FIELD_SET(retain_status_information, true);
+  DEFAULT_PB_FIELD_SET(retry_interval, 1);
+  DEFAULT_PB_FIELD_SET(stalking_options, action_svc_none);
 }
 
 /**
