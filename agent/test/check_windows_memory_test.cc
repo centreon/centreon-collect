@@ -42,7 +42,6 @@ class test_check : public check_memory {
             g_io_context,
             spdlog::default_logger(),
             {},
-            {},
             serv,
             args,
             nullptr,

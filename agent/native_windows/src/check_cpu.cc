@@ -337,8 +337,6 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
  * @param io_context
  * @param logger
  * @param first_start_expected start expected
- * @param check_interval check interval between two checks (not only this but
- * also others)
  * @param serv service
  * @param args native plugin arguments
  * @param cnf engine configuration received object
@@ -347,7 +345,6 @@ static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
 check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
                      time_point first_start_expected,
-                     duration check_interval,
                      const Service& serv,
                      const rapidjson::Value& args,
                      const engine_to_agent_request_ptr& cnf,
@@ -357,7 +354,6 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
           io_context,
           logger,
           first_start_expected,
-          check_interval,
           serv,
           args,
           cnf,
