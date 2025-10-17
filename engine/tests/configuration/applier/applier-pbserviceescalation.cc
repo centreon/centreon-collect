@@ -48,6 +48,7 @@ TEST_F(ApplierServiceEscalation, PbAddEscalation) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 
@@ -66,6 +67,7 @@ TEST_F(ApplierServiceEscalation, PbAddEscalation) {
   svc.set_service_id(12);
   svc.set_check_command("cmd");
   svc.set_host_id(12);
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   ASSERT_EQ(service::services.size(), 1u);
 
@@ -89,6 +91,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 
@@ -107,6 +110,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   svc.set_service_id(12);
   svc.set_check_command("cmd");
   svc.set_host_id(12);
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   ASSERT_EQ(service::services.size(), 1u);
 
@@ -136,6 +140,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   hst.set_host_name("test_host");
   hst.set_address("127.0.0.1");
   hst.set_host_id(12);
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
   ASSERT_EQ(host::hosts.size(), 1u);
 
@@ -154,6 +159,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   svc.set_service_id(12);
   svc.set_check_command("cmd");
   svc.set_host_id(12);
+  svc_hlp.set_default_values();
   svc_aply.add_object(svc);
   ASSERT_EQ(service::services.size(), 1u);
 

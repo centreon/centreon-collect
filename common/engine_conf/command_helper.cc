@@ -35,7 +35,7 @@ command_helper::command_helper(Command* obj)
                      obj,
                      {},
                      Command::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -57,11 +57,4 @@ void command_helper::check_validity(error_cnt& err) const {
   }
 }
 
-/**
- * @brief The initializer of the Command message.
- */
-void command_helper::_init() {
-  Command* obj = static_cast<Command*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-}
 }  // namespace com::centreon::engine::configuration

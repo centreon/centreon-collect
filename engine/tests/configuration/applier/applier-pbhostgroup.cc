@@ -66,6 +66,9 @@ TEST_F(ApplierHostGroup, PbNewHostGroup) {
   hst_c.set_host_name("c");
   hst_c.set_host_id(3);
   hst_c.set_address("127.0.0.1");
+  hst_a_hlp.set_default_values();
+  hst_b_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_b);
   hst_aply.add_object(hst_c);
@@ -111,6 +114,8 @@ TEST_F(ApplierHostGroup, PbHostRenamed) {
   hst_c.set_host_id(2);
   hst_c.set_address("127.0.0.1");
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
@@ -159,6 +164,8 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
   hst_c.set_host_id(2);
   hst_c.set_address("127.0.0.1");
 
+  hst_a_hlp.set_default_values();
+  hst_c_hlp.set_default_values();
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 

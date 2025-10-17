@@ -972,3 +972,207 @@ EESI9
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+EESI10
+    [Documentation]    Given a service escalation configuration with multiple inheritance templates,
+    ...    When the engine is started,
+    ...    Then the service escalation attributes are correctly inherited and applied to the services in the service group,
+    ...    And services not in the group have no escalation applied.
+    [Tags]    engine    serviceescalation    MON-188984
+    Ctn Config Engine    ${1}    ${5}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+
+    # add necessary files in centengine.cfg
+    Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    
+    # create necessary files:
+    Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1","host_2","service_2","host_3","service_3"]
+    Ctn Add Service Group    ${0}    ${2}    ["host_4","service_4","host_5","service_5"]
+
+    Ctn Add Contact Group    ${0}    ${1}    ["U1","U2","U3"]
+    Ctn Add Contact Group    ${0}    ${2}    ["U4"]
+    Ctn Add Contact Group    ${0}    ${11}    ["U4"]
+
+    # create the escalation file
+    Ctn Create Escalations File    0    1    servicegroup_1    contactgroup_1     service    False
+    
+    # add inheritance fields in escalations.cfg
+    Ctn Engine Config Set Value In Escalations    0    esc1    use    serviceescalation_template_1, serviceescalation_template_2
+
+    # create the template file
+    Ctn Create Template File    ${0}    serviceescalation    contact_groups    ["contactgroup_2", "contactgroup_45"]
+    Ctn Config Engine Add Cfg File    ${0}    escalationTemplates.cfg
+
+    # delete unnecessary fields in templates:
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_1    active_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_1    passive_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_1    contact_groups    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_2    active_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_2    passive_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    serviceescalation_template_2    contact_groups    escalationTemplates.cfg
+    
+    # set the necessary fields in templates and escalation
+    FOR    ${key}     ${value}     ${add_to_template}     IN
+    ...    servicegroup_name    servicegroup_1     0
+    ...    escalation_options    c     0
+    ...    escalation_period   24x7    1
+    ...    first_notification   2     1
+    ...    last_notification    3     1
+    ...    notification_interval    2     1
+    ...    contact_groups     contactgroup_1     1
+        ${template_index}    Ctn Randint    ${0}    ${2}
+        IF    ${template_index} == 0 
+            #0 add attrib to escalations.cfg
+            Ctn Engine Config Set Value In Escalations    0    esc1     ${key}    ${value}
+            IF     ${add_to_template} == 1
+                #templates must not override contact value
+                Ctn Engine Config Set Key Value In Cfg    0    serviceescalation_template_1     ${key}    ${value}1    escalationTemplates.cfg
+                Ctn Engine Config Set Key Value In Cfg    0    serviceescalation_template_2     ${key}    ${value}2    escalationTemplates.cfg
+            END
+        ELSE IF        ${template_index} == 1 
+            #1 add attrib to serviceescalation_template_1
+            Ctn Engine Config Set Key Value In Cfg    0    serviceescalation_template_1    ${key}    ${value}    escalationTemplates.cfg
+            IF     ${add_to_template} == 1
+                #second template must not override first one
+                Ctn Engine Config Set Key Value In Cfg    0    serviceescalation_template_2    ${key}    ${value}1    escalationTemplates.cfg
+            END
+        ELSE 
+            # add attrib to serviceescalation_template_2
+            Ctn Engine Config Set Key Value In Cfg    0    serviceescalation_template_2    ${key}    ${value}    escalationTemplates.cfg
+        END
+    END
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    FOR     ${host}     ${serv}    IN
+    ...    host_1    service_1
+    ...    host_2    service_2
+    ...    host_3    service_3
+        ${output}    Ctn Get Service Escalation Info Grpc    ${host}    ${serv}
+
+        Should Be Equal As Strings    ${output}[host]    ${host}    host
+        Should Be Equal As Strings    ${output}[serviceDescription]    ${serv}    serviceDescription
+        Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+        Should Not Contain   ${output}[contactGroup]    contactgroup_11    contactGroup11
+        Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+        Should Be Equal As Strings    ${output}[escalationOption]    c    escalationOption
+        Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+        Should Be Equal As Numbers     ${output}[lastNotification]    3    lastNotification
+        Should Be Equal As Numbers     ${output}[notificationInterval]    2    notificationInterval
+    END
+
+    ${output}    Ctn Get Service Escalation Info Grpc    host_4    service_4    
+    Should Be Empty    ${output}
+
+    ${output}    Ctn Get Service Escalation Info Grpc    host_5    service_5    
+    Should Be Empty    ${output}
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+EESI11
+    [Documentation]    Given a host escalation configuration with multiple inheritance templates,
+    ...    When the engine is started,
+    ...    Then the host escalation attributes are correctly inherited and applied to the hosts in the host group,
+    ...    And hosts not in the group have no escalation applied.
+    [Tags]    engine    hostescalation    MON-188984
+    Ctn Config Engine    ${1}    ${7}    ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config BBDO3    1
+
+    Ctn Config Engine Add Cfg File    ${0}    escalations.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contacts.cfg
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+
+    Ctn Engine Config Add Command    0    command_notif    /usr/bin/true
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Ctn Add Host Group    ${0}    ${1}    ["host_1","host_2","host_3"]
+
+    Ctn Add Contact Group    ${0}    ${1}    ["U1","U2","U3"]
+
+    Ctn Create Escalations File    0    1    hostgroup_1    contactgroup_1    host    False
+
+    # add inheritance fields in escalations.cfg
+    Ctn Engine Config Set Value In Escalations    0    esc1    use    hostescalation_template_1,hostescalation_template_2
+
+    # create the template file
+    Ctn Create Template File    ${0}    hostescalation    contact_groups    ["contactgroup_2", "contactgroup_45"]
+    Ctn Config Engine Add Cfg File    ${0}    escalationTemplates.cfg
+
+    # delete unnecessary fields in templates:
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_1    active_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_1    passive_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_1    contact_groups    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_2    active_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_2    passive_checks_enabled    escalationTemplates.cfg
+    Ctn Engine Config Delete Key In Cfg    0    hostescalation_template_2    contact_groups    escalationTemplates.cfg
+    
+    # set the necessary fields in templates and escalation
+    FOR    ${key}     ${value}     ${add_to_template}     IN
+    ...    hostgroup_name    hostgroup_1     1
+    ...    escalation_options    u     0
+    ...    escalation_period   24x7    1
+    ...    first_notification   2     1
+    ...    last_notification    3     1
+    ...    notification_interval    2     1
+    ...    contact_groups     contactgroup_1     1
+        ${template_index}    Ctn Randint    ${0}    ${2}
+        IF    ${template_index} == 0 
+            #0 add attrib to escalations.cfg
+            Ctn Engine Config Set Value In Escalations    0    esc1     ${key}    ${value}
+            IF     ${add_to_template} == 1
+                #templates must not override contact value
+                Ctn Engine Config Set Key Value In Cfg    0    hostescalation_template_1     ${key}    ${value}1    escalationTemplates.cfg
+                Ctn Engine Config Set Key Value In Cfg    0    hostescalation_template_2     ${key}    ${value}2    escalationTemplates.cfg
+            END
+        ELSE IF        ${template_index} == 1 
+            #1 add attrib to hostescalation_template_1
+            Ctn Engine Config Set Key Value In Cfg    0    hostescalation_template_1    ${key}    ${value}    escalationTemplates.cfg
+            IF     ${add_to_template} == 1
+                #second template must not override first one
+                Ctn Engine Config Set Key Value In Cfg    0    hostescalation_template_2    ${key}    ${value}1    escalationTemplates.cfg
+            END
+        ELSE 
+            # add attrib to hostescalation_template_2
+            Ctn Engine Config Set Key Value In Cfg    0    hostescalation_template_2    ${key}    ${value}    escalationTemplates.cfg
+        END
+    END
+
+
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    FOR    ${host}    IN    host_1    host_2    host_3
+        ${output}    Ctn Get Host Escalation Info Grpc    ${host}
+
+        Should Be Equal As Strings    ${output}[hostName]    ${host}    hostName
+        Should Contain   ${output}[contactGroup]    contactgroup_1    contactGroup
+        Should Be Equal As Strings    ${output}[escalationPeriod]    24x7    escalationPeriod
+        Should Be Equal As Strings    ${output}[escalationOption]    u    escalationOption
+        Should Be Equal As Numbers     ${output}[firstNotification]    2    firstNotification
+        Should Be Equal As Numbers     ${output}[lastNotification]    3    lastNotification
+        Should Be Equal As Numbers     ${output}[notificationInterval]    2    notificationInterval
+    END
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
