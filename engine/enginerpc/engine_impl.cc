@@ -38,6 +38,7 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/connector.hh"
+#include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/engine/commands/processing.hh"
 #include "com/centreon/engine/downtimes/downtime_finder.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -1057,23 +1058,29 @@ grpc::Status engine_impl::GetCommand(grpc::ServerContext* context
                                      const NameIdentifier* request,
                                      EngineCommand* response) {
   std::string err;
-  auto fn = std::packaged_task<int(void)>(
-      [&err, request, command = response]() -> int32_t {
-        std::shared_ptr<commands::command> selectedcommand;
-        auto itcommand = commands::command::commands.find(request->name());
-        if (itcommand != commands::command::commands.end())
-          selectedcommand = itcommand->second;
-        else {
-          err = fmt::format("could not find Command '{}'", request->name());
-          return 1;
-        }
-        command->set_command_name(selectedcommand->get_name());
-        command->set_command_line(selectedcommand->get_command_line());
-        command->set_type(
-            static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
-
-        return 0;
-      });
+  auto fn = std::packaged_task<int(void)>([&err, request,
+                                           command = response]() -> int32_t {
+    std::shared_ptr<commands::command> selectedcommand;
+    auto itcommand = commands::command::commands.find(request->name());
+    if (itcommand != commands::command::commands.end())
+      selectedcommand = itcommand->second;
+    else {
+      err = fmt::format("could not find Command '{}'", request->name());
+      return 1;
+    }
+    command->set_command_name(selectedcommand->get_name());
+    command->set_command_line(selectedcommand->get_command_line());
+    command->set_type(
+        static_cast<EngineCommand::CmdType>(selectedcommand->get_type()));
+    if (selectedcommand->get_type() == commands::command::e_type::forward) {
+      auto sub = std::static_pointer_cast<commands::forward>(selectedcommand)
+                     ->get_sub_command();
+      if (sub->get_type() == commands::command::e_type::connector) {
+        command->set_connector(sub->get_name());
+      }
+    }
+    return 0;
+  });
 
   std::future<int32_t> result = fn.get_future();
   command_manager::instance().enqueue(std::move(fn));
