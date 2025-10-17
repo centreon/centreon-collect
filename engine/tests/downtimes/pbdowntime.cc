@@ -62,6 +62,7 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
   hst.set_host_name("test_srv");
   hst.set_address("127.0.0.1");
   hst.set_host_id(1);
+  hst_hlp.set_default_values();
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);

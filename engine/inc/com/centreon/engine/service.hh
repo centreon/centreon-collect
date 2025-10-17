@@ -205,7 +205,7 @@ class service : public notifier {
                               time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
                       uint32_t options,
-                      bool no_update_status_now = false) override;
+                      bool no_call_update_status = false) override;
   void set_flap(double percent_change,
                 double high_threshold,
                 double low_threshold,
@@ -262,6 +262,8 @@ class service : public notifier {
   static service_id_map services_by_id;
 
   std::string get_check_command_line(nagios_macros* macros);
+  bool is_cma_service() const { return _is_cma_service; }
+  void set_is_cma_service(bool is_cma) { _is_cma_service = is_cma; }
 
  private:
   uint64_t _host_id;
@@ -284,6 +286,7 @@ class service : public notifier {
   std::list<servicegroup*> _servicegroups;
   host* _host_ptr;
   bool _host_problem_at_last_check;
+  bool _is_cma_service{false};
 };
 }  // namespace com::centreon::engine
 

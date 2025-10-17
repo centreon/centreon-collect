@@ -141,7 +141,7 @@ TEST_F(check_service_test, service_no_threshold_all_running) {
   rapidjson::Document check_args = "{ }"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -209,7 +209,7 @@ TEST_F(check_service_test, service_no_threshold_one_by_state) {
   rapidjson::Document check_args = "{ }"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -274,7 +274,7 @@ TEST_F(check_service_test, service_filter_exclude_all_service) {
   rapidjson::Document check_args = R"({ "exclude-name": ".*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -337,7 +337,7 @@ TEST_F(check_service_test, service_filter_allow_some_service) {
   rapidjson::Document check_args = R"({ "filter-name": "service_s.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -406,7 +406,7 @@ TEST_F(check_service_test, service_filter_exclude_some_service) {
   rapidjson::Document check_args = R"({ "exclude-name": "service_s.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -477,7 +477,7 @@ TEST_F(check_service_test, service_filter_allow_some_service_warning_running) {
       R"({ "filter-name": "service_s.*", "warning-total-running": "5", "critical-total-running": ""  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -548,7 +548,7 @@ TEST_F(check_service_test, service_filter_allow_some_service_warning_stopped) {
       R"({ "filter-name": "service_s.*", "warning-total-stopped": 1  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -618,7 +618,7 @@ TEST_F(check_service_test, service_filter_allow_some_service_critical_state) {
       R"({ "filter-name": "service_s.*", "critical-state": "stop.*"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -688,7 +688,7 @@ TEST_F(check_service_test, service_filter_start_auto_true) {
   rapidjson::Document check_args = R"({ "start-auto": true  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -757,7 +757,7 @@ TEST_F(check_service_test, service_filter_start_auto_false) {
   rapidjson::Document check_args = R"({ "start-auto": false  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},
@@ -828,7 +828,7 @@ TEST_F(check_service_test,
       R"({ "filter-display": "desc service_s.*", "warning-total-running": "5"  })"_json;
 
   check_service test_check(
-      g_io_context, spdlog::default_logger(), {}, {}, serv, check_args, nullptr,
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
       [](const std::shared_ptr<check>& caller, int status,
          const std::list<com::centreon::common::perfdata>& perfdata,
          const std::list<std::string>& outputs) {},

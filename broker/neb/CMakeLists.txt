@@ -21,8 +21,12 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/neb/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/neb/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/neb/test")
 include_directories(
-  "${INC_DIR}" ${CMAKE_SOURCE_DIR}/common/inc ${CMAKE_BINARY_DIR}/bbdo
-  ${CMAKE_BINARY_DIR}/common/process_stat)
+  "${INC_DIR}" 
+  ${CMAKE_SOURCE_DIR}/common/inc 
+  ${CMAKE_BINARY_DIR}/bbdo
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_SOURCE_DIR}/common/process/inc
+  )
 
 # NEB sources.
 set(NEB_SOURCES

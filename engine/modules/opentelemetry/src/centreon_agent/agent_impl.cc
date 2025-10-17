@@ -211,6 +211,8 @@ static bool add_command_to_agent_conf(
     uint64_t host_id,
     uint64_t service_id,
     uint32_t check_interval,
+    uint32_t retry_interval,
+    uint32_t max_attempts,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& peer,
@@ -220,13 +222,15 @@ static bool add_command_to_agent_conf(
   if (plugins_cmdline.empty()) {
     SPDLOG_LOGGER_ERROR(
         logger,
-        "no add command: agent: {} serv: {}, no plugins cmd_line found in {}",
+        "Failed to add command for agent '{}', service '{}': plugins command "
+        "line is empty (original command line: '{}')",
         peer, service, cmd_line);
     return false;
   }
 
   SPDLOG_LOGGER_TRACE(
-      logger, "add command to agent: {}, serv: {}, cmd {} plugins cmd_line {}",
+      logger,
+      "Add command to agent: {}, serv: {}, cmd {} plugins command line {}",
       peer, service, cmd_name, cmd_line);
 
   com::centreon::agent::Service* serv = cnf->add_services();
@@ -234,14 +238,15 @@ static bool add_command_to_agent_conf(
   serv->set_command_name(cmd_name);
   serv->set_host_id(host_id);
   serv->set_service_id(service_id);
-  if (encrypt_credentials && pb_config.credentials_encryption() &&
-      credentials_decrypt) {
+  if (encrypt_credentials && credentials_decrypt) {
     serv->set_command_line("encrypt::" +
                            credentials_decrypt->encrypt(plugins_cmdline));
   } else {
     serv->set_command_line(plugins_cmdline);
   }
   serv->set_check_interval(check_interval * pb_config.interval_length());
+  serv->set_retry_interval(retry_interval * pb_config.interval_length());
+  serv->set_max_attempts(max_attempts);
 
   return true;
 }
@@ -275,7 +280,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           "Agent is not credentials encrypted ready, Engine will send no "
           "encrypted credentials to agent {}",
           *new_conf);
-    } else if (pb_config.credentials_encryption() && credentials_decrypt) {
+    } else if (credentials_decrypt) {
       cnf->set_key(
           common::crypto::base64_encode(credentials_decrypt->first_key()));
       cnf->set_salt(
@@ -301,16 +306,18 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
               const std::string& service, uint64_t host_id, uint64_t service_id,
-              uint32_t check_interval,
+              uint32_t check_interval, uint32_t retry_interval,
+              uint32_t max_attempts,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(
                 cmd_name, cmd_line, service, host_id, service_id,
-                check_interval, cnf, logger, peer, crypt_credentials);
+                check_interval, retry_interval, max_attempts, cnf, logger, peer,
+                crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (!at_least_one_command_found) {
-        SPDLOG_LOGGER_ERROR(_logger, "no command found for agent {}",
-                            get_peer());
+        SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} (host: {})",
+                            get_peer(), _agent_info->init().host());
       }
     }
     if (!_last_sent_config ||
@@ -320,11 +327,12 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
       _last_sent_config = new_conf;
     } else {
       new_conf.reset();
-      SPDLOG_LOGGER_DEBUG(_logger, "no need to update conf to {}", get_peer());
+      SPDLOG_LOGGER_DEBUG(_logger, "No need to update conf for agent: {}",
+                          get_peer());
     }
   }
   if (new_conf) {
-    SPDLOG_LOGGER_DEBUG(_logger, "send conf to {}", get_peer());
+    SPDLOG_LOGGER_DEBUG(_logger, "Send conf to agent: {}", get_peer());
     _write(new_conf);
   }
 }
