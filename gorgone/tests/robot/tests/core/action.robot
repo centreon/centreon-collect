@@ -92,14 +92,14 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=5
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=90
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
 
 
 Post Action Endpoint
-    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20250401
+    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20250900
 
     # Ideally, Gorgone should not allow any bash interpretation on command it execute.
     # As there is a whitelist in gorgone, if there was no bash interpretation we could allow only our required binary and be safe.

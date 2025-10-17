@@ -198,6 +198,9 @@ overrides:
       - perl(lib)
       - perl(Safe)
       - perl(Tie::File) # required by MBI module
+    recommends:
+      - logrotate
+
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
       - centreon-common
@@ -234,6 +237,8 @@ overrides:
       - librrds-perl
       - perl-base
       - perl-modules
+    recommends:
+      - logrotate
 
 rpm:
   summary: Centreon gorgone daemon

@@ -286,8 +286,11 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
  */
 void stream::_update_hosts_and_services_of_instance(uint32_t id,
                                                     bool responsive) {
+  // In order to not have following requests erased by waiting bulks, we flush
+  // and commit before
+  this->_check_queues({});
   int32_t conn = _mysql.choose_connection_by_instance(id);
-  _finish_action(conn, actions::hosts);
+  _finish_action(conn, actions::hosts | actions::resources);
   _finish_action(-1, actions::acknowledgements | actions::modules |
                          actions::downtimes | actions::comments);
 
@@ -302,37 +305,82 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
         "UPDATE instances SET outdated=FALSE WHERE instance_id={}", id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
-    query = fmt::format(
-        "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
-        "instance_id={} AND real_state IS NOT NULL",
-        id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::hosts);
-    query = fmt::format(
-        "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
-        "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
-        "and s.real_state IS NOT NULL",
-        id);
-    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::services);
+    if (_store_in_resources) {
+      query = fmt::format(
+          "UPDATE resources AS r JOIN hosts AS h ON h.host_id=r.id AND "
+          "r.parent_id=0 SET "
+          "r.status=h.real_state, h.state=h.real_state, status_ordered=(CASE "
+          "h.real_state WHEN 0 THEN 0 "
+          "WHEN 1 "
+          "THEN 4 WHEN 2 THEN 2 WHEN 3 THEN 0 WHEN 4 THEN 1 END), real_state = "
+          "NULL WHERE "
+          "h.real_state IS NOT NULL AND h.instance_id={}",
+          id);
+      _mysql.run_query(query, database::mysql_error::update_resources, conn);
+      query = fmt::format(
+          "UPDATE resources AS r JOIN services AS s ON s.host_id=r.parent_id "
+          "and "
+          "s.service_id=r.id SET r.status=s.real_state, s.state=s.real_state, "
+          "status_ordered=(CASE "
+          "s.real_state "
+          "WHEN 0 THEN 0 WHEN 1 THEN 3 WHEN 2 THEN 4 WHEN 3 THEN 2 WHEN 4 THEN "
+          "1 "
+          "END), s.real_state=NULL WHERE s.real_state IS NOT NULL AND "
+          "r.poller_id={};",
+          id);
+      _mysql.run_query(query, database::mysql_error::update_resources, conn);
+      _add_action(conn, actions::resources);
+    } else {
+      query = fmt::format(
+          "UPDATE hosts SET state=real_state,real_state=NULL WHERE "
+          "instance_id={} AND real_state IS NOT NULL",
+          id);
+      _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+      _add_action(conn, actions::hosts);
+      query = fmt::format(
+          "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
+          "SET s.state=s.real_state, s.real_state=NULL WHERE h.instance_id={} "
+          "and s.real_state IS NOT NULL",
+          id);
+      _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+      _add_action(conn, actions::services);
+    }
     query = fmt::format(
         "UPDATE agent_information SET enabled = 1 WHERE poller_id={}", id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
-    _add_action(conn, actions::services);
   } else {
     query = fmt::format(
         "UPDATE instances SET outdated=TRUE WHERE instance_id={}", id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
+    constexpr uint32_t host_state =
+        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable);
+    constexpr int host_ordered_state = hst_ordered_status[host_state];
+    constexpr uint32_t service_state =
+        static_cast<uint32_t>(com::centreon::engine::service::state_unknown);
+    constexpr int service_ordered_state = svc_ordered_status[service_state];
     query = fmt::format(
         "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
         "SET h.real_state=h.state,s.real_state=s.state,h.state={},s.state={} "
         "WHERE h.instance_id={}",
-        static_cast<uint32_t>(com::centreon::engine::host::state_unreachable),
-        static_cast<uint32_t>(com::centreon::engine::service::state_unknown),
-        id);
+        host_state, service_state, id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
+    if (_store_in_resources) {
+      query = fmt::format(
+          "UPDATE resources SET status={}, status_ordered={}  WHERE "
+          "parent_id=0 "
+          "AND poller_id= {}",
+          host_state, host_ordered_state, id);
+      _mysql.run_query(query, database::mysql_error::update_resources, conn);
+      query = fmt::format(
+          "UPDATE resources SET status={}, status_ordered={}  WHERE "
+          "parent_id!=0 "
+          "AND poller_id= {}",
+          service_state, service_ordered_state, id);
+      _mysql.run_query(query, database::mysql_error::update_resources, conn);
+      _add_action(conn, actions::resources);
+    }
     query = fmt::format(
         "UPDATE agent_information SET enabled = 0 WHERE poller_id={}", id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
@@ -2796,6 +2844,11 @@ void stream::_process_pb_adaptive_host_status(
     if (hscr.has_scheduled_downtime_depth())
       query += fmt::format("scheduled_downtime_depth={},",
                            hscr.scheduled_downtime_depth());
+    if (hscr.has_next_check())
+      query += fmt::format(" next_check={},", hscr.next_check());
+    if (hscr.has_should_be_scheduled())
+      query += fmt::format(" should_be_scheduled='{}',",
+                           hscr.should_be_scheduled() ? 1 : 0);
     if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={}", hscr.host_id());
@@ -4735,6 +4788,11 @@ void stream::_process_pb_adaptive_service_status(
     if (sscr.has_scheduled_downtime_depth())
       buf_query += fmt::format("scheduled_downtime_depth={},",
                                sscr.scheduled_downtime_depth());
+    if (sscr.has_next_check())
+      buf_query += fmt::format(" next_check={},", sscr.next_check());
+    if (sscr.has_should_be_scheduled())
+      buf_query += fmt::format(" should_be_scheduled='{}',",
+                               sscr.should_be_scheduled() ? 1 : 0);
     if (buf_query.size() > query.size()) {
       buf_query.resize(buf_query.size() - 1);
       buf_query += fmt::format(" WHERE host_id={} AND service_id={}",

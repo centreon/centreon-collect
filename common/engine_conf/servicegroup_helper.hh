@@ -26,7 +26,6 @@
 namespace com::centreon::engine::configuration {
 
 class servicegroup_helper : public message_helper {
-  void _init();
   static void _resolve_members(
       configuration::State& s,
       configuration::Servicegroup* sg_conf,

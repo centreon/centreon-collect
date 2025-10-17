@@ -751,6 +751,7 @@ message EngineCommand {
     OTEL = 4;
   }
   CmdType type = 3;
+  string connector = 4;
 }
 
 message EngineConnector {

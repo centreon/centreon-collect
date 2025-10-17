@@ -828,7 +828,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
     Disconnect From Database
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    ${True}
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -1108,8 +1108,6 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
     [Tags]    broker    engine    bam
@@ -1166,7 +1164,6 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
     [Documentation]    A BA of type worst is configured with one service kpi.
@@ -1221,7 +1218,6 @@ BA_CHANGED
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
     Should Not Be Empty    ${result}
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_IMPACT_IMPACT
     [Documentation]    Given a Business Activity (BA) of type "impact"
@@ -1305,8 +1301,6 @@ BA_IMPACT_IMPACT
         Should Be True    ${result}    The BA changed during Broker reload.
     END
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 BA_DISABLED
     [Documentation]    create a disabled BA with timeperiods and reporting filter don't create error message
     [Tags]    broker    engine    bam    MON-33778
@@ -1383,9 +1377,6 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ${output}    Query
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
-
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
-
 
 *** Keywords ***
 Ctn BAM Setup

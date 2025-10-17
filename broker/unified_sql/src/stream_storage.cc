@@ -1013,8 +1013,10 @@ void stream::_check_queues(boost::system::error_code ec) {
       absl::MutexLock l(&_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
       _queues_timer.async_wait([this](const boost::system::error_code& err) {
-        absl::ReaderMutexLock lck(&_barrier_timer_m);
-        _check_queues(err);
+        if (!err) {
+          absl::ReaderMutexLock lck(&_barrier_timer_m);
+          _check_queues(err);
+        }
       });
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,

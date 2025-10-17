@@ -56,6 +56,9 @@ class check_test : public testing::Test {
     serv.set_service_description("my_serv");
     serv.set_command_name("my_command_name");
     serv.set_command_line("my_command_line");
+    serv.set_check_interval(2);
+    serv.set_retry_interval(1);
+    serv.set_max_attempts(3);
   }
 };
 class dummy_check : public check {
@@ -87,7 +90,6 @@ class dummy_check : public check {
       : check(g_io_context,
               spdlog::default_logger(),
               std::chrono::system_clock::now(),
-              std::chrono::seconds(1),
               serv,
               nullptr,
               handler,
@@ -170,4 +172,140 @@ TEST_F(check_test, no_timeout) {
   ASSERT_EQ(status, 1);
   ASSERT_EQ(handler_call_cpt, 1);
   ASSERT_EQ(output, "output dummy_check of my_command_line");
+}
+
+// non ok soft  ->  ok soft -> ok hard
+TEST_F(check_test, nagios_confirmation_and_retry_soft_recovery) {
+  // prepare a dummy checker
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  // simulate previous non-OK soft state
+  checker->set_last_status(2);           // previous status was non-OK
+  checker->set_status_confirmed(false);  // previous was NOT confirmed (soft)
+  checker->set_current_attempt(1);
+  ASSERT_EQ(checker->get_max_attempts(), 3);
+
+  checker->calcul_status_confirmation(0);  // now OK
+
+  // soft recovery: status should remain not confirmed, last_status updated to
+  // OK
+  EXPECT_FALSE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+  EXPECT_EQ(checker->get_current_attempt(), 2);
+
+  // further OK
+  checker->calcul_status_confirmation(0);  // now OK
+  // further OK: should be confirmed (hard) and last_status updated to OK
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+  EXPECT_EQ(checker->get_current_attempt(), 1);
+}
+
+// non ok hard  ->  ok hard
+TEST_F(check_test, nagios_confirmation_and_retry_hard_recovery) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  // simulate previous non-OK hard state
+  checker->set_last_status(2);          // previous status was non-OK
+  checker->set_status_confirmed(true);  // previous was confirmed (hard)
+
+  checker->calcul_status_confirmation(0);  // now OK
+
+  // hard recovery: should be confirmed and last_status updated to OK
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+}
+
+// 1st check ok hard
+TEST_F(check_test, first_check_ok_hard) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  checker->calcul_status_confirmation(0);  // now OK
+
+  // hard
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+}
+
+// 1st check Nok soft
+TEST_F(check_test, first_check_nok_hard) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  checker->calcul_status_confirmation(2);  // NOK
+
+  // hard
+  EXPECT_FALSE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
+}
+
+// max attemps 3 : init ok hard -> non ok soft -> non ok soft -> non ok hard ->
+// ok hard -> ok hard
+TEST_F(check_test, nagios_confirmation_and_retry_problem_state) {
+  std::shared_ptr<dummy_check> checker = std::make_shared<dummy_check>(
+      serv, std::chrono::milliseconds(1),
+      [](const std::shared_ptr<check>&, unsigned,
+         const std::list<com::centreon::common::perfdata>&,
+         const std::list<std::string>&) {});
+
+  // first problem: from initial state to non-OK
+  checker->set_last_status(0);          // simulate first run before problem
+  checker->set_status_confirmed(true);  // irrelevant but explicit
+
+  checker->calcul_status_confirmation(2);  // non-OK
+
+  // first non-OK: should be not confirmed (soft) and last_status updated to
+  EXPECT_FALSE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
+  EXPECT_EQ(checker->get_current_attempt(), 1);
+
+  // second problem: still non-OK
+  checker->calcul_status_confirmation(2);  // non-OK
+  // second non-OK: should be not confirmed (soft) and last_status updated to
+  EXPECT_FALSE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
+  EXPECT_EQ(checker->get_current_attempt(), 2);
+
+  // third problem: still non-OK
+  checker->calcul_status_confirmation(2);  // non-OK
+  // third non-OK: should be confirmed (hard) and last_status updated to
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
+  EXPECT_EQ(checker->get_current_attempt(), 3);
+
+  // further problems: still non-OK
+  checker->calcul_status_confirmation(2);  // non-OK
+  // further non-OK: should be confirmed (hard) and last_status updated to
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 2);
+  EXPECT_EQ(checker->get_current_attempt(), 3);  // should not increase
+
+  // recovery to OK
+  checker->calcul_status_confirmation(0);  // now OK
+  // recovery from hard: should be confirmed (hard) and last_status updated to
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+  EXPECT_EQ(checker->get_current_attempt(), 1);  // reset to 1
+
+  // further OK
+  checker->calcul_status_confirmation(0);  // now OK
+  // further OK: should be confirmed (hard) and last_status updated to OK
+  EXPECT_TRUE(checker->get_status_confirmed());
+  EXPECT_EQ(checker->get_last_status(), 0);
+  EXPECT_EQ(checker->get_current_attempt(), 1);  // should not increase
 }

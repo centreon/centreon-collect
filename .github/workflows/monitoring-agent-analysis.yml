@@ -1,4 +1,4 @@
-name: engine-analysis
+name: monitoring-agent-analysis
 run-name: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.nightly_manual_trigger == 'true')) && format('{0} nightly {1}', github.workflow, github.ref_name) || '' }}
 
 concurrency:
@@ -17,7 +17,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
-      - engine/**
+      - agent/**
   push:
     branches:
       - develop
@@ -25,14 +25,14 @@ on:
       - master
       - "[2-9][0-9].[0-9][0-9].x"
     paths:
-      - engine/**
+      - agent/**
 
 jobs:
   get-environment:
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
-      version_file: CMakeLists.txt
+      version_file: .version.centreon-monitoring-agent
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
 
   dispatch-to-maintained-branches:
@@ -49,10 +49,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - run: |
-          NIGHTLY_TARGETS=("dev-23.10.x" "dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
+          NIGHTLY_TARGETS=("dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
           for target in "${NIGHTLY_TARGETS[@]}"; do
             echo "[INFO] - Dispatching nightly run to $target branch."
-            gh workflow run engine-analysis.yml -r "$target" -f nightly_manual_trigger=true
+            gh workflow run monitoring-agent-analysis.yml -r "$target" -f nightly_manual_trigger=true
           done
         shell: bash
     env:
@@ -65,8 +65,8 @@ jobs:
       github.event.pull_request.draft != 'true'
     uses: centreon/security-tools/.github/workflows/checkmarx-analysis.yml@main
     with:
-      module_directory: engine
-      module_name: centreon-engine-${{ needs.get-environment.outputs.linked_dev_branch }}
+      module_directory: agent
+      module_name: centreon-monitoring-agent-${{ needs.get-environment.outputs.linked_dev_branch }}
       exclude_list:
     secrets:
       base_uri: ${{ secrets.AST_RND_SCANS_BASE_URI }}

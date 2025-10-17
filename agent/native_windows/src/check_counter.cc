@@ -53,7 +53,6 @@ std::wstring string_to_wide_string(const std::string& string) {
  * @param io_context
  * @param logger
  * @param first_start_expected
- * @param check_interval
  * @param serv
  * @param args
  * @param cnf
@@ -63,7 +62,6 @@ check_counter::check_counter(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger,
     time_point first_start_expected,
-    duration check_interval,
     const Service& serv,
     const rapidjson::Value& args,
     const engine_to_agent_request_ptr& cnf,
@@ -72,7 +70,6 @@ check_counter::check_counter(
     : check(io_context,
             logger,
             first_start_expected,
-            check_interval,
             serv,
             cnf,
             std::move(handler),
@@ -452,10 +449,11 @@ void check_counter::start_check(const duration& timeout) {
       });
     } else {
       // if we need two samples, we need to wait for the second one
-      time_point end_measure = std::chrono::system_clock::now() + timeout;
-      end_measure -= std::chrono::seconds(1);
+      duration wait_duration =
+          std::min(get_raw_start_expected().get_step() / 2,
+                   timeout - std::chrono::milliseconds(500));
 
-      _measure_timer.expires_at(end_measure);
+      _measure_timer.expires_after(wait_duration);
       _measure_timer.async_wait(
           [me = shared_from_this(),
            start_check_index = _get_running_check_index()](

@@ -66,7 +66,7 @@ jobs:
         run: git config --system core.autocrlf false
 
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: distrib availables
         run: wsl --list --online
@@ -101,6 +101,12 @@ jobs:
           ipconfig /all
           Write-Host "ip address show"
           wsl ip address show
+
+      # Install Inno Setup (ISCC) and expose its path
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress
       - name: Compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
         shell: powershell

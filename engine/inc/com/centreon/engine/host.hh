@@ -117,7 +117,7 @@ class host : public notifier {
                       time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
                       uint32_t options,
-                      bool no_update_status_now = false) override;
+                      bool no_call_update_status = false) override;
   void check_for_flapping(bool update,
                           bool actual_check,
                           bool allow_flapstart_notification);
@@ -259,6 +259,8 @@ class host : public notifier {
   std::list<hostgroup*>& get_parent_groups();
 
   std::string get_check_command_line(nagios_macros* macros);
+  bool is_cma_host() const { return _is_cma_host; }
+  void set_is_cma_host(bool is_cma) { _is_cma_host = is_cma; }
 
  private:
   void _switch_all_services_to_unknown();
@@ -293,6 +295,7 @@ class host : public notifier {
   enum host_state _current_state;
 
   std::list<hostgroup*> _hostgroups;
+  bool _is_cma_host{false};
 };
 
 }  // namespace com::centreon::engine
