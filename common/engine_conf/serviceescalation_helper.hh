@@ -28,14 +28,15 @@ namespace com::centreon::engine::configuration {
 size_t serviceescalation_key(const Serviceescalation& se);
 
 class serviceescalation_helper : public message_helper {
-  void _init();
-
  public:
   serviceescalation_helper(Serviceescalation* obj);
   ~serviceescalation_helper() noexcept = default;
   void check_validity(error_cnt& err) const override;
 
   bool hook(std::string_view key, std::string_view value) override;
+
+  void set_default_values() override;
+
   static void expand(
       configuration::State& s,
       configuration::error_cnt& err,

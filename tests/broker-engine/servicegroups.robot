@@ -48,7 +48,7 @@ EBNSGU1
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
-    Ctn Config Broker    module
+    Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
     Ctn Config Broker Sql Output    central    unified_sql

@@ -30,8 +30,6 @@ namespace com::centreon::engine::configuration {
  * several methods to help the developer to fill the message fields.
  */
 class connector_helper : public message_helper {
-  void _init();
-
  public:
   connector_helper(Connector* obj);
   ~connector_helper() noexcept = default;

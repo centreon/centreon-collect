@@ -35,7 +35,7 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
                      obj,
                      {},
                      Hostgroup::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -72,12 +72,4 @@ void hostgroup_helper::check_validity(error_cnt& err) const {
   }
 }
 
-/**
- * @brief Initializer of the Hostgroup object, in other words set its default
- * values.
- */
-void hostgroup_helper::_init() {
-  Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-}
 }  // namespace com::centreon::engine::configuration
