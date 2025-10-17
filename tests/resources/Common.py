@@ -2431,3 +2431,11 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
         payload["exp"] = None
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_randint(lower: int, higher: int):
+    """
+    ctn_randint
+    just call ranom.randint and retruns result
+    """
+    return random.randint(lower, higher)

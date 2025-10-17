@@ -37,7 +37,7 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
                      obj,
                      {},
                      Timeperiod::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -276,11 +276,6 @@ void timeperiod_helper::check_validity(error_cnt& err) const {
     err.config_errors++;
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
   }
-}
-
-void timeperiod_helper::_init() {
-  Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
 }
 
 /**
