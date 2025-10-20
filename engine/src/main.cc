@@ -133,8 +133,6 @@ int main(int argc, char* argv[]) {
       ("dont-verify-paths,x",
        "Don't check for circular object paths - USE WITH CAUTION!")
       ("diagnose,D", "Generate a diagnostic file")
-      ("broker-config,b", po::value<std::string>()->value_name("module_file"),
-       "Broker configuration file")
       ("extended-config,c",
        po::value<std::vector<std::string>>()->value_name("config-file"),
        "Extended configuration file")
@@ -194,8 +192,6 @@ int main(int argc, char* argv[]) {
         verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
-      if (vm.count("broker-config"))
-        broker_config = vm["broker-config"].as<std::string>();
       if (vm.count("extended-config"))
         extended_conf_file =
             vm["extended-config"].as<std::vector<std::string>>();
@@ -235,8 +231,7 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, &pb_config, err);
-            if (broker_config.empty())
-              broker_config = pb_config.broker_module_cfg_file();
+            broker_config = pb_config.broker_module_cfg_file();
           }
           configuration::applier::state::instance().apply(pb_config, err);
           std::cout << "\n Checked " << commands::command::commands.size()
