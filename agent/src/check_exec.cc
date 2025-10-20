@@ -158,7 +158,7 @@ void check_exec::on_completion(unsigned running_index,
   std::list<com::centreon::common::perfdata> perfs;
 
   // split multi line output
-  outputs = absl::StrSplit(std_out, absl::ByAnyChar("\r\n"), absl::SkipEmpty());
+  outputs.push_front(std_out);
   if (!outputs.empty()) {
     const std::string& first_line = *outputs.begin();
     size_t pipe_pos = first_line.find('|');
