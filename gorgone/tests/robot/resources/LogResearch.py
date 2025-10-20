@@ -25,6 +25,23 @@ import requests
 import subprocess
 import os
 
+def ctn_prepare_package_manager() -> bool:
+    """! Prepare the package manager to install or remove packages
+        @return: True if the package manager is correctly prepared, False otherwise
+    """
+    try:
+        cmd = ""
+        if os.path.isfile("/usr/bin/dpkg") and os.access("/usr/bin/dpkg", os.X_OK):
+            cmd = "apt-get update -y"
+            sub = subprocess.run(cmd, shell=True, capture_output=True, check=False)
+            if int(sub.returncode) != 0:
+                logger.info("The package manager can't be prepared: {}".format(sub.stdout))
+                return False
+
+    except IOError:
+        logger.info("The package manager can't be prepared")
+        return False
+    return True
 
 def ctn_check_plugin_is_installed_and_remove_it(plugin: str) -> bool:
     """! Check if a plugin is installed
@@ -127,6 +144,7 @@ def parse_json_response(response):
     # as the time of writing, status code is always 200 because webapp autodiscovery module always expect a 200.
     if response.status_code != 200 and response.status_code != 404:
         return False, api_json
+    logger.debug(f"rest api response: {api_json}")
 
     if 'error' in api_json and api_json['error'] == "no_log":
         return False, 'gorgone api didnt sent back any logs'
