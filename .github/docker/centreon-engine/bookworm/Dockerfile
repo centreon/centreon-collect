@@ -6,7 +6,6 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 RUN apt-get update && \
     apt upgrade -y
 
@@ -107,12 +106,12 @@ COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d
 EXPOSE 51003
 
 # bbdo central-broker
-EXPOSE 5669
+# EXPOSE 5669
 # grpc central-broker
 EXPOSE 51001
 
 # bbdo central-rrd
-EXPOSE 5670
+# EXPOSE 5670
 # grpc central-rrd
 EXPOSE 51002
 

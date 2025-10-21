@@ -6,7 +6,6 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# COPY --chmod=755 ./.github/docker/centreon-poller/scripts/systemctl /bin/systemctl
 RUN apt-get update && \
     apt upgrade -y
 
@@ -20,9 +19,9 @@ RUN groupadd -g 900 centreon &&\
     useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -c "Centreon Gorgone"  -s /bin/bash centreon-gorgone &&\
     usermod -aG centreon-broker centreon-engine  && \
     usermod -aG centreon-engine centreon-broker && \
-    usermod -aG centreon-gorgone centreon-engine && \
-    usermod -aG centreon centreon-engine && \
-    usermod -aG sudo centreon-engine
+    usermod -aG centreon-gorgone centreon-broker && \
+    usermod -aG centreon centreon-broker && \
+    usermod -aG sudo centreon-broker
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -53,7 +52,6 @@ apt-get install -y  wget \
                     python3.11-venv \
                     software-properties-common \
                     libmariadb3 \
-                    monitoring-plugins-basic \
                     sudo
                     
 
@@ -90,18 +88,13 @@ printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
 chmod +x /bin/systemctl
 
 apt-get update
-apt-get install -y /tmp/packages-centreon/centreon*.deb
+apt-get install -y /tmp/packages-centreon/centreon-broker*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
-RUN echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.json &&\
-    mkdir -p /var/lib/centreon/centplugins/ &&\
-    chown centreon-engine:centreon-engine /var/lib/centreon/centplugins/
-
-COPY --chmod=755 --chown=centreon-engine:centreon-engine ./.github/docker/centreon-broker/bookworm/entrypoint /var/lib/centreon-engine
-COPY --chmod=600 ./.github/docker/centreon-broker/sudoersCentreon /etc/sudoers.d/centreon
+COPY --chmod=755 --chown=centreon-broker:centreon-broker ./.github/docker/centreon-broker/bookworm/entrypoint /var/lib/centreon-broker
 
 # grpc central-module
 EXPOSE 51003
@@ -116,10 +109,10 @@ EXPOSE 5670
 # grpc central-rrd
 EXPOSE 51002
 
-WORKDIR /var/lib/centreon-engine
+WORKDIR /var/lib/centreon-broker
 
-USER centreon-engine
+USER centreon-broker
 
-ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
+ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
 
 CMD ["uvicorn", "api_control:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -7,8 +7,8 @@ import sys
 import time
 
 app = FastAPI()
-centengine_proc = None
-centengine_thread = None
+cbd_proc = None
+cbd_thread = None
 
 def stream_output(proc):
     try:
@@ -24,56 +24,56 @@ def stream_output(proc):
         pass
 
 @app.on_event("startup")
-def start_centengine():
-    global centengine_proc, centengine_thread
-    centengine_proc = subprocess.Popen(
-        ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"],
-        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, preexec_fn=os.setpgrp
-    )
-    centengine_thread = threading.Thread(target=stream_output, args=(centengine_proc,), daemon=True)
-    centengine_thread.start()
-
-@app.post("/restart")
-def restart_centengine():
-    global centengine_proc, centengine_thread
-    if centengine_proc is not None:
-        try:
-            centengine_proc.terminate()  # sends SIGTERM
-            centengine_proc.wait(timeout=5)
-        except Exception:
-            try:
-                os.killpg(os.getpgid(centengine_proc.pid), signal.SIGKILL)
-            except Exception:
-                pass
-    centengine_proc = subprocess.Popen(
-        ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"],
+def start_cbd():
+    global cbd_proc, cbd_thread
+    cbd_proc = subprocess.Popen(
+        ["/usr/sbin/cbd", "/etc/centreon-broker/central-broker.json"],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp
     )
-    centengine_thread = threading.Thread(target=stream_output, args=(centengine_proc,), daemon=True)
-    centengine_thread.start()
-    return {"start_pid": centengine_proc.pid}
+    cbd_thread = threading.Thread(target=stream_output, args=(cbd_proc,), daemon=True)
+    cbd_thread.start()
+
+@app.post("/restart")
+def restart_cbd():
+    global cbd_proc, cbd_thread
+    if cbd_proc is not None:
+        try:
+            cbd_proc.terminate()
+            cbd_proc.wait(timeout=5)
+        except Exception:
+            try:
+                os.killpg(os.getpgid(cbd_proc.pid), signal.SIGKILL)
+            except Exception:
+                pass
+    cbd_proc = subprocess.Popen(
+        ["/usr/sbin/cbd", "/etc/centreon-broker/central-broker.json"],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, preexec_fn=os.setpgrp
+    )
+    cbd_thread = threading.Thread(target=stream_output, args=(cbd_proc,), daemon=True)
+    cbd_thread.start()
+    return {"start_pid": cbd_proc.pid}
 
 @app.post("/reload")
-def reload_centengine():
-    global centengine_proc
-    if centengine_proc is not None:
+def reload_cbd():
+    global cbd_proc
+    if cbd_proc is not None:
         try:
-            os.killpg(os.getpgid(centengine_proc.pid), signal.SIGHUP)
+            os.killpg(os.getpgid(cbd_proc.pid), signal.SIGHUP)
             return {"reload": "sent SIGHUP"}
         except Exception as e:
             return {"error": str(e)}
-    return {"reload": "centengine not running"}
+    return {"reload": "cbd not running"}
 
 @app.on_event("shutdown")
-def stop_centengine():
-    global centengine_proc
-    if centengine_proc is not None:
+def stop_cbd():
+    global cbd_proc
+    if cbd_proc is not None:
         try:
-            centengine_proc.terminate()
-            centengine_proc.wait(timeout=5)
+            cbd_proc.terminate()
+            cbd_proc.wait(timeout=5)
         except Exception:
             try:
-                os.killpg(os.getpgid(centengine_proc.pid), signal.SIGKILL)
+                os.killpg(os.getpgid(cbd_proc.pid), signal.SIGKILL)
             except Exception:
                 pass
-        centengine_proc = None
+        cbd_proc = None
