@@ -251,7 +251,6 @@ jobs:
       github.repository == 'centreon/centreon-collect' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.changes.outputs.trigger_robot_tests == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
