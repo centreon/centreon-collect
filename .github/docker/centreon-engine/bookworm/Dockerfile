@@ -6,9 +6,6 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && \
-    apt upgrade -y
-
 RUN groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
     groupadd -g 901 centreon-engine &&\
@@ -44,7 +41,8 @@ APT::Install-Suggests "false";
 ######################################
 # install and configure repositories #
 ######################################
-
+apt-get update
+apt upgrade -y
 apt-get install -y  wget \
                     gnupg2 \
                     ca-certificates \
@@ -89,7 +87,10 @@ printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
 chmod +x /bin/systemctl
 
 apt-get update
-apt-get install -y $(find /tmp/packages-centreon -name "centreon*.deb" ! -name "*broker-cbd*")
+mkdir -p /tmp/debs-to-install
+find /tmp/packages-centreon -name "centreon*.deb" ! -name "*broker-cbd*" -exec cp {} /tmp/debs-to-install/ \;
+apt-get install -y /tmp/debs-to-install/centreon*.deb
+rm -rf /tmp/debs-to-install
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
