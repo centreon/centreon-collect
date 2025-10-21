@@ -89,7 +89,7 @@ printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
 chmod +x /bin/systemctl
 
 apt-get update
-apt-get install -y /tmp/packages-centreon/centreon*.deb
+apt-get install -y $(ls /tmp/packages-centreon/centreon*.deb 2>/dev/null | grep -v "centreon-broker-cbd")
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
