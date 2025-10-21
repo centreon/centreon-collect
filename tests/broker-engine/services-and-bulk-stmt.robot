@@ -578,7 +578,7 @@ EBMSSMPART
     Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
 
     #we wait 60s for recover with 3 retries of 20s
-    FOR   ${retry}    IN RANGE    ${1000}
+    FOR   ${retry}    IN RANGE    ${3}
         Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
         FOR    ${i}    IN RANGE    ${1000}
             Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
