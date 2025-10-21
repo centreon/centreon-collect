@@ -52,6 +52,7 @@ apt-get install -y  wget \
                     python3.11-venv \
                     software-properties-common \
                     libmariadb3 \
+                    librrd8 \
                     sudo
                     
 
