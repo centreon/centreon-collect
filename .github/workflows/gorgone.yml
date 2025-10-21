@@ -7,10 +7,10 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    paths:
-      - ".version.centreon-gorgone"
-      - "gorgone/**"
-      - "!gorgone/tests/**"
+    # paths:
+    #   - ".version.centreon-gorgone"
+    #   - "gorgone/**"
+    #   - "!gorgone/tests/**"
   push:
     branches:
       - develop
