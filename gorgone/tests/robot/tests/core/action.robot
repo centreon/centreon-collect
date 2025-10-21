@@ -86,7 +86,7 @@ Test Async Action Module
     ${action_api_result}=    Post Action Endpoint    node_path=${node_path}
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=90
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
 
 

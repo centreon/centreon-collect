@@ -39,6 +39,9 @@ on:
       release_type:
         description: "type of release (hotfix, release or not defined if not a release)"
         value: ${{ jobs.get-environment.outputs.release_type }}
+      os_and_database_matrix:
+        description: "matrix to use for dockerize and test jobs"
+        value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
       is_targeting_feature_branch:
         description: "if it is a PR, check if targeting a feature branch"
         value: ${{ jobs.get-environment.outputs.is_targeting_feature_branch }}
@@ -75,6 +78,7 @@ jobs:
       stability: ${{ steps.get_stability.outputs.stability }}
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
+      os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
@@ -424,6 +428,92 @@ jobs:
               return 'false';
             };
             core.setOutput('is_nightly', getNightlyInput());
+
+      - name: Detect operating systems and databases to test
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        id: get_os_database_matrix
+        with:
+          script: |
+            const alma9_mariadb_10_11 = {
+              "operating_system": "alma9",
+              "database": "mariadb:10.11",
+              "test_tags": "not @ignore"
+            };
+            const alma8_mysql_8_0 = {
+              "operating_system": "alma8",
+              "database": "mysql:8.0",
+              "test_tags": "not @ignore"
+            };
+            const bookworm_mysql_8_4 = {
+              "operating_system": "bookworm",
+              "database": "mysql:8.4",
+              "test_tags": "not @ignore"
+            };
+
+            const getDailyConfig = (configs) => {
+              const today = new Date();
+              const dayOfWeek = today.getDay(); // 0=sunday, 1=monday, ..., 6=saturday
+
+              // If it's weekend, use the default configuration
+              if (dayOfWeek === 0 || dayOfWeek === 6) {
+                return configs[0];
+              }
+
+              // Reference date: January 1, 2025
+              const referenceDate = new Date('2025-01-01');
+
+              // Calculate the number of working days since January 1
+              let workingDays = 0;
+              const currentDate = new Date(referenceDate);
+
+              while (currentDate < today) {
+                const dayOfWeek = currentDate.getDay();
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday to Friday
+                  workingDays++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+
+              // Alternating balanced on 3 configurations
+              const configIndex = workingDays % configs.length;
+
+              return configs[configIndex];
+            };
+
+            const configs = [alma9_mariadb_10_11, alma8_mysql_8_0, bookworm_mysql_8_4];
+
+            const main = alma9_mariadb_10_11;
+
+            let matrix = {
+              "main": [main],
+              "operating_systems": [main],
+              "databases": [main],
+            };
+
+            if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
+              const dailyConfig = getDailyConfig(configs);
+
+              matrix = {
+                "main": [dailyConfig],
+                "operating_systems": [dailyConfig],
+                "databases": [dailyConfig],
+              };
+            }
+
+            if (
+              ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
+              || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+            ) {
+              matrix = {
+                ...matrix,
+                "operating_systems": configs,
+                "databases": configs,
+              };
+            }
+
+            console.log(matrix);
+
+            return matrix;
 
       - name: Get docker images version
         id: get_docker_images_version
