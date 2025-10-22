@@ -47,6 +47,7 @@ DisableDirPage=yes
 LicenseFile={#LicenseFile}
 SetupIconFile ={#CentreonIcon}
 PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=commandline
 UsePreviousAppDir=no
 AlwaysUsePersonalGroup=false
 SetupLogging=yes
