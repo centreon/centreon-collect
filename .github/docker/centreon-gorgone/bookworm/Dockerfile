@@ -1,10 +1,17 @@
-FROM debian:12-slim
+FROM perl:slim-threaded-bookworm AS gorgone
+
+ENV TYPE=
 
 ARG VERSION
 ARG IS_CLOUD
 ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+COPY --chmod=755 systemctl /usr/local/bin/systemctl
+COPY --chmod=755 entrypoint /var/lib/centreon-gorgone/
+COPY --chmod=600 centreon /etc/sudoers.d/centreon
+COPY --chmod=755 centenginestats /usr/sbin/centenginestats
 
 RUN groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
@@ -14,11 +21,9 @@ RUN groupadd -g 900 centreon &&\
     useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -c "Centreon Broker"  -s /bin/bash centreon-broker &&\
     groupadd -g 903 centreon-gorgone &&\
     useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -c "Centreon Gorgone"  -s /bin/bash centreon-gorgone &&\
-    usermod -aG centreon-broker centreon-engine  && \
-    usermod -aG centreon-engine centreon-broker && \
-    usermod -aG centreon-gorgone centreon-broker && \
-    usermod -aG centreon centreon-broker && \
-    usermod -aG sudo centreon-broker
+    usermod -aG centreon centreon-gorgone && \
+    usermod -aG www-data centreon-gorgone && \
+    usermod -aG centreon-engine centreon-gorgone
 
 RUN --mount=type=bind,src=packages-centreon,dst=/tmp/packages-centreon \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
@@ -37,22 +42,6 @@ Acquire::http::Timeout "300";
 APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 ' > /etc/apt/apt.conf.d/99custom
-
-######################################
-# install and configure repositories #
-######################################
-apt update
-apt upgrade -y
-apt-get install -y  wget \
-                    gnupg2 \
-                    ca-certificates \
-                    python3 \
-                    python3.11-venv \
-                    software-properties-common \
-                    libmariadb3 \
-                    librrd8 \
-                    sudo
-                    
 
 VERSION_CODENAME=\$(
   . /etc/os-release
@@ -81,37 +70,59 @@ elif [[ "$STABILITY" == "stable" ]]; then
   for i in \$( ls /etc/apt/sources.list.d/centreon*{unstable,testing}* ); do mv \$i \$i.disabled; done
 fi
 
-printf '%s\n' '#!/bin/sh' 'exit 101' > /usr/sbin/policy-rc.d
-chmod +x /usr/sbin/policy-rc.d
-printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
-chmod +x /bin/systemctl
-
+######################################
+# install and configure repositories #
+######################################
 apt-get update
-apt-get install -y /tmp/packages-centreon/centreon-broker*.deb /tmp/packages-centreon/centreon-clib*.deb
+apt-get upgrade -y
+apt-get install -y  --no-install-recommends\
+        wget \
+        gnupg2 \
+        ca-certificates \
+        python3 \
+        python3.11-venv \
+        software-properties-common \
+        libmariadb3 \
+        monitoring-plugins-basic \
+        sudo \
+        libcryptx-perl \
+        libzmq-ffi-perl \
+        libev-perl \
+        libyaml-libyaml-perl \
+        libclass-dbi-perl \
+        libdbd-sqlite3-perl \
+        apt-transport-https \
+        curl \
+        libdbd-mysql-perl \
+        libhttp-daemon-perl \
+        libdigest-md5-file-perl \
+        libschedule-cron-perl \
+        librrds-perl \
+        libhash-merge-perl \
+        libnet-curl-perl \
+        libcrypt-openssl-aes-perl \
+        libssh-session-perl \
+        libjson-xs-perl \
+        libxml-simple-perl \
+        iputils-ping
+
+apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-centreon/centreon-perl*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
-COPY --chmod=755 --chown=centreon-broker:centreon-broker ./.github/docker/centreon-broker/bookworm/entrypoint /var/lib/centreon-broker
+RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
+    ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
+    mkdir -p /var/cache/centreon/ && \
+    chown www-data:www-data /var/cache/centreon && \
+    chmod 775 /var/cache/centreon && \
+    chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone
 
-# grpc central-module
-EXPOSE 51003
+# Set the working directory
+WORKDIR /var/lib/centreon-gorgone
+USER centreon-gorgone
 
-# bbdo central-broker
-EXPOSE 5669
-# grpc central-broker
-EXPOSE 51001
-
-# bbdo central-rrd
-EXPOSE 5670
-# grpc central-rrd
-EXPOSE 51002
-
-WORKDIR /var/lib/centreon-broker
-
-USER centreon-broker
-
-ENTRYPOINT ["/var/lib/centreon-broker/container.sh"]
-
-CMD ["uvicorn", "api_control:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT [ "/var/lib/centreon-gorgone/container.sh" ]
+# Set a different entrypoint for the new container
+CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug"]

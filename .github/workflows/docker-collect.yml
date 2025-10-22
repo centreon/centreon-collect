@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [centreon-engine, centreon-broker]
+        image: [centreon-engine, centreon-broker, centreon-gorgone]
         distrib: [bookworm]
 
     name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
@@ -92,7 +92,7 @@ jobs:
       - run: |
           ls -lh *.deb
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd}_${{ needs.get-environment.outputs.major_version }}*.deb packages-centreon/
+          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,gorgone,gorgone-centreon-config,perl-libs}_${{ needs.get-environment.outputs.major_version }}*.deb packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
