@@ -113,14 +113,12 @@ apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-ce
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
 
-EOF
+mkdir -p /var/cache/centreon/
+chown www-data:www-data /var/cache/centreon
+chmod 775 /var/cache/centreon
+chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone
 
-RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
-    ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
-    mkdir -p /var/cache/centreon/ && \
-    chown www-data:www-data /var/cache/centreon && \
-    chmod 775 /var/cache/centreon && \
-    chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone
+EOF
 
 # Set the working directory
 WORKDIR /var/lib/centreon-gorgone
