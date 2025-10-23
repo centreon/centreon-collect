@@ -42,10 +42,11 @@ APT::Install-Suggests "false";
 # install and configure repositories #
 ######################################
 apt-get update
-apt-get install -y  wget \
+apt-get install -y --no-install-recommends \
+                    wget \
                     gnupg2 \
                     ca-certificates \
-                    python3 \
+                    python3-minimal \
                     python3.11-venv \
                     software-properties-common \
                     libmariadb3 \
@@ -88,7 +89,14 @@ chmod +x /bin/systemctl
 apt-get update
 apt-get install -y /tmp/packages-centreon/centreon-broker*.deb /tmp/packages-centreon/centreon-clib*.deb
 apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/sbin/policy-rc.d /bin/systemctl
+rm -rf /var/lib/apt/lists/* \
+       /tmp/* \
+       /var/tmp/* \
+       /usr/share/doc/* \
+       /usr/share/man/* \
+       /var/cache/apt/* \
+       /usr/sbin/policy-rc.d \
+       /bin/systemctl
 
 EOF
 

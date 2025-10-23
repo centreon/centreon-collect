@@ -82,7 +82,7 @@ fi
 ######################################
 apt-get update
 apt-get install -y  --no-install-recommends\
-        python3 \
+        python3-minimal \
         python3.11-venv \
         libmariadb3 \
         monitoring-plugins-basic \
@@ -110,7 +110,13 @@ apt-get install -y  --no-install-recommends\
 
 apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-centreon/centreon-perl*.deb
 apt-get clean
-rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /bin/systemctl
+rm -rf /var/lib/apt/lists/* \
+       /tmp/* \
+       /var/tmp/* \
+       /usr/share/doc/* \
+       /usr/share/man/* \
+       /var/cache/apt/* \
+       /bin/systemctl
 
 EOF
 
