@@ -42,6 +42,7 @@ on:
     - cron: '30 0 * * 1-5'
   pull_request:
     paths:
+      - ".github/workflows/centreon-collect.yml"
       - ".version"
       - ".version.centreon-collect"
       - bbdo/**
@@ -59,9 +60,9 @@ on:
       - CMakeListsLinux.txt
       - vcpkg.json
       - overlays/**
-      - selinux/**
-      - "!selinux/centreon-common/**"
-      - "!**/test/**"
+      - selinux/centreon-broker/**
+      - selinux/centreon-engine/**
+      - tests/**
   push:
     branches:
       - develop
@@ -88,15 +89,19 @@ on:
       - CMakeListsLinux.txt
       - vcpkg.json
       - overlays/**
-      - selinux/**
-      - "!selinux/centreon-common/**"
-      - "!**/test/**"
+      - selinux/centreon-broker/**
+      - selinux/centreon-engine/**
+      - tests/**
     tags:
       - "centreon-collect-*"
 
 jobs:
   dispatch-to-maintained-branches:
-    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' && github.repository == 'centreon/centreon-collect'}}
+    if: |
+      github.run_attempt == 1 &&
+      github.event_name == 'schedule' &&
+      github.ref_name == 'develop' &&
+      github.repository == 'centreon/centreon-collect'
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
@@ -152,16 +157,60 @@ jobs:
           file: ${{ env.cmake_file }}
           version: ${{ env.version }}
 
-  unit-test:
-    needs: [get-environment]
+  changes:
     if: |
-      github.event.inputs.unit_tests == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
+    needs: [get-environment]
+    uses: ./.github/workflows/get-changes-triggers.yml
+    with:
+      production_paths: |
+        ".version"
+        ".version.centreon-collect"
+        "bbdo/**"
+        "broker/**"
+        "ccc/**"
+        "clib/**"
+        "connectors/**"
+        "custom-triplets/**"
+        "engine/**"
+        "grpc/**"
+        "packaging/centreon-collect/**"
+        "cmake.sh"
+        "cmake-vcpkg.sh"
+        "CMakeLists.txt"
+        "CMakeListsLinux.txt"
+        "vcpkg.json"
+        "overlays/**"
+        "selinux/centreon-broker/**"
+        "selinux/centreon-engine/**"
+        "!**/test/**"
+        "!**/tests/**"
+      unit_test_paths: |
+        "**/test/**"
+        "**/tests/**"
+        "!tests/**"
+        "!gorgone/tests/**"
+      e2e_test_paths: |
+        "resources/**"
+        "tests/**"
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
+      labels: ${{ needs.get-environment.outputs.labels }}
+
+  unit-test:
+    needs: [get-environment, changes]
+    if: |
+      (
+        needs.changes.outputs.trigger_unit_testing == 'true' ||
+        github.event.inputs.unit_tests == 'true'
+      ) &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bookworm]
+        include: ${{ needs.get-environment.outputs.os_and_database_matrix.operating_systems }}
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -171,12 +220,12 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit test ${{ matrix.distrib }}
+    name: unit test ${{ matrix.operating_system }}
 
     steps:
       - name: Checkout sources
@@ -184,9 +233,9 @@ jobs:
 
       - name: Install sccache
         run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+          wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
 
           ${SCCACHE_PATH} --start-server
         shell: bash
@@ -194,7 +243,7 @@ jobs:
       - name: Compile centreon-collect
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+          if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
             CMAKE="cmake3"
           fi
 
@@ -260,13 +309,14 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: unit-test-${{ matrix.distrib }}-reports
+          name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*.xml"
           retention-days: 1
 
   package:
-    needs: [get-environment, check-version-consistency]
+    needs: [get-environment, changes, check-version-consistency]
     if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -333,8 +383,9 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   dockerize:
-    needs: [get-environment, package]
+    needs: [get-environment, changes, package]
     if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       needs.get-environment.outputs.is_nightly == 'true' ||
@@ -404,8 +455,9 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
   robot-test:
-    needs: [get-environment, package]
+    needs: [get-environment, changes, package]
     if: |
+      needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       needs.get-environment.outputs.is_nightly == 'true' &&
@@ -523,6 +575,7 @@ jobs:
 
   deliver-rpm:
     if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
       contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
@@ -531,7 +584,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    needs: [get-environment, robot-test]
+    needs: [get-environment, changes, robot-test]
     runs-on: centreon-common
     strategy:
       matrix:
@@ -563,6 +616,7 @@ jobs:
 
   deliver-deb:
     if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
@@ -571,7 +625,7 @@ jobs:
       github.repository == 'centreon/centreon-collect' &&
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
-    needs: [get-environment, robot-test]
+    needs: [get-environment, changes, robot-test]
     runs-on: centreon-common
     strategy:
       matrix:
@@ -581,7 +635,7 @@ jobs:
           - distrib: bookworm
             arch: arm64
 
-    name: deliver ${{ matrix.distrib }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
