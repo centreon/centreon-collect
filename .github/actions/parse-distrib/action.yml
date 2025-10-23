@@ -20,6 +20,9 @@ outputs:
   distrib_family:
     description: "Distrib family (el, debian, ubuntu)"
     value: ${{ steps.parse-distrib.outputs.distrib_family }}
+  distrib_name:
+    description: "Distribution name"
+    value: ${{ steps.parse-distrib.outputs.distrib_name }}
 
 runs:
   using: "composite"
@@ -32,43 +35,50 @@ runs:
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el7"
           PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
+          DISTRIB_FAMILY="el7"
+          DISTRIB_NAME="centos7"
         elif [[ "${{ inputs.distrib }}" == "alma8" || "${{ inputs.distrib }}" == "el8" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el8"
           PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
+          DISTRIB_FAMILY="el8"
+          DISTRIB_NAME="alma8"
         elif [[ "${{ inputs.distrib }}" == "alma9" || "${{ inputs.distrib }}" == "el9" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el9"
           PACKAGE_EXTENSION="rpm"
-          DISTRIB_FAMILY="el"
+          DISTRIB_FAMILY="el9"
+          DISTRIB_NAME="alma9"
         elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="deb11u1"
           PACKAGE_EXTENSION="deb"
           DISTRIB_FAMILY="debian"
+          DISTRIB_NAME="bullseye"
         elif [[ "${{ inputs.distrib }}" == "bookworm" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="deb12u1"
           PACKAGE_EXTENSION="deb"
           DISTRIB_FAMILY="debian"
+          DISTRIB_NAME="bookworm"
         elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.22.04"
           PACKAGE_EXTENSION="deb"
           DISTRIB_FAMILY="ubuntu"
+          DISTRIB_NAME="jammy"
         elif [[ "${{ inputs.distrib }}" == "noble" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.24.04"
           PACKAGE_EXTENSION="deb"
           DISTRIB_FAMILY="ubuntu"
+          DISTRIB_NAME="noble"
         else
           echo "::error::Distrib ${{ inputs.distrib }} cannot be parsed"
           exit 1
@@ -78,4 +88,5 @@ runs:
         echo "package_distrib_name=$PACKAGE_DISTRIB_NAME" >> $GITHUB_OUTPUT
         echo "package_extension=$PACKAGE_EXTENSION" >> $GITHUB_OUTPUT
         echo "distrib_family=$DISTRIB_FAMILY" >> $GITHUB_OUTPUT
+        echo "distrib_name=$DISTRIB_NAME" >> $GITHUB_OUTPUT
       shell: bash

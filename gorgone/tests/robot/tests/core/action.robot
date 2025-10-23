@@ -39,6 +39,7 @@ action module with ${communication_mode} communcation mode
     ...    poller_config=${poller_config}
 
     Setup Sudo
+    Ctn Prepare package manager
 
     # first we test the api without waiting for the output of the command.
     # check by default the api launch the query in local
@@ -105,7 +106,7 @@ Post Action Endpoint
     # As there is a whitelist in gorgone, if there was no bash interpretation we could allow only our required binary and be safe.
     # As gorgone always had bash interpretation available, most of the internal use of this module use redirection, pipe or other sh feature.
     ${bodycmd}=    Create Dictionary    command=echo 'Robot test write with param:${get_params} for node ${node_path}' | tee -a /tmp/actionLogs
-    
+
     IF    '${plugin_install}' != ''
         ${install_plugin}=    Create Dictionary    ${plugin_install}=${plugin_version}
         ${pkg}=          Create Dictionary    pkg_install=${install_plugin}
