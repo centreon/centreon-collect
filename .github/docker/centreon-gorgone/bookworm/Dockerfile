@@ -8,10 +8,10 @@ ARG STABILITY
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-COPY --chmod=755 systemctl /usr/local/bin/systemctl
-COPY --chmod=755 entrypoint /var/lib/centreon-gorgone/
-COPY --chmod=600 centreon /etc/sudoers.d/centreon
-COPY --chmod=755 centenginestats /usr/sbin/centenginestats
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/local/bin/systemctl
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /var/lib/centreon-gorgone/
+COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
 
 RUN groupadd -g 900 centreon &&\
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon &&\
