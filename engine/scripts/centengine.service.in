@@ -20,7 +20,7 @@
 Description=Centreon Engine
 
 [Service]
-ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine -b @CMAKE_INSTALL_FULL_SYSCONFDIR@/centreon-broker/central-module.json @PREFIX_ENGINE_CONF@/centengine.cfg
+ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengine.cfg
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-engine

@@ -1,0 +1,29 @@
+services:
+  gorgone:
+    image: "${GORGONE_IMAGE}"
+    depends_on:
+      - mariadb
+    environment:
+      MYSQL_HOST: mariadb
+    volumes:
+      - type: bind
+        source: ../..
+        target: /test_gorgone
+    working_dir: /test_gorgone
+    entrypoint: ["./.github/scripts/gorgone-test-robot.sh", "${FEATURE:-}"]
+
+  mariadb:
+    image: "${MARIADB_IMAGE:-bitnamilegacy/mariadb:10.11}"
+    ports: ["3306"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 400M
+        reservations:
+          cpus: '0.25'
+          memory: 100M
+    environment:
+      MARIADB_USER: centreon
+      MARIADB_PASSWORD: password
+      MARIADB_ROOT_PASSWORD: password
