@@ -85,7 +85,7 @@ jobs:
       fail-fast: false
       matrix:
         operating_system: [bookworm]
-    name: dockerize ${{ matrix.operating_system }}
+    name: dockerize centreon-gorgone-${{ matrix.operating_system }}
     env:
       project: centreon-gorgone
     steps:

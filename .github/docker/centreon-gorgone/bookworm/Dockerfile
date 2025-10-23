@@ -43,7 +43,8 @@ APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 ' > /etc/apt/apt.conf.d/99custom
 
-apt-get install -y
+apt-get update
+apt-get install -y \
   wget \
   gnupg2 \
   ca-certificates \
