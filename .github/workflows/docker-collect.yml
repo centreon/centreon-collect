@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [centreon-engine, centreon-broker, centreon-gorgone]
+        image: [centreon-engine, centreon-broker]
         distrib: [bookworm]
 
     name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
