@@ -90,6 +90,11 @@ apt-get update
 apt-get install -y /tmp/packages-centreon/centreon-broker*.deb /tmp/packages-centreon/centreon-clib*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
+ln -s /usr/local/bin/systemctl /usr/bin/systemctl
+mkdir -p /var/cache/centreon/
+chown www-data:www-data /var/cache/centreon
+chmod 775 /var/cache/centreon
+chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone
 
 EOF
 
