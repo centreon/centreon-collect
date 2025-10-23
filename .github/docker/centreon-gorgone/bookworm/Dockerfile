@@ -43,6 +43,12 @@ APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 ' > /etc/apt/apt.conf.d/99custom
 
+apt-get install -y
+  wget \
+  gnupg2 \
+  ca-certificates \
+  software-properties-common
+
 VERSION_CODENAME=\$(
   . /etc/os-release
   echo \$VERSION_CODENAME
@@ -76,12 +82,8 @@ fi
 apt-get update
 apt-get upgrade -y
 apt-get install -y  --no-install-recommends\
-        wget \
-        gnupg2 \
-        ca-certificates \
         python3 \
         python3.11-venv \
-        software-properties-common \
         libmariadb3 \
         monitoring-plugins-basic \
         sudo \
