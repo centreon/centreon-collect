@@ -157,18 +157,15 @@ void check_exec::on_completion(unsigned running_index,
   std::list<std::string> outputs;
   std::list<com::centreon::common::perfdata> perfs;
 
-  // split multi line output
-  outputs.push_front(std_out);
-  if (!outputs.empty()) {
-    const std::string& first_line = *outputs.begin();
-    size_t pipe_pos = first_line.find('|');
-    if (pipe_pos != std::string::npos) {
-      std::string perfdatas = outputs.begin()->substr(pipe_pos + 1);
-      boost::trim(perfdatas);
-      perfs = com::centreon::common::perfdata::parse_perfdata(
-          0, 0, perfdatas.c_str(), _logger);
-    }
-  }
+  std::string short_output;
+  std::string long_output;
+  // parse the output check
+  parse_check_output(std_out, short_output, long_output, perfs, false, true);
+  // prepare the output without perfdata
+  auto complete_output =
+      short_output + (long_output.empty() ? "" : "\n" + long_output);
+
+  outputs.push_front(complete_output);
 
   check::on_completion(running_index, exit_code, perfs, outputs);
 }
