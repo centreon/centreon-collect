@@ -9,5 +9,4 @@ fi
 # activate venv
 . ./venv/bin/activate
 
-pip install --upgrade pip
-pip install fastapi uvicorn
+pip install --no-cache-dir fastapi uvicorn

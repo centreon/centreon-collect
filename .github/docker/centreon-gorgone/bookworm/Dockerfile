@@ -81,7 +81,6 @@ fi
 # install and configure repositories #
 ######################################
 apt-get update
-apt-get upgrade -y
 apt-get install -y  --no-install-recommends\
         python3 \
         python3.11-venv \
@@ -111,7 +110,7 @@ apt-get install -y  --no-install-recommends\
 
 apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-centreon/centreon-perl*.deb
 apt-get clean
-rm -rf /var/lib/apt/lists/* /bin/systemctl
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /bin/systemctl
 
 EOF
 

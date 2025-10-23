@@ -42,7 +42,6 @@ APT::Install-Suggests "false";
 # install and configure repositories #
 ######################################
 apt-get update
-apt upgrade -y
 apt-get install -y  wget \
                     gnupg2 \
                     ca-certificates \
@@ -86,13 +85,12 @@ chmod +x /usr/sbin/policy-rc.d
 printf '%s\n' '#!/bin/sh' 'exit 0' > /bin/systemctl
 chmod +x /bin/systemctl
 
-apt-get update
 mkdir -p /tmp/debs-to-install
 find /tmp/packages-centreon -name "centreon*.deb" ! -name "*broker-cbd*" -exec cp {} /tmp/debs-to-install/ \;
 apt-get install -y /tmp/debs-to-install/centreon*.deb
 rm -rf /tmp/debs-to-install
 apt-get clean
-rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
+rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/sbin/policy-rc.d /bin/systemctl
 
 EOF
 
