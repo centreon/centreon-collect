@@ -108,12 +108,11 @@ apt-get install -y  --no-install-recommends\
 
 apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-centreon/centreon-perl*.deb
 apt-get clean
-rm -rf /var/lib/apt/lists/* /usr/sbin/policy-rc.d /bin/systemctl
+rm -rf /var/lib/apt/lists/* /bin/systemctl
 
 EOF
 
-RUN mv /usr/bin/systemctl /usr/bin/systemctl.orig && \
-    ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
+RUN ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
     mkdir -p /var/cache/centreon/ && \
     chown www-data:www-data /var/cache/centreon && \
     chmod 775 /var/cache/centreon && \

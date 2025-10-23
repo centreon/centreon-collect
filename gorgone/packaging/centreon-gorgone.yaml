@@ -158,7 +158,6 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-common
       - centreon-perl-libs-common
       - bzip2
       - initscripts
