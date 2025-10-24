@@ -347,7 +347,7 @@ jobs:
           #   runner: centreon-collect-arm64
           #   arch: arm64
 
-    name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
+    name: package
 
     uses: ./.github/workflows/package-collect.yml
 
