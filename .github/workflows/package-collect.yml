@@ -45,9 +45,6 @@ on:
       package_extension:
         required: true
         type: string
-      runner:
-        required: true
-        type: string
       arch:
         required: true
         type: string
@@ -81,7 +78,7 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ inputs.runner }}
+    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"

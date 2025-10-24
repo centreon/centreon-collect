@@ -325,29 +325,29 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: packaging-centreon-collect-vcpkg-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-alma9
-            distrib: el9
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bookworm
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bookworm-arm64
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
+        include: ${{ needs.get-environment.outputs.collect_os_and_database_matrix }}
+          # - image: packaging-centreon-collect-vcpkg-alma8
+          #   distrib: el8
+          #   package_extension: rpm
+          #   runner: centreon-collect
+          #   arch: amd64
+          # - image: packaging-centreon-collect-vcpkg-alma9
+          #   distrib: el9
+          #   package_extension: rpm
+          #   runner: centreon-collect
+          #   arch: amd64
+          # - image: packaging-centreon-collect-vcpkg-bookworm
+          #   distrib: bookworm
+          #   package_extension: deb
+          #   runner: centreon-collect
+          #   arch: amd64
+          # - image: packaging-centreon-collect-vcpkg-bookworm-arm64
+          #   distrib: bookworm
+          #   package_extension: deb
+          #   runner: centreon-collect-arm64
+          #   arch: arm64
 
-    name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
+    name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
     uses: ./.github/workflows/package-collect.yml
 
@@ -366,7 +366,6 @@ jobs:
       image: ${{ matrix.image }}
       distrib: ${{ matrix.distrib }}
       package_extension: ${{ matrix.package_extension }}
-      runner: ${{ matrix.runner }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: false
@@ -389,7 +388,10 @@ jobs:
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       needs.get-environment.outputs.is_nightly == 'true' ||
-      (contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) && contains(needs.get-environment.outputs.labels, 'build-docker-poller'))
+      (
+        contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) &&
+        contains(needs.get-environment.outputs.labels, 'build-docker-poller')
+      )
     runs-on: ubuntu-24.04
     env:
       project: centreon-poller
@@ -460,7 +462,6 @@ jobs:
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.get-environment.outputs.is_nightly == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -469,70 +470,66 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - distrib: el8
-            image: centreon-collect-mariadb-alma8-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el8-amd64
-            tests_params: '{}'
-          - distrib: el8
-            image: centreon-collect-mysql-alma8-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el8-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: '{}'
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+        include: ${{ needs.get-environment.outputs.collect_robot_matrix }}
+          # - distrib: el8
+          #   image: centreon-collect-mariadb-alma8-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el8-amd64
+          #   tests_params: '{}'
+          # - distrib: el8
+          #   image: centreon-collect-mysql-alma8-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          #   test_group_name: robot_test-mysql-el8-amd64
+          #   tests_params: '{}'
+          # - distrib: el9
+          #   image: centreon-collect-mariadb-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64
+          #   tests_params: '{}'
+          # - distrib: el9
+          #   image: centreon-collect-mysql-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          #   test_group_name: robot_test-mysql-el9-amd64
+          #   tests_params: '{}'
+          # - distrib: bookworm
+          #   image: centreon-collect-mariadb-bookworm-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-arm64
+          #   tests_params: '{}'
+          # - distrib: bookworm
+          #   image: centreon-collect-mariadb-bookworm-test
+          #   package_extension: deb
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-bookworm-amd64
+          #   tests_params: '{}'
+          # - distrib: el9
+          #   image: centreon-collect-mariadb-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mariadb
+          #   test_group_name: robot_test-mariadb-el9-amd64-grpc
+          #   tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
-    name: robot-test ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.operating_system }} ${{ matrix.database_type }} ${{ matrix.arch }} ${{ contains(matrix.tests_params, 'grpc') && 'grpc' || '' }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
-      image: ${{ matrix.image }}
-      image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
-      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension }}
+      test_img_version: ${{ needs.get-environment.outputs.test_img_version }}
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
-      test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: ${{ inputs.robot_pattern }}
     secrets:

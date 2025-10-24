@@ -54,6 +54,12 @@ on:
       os_and_database_matrix:
         description: "matrix to use for dockerize and test jobs"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
+      collect_os_and_database_matrix:
+        description: "matrix to use for collect jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
+      collect_robot_matrix:
+        description: "matrix to use for collect jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
       is_targeting_feature_branch:
         description: "if it is a PR, check if targeting a feature branch"
         value: ${{ jobs.get-environment.outputs.is_targeting_feature_branch }}
@@ -92,6 +98,8 @@ jobs:
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
+      collect_os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
+      collect_robot_matrix: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
@@ -787,6 +795,65 @@ jobs:
             }
 
             console.log(matrix);
+
+            const setArchConfigs = (configs) => {
+              archConfigs = [];
+
+              for (const config of configs) {
+                archConfigs.push({...config, "arch": "amd64"});
+                if (config.operating_system === "bookworm") {
+                  archConfigs.push({...config, "arch": "arm64"});
+                }
+              }
+
+              return archConfigs;
+            };
+
+            let collectMatrix = {
+              "cloud": setArchConfigs(cloud),
+              "main": setArchConfigs(dailyConfig),
+              "operating_systems": setArchConfigs(dailyConfig),
+              "databases": setArchConfigs(dailyConfig),
+            };
+
+            if (['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}')) {
+              collectMatrix = {
+                ...collectMatrix
+                "operating_systems": setArchConfigs(configs),
+                "databases": setArchConfigs(configs),
+              };
+            }
+
+            console.log(collectMatrix);
+            core.setOutput('collect_matrix', collectMatrix);
+
+            const setTestConfigs = (configs) => {
+              let hasGrpcConfig = false;
+              testConfigs = [];
+
+              for (const config of configs) {
+                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
+                if (config.arch === "amd64" && hasGrpcConfig === false) {
+                  testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
+                  hasGrpcConfig = true;
+                }
+                if (['alma8', 'alma9'].includes(config.operating_system)) {
+                  testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
+                }
+              }
+
+              return testConfigs;
+            };
+
+            let collectRobotMatrix = {
+              "cloud": setTestConfigs(collectMatrix.cloud),
+              "main": setTestConfigs(collectMatrix.main),
+              "operating_systems": setTestConfigs(collectMatrix.operating_systems),
+              "databases": setTestConfigs(collectMatrix.databases),
+            };
+
+            console.log(collectRobotMatrix);
+            core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
             return matrix;
 
