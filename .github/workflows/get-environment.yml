@@ -98,7 +98,7 @@ jobs:
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
-      collect_os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
+      collect_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
       collect_robot_matrix: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
