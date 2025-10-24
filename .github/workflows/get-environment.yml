@@ -54,9 +54,9 @@ on:
       os_and_database_matrix:
         description: "matrix to use for dockerize and test jobs"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
-      collect_os_and_database_matrix:
+      collect_matrix:
         description: "matrix to use for collect jobs (contains arch)"
-        value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
+        value: ${{ jobs.get-environment.outputs.collect_matrix }}
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
@@ -854,9 +854,6 @@ jobs:
 
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
-
-
-            console.log('collectMatrix', collectMatrix);
 
             return matrix;
 
