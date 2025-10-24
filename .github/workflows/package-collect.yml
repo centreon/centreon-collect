@@ -42,9 +42,6 @@ on:
       distrib:
         required: true
         type: string
-      package_extension:
-        required: true
-        type: string
       arch:
         required: true
         type: string
@@ -100,6 +97,12 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ inputs.distrib }}
+
       - name: Install sccache
         run: |
           if [ "${{ inputs.arch }}" = "amd64" ]; then
@@ -114,7 +117,7 @@ jobs:
           ${SCCACHE_PATH} --start-server
 
       - name: Generate selinux binaries
-        if: ${{ inputs.package_extension == 'rpm' }}
+        if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
         run: |
           if [[ "${{ inputs.only_robot_cma }}" == "true" ]]; then
             MODULES=("centreon-monitoring-agent")
@@ -132,14 +135,14 @@ jobs:
         shell: bash
 
       - name: Remove selinux packaging files on debian
-        if: ${{ inputs.package_extension == 'deb' }}
+        if: ${{ steps.parse-distrib.outputs.package_extension == 'deb' }}
         run: rm -f packaging/centreon-*/*-selinux.yaml
         shell: bash
 
       - name: Compile sources
         run: |
           CMAKE="cmake3"
-          if [ "${{ inputs.package_extension }}" = "deb" ]; then
+          if [ "${{ steps.parse-distrib.outputs.package_extension }}" = "deb" ]; then
             CMAKE="cmake"
           fi
 
@@ -252,13 +255,13 @@ jobs:
           nfpm_file_pattern: "packaging/centreon-monitoring-agent/*.yaml"
           module_name: "centreon-monitoring-agent"
           distrib: ${{ inputs.distrib }}
-          package_extension: ${{ inputs.package_extension }}
+          package_extension: ${{ steps.parse-distrib.outputs.package_extension }}
           major_version: ${{ inputs.cma_major_version }}
           minor_version: ${{ inputs.cma_minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-monitoring-agent-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-monitoring-agent-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
@@ -277,13 +280,13 @@ jobs:
           nfpm_file_pattern: "packaging/centreon-collect/*.yaml"
           module_name: "centreon-collect"
           distrib: ${{ inputs.distrib }}
-          package_extension: ${{ inputs.package_extension }}
+          package_extension: ${{ steps.parse-distrib.outputs.package_extension }}
           major_version: ${{ inputs.major_version }}
           minor_version: ${{ inputs.minor_version }}
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ inputs.package_extension }}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ inputs.distrib }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
@@ -291,5 +294,5 @@ jobs:
           upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
 
       - name: Cleaning not needed packages
-        run: rm -rf *-debuginfo*.${{ inputs.package_extension }}
+        run: rm -rf *-debuginfo*.${{ steps.parse-distrib.outputs.package_extension }}
         shell: bash
