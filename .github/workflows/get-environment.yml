@@ -846,10 +846,10 @@ jobs:
             };
 
             let collectRobotMatrix = {
-              "cloud": setTestConfigs(...collectMatrix.cloud),
-              "main": setTestConfigs(...collectMatrix.main),
-              "operating_systems": setTestConfigs(...collectMatrix.operating_systems),
-              "databases": setTestConfigs(...collectMatrix.databases),
+              "cloud": setTestConfigs([...collectMatrix.cloud]),
+              "main": setTestConfigs([...collectMatrix.main]),
+              "operating_systems": setTestConfigs([...collectMatrix.operating_systems]),
+              "databases": setTestConfigs([...collectMatrix.databases]),
             };
 
             console.log('collectRobotMatrix', collectRobotMatrix);
