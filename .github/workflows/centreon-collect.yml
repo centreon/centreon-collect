@@ -530,7 +530,7 @@ jobs:
 
     uses: ./.github/workflows/robot-test.yml
     with:
-      distrib: ${{ matrix.distrib }}
+      distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
       test_img_version: ${{ needs.get-environment.outputs.test_img_version }}
       database_type: ${{ matrix.database_type }}
