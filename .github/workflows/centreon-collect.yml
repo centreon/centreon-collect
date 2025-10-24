@@ -325,7 +325,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ needs.get-environment.outputs.collect_os_and_database_matrix }}
+        include: ${{ needs.get-environment.outputs.collect_os_and_database_matrix.operating_systems }}
           # - image: packaging-centreon-collect-vcpkg-alma8
           #   distrib: el8
           #   package_extension: rpm
@@ -476,7 +476,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ needs.get-environment.outputs.collect_robot_matrix }}
+        include: ${{ needs.get-environment.outputs.collect_robot_matrix.operating_systems }}
           # - distrib: el8
           #   image: centreon-collect-mariadb-alma8-test
           #   package_extension: rpm
