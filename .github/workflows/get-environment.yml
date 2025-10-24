@@ -855,6 +855,9 @@ jobs:
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
+
+            console.log('collectMatrix', collectMatrix);
+
             return matrix;
 
       - name: Get docker images version
