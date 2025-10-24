@@ -810,10 +810,10 @@ jobs:
             };
 
             let collectMatrix = {
-              "cloud": setArchConfigs([cloud]),
-              "main": setArchConfigs([dailyConfig]),
-              "operating_systems": setArchConfigs([dailyConfig]),
-              "databases": setArchConfigs([dailyConfig]),
+              "cloud": setArchConfigs(matrix.cloud),
+              "main": setArchConfigs(matrix.main),
+              "operating_systems": setArchConfigs(matrix.operating_systems),
+              "databases": setArchConfigs(matrix.databases),
             };
 
             if (['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}')) {
