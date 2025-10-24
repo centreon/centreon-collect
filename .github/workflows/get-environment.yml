@@ -818,7 +818,7 @@ jobs:
 
             if (['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}')) {
               collectMatrix = {
-                ...collectMatrix
+                ...collectMatrix,
                 "operating_systems": setArchConfigs(configs),
                 "databases": setArchConfigs(configs),
               };
