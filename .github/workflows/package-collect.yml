@@ -91,7 +91,7 @@ jobs:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
 
-    name: package ${{ inputs.distrib }} ${{ inputs.arch }}
+    name: package
 
     steps:
       - name: Checkout sources
