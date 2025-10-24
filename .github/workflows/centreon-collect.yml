@@ -459,7 +459,13 @@ jobs:
   robot-test:
     needs: [get-environment, changes, package]
     if: |
-      needs.changes.outputs.trigger_e2e_testing == 'true' &&
+      (
+        needs.get-environment.outputs.is_nightly == 'true' ||
+        (
+          needs.changes.outputs.trigger_packaging == 'true' &&
+          contains(needs.get-environment.outputs.labels, 'force-robot-tests')
+        )
+      ) &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&

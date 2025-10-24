@@ -797,7 +797,7 @@ jobs:
             console.log(matrix);
 
             const setArchConfigs = (configs) => {
-              archConfigs = [];
+              const archConfigs = [];
 
               for (const config of configs) {
                 archConfigs.push({...config, "arch": "amd64"});
@@ -829,7 +829,7 @@ jobs:
 
             const setTestConfigs = (configs) => {
               let hasGrpcConfig = false;
-              testConfigs = [];
+              const testConfigs = [];
 
               for (const config of configs) {
                 testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
