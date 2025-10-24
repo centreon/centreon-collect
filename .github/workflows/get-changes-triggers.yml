@@ -114,8 +114,8 @@ jobs:
           script: |
             try {
               const labels = JSON.parse(process.env.LABELS);
-              if (labels.includes('force-tests')) {
-                core.info('Label force-tests found: forcing unit testing triggers to true');
+              if (labels.includes('force-unit-tests')) {
+                core.info('Label force-unit-tests found: forcing unit testing triggers to true');
                 process.env.HAS_UNIT_TEST_CHANGES = 'true';
               }
               if (labels.includes('force-e2e-tests')) {
