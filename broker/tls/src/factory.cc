@@ -39,21 +39,22 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  is running. We will be able to add this endpoint later, following the ext
  *  value.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   bool has_tls;
   bool legacy;
 
   auto logger = log_v2::instance().get(log_v2::TLS);
 
   if (ext) {
-    std::map<std::string, std::string>::iterator it;
+    std::map<std::string, std::string>::const_iterator it;
     if (direct_grpc_serialized(cfg)) {
       return false;
     }
     if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
       it = cfg.params.find("transport_protocol");
       if (it != cfg.params.end()) {
-        if (absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc")) {
+        if (absl::EqualsIgnoreCase(it->second, "grpc")) {
           *ext = io::extension("TLS", false, false);
           return false;
         }

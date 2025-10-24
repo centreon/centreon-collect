@@ -2923,6 +2923,7 @@ TEST_F(LuaTest, TestHostApiV1) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -2950,6 +2951,7 @@ TEST_F(LuaTest, TestHostApiV2) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -2978,6 +2980,7 @@ TEST_F(LuaTest, PbTestHostApiV1) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3006,6 +3009,7 @@ TEST_F(LuaTest, PbTestHostApiV2) {
                "  broker_log:info(0, 'type of hst = ' .. type(hst))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3063,6 +3067,7 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
                " return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3133,6 +3138,7 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3178,6 +3184,7 @@ TEST_F(LuaTest, TestSvcApiV2) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3209,6 +3216,7 @@ TEST_F(LuaTest, TestSvcApiV1) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3238,6 +3246,7 @@ TEST_F(LuaTest, BrokerEventCache) {
                "  broker_log:info(0, 'description = ' .. svc.description)\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar cache"), std::string::npos);
@@ -3270,6 +3279,7 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -3304,6 +3314,7 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
                "  broker_log:info(0, 'type of svc = ' .. type(svc))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -3359,6 +3370,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
                " return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
@@ -3416,6 +3428,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
@@ -3460,6 +3473,7 @@ TEST_F(LuaTest, PbTestCustomVariableNoIntValueNoRecordedInCache) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   ASSERT_THROW(_cache->get_severity(1, 2), msg_fmt);
   RemoveFile(filename);
@@ -3492,6 +3506,7 @@ TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
   ASSERT_EQ(_cache->get_severity(1, 2), 5);
   RemoveFile(filename);
@@ -3521,6 +3536,7 @@ TEST_F(LuaTest, PbBrokerEventCache) {
                "svc.description)\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -3607,6 +3623,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
@@ -3657,6 +3674,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar"), std::string::npos);
@@ -3709,6 +3727,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
@@ -3761,6 +3780,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "<<" << lst << ">>" << std::endl;
@@ -3815,6 +3835,7 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -3865,6 +3886,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -3906,6 +3928,7 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65563"), std::string::npos);
@@ -3952,6 +3975,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
@@ -3996,6 +4020,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
       "  return true\n"
       "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command = super command"), std::string::npos);
@@ -4035,6 +4060,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("check_command => super command"), std::string::npos);
@@ -4069,6 +4095,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -4106,6 +4133,7 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65566"), std::string::npos);
@@ -4161,6 +4189,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -4195,6 +4224,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("\"_type\":65568"), std::string::npos);
@@ -4227,6 +4257,7 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
@@ -4261,6 +4292,7 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(host);
   binding->write(host);
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << "Content: <<" << lst << ">>" << std::endl;
@@ -4324,7 +4356,9 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
+  _cache->write(svc1);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -4406,7 +4440,9 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
+  _cache->write(hst1);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -4485,7 +4521,9 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(svc);
   binding->write(svc);
+  _cache->write(svc1);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -4562,7 +4600,9 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
                "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(hst);
   binding->write(hst);
+  _cache->write(hst1);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
   std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
@@ -4622,6 +4662,7 @@ TEST_F(LuaTest, PbDowntime) {
                "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(dt);
   binding->write(dt);
   std::string lst(ReadFile("/tmp/log"));
   std::cout << lst << std::endl;
@@ -4657,6 +4698,7 @@ TEST_F(LuaTest, PbDowntimeV2) {
                "  broker_log:info(1, 'downtime is ' .. broker.json_encode(d))\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  _cache->write(dt);
   binding->write(dt);
   std::string lst(ReadFile("/tmp/log"));
   std::cout << lst << std::endl;

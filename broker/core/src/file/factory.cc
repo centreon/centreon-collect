@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/file/factory.hh"
+#include <absl/strings/match.h>
 
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -32,16 +33,20 @@ using namespace com::centreon::broker::file;
  *
  *  @return True if configuration matches the file layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
-  bool retval;
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("FILE", false, false);
-  if (cfg.type == "file") {
-    cfg.params["coarse"] = "yes";  // File won't respond to any salutation.
-    retval = true;
-  } else
-    retval = false;
-  return retval;
+  return absl::EqualsIgnoreCase(cfg.type, "file");
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["coarse"] = "yes";  // File won't respond to any salutation.
 }
 
 /**
