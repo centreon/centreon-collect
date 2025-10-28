@@ -265,6 +265,8 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
   cv->set_name("CRITICAL");
   cv->set_value("400,50%");
   hst.set_check_command("base_centreon_ping");
+  hst_hlp.set_default_values();
+
   hst_aply.add_object(hst);
 
   command_map::iterator cmd_found{
@@ -312,6 +314,7 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   cnt.set_pager("0473729383");
   cnt.set_host_notification_period("24x7");
   cnt.set_service_notification_period("24x7");
+  cnt_hlp.set_default_values();
   cnt_aply.add_object(cnt);
 
   configuration::Host hst;
@@ -330,6 +333,7 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
   cv->set_value("400,50%");
   hst.set_check_command("base_centreon_ping");
   fill_string_group(hst.mutable_contacts(), "user");
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   command_map::iterator cmd_found =

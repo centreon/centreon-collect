@@ -248,7 +248,7 @@ def ctn_find_regex_in_log_with_timeout(log: str, date, content, timeout: int, ag
             log, date, content, regex=True, agent_format=agent_format)
         if ok:
             return True, c
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find regex '{c}' from {date} during {timeout}s")
     return False, c
 
@@ -262,7 +262,7 @@ def ctn_find_in_log_with_timeout(log: str, date, content, timeout: int, **kwargs
         ok, c = ctn_find_in_log(log, date, content, **kwargs)
         if ok:
             return True
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
     return False
 
@@ -281,7 +281,7 @@ def ctn_find_in_log_with_timeout_with_line(log: str, date, content, timeout: int
         ok, c = ctn_find_in_log(log, date, content, regex=False)
         if ok:
             return ok, c
-        time.sleep(5)
+        time.sleep(2)
     logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
     return False, None
 
@@ -1977,6 +1977,31 @@ def ctn_get_collect_version():
     return f"{maj}.{mini}.{patch}"
 
 
+def ctn_get_agent_version():
+    """! ctn_get_agent_version
+    @return string that contains agent version found in CMakeLists.txtx
+    """
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda line: line.startswith("set("), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(AGENT_PATCH\s*([0-9]+)")
+    for line in filtered:
+        m1 = rmaj.match(line)
+        m2 = rmin.match(line)
+        m3 = rpatch.match(line)
+        if m1:
+            maj = m1.group(1)
+        if m2:
+            mini = m2.group(1)
+        if m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
+
+
 def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
     @param path  path of the file
@@ -2309,7 +2334,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller: int, timeout: in
         nb_poller (int): nb poller with at least one agent connected.
         timeout (int): The timeout value for the check.
     """
-    collect_version = ctn_get_collect_version()
+    collect_version = ctn_get_agent_version()
 
     collect_major = int(collect_version.split(".")[0])
     collect_minor = int(collect_version.split(".")[1])
@@ -2475,3 +2500,11 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
         payload["exp"] = None
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_randint(lower: int, higher: int):
+    """
+    ctn_randint
+    just call ranom.randint and retruns result
+    """
+    return random.randint(lower, higher)

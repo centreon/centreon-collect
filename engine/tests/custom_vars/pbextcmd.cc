@@ -79,6 +79,7 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   hst_hlp.insert_customvariable("_CRITICAL", "400,50%");
   hst.set_check_command("base_centreon_ping");
   hst.mutable_contacts()->add_data("user");
+  hst_hlp.set_default_values();
   hst_aply.add_object(hst);
 
   command_map::iterator cmd_found{

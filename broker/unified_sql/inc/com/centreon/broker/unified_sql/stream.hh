@@ -107,6 +107,14 @@ constexpr const char* BAM_NAME = "_Module_";
 constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
+ * Caution, if you modify these values, don't forget to update CASE in resources
+ * update requests (_update_hosts_and_services_of_instance)
+ *
+ */
+constexpr std::array<int, 5> hst_ordered_status{0, 4, 2, 0, 1};
+constexpr std::array<int, 5> svc_ordered_status{0, 3, 4, 2, 1};
+
+/**
  * @brief The conflict manager.
  *
  * Many queries are executed by Broker through the sql connector and also
@@ -145,8 +153,6 @@ class stream : public io::stream {
   enum stream_type { sql, unified_sql };
 
  private:
-  const static std::array<int, 5> hst_ordered_status;
-  const static std::array<int, 5> svc_ordered_status;
   enum special_conn {
     custom_variable,
     downtime,

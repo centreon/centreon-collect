@@ -48,6 +48,7 @@ class HostRecovery : public TestEngine {
     hst.set_host_name("test_host");
     hst.set_address("127.0.0.1");
     hst.set_host_id(12);
+    hst_hlp.set_default_values();
     hst_aply.add_object(hst);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

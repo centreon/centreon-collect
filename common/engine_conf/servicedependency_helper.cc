@@ -66,7 +66,7 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
               {"notification_failure_criteria", "notification_failure_options"},
           },
           Servicedependency::descriptor()->field_count()) {
-  _init();
+  obj->mutable_obj()->set_register_(true);
 }
 
 /**
@@ -188,12 +188,11 @@ void servicedependency_helper::check_validity(error_cnt& err) const {
  * @brief Initializer of the Servicedependency object, in other words set its
  * default values.
  */
-void servicedependency_helper::_init() {
+void servicedependency_helper::set_default_values() {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
-  obj->mutable_obj()->set_register_(true);
-  obj->set_execution_failure_options(action_sd_none);
-  obj->set_inherits_parent(false);
-  obj->set_notification_failure_options(action_sd_none);
+  DEFAULT_PB_FIELD_SET(execution_failure_options, action_sd_none);
+  DEFAULT_PB_FIELD_SET(inherits_parent, false);
+  DEFAULT_PB_FIELD_SET(notification_failure_options, action_sd_none);
 }
 
 /**

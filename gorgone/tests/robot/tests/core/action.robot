@@ -39,6 +39,7 @@ action module with ${communication_mode} communcation mode
     ...    poller_config=${poller_config}
 
     Setup Sudo
+    Ctn Prepare package manager
 
     # first we test the api without waiting for the output of the command.
     # check by default the api launch the query in local
@@ -92,20 +93,20 @@ Test Async Action Module
 
     # need to get the data from the token with getlog.
     # this call multiples time the api until the response is available.
-    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=5
+    ${status}    ${logs}    Ctn Get Api Log With Timeout    token=${action_api_result.json()}[token]    node_path=${node_path}    timeout=90
     Check Action Api Do Something    ${status}    ${logs}    ${node_path}    ${EMPTY}
     ${return}=    Ctn Check Plugin Is Installed And Remove It    ${plugin_install}
     Should Be True    ${return}    Plugin don't seem to be correctly installed or purge didn't work.
 
 
 Post Action Endpoint
-    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20250401
+    [Arguments]    ${node_path}=${EMPTY}    ${get_params}=${EMPTY}    ${plugin_install}=${EMPTY}    ${plugin_version}=20250900
 
     # Ideally, Gorgone should not allow any bash interpretation on command it execute.
     # As there is a whitelist in gorgone, if there was no bash interpretation we could allow only our required binary and be safe.
     # As gorgone always had bash interpretation available, most of the internal use of this module use redirection, pipe or other sh feature.
     ${bodycmd}=    Create Dictionary    command=echo 'Robot test write with param:${get_params} for node ${node_path}' | tee -a /tmp/actionLogs
-    
+
     IF    '${plugin_install}' != ''
         ${install_plugin}=    Create Dictionary    ${plugin_install}=${plugin_version}
         ${pkg}=          Create Dictionary    pkg_install=${install_plugin}
