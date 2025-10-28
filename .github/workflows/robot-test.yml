@@ -108,7 +108,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{ needs.robot-test-list.outputs.test_group_name }}
+    name: ${{ matrix.feature }}
 
     env:
       IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}-test
