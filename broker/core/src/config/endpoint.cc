@@ -17,9 +17,6 @@
  */
 
 #include "com/centreon/broker/config/endpoint.hh"
-#include <spdlog/spdlog.h>
-#include <sstream>
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::config;
 

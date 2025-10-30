@@ -59,7 +59,8 @@ class factory {
    *
    * @param cfg config to update
    */
-  virtual void set_default_values(config::endpoint& cfg) const {}
+  virtual void set_default_values(config::endpoint& cfg
+                                  [[maybe_unused]]) const {}
 
   virtual endpoint* new_endpoint(
       config::endpoint& cfg,
