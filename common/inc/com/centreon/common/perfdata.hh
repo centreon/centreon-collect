@@ -81,6 +81,13 @@ bool operator==(com::centreon::common::perfdata const& left,
 bool operator!=(com::centreon::common::perfdata const& left,
                 com::centreon::common::perfdata const& right);
 
+// frees memory associated with a host/service check result
+void parse_check_output(std::string const& buffer,
+                        std::string& short_output,
+                        std::string& long_output,
+                        std::string& perf_data,
+                        bool escape_newlines_please,
+                        bool newlines_are_escaped);
 }  // namespace com::centreon::common
 
 #endif

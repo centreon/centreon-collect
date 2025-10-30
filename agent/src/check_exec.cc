@@ -159,13 +159,20 @@ void check_exec::on_completion(unsigned running_index,
 
   std::string short_output;
   std::string long_output;
+  std::string perf_data;
   // parse the output check
-  parse_check_output(std_out, short_output, long_output, perfs, false, true);
+  common::parse_check_output(std_out, short_output, long_output, perf_data,
+                             false, true);
   // prepare the output without perfdata
-  auto complete_output =
-      short_output + (long_output.empty() ? "" : "\n" + long_output);
+  outputs.push_front(short_output +
+                     (long_output.empty() ? "" : "\n" + long_output));
 
-  outputs.push_front(complete_output);
+  // parse perfdata
+  if (!perf_data.empty()) {
+    boost::trim(perf_data);
+    perfs = com::centreon::common::perfdata::parse_perfdata(
+        0, 0, perf_data.c_str(), _logger);
+  }
 
   check::on_completion(running_index, exit_code, perfs, outputs);
 }
