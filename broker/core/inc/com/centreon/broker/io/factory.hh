@@ -51,7 +51,17 @@ class factory {
    *
    * @return a boolean
    */
-  virtual bool has_endpoint(config::endpoint& cfg, io::extension* ext) = 0;
+  virtual bool has_endpoint(const config::endpoint& cfg,
+                            io::extension* ext) const = 0;
+
+  /**
+   * @brief Set the default values to the endpoint config read from cfg files
+   *
+   * @param cfg config to update
+   */
+  virtual void set_default_values(config::endpoint& cfg
+                                  [[maybe_unused]]) const {}
+
   virtual endpoint* new_endpoint(
       config::endpoint& cfg, bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache =

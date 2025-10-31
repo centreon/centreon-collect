@@ -38,7 +38,7 @@ class node_events_factory : public io::factory {
   ~node_events_factory();
   node_events_factory& operator=(node_events_factory const& other);
   io::factory* clone() const;
-  bool has_endpoint(config::endpoint& cfg);
+  bool has_endpoint(const config::endpoint& cfg);
   io::endpoint* new_endpoint(config::endpoint& cfg,
                              bool& is_acceptor,
                              std::shared_ptr<persistent_cache> cache =
@@ -46,6 +46,6 @@ class node_events_factory : public io::factory {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_NODE_EVENTS_FACTORY_HH
