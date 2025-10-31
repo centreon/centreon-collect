@@ -383,10 +383,10 @@ void checker::finished(commands::result const& res) noexcept {
                        .tv_usec = res.end_time.to_useconds() % 1000000ll};
 
   result->set_finish_time(tv);
-  result->set_early_timeout(res.exit_status == process::timeout);
+  result->set_early_timeout(res.exit_status == common::e_exit_status::timeout);
   result->set_return_code(res.exit_code);
-  result->set_exited_ok(res.exit_status == process::normal ||
-                        res.exit_status == process::timeout);
+  result->set_exited_ok(res.exit_status == common::e_exit_status::normal ||
+                        res.exit_status == common::e_exit_status::timeout);
   result->set_output(res.output);
 
   // Queue check result.
@@ -505,7 +505,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.command_id = 0;
     res.end_time = timestamp::now();
     res.exit_code = service::state_unknown;
-    res.exit_status = process::normal;
+    res.exit_status = common::e_exit_status::normal;
     res.output = reason;
     res.start_time = res.end_time;
   };
@@ -555,7 +555,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // If the command timed out.
   uint32_t host_check_timeout = pb_config.host_check_timeout();
-  if (res.exit_status == process::timeout) {
+  if (res.exit_status == common::e_exit_status::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              host_check_timeout);
     engine_logger(log_runtime_warning, basic)
