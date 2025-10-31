@@ -50,15 +50,21 @@ static std::string find_param(config::endpoint const& cfg,
  *
  *  @return true if the endpoint match the configuration.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("SIMU", false, false);
-  bool is_simu{absl::EqualsIgnoreCase(cfg.type, "simu")};
-  if (is_simu) {
-    cfg.params["cache"] = "yes";
-    cfg.cache_enabled = true;
-  }
-  return is_simu;
+  return absl::EqualsIgnoreCase(cfg.type, "simu");
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "yes";
+  cfg.cache_enabled = true;
 }
 
 /**

@@ -44,21 +44,22 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return True if the configuration has this protocol.
  */
-bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
-                           io::extension* ext) {
-  if (ext)
+bool factory::has_endpoint(const com::centreon::broker::config::endpoint& cfg,
+                           io::extension* ext) const {
+  if (ext) {
     *ext = io::extension("GRPC", false, false);
+  }
   /* Legacy case: we create a grpc endpoint */
   if (cfg.type == "grpc")
     return true;
 
-  /* New case: we create a bbdo_server or a bbdo_client with transport protocol
-   * set to 'grpc' */
-  if ((cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
-      absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc"))
-    return true;
+  /* New case: we create a bbdo_server or a bbdo_client with transport
+   * protocol set to 'grpc' */
+  auto protocol = cfg.params.find("transport_protocol");
 
-  return false;
+  return (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
+         protocol != cfg.params.end() &&
+         absl::EqualsIgnoreCase(protocol->second, "grpc");
 }
 
 static std::string read_file(const std::string& path) {

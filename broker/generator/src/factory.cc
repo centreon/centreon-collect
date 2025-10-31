@@ -30,8 +30,8 @@ using namespace com::centreon::broker::generator;
  *
  *  @return True if configuration matches any of the generator streams.
  */
-bool factory::has_endpoint(config::endpoint& cfg,
-                           io::extension* ext [[maybe_unused]]) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext [[maybe_unused]]) const {
   return cfg.type == "generator_receiver" || cfg.type == "generator_sender";
 }
 

@@ -113,8 +113,8 @@ class fact : public io::factory {
  public:
   fact() {}
 
-  bool has_endpoint(config::endpoint& cfg __attribute__((__unused__)),
-                    io::extension* ext) override {
+  bool has_endpoint(const config::endpoint& cfg __attribute__((__unused__)),
+                    io::extension* ext) const override {
     if (ext)
       *ext = io::extension("FACT", false, false);
     return true;
