@@ -1075,9 +1075,6 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
-      _logger_sql->error("PB actual end time {} -> {}",
-                         dt_obj.actual_end_time(),
-                         uint64_not_null_not_neg_1{dt_obj.actual_end_time()});
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
