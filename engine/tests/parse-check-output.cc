@@ -1,5 +1,8 @@
 #include "com/centreon/engine/utils.hh"
 #include "gtest/gtest.h"
+#include "com/centreon/common/perfdata.hh"
+
+namespace common = com::centreon::common;
 
 TEST(ParseCheckOutput, singleLineWithoutPerfdata) {
   std::string buf = "The service is OK";
@@ -9,8 +12,8 @@ TEST(ParseCheckOutput, singleLineWithoutPerfdata) {
   bool escape_newlines{true};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "");
   ASSERT_EQ(perf_data, "");
@@ -24,8 +27,8 @@ TEST(ParseCheckOutput, singleLineWithPerfdata) {
   bool escape_newlines{true};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "");
   ASSERT_EQ(std::string(perf_data), std::string("a=25;50;75"));
@@ -39,8 +42,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdata) {
   bool escape_newlines{true};
   bool newlines_are_escaped{false};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -56,8 +59,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdata1) {
   bool escape_newlines{true};
   bool newlines_are_escaped{false};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy\\nBar is well known");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -71,8 +74,8 @@ TEST(ParseCheckOutput, singleLineWithMultiplePipes) {
   bool escape_newlines{true};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK | The host is UP");
   ASSERT_EQ(long_output, "");
   ASSERT_EQ(perf_data, std::string("a=25;50;75 b=1"));
@@ -86,8 +89,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdataEscaped) {
   bool escape_newlines{true};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -103,8 +106,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdata1Escaped) {
   bool escape_newlines{true};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy\\nBar is well known");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -118,8 +121,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdataReturnEscaped) {
   bool escape_newlines{false};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -135,8 +138,8 @@ TEST(ParseCheckOutput, multipleLineWithLongPerfdata1ReturnEscaped) {
   bool escape_newlines{false};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "The service is OK");
   ASSERT_EQ(long_output, "Toto is a good guy\nBar is well known");
   ASSERT_EQ(perf_data, "a=25;50;75 b=1");
@@ -155,8 +158,8 @@ TEST(ParseCheckOutput, multipleLineWithMultiplePerfdata1ReturnEscaped) {
   bool escape_newlines{false};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "DISK OK - free space: / 3326 MB (56%);");
   ASSERT_EQ(long_output,
             "/ 15272 MB (77%);\n/boot 68 MB (69%);\n/home 69357 MB "
@@ -176,8 +179,8 @@ TEST(ParseCheckOutput, CheckDummy) {
   bool escape_newlines{false};
   bool newlines_are_escaped{true};
 
-  parse_check_output(buf, short_output, long_output, perf_data, escape_newlines,
-                     newlines_are_escaped);
+  common::parse_check_output(buf, short_output, long_output, perf_data,
+                             escape_newlines, newlines_are_escaped);
   ASSERT_EQ(short_output, "Fake output");
   ASSERT_EQ(long_output, "");
   ASSERT_EQ(perf_data, "v3metric1=1 v3metric2=18;1 v3metric3=12;1;2;0;");
