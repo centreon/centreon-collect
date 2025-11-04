@@ -43,7 +43,6 @@ class check_exec : public check {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration check_interval,
       const Service& serv,
       const std::string& command_line,
       const engine_to_agent_request_ptr& cnf,
@@ -55,7 +54,6 @@ class check_exec : public check {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration check_interval,
       const Service& serv,
       const std::string& command_line,
       const engine_to_agent_request_ptr& cnf,
@@ -87,7 +85,6 @@ class check_exec : public check {
  * @param io_context Shared pointer to the ASIO io_context.
  * @param logger Shared pointer to the spdlog logger.
  * @param first_start_expected The expected start time of the first check.
- * @param check_interval The interval between checks.
  * @param serv The service name.
  * @param output The predefined error message to be sent.
  * @param cnf Configuration for the engine to agent request.
@@ -104,7 +101,6 @@ class check_dummy : public check {
   check_dummy(const std::shared_ptr<asio::io_context>& io_context,
               const std::shared_ptr<spdlog::logger>& logger,
               time_point first_start_expected,
-              duration check_interval,
               const Service& serv,
               const std::string& output,
               const engine_to_agent_request_ptr& cnf,
@@ -115,7 +111,6 @@ class check_dummy : public check {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration check_interval,
       const Service& serv,
       const std::string& output,
       const engine_to_agent_request_ptr& cnf,

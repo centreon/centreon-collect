@@ -41,7 +41,7 @@ fi
 
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
-    /usr/libexec/mysqldtoto --user=root &
+    /usr/sbin/mysqldtoto --user=root &
 else
     echo "########################### Start MariaDB ######################################"
     if [ "$distrib" = "ALMALINUX" ]; then

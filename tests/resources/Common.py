@@ -393,9 +393,9 @@ def ctn_start_mysql():
         getoutput("systemctl start mysql")
         logger.console("Mariadb started with systemd")
     else:
-        if os.path.exists("/usr/libexec/mysqldtoto"):
+        if os.path.exists("/usr/sbin/mysqldtoto"):
             logger.console("Starting mysqld directly")
-            Popen(["/usr/libexec/mysqldtoto",
+            Popen(["/usr/sbin/mysqldtoto",
                    "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
             logger.console("mysqld directly started")
         elif os.path.exists("/run/mysqld"):
@@ -416,7 +416,7 @@ def ctn_stop_mysql():
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
     else:
-        if os.path.exists("/usr/libexec/mysqldtoto"):
+        if os.path.exists("/usr/sbin/mysqldtoto"):
             logger.console("Stopping directly mysqld")
             for proc in psutil.process_iter():
                 if ('mysqldtoto' in proc.name()):
@@ -870,11 +870,11 @@ def ctn_check_service_status_with_timeout_rt(hostname: str, service_desc: str, s
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT s.state, s.state_type, s.output FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                    f"SELECT s.state, s.state_type, s.output,s.last_check FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
                     logger.console(
-                        f"status={result[0]['state']} and state_type={result[0]['state_type']} and output={result[0]['output']}")
+                        f"last_check={result[0]['last_check']} status={result[0]['state']} and state_type={result[0]['state_type']} and output={result[0]['output']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True, result[0]['output']
                     elif state_type != 'SOFT' and int(result[0]['state_type']) == 0:
@@ -1257,7 +1257,7 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT r.status, r.status_confirmed, r.output FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
+                    f"SELECT r.status, r.status_confirmed, r.output,r.last_check FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(f"result: {result}")
@@ -1270,6 +1270,50 @@ def ctn_check_service_output_resource_status_with_timeout(hostname: str, service
                         return True
         time.sleep(1)
     return False
+
+
+def ctn_check_service_output_resource_status_with_timeout_rt(hostname: str, service_desc: str, timeout: int, min_last_check: int, status: int, status_type: str,  output: str):
+    """
+    ctn_check_service_output_resource_status_with_timeout
+
+    check if resource checks infos of an host have been updated
+
+    Args:
+        hostname:
+        service_desc:
+        timeout: time to wait expected check in seconds
+        min_last_check: time point after last_check will be accepted
+        status: expected host state
+        status_type: HARD or SOFT
+        output: expected output
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status, r.status_confirmed, r.output,r.last_check FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}' AND r.last_check >= {min_last_check}")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']} and output=\"{result[0]['output']}\"")
+                    if status_type == 'HARD' and int(result[0]['status_confirmed']) == 1 and output in result[0]['output']:
+                        return True, result[0]
+                    elif status_type == 'SOFT' and int(result[0]['status_confirmed']) == 0 and output in result[0]['output']:
+                        return True, result[0]
+        time.sleep(1)
+    return False, {}
 
 
 def ctn_check_host_check_with_timeout(hostname: str, start: int, timeout: int):
@@ -1933,6 +1977,31 @@ def ctn_get_collect_version():
     return f"{maj}.{mini}.{patch}"
 
 
+def ctn_get_agent_version():
+    """! ctn_get_agent_version
+    @return string that contains agent version found in CMakeLists.txtx
+    """
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda line: line.startswith("set("), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(AGENT_PATCH\s*([0-9]+)")
+    for line in filtered:
+        m1 = rmaj.match(line)
+        m2 = rmin.match(line)
+        m3 = rpatch.match(line)
+        if m1:
+            maj = m1.group(1)
+        if m2:
+            mini = m2.group(1)
+        if m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
+
+
 def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """! wait until file is modified
     @param path  path of the file
@@ -2265,7 +2334,7 @@ def ctn_check_agent_information(total_nb_agent: int, nb_poller: int, timeout: in
         nb_poller (int): nb poller with at least one agent connected.
         timeout (int): The timeout value for the check.
     """
-    collect_version = ctn_get_collect_version()
+    collect_version = ctn_get_agent_version()
 
     collect_major = int(collect_version.split(".")[0])
     collect_minor = int(collect_version.split(".")[1])

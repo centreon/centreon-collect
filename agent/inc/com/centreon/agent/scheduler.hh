@@ -39,7 +39,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>&,
       const std::shared_ptr<spdlog::logger>& /*logger*/,
       time_point /* start expected*/,
-      duration /* check interval */,
       const Service& /*service*/,
       const engine_to_agent_request_ptr& /*engine to agent request*/,
       check::completion_handler&&,
@@ -144,6 +143,10 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const char* label,
       bool value,
       ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
+  void _add_exemplar(
+      const char* label,
+      int value,
+      ::opentelemetry::proto::metrics::v1::NumberDataPoint& data_point);
 
   void _start_waiting_check();
 
@@ -184,7 +187,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
       const std::shared_ptr<asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       time_point first_start_expected,
-      duration check_interval,
       const Service& service,
       const engine_to_agent_request_ptr& conf,
       check::completion_handler&& handler,

@@ -684,8 +684,9 @@ jobs:
 
     runs-on: centreon-ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
@@ -711,6 +712,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
 
       - name: Deliver monitoring agent to github release
+        if: ${{ needs.get-environment.outputs.is_cloud == 'false' }}
         uses: ./.github/actions/deliver-github-asset
         with:
           file_pattern: /tmp/promoted-packages/centreon-monitoring-agent${{ steps.parse-distrib.outputs.package_version_separator }}${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.${{ steps.parse-distrib.outputs.package_extension }}
@@ -762,6 +764,7 @@ jobs:
         shell: powershell
 
       - name: Deliver monitoring agent to github release
+        if: ${{ needs.get-environment.outputs.is_cloud == 'false' }}
         uses: ./.github/actions/deliver-github-asset
         with:
           file_pattern: ./centreon-monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}*.exe

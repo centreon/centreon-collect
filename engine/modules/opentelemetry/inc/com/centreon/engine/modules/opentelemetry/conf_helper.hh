@@ -91,7 +91,11 @@ bool get_otel_commands(const std::string& host_name,
 
   auto hst_iter = host::hosts.find(host_name);
   if (hst_iter == host::hosts.end()) {
-    SPDLOG_LOGGER_ERROR(logger, "unknown host:{}", host_name);
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "Agent with host name '{}' not found in host list; unable to extract "
+        "OpenTelemetry commands for this agent",
+        host_name);
     return false;
   }
   std::shared_ptr<host> hst = hst_iter->second;
@@ -104,7 +108,8 @@ bool get_otel_commands(const std::string& host_name,
 
     if (allowed_by_white_list(cmd_line)) {
       ret |= handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
-                     hst->check_interval(), logger);
+                     hst->check_interval(), hst->retry_interval(),
+                     hst->max_check_attempts(), logger);
     } else {
       SPDLOG_LOGGER_ERROR(
           logger,
@@ -132,9 +137,10 @@ bool get_otel_commands(const std::string& host_name,
       clear_volatile_macros_r(macros);
 
       if (allowed_by_white_list(cmd_line)) {
-        ret |= handler(serv->check_command(), cmd_line, serv->name(),
-                       serv->host_id(), serv->service_id(),
-                       serv->check_interval(), logger);
+        ret |=
+            handler(serv->check_command(), cmd_line, serv->name(),
+                    serv->host_id(), serv->service_id(), serv->check_interval(),
+                    serv->retry_interval(), serv->max_check_attempts(), logger);
       } else {
         SPDLOG_LOGGER_ERROR(
             logger,

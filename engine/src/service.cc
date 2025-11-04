@@ -21,6 +21,8 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "com/centreon/engine/commands/forward.hh"
+#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
@@ -1172,8 +1174,11 @@ int service::handle_async_check_result(
   /*
    * clear the freshening flag (it would have been set if this service was
    * determined to be stale)
+   * NOTE: for a cma result we clear the flag regardless of the check options
    */
-  if (queued_check_result.get_check_options() & CHECK_OPTION_FRESHNESS_CHECK)
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_FRESHNESS_CHECK | CHECK_OPTION_PASSIVE_IS_HARD |
+       CHECK_OPTION_PASSIVE_IS_SOFT))
     set_is_being_freshened(false);
 
   /* clear the execution flag if this was an active check */
@@ -1394,11 +1399,17 @@ int service::handle_async_check_result(
     }
   }
 
-  if (_last_state == state_ok && _current_state != _last_state)
-    set_current_attempt(1);
-  else if (get_state_type() == soft &&
-           get_current_attempt() < max_check_attempts())
-    add_current_attempt(1);
+  if (queued_check_result.get_check_options() &
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
+    // for passive checks, we get attempt from CMA
+    set_current_attempt(queued_check_result.get_current_attempt());
+  } else {
+    if (_last_state == state_ok && _current_state != _last_state)
+      set_current_attempt(1);
+    else if (get_state_type() == soft &&
+             get_current_attempt() < max_check_attempts())
+      add_current_attempt(1);
+  }
 
   engine_logger(dbg_checks, most)
       << "ST: " << (get_state_type() == soft ? "SOFT" : "HARD")
@@ -1453,7 +1464,11 @@ int service::handle_async_check_result(
    */
   if (state_change || hard_state_change) {
     /* reschedule the service check */
-    reschedule_check = true;
+    if (queued_check_result.get_check_options() &
+        (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+      reschedule_check = false;  // false for CMA results checks
+    else
+      reschedule_check = true;
 
     /* reset notification times */
     set_last_notification(static_cast<time_t>(0));
@@ -2033,6 +2048,13 @@ int service::handle_async_check_result(
               get_stalk_on(critical)))
       log_event();
   }
+
+  /* ───────────────────── CMA FORCE THE SERVICE STATUS ──────────────────── */
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_HARD)
+    set_state_type(hard);
+  if (queued_check_result.get_check_options() & CHECK_OPTION_PASSIVE_IS_SOFT)
+    set_state_type(soft);
+  /* ─────────────────────────────────────────────────────────────────────── */
 
   /* send data to event broker */
   broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this, get_check_type(),
@@ -2709,6 +2731,8 @@ int service::run_async_check_local(int check_options,
     check_result_info->set_return_code(service::state_unknown);
     check_result_info->set_exited_ok(true);
     check_result_info->set_output(reason);
+    if (is_cma_service())
+      check_result_info->set_check_options(CHECK_OPTION_PASSIVE_IS_HARD);
 
     // Queue check result.
     checks::checker::instance().add_check_result_to_reap(check_result_info);
@@ -3671,6 +3695,9 @@ void service::check_for_orphaned() {
     if (!it->second->get_is_executing())
       continue;
 
+    if (it->second->is_cma_service())
+      continue;
+
     /* determine the time at which the check results should have come in (allow
      * 10 minutes slack time) */
     expected_time =
@@ -3742,49 +3769,46 @@ void service::check_result_freshness() {
   time(&current_time);
 
   /* check all services... */
-  for (service_map::iterator it(service::services.begin()),
-       end(service::services.end());
-       it != end; ++it) {
+  for (const auto& [pair, service_ptr] : service::services) {
     /* skip services we shouldn't be checking for freshness */
-    if (!it->second->check_freshness_enabled())
+    if (!service_ptr->check_freshness_enabled())
       continue;
 
     /* skip services that are currently executing (problems here will be caught
      * by orphaned service check) */
-    if (it->second->get_is_executing())
+    if (service_ptr->get_is_executing() && !service_ptr->is_cma_service())
       continue;
 
     /* skip services that have both active and passive checks disabled */
-    if (!it->second->active_checks_enabled() &&
-        !it->second->passive_checks_enabled())
+    if (!service_ptr->active_checks_enabled() &&
+        !service_ptr->passive_checks_enabled())
       continue;
 
     /* skip services that are already being freshened */
-    if (it->second->get_is_being_freshened())
+    if (service_ptr->get_is_being_freshened())
       continue;
 
     // See if the time is right...
     {
-      timezone_locker lock(it->second->get_timezone());
+      timezone_locker lock(service_ptr->get_timezone());
       if (!check_time_against_period(current_time,
-                                     it->second->check_period_ptr))
+                                     service_ptr->check_period_ptr))
         continue;
     }
 
     /* EXCEPTION */
     /* don't check freshness of services without regular check intervals if
      * we're using auto-freshness threshold */
-    if (it->second->check_interval() == 0 &&
-        it->second->get_freshness_threshold() == 0)
+    if (service_ptr->check_interval() == 0 &&
+        service_ptr->get_freshness_threshold() == 0)
       continue;
 
     /* the results for the last check of this service are stale! */
-    if (!it->second->is_result_fresh(current_time, true)) {
+    if (!service_ptr->is_result_fresh(current_time, true)) {
       /* set the freshen flag */
-      it->second->set_is_being_freshened(true);
-
+      service_ptr->set_is_being_freshened(true);
       /* schedule an immediate forced check of the service */
-      it->second->schedule_check(
+      service_ptr->schedule_check(
           current_time,
           CHECK_OPTION_FORCE_EXECUTION | CHECK_OPTION_FRESHNESS_CHECK);
     }
@@ -3915,6 +3939,26 @@ void service::resolve(uint32_t& w, uint32_t& e) {
         "one or more illegal characters.",
         name(), _hostname);
     errors++;
+  }
+
+  /* check if the service is a CMA service */
+  bool is_cma_service = false;
+  if (get_check_command_ptr()) {
+    if (get_check_command_ptr()->get_type() == commands::command::e_type::otel)
+      is_cma_service = true;
+    if (get_check_command_ptr()->get_type() ==
+        commands::command::e_type::forward) {
+      is_cma_service =
+          std::static_pointer_cast<commands::forward>(get_check_command_ptr())
+              ->get_sub_command()
+              ->get_type() == commands::command::e_type::otel;
+    }
+  }
+  set_is_cma_service(is_cma_service);
+  if (is_cma_service) {
+    config_logger->info(
+        "Service '{}' on host '{}' is detected as a CMA service.", name(),
+        _hostname);
   }
 
   w += warnings;
