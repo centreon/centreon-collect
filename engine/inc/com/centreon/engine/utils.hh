@@ -21,6 +21,7 @@
 #ifndef CCE_UTILS_HH
 #define CCE_UTILS_HH
 
+#include "com/centreon/common/perfdata.hh"
 #include "com/centreon/engine/macros/defines.hh"
 
 #ifdef __cplusplus
@@ -66,14 +67,6 @@ bool set_cloexec(int fd);
 void cleanup();
 // free memory allocated to all linked lists in memory
 void free_memory(nagios_macros* mac);
-
-// frees memory associated with a host/service check result
-void parse_check_output(std::string const& buffer,
-                        std::string& short_output,
-                        std::string& long_output,
-                        std::string& perf_data,
-                        bool escape_newlines_please,
-                        bool newlines_are_escaped);
 
 #ifdef __cplusplus
 }
