@@ -136,7 +136,7 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
     try {
       // Parse configuration file.
       config::parser parsr;
-      config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+      config::state conf{parsr.parse(gl_mainconfigfiles.front(), false)};
       auto& log_conf = conf.mut_log_conf();
       log_conf.allow_only_atomic_changes(true);
       try {
@@ -314,7 +314,7 @@ int main(int argc, char* argv[]) {
       {
         // Parse configuration file.
         config::parser parsr;
-        config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+        config::state conf{parsr.parse(gl_mainconfigfiles.front(), false)};
         auto& log_conf = conf.log_conf();
         /* It is important to apply the log conf before broker threads start.
          * Otherwise we will have issues with concurrent accesses. */
