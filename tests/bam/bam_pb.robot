@@ -1294,6 +1294,34 @@ BA_DISABLED
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
 
 
+BAM_RELOAD_ON_CBD_RELOAD
+    [Documentation]    Given broker with bam configured
+    ...    we should find bam restart after broker reload
+
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
+
 *** Keywords ***
 Ctn BAM Setup
     Ctn Stop Processes
