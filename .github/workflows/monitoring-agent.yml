@@ -402,6 +402,11 @@ jobs:
             package_extension: deb
             runner: centreon-collect
             arch: amd64
+          - image: packaging-centreon-collect-vcpkg-noble-arm64
+            distrib: noble
+            package_extension: deb
+            runner: centreon-collect-arm64
+            arch: arm64
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
