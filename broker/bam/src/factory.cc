@@ -54,6 +54,10 @@ void factory::set_default_values(config::endpoint& cfg) const {
   cfg.read_timeout = 1;
   if (is_bam)
     cfg.cache_enabled = true;
+  // As main bam config is in database, we reload bam on each broker reload
+  // So we add a timestamp in endpoint config
+  cfg.params["timestamp"] = std::to_string(
+      std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 /**

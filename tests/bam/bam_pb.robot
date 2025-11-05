@@ -1413,8 +1413,33 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
+BAM_RELOAD_ON_CBD_RELOAD
+    [Documentation]    Given broker with bam configured
+    ...    we should find bam restart after broker reload
 
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
 
 *** Keywords ***
 Ctn BAM Setup
