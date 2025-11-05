@@ -1217,6 +1217,8 @@ BA_CHANGED
 
     Ctn Reload Broker
     Remove File    /tmp/ba.dot
+    #let time to broker to reload
+    Sleep     1s
     Ctn Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
