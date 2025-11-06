@@ -10,22 +10,22 @@ on:
   workflow_dispatch:
     inputs:
       nightly_manual_trigger:
-        description: 'Set to true for linux nightly run'
+        description: "Set to true for linux nightly run"
         required: true
         default: false
         type: boolean
       packages_in_artifact:
-        description: 'Save packages in artifacts'
+        description: "Save packages in artifacts"
         required: true
         default: false
         type: boolean
       installer_in_artifact:
-        description: 'Save installer and binary in artifacts'
+        description: "Save installer and binary in artifacts"
         required: true
         default: false
         type: boolean
       force_signing:
-        description: 'Force signing'
+        description: "Force signing"
         required: true
         default: false
         type: boolean
@@ -48,8 +48,8 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
-      - 'release-[2-9][0-9].[0-9][0-9]-next'
-      - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
+      - "release-[2-9][0-9].[0-9][0-9]-next"
+      - "hotfix-[2-9][0-9].[0-9][0-9]-next"
     paths:
       - ".version"
       - ".version.centreon-monitoring-agent"
@@ -402,6 +402,11 @@ jobs:
             package_extension: deb
             runner: centreon-collect
             arch: amd64
+          - image: packaging-centreon-collect-vcpkg-noble-arm64
+            distrib: noble
+            package_extension: deb
+            runner: centreon-collect-arm64
+            arch: arm64
 
     name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
 
@@ -416,7 +421,7 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
-      legacy_engine: 'OFF'
+      legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
       image: ${{ matrix.image }}
@@ -459,42 +464,42 @@ jobs:
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el8-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bullseye
             image: centreon-collect-mariadb-bullseye-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bullseye
             image: centreon-collect-mariadb-bullseye-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
@@ -508,14 +513,14 @@ jobs:
             arch: arm64
             database_type: mariadb
             test_group_name: robot_test-mariadb-jammy-arm64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: jammy
             image: centreon-collect-mariadb-jammy-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-jammy-amd64
-            tests_params: '{}'
+            tests_params: "{}"
 
     name: ${{ matrix.test_group_name }}
 
@@ -611,6 +616,8 @@ jobs:
             arch: arm64
           - distrib: noble
             arch: amd64
+          - distrib: noble
+            arch: arm64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -685,7 +692,7 @@ jobs:
     runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bullseye, bookworm, jammy, noble]
 
     steps:
       - name: Checkout sources
@@ -771,7 +778,15 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, deliver-windows, promote-linux, promote-windows]
+    needs:
+      [
+        get-environment,
+        deliver-rpm,
+        deliver-deb,
+        deliver-windows,
+        promote-linux,
+        promote-windows,
+      ]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
