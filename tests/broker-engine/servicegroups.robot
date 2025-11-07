@@ -25,7 +25,8 @@ EBNSG1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
@@ -56,7 +57,9 @@ EBNSGU1
     Ctn Clear Retention
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
+
     Ctn Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
