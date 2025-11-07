@@ -816,13 +816,13 @@ jobs:
               "databases": setArchConfigs([...matrix.databases]),
             };
 
-            if (['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}')) {
+            // if (['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}')) {
               collectMatrix = {
                 ...collectMatrix,
                 "operating_systems": setArchConfigs([...configs]),
                 "databases": setArchConfigs([...configs]),
               };
-            }
+            // }
 
             console.log('collectMatrix', collectMatrix);
             core.setOutput('collect_matrix', collectMatrix);
