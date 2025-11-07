@@ -111,7 +111,7 @@ jobs:
     name: ${{ matrix.feature }}
 
     env:
-      IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}-test
+      IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
 
     steps:
       - name: Checkout sources
