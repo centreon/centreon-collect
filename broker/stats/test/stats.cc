@@ -113,8 +113,8 @@ class fact : public io::factory {
  public:
   fact() {}
 
-  bool has_endpoint(config::endpoint& cfg __attribute__((__unused__)),
-                    io::extension* ext) override {
+  bool has_endpoint(const config::endpoint& cfg __attribute__((__unused__)),
+                    io::extension* ext) const override {
     if (ext)
       *ext = io::extension("FACT", false, false);
     return true;
@@ -205,7 +205,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   // Parse.
   config::parser p;
   config::state s;
-  ASSERT_NO_THROW(s = p.parse(config_file));
+  ASSERT_NO_THROW(s = p.parse(config_file, false));
 
   auto test = std::make_shared<fact>();
   io::protocols::instance().reg("CentreonInput", test, 1, 7);

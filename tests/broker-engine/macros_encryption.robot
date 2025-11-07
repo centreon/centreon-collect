@@ -41,7 +41,7 @@ NO_ENGINE_ENCRYPTION
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_timeout=30s    retry_pause=2s
 
     Disconnect From Database    pymysql
 
@@ -77,7 +77,7 @@ ENGINE_ENCRYPTION_BAD_CONF
     
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=0    ==    1    retry_timeout=30s    retry_pause=2s
 
     Disconnect From Database    pymysql
 
@@ -129,7 +129,7 @@ ENGINE_ENCRYPTION_GOOD_CONF
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=1    ==    1    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT instance_id FROM instances WHERE instance_id=1 AND running=1 AND is_encryption_ready=1    ==    1    retry_timeout=30s    retry_pause=2s
 
     Disconnect From Database    pymysql
 

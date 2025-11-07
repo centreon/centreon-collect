@@ -644,6 +644,38 @@ BEDTRRD1
     Ctn Kindly Stop Broker
 
 
+DT_WITH_QUOTES
+    [Documentation]    Given a centreon running, we set a downtime with quotes
+    ...     Then we expect to get these quotes in bdd
+    [Tags]    broker    engine    services    protobuf    MON-92052
+    Ctn Clear Logs
+    Ctn Config Engine    ${1}     ${1}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Engine Config Set Value    ${0}    log_level_functions    trace
+
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Schedule Host Downtime    ${0}    host_1    ${60}    'author with quotes'    "comment with quotes"
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    
+    ${query}     Catenate     SELECT downtime_id FROM downtimes WHERE author="'author with quotes'" AND comment_data = '"comment with quotes"'
+    Check Row Count    ${query}    ==    21    retry_timeout=60s    retry_pause=2s
+
+    Disconnect From Database    pymysql
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
+
+
 *** Keywords ***
 Ctn Clean Downtimes Before Suite
     Ctn Clean Before Suite

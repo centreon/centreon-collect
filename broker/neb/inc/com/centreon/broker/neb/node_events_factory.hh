@@ -38,7 +38,7 @@ class node_events_factory : public io::factory {
   ~node_events_factory();
   node_events_factory& operator=(node_events_factory const& other);
   io::factory* clone() const;
-  bool has_endpoint(config::endpoint& cfg);
+  bool has_endpoint(const config::endpoint& cfg);
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

@@ -338,9 +338,6 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     SPDLOG_LOGGER_DEBUG(_logger, "lua: luabinding::write call");
   }
 
-  // Give data to cache.
-  _cache.write(data);
-
   // Process event.
   uint32_t mess_type(data->type());
   uint16_t cat(category_of_type(mess_type));

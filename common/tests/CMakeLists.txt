@@ -80,6 +80,10 @@ file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/bad_script.bat
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.bat
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
+file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.sh
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_common)
 

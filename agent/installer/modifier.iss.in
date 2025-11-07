@@ -49,7 +49,7 @@ Source: {#WarningIcon}; Flags: dontcopy
 
 [Code]
 { ────────────────────────────────────────────────────────────────────── }
-{ ──────────────────────────── Dll ───────────────────────────────────── }
+{ ──────────────────────────── DLL ───────────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 
 function GetComputerName(lpBuffer: String; var nSize: DWORD): Boolean;
@@ -62,7 +62,7 @@ procedure ExitProcess(uExitCode: UINT);
   external 'ExitProcess@kernel32.dll stdcall';
 
 { ────────────────────────────────────────────────────────────────────── }
-{ ───────────────────── Global Variables and Widgets ─────────────────── }
+{ ───────────────────── Global Variables and Wizard ──────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 var
 // ─────────────────────────────────────────────
@@ -73,6 +73,10 @@ var
 // ─────────────────────────────────────────────
 // Widget for config pages
 // ─────────────────────────────────────────────
+
+  AgentInstanceLabel: TNewStaticText;
+  AgentInstanceComboBox: TNewComboBox;
+
   HostLabel, PollerLabel: TNewStaticText;
   HostNameEdit, PollerEndpointEdit: TNewEdit;
   PollerInitiatedCheckBox: TNewCheckBox;
@@ -96,6 +100,7 @@ var
   PublicCertInfoBitmapImage, PrivateKeyInfoBitmapImage, CaInfoBitmapImage, CommonNameInfoBitmapImage, TokenInfoBitmapImage:TBitmapImage;
   PublicCertWarningBitmapImage, PrivateKeyWarningBitmapImage, TokenWarningBitmapImage,CaWarningBitmapImage:TBitmapImage;
   
+  AgentNames: array of string;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -315,6 +320,39 @@ end;
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 
+// Returns the trimmed text from AgentInstanceComboBox, representing the selected agent instance name.
+function GetInstanceArgs(Param: string): string;
+begin
+    Result := Trim(AgentInstanceComboBox.Text);
+end;
+
+
+// --- Enumerate Centreon agent registry subkeys ---
+procedure LoadAgentRegistryKeys;
+begin
+  SetArrayLength(AgentNames, 0);
+  RegGetSubkeyNames(HKEY_LOCAL_MACHINE, 'SOFTWARE\Centreon', AgentNames);
+end;
+
+function ServiceAlreadyExist(SvcName: string):Boolean;
+var 
+  Agent: Integer;
+begin
+  LoadAgentRegistryKeys;
+  Result := False;
+  if GetArrayLength(AgentNames) = 0 then
+    Exit;
+
+  for Agent := 0 to GetArrayLength(AgentNames) - 1 do
+  begin
+    if CompareText(AgentNames[Agent], SvcName) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
 // Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
 procedure LogToStdOutFile(Msg: String);
 var
@@ -450,7 +488,7 @@ end;
 //   - If found, sets the corresponding UI control (edit box, combo box, or checkbox) with the value.
 //   - If not found for 'host', uses the current Windows host name as a fallback.
 // Handles both string and DWORD registry values, converting as needed for UI controls.
-procedure ReadAgentRegistryValues;
+function ReadAgentRegistryValues(InstanceName: String): Boolean;
 var
   RootKey: Integer;
   BaseKey: String;
@@ -458,7 +496,12 @@ var
   DwordValue: DWORD;
 begin
   RootKey := HKEY_LOCAL_MACHINE;
-  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+  BaseKey := 'SOFTWARE\Centreon\'+ InstanceName;
+  if not RegKeyExists(RootKey, BaseKey) then
+  begin
+    Result := False;
+    Exit;
+  end;
 
   if RegQueryStringValue(RootKey, BaseKey, 'host', StrValue) then
     HostNameEdit.Text := StrValue
@@ -510,6 +553,8 @@ begin
 
   if RegQueryDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', DwordValue) then
     PollerInitiatedCheckBox.Checked := (DwordValue <> 0);
+
+  Result := True;
 end;
 
 // Writes Centreon Monitoring Agent configuration values to the Windows registry.
@@ -521,7 +566,8 @@ var
   BaseKey: String;
 begin
   RootKey := HKEY_LOCAL_MACHINE;
-  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+  // Use the selected Instance name so the agent (which builds the path with the Instance name) reads the same location.
+  BaseKey := 'SOFTWARE\Centreon\' + GetInstanceArgs('');
 
   // Strings
   RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
@@ -555,10 +601,16 @@ end;
 procedure RestartService;
 var rc: Integer;
 begin
-  Exec('sc.exe', 'stop CentreonMonitoringAgent', '', SW_HIDE, ewWaitUntilTerminated, rc);
-  ; // small grace period
+  Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + GetInstanceArgs('') + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+  ; // small period
   Sleep(1000);
-  Exec('sc.exe', 'start CentreonMonitoringAgent', '', SW_HIDE, ewWaitUntilTerminated, rc);
+  Exec(ExpandConstant('{sys}\sc.exe'), ' start "' + GetInstanceArgs('') + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+end;
+
+procedure OnServiceChange(Sender: TObject);
+begin
+  ReadAgentRegistryValues(AgentInstanceComboBox.Text);
+  OnLogTypeChange(LogTypeComboBox);
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
@@ -577,7 +629,9 @@ procedure LoadSilentParameters;
 begin
   if not IsSilentMode then Exit;
 
-  // Only set if param is not empty
+  // the parameter is already checked in CheckSilentParameterValidity before calling this function
+  AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(ExpandConstant('{param:agentinstance|}'));
+
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
@@ -643,6 +697,7 @@ end;
 // Returns True if all parameters are valid.
 function CheckSilentParameterValidity: Boolean;
 var
+  AgentInstance: string;
   HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
   Pluginsrc_p: string;
   EncryptionEnabled,PollerInitiatedEnabled: Boolean;
@@ -653,6 +708,7 @@ begin
     Exit;
   end;
 
+  AgentInstance := ExpandConstant('{param:agentinstance|}');
   HostParam := ExpandConstant('{param:host|}');
   EndpointParam := ExpandConstant('{param:endpoint|}');
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
@@ -660,6 +716,14 @@ begin
   EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|no}')) = 'full') or
                        (LowerCase(ExpandConstant('{param:encryption|no}')) = 'insecure');
   PollerInitiatedEnabled := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
+
+  // agent instance name
+  if (AgentInstance <> '') and not(ServiceAlreadyExist(AgentInstance)) then
+  begin
+    LogToStdOutFile('Unknown instance agent: ' + AgentInstance);
+    Result := False;
+    Exit;
+  end;
 
   // HOST
   if HostParam = '' then
@@ -762,6 +826,7 @@ procedure InitializeWizard;
 var
 Infobmp: String;
 WarningBmp: String;
+Index : Integer;
 begin
 
 // ── Wizard config
@@ -775,12 +840,32 @@ begin
   WarningBmp := ExpandConstant('{tmp}\warning_icon.bmp');
 // ── Config page 
   ConfigPage := CreateCustomPage(wpSelectComponents, 'Centreon Agent Configuration', 'Please provide the required information to connect agent.');
+  // ──── Service Name
 
+  AgentInstanceLabel := TNewStaticText.Create(ConfigPage);
+  AgentInstanceLabel.Parent := ConfigPage.Surface;
+  AgentInstanceLabel.Top := ScaleY(3);
+  AgentInstanceLabel.Caption := 'Agent instance:';
+
+  AgentInstanceComboBox := TNewComboBox.Create(ConfigPage);
+  AgentInstanceComboBox.top := AgentInstanceLabel.Top - ScaleY(3);
+  AgentInstanceComboBox.Width := ConfigPage.SurfaceWidth div 2;
+  AgentInstanceComboBox.Parent := ConfigPage.Surface;
+  AgentInstanceComboBox.Style := csDropDownList;
+  LoadAgentRegistryKeys;
+  if GetArrayLength(AgentNames) = 0 then
+    ExitProcess(1); // No Centreon agent found, exit
+    
+  for Index := 0 to GetArrayLength(AgentNames) - 1 do
+    AgentInstanceComboBox.Items.Add(AgentNames[Index]);
+
+  AgentInstanceComboBox.ItemIndex := 0;
+  AgentInstanceComboBox.OnChange := @OnServiceChange;
   // ──── Host Name
 
   HostLabel := TNewStaticText.Create(ConfigPage);
   HostLabel.Parent := ConfigPage.Surface;
-  HostLabel.Top := ScaleY(3);
+  HostLabel.Top := AgentInstanceLabel.Top + ScaleY(30);
   HostLabel.Caption := 'Host name in Centreon:';
 
   HostNameEdit := TNewEdit.Create(ConfigPage);
@@ -789,6 +874,8 @@ begin
   HostNameEdit.Left := HostLabel.Width + ScaleX(20);
   HostNameEdit.Width := ConfigPage.SurfaceWidth div 2;
   HostNameEdit.Text := 'my-centreon-host';
+
+  AgentInstanceComboBox.Left := HostNameEdit.Left;
 
   HostInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   HostInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1026,7 +1113,7 @@ begin
 
   EncryptionLabel := TNewStaticText.Create(EncryptionPage);
   EncryptionLabel.Parent := EncryptionPage.Surface;
-  EncryptionLabel.Top := HostNameEdit.Top + ScaleY(2);
+  EncryptionLabel.Top := AgentInstanceLabel.Top + ScaleY(2);
   EncryptionLabel.Caption := 'Encryption:';
 
   EncryptionComboBox := TNewComboBox.Create(EncryptionPage);
@@ -1270,7 +1357,6 @@ begin
   CommonNameInfoBitmapImage.OnClick := @BitmapImageOnClick;
   CommonNameInfoBitmapImage.Hide;
 
-  ReadAgentRegistryValues;
   LoadSilentParameters;
 
   // apply the change to ui

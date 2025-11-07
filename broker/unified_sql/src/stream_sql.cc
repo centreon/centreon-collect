@@ -624,13 +624,11 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
-          0, misc::string::escape(cmmnt.author,
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_author)));
+          0, cmmnt.author.substr(0, get_centreon_storage_comments_col_size(
+                                        centreon_storage_comments_author)));
       b.set_value_as_i32(1, cmmnt.comment_type);
       b.set_value_as_str(
-          2, misc::string::escape(cmmnt.data,
-                                  get_centreon_storage_comments_col_size(
+          2, cmmnt.data.substr(0, get_centreon_storage_comments_col_size(
                                       centreon_storage_comments_data)));
       if (cmmnt.deletion_time.is_null())
         b.set_null_i64(3);
@@ -749,14 +747,12 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
-          0, misc::string::escape(cmmnt.author(),
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_author)));
+          0, cmmnt.author().substr(0, get_centreon_storage_comments_col_size(
+                                          centreon_storage_comments_author)));
       b.set_value_as_i32(1, int(cmmnt.type()));
       b.set_value_as_str(
-          2, misc::string::escape(cmmnt.data(),
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_data)));
+          2, cmmnt.data().substr(0, get_centreon_storage_comments_col_size(
+                                        centreon_storage_comments_data)));
       b.set_value_as_i64(3, cmmnt.deletion_time(),
                          mapping::entry::invalid_on_minus_one |
                              mapping::entry::invalid_on_zero);
@@ -947,9 +943,8 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         else
           b.set_value_as_i64(1, dd.actual_start_time);
         b.set_value_as_str(
-            2, misc::string::escape(dd.author,
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
+            2, dd.author.substr(0, get_centreon_storage_downtimes_col_size(
+                                       centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, dd.downtime_type);
         if (dd.deletion_time.is_null())
           b.set_null_i64(4);
@@ -980,9 +975,9 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         b.set_value_as_tiny(15, int(dd.was_cancelled));
         b.set_value_as_tiny(16, int(dd.was_started));
         b.set_value_as_str(
-            17, misc::string::escape(
-                    dd.comment, get_centreon_storage_downtimes_col_size(
-                                    centreon_storage_downtimes_comment_data)));
+            17,
+            dd.comment.substr(0, get_centreon_storage_downtimes_col_size(
+                                     centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -1041,10 +1036,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
                            mapping::entry::invalid_on_minus_one);
         b.set_value_as_i64(1, dt_obj.actual_start_time(),
                            mapping::entry::invalid_on_minus_one);
-        b.set_value_as_str(
-            2, misc::string::escape(dt_obj.author(),
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
+        b.set_value_as_str(2, dt_obj.author().substr(
+                                  0, get_centreon_storage_downtimes_col_size(
+                                         centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, int(dt_obj.type()));
         b.set_value_as_i64(4, dt_obj.deletion_time(),
                            mapping::entry::invalid_on_minus_one);
@@ -1067,10 +1061,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
         b.set_value_as_tiny(15, int(dt_obj.cancelled()));
         b.set_value_as_tiny(16, int(dt_obj.started()));
         b.set_value_as_str(
-            17,
-            misc::string::escape(dt_obj.comment_data(),
-                                 get_centreon_storage_downtimes_col_size(
-                                     centreon_storage_downtimes_comment_data)));
+            17, dt_obj.comment_data().substr(
+                    0, get_centreon_storage_downtimes_col_size(
+                           centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -3126,34 +3119,30 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(1, le.host_id);
       b.set_value_as_i64(2, le.service_id);
       b.set_value_as_str(
-          3, misc::string::escape(le.host_name,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_host_name)));
-      b.set_value_as_str(
-          4, misc::string::escape(le.poller_name,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_instance_name)));
+          3, le.host_name.substr(0, get_centreon_storage_logs_col_size(
+                                        centreon_storage_logs_host_name)));
+      b.set_value_as_str(4, le.poller_name.substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le.log_type);
       b.set_value_as_i32(6, le.msg_type);
+      b.set_value_as_str(7,
+                         le.notification_cmd.substr(
+                             0, get_centreon_storage_logs_col_size(
+                                    centreon_storage_logs_notification_cmd)));
       b.set_value_as_str(
-          7, misc::string::escape(le.notification_cmd,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_notification_cmd)));
-      b.set_value_as_str(8,
-                         misc::string::escape(
-                             le.notification_contact,
-                             get_centreon_storage_logs_col_size(
-                                 centreon_storage_logs_notification_contact)));
+          8, le.notification_contact.substr(
+                 0, get_centreon_storage_logs_col_size(
+                        centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le.retry);
       b.set_value_as_str(
-          10,
-          misc::string::escape(le.service_description,
-                               get_centreon_storage_logs_col_size(
-                                   centreon_storage_logs_service_description)));
+          10, le.service_description.substr(
+                  0, get_centreon_storage_logs_col_size(
+                         centreon_storage_logs_service_description)));
       b.set_value_as_tiny(11, le.status);
-      b.set_value_as_str(12, misc::string::escape(
-                                 le.output, get_centreon_storage_logs_col_size(
-                                                centreon_storage_logs_output)));
+      b.set_value_as_str(
+          12, le.output.substr(0, get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
@@ -3207,36 +3196,31 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(0, le_obj.ctime());
       b.set_value_as_i64(1, le_obj.host_id());
       b.set_value_as_i64(2, le_obj.service_id());
-      b.set_value_as_str(
-          3, misc::string::escape(le_obj.host_name(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_host_name)));
-      b.set_value_as_str(
-          4, misc::string::escape(le_obj.instance_name(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_instance_name)));
+      b.set_value_as_str(3, le_obj.host_name().substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_host_name)));
+      b.set_value_as_str(4, le_obj.instance_name().substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le_obj.type());
       b.set_value_as_i32(6, le_obj.msg_type());
+      b.set_value_as_str(7,
+                         le_obj.notification_cmd().substr(
+                             0, get_centreon_storage_logs_col_size(
+                                    centreon_storage_logs_notification_cmd)));
       b.set_value_as_str(
-          7, misc::string::escape(le_obj.notification_cmd(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_notification_cmd)));
-      b.set_value_as_str(8,
-                         misc::string::escape(
-                             le_obj.notification_contact(),
-                             get_centreon_storage_logs_col_size(
-                                 centreon_storage_logs_notification_contact)));
+          8, le_obj.notification_contact().substr(
+                 0, get_centreon_storage_logs_col_size(
+                        centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le_obj.retry());
       b.set_value_as_str(
-          10,
-          misc::string::escape(le_obj.service_description(),
-                               get_centreon_storage_logs_col_size(
-                                   centreon_storage_logs_service_description)));
+          10, le_obj.service_description().substr(
+                  0, get_centreon_storage_logs_col_size(
+                         centreon_storage_logs_service_description)));
       b.set_value_as_tiny(11, le_obj.status());
       b.set_value_as_str(
-          12, misc::string::escape(le_obj.output(),
-                                   get_centreon_storage_logs_col_size(
-                                       centreon_storage_logs_output)));
+          12, le_obj.output().substr(0, get_centreon_storage_logs_col_size(
+                                            centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
