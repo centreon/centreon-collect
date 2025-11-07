@@ -283,7 +283,7 @@ jobs:
                   -DONLY_ROBOT_CMA=OFF \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 4 -Cbuild
           ninja -Cbuild install
         shell: bash
 

@@ -829,6 +829,7 @@ jobs:
 
             const setTestConfigs = (configs) => {
               let hasGrpcConfig = false;
+              let hasMysqlConfig = false;
               const testConfigs = [];
 
               for (const config of configs) {
@@ -837,8 +838,9 @@ jobs:
                   testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
                   hasGrpcConfig = true;
                 }
-                if (['alma8', 'alma9'].includes(config.operating_system)) {
+                if (['alma8', 'alma9'].includes(config.operating_system) && hasMysqlConfig === false) {
                   testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
+                  hasMysqlConfig = true;
                 }
               }
 

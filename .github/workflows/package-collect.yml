@@ -75,8 +75,7 @@ on:
         required: true
 jobs:
   package:
-    # runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
-    runs-on: ubuntu-24.04
+    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -187,7 +186,7 @@ jobs:
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
-          ninja -Cbuild
+          ninja -j 4 -Cbuild
         shell: bash
 
       - name: Cache statistics
