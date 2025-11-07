@@ -75,7 +75,8 @@ on:
         required: true
 jobs:
   package:
-    runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    # runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
+    runs-on: ubuntu-24.04
 
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
