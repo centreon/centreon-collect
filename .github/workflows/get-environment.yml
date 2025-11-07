@@ -816,10 +816,7 @@ jobs:
               "databases": setArchConfigs([...matrix.databases]),
             };
 
-            if (
-              ['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}') ||
-              ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-            ) {
+            if (${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}) {
               collectMatrix = {
                 ...collectMatrix,
                 "operating_systems": setArchConfigs([...configs]),
