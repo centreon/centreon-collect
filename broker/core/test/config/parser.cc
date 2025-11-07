@@ -102,7 +102,7 @@ TEST(parser, endpoint) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -201,7 +201,7 @@ TEST(parser, global) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), std::exception);
+  ASSERT_THROW(p.parse(config_file, false), std::exception);
 }
 
 TEST(parser, log) {
@@ -242,7 +242,7 @@ TEST(parser, log) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -299,7 +299,7 @@ TEST(parser, logBadFilename) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), msg_fmt);
+  ASSERT_THROW(p.parse(config_file, false), msg_fmt);
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -350,7 +350,7 @@ TEST(parser, logDefaultDir) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -400,7 +400,7 @@ TEST(parser, logBadMaxSize) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), msg_fmt);
+  ASSERT_THROW(p.parse(config_file, false), msg_fmt);
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -447,7 +447,7 @@ TEST(parser, logBadLoggers) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), msg_fmt);
+  ASSERT_THROW(p.parse(config_file, false), msg_fmt);
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -494,7 +494,7 @@ TEST(parser, logBadLogger) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), msg_fmt);
+  ASSERT_THROW(p.parse(config_file, false), msg_fmt);
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -540,7 +540,7 @@ TEST(parser, logWithNullLoggers) {
 
   // Parse.
   config::parser p;
-  ASSERT_NO_THROW(p.parse(config_file));
+  ASSERT_NO_THROW(p.parse(config_file, false));
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -700,7 +700,7 @@ TEST(parser, unifiedSql) {
 
   // Parse.
   config::parser p;
-  auto retval = p.parse(config_file);
+  auto retval = p.parse(config_file, false);
   ASSERT_EQ(retval.get_bbdo_version().major_v, 3u);
   ASSERT_EQ(retval.get_bbdo_version().minor_v, 1u);
   ASSERT_EQ(retval.get_bbdo_version().patch, 2u);
@@ -879,7 +879,7 @@ TEST(parser, unifiedSqlVsStorageSql) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), std::exception);
+  ASSERT_THROW(p.parse(config_file, false), std::exception);
   // Remove temporary file.
   ::remove(config_file.c_str());
 }
@@ -926,7 +926,7 @@ TEST(parser, grpc_full) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -987,7 +987,7 @@ TEST(parser, grpc_in_error) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), std::exception);
+  ASSERT_THROW(p.parse(config_file, false), std::exception);
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -1072,7 +1072,7 @@ TEST(parser, flush_period) {
 
   // Parse.
   config::parser p;
-  ASSERT_THROW(p.parse(config_file), std::exception);
+  ASSERT_THROW(p.parse(config_file, false), std::exception);
   // Remove temporary file.
   ::remove(config_file.c_str());
 }
@@ -1158,7 +1158,7 @@ TEST(parser, boolean1) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());
@@ -1248,7 +1248,7 @@ TEST(parser, boolean2) {
 
   // Parse.
   config::parser p;
-  config::state s{p.parse(config_file)};
+  config::state s{p.parse(config_file, false)};
 
   // Remove temporary file.
   ::remove(config_file.c_str());

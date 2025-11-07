@@ -2639,7 +2639,7 @@ def ctn_schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
         f.write(cmd2)
 
 
-def ctn_schedule_host_downtime(poller: int, hst: str, duration: int):
+def ctn_schedule_host_downtime(poller: int, hst: str, duration: int, author: str = "admin", comment: str = "Downtime set by admin"):
     """
     Schedule a downtime on a host.
 
@@ -2649,10 +2649,9 @@ def ctn_schedule_host_downtime(poller: int, hst: str, duration: int):
         duration (int): Expected duration of the downtime in seconds.
     """
     now = int(time.time())
-    cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
-        hst, now, now + duration, duration)
-    cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
-        hst, now, now + duration, duration)
+    end = now + duration
+    cmd1 = f"[{now}] SCHEDULE_HOST_DOWNTIME;{hst};{now};{end};1;0;{duration};{author};{comment}\n"
+    cmd2 = f"[{now}] SCHEDULE_HOST_SVC_DOWNTIME;{hst};{now};{end};1;0;{duration};{author};{comment}\n"
     with open(
             f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
         f.write(cmd1)

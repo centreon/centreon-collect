@@ -120,6 +120,20 @@ ESSOCWNV
     Sleep    10s
     Ctn Stop Engine
 
+NO_BROKER_LOG
+    [Documentation]    Given a configuration without broker logs directory, engine must start correctly
+    [Tags]    engine    start-stop    MON-187627
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Remove Directory     ${BROKER_LOG}     recursive=${True}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Stop Engine
+
 *** Keywords ***
 Ctn Start Stop Instances
     [Arguments]    ${interval}
