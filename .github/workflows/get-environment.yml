@@ -838,7 +838,15 @@ jobs:
                   testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
                   hasGrpcConfig = true;
                 }
-                if (['alma8', 'alma9'].includes(config.operating_system) && hasMysqlConfig === false) {
+                if (
+                  ['alma8', 'alma9'].includes(config.operating_system) &&
+                  hasMysqlConfig === false &&
+                  config.arch === "amd64" &&
+                  (
+                    ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }} ||
+                    ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+                  )
+                ) {
                   testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
                   hasMysqlConfig = true;
                 }
