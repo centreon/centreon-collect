@@ -242,7 +242,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
   // Parse.
   config::parser p;
   config::state s;
-  ASSERT_NO_THROW(s = p.parse(config_file));
+  ASSERT_NO_THROW(s = p.parse(config_file, false));
 
   auto test = std::make_shared<fact>();
   io::protocols::instance().reg("CentreonInput", test, 1, 7);
