@@ -692,7 +692,7 @@ jobs:
             let previousStableBundleTag = '';
 
             await exec.exec(
-              `bash -c "git ls-remote --tags origin 'refs/tags/release-${process.env.IS_CLOUD === 'true' && 'cloud' || 'onprem'}-*' | grep -v '{}' | sort -rk2"`,
+              `bash -c "git ls-remote --tags origin 'refs/tags/release-${process.env.IS_CLOUD === 'true' && 'cloud' || 'onprem'}-*' | grep -v '{}' | sort -t'-' -k4r,4 -k3r,3"`,
               [],
               execOptions
             );
