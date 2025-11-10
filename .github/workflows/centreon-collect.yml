@@ -186,6 +186,7 @@ jobs:
         "selinux/centreon-engine/**"
         "!**/test/**"
         "!**/tests/**"
+        "!agent/test/**"
       unit_test_paths: |
         "**/test/**"
         "**/tests/**"
@@ -194,6 +195,7 @@ jobs:
       e2e_test_paths: |
         "resources/**"
         "tests/**"
+        "!tests/**/cma.robot"
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
       labels: ${{ needs.get-environment.outputs.labels }}
@@ -210,7 +212,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix).operating_systems }}
+        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -325,7 +327,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix).operating_systems }}
+        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
           # - image: packaging-centreon-collect-vcpkg-alma8
           #   distrib: el8
           #   package_extension: rpm
@@ -463,13 +465,7 @@ jobs:
   robot-test:
     needs: [get-environment, changes, package]
     if: |
-      (
-        needs.get-environment.outputs.is_nightly == 'true' ||
-        (
-          needs.changes.outputs.trigger_e2e_testing == 'true' &&
-          contains(needs.get-environment.outputs.labels, 'force-e2e-tests')
-        )
-      ) &&
+      needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -480,7 +476,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.collect_robot_matrix).operating_systems }}
+        include: ${{ fromJson(needs.get-environment.outputs.collect_robot_matrix) }}
           # - distrib: el8
           #   image: centreon-collect-mariadb-alma8-test
           #   package_extension: rpm

@@ -60,6 +60,12 @@ on:
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.collect_robot_matrix }}
+      cma_matrix:
+        description: "matrix to use for cma jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.cma_matrix }}
+      cma_robot_matrix:
+        description: "matrix to use for cma jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.cma_robot_matrix }}
       is_targeting_feature_branch:
         description: "if it is a PR, check if targeting a feature branch"
         value: ${{ jobs.get-environment.outputs.is_targeting_feature_branch }}
@@ -100,6 +106,8 @@ jobs:
       os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
       collect_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
       collect_robot_matrix: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
+      cma_matrix: ${{ steps.get_os_database_matrix.outputs.cma_matrix }}
+      cma_robot_matrix: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
@@ -712,18 +720,27 @@ jobs:
           script: |
             const alma9_mariadb_10_11 = {
               "operating_system": "alma9",
-              "database": "mariadb:10.11",
-              "test_tags": "not @ignore"
+              "database": "mariadb:10.11"
             };
             const alma8_mysql_8_0 = {
               "operating_system": "alma8",
-              "database": "mysql:8.0",
-              "test_tags": "not @ignore"
+              "database": "mysql:8.0"
+            };
+            const bullseye_mysql_8_4 = {
+              "operating_system": "bullseye",
+              "database": "mysql:8.4"
             };
             const bookworm_mysql_8_4 = {
               "operating_system": "bookworm",
-              "database": "mysql:8.4",
-              "test_tags": "not @ignore"
+              "database": "mysql:8.4"
+            };
+            const jammy_mysql_8_4 = {
+              "operating_system": "jammy",
+              "database": "mysql:8.4"
+            };
+            const noble_mysql_8_4 = {
+              "operating_system": "noble",
+              "database": "mysql:8.4"
             };
 
             const getDailyConfig = (configs) => {
@@ -757,6 +774,19 @@ jobs:
             };
 
             const configs = [alma9_mariadb_10_11, alma8_mysql_8_0, bookworm_mysql_8_4];
+            const collectConfigs = [
+              alma9_mariadb_10_11,
+              alma8_mysql_8_0,
+              bookworm_mysql_8_4
+            ];
+            const cmaConfigs = [
+              alma9_mariadb_10_11,
+              alma8_mysql_8_0,
+              bullseye_mysql_8_4,
+              bookworm_mysql_8_4,
+              jammy_mysql_8_4,
+              noble_mysql_8_4
+            ];
 
             const cloud = alma8_mysql_8_0;
 
@@ -783,15 +813,21 @@ jobs:
               };
             }
 
+            let collectMatrix = [...matrix.operating_systems];
+            let cmaMatrix = [...matrix.operating_systems];
+
             if (
               ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
               || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
             ) {
               matrix = {
                 ...matrix,
                 "operating_systems": configs,
                 "databases": configs,
               };
+              collectMatrix = collectConfigs;
+              cmaMatrix = cmaConfigs;
             }
 
             console.log('matrix', matrix);
@@ -801,7 +837,7 @@ jobs:
 
               for (const config of configs) {
                 archConfigs.push({...config, "arch": "amd64"});
-                if (config.operating_system === "bookworm") {
+                if (["bullseye", "bookworm", "jammy", "noble"].includes(config.operating_system)) {
                   archConfigs.push({...config, "arch": "arm64"});
                 }
               }
@@ -809,19 +845,12 @@ jobs:
               return archConfigs;
             };
 
-            let collectMatrix = {
-              "cloud": setArchConfigs([...matrix.cloud]),
-              "main": setArchConfigs([...matrix.main]),
-              "operating_systems": setArchConfigs([...matrix.operating_systems]),
-              "databases": setArchConfigs([...matrix.databases]),
-            };
+            collectMatrix = setArchConfigs(collectMatrix);
+            cmaMatrix = setArchConfigs(cmaMatrix);
 
             if (${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}) {
-              collectMatrix = {
-                ...collectMatrix,
-                "operating_systems": setArchConfigs([...configs]),
-                "databases": setArchConfigs([...configs]),
-              };
+              collectMatrix = setArchConfigs([...collectMatrix]);
+              cmaMatrix = setArchConfigs([...cmaMatrix]);
             }
 
             console.log('collectMatrix', collectMatrix);
@@ -843,7 +872,7 @@ jobs:
                   hasMysqlConfig === false &&
                   config.arch === "amd64" &&
                   (
-                    ['unstable', 'testing'].includes('${{ steps.get_stability.outputs.stability }}') ||
+                    ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}') ||
                     ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
                   )
                 ) {
@@ -855,15 +884,19 @@ jobs:
               return testConfigs;
             };
 
-            let collectRobotMatrix = {
-              "cloud": setTestConfigs([...collectMatrix.cloud]),
-              "main": setTestConfigs([...collectMatrix.main]),
-              "operating_systems": setTestConfigs([...collectMatrix.operating_systems]),
-              "databases": setTestConfigs([...collectMatrix.databases]),
-            };
-
+            let collectRobotMatrix = setTestConfigs([...collectMatrix]);
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
+
+            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]).filter(config => {
+              // CMA does not support robot tests on noble OS
+              if (config.operating_system === 'noble') {
+                return false;
+              }
+              return true;
+            });
+            console.log('cmaRobotMatrix', cmaRobotMatrix);
+            core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 
             return matrix;
 
