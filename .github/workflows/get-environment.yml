@@ -798,8 +798,7 @@ jobs:
             let matrix = {
               "cloud": [cloud],
               "main": [main],
-              "operating_systems": [main],
-              "databases": [main],
+              "operating_systems": [main]
             };
 
             if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
@@ -808,8 +807,7 @@ jobs:
               matrix = {
                 "cloud": [cloud],
                 "main": [dailyConfig],
-                "operating_systems": [dailyConfig],
-                "databases": [dailyConfig],
+                "operating_systems": [dailyConfig]
               };
             }
 
@@ -824,7 +822,6 @@ jobs:
               matrix = {
                 ...matrix,
                 "operating_systems": configs,
-                "databases": configs,
               };
               collectMatrix = collectConfigs;
               cmaMatrix = cmaConfigs;

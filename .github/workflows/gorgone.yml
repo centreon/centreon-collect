@@ -14,6 +14,7 @@ on:
         type: boolean
   pull_request:
     paths:
+      - ".github/workflows/gorgone.yml"
       - ".version"
       - ".version.centreon-gorgone"
       - "gorgone/**"
@@ -44,69 +45,44 @@ jobs:
       version_file: .version.centreon-gorgone
 
   changes:
-    needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
-    runs-on: ubuntu-24.04
-    outputs:
-      trigger_delivery: ${{ steps.filter.outputs.trigger_delivery || 'true' }}
-      trigger_unit_tests: ${{ steps.filter.outputs.trigger_unit_tests || 'true' }}
-      trigger_robot_tests: ${{ steps.filter.outputs.trigger_robot_tests || 'true' }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
-        id: filter
-        if: |
-          github.event_name == 'pull_request' &&
-          needs.get-environment.outputs.stability != 'testing'
-        with:
-          base: ${{ github.head_ref || github.ref_name }}
-          filters: |
-            trigger_unit_tests:
-              - 'gorgone/**'
-              - 'perl-libs/**'
-            trigger_robot_tests:
-              - 'gorgone/!(tests)/**'
-              - 'gorgone/tests/robot/**'
-              - 'perl-libs/**'
-            trigger_delivery:
-              - 'gorgone/!(tests)/**'
-              - 'perl-libs/!(lib)/**'
-              - 'perl-libs/lib/!(t)/**'
-              - 'perl-libs/*'
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    needs: [get-environment]
+    uses: ./.github/workflows/get-changes-triggers.yml
+    with:
+      production_paths: |
+        ".version"
+        ".version.centreon-gorgone"
+        "gorgone/**"
+        "perl-libs/**"
+        "!gorgone/tests/**"
+      unit_test_paths: |
+        "gorgone/tests/unit/**"
+      e2e_test_paths: |
+        "gorgone/tests/robot/**"
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
+      labels: ${{ needs.get-environment.outputs.labels }}
 
   unit-test-perl:
     needs: [get-environment, changes]
     if: |
+      (github.event.inputs.unit_tests == 'true' || needs.changes.outputs.trigger_unit_testing == 'true') &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      (github.event.inputs.unit_tests == 'true' || needs.changes.outputs.trigger_unit_tests == 'true')
+      needs.get-environment.outputs.stability != 'stable'
     strategy:
       fail-fast: false
       matrix:
-        image: [unit-tests-alma8, unit-tests-alma9, unit-tests-bookworm]
-        include:
-          - runner_name: ubuntu-24.04
-          - package_extension: rpm
-            image: unit-tests-alma8
-            distrib: el8
-          - package_extension: rpm
-            image: unit-tests-alma9
-            distrib: el9
-          - package_extension: deb
-            image: unit-tests-bookworm
-            distrib: bookworm
-    runs-on: ${{ matrix.runner_name }}
+        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+    runs-on: ubuntu-24.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/unit-tests-${{ matrix.operating_system }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit tests ${{ matrix.distrib }}
+    name: unit tests ${{ matrix.operating_system }}
 
     services:
       mariadb:
@@ -182,13 +158,14 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: centreon-collect-perl-unit-tests-${{ matrix.distrib }}
+          name: centreon-collect-perl-unit-tests-${{ matrix.operating_system }}
           path: ./lastlog.jsonl
           retention-days: 1
 
   package:
-    needs: [get-environment, unit-test-perl]
+    needs: [get-environment, changes, unit-test-perl]
     if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -198,16 +175,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma8
-            distrib: el8
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma9
-            distrib: el9
-          - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
+        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+        # include:
+        #   - package_extension: rpm
+        #     image: packaging-centreon-collect-alma8
+        #     distrib: el8
+        #   - package_extension: rpm
+        #     image: packaging-centreon-collect-alma9
+        #     distrib: el9
+        #   - package_extension: deb
+        #     image: packaging-centreon-collect-bookworm
+        #     distrib: bookworm
           # No ubuntu in 24.10, 24.11 or later for now
 
     runs-on: ubuntu-24.04
@@ -218,7 +196,7 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: package ${{ matrix.distrib }}
+    name: package ${{ matrix.operating_system }}
 
     steps:
       - name: Checkout sources
@@ -267,8 +245,9 @@ jobs:
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
   dockerize:
-    needs: [get-environment, package]
+    needs: [get-environment, changes, package]
     if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -401,7 +380,7 @@ jobs:
       github.repository == 'centreon/centreon-collect' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.changes.outputs.trigger_robot_tests == 'true' &&
+      needs.changes.outputs.trigger_e2e_testing == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
