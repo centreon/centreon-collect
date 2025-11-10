@@ -227,7 +227,7 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit test ${{ matrix.operating_system }}
+    name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources

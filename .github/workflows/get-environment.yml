@@ -845,10 +845,10 @@ jobs:
               return archConfigs;
             };
 
-            collectMatrix = setArchConfigs(collectMatrix);
-            cmaMatrix = setArchConfigs(cmaMatrix);
-
-            if (${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}) {
+            if (
+              ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
+            ) {
               collectMatrix = setArchConfigs([...collectMatrix]);
               cmaMatrix = setArchConfigs([...cmaMatrix]);
             }
