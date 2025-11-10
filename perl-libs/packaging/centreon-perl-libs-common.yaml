@@ -54,10 +54,11 @@ overrides:
       - libdigest-sha-perl
       - libgd-perl
       - libcrypt-urandom-perl
-    replaces:
-      - centreon-perl-libs (<< 25.10.0)
-    breaks:
-      - centreon-perl-libs (<< 25.10.0)
+deb:
+  replaces:
+    - centreon-perl-libs (<< 25.10.0)
+  breaks:
+    - centreon-perl-libs (<< 25.10.0)
 
 rpm:
   summary: Centreon Perl libraries Common
