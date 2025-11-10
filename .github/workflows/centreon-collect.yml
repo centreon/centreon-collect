@@ -388,9 +388,8 @@ jobs:
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.get-environment.outputs.is_nightly == 'true' ||
       (
-        contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) &&
+        needs.get-environment.outputs.is_nightly == 'true' ||
         contains(needs.get-environment.outputs.labels, 'build-docker-poller')
       )
     runs-on: ubuntu-24.04
