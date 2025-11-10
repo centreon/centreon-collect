@@ -79,6 +79,10 @@ overrides:
       - libdigest-hmac-perl
       - libdigest-sha-perl
       - libgd-perl
+    replaces:
+      - centreon-perl-libs-common (<< 25.10.0)
+    breaks:
+      - centreon-perl-libs-common (<< 25.10.0)
 
 rpm:
   summary: Centreon Perl libraries
