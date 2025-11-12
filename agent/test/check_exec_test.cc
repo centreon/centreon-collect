@@ -187,7 +187,7 @@ TEST(check_exec_test, recurse_not_lock) {
   cond.wait(l);
 }
 // test if the output with multiple lines is correctly displayed
-TEST_F(check_exec_test, echo_perfdata) {
+TEST(check_exec_test, echo_perfdata) {
   Service serv;
   serv.set_command_line(ECHO_MULTILINES);
 
@@ -198,7 +198,8 @@ TEST_F(check_exec_test, echo_perfdata) {
   std::condition_variable cond;
 
   std::shared_ptr<check_exec> check = check_exec::load(
-      g_io_context, spdlog::default_logger(), {}, serv, serv.command_line(),
+      g_io_context, spdlog::default_logger(), {}, {},
+      serv.service_description(), cmd_name, serv.command_line(),
       engine_to_agent_request_ptr(),
       [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
               caller,
@@ -213,7 +214,7 @@ TEST_F(check_exec_test, echo_perfdata) {
         }
         cond.notify_one();
       },
-      std::make_shared<checks_statistics>(), nullptr);
+      std::make_shared<checks_statistics>());
   check->start_check(std::chrono::seconds(1));
 
   std::unique_lock l(mut);
