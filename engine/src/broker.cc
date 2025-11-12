@@ -43,6 +43,7 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/severity.hh"
@@ -1145,6 +1146,12 @@ static void forward_pb_service(int type,
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
     srv.set_icon_id(es->get_icon_id());
+
+    nagios_macros* macros(get_global_macros());
+    std::ofstream file = std::ofstream("/tmp/command_line.txt");
+    file << es->get_check_command_line(macros);
+    file.close();
+    srv.set_command_line(es->get_check_command_line(macros));
 
     for (auto& tg : es->tags()) {
       com::centreon::broker::TagInfo* ti = srv.mutable_tags()->Add();

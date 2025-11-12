@@ -885,6 +885,38 @@ def ctn_check_service_status_with_timeout_rt(hostname: str, service_desc: str, s
     return False, ""
 
 
+def ctn_check_commandline_service_with_timeout_rt(hostname: str, service_desc: str, timeout: int, cmd: str):
+    """
+    ctn_service_with_timeout_rt
+
+
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.description,s.command_line FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['command_line']:
+                    logger.console(
+                        f"service : {service_desc} with the command {result[0]['command_line']}")
+                    if result[0]['command_line'] == cmd:
+                        return True
+
+        time.sleep(1)
+    return False
+
+
 def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:

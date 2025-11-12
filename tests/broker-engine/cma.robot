@@ -3099,7 +3099,70 @@ BEOTEL_CENTREON_AGENT_INSECURE
     ${content}    Create List    Token is valid
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
-    
+
+BEOTEL_CENTREON_AGENT_CMD_DATABASE
+    [Documentation]    Given an Engine configured 
+...    And service_1 is configured as passive and set to use the check command "otel_check"
+...    And the "otel_check" command payload is (corresponding to check id 456)
+...    When the Engine, Broker and Agent are started and the OTEL server is ready
+...    Then the command line stored in the database for host_1/service_1 must exactly match
+    [Tags]    broker    engine    opentelemetry    MON-183988
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    60
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
+
+    ${check_cmd}  Ctn Check Pl Command   --id 456
+
+    Ctn Engine Config Add Command    ${0}    otel_check   ${check_cmd}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    #service_1 check fail CRITICAL
+    Ctn Set Command Status    456    ${0}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Db    resources
+    Ctn Clear Retention
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
+
+    Ctn Start Engine
+    Ctn Start Broker
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    # check in the db that the command line is stored correctly
+    ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    120   ${check_cmd}
+    Should Be True    ${result}    command line not found in db
+
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

@@ -4014,3 +4014,15 @@ std::string service::get_check_command_line(nagios_macros* macros) {
                          check_command().c_str(), tmp, 0);
   return get_check_command_ptr()->process_cmd(macros);
 }
+
+/**
+ * Const overload of get_check_command_line. The underlying operations
+ * do not logically modify the service object; they only populate the
+ * passed macro structure and read service data. We still need a
+ * non-const pointer for existing helper functions, so we cast
+ * away const locally (limited scope) rather than forcing callers to do it.
+ */
+std::string service::get_check_command_line(nagios_macros* macros) const {
+  auto self = const_cast<service*>(this);
+  return self->get_check_command_line(macros);
+}
