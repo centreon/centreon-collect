@@ -441,6 +441,7 @@ Ctn Clear Metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
     Disconnect From Database
+    Remove Files     ${VarRoot}/lib/centreon/metrics/*
 
 Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}

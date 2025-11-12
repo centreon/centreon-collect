@@ -4314,16 +4314,13 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         .index_id = index_id,
         .host_name = ss.host_name(),
         .service_description = ss.description(),
-        .rrd_retention = _rrd_len,
         .interval = ss.check_interval(),
         .special = special,
         .locked = false,
     };
-    SPDLOG_LOGGER_DEBUG(
-        _logger_sql,
-        "sql: loaded index {} of ({}, {}) with rrd_len={} and interval={}",
-        index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
-        info.interval);
+    SPDLOG_LOGGER_DEBUG(_logger_sql,
+                        "sql: loaded index {} of ({}, {}) with interval={}",
+                        index_id, ss.host_id(), ss.service_id(), info.interval);
     _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
 
     if (cache_ptr) {
