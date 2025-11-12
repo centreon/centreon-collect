@@ -459,7 +459,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             makedirs(f"{VAR_ROOT}/lib/centreon/status/")
         if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:300:51841")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
@@ -2469,34 +2469,6 @@ def ctn_compare_rrd_status_average_value(index_id, value: int):
         logger.console(
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/statuss/{index_id}.rrd from the last 30 days")
         return True
-
-
-def ctn_compare_rrd_average_value_with_grpc(metric, key, value: float):
-    """
-    Compare the average value for an RRD metric with a given value.
-
-    Args:
-        metric: The metric id
-        key: The key to search in the rrd info
-        value: The value to compare with.
-
-    Returns:
-        True if value pointed by key is equal to value param.
-    """
-    res = getoutput(
-        f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
-    )
-    lst = res.split('\n')
-    if len(lst) >= 2:
-        for line in lst:
-            if key in line:
-                last_update = int(line.split('=')[1])
-                logger.console(f"{key}: {last_update}")
-                return last_update == value * 60
-    else:
-        logger.console(
-            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
-        return False
 
 
 def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
