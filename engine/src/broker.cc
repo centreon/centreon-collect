@@ -480,7 +480,8 @@ static void forward_host(int type,
 static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
-                            const engine::host* eh) {
+                            const engine::host* eh,
+                            const std::string& cmd_line) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host event protobuf");
@@ -655,6 +656,10 @@ static void forward_pb_host(int type,
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
     host.set_icon_id(eh->get_icon_id());
+
+    if (!cmd_line.empty())
+      host.set_command_line(cmd_line);
+
     for (auto& tg : eh->tags()) {
       com::centreon::broker::TagInfo* ti = host.mutable_tags()->Add();
       ti->set_id(tg->id());
@@ -700,7 +705,7 @@ void broker_adaptive_host_data(int type,
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_host(type, flags, modattr, hst);
+    forward_pb_host(type, flags, modattr, hst, "");
   else
     forward_host(type, flags, modattr, hst);
 }
@@ -933,7 +938,8 @@ static void fill_service_type(SrvStatus& ss,
 static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
-                               const engine::service* es) {
+                               const engine::service* es,
+                               const std::string& cmd_line) {
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -1147,11 +1153,8 @@ static void forward_pb_service(int type,
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
     srv.set_icon_id(es->get_icon_id());
 
-    nagios_macros* macros(get_global_macros());
-    std::ofstream file = std::ofstream("/tmp/command_line.txt");
-    file << es->get_check_command_line(macros);
-    file.close();
-    srv.set_command_line(es->get_check_command_line(macros));
+    if (!cmd_line.empty())
+      srv.set_command_line(cmd_line);
 
     for (auto& tg : es->tags()) {
       com::centreon::broker::TagInfo* ti = srv.mutable_tags()->Add();
@@ -1204,7 +1207,7 @@ void broker_adaptive_service_data(int type,
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_service(type, flags, modattr, svc);
+    forward_pb_service(type, flags, modattr, svc, "");
   else
     forward_service(type, flags, modattr, svc);
 }
@@ -3784,8 +3787,13 @@ static void send_host_list() {
        end{com::centreon::engine::host::hosts.end()};
        it != end; ++it) {
     // Callback.
-    if constexpr (proto)
-      forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
+    if constexpr (proto) {
+      nagios_macros* macros(get_global_macros());
+      std::string cmdline = it->second->get_check_command_line(macros);
+      forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get(),
+                      cmdline);
+    }
+
     else
       forward_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
   }
@@ -3805,8 +3813,13 @@ static void send_service_list() {
        end{com::centreon::engine::service::services.end()};
        it != end; ++it) {
     // Callback.
-    if constexpr (proto)
-      forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
+    if constexpr (proto) {
+      nagios_macros* macros(get_global_macros());
+      std::string cmdline = it->second->get_check_command_line(macros);
+      forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get(),
+                         cmdline);
+    }
+
     else
       forward_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
   }

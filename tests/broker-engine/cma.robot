@@ -3117,10 +3117,18 @@ BEOTEL_CENTREON_AGENT_CMD_DATABASE
     ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
     Ctn Set Services Passive       0    service_1
-    Ctn Engine Config Set Value    0    interval_length    60
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
     Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
     Ctn Engine Config Replace Value In Services    ${0}    service_1    max_check_attempts    4
+
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
 
     ${check_cmd}  Ctn Check Pl Command   --id 456
 
@@ -3161,6 +3169,9 @@ BEOTEL_CENTREON_AGENT_CMD_DATABASE
 
     # check in the db that the command line is stored correctly
     ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    120   ${check_cmd}
+    Should Be True    ${result}    command line not found in db
+
+    ${result}    Ctn Check Commandline Host With Timeout Rt    host_1    120   ${echo_command}
     Should Be True    ${result}    command line not found in db
 
 *** Keywords ***
