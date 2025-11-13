@@ -111,7 +111,6 @@ apt-get install -y  --no-install-recommends\
 apt-get install -y /tmp/packages-centreon/centreon-gorgone*.deb /tmp/packages-centreon/centreon-perl*.deb
 apt-get clean
 rm -rf /var/lib/apt/lists/* \
-       /tmp/* \
        /var/tmp/* \
        /usr/share/doc/* \
        /usr/share/man/* \
