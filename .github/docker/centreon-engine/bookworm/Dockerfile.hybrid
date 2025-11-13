@@ -117,16 +117,10 @@ COPY --from=extractor --chmod=755 /extracted/usr/lib*/libcentreon_clib.so /usr/l
 # Broker module (cbmod.so)
 COPY --from=extractor --chmod=755 /extracted/usr/lib*/cbmod.so /usr/lib/cbmod.so
 
-# Engine modules directory
-RUN mkdir -p /usr/lib64/centreon-engine /usr/lib/centreon-engine
-
-# Engine modules (external commands and opentelemetry)
-COPY --from=extractor --chmod=755 /extracted/usr/lib64/centreon-engine/*.so /usr/lib64/centreon-engine/ 2>/dev/null || \
-     echo "No modules in /usr/lib64/centreon-engine/"
-
-# For Debian, modules might be in /usr/lib/centreon-engine
-COPY --from=extractor --chmod=755 /extracted/usr/lib/centreon-engine/*.so /usr/lib/centreon-engine/ 2>/dev/null || \
-     echo "No modules in /usr/lib/centreon-engine/"
+# Engine modules directory and copy modules
+# For Debian: modules are in /usr/lib64/centreon-engine/
+RUN mkdir -p /usr/lib64/centreon-engine
+COPY --from=extractor --chmod=755 /extracted/usr/lib64/centreon-engine/*.so /usr/lib64/centreon-engine/
 
 # Configuration files
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
@@ -134,8 +128,7 @@ COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
 
 # Broker module configuration
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
-     /extracted/etc/centreon-broker/central-module.json /etc/centreon-broker/central-module.json 2>/dev/null || \
-     echo "Warning: central-module.json not found in package"
+     /extracted/etc/centreon-broker/central-module.json /etc/centreon-broker/central-module.json
 
 # Create engine-context.json (same as original Dockerfile line 105)
 RUN echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.json && \
@@ -152,7 +145,7 @@ RUN echo "=== Verification ===" && \
     ls -lah /usr/sbin/centengine /usr/sbin/centenginestats && \
     ls -lah /usr/lib/libcentreon_clib.so && \
     ls -lah /usr/lib/cbmod.so && \
-    ls -lah /usr/lib64/centreon-engine/*.so /usr/lib/centreon-engine/*.so 2>/dev/null || echo "Engine modules checked" && \
+    ls -lah /usr/lib64/centreon-engine/*.so && \
     ls -lah /etc/centreon-engine/*.cfg && \
     echo "=== Files verified ===" && \
     echo "Note: Binary version check skipped during build (will work at runtime)"
