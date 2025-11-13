@@ -112,7 +112,7 @@ jobs:
           DOCKER_BUILD_SUMMARY: false
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
-          file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile
+          file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile.hybrid
           context: .
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
