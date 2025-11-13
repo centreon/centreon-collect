@@ -122,6 +122,16 @@ RUN echo "=== Verification ===" && \
     echo "=== Files verified ===" && \
     echo "Note: Binary version check skipped during build (will work at runtime)"
 
+# Pre-install Python API dependencies at build time (10-15s startup improvement)
+RUN python3 -m venv /opt/centreon/venv && \
+    /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/centreon/venv/bin/pip install --no-cache-dir \
+        fastapi==0.115.0 \
+        uvicorn==0.32.0 && \
+    chown -R centreon-broker:centreon-broker /opt/centreon/venv
+
+ENV PATH="/opt/centreon/venv/bin:$PATH"
+
 # Expose ports (same as current Dockerfile)
 # gRPC central-module
 EXPOSE 51003

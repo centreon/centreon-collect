@@ -105,7 +105,8 @@ RUN mkdir -p /etc/centreon-engine \
               /var/lib/centreon-engine/rw && \
     chmod 755 /var/log/centreon-engine \
               /var/log/centreon-engine/archives \
-              /usr/share/centreon/lib/centreon-broker
+              /usr/share/centreon/lib/centreon-broker && \
+    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list
 
 # Copy ONLY runtime files from extractor
 
@@ -154,6 +155,16 @@ RUN echo "=== Verification ===" && \
     ls -lah /etc/centreon-engine/*.cfg && \
     echo "=== Files verified ===" && \
     echo "Note: Binary version check skipped during build (will work at runtime)"
+
+# Pre-install Python API dependencies at build time (60-90s startup improvement)
+RUN python3 -m venv /opt/centreon/venv && \
+    /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/centreon/venv/bin/pip install --no-cache-dir \
+        fastapi==0.115.0 \
+        uvicorn==0.32.0 && \
+    chown -R centreon-engine:centreon-engine /opt/centreon/venv
+
+ENV PATH="/opt/centreon/venv/bin:$PATH"
 
 # Expose ports (same as current Dockerfile)
 # gRPC central-module
