@@ -106,7 +106,8 @@ RUN mkdir -p /etc/centreon-engine \
     chmod 755 /var/log/centreon-engine \
               /var/log/centreon-engine/archives \
               /usr/share/centreon/lib/centreon-broker && \
-    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list
+    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list && \
+    wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
 
 # Copy ONLY runtime files from extractor
 
