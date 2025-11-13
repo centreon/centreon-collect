@@ -99,20 +99,21 @@ RUN apk add --no-cache \
     rrdtool \
     curl \
     libcurl \
+    openssl \
+    libssh2 \
+    libssh \
+    zeromq \
+    libffi \
     mariadb-connector-c \
     sqlite-libs \
+    gnutls \
     sudo \
     iputils \
     shadow \
     bash \
     wget \
     ca-certificates \
-    zeromq \
-    libffi \
-    libssh \
-    openssl \
-    libssh2 \
-    gnutls && \
+    su-exec && \
     rm -rf /var/cache/apk/*
 
 # Create directory structure
@@ -165,6 +166,13 @@ RUN ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
 
 # Update Perl library paths for Alpine vendor_perl + compiled modules
 ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl:/usr/share/perl5/vendor_perl
+ENV USE_ETCD=false \
+    ETCD_HOST=etcd \
+    ETCD_PORT=2379 \
+    CONFIG_DIR=/etc/centreon/config.d \
+    MAX_RETRIES=10 \
+    RETRY_DELAY=2 \
+    CONFIG_WAIT_TIMEOUT=300
 
 # Verify critical files exist and Perl syntax
 RUN echo "=== Verification ===" && \
@@ -176,9 +184,7 @@ RUN echo "=== Verification ===" && \
     echo "=== Files verified ==="
 
 # Set the working directory
-WORKDIR /var/lib/centreon-gorgone
-
-USER centreon-gorgone
+WORKDIR /etc/centreon-gorgone/
 
 ENTRYPOINT ["/var/lib/centreon-gorgone/container.sh"]
 

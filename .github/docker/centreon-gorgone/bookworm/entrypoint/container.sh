@@ -11,7 +11,7 @@ set -e
 # Run each startup script located in BASEDIR.
 # ls is required to ensure that the scripts are properly sorted by name.
 BASEDIR="/var/lib/centreon-gorgone/container.d"
-for file in $(find "$BASEDIR" -maxdepth 1 -type f -printf '%f\n' | sort); do
+for file in $(find "$BASEDIR" -maxdepth 1 -type f | xargs -n1 basename | sort); do
   case "$file" in
     *_background*)
       # Execute background script and store PID
@@ -42,3 +42,9 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
+
+# Switch to centreon-gorgone user before running final command
+# Entrypoint runs as root to handle directory/permission setup
+# But gorgoned should run as centreon-gorgone user
+echo "Switching to centreon-gorgone user..."
+exec su-exec centreon-gorgone "$@"

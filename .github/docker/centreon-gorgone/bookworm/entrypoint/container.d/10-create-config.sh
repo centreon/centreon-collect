@@ -1,13 +1,37 @@
 #!/bin/sh
 set -e
-TYPE="${TYPE:-central}" 
+TYPE="${TYPE:-central}"
 
 if [ "$TYPE" = "central" ]; then
-    echo "Configuring for Central"
-    while [ ! -f /etc/centreon/config.d/10-database.yaml ]; do
-      echo "Waiting for /etc/centreon/config.d/10-database.yaml to be present..."
-      sleep 2
-    done
+    echo "=== Generating Gorgone Configuration for Central ==="
+    echo ""
+
+    # Sanity check: Database config should be available (handled by 05-fetch-etcd-config.sh)
+    if [ ! -f /etc/centreon/config.d/10-database.yaml ]; then
+      echo "ERROR: Database config not found at /etc/centreon/config.d/10-database.yaml"
+      echo "This should have been handled by 05-fetch-etcd-config.sh"
+      exit 1
+    fi
+
+    if [ ! -r /etc/centreon/config.d/10-database.yaml ]; then
+      echo "ERROR: Database config file exists but is not readable!"
+      ls -l /etc/centreon/config.d/10-database.yaml
+      echo "Current user: $(whoami)"
+      exit 1
+    fi
+
+    echo "✓ Database config available and readable"
+    echo ""
+
+    # Show database config permissions for debugging
+    if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+      echo "Debug: Database config file permissions:"
+      ls -l /etc/centreon/config.d/10-database.yaml
+      echo ""
+    fi
+
+    # Generate Gorgone configuration
+    # Note: Gorgone is built to automatically read /etc/centreon/config.d/10-database.yaml
     cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 name: gorgoned-Central
 description: Configuration for remote server Central
@@ -16,6 +40,7 @@ gorgone:
     privkey: "/var/lib/centreon-gorgone/.keys/rsakey.priv.pem"
     pubkey: "/var/lib/centreon-gorgone/.keys/rsakey.pub.pem"
     id: 1
+
   modules:
     - name: httpserver
       package: "gorgone::modules::core::httpserver::hooks"
@@ -28,7 +53,7 @@ gorgone:
       allowed_hosts:
         enabled: true
         subnets:
-          - 10.0.0.0/8
+          - 0.0.0.0/0
     - name: cron
       package: "gorgone::modules::core::cron::hooks"
       enable: true
@@ -68,8 +93,29 @@ gorgone:
             timeout: 10
 
 EOF
-    ls -lrh /var/lib/ | grep centreon
+
+    # Verify the gorgoned config was created successfully
+    if [ ! -f /etc/centreon-gorgone/config.d/40-gorgoned.yaml ]; then
+      echo "ERROR: Failed to create /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+      exit 1
+    fi
+
+    echo "✓ Successfully created /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+    echo ""
+
+    # Show centreon-gorgone directory structure for debugging
+    if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+      echo "Debug: Gorgone config files:"
+      ls -l /etc/centreon-gorgone/config.d/
+      echo ""
+    fi
 
 elif [ "$TYPE" = "poller" ]; then
+    echo "=== Generating Gorgone Configuration for Poller ==="
+    echo ""
     echo "Configuring for poller"
+    # TODO: Add poller configuration here
 fi
+
+echo "✓ Gorgone configuration generation complete"
+echo ""
