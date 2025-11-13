@@ -1,0 +1,185 @@
+#############################################
+# Stage 1: Extract files from .deb packages
+#############################################
+FROM debian:12-slim AS extractor
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dpkg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extract .deb packages (mounted via --mount during build)
+RUN --mount=type=bind,source=packages-centreon,target=/packages \
+    mkdir -p /extracted && \
+    cd /packages && \
+    for deb in centreon-gorgone*.deb centreon-perl*.deb; do \
+        echo "Extracting $deb..."; \
+        dpkg-deb -x "$deb" /extracted/; \
+    done && \
+    echo "=== Extracted binaries ===" && \
+    ls -lah /extracted/usr/bin/ || true && \
+    echo "=== Extracted Perl modules ===" && \
+    ls -lah /extracted/usr/share/perl5/ || true && \
+    echo "=== Extracted configs ===" && \
+    ls -lah /extracted/etc/centreon-gorgone/ || true
+
+#############################################
+# Stage 2: Alpine Builder - Compile missing Perl modules
+#############################################
+FROM alpine:3.22 AS builder-alpine
+
+# Install build dependencies for Perl XS modules
+RUN apk add --no-cache \
+    build-base \
+    perl \
+    perl-dev \
+    perl-app-cpanminus \
+    zeromq-dev \
+    libffi-dev \
+    libssh-dev \
+    curl-dev
+
+# Install Perl XS modules NOT available in Alpine packages
+RUN cpanm --notest \
+    ExtUtils::PkgConfig \
+    FFI::Platypus \
+    ZMQ::FFI \
+    Digest::MD5::File \
+    Schedule::Cron \
+    Net::Curl \
+    Libssh::Session \
+    Crypt::OpenSSL::AES \
+    Net::SSH::Any
+
+#############################################
+# Stage 3: Runtime - Minimal Alpine image
+#############################################
+FROM alpine:3.22 AS gorgone
+
+ENV TYPE=
+
+ARG VERSION
+ARG IS_CLOUD
+ARG STABILITY
+
+# Create users and groups (Alpine style)
+# Change www-data GID from 82 to 33 to match Debian (for compatibility)
+RUN delgroup www-data && \
+    addgroup -g 33 www-data && \
+    adduser -u 33 -G www-data -s /sbin/nologin -D -H www-data && \
+    addgroup -g 900 centreon && \
+    adduser -u 900 -G centreon -h /var/spool/centreon -s /bin/bash -D -g "Centreon" centreon && \
+    addgroup -g 901 centreon-engine && \
+    adduser -u 901 -G centreon-engine -h /var/lib/centreon-engine -s /bin/bash -D -g "Centreon Engine" centreon-engine && \
+    addgroup -g 902 centreon-broker && \
+    adduser -u 902 -G centreon-broker -h /var/lib/centreon-broker -s /bin/bash -D -g "Centreon Broker" centreon-broker && \
+    addgroup -g 903 centreon-gorgone && \
+    adduser -u 903 -G centreon-gorgone -h /var/lib/centreon-gorgone -s /bin/bash -D -g "Centreon Gorgone" centreon-gorgone && \
+    addgroup centreon-gorgone centreon && \
+    addgroup centreon-gorgone www-data && \
+    addgroup centreon-gorgone centreon-engine
+
+# Install runtime dependencies from Alpine packages
+RUN apk add --no-cache \
+    perl \
+    perl-dbi \
+    perl-dbd-mysql \
+    perl-dbd-sqlite \
+    perl-json-xs \
+    perl-yaml-xs \
+    perl-xml-simple \
+    perl-http-daemon \
+    perl-digest-md5 \
+    perl-crypt-urandom \
+    perl-rrd \
+    perl-class-dbi \
+    perl-ev \
+    perl-net-ssleay \
+    perl-cryptx \
+    perl-hash-merge \
+    rrdtool \
+    curl \
+    libcurl \
+    mariadb-connector-c \
+    sqlite-libs \
+    sudo \
+    iputils \
+    shadow \
+    bash \
+    wget \
+    ca-certificates \
+    zeromq \
+    libffi \
+    libssh \
+    openssl \
+    libssh2 \
+    gnutls && \
+    rm -rf /var/cache/apk/*
+
+# Create directory structure
+RUN mkdir -p /etc/centreon/config.d/ \
+             /etc/centreon-gorgone/config.d \
+             /var/cache/centreon/ \
+             /var/lib/centreon/centcore/ \
+             /var/lib/centreon-gorgone \
+             /var/log/centreon-gorgone \
+             /var/lib/centreon-engine/rw && \
+    chown -R centreon-gorgone:centreon /etc/centreon/ && \
+    chmod -R 775 /etc/centreon/ && \
+    chown centreon:centreon /var/cache/centreon && \
+    chmod 775 /var/cache/centreon && \
+    touch /var/lib/centreon/centcore.cmd && \
+    chown -R centreon-gorgone:centreon /var/lib/centreon/ && \
+    chmod -R 775 /var/lib/centreon/ && \
+    chown -R centreon-engine:centreon-engine /var/lib/centreon-engine && \
+    chmod 775 /var/lib/centreon-engine/rw && \
+    chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone \
+                                                /var/log/centreon-gorgone && \
+    chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone
+
+# Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
+
+# Gorgone binaries
+COPY --from=extractor --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+
+# Perl modules (centreon-gorgone and centreon-perl) - use Alpine's vendor_perl path
+COPY --from=extractor /extracted/usr/share/perl5/gorgone /usr/share/perl5/vendor_perl/gorgone
+COPY --from=extractor /extracted/usr/share/perl5/centreon /usr/share/perl5/vendor_perl/centreon
+
+# Copy compiled Perl XS modules from Alpine builder (musl libc compatible)
+COPY --from=builder-alpine /usr/local/lib/perl5 /usr/local/lib/perl5
+COPY --from=builder-alpine /usr/local/share/perl5 /usr/local/share/perl5
+
+# Configuration files
+COPY --from=extractor --chown=centreon-gorgone:centreon-gorgone --chmod=664 \
+     /extracted/etc/centreon-gorgone/ /etc/centreon-gorgone/
+
+# Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/local/bin/systemctl
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /var/lib/centreon-gorgone/
+COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
+
+# Create systemctl symlink
+RUN ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
+    rm -f /bin/systemctl
+
+# Update Perl library paths for Alpine vendor_perl + compiled modules
+ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl:/usr/share/perl5/vendor_perl
+
+# Verify critical files exist and Perl syntax
+RUN echo "=== Verification ===" && \
+    ls -lah /usr/bin/gorgoned && \
+    ls -lah /usr/share/perl5/vendor_perl/gorgone/ && \
+    ls -lah /usr/share/perl5/vendor_perl/centreon/ && \
+    ls -lah /etc/centreon-gorgone/ && \
+    perl -c /usr/bin/gorgoned && \
+    echo "=== Files verified ==="
+
+# Set the working directory
+WORKDIR /var/lib/centreon-gorgone
+
+USER centreon-gorgone
+
+ENTRYPOINT ["/var/lib/centreon-gorgone/container.sh"]
+
+CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug"]

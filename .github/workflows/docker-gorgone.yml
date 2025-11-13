@@ -131,7 +131,7 @@ jobs:
           DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
-          file: .github/docker/centreon-gorgone/${{ matrix.operating_system }}/Dockerfile
+          file: .github/docker/centreon-gorgone/${{ matrix.operating_system }}/Dockerfile.hybrid
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
