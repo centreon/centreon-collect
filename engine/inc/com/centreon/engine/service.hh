@@ -262,7 +262,6 @@ class service : public notifier {
   static service_id_map services_by_id;
 
   std::string get_check_command_line(nagios_macros* macros);
-  std::string get_check_command_line(nagios_macros* macros) const;
   bool is_cma_service() const { return _is_cma_service; }
   void set_is_cma_service(bool is_cma) { _is_cma_service = is_cma; }
 
