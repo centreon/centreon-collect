@@ -92,7 +92,8 @@ RUN mkdir -p /etc/centreon-engine \
              /var/lib/centreon-engine/rw \
              /var/log/centreon-engine \
              /var/log/centreon-engine/archives \
-             /var/lib/centreon/centplugins && \
+             /var/lib/centreon/centplugins \
+             /usr/share/centreon/lib/centreon-broker && \
     chown -R centreon-engine:centreon-engine \
              /etc/centreon-engine \
              /var/lib/centreon-engine \
@@ -103,7 +104,8 @@ RUN mkdir -p /etc/centreon-engine \
               /var/lib/centreon-engine \
               /var/lib/centreon-engine/rw && \
     chmod 755 /var/log/centreon-engine \
-              /var/log/centreon-engine/archives
+              /var/log/centreon-engine/archives \
+              /usr/share/centreon/lib/centreon-broker
 
 # Copy ONLY runtime files from extractor
 
@@ -114,8 +116,11 @@ COPY --from=extractor --chmod=755 /extracted/usr/sbin/centenginestats /usr/sbin/
 # Core library
 COPY --from=extractor --chmod=755 /extracted/usr/lib*/libcentreon_clib.so /usr/lib/libcentreon_clib.so
 
-# Broker module (cbmod.so)
+# Broker module (cbmod.so) - engine loads this
 COPY --from=extractor --chmod=755 /extracted/usr/lib*/cbmod.so /usr/lib/cbmod.so
+
+# Broker modules (cbmod.so needs these!)
+COPY --from=extractor --chmod=755 /extracted/usr/share/centreon/lib/centreon-broker/*.so /usr/share/centreon/lib/centreon-broker/
 
 # Engine modules directory and copy modules
 # For Debian: modules are in /usr/lib64/centreon-engine/
