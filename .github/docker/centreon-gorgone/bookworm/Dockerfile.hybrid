@@ -127,6 +127,8 @@ RUN mkdir -p /etc/centreon/config.d/ \
              /var/lib/centreon-engine/rw && \
     chown -R centreon-gorgone:centreon /etc/centreon/ && \
     chmod -R 775 /etc/centreon/ && \
+    chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
+    chmod 775 /etc/centreon-gorgone/config.d && \
     chown centreon:centreon /var/cache/centreon && \
     chmod 775 /var/cache/centreon && \
     touch /var/lib/centreon/centcore.cmd && \
