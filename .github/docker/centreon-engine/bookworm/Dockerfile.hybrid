@@ -102,7 +102,10 @@ RUN mkdir -p /etc/centreon-engine \
              /var/lib/centreon-engine \
              /var/log/centreon-engine \
              /var/lib/centreon/centplugins && \
+    chown -R centreon-broker:centreon-broker \
+              /etc/centreon-broker && \
     chmod 775 /etc/centreon-engine \
+              /etc/centreon-broker \
               /etc/centreon-engine/conf.d \
               /var/lib/centreon-engine \
               /var/lib/centreon-engine/rw && \
@@ -135,10 +138,6 @@ COPY --from=extractor --chmod=755 /extracted/usr/lib64/centreon-engine/*.so /usr
 # Configuration files
 COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
      /extracted/etc/centreon-engine/ /etc/centreon-engine/
-
-# Broker module configuration
-COPY --from=extractor --chown=centreon-engine:centreon-engine --chmod=664 \
-     /extracted/etc/centreon-broker/central-module.json /etc/centreon-broker/central-module.json
 
 # Copy entrypoint and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 --chown=centreon-engine:centreon-engine \

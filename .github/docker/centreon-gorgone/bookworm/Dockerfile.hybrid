@@ -76,7 +76,8 @@ RUN delgroup www-data && \
     adduser -u 903 -G centreon-gorgone -h /var/lib/centreon-gorgone -s /bin/bash -D -g "Centreon Gorgone" centreon-gorgone && \
     addgroup centreon-gorgone centreon && \
     addgroup centreon-gorgone www-data && \
-    addgroup centreon-gorgone centreon-engine
+    addgroup centreon-gorgone centreon-engine && \
+    addgroup centreon-gorgone centreon-broker
 
 # Install runtime dependencies from Alpine packages
 RUN apk add --no-cache \
@@ -135,8 +136,9 @@ RUN mkdir -p /etc/centreon/config.d/ \
     chmod -R 775 /var/lib/centreon/ && \
     chown -R centreon-engine:centreon-engine /var/lib/centreon-engine && \
     chmod 775 /var/lib/centreon-engine/rw && \
-    chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone \
-                                                /var/log/centreon-gorgone && \
+    chown -R centreon-gorgone:centreon-gorgone \
+              /var/lib/centreon-gorgone \
+              /var/log/centreon-gorgone && \
     chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone && \
     chmod 755 /var/lib/centreon-gorgone/.keys && \
     rm -f /bin/systemctl
