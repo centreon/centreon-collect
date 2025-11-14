@@ -81,7 +81,7 @@ jobs:
   robot-test-list:
     runs-on: ubuntu-24.04
     outputs:
-      test_group_name: robot_test-${{ inputs.distrib }}-${{ inputs.database_type }}-${{ inputs.arch }}-${{ contains(inputs.tests_params, 'grpc') && 'grpc' || '' }}
+      test_group_name: robot_test-${{ inputs.distrib }}-${{ inputs.database_type }}-${{ inputs.arch }}${{ contains(inputs.tests_params, 'grpc') && '-grpc' || '' }}
       features: ${{ steps.list-features.outputs.features }}
 
     steps:
@@ -95,7 +95,7 @@ jobs:
           #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
           FEATURES_PATTERN="${{ inputs.features_pattern }}"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
-             FEATURES_PATTERN="^((?!cma).)*$"
+            FEATURES_PATTERN="^((?!cma).)*$"
           fi
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 

@@ -299,7 +299,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          for  test in common broker engine clib connector; do
+          for test in common broker engine clib connector; do
             echo "::group::Running unit tests for $test"
             tests/ut_$test --gtest_output=xml:ut_$test.xml
             echo "::endgroup::"
@@ -421,7 +421,6 @@ jobs:
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-amd64-${{ github.head_ref || github.ref_name }}
-          fail-on-cache-miss: true
 
       - name: Prepare packages directory
         if: steps.restore-packages.outputs.cache-hit == 'true'
