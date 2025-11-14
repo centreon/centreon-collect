@@ -1408,6 +1408,43 @@ BAM_RELOAD_ON_CBD_RELOAD
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
 
+BAM_CIRCULAR
+    [Documentation]    Given a bad bam configuration with circular ba dependency.
+    ...     Circular Ba comment must be updated with an error message
+    [Tags]    broker    engine    bam    MON-24862
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    ${child1_ba}    Ctn Create Ba    child1    impact    20    99
+    Ctn Add Ba Kpi    ${child1_ba[0]}    ${ba__svc[0]}    90    2    3
+    
+    #parent ba is a child of child1
+    Ctn Add Ba Kpi    ${ba__svc[0]}    ${child1_ba[0]}    90    2    3
+
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker     only_central=${True}
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    error: Circular definition detected. BA test includes itself as a KPI.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Be True    ${result}    A message telling 'error: Circular definition detected. BA test includes itself as a KPI.' should be available after cbd start.
+
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    Check Query Result    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'    ==    ${1}    retry_timeout=20s    retry_pause=3s
+    Disconnect From Database
+
+    #we shoudl not have a second message
+    ${start}    Ctn Get Round Current Date
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    Should Not Be True    ${result}    We must have only one bam error message 
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
+
 *** Keywords ***
 Ctn BAM Setup
     Ctn Stop Processes
