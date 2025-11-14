@@ -113,6 +113,7 @@ RUN apk add --no-cache \
     shadow \
     bash \
     wget \
+    tzdata \
     ca-certificates \
     su-exec && \
     rm -rf /var/cache/apk/*
@@ -127,8 +128,6 @@ RUN mkdir -p /etc/centreon/config.d/ \
              /var/lib/centreon-engine/rw && \
     chown -R centreon-gorgone:centreon /etc/centreon/ && \
     chmod -R 775 /etc/centreon/ && \
-    chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
-    chmod 775 /etc/centreon-gorgone/config.d && \
     chown centreon:centreon /var/cache/centreon && \
     chmod 775 /var/cache/centreon && \
     touch /var/lib/centreon/centcore.cmd && \
@@ -139,7 +138,8 @@ RUN mkdir -p /etc/centreon/config.d/ \
     chown -R centreon-gorgone:centreon-gorgone /var/lib/centreon-gorgone \
                                                 /var/log/centreon-gorgone && \
     chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone && \
-    chmod 755 /var/lib/centreon-gorgone/.keys
+    chmod 755 /var/lib/centreon-gorgone/.keys && \
+    rm -f /bin/systemctl
 
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
 
@@ -155,18 +155,14 @@ COPY --from=builder-alpine /usr/local/lib/perl5 /usr/local/lib/perl5
 COPY --from=builder-alpine /usr/local/share/perl5 /usr/local/share/perl5
 
 # Configuration files
-COPY --from=extractor --chown=centreon-gorgone:centreon-gorgone --chmod=664 \
+COPY --from=extractor --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /extracted/etc/centreon-gorgone/ /etc/centreon-gorgone/
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
-COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/local/bin/systemctl
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /var/lib/centreon-gorgone/
 COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
-
-# Create systemctl symlink
-RUN ln -s /usr/local/bin/systemctl /usr/bin/systemctl && \
-    rm -f /bin/systemctl
 
 # Update Perl library paths for Alpine vendor_perl + compiled modules
 ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl:/usr/share/perl5/vendor_perl
