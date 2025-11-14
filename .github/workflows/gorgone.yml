@@ -440,6 +440,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9]
 
@@ -474,6 +475,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
 
@@ -505,6 +507,7 @@ jobs:
 
     runs-on: centreon-common
     strategy:
+      fail-fast: false
       matrix:
         distrib: [el8, el9, bookworm]
 
@@ -525,11 +528,11 @@ jobs:
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  # set-skip-label:
-  #   needs: [get-environment, deliver-rpm, deliver-deb, promote]
-  #   if: |
-  #     needs.get-environment.outputs.skip_workflow == 'false' &&
-  #     ! cancelled() &&
-  #     ! contains(needs.*.result, 'failure') &&
-  #     ! contains(needs.*.result, 'cancelled')
-  #   uses: ./.github/workflows/set-pull-request-skip-label.yml
+  set-skip-label:
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
