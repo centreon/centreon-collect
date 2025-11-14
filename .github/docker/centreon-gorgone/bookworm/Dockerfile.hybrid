@@ -96,6 +96,7 @@ RUN apk add --no-cache \
     perl-net-ssleay \
     perl-cryptx \
     perl-hash-merge \
+    perl-json \
     rrdtool \
     curl \
     libcurl \

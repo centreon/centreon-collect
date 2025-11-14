@@ -8,6 +8,7 @@
 set -e
 
 # Configuration
+TYPE="${TYPE:-central}"
 USE_ETCD="${USE_ETCD:-false}"
 ETCD_HOST="${ETCD_HOST:-etcd}"
 ETCD_PORT="${ETCD_PORT:-2379}"
@@ -18,9 +19,14 @@ CONFIG_WAIT_TIMEOUT="${CONFIG_WAIT_TIMEOUT:-300}"
 DATABASE_CONFIG="${CONFIG_DIR}/10-database.yaml"
 
 echo "=== Configuration Availability Check ==="
+echo "Type: ${TYPE}"
 echo "Config dir: ${CONFIG_DIR}"
-echo "Required config: ${DATABASE_CONFIG}"
-echo ""
+
+# Pollers don't need database configuration - skip to end
+if [ "$TYPE" != "poller" ]; then
+    echo "Required config: ${DATABASE_CONFIG}"
+    echo ""
+fi
 
 # Ensure config directory exists and is writable
 if [ ! -d "$CONFIG_DIR" ]; then
@@ -37,6 +43,11 @@ if [ ! -w "$CONFIG_DIR" ]; then
     echo "Current user: $(whoami) (UID=$(id -u))"
     ls -ld "$CONFIG_DIR"
 fi
+
+################################################################################
+# Database configuration is only needed for central mode
+################################################################################
+if [ "$TYPE" != "poller" ]; then
 
 ################################################################################
 # SCENARIO 1: etcd Integration
@@ -203,6 +214,12 @@ else
     fi
 fi
 
+fi  # End of TYPE != "poller" check
+
 echo ""
-echo "✓ Configuration check complete"
+if [ "$TYPE" = "poller" ]; then
+    echo "✓ Configuration check complete (poller mode - database config skipped)"
+else
+    echo "✓ Configuration check complete"
+fi
 echo ""
