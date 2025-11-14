@@ -50,7 +50,6 @@ else
       mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
     fi
     sleep 5
-
 fi
 
 
@@ -66,7 +65,12 @@ else
 fi
 
 ulimit -c unlimited
-ulimit -Sn "$(ulimit -Hn)"
+
+#start-stop.robot need a special file descriptor limit
+#we don't apply it to all tests because of host limit
+if [ $test_file == 'engine/start-stop.robot' ] ; then
+  ulimit -Sn "$(ulimit -Hn)"
+fi
 
 #only privileged container can write core files
 if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
