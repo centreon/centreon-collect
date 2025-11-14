@@ -287,7 +287,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.cma_matrix) }}
+        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -302,7 +302,7 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: unit test ${{ matrix.operating_system }}
+    name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -452,7 +452,7 @@ jobs:
         #     runner: centreon-collect-arm64
         #     arch: arm64
 
-    name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
+    name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
     uses: ./.github/workflows/package-collect.yml
 
