@@ -261,7 +261,7 @@ jobs:
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-monitoring-agent-${{ steps.parse-distrib.outputs.package_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-monitoring-agent-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
@@ -286,7 +286,7 @@ jobs:
           release: ${{ inputs.release }}
           arch: ${{ inputs.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.package_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.rpm_gpg_key }}
           rpm_gpg_signing_key_id: ${{ secrets.rpm_gpg_signing_key_id }}
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}

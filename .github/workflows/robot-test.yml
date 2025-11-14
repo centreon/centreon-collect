@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
-          key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.package_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
+          key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           fail-on-cache-miss: true
 
       - name: load image

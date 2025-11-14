@@ -65,8 +65,11 @@ else
   apt-get install -y ./*.deb
 fi
 
-
+ulimit -Hn
+ulimit -Sn
 ulimit -c unlimited
+ulimit -Hn
+ulimit -Sn
 ulimit -S -n 524288
 
 #only privileged container can write core files
