@@ -2195,7 +2195,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
-    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${None}    ${None}    full    ${False}
     Ctn Engine Config Set Value    0    log_level_checks    error
     Ctn Engine Config Set Value    0    log_level_functions    error
     Ctn Engine Config Set Value    0    log_level_config    error

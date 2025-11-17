@@ -20,12 +20,89 @@
 
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
+#include <string>
 
+#include "absl/container/flat_hash_set.h"
 #include "com/centreon/common/grpc/grpc_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/jwt.hh"
 
 namespace com::centreon::common::grpc {
+
+class ServerAuthInterceptor : public ::grpc::experimental::Interceptor {
+  ::grpc::ServerContextBase* _ctx;
+  const std::shared_ptr<absl::flat_hash_set<std::string>>& _tokens;
+  std::shared_ptr<spdlog::logger> _logger;
+
+ public:
+  ServerAuthInterceptor(
+      ::grpc::ServerContextBase* ctx,
+      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens,
+      std::shared_ptr<spdlog::logger> logger)
+      : _ctx(ctx), _tokens(trusted_tokens), _logger(std::move(logger)) {}
+
+  void Intercept(
+      ::grpc::experimental::InterceptorBatchMethods* methods) override {
+    using Hook = ::grpc::experimental::InterceptionHookPoints;
+
+    // First moment we get metadata from client
+    if (methods->QueryInterceptionHookPoint(Hook::PRE_RECV_INITIAL_METADATA)) {
+      auto& md = _ctx->client_metadata();
+
+      auto it = md.find("authorization");
+      if (it == md.end()) {
+        _reject(methods, "Missing authorization header");
+        return;
+      }
+
+      std::string_view auth(it->second.data(), it->second.size());
+      // std::string_view::starts_with is available since C++20; use compare for
+      // older standards
+      if (auth.size() < 7 || auth.compare(0, 7, "Bearer ") != 0) {
+        _reject(methods, "Invalid authorization header format");
+        return;
+      }
+
+      std::string token = std::string(auth.substr(7));
+      if (_tokens->find(token) == _tokens->end()) {
+        _reject(methods, "Invalid token");
+        return;
+      }
+    }
+
+    methods->Proceed();
+  }
+
+ private:
+  void _reject(::grpc::experimental::InterceptorBatchMethods* methods,
+               const std::string& msg) {
+    if (_logger)
+      SPDLOG_LOGGER_WARN(_logger, "auth rejected: {}", msg);
+
+    if (_ctx)
+      _ctx->TryCancel();  // abort RPC immediately
+  }
+};
+
+class ServerAuthInterceptorFactory
+    : public ::grpc::experimental::ServerInterceptorFactoryInterface {
+  std::shared_ptr<absl::flat_hash_set<std::string>> _tokens;
+  std::shared_ptr<spdlog::logger> _logger;
+
+ public:
+  ServerAuthInterceptorFactory(
+      std::shared_ptr<absl::flat_hash_set<std::string>> tokens,
+      std::shared_ptr<spdlog::logger> logger)
+      : _tokens(std::move(tokens)), _logger(std::move(logger)) {}
+
+  ::grpc::experimental::Interceptor* CreateServerInterceptor(
+      ::grpc::experimental::ServerRpcInfo* info) override {
+    ::grpc::ServerContextBase* ctx = info->server_context();
+
+    // dereference the shared_ptr to provide the expected const reference
+    return new ServerAuthInterceptor(ctx, _tokens, _logger);
+  }
+};
 
 /**
  * @brief base class to create a grpc server

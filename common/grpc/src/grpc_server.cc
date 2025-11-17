@@ -68,6 +68,15 @@ void grpc_server_base::_init(const builder_option& options,
     SPDLOG_LOGGER_INFO(_logger, "unencrypted server listening on {}",
                        _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
+    if (with_auth_process && !_conf->get_trusted_tokens()->empty()) {
+      std::vector<std::unique_ptr<
+          ::grpc::experimental::ServerInterceptorFactoryInterface>>
+          creators;
+      creators.emplace_back(std::make_unique<ServerAuthInterceptorFactory>(
+          _conf->get_trusted_tokens(), _logger));
+
+      builder.experimental().SetInterceptorCreators(std::move(creators));
+    }
   }
   builder.AddListeningPort(_conf->get_hostport(), server_creds);
   options(builder);
