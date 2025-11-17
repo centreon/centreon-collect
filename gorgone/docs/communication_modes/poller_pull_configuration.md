@@ -2,8 +2,39 @@
 
 We are showing how to configure gorgone to manage that architecture:
 
-```text
-Central server <------- Distant Poller
+```mermaid
+
+%%{init: {'flowchart': {'curve': 'step'}}}%%
+flowchart RL
+
+subgraph central["central server"]
+  direction TB
+  Ccore["gorgone-core"]
+  proxy["Gorgone-proxy"]
+  nodes["Gorgone-nodes"]
+  db[("(Database)")]
+  register["Gorgone-register"]
+  config["/etc/centreon-gorgone/*"]
+end
+
+subgraph poller["distant poller"]
+  direction TB
+  pull["Gorgone-pull"]
+  core["Gorgone-core"]
+  gstar["Gorgone-*"]
+end
+
+%% Physically align "pull" with "proxy"
+
+proxy --> nodes
+nodes -- "Read regularly for new poller" --> db
+proxy --> register
+register -- "Check poller is defined as 'pull' mode" --> config
+proxy -- "check RSA public key is present" --> config
+core --> gstar
+core --> pull
+pull -- "ZMQ/5556" --> Ccore
+Ccore --> proxy
 ```
 
 In our case, we have the following configuration (need to adatp to your configuration).

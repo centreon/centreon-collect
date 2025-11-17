@@ -1,11 +1,41 @@
 # Architecture
 
 We are showing how to configure gorgone to manage that architecture:
+```mermaid
 
-```text
+%%{init: {'flowchart': {'curve': 'step'}}}%%
+flowchart RL
 
-Central server <------- Distant Poller
+subgraph central["central server"]
+  direction TB
+  proxy["Gorgone-proxy-httpserver"]
+  nodes["Gorgone-nodes"]
+  db[("(Database)")]
+  register["Gorgone-register"]
+  config["/etc/centreon-gorgone/* "]
+end
+
+subgraph poller["distant poller"]
+  direction TB
+  pullwss["Gorgone-pullwss"]
+  core["Gorgone-core"]
+  gstar["Gorgone-*"]
+end
+
+
+%% Physically align "pullwss" with "proxy"
+
+
+proxy --> nodes
+nodes -- "Read regularly for new poller" --> db
+proxy --> register
+register -- "Check poller is defined as 'pullwss' mode" --> config
+proxy -- "check token" --> config
+core --> gstar
+core --> pullwss
+pullwss -- "HTTPS/443" --> proxy
 ```
+
 unlike for the pull module, the communication is entirely done on the HTTP(S) websocket.
 In our case, we have the following configuration (you need to adapt it to your configuration).
 
