@@ -4007,10 +4007,14 @@ void service::set_check_command_ptr(
  * @return std::string
  */
 std::string service::get_check_command_line(nagios_macros* macros) {
-  grab_host_macros_r(macros, get_host_ptr());
-  grab_service_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
-  return get_check_command_ptr()->process_cmd(macros);
+  if (get_check_command_ptr()) {
+    grab_host_macros_r(macros, get_host_ptr());
+    grab_service_macros_r(macros, this);
+    std::string tmp;
+    get_raw_command_line_r(macros, get_check_command_ptr(),
+                           check_command().c_str(), tmp, 0);
+
+    return get_check_command_ptr()->process_cmd(macros);
+  } else
+    return "";
 }

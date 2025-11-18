@@ -66,12 +66,6 @@ fi
 
 ulimit -c unlimited
 
-#start-stop.robot need a special file descriptor limit
-#we don't apply it to all tests because of host limit
-if [ $test_file == 'engine/start-stop.robot' ] ; then
-  ulimit -Sn "$(ulimit -Hn)"
-fi
-
 #only privileged container can write core files
 if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
   echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern

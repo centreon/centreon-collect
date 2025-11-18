@@ -301,6 +301,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+      options: --cpus 4
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -360,7 +361,7 @@ jobs:
                   -DONLY_ROBOT_CMA=ON \
                   -S .
 
-          ninja -j 4 -Cbuild
+          ninja -Cbuild
           ninja -Cbuild install
         shell: bash
 

@@ -90,6 +90,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
+      options: --cpus 4
 
     name: package
 
@@ -186,7 +187,7 @@ jobs:
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
-          ninja -j 4 -Cbuild
+          ninja -Cbuild
         shell: bash
 
       - name: Cache statistics
