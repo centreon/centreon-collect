@@ -171,7 +171,7 @@ sub action_centreonnodessync {
                 ssh_port => $_->[4],
                 ssh_username => $self->{config}->{ssh_username}
             };
-        } else {
+        } elsif($_->[7] == 2) {
             push @$register_nodes, {
                 id => $_->[0],
                 type => 'push_zmq',
