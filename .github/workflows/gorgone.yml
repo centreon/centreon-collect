@@ -176,17 +176,6 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-        # include:
-        #   - package_extension: rpm
-        #     image: packaging-centreon-collect-alma8
-        #     distrib: el8
-        #   - package_extension: rpm
-        #     image: packaging-centreon-collect-alma9
-        #     distrib: el9
-        #   - package_extension: deb
-        #     image: packaging-centreon-collect-bookworm
-        #     distrib: bookworm
-          # No ubuntu in 24.10, 24.11 or later for now
 
     runs-on: ubuntu-24.04
 
