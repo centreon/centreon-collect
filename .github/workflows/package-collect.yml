@@ -90,7 +90,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 4
+      options: --cpus 8
 
     name: package
 

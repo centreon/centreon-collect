@@ -226,7 +226,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 4
+      options: --cpus 8
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
