@@ -12,6 +12,13 @@ use gorgone::class::db;
 use Data::Dumper;
 use centreon::common::logger;
 use gorgone::modules::centreon::nodes::class;
+
+sub main {
+    test_centreonnodessync();
+    done_testing();
+}
+
+sub test_centreonnodessync {
 my $check_action_ran = {};
 my $action_expected = {
     'SETCOREID'     => { id => 1 },
@@ -64,18 +71,8 @@ sub main {
     my $logger = centreon::common::logger->new();
     $logger->severity("debug");
 
-    # this will mock the centreon database, should be a mariadb server but for unit test we can't set up a whole other server
-    my $db = gorgone::class::db->new(
-        type              => 'SQLite',
-        version           => '1.0',
-        db                => 'dbname=./test-centreon-nodes.sdb',
-        logger            => $logger,
-        autocreate_schema => 0,
-    );
 
-    my $sqlquery = gorgone::class::sqlquery->new(db_centreon => $db, logger => $logger);
-
-    prepare_db($db);
+    my $sqlquery = prepare_db($logger);
     $logger->writeLogError("entering real function test");
 
     my $self = bless { logger => $logger, class_object => $sqlquery }, "gorgone::modules::centreon::nodes::class";
@@ -86,7 +83,7 @@ sub main {
     is($check_action_ran->{REGISTERNODES},1, "REGISTERNODES action was called");
 
     # let's delete all nodes except central and check again.
-    $db->do("DELETE FROM nagios_server WHERE id != 1;");
+    $sqlquery->do(request =>  "DELETE FROM nagios_server WHERE id != 1;");
     $action_expected->{REGISTERNODES}->{nodes} = [ ];; # expecting no nodes now.
     $check_action_ran = {};
     $action_expected->{UNREGISTERNODES} = { nodes => [
@@ -101,20 +98,34 @@ sub main {
     done_testing();
 
 }
+# create a sqlite db with centreon nodes data. This should be a mariadb database but for unit test we use sqlite for simplicity.
+# param : logger
+# return : db handle.
 sub prepare_db {
-    my $db = shift;
+    my $logger = shift;
     unlink("./test-centreon-nodes.sdb"); # clean up.
 
-    $db->do('CREATE TABLE IF NOT EXISTS `options` (
+    my $db = gorgone::class::db->new(
+        type              => 'SQLite',
+        version           => '1.0',
+        db                => 'dbname=./test-centreon-nodes.sdb',
+        logger            => $logger,
+        autocreate_schema => 0, # this would create gorgone tables, we don't want that for this test.
+    );
+
+    my $sqlquery = gorgone::class::sqlquery->new(db_centreon => $db, logger => $logger);
+
+    # in sqlite we can't make a single statement with multiple commands separated by ;
+    $sqlquery->do(request => 'CREATE TABLE IF NOT EXISTS `options` (
     `key` VARCHAR(255) NOT NULL,
     `value` VARCHAR(255) DEFAULT NULL,
     PRIMARY KEY (`key`)
 );');
-    $db->do('CREATE TABLE IF NOT EXISTS `rs_poller_relation` (
+    $sqlquery->do(request => 'CREATE TABLE IF NOT EXISTS `rs_poller_relation` (
     `remote_server_id` INTEGER PRIMARY KEY,
     `poller_server_id` INTEGER
 );');
-    $db->do("CREATE TABLE nagios_server (
+    $sqlquery->do(request => "CREATE TABLE nagios_server (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT,
     localhost TEXT CHECK (localhost IN ('0', '1')),
@@ -135,12 +146,12 @@ sub prepare_db {
         ON DELETE SET NULL
         ON UPDATE CASCADE
 );");
-    $db->do("INSERT INTO `nagios_server` VALUES
+    $sqlquery->do(request => "INSERT INTO `nagios_server` VALUES
 (1,'central','1',1,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (11,'poller_push','0',0,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (12,'poller_ssh','0',0,NULL,'127.0.0.3','1',22,'2',22,'',NULL),
 (13,'poller_pull','0',0,NULL,'127.0.0.4','1',22,'3',NULL,'TokenPull',NULL),
-(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,'TokenPullWss',NULL);")
-
+(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,'TokenPullWss',NULL);");
+return $sqlquery;
 }
 &main;

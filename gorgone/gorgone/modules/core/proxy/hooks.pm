@@ -1103,7 +1103,17 @@ sub register_nodes {
                     logger => $options{logger}
                 );
             }
+        } elsif ($node->{type} =~ /wss/) {
+            # for pull and pullwss we send data to http server so it can check token and node existence.
+            $options{gorgone}->send_internal_message(
+                identity => "gorgone-proxy-httpserver",
+                action => "PROXYADDNODE",
+                json_encode => 1,
+                data => $node,
+                token => $options{token},
+            );
         }
+
         if ($new_node == 1) {
             # for pull and pullwss we send data to http server so it can check token and node existence.
             if ($node->{type} =~ /wss/){
