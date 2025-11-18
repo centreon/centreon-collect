@@ -305,7 +305,6 @@ BEOTEL_CENTREON_AGENT_CHECK_SERVICE_FRESHNESS
     Ctn Config Broker    rrd
     Ctn Config Centreon Agent
     Ctn Broker Config Log    central    sql    trace
-    Ctn Broker Config Log    module    processing    trace
 
     Ctn Config BBDO3    1
     Ctn Clear Db    resources
