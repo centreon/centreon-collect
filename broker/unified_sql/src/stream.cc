@@ -340,8 +340,7 @@ void stream::_load_caches() {
   /* index_data => _index_cache */
   _mysql.run_query_and_get_result(
       "SELECT "
-      "id,host_id,service_id,host_name,rrd_retention,check_interval,service_"
-      "description,"
+      "id,host_id,service_id,host_name,check_interval,service_description,"
       "special,locked FROM index_data",
       std::move(promise_index_data));
 
@@ -408,11 +407,10 @@ void stream::_load_caches() {
       index_info info{
           .index_id = res.value_as_u64(0),
           .host_name = res.value_as_str(3),
-          .service_description = res.value_as_str(6),
-          .rrd_retention = res.value_as_u32(4) ? res.value_as_u32(4) : _rrd_len,
-          .interval = res.value_as_u32(5),
-          .special = res.value_as_bool(7),
-          .locked = res.value_as_bool(8),
+          .service_description = res.value_as_str(5),
+          .interval = res.value_as_u32(4),
+          .special = res.value_as_bool(6),
+          .locked = res.value_as_bool(7),
       };
       int32_t host_id = res.value_as_i32(1);
       int32_t service_id = res.value_as_i32(2);
@@ -430,9 +428,8 @@ void stream::_load_caches() {
               "service_id "
               "<= 0, you should remove them.");
       } else {
-        _logger_sto->debug(
-            "unified_sql: loaded index {} of ({}, {}) with rrd_len={}",
-            info.index_id, host_id, service_id, info.rrd_retention);
+        _logger_sto->debug("unified_sql: loaded index {} of ({}, {})",
+                           info.index_id, host_id, service_id);
         _index_cache[{host_id, service_id}] = std::move(info);
 
         if (cache_ptr) {
