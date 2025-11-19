@@ -95,32 +95,6 @@ on:
       - "centreon-collect-*"
 
 jobs:
-  dispatch-to-maintained-branches:
-    if: ${{ github.run_attempt == 1 && github.event_name == 'schedule' && github.ref_name == 'develop' && github.repository == 'centreon/centreon-collect'}}
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Run nightly on a different maintenance branch depending on the day
-        run: |
-          NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x")
-          target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
-          if [[ -z "$target_branch" ]]; then
-            echo "[INFO] - The target branch was not defined."
-            exit 0
-          fi
-
-          echo "[INFO] - Dispatching nightly run to $target_branch branch."
-          if [[ "$target_branch" == "dev-22.10.x" ]]; then
-            gh workflow run robot-nightly.yml -r "$target_branch"
-          else
-            gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
-          fi
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   get-environment:
     uses: ./.github/workflows/get-environment.yml
     with:
