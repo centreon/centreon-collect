@@ -6,5 +6,5 @@
     delaycompress
     notifempty
     missingok
-    su root root
+    su @USER@ @GROUP@
 }
