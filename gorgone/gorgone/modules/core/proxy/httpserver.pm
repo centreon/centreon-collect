@@ -316,7 +316,7 @@ sub is_logged_websocket {
     my ($self, %options) = @_;
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
-
+    # @TODO : improve auth to use a token per node
     if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) || 
         $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+$self->{config}->{httpserver}->{token}\s*$/) {
         $self->close_websocket(
