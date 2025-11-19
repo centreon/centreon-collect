@@ -1439,6 +1439,7 @@ BAM_CIRCULAR
     Disconnect From Database
 
     #we shoudl not have a second message
+    Sleep     1s
     ${start}    Ctn Get Round Current Date
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
     Should Not Be True    ${result}    We must have only one bam error message 

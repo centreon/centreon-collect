@@ -2672,6 +2672,7 @@ int service::run_async_check_local(int check_options,
       service_check, this, checkable::check_active, check_options,
       reschedule_check, latency, start_time, start_time, false, true,
       service::state_ok, "");
+  check_result_info->set_current_attempt(get_current_attempt());
 
   auto run_failure = [&](const std::string& reason) {
     // Update check result.
