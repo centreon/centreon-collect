@@ -134,11 +134,11 @@ sub action_centreonnodessync {
     }
 
     $request = "
-        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type
+        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, gorgone_auth_token
         FROM nagios_server
         WHERE ns_activate = '1'
     ";
-    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 2);
+    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 1, keys => 'id');
     if ($status == -1) {
         $self->{resync_time} = 10;
         $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot find nodes configuration' });
@@ -149,37 +149,52 @@ sub action_centreonnodessync {
     my $core_id;
     my $register_temp = {};
     my $register_nodes = [];
-    foreach (@$datas) {
-        if ($_->[2] == 1) {
+    foreach my $node (values %$datas) {
+        if ($node->{localhost} == 1) {
             $core_id = $_->[0];
             next;
         }
 
         # remote_server_use_as_proxy = 1 means: pass through the remote. otherwise directly.
-        if (defined($_->[5]) && $_->[5] =~ /\d+/ && $_->[6] == 1) {
-            $register_subnodes->{$_->[5]} = [] if (!defined($register_subnodes->{$_->[5]}));
-            unshift @{$register_subnodes->{$_->[5]}}, { id => $_->[0], pathscore => 1 };
+        if (defined($node->{remote_id}) && $node->{remote_id} =~ /\d+/ && $node->{remote_server_use_as_proxy} == 1) {
+            $register_subnodes->{$node->{remote_id}} = [] if (!defined($register_subnodes->{$node->{remote_id}}));
+            unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, pathscore => 1 };
             next;
         }
-        $self->{register_nodes}->{$_->[0]} = 1;
-        $register_temp->{$_->[0]} = 1;
-        if ($_->[7] == 2) {
+        $self->{register_nodes}->{$node->{id}} = 1;
+        $register_temp->{$node->{id}} = 1;
+        if ($node->{gorgone_communication_type} == 2) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
                 type => 'push_ssh',
-                address => $_->[3],
-                ssh_port => $_->[4],
+                address => $node->{ns_ip_address},
+                ssh_port => $node->{gorgone_port},
                 ssh_username => $self->{config}->{ssh_username}
             };
-        } elsif($_->[7] == 2) {
+        } elsif($node->{gorgone_communication_type} == 3) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
+                type => 'pull_zmq',
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port}
+            };
+        } elsif($node->{gorgone_communication_type} == 4) {
+            push @$register_nodes, {
+                id    => $node->{id},
+                type  => 'pullwss',
+                token => $node->{gorgone_auth_token},
+            };
+        } else{ # value 1 and unknown is zmq push
+            push @$register_nodes, {
+                id => $node->{id},
                 type => 'push_zmq',
-                address => $_->[3],
-                port => $_->[4]
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port}
             };
         }
     }
+    use Data::Dumper;
+    $self->{logger}->writeLogError("[nodes] nodes to register from DB : ". Dumper($register_nodes));
 
     my $unregister_nodes = [];    
     foreach (keys %{$self->{register_nodes}}) {
