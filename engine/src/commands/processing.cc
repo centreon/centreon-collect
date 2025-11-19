@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/commands/processing.hh"
+#include <absl/strings/numbers.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -794,19 +795,15 @@ bool processing::execute(const std::string& cmdstr) {
   std::string_view cmd_sv = cmdstr;
 
   // ----------- Lambdas for trimming ----------------
-  auto trim_left = [](std::string_view& s) {
-    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
-      s.remove_prefix(1);
+  // remove leading and trailing spaces
+  auto trimming = [](std::string_view& s) {
+    s = absl::StripLeadingAsciiWhitespace(s);
+    s = absl::StripTrailingAsciiWhitespace(s);
   };
 
-  auto trim_right = [](std::string_view& s) {
-    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
-      s.remove_suffix(1);
-  };
   // --------------------------------------------------
 
-  trim_left(cmd_sv);
-  trim_right(cmd_sv);
+  trimming(cmd_sv);
 
   if (cmd_sv.empty() || cmd_sv.front() != '[')
     return false;
@@ -818,22 +815,16 @@ bool processing::execute(const std::string& cmdstr) {
 
   // Extract timestamp between [ ... ]
   std::string_view time_part = cmd_sv.substr(1, closing - 1);
-  trim_left(time_part);
-  trim_right(time_part);
+  trimming(time_part);
 
   if (time_part.empty())
     return false;
 
   // Convert timestamp safely
-  time_t entry_time{};
-  {
-    std::string tmp(time_part);
-    char* endptr = nullptr;
-    unsigned long v = std::strtoul(tmp.c_str(), &endptr, 10);
-    if (*endptr != '\0')
-      return false;  // not a valid integer
-    entry_time = static_cast<time_t>(v);
-  }
+  long long tmp_time = 0;
+  if (!absl::SimpleAtoi(time_part, &tmp_time))
+    return false;
+  time_t entry_time = static_cast<time_t>(tmp_time);
 
   // After ] must be a space
   if (closing + 1 >= cmd_sv.size() || cmd_sv[closing + 1] != ' ')
@@ -841,8 +832,7 @@ bool processing::execute(const std::string& cmdstr) {
 
   // Command part begins after "] "
   std::string_view rest = cmd_sv.substr(closing + 2);
-  trim_left(rest);
-  trim_right(rest);
+  trimming(rest);
 
   if (rest.empty())
     return false;
@@ -858,10 +848,8 @@ bool processing::execute(const std::string& cmdstr) {
     args_sv = rest.substr(semi + 1);
   }
 
-  trim_left(cmd_name_sv);
-  trim_right(cmd_name_sv);
-  trim_left(args_sv);
-  trim_right(args_sv);
+  trimming(cmd_name_sv);
+  trimming(args_sv);
 
   if (cmd_name_sv.empty())
     return false;
