@@ -791,41 +791,83 @@ bool processing::execute(const std::string& cmdstr) {
   engine_logger(dbg_functions, basic) << "processing external command";
   functions_logger->trace("processing external command {}", cmdstr);
 
-  char const* cmd{cmdstr.c_str()};
-  size_t len{cmdstr.size()};
+  std::string_view cmd_sv = cmdstr;
 
-  // Left trim command
-  while (*cmd && isspace(*cmd))
-    ++cmd;
-  if (*cmd != '[')
+  // ----------- Lambdas for trimming ----------------
+  auto trim_left = [](std::string_view& s) {
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.front())))
+      s.remove_prefix(1);
+  };
+
+  auto trim_right = [](std::string_view& s) {
+    while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back())))
+      s.remove_suffix(1);
+  };
+  // --------------------------------------------------
+
+  trim_left(cmd_sv);
+  trim_right(cmd_sv);
+
+  if (cmd_sv.empty() || cmd_sv.front() != '[')
     return false;
 
-  // Right trim just by recomputing the optimal length value.
-  char const* end{cmd + len - 1};
-  while (end != cmd && isspace(*end))
-    --end;
-
-  cmd++;
-  char* tmp;
-  time_t entry_time{static_cast<time_t>(strtoul(cmd, &tmp, 10))};
-
-  while (*tmp && isspace(*tmp))
-    ++tmp;
-
-  if (*tmp != ']' || tmp[1] != ' ')
+  // Find closing ']'
+  std::size_t closing = cmd_sv.find(']');
+  if (closing == std::string_view::npos)
     return false;
 
-  cmd = tmp + 2;
-  char const* a;
-  for (a = cmd; *a && *a != ';'; ++a)
-    ;
+  // Extract timestamp between [ ... ]
+  std::string_view time_part = cmd_sv.substr(1, closing - 1);
+  trim_left(time_part);
+  trim_right(time_part);
 
-  std::string command_name(cmd, a - cmd);
-  std::string args;
-  if (*a == ';') {
-    a++;
-    args = std::string(a, end - a + 1);
+  if (time_part.empty())
+    return false;
+
+  // Convert timestamp safely
+  time_t entry_time{};
+  {
+    std::string tmp(time_part);
+    char* endptr = nullptr;
+    unsigned long v = std::strtoul(tmp.c_str(), &endptr, 10);
+    if (*endptr != '\0')
+      return false;  // not a valid integer
+    entry_time = static_cast<time_t>(v);
   }
+
+  // After ] must be a space
+  if (closing + 1 >= cmd_sv.size() || cmd_sv[closing + 1] != ' ')
+    return false;
+
+  // Command part begins after "] "
+  std::string_view rest = cmd_sv.substr(closing + 2);
+  trim_left(rest);
+  trim_right(rest);
+
+  if (rest.empty())
+    return false;
+
+  // Split on semicolon: "CMD;args"
+  std::string_view cmd_name_sv, args_sv;
+
+  std::size_t semi = rest.find(';');
+  if (semi == std::string_view::npos) {
+    cmd_name_sv = rest;
+  } else {
+    cmd_name_sv = rest.substr(0, semi);
+    args_sv = rest.substr(semi + 1);
+  }
+
+  trim_left(cmd_name_sv);
+  trim_right(cmd_name_sv);
+  trim_left(args_sv);
+  trim_right(args_sv);
+
+  if (cmd_name_sv.empty())
+    return false;
+
+  std::string command_name(cmd_name_sv);
+  std::string args(args_sv);
 
   int command_id(CMD_CUSTOM_COMMAND);
 
