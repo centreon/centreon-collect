@@ -4507,7 +4507,7 @@ int broker_service_check(int type,
   else
     forward_service_check(type, svc, check_type, cmdline);
 
-  return 0;
+  return OK;
 }
 
 static void forward_service_status(const engine::service* svc,

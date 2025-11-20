@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
+#include "com/centreon/broker/bam/configuration/reader_exception.hh"
 
 #include "com/centreon/broker/bam/internal.hh"
 
@@ -147,6 +148,8 @@ void applier::state::_circular_check(configuration::state const& my_state) {
        end(my_state.get_bas().end());
        it != end; ++it) {
     circular_check_node& n(_nodes[ba_node_id(it->first)]);
+    n.ba_id = it->first;
+    n.ba_name = it->second.get_name();
     n.targets.insert(
         service_node_id(it->second.get_host_id(), it->second.get_service_id()));
   }
@@ -215,7 +218,10 @@ void applier::state::_circular_check(configuration::state const& my_state) {
  */
 void applier::state::_circular_check(applier::state::circular_check_node& n) {
   if (n.in_visit)
-    throw msg_fmt("BAM: loop found in BA graph");
+    throw reader_exception(
+        n.ba_id,
+        "Circular definition detected. BA {} includes itself as a KPI.",
+        n.ba_name);
   if (!n.visited) {
     n.in_visit = true;
     for (std::set<std::string>::const_iterator it(n.targets.begin()),
