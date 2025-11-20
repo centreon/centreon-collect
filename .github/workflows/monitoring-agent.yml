@@ -29,6 +29,11 @@ on:
         required: true
         default: false
         type: boolean
+      unit_tests:
+        description: "Execute the unit tests"
+        required: true
+        default: true
+        type: boolean
 
   pull_request:
     paths:
@@ -240,6 +245,7 @@ jobs:
   unit-test-linux:
     needs: [get-environment]
     if: |
+      github.event.inputs.unit_tests == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:

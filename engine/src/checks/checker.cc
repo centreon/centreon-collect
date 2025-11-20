@@ -328,11 +328,6 @@ void checker::run_sync(host* hst,
       << "* Sync host check done: new state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(checks_logger, "* Sync host check done: new state={}",
                       static_cast<uint32_t>(hst->get_current_state()));
-
-  // Send event broker.
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
-                    nullptr,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 }
 
 /**************************************
@@ -448,12 +443,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   // Send broker event.
   timeval start_time{0, 0};
   timeval end_time{0, 0};
-  int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
-                            checkable::check_active, nullptr, nullptr));
-
-  // Host sync check was cancelled or overriden by NEB module.
-  if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
-    return hst->get_current_state();
 
   // Get current host macros.
   nagios_macros* macros(get_global_macros());
@@ -472,11 +461,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   commands::command::pointer cmd = hst->get_check_command_ptr();
   std::string processed_cmd(cmd->process_cmd(macros));
   const char* tmp_processed_cmd = processed_cmd.c_str();
-
-  // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
-                    processed_cmd.c_str(),
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Debug messages.
   engine_logger(dbg_commands, more)
@@ -644,11 +628,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Get the end time of command.
   gettimeofday(&end_time, nullptr);
-
-  // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
-                    tmp_processed_cmd,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Termination.
   engine_logger(dbg_checks, basic)
