@@ -3819,7 +3819,6 @@ static void send_service_list() {
       forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get(),
                          cmdline);
     }
-
     else
       forward_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
   }
@@ -4507,7 +4506,7 @@ int broker_service_check(int type,
   else
     forward_service_check(type, svc, check_type, cmdline);
 
-  return 0;
+  return OK;
 }
 
 static void forward_service_status(const engine::service* svc,

@@ -491,7 +491,7 @@ Ctn Start Agent
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" != "WSL"
-        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent     stdout=${ENGINE_LOG}/centagent-stdout.log    stderr=${ENGINE_LOG}/centagent-stderr.log
     END
 
 Ctn Workspace Win
