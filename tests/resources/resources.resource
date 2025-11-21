@@ -441,6 +441,7 @@ Ctn Clear Metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
     Disconnect From Database
+    Remove Files     ${VarRoot}/lib/centreon/metrics/*
 
 Ctn Dump Ba On Error
     [Arguments]    ${result}    ${ba_id}
@@ -490,7 +491,7 @@ Ctn Start Agent
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" != "WSL"
-        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent
+        Start Process    /usr/bin/centagent  ${EtcRoot}/centreon-engine/centagent.json    alias=centreon_agent     stdout=${ENGINE_LOG}/centagent-stdout.log    stderr=${ENGINE_LOG}/centagent-stderr.log
     END
 
 Ctn Workspace Win

@@ -124,6 +124,9 @@ static void reload_engine_context(
 static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
                            const boost::system::error_code& err,
                            int signal_number) {
+  if (err) {
+    return;
+  }
   if (signal_number == SIGTERM) {
     SPDLOG_LOGGER_INFO(core_logger, "main: SIGTERM received by process {}",
                        getpid());

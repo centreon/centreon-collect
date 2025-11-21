@@ -46,6 +46,8 @@ class state {
   struct circular_check_node {
     circular_check_node();
 
+    unsigned ba_id = 0;  // used only for bas, not for boolean rules...
+    std::string_view ba_name;
     bool in_visit;
     bool visited;
     std::set<std::string> targets;
