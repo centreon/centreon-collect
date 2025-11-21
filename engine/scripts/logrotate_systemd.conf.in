@@ -7,6 +7,7 @@
   olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@
   createolddir 755 @USER@ @GROUP@
   rotate 365
+  su @USER@ @GROUP@
   postrotate
     systemctl reload centengine
   endscript
