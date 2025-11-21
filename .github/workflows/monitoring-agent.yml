@@ -29,6 +29,11 @@ on:
         required: true
         default: false
         type: boolean
+      unit_tests:
+        description: "Execute the unit tests"
+        required: true
+        default: true
+        type: boolean
 
   pull_request:
     paths:
@@ -278,7 +283,10 @@ jobs:
   unit-test-linux:
     needs: [get-environment, changes, check-version-consistency]
     if: |
-      needs.changes.outputs.trigger_unit_testing == 'true' &&
+      (
+        github.event.inputs.unit_tests == 'true' ||
+        needs.changes.outputs.trigger_unit_testing == 'true'
+      ) &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&

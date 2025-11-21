@@ -109,18 +109,14 @@ jobs:
 
       - name: Run nightly on a different maintenance branch depending on the day
         run: |
-          NIGHTLY_TARGETS=("dev-22.10.x" "dev-23.10.x" "dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
-          target_branch=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
-          if [[ -z "$target_branch" ]]; then
-            echo "[INFO] - The target branch was not defined."
+          NIGHTLY_TARGETS=("dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
+          TARGET_BRANCH=${NIGHTLY_TARGETS[$(( $(date +%u) - 1 ))]}
+          if [[ -z "$TARGET_BRANCH" ]]; then
+            echo "[INFO] - The target branch was not properly defined for that day (out-of-bounds array)."
             exit 0
-          fi
-
-          echo "[INFO] - Dispatching nightly run to $target_branch branch."
-          if [[ "$target_branch" == "dev-22.10.x" ]]; then
-            gh workflow run robot-nightly.yml -r "$target_branch"
           else
-            gh workflow run centreon-collect.yml -r "$target_branch" -f nightly_manual_trigger=true
+            gh workflow run centreon-collect.yml -r "$TARGET_BRANCH" -f nightly_manual_trigger=true
+            echo "[INFO] - Dispatching nightly run to $TARGET_BRANCH branch."
           fi
         shell: bash
         env:
