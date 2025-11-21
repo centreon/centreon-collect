@@ -1478,6 +1478,43 @@ BAM_CIRCULAR
     Should Not Be True    ${result}    We must have only one bam error message 
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
+BAM_CORRUPTED_REPORTING_BA_EVENTS
+    [Documentation]    Given broker with bam configured
+    ...    we inject a bad mod_bam_reporting_ba_events record.
+    ...    A ba status changed should set end_time of bad record
+
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    #inject bad record
+    ${start}    Ctn Get Round Current Date
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String     INSERT INTO mod_bam_reporting_ba_events (ba_id, start_time, status) VALUES (1,${start}, 2)
+
+    #set service_314 to critical
+    Ctn Process Service Result Hard
+    ...    host_16
+    ...    service_314
+    ...    1
+    ...    warning for service 314
+
+    Check Row Count     SELECT ba_id FROM mod_bam_reporting_ba_events WHERE ba_id=1 AND end_time is NULL    ==    1    retry_timeout=30s    retry_pause=2s
+    
 
 *** Keywords ***
 Ctn BAM Setup
