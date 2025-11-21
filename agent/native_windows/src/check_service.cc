@@ -155,9 +155,9 @@ void service_enumerator::_enumerate_services(
                   query_serv_conf_buff.get());
 
           bool this_serv_auto_start =
-              (serv_conf->dwStartType &
-               (SERVICE_AUTO_START | SERVICE_BOOT_START |
-                SERVICE_SYSTEM_START)) != 0;
+              serv_conf->dwStartType == SERVICE_AUTO_START ||
+              serv_conf->dwStartType == SERVICE_BOOT_START ||
+              serv_conf->dwStartType == SERVICE_SYSTEM_START;
           if (!filter.is_allowed(this_serv_auto_start, serv->lpServiceName,
                                  serv->lpDisplayName)) {
             continue;
@@ -293,7 +293,17 @@ service_filter::service_filter(const rapidjson::Value& args) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "start-auto") {
         const rapidjson::Value& val = member_iter->value;
-        if (val.IsBool()) {
+        bool str_value;
+        if (val.IsString()) {
+          if (!*val.GetString()) {  // empty => we accept services start-auto or
+                                    // not
+            if (absl::SimpleAtob(val.GetString(), &str_value)) {
+              _start_auto = str_value;
+            } else {
+              throw exceptions::msg_fmt("start-auto must be a boolean");
+            }
+          }
+        } else if (val.IsBool()) {
           _start_auto = val.GetBool();
         } else {
           throw exceptions::msg_fmt("start-auto must be a boolean");
@@ -446,8 +456,8 @@ bool service_filter::is_allowed(bool start_auto,
  **********************************************************************************************/
 
 /**
- * The goal of this class is to convert the status field of w_service_info into
- * check_status. It compares nothing
+ * The goal of this class is to convert the status field of w_service_info
+ * into check_status. It compares nothing
  *  */
 class w_service_info_to_status
     : public measure_to_status<e_service_metric::nb_service_metric> {

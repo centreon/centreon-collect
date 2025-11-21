@@ -660,14 +660,15 @@ TEST_F(check_service_test, service_filter_start_auto_true) {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
                                            SERVICE_STOPPED, SERVICE_AUTO_START),
-      mock_service_enumerator::create_serv("service_start_pending",
-                                           "desc service_start_pending",
-                                           SERVICE_START_PENDING, 0),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_DEMAND_START),
       mock_service_enumerator::create_serv(
           "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
           SERVICE_AUTO_START),
       mock_service_enumerator::create_serv(
-          "service_running", "desc service_running", SERVICE_RUNNING, 0),
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_DEMAND_START),
       mock_service_enumerator::create_serv(
           "service_continue_pending", "desc service_continue_pending",
           SERVICE_CONTINUE_PENDING, SERVICE_AUTO_START),
@@ -675,7 +676,8 @@ TEST_F(check_service_test, service_filter_start_auto_true) {
           "service_pause_pending", "desc service_pause_pending",
           SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
       mock_service_enumerator::create_serv(
-          "service_paused", "desc service_paused", SERVICE_PAUSED, 0)};
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DEMAND_START)};
 
   mock_service_enumerator mock;
   mock.data = {std::begin(data), std::end(data)};
@@ -729,14 +731,15 @@ TEST_F(check_service_test, service_filter_start_auto_false) {
       mock_service_enumerator::create_serv("service_stopped",
                                            "desc service_stopped",
                                            SERVICE_STOPPED, SERVICE_AUTO_START),
-      mock_service_enumerator::create_serv("service_start_pending",
-                                           "desc service_start_pending",
-                                           SERVICE_START_PENDING, 0),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_DEMAND_START),
       mock_service_enumerator::create_serv(
           "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
           SERVICE_AUTO_START),
       mock_service_enumerator::create_serv(
-          "service_running", "desc service_running", SERVICE_RUNNING, 0),
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_DEMAND_START),
       mock_service_enumerator::create_serv(
           "service_continue_pending", "desc service_continue_pending",
           SERVICE_CONTINUE_PENDING, SERVICE_AUTO_START),
@@ -744,7 +747,8 @@ TEST_F(check_service_test, service_filter_start_auto_false) {
           "service_pause_pending", "desc service_pause_pending",
           SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
       mock_service_enumerator::create_serv(
-          "service_paused", "desc service_paused", SERVICE_PAUSED, 0)};
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DEMAND_START)};
 
   mock_service_enumerator mock;
   mock.data = {std::begin(data), std::end(data)};
