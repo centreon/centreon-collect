@@ -81,6 +81,7 @@ sub construct {
 
     $connector->{ws_clients} = {};
     $connector->{identities} = {};
+    $connector->{nodes} = {}; # store nodes info from node module which take it from centreon DB.
 
     $connector->set_signal_handlers();
     return $connector;
@@ -262,7 +263,15 @@ sub proxy {
         (undef, $data) = $connector->json_decode(argument => $data);
         $connector->action_bcastcorekey(data => $data);
         return ;
+    } elsif ($action eq 'PROXYADDNODE' && $target_complete eq '') {
+        my ($status, $node) = $connector->json_decode(argument => $data);
+        if ($status == 1) {
+            $connector->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
+            return;
+        }
+        $connector->{nodes}->{ $options{node}->{id} } = $options{node};
     }
+    # @TODO: implement a delete node action for when a user remove a node from centreon UI (need to be launched from nodes/proxy module to be catched here)
 
     if ($target_complete !~ /^(.+)~~(.+)$/) {
         $connector->send_log(
@@ -286,7 +295,7 @@ sub proxy {
             code => GORGONE_ACTION_FINISH_KO,
             token => $token,
             data => {
-                message => "cannot get connection from target node '$target_client'"
+                message => "cannot get connection for target node '$target_client'"
             }
         );
         $connector->read_zmq_events();
@@ -307,54 +316,71 @@ sub read_zmq_events {
     my ($self, %options) = @_;
 
     while ($self->{internal_socket}->has_pollin()) {
+
         my ($message) = $connector->read_message();
+        `echo "$message" >> /tmp/proxy_httpserver_evan.log`;
         proxy(message => $message);
     }
 }
+sub is_empty {
+    my $value = shift;
+    if (!defined($value) or $value eq '') {
+        return 1;
+    }
+    return 0;
+}
+# take a registernodes message and check token against db or default one from yaml config if db token is not set
+# if db token is set, don't allow default one
+sub is_token_ok {
+    my ($self, %options) = @_;
 
+    return 0 if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization})
+        or $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+(.*?)\s*$/);
+    my $client_token = $1;
+    return 0 if (!defined($client_token) || $client_token eq '');
+
+    if ($options{data} !~ /^\[REGISTERNODES\]\s+\[(?:.*?)\]\s+\[.*?\]\s+(.*)/ms) {
+        return 0;
+    }
+    my ($status,$json) = $connector->json_decode(argument => $1);
+    return 0 if ($status == 1);
+    if (is_empty($json->{nodes}->[0]->{id})){
+        $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for client " . $options{ws_id});
+    }
+    my $client_id = $json->{nodes}->[0]->{id};
+    if (!defined($connector->{nodes}->{ $client_id })) {
+        $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for id " . $client_id);
+        return 0;
+    }
+    my $db_token = $connector->{nodes}->{ $client_id }->{token};
+    my $correct_token = !is_empty($db_token) ? $db_token : $self->{config}->{httpserver}->{token};
+
+    if ($client_token ne $correct_token){
+        $self->{logger}->writeLogDebug(sprintf("[proxy-httpserver] WS client %s as node %s could not be authenticated." , $options{ws_id}, $client_id ));
+        return 0;
+    }
+
+    $self->{ws_clients}->{ $options{ws_id} }->{identity} = $client_id;
+    $self->{identities}->{ $client_id } = $options{ws_id};
+    $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
+    $self->{logger}->writeLogDebug("[proxy-httpserver] WS client " . $options{ws_id} . " authenticated successfully as node " . $client_id);
+    return 1;
+}
 sub is_logged_websocket {
     my ($self, %options) = @_;
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
     # @TODO : improve auth to use a token per node
-    if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) || 
-        $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+$self->{config}->{httpserver}->{token}\s*$/) {
+
+    if (!$self->is_token_ok(%options)) {
         $self->close_websocket(
             code => 500,
-            message  => 'token authorization unallowed',
+            message  => 'authentication failed',
             ws_id => $options{ws_id}
         );
         return 0;
     }
-
-    if ($options{data} !~ /^\[REGISTERNODES\]\s+\[(?:.*?)\]\s+\[.*?\]\s+(.*)/ms) {
-        $self->close_websocket(
-            code => 500,
-            message  => 'please registernodes',
-            ws_id => $options{ws_id}
-        );
-        return 0;
-    }
-
-    my $content;
-    eval {
-        $content = JSON::XS->new->decode($1);
-    };
-    if ($@) {
-        $self->close_websocket(
-            code => 500,
-            message  => 'decode error: unsupported format',
-            ws_id => $options{ws_id}
-        );
-        return 0;
-    }
-
-    $self->{logger}->writeLogDebug("[proxy] httpserver client " . $content->{nodes}->[0]->{id} . " is logged");
-
-    $self->{ws_clients}->{ $options{ws_id} }->{identity} = $content->{nodes}->[0]->{id};
-    $self->{identities}->{ $content->{nodes}->[0]->{id} } = $options{ws_id};
-    $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
-    return 2;
+    return 1;
 }
 
 sub clean_websocket {
