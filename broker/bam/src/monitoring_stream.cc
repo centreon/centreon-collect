@@ -774,9 +774,6 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
               std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
                         this, std::placeholders::_1));
           break;
-        } else {
-          _logger->trace("BAM: forced service check sent");
-          it = _timer_forced_svc_checks.erase(it);
         }
       }
     }
