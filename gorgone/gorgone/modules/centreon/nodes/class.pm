@@ -151,7 +151,7 @@ sub action_centreonnodessync {
     my $register_nodes = [];
     foreach my $node (values %$datas) {
         if ($node->{localhost} == 1) {
-            $core_id = $_->[0];
+            $core_id = $node->{id};
             next;
         }
 
