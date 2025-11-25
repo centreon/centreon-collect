@@ -67,7 +67,6 @@ fi
 
 
 ulimit -c unlimited
-ulimit -S -n 524288
 
 #only privileged container can write core files
 if [ $test_file != 'connector_ssh/connector_ssh.robot' ] ; then
