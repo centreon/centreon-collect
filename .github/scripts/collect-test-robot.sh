@@ -50,7 +50,6 @@ else
       mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
     fi
     sleep 5
-
 fi
 
 
@@ -64,7 +63,6 @@ else
   apt-get update
   apt-get install -y ./*.deb
 fi
-
 
 ulimit -c unlimited
 

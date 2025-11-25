@@ -37,6 +37,7 @@ on:
 
   pull_request:
     paths:
+      - ".github/workflows/monitoring-agent.yml"
       - ".version"
       - ".version.centreon-monitoring-agent"
       - agent/**
@@ -47,6 +48,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
+      - tests/**/cma.robot
   push:
     branches:
       - develop
@@ -66,6 +68,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
+      - tests/**/cma.robot
     tags:
       - "centreon-monitoring-agent-*"
 
@@ -101,9 +104,44 @@ jobs:
           file: ${{ env.cmake_file }}
           version: ${{ env.version }}
 
-  build-and-test-agent-windows:
-    needs: [get-environment, check-version-consistency]
+  changes:
     if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
+    needs: [get-environment]
+    uses: ./.github/workflows/get-changes-triggers.yml
+    with:
+      production_paths: |
+        ".version"
+        ".version.centreon-monitoring-agent"
+        "agent/**"
+        "common/**"
+        "custom-triplets/**"
+        "packaging/centreon-monitoring-agent/**"
+        "cmake.sh"
+        "cmake-vcpkg.sh"
+        "CMakeLists.txt"
+        "CMakeListsLinux.txt"
+        "CMakeListsWindows.txt"
+        "vcpkg.json"
+        "overlays/**"
+        "overlays-windows/**"
+        "selinux/centreon-monitoring-agent/**"
+        "!**/test/**"
+        "!**/tests/**"
+      unit_test_paths: |
+        "agent/test/**"
+      e2e_test_paths: |
+        "resources/**"
+        "tests/**/cma.robot"
+      is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
+      base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
+      labels: ${{ needs.get-environment.outputs.labels }}
+
+  build-and-test-agent-windows:
+    needs: [get-environment, changes, check-version-consistency]
+    if: |
+      needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -244,15 +282,21 @@ jobs:
             build_windows\agent\Release\centagent.pdb
 
   unit-test-linux:
-    needs: [get-environment]
+    needs: [get-environment, changes, check-version-consistency]
     if: |
-      github.event.inputs.unit_tests == 'true' &&
+      (
+        github.event.inputs.unit_tests == 'true' ||
+        needs.changes.outputs.trigger_unit_testing == 'true'
+      ) &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, bullseye, bookworm, jammy, noble]
+        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
     runs-on: centreon-collect
     env:
       SCCACHE_PATH: "/usr/bin/sccache"
@@ -262,13 +306,13 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.distrib }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       options: --cpus 8
 
-    name: unit test ${{ matrix.distrib }}
+    name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
@@ -276,9 +320,9 @@ jobs:
 
       - name: Install sccache
         run: |
-          wget https://github.com/mozilla/sccache/releases/download/v0.9.1/sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          tar xzf sccache-v0.9.1-x86_64-unknown-linux-musl.tar.gz
-          mv sccache-v0.9.1-x86_64-unknown-linux-musl/sccache /usr/bin/
+          wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
+          tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
+          mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
 
           ${SCCACHE_PATH} --start-server
         shell: bash
@@ -286,7 +330,7 @@ jobs:
       - name: Compile centreon-collect
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+          if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
             CMAKE="cmake3"
           fi
 
@@ -349,13 +393,14 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: unit-test-${{ matrix.distrib }}-reports
+          name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*.xml"
           retention-days: 1
 
   package-linux:
-    needs: [get-environment, check-version-consistency]
+    needs: [get-environment, changes, check-version-consistency]
     if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -364,74 +409,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: packaging-centreon-collect-vcpkg-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-alma9
-            distrib: el9
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-alma10
-            distrib: el10
-            package_extension: rpm
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-          - image: packaging-centreon-collect-vcpkg-bookworm
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-bookworm-arm64
-            distrib: bookworm
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-          - image: packaging-centreon-collect-vcpkg-trixie
-            distrib: trixie
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-trixie-arm64
-            distrib: trixie
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-          - image: packaging-centreon-collect-vcpkg-jammy
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-jammy-arm64
-            distrib: jammy
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
-          - image: packaging-centreon-collect-vcpkg-noble
-            distrib: noble
-            package_extension: deb
-            runner: centreon-collect
-            arch: amd64
-          - image: packaging-centreon-collect-vcpkg-noble-arm64
-            distrib: noble
-            package_extension: deb
-            runner: centreon-collect-arm64
-            arch: arm64
+        include: ${{ fromJson(needs.get-environment.outputs.cma_matrix) }}
 
-    name: package ${{ matrix.distrib }} ${{ contains(matrix.runner, 'arm') && ' arm' || '' }}
+    name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
     uses: ./.github/workflows/package-collect.yml
 
@@ -447,10 +427,8 @@ jobs:
       legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
       packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
-      image: ${{ matrix.image }}
-      distrib: ${{ matrix.distrib }}
-      package_extension: ${{ matrix.package_extension }}
-      runner: ${{ matrix.runner }}
+      image: ${{ format('packaging-centreon-collect-vcpkg-{0}{1}', matrix.operating_system, matrix.arch == 'arm64' && '-arm64' || '') }}
+      distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true
@@ -467,8 +445,9 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   robot-test:
-    needs: [get-environment, package-linux]
+    needs: [get-environment, changes, package-linux]
     if: |
+      needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       needs.get-environment.outputs.is_nightly == 'true' &&
@@ -480,70 +459,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - distrib: el8
-            image: centreon-collect-mariadb-alma8-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el8-amd64
-            tests_params: "{}"
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: "{}"
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-arm64
-            tests_params: "{}"
-          - distrib: bullseye
-            image: centreon-collect-mariadb-bullseye-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bullseye-amd64
-            tests_params: "{}"
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: "{}"
-          - distrib: bookworm
-            image: centreon-collect-mariadb-bookworm-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: "{}"
-          - distrib: el9
-            image: centreon-collect-mariadb-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-jammy-arm64
-            tests_params: "{}"
-          - distrib: jammy
-            image: centreon-collect-mariadb-jammy-test
-            package_extension: deb
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-jammy-amd64
-            tests_params: "{}"
+        include: ${{ fromJson(needs.get-environment.outputs.cma_robot_matrix) }}
 
     name: ${{ matrix.test_group_name }}
 
@@ -551,13 +467,9 @@ jobs:
     with:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
-      image: ${{ matrix.image }}
-      image_test: ${{ matrix.image }}:${{ needs.get-environment.outputs.test_img_version }}
-      package_cache_key: ${{ github.run_id }}-${{ github.sha }}-${{ matrix.package_extension }}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension }}
+      test_img_version: ${{ needs.get-environment.outputs.test_img_version }}
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
-      test_group_name: ${{ matrix.test_group_name }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: 'cma.*\.robot'
     secrets:
@@ -584,6 +496,7 @@ jobs:
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -615,6 +528,7 @@ jobs:
 
   deliver-deb:
     if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
@@ -622,9 +536,10 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    needs: [get-environment, build-and-test-agent-windows, robot-test]
+    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bullseye
@@ -668,6 +583,7 @@ jobs:
 
   deliver-windows:
     if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
@@ -675,7 +591,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    needs: [get-environment, build-and-test-agent-windows, robot-test]
+    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
     runs-on: windows-latest
 
     steps:

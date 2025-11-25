@@ -7,25 +7,13 @@ on:
       arch:
         required: true
         type: string
-      image:
-        required: true
-        type: string
-      image_test:
-        required: true
-        type: string
-      package_cache_key:
-        required: true
-        type: string
-      package_cache_path:
+      test_img_version:
         required: true
         type: string
       database_type:
         required: true
         type: string
       tests_params:
-        required: true
-        type: string
-      test_group_name:
         required: true
         type: string
       is_nightly:
@@ -54,9 +42,12 @@ on:
         required: true
       jira_api_token:
         required: true
+
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    env:
+      IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
     steps:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -75,26 +66,22 @@ jobs:
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
-      - name: load image
+      - name: load and save image to disk
         run: |
-          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
-        shell: bash
-
-      - name: image to disk
-        run: |
-          docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
+          docker save -o ./${{ env.IMAGE_NAME }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ./${{ inputs.image }}
-          key: ${{ inputs.image_test }}
+          path: ./${{ env.IMAGE_NAME }}
+          key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
 
   robot-test-list:
-    needs: [test-image-to-cache]
     runs-on: ubuntu-24.04
     outputs:
+      test_group_name: robot_test-${{ inputs.distrib }}-${{ inputs.database_type }}-${{ inputs.arch }}${{ contains(inputs.tests_params, 'grpc') && '-grpc' || '' }}
       features: ${{ steps.list-features.outputs.features }}
 
     steps:
@@ -108,44 +95,51 @@ jobs:
           #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
           FEATURES_PATTERN="${{ inputs.features_pattern }}"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
-             FEATURES_PATTERN="^((?!cma).)*$"
+            FEATURES_PATTERN="^((?!cma).)*$"
           fi
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
-    needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
+    needs: [robot-test-list, test-image-to-cache]
+    runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{ inputs.test_group_name }}
+    name: ${{ matrix.feature }}
+
+    env:
+      IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
         with:
-          fetch-depth: 0
+          distrib: ${{ inputs.distrib }}
 
       - name: Restore image
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ./${{ inputs.image }}
-          key: ${{ inputs.image_test }}
+          path: ./${{ env.IMAGE_NAME }}
+          key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
           fail-on-cache-miss: true
 
       - name: Restore packages
         uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
         with:
-          path: ${{ inputs.package_cache_path }}
-          key: ${{ inputs.package_cache_key }}
+          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+          key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
           fail-on-cache-miss: true
 
       - name: load image
         run: |
-          docker load --input ./${{ inputs.image }}
+          docker load --input ./${{ env.IMAGE_NAME }}
 
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
@@ -163,7 +157,7 @@ jobs:
             --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_test }} \
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }} \
             ./.github/scripts/collect-test-robot.sh \
             ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
 
@@ -183,7 +177,7 @@ jobs:
         if: ${{ failure() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ inputs.test_group_name }}
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ needs.robot-test-list.outputs.test_group_name }}
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
             cp tests/log.html reports/$FILE_PREFIX-log.html
@@ -192,7 +186,7 @@ jobs:
 
       - name: Replace / with - in the feature path
         id: feature-path
-        if: always()
+        if: ${{ ! cancelled() }}
         run: |
           feature_name="${{ matrix.feature }}"
           feature_name_with_dash="${feature_name//\//-}"
@@ -203,12 +197,12 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: reports-${{ inputs.test_group_name }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
+          name: reports-${{ needs.robot-test-list.outputs.test_group_name }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
           path: reports
           retention-days: 1
 
   robot-test-report:
-    needs: [robot-test]
+    needs: [robot-test-list, robot-test]
     if: ${{ failure() }}
     runs-on: ubuntu-24.04
 
@@ -218,20 +212,20 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
-          pattern: reports-${{ inputs.test_group_name }}-*
+          pattern: reports-${{ needs.robot-test-list.outputs.test_group_name }}-*
           path: reports
           merge-multiple: true
 
       - name: Upload the regrouped artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: reports-${{ inputs.test_group_name }}
+          name: reports-${{ needs.robot-test-list.outputs.test_group_name }}
           path: reports/
           retention-days: 1
 
       - name: Delete separated artifacts
         run: |
-          artifact_pattern="reports-${{ inputs.test_group_name }}-"
+          artifact_pattern="reports-${{ needs.robot-test-list.outputs.test_group_name }}-"
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           artifact_exist=true
           while [ "$artifact_exist" = true ] ;do
