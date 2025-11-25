@@ -10,8 +10,12 @@ on:
     - cron: '0 0 * * 1-5'
   pull_request:
     paths:
-      - agent/**
-      - engine/modules/opentelemetry**
+      - ".github/scripts/agent_robot_test.ps1"
+      - ".github/scripts/windows-agent-compile.ps1"
+      - ".github/workflows/windows-agent-robot-test.yml"
+      - "agent/**"
+      - "engine/modules/opentelemetry**"
+      - "tests/resources/engine-scripts/*.ps1"
 
 jobs:
   get-environment:
@@ -21,6 +25,12 @@ jobs:
 
   build-collect:
     needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     uses: ./.github/workflows/package-collect.yml
     with:
       major_version: ${{ needs.get-environment.outputs.major_version }}
@@ -36,8 +46,6 @@ jobs:
       packages_in_artifact: false
       image: packaging-centreon-collect-vcpkg-noble
       distrib: noble
-      package_extension: deb
-      runner: centreon-collect
       arch: amd64
       only_robot_cma: true
     secrets:
@@ -54,7 +62,13 @@ jobs:
 
 
   build-agent-and-execute-test:
-    needs: [build-collect]
+    needs: [get-environment, build-collect]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: windows-latest
 
     env:
@@ -154,3 +168,12 @@ jobs:
           name: reports-cma-windows
           path: reports
           retention-days: 1
+
+  set-skip-label:
+    needs: [get-environment, build-agent-and-execute-test]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    uses: ./.github/workflows/set-pull-request-skip-label.yml
