@@ -64,9 +64,11 @@ jobs:
           if [[ "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; then
             RELEASE_SCOPE="onprem"
             echo "Release scope detected: onprem"
-          else
+          elif [[ ! "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]
             RELEASE_SCOPE="cloud"
             echo "Release scope detected: cloud"
+          else
+            echo "Invalid release branch major version: $RELEASE_BRANCH_MAJOR_VERSION. Either RELEASE_BRANCH is invalid or version in it is invalid."
           fi
 
           # Set RELEASE_TYPE based on dispatch_target_release_branch prefix (release or hotfix)
