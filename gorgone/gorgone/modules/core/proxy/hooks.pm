@@ -1107,14 +1107,12 @@ sub register_nodes {
         if ($new_node == 1) {
             # for pull and pullwss we send data to http server so it can check token and node existence.
             if ($node->{type} =~ /wss/){
-                my $v = 0;
                 $options{gorgone}->send_internal_message(
                     identity => "gorgone-proxy-httpserver",
                     action => "PROXYADDNODE",
                     json_encode => 1,
                     data => $node,
                     token => $options{token},
-                    #target => "$core_id~~$core_id" don't seem usefull ?
                 );
             }
             $constatus_ping->{ $node->{id} } = {
