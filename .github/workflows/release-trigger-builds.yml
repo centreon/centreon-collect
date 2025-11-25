@@ -64,7 +64,7 @@ jobs:
           if [[ "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; then
             RELEASE_SCOPE="onprem"
             echo "Release scope detected: onprem"
-          elif [[ ! "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; thne
+          elif [[ ! "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; then
             RELEASE_SCOPE="cloud"
             echo "Release scope detected: cloud"
           else
