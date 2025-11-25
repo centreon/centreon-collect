@@ -20,15 +20,17 @@
 
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
-#include <string>
 
-#include "absl/container/flat_hash_set.h"
 #include "com/centreon/common/grpc/grpc_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/jwt.hh"
 
 namespace com::centreon::common::grpc {
 
+/**
+ * @brief Interceptor that authenticates incoming gRPC requests using JWT
+ * tokens.
+ */
 class ServerAuthInterceptor : public ::grpc::experimental::Interceptor {
   ::grpc::ServerContextBase* _ctx;
   const std::shared_ptr<absl::flat_hash_set<std::string>>& _tokens;
@@ -84,6 +86,9 @@ class ServerAuthInterceptor : public ::grpc::experimental::Interceptor {
   }
 };
 
+/*
+ * @brief Factory for creating ServerAuthInterceptor instances.
+ */
 class ServerAuthInterceptorFactory
     : public ::grpc::experimental::ServerInterceptorFactoryInterface {
   std::shared_ptr<absl::flat_hash_set<std::string>> _tokens;
