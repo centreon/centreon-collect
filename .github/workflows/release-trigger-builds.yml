@@ -51,17 +51,17 @@ jobs:
           REPO="centreon-collect"
           NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}" #Possible valid values release-29.10-next or hotfix-29.10-next
           BASE_REF=""
-          MAJOR_VERSION=""
+          RELEASE_BRANCH_MAJOR_VERSION=""
           RELEASE_SCOPE=""
           RELEASE_TYPE=""
           PREVIOUS_RELEASE_BUNDLE_TAG=""
 
-          # Extract MAJOR_VERSION
-          MAJOR_VERSION="$(echo ${{ inputs.dispatch_target_release_branch }} || cut -d "-" -f2)"
-          echo "Major version detected: $MAJOR_VERSION"
+          # Extract RELEASE_BRANCH_MAJOR_VERSION
+          RELEASE_BRANCH_MAJOR_VERSION="$(echo ${{ inputs.dispatch_target_release_branch }} || cut -d "-" -f2)"
+          echo "Major version detected: $RELEASE_BRANCH_MAJOR_VERSION"
 
-          #Deduce RELEASE_SCOPE from MAJOR_VERSION
-          if [[ "$MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; then
+          #Deduce RELEASE_SCOPE from RELEASE_BRANCH_MAJOR_VERSION
+          if [[ "$RELEASE_BRANCH_MAJOR_VERSION" =~ ^[0-9]{2}\.0(4|10)$ ]]; then
             RELEASE_SCOPE="onprem"
             echo "Release scope detected: onprem"
           else
@@ -81,7 +81,7 @@ jobs:
             PREVIOUS_STABLE_BUNDLE_TAG=$(git tag -l --sort=-version:refname "release-onprem-*-${RELEASE_BRANCH_MAJOR_VERSION}" | head -n 1)
           fi
 
-          # Setting BASE_REF based on MAJOR_VERSION in dispatch_target_release_branch
+          # Setting BASE_REF based on RELEASE_BRANCH_MAJOR_VERSION in dispatch_target_release_branch
           if RELEASE_TYPE is release AND RELEASE_SCOPE is cloud => create from develop + use version XX.YY of dispatch_target_release_branch
           if [[ "$RELEASE_TYPE" == "release" && "$RELEASE_SCOPE" == "cloud" ]]; then
             echo "Release type detected: $RELEASE_TYPE with release scope: $RELEASE_SCOPE"
@@ -90,7 +90,7 @@ jobs:
           # if RELEASE_TYPE is release => create from dev-XX.YY.x + use version XX.YY of dispatch_target_release_branch
           elif [[ "$RELEASE_TYPE" == "release" ]]; then
             echo "Release type detected: $RELEASE_TYPE with release scope: $RELEASE_SCOPE"
-            BASE_REF="dev-$MAJOR_VERSION.x"
+            BASE_REF="dev-$RELEASE_BRANCH_MAJOR_VERSION.x"
 
           # if RELEASE_TYPE is hotfix => create from latest stable bundle tag + use version XX.YY of dispatch_target_release_branch
           # bundle tag format is "release-<scope>-YYYYMMNN-XX.YY" with
@@ -102,7 +102,7 @@ jobs:
             BASE_REF="$PREVIOUS_STABLE_BUNDLE_TAG"
 
           else
-            echo "Either $RELEASE_TYPE or $RELEASE_SCOPE or $MAJOR_VERSION were not valid combination."
+            echo "Either $RELEASE_TYPE or $RELEASE_SCOPE or $RELEASE_BRANCH_MAJOR_VERSION were not valid combination."
           fi
 
           # Creating NEW_BRANCH from BASE_REF
