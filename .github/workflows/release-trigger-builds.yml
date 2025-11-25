@@ -95,7 +95,7 @@ jobs:
           fi
 
           # Setting BASE_REF based on RELEASE_BRANCH_MAJOR_VERSION in dispatch_target_release_branch
-          if RELEASE_TYPE is release AND RELEASE_SCOPE is cloud => create from develop + use version XX.YY of dispatch_target_release_branch
+          # if RELEASE_TYPE is release AND RELEASE_SCOPE is cloud => create from develop + use version XX.YY of dispatch_target_release_branch
           if [[ "$RELEASE_TYPE" == "release" && "$RELEASE_SCOPE" == "cloud" ]]; then
             echo "Release type detected: $RELEASE_TYPE with release scope: $RELEASE_SCOPE"
             BASE_REF="develop"
