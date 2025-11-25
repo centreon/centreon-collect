@@ -83,11 +83,16 @@ jobs:
           elif [[ "$RELEASE_SCOPE" == "onprem" ]]; then
             PREVIOUS_STABLE_BUNDLE_TAG=$(git tag -l --sort=-version:refname "release-onprem-*-${RELEASE_BRANCH_MAJOR_VERSION}" | head -n 1)
           else
-            echo "No matching previous stable bundle tag was found: $PREVIOUS_STABLE_BUNDLE_TAG."
-            exit 1
+            echo "Invalid release_scope: $RELEASE_SCOPE"
           fi
 
-          echo "Previous stable bundle tag found: $PREVIOUS_STABLE_BUNDLE_TAG"
+          # Check if a tag was found
+          if [ -z "$PREVIOUS_STABLE_BUNDLE_TAG" ]; then
+            echo "Previous stable bundle tag not found: $PREVIOUS_STABLE_BUNDLE_TAG"
+            exit 1
+          else
+            echo "Previous stable bundle tag found: $PREVIOUS_STABLE_BUNDLE_TAG"
+          fi
 
           # Setting BASE_REF based on RELEASE_BRANCH_MAJOR_VERSION in dispatch_target_release_branch
           if RELEASE_TYPE is release AND RELEASE_SCOPE is cloud => create from develop + use version XX.YY of dispatch_target_release_branch
