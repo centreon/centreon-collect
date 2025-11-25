@@ -314,6 +314,7 @@ jobs:
             } else {
               stability = getStability(ref);
             }
+            stability = 'unstable' // TEMPORARY OVERRIDE FOR COLLECT TESTING PURPOSES
 
             console.log(`Final stability: ${stability}`);
             core.setOutput('stability', stability);
