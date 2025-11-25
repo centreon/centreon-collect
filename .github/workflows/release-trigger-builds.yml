@@ -74,9 +74,8 @@ jobs:
           echo "Release type detected: $RELEASE_TYPE"
 
           # Get previous stable release bundle tags
-          PREVIOUS_STABLE_BUNDLE_TAG=""
           # Previous release bundle tag
-          if [[ "$RELEASE_TYPE" == "cloud" ]]; then
+          if [[ "$RELEASE_SCOPE" == "cloud" ]]; then
             PREVIOUS_STABLE_BUNDLE_TAG=$(git tag -l --sort=-version:refname "release-cloud-*-${RELEASE_BRANCH_MAJOR_VERSION}" | head -n 1)
           else
             PREVIOUS_STABLE_BUNDLE_TAG=$(git tag -l --sort=-version:refname "release-onprem-*-${RELEASE_BRANCH_MAJOR_VERSION}" | head -n 1)
