@@ -194,8 +194,6 @@ sub action_centreonnodessync {
             };
         }
     }
-    use Data::Dumper;
-    $self->{logger}->writeLogError("[nodes] nodes to register from DB : ". Dumper($register_nodes));
 
     my $unregister_nodes = [];    
     foreach (keys %{$self->{register_nodes}}) {
@@ -211,6 +209,12 @@ sub action_centreonnodessync {
             $_->{nodes} = $register_subnodes->{ $_->{id} };
         }
     }
+    $self->{logger}->writeLogInfo(sprintf(
+        "[nodes] retrieved %s nodes from DB, %s new and %s to delete. Sending to other gorgone modules",
+        scalar( keys %$datas),
+        scalar(@$register_nodes),
+        scalar(@$unregister_nodes)));
+
 
     $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id } }) if (defined($core_id));
     $self->send_internal_action({ action => 'REGISTERNODES', data => { nodes => $register_nodes } });

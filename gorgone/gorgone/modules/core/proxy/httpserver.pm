@@ -269,7 +269,10 @@ sub proxy {
             $connector->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
             return;
         }
-        $connector->{nodes}->{ $options{node}->{id} } = $options{node};
+
+        $connector->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
+        $connector->{nodes}->{ $node->{id} } = $node;
+        return ;
     }
     # @TODO: implement a delete node action for when a user remove a node from centreon UI (need to be launched from nodes/proxy module to be catched here)
 
@@ -370,8 +373,6 @@ sub is_logged_websocket {
     my ($self, %options) = @_;
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
-    # @TODO : improve auth to use a token per node
-
     if (!$self->is_token_ok(%options)) {
         $self->close_websocket(
             code => 500,
