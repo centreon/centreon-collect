@@ -5,15 +5,16 @@ on:
   workflow_dispatch:
     inputs:
       dispatch_target_release_branch:
-        description: "Cloud release branch to trigger"
+        description: "Release or hotfix branch to trigger"
         required: true
       dispatch_content:
-        description: "Regular (only centreon named components) or Full (every component, including docker builders, php and extra libs)"
+        description: "Dispatch content (what workflow is going to be triggered)"
         required: true
         type: choice
         options:
-          - REGULAR
-          - FULL
+          - REGULAR # Centreon components only without libs
+          - CHANGED_ONLY # Anything that received a change
+          - FULL # Centreon components + libs
 
 jobs:
   release-trigger-builds:
@@ -44,34 +45,52 @@ jobs:
 
           # VARS
           # names defined in workflow files per components
+          # these are the default component_list values, they can be overriden further in the code
           #COMPONENTS_OSS=("awie" "dsm" "gorgone" "ha" "open-tickets" "web")
           #COMPONENTS_OSS_FULL=("awie" "dsm" "gorgone" "ha" "open-tickets" "web")
           #COMPONENTS_MODULES=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm")
           #COMPONENTS_MODULES_FULL=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm" "php-pecl-gnupg" "sourceguardian-loader")
-          COMPONENTS_COLLECT=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent")
+          COMPONENTS_COLLECT_REGULAR=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent")
           COMPONENTS_COLLECT_FULL=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent" "docker-packaging" "docker-collect-testing" "docker-gorgone-testing" "libzmq" "lua-curl")
           RUNS_URL=""
 
-          # Accept release prefixed or develop branches, nothing else
-          if [[ ${{ inputs.dispatch_target_release_branch }} =~ ^release-2[0-9]\.[0-9]+-next$ ]] || [[ ${{ inputs.dispatch_target_release_branch }} == "develop" ]];then
+          # Accept the branche types listed below, nothing else
+          # release prefixed branches: standard release type (release-xxxxx)
+          # hotfix prefixed branches: hotfix release type (hotfix-xxxxx)
+          # develop: start of a new major version (not a release) (develop)
+
+          # Build link to list of runs for selected branch
+          if [[ ${{ inputs.dispatch_target_release_branch }} =~ ^release-2[0-9]\.[0-9]+-next$ ]] || [[ ${{ inputs.dispatch_target_release_branch }} == "develop" ]] || || [[ ${{ inputs.dispatch_target_release_branch }} =~ ^hotfix-2[0-9]\.[0-9]+-next$ ]];then
             echo "Using ${{ inputs.dispatch_target_release_branch }} as branch to build testing packages."
             RUNS_URL="https://github.com/centreon/centreon-collect/actions?query=branch%3A${{ inputs.dispatch_target_release_branch }}"
           else
-            echo "::error::Invalid release branch name, please check the release branch name."
+            echo "::error::Invalid release branch name selected ${{ inputs.dispatch_target_release_branch }}, please check the release branch name in the input."
             exit 1
           fi
 
-          if [[ "${{ inputs.dispatch_content }}" == "FULL" ]]; then
-            echo "Requested ${{ inputs.dispatch_content }} content, triggering all components and docker builders, php and extra libs."
+          # Handle the limited cases of dispatch_content
+          echo "Requested ${{ inputs.dispatch_content }} content."
+          case ${{ inputs.dispatch_content }} in
+            "FULL")
+            echo "Triggering all components, docker builders, php and extra libs."
             for COMPONENT in "${COMPONENTS_COLLECT_FULL[@]}"; do
-              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              echo "Dispatching trigger to $COMPONENT workflow."
+              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
-          else
-            echo "Requested ${{ inputs.dispatch_content }} content, triggering centreon named components only."
+
+            ;;
+            "REGULAR")
+            echo "Triggering all components only."
             for COMPONENT in "${COMPONENTS_COLLECT[@]}"; do
-              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              echo "Dispatching trigger to $COMPONENT workflow."
+              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
-          fi
+
+            ;;
+            "CHANGED_ONLY")
+            echo "Triggering components that received at least one change."
+            ;;
+          esac
 
           echo "Dispatch was successfully triggered. Runs can be found at ${RUNS_URL}"
         shell: bash
