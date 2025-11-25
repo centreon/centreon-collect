@@ -15,7 +15,11 @@ dnf config-manager --set-enabled crb
 
 dnf install -y epel-release
 
-dnf --best install -y gcc \
+#mandatory to install glibc 2.35
+dnf update -y
+
+dnf install --best -y \
+    gcc \
     gcc-c++ \
     gdb \
     git \
