@@ -18,8 +18,7 @@
 
 #include "com/centreon/broker/processing/failover.hh"
 
-#include <unistd.h>
-
+#include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -410,7 +409,11 @@ void failover::_run() {
       }
     }
     // Some real error occured.
-    catch (const exceptions::connection_closed&) {
+    catch (const exceptions::config& e) {
+      SPDLOG_LOGGER_CRITICAL(_logger, "failover: configuration error: {}",
+                             e.what());
+      break;
+    } catch (const exceptions::connection_closed&) {
       SPDLOG_LOGGER_INFO(_logger, "failover {}: connection closed", _name);
       on_exception_handler();
     } catch (const std::exception& e) {
