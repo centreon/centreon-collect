@@ -167,24 +167,83 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get changed component directories
-        if: ${{ github.repository }} != "centreon-collect"
-        id: get_changed_dirs
+      # Standard case
+      - name: Detect changed dirs (simple components)
+        id: simple-dir-components
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
         with:
-          base_sha: $BASE_REF_SHA
           dir_names: "true"
+          files: |
+            */**
 
-      - name: Get changed component directories of collect
-        if: ${{ github.repository }} == "centreon-collect"
-        id: get_changed_dirs_collect
+      # This case is very specific to collect
+      - name: Detect changes affecting centreon-collect component
+        id: multiple-dir-components
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
         with:
-          base_sha: $BASE_REF_SHA
-          dir_names: "true"
+          files: |
+            .version.centreon-collect
+            bbdo/**
+            broker/**
+            ccc/**
+            clib/**
+            connectors/**
+            custom-triplets/**
+            engine/**
+            grpc/**
+            packaging/centreon-collect/**
+            cmake.sh
+            cmake-vcpkg.sh
+            CMakeLists.txt
+            CMakeListsLinux.txt
+            vcpkg.json
+            overlays/**
+            selinux/centreon-broker/**
+            selinux/centreon-engine/**
+            !**/test/**
+            !**/tests/**
+            !agent/test/**
 
+      - name: Identify simple components
+        id: mapped-components
+        run: |
+          # List of all files changed for simple components (e.g components with a single dir)
+          SIMPLE_CHANGED="${{ steps.simple.outputs.all_changed_files }}"
 
-      - name: Trigger selected branches
+          # List of all components with a single dir
+          SIMPLE_COMPONENTS="centreon-gorgone"
+
+          echo "Simple components files with changes: ${SIMPLE_CHANGED[*]}"
+
+          # For each file changed (all components)
+          FOUND=""
+          for d in $SIMPLE_CHANGED; do
+            for comp in $SIMPLE_COMPONENTS; do
+              if [[ "$d" == "$comp" || "$d" == "$comp/"* ]]; then
+                FOUND="$FOUND $comp"
+              fi
+            done
+          done
+
+          FOUND=$(echo $FOUND | xargs -n1 | sort -u | xargs)
+          echo "Components found: ${FOUND[*]}"
+          echo "simple_components=$FOUND" >> $GITHUB_OUTPUT
+
+      - name: Merge final component list
+        id: final
+        run: |
+          simple="${{ steps.mapped.outputs.simple_components }}"
+          multi=""
+
+          # Add centreon-collect if its patterns were modified
+          if [[ "${{ steps.collect.outputs.any_modified }}" == "true" ]]; then
+            multi="$multi centreon-collect"
+          fi
+
+          final="$(echo $simple $multi | xargs -n1 | sort -u | xargs)"
+          echo "components=($final)" >> $GITHUB_OUTPUT
+
+      - name: Trigger changed components on selected branches
         run: |
           set -eux
 
