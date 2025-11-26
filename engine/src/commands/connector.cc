@@ -39,7 +39,7 @@ constexpr std::string_view _query_ending("\0\0\0\0", 4);
 connector::connector(const std::string& connector_name,
                      const std::string& connector_line,
                      const std::shared_ptr<asio::io_context>& io_context,
-                     command_listener* listener)
+                     const std::shared_ptr<command_listener>& listener)
     : command(connector_name, connector_line, listener, e_type::connector),
       _state(e_state::not_started),
       _logger(commands_logger),
@@ -69,7 +69,7 @@ std::shared_ptr<connector> connector::load(
     std::string const& connector_name,
     std::string const& connector_line,
     const std::shared_ptr<asio::io_context>& io_context,
-    command_listener* listener) {
+    const std::shared_ptr<command_listener>& listener) {
   std::shared_ptr<connector> ret(
       new connector(connector_name, connector_line, io_context, listener));
   ret->_timeout_timer_start();
