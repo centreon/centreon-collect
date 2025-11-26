@@ -60,7 +60,7 @@ on:
         required: true
 jobs:
   test-image-to-cache:
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
@@ -117,7 +117,7 @@ jobs:
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ${{ contains(inputs.image, 'arm') && 'centreon-collect-arm64' || 'ubuntu-24.04' }}
+    runs-on: ${{ contains(inputs.image, 'arm') && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
     strategy:
       fail-fast: false
@@ -157,7 +157,7 @@ jobs:
           if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
             privilege_status="--privileged"
           fi
-          docker run --rm $privilege_status --ulimit core=-1 --security-opt seccomp=unconfined \
+          docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
           -v $(pwd):/test_collect  \
           --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
           --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
