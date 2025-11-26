@@ -137,17 +137,17 @@ class connector : public command {
   void _timeout_timer_start();
   void _timeout_timer_handler();
 
-  connector(std::string const& connector_name,
-            std::string const& connector_line,
+  connector(const std::string& connector_name,
+            const std::string& connector_line,
             const std::shared_ptr<asio::io_context>& io_context,
-            command_listener* listener = nullptr);
+            const std::shared_ptr<command_listener>& listener = nullptr);
 
  public:
   static std::shared_ptr<connector> load(
       std::string const& connector_name,
       std::string const& connector_line,
       const std::shared_ptr<asio::io_context>& io_context,
-      command_listener* listener = nullptr);
+      const std::shared_ptr<command_listener>& listener = nullptr);
 
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
