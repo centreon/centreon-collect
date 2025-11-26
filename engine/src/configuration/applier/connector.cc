@@ -65,11 +65,11 @@ void applier::connector::add_object(configuration::connector const& obj) {
         obj.connector_name(),
         boost::algorithm::trim_copy(
             command_line.substr(otel_pos + _otel_fake_exe.length())),
-        &checks::checker::instance());
+        checks::checker::ptr_instance());
   } else {
-    auto cmd =
-        commands::connector::load(obj.connector_name(), command_line,
-                                  g_io_context, &checks::checker::instance());
+    auto cmd = commands::connector::load(obj.connector_name(), command_line,
+                                         g_io_context,
+                                         checks::checker::ptr_instance());
     commands::connector::connectors[obj.connector_name()] = cmd;
   }
 }
@@ -105,11 +105,11 @@ void applier::connector::add_object(const configuration::Connector& obj) {
         obj.connector_name(),
         boost::algorithm::trim_copy(
             command_line.substr(otel_pos + _otel_fake_exe.length())),
-        &checks::checker::instance());
+        checks::checker::ptr_instance());
   } else {
-    auto cmd =
-        commands::connector::load(obj.connector_name(), command_line,
-                                  g_io_context, &checks::checker::instance());
+    auto cmd = commands::connector::load(obj.connector_name(), command_line,
+                                         g_io_context,
+                                         checks::checker::ptr_instance());
     commands::connector::connectors[obj.connector_name()] = cmd;
   }
 }
@@ -179,7 +179,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
       if (exist_connector != commands::connector::connectors.end()) {
         commands::connector::connectors.erase(exist_connector);
         commands::otel_connector::create(obj.key(), command_line,
-                                         &checks::checker::instance());
+                                         checks::checker::ptr_instance());
       } else {
         throw com::centreon::exceptions::msg_fmt(
             "unknown open telemetry command to update: {}", obj.key());
@@ -194,7 +194,7 @@ void applier::connector::modify_object(configuration::connector const& obj) {
       if (commands::otel_connector::remove(obj.key())) {
         auto cmd = commands::connector::load(obj.connector_name(), command_line,
                                              g_io_context,
-                                             &checks::checker::instance());
+                                             checks::checker::ptr_instance());
         commands::connector::connectors[obj.connector_name()] = cmd;
 
       } else {
@@ -243,7 +243,7 @@ void applier::connector::modify_object(
       if (current_connector != commands::connector::connectors.end()) {
         commands::connector::connectors.erase(current_connector);
         commands::otel_connector::create(new_obj.connector_name(), command_line,
-                                         &checks::checker::instance());
+                                         checks::checker::ptr_instance());
       } else {
         throw com::centreon::exceptions::msg_fmt(
             "unknown open telemetry command to update: {}",
@@ -259,7 +259,7 @@ void applier::connector::modify_object(
       if (commands::otel_connector::remove(new_obj.connector_name())) {
         auto cmd = commands::connector::load(new_obj.connector_name(),
                                              command_line, g_io_context,
-                                             &checks::checker::instance());
+                                             checks::checker::ptr_instance());
         commands::connector::connectors[new_obj.connector_name()] = cmd;
 
       } else {
