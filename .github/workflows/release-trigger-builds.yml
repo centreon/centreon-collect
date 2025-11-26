@@ -121,7 +121,21 @@ jobs:
 
           # Creating NEW_BRANCH from BASE_REF
           # Check if NEW_BRANCH already exists and exit with error if it does
-          echo "Checking if $NEW_BRANCH already exists."
+          GH_API_RESPONSE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$OWNER/$REPO/git/ref/heads/$NEW_BRANCH")
+
+          if [[ "$GH_API_RESPONSE_STATUS" == "200" ]]; then
+            echo "Branch '$NEW_BRANCH' already exists. Exiting."
+            exit 1
+          elif [[ "$GH_API_RESPONSE_STATUS" == "404" ]]; then
+            echo "Branch '$NEW_BRANCH' does not exist. Creating '$NEW_BRANCH'..."
+          else
+            echo "Unexpected GitHub API response status: $GH_API_RESPONSE_STATUS"
+            exit 1
+          fi
+
           # Create the NEW_BRANCH
           echo "Creating requested release/hotfix branch with name $NEW_BRANCH."
 
