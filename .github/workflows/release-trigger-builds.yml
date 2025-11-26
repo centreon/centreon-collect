@@ -122,7 +122,7 @@ jobs:
           # Check if NEW_BRANCH already exists and exit with error if it does
           echo "Checking if branch already exists..."
           GH_API_RESPONSE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/centreon/centreon-collect/git/ref/heads/$NEW_BRANCH")
 
