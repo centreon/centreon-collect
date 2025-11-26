@@ -74,6 +74,7 @@ runs:
           DISTRIB_NAME="jammy"
         elif [[ "${{ inputs.distrib }}" == "noble" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
+          PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.24.04"
           PACKAGE_EXTENSION="deb"
           DISTRIB_FAMILY="ubuntu"
