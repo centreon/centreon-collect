@@ -167,11 +167,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build changed component list
-        run: |
-          set -eux
-          d
-        shell: bash
+      - name: Get changed component directories
+        if: ${{ github.repository }} != "centreon-collect"
+        id: get_changed_dirs
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
+        with:
+          base_sha: $BASE_REF_SHA
+          dir_names: "true"
+
+      - name: Get changed component directories of collect
+        if: ${{ github.repository }} == "centreon-collect"
+        id: get_changed_dirs_collect
+        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
+        with:
+          base_sha: $BASE_REF_SHA
+          dir_names: "true"
+
+
       - name: Trigger selected branches
         run: |
           set -eux
