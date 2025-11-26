@@ -138,16 +138,16 @@ jobs:
 
           # Resolve BASE_REF_SHA pointed by $BASE_REF
           echo "Resolving BASE_REF_SHA for $BASE_REF..."
-          # BASE_REF_SHA=$(curl -s -o /dev/null \
-          #   -H "Authorization: Bearer $GH_TOKEN" \
-          #   -H "Accept: application/vnd.github+json" \
-          #   "https://api.github.com/repos/centreon/centreon-collect/git/ref/$BASE_REF" \
-          #   | jq -r '.object.sha')
+          BASE_REF_SHA=$(curl -s -o /dev/null \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/centreon/centreon-collect/git/ref/$BASE_REF" \
+            | jq -r '.object.sha')
 
-          # if [[ -z "$BASE_REF_SHA" || "$BASE_REF_SHA" == "null" ]]; then
-          #   echo "Could not resolve BASE_REF_SHA for $BASE_REF"
-          #   exit 1
-          # fi
+          if [[ -z "$BASE_REF_SHA" || "$BASE_REF_SHA" == "null" ]]; then
+            echo "Could not resolve BASE_REF_SHA for $BASE_REF"
+            exit 1
+          fi
 
           echo "Using BASE_REF_SHA: $BASE_REF_SHA"
 
