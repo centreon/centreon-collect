@@ -138,35 +138,40 @@ jobs:
 
           # Resolve BASE_REF_SHA pointed by $BASE_REF
           echo "Resolving BASE_REF_SHA for $BASE_REF..."
-          BASE_REF_SHA=$(curl -s -o /dev/null \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/ref/$BASE_REF" \
-            | jq -r '.object.sha')
+          # BASE_REF_SHA=$(curl -s -o /dev/null \
+          #   -H "Authorization: Bearer $GH_TOKEN" \
+          #   -H "Accept: application/vnd.github+json" \
+          #   "https://api.github.com/repos/centreon/centreon-collect/git/ref/$BASE_REF" \
+          #   | jq -r '.object.sha')
 
-          if [[ -z "$BASE_REF_SHA" || "$BASE_REF_SHA" == "null" ]]; then
-            echo "Could not resolve BASE_REF_SHA for $BASE_REF"
-            exit 1
-          fi
+          # if [[ -z "$BASE_REF_SHA" || "$BASE_REF_SHA" == "null" ]]; then
+          #   echo "Could not resolve BASE_REF_SHA for $BASE_REF"
+          #   exit 1
+          # fi
 
           echo "Using BASE_REF_SHA: $BASE_REF_SHA"
 
           # Create the NEW_BRANCH
           echo "Creating requested release/hotfix branch with name $NEW_BRANCH."
-          PAYLOAD=$(jq -n --arg ref "refs/heads/$NEW_BRANCH" --arg sha "$BASE_REF_SHA" \
-            '{ref: $ref, sha: $sha}')
+          # PAYLOAD=$(jq -n --arg ref "refs/heads/$NEW_BRANCH" --arg sha "$BASE_REF_SHA" \
+          #   '{ref: $ref, sha: $sha}')
 
-          # curl -s -o /dev/null \
-          #   -H "Authorization: Bearer $GITHUB_TOKEN" \
-          #   -H "Accept: application/vnd.github+json" \ -X POST -H "Content-Type: application/json" \
-          #   -d "$PAYLOAD" \
-          #   "https://api.github.com/repos/centreon/centreon-collect/git/refs" > /dev/null
+          # # curl -s -o /dev/null \
+          # #   -H "Authorization: Bearer $GH_TOKEN" \
+          # #   -H "Accept: application/vnd.github+json" \ -X POST -H "Content-Type: application/json" \
+          # #   -d "$PAYLOAD" \
+          # #   "https://api.github.com/repos/centreon/centreon-collect/git/refs" > /dev/null
 
           echo "Branch created: $NEW_BRANCH"
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build changed component list
+        run: |
+          set -eux
+          d
+        shell: bash
       - name: Trigger selected branches
         run: |
           set -eux
