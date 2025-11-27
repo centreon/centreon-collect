@@ -295,6 +295,7 @@ jobs:
     needs: [get-environment, robot-test]
     runs-on: centreon-common
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: el8
@@ -331,6 +332,7 @@ jobs:
     needs: [get-environment, robot-test]
     runs-on: centreon-common
     strategy:
+      fail-fast: false
       matrix:
         include:
           - distrib: bullseye
