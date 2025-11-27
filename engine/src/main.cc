@@ -433,11 +433,11 @@ int main(int argc, char* argv[]) {
         com::centreon::logging::engine::instance().add(
             &backend_broker_log, logging::log_all, logging::basic);
 
-        // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
-
         // Handle signals (interrupts).
         setup_sighandler();
+
+        // Apply configuration.
+        configuration::applier::state::instance().apply(config, state);
 
         // Initialize status data.
         initialize_status_data();

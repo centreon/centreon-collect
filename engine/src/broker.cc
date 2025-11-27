@@ -1,23 +1,23 @@
 /**
-* Copyright 2002-2010      Ethan Galstad
-* Copyright 2010           Nagios Core Development Team
-* Copyright 2011-2013,2020 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2002-2010      Ethan Galstad
+ * Copyright 2010           Nagios Core Development Team
+ * Copyright 2011-2013,2020 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
@@ -923,36 +923,6 @@ void broker_statechange_data(int type __attribute__((unused)),
                              int max_attempts __attribute__((unused)),
                              struct timeval const* timestamp
                              __attribute__((unused))) {}
-
-/**
- *  Send system command data to broker.
- *
- *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
- *  @param[in] cmd           Command.
- *  @param[in] output        Output.
- *  @param[in] timestamp     Timestamp.
- */
-void broker_system_command(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval start_time __attribute__((unused)),
-                           struct timeval end_time __attribute__((unused)),
-                           double exectime __attribute__((unused)),
-                           int timeout __attribute__((unused)),
-                           int early_timeout __attribute__((unused)),
-                           int retcode __attribute__((unused)),
-                           const char* cmd __attribute__((unused)),
-                           const char* output __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
 
 /**
  *  Send timed event data to broker.
