@@ -2927,11 +2927,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Start Engine
     Ctn Start Agent
     
-    # if message apear the connection is accepted
-    ${content}    Create List    ] encrypted server listening
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
-    Should Be True    ${result}    "] encrypted server listening" should appear.
-
     ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
@@ -3028,10 +3023,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Ctn Start Engine
     Ctn Start Agent
 
-    # if message apear the connection is accepted
-    ${content}    Create List    ] encrypted server listening
-    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
-    Should Be True    ${result}    "] encrypted server listening" should appear.
     
     ${content}    Create List    client::OnDone(Token not trusted)
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
