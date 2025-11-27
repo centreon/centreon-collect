@@ -152,8 +152,8 @@ function test_all_silent_install_uninstall([string]$plugins_flag) {
 
     Write-Host "############################  all install uninstall with flag: $plugins_flag  ############################"
 
-    $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS="agent,plugins"', $plugins_flag, '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317'
-    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
+    $exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS="agent,plugins"', $plugins_flag, '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317','/token=my_secure_token'
+    $expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0;'token'='my_secure_token' }
     test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent"
 
     if (!(Get-ItemProperty -Path HKLM:\Software\Centreon\CentreonMonitoringAgent)) {
@@ -335,28 +335,28 @@ if ($process_info.ExitCode -ne 1) {
     exit 1
 }
 
-$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317'
-$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
+$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_1', '/ENDPOINT=127.0.0.1:4317','/token=my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.1:4317'; 'host' = 'my_host_name_1'; 'log_type' = 'event-log'; 'log_level' = 'error'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 ;'token'='my_secure_token'}
 test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent"
 
-$exe_args = '/VERYSILENT', '/AGENTINSTANCE=toto', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.2:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/MAXFILESIZE=15', '/MAXNUMBER=10'
-$expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; }
+$exe_args = '/VERYSILENT', '/AGENTINSTANCE=toto', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.2:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/MAXFILESIZE=15', '/MAXNUMBER=10','/token=my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.2:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0; 'log_max_file_size' = 15; 'log_max_files' = 10; 'token' = 'my_secure_token' }
 test_args_to_registry $installer_exepath $exe_args $expected "toto"
 
-$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.3:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/ENCRYPTION=no'
-$expected = @{ 'endpoint' = '127.0.0.3:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 }
+$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.3:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/ENCRYPTION=no','/token=my_secure_token'
+$expected = @{ 'endpoint' = '127.0.0.3:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'no'; 'reversed_grpc_streaming' = 0 ;'token' = 'my_secure_token' }
 test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent1"
 
-$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.4:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/ENCRYPTION=insecure', '/KEY="C:\Users crypto\private.key"', '/CERT="D:\tutu\titi.crt"', '/CA="C:\Users\Public\ca.crt"', '/COMMONNAME=tls_ca_name', '/TOKEN=my_secure_token'
-$expected = @{ 'endpoint' = '127.0.0.4:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'insecure'; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi.crt'; 'private_key' = 'C:\Users crypto\private.key'; 'ca_certificate' = 'C:\Users\Public\ca.crt'; 'ca_name' = 'tls_ca_name';'token' = 'my_secure_token' }
+$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.4:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma.log"', '/LOGLEVEL=trace', '/ENCRYPTION=insecure', '/KEY="C:\Users crypto\private.key"', '/CERT="D:\tutu\titi.crt"', '/CA="C:\Users\Public\ca.crt"', '/COMMONNAME=tls_ca_name', '/TOKEN=my_secure_token1'
+$expected = @{ 'endpoint' = '127.0.0.4:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma.log'; 'encryption' = 'insecure'; 'reversed_grpc_streaming' = 0; 'public_cert' = 'D:\tutu\titi.crt'; 'private_key' = 'C:\Users crypto\private.key'; 'ca_certificate' = 'C:\Users\Public\ca.crt'; 'ca_name' = 'tls_ca_name';'token' = 'my_secure_token1' }
 test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent2"
 
-$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.5:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/LOGLEVEL=trace', '/ENCRYPTION=full', '/REVERSE=true', '/KEY="C:\Users crypto\private_rev.key"', '/CERT="D:\tutu\titi_rev.crt"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev','/TOKEN=my_secure_token'
-$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'full'; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token' }
+$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_2', '/ENDPOINT=127.0.0.5:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/LOGLEVEL=trace', '/ENCRYPTION=full', '/REVERSE=true', '/KEY="C:\Users crypto\private_rev.key"', '/CERT="D:\tutu\titi_rev.crt"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev','/TOKEN=my_secure_token1'
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_2'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'full'; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev';'token' = 'my_secure_token1' }
 test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent3"
 
-$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_3', '/ENDPOINT=127.0.0.5:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/LOGLEVEL=trace', '/ENCRYPTION=full', '/REVERSE=true', '/KEY="C:\Users crypto\private_rev.key"', '/CERT="D:\tutu\titi_rev.crt"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev', '/TOKEN=my_secure_token'
-$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'full'; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev'; 'token' = 'my_secure_token' }
+$exe_args = '/VERYSILENT', '/TYPE=custom /COMPONENTS=agent', '/HOST=my_host_name_3', '/ENDPOINT=127.0.0.5:4317', '/LOGTYPE=File', '/LOGFILE="C:\Users\Public\cma_rev.log"', '/LOGLEVEL=trace', '/ENCRYPTION=full', '/REVERSE=true', '/KEY="C:\Users crypto\private_rev.key"', '/CERT="D:\tutu\titi_rev.crt"', '/CA="C:\Users\Public\ca_rev.crt"', '/COMMONNAME=tls_ca_name_rev', '/TOKEN=my_secure_token1'
+$expected = @{ 'endpoint' = '127.0.0.5:4317'; 'host' = 'my_host_name_3'; 'log_type' = 'File'; 'log_level' = 'trace'; 'log_file' = 'C:\Users\Public\cma_rev.log'; 'encryption' = 'full'; 'reversed_grpc_streaming' = 1; 'public_cert' = 'D:\tutu\titi_rev.crt'; 'private_key' = 'C:\Users crypto\private_rev.key'; 'ca_certificate' = 'C:\Users\Public\ca_rev.crt'; 'ca_name' = 'tls_ca_name_rev'; 'token' = 'my_secure_token1' }
 test_args_to_registry $installer_exepath $exe_args $expected "CentreonMonitoringAgent4"
 
 
