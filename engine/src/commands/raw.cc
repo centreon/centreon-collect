@@ -37,7 +37,7 @@ using namespace com::centreon::engine::commands;
  */
 raw::raw(std::string const& name,
          std::string const& command_line,
-         command_listener* listener)
+         const std::shared_ptr<command_listener>& listener)
     : command(name, command_line, listener, e_type::raw), process_listener() {
   if (_command_line.empty())
     throw engine_error() << "Could not create '" << _name
