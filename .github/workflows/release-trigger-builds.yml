@@ -124,7 +124,7 @@ jobs:
           GH_API_RESPONSE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs/heads/$NEW_BRANCH")
+            "https://api.github.com/repos/centreon/centreon-collect/git/ref/heads/$NEW_BRANCH")
 
           if [[ "$GH_API_RESPONSE_STATUS" == "200" ]]; then
             echo "Branch '$NEW_BRANCH' already exists. Exiting."
@@ -149,7 +149,7 @@ jobs:
           BASE_REF_SHA=$(curl -s -o /dev/null \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs/$GITHUB_API_REF_TYPE/$BASE_REF" \
+            "https://api.github.com/repos/centreon/centreon-collect/git/ref/$GITHUB_API_REF_TYPE/$BASE_REF" \
             | jq -r '.object.sha')
 
           if [[ -z "$BASE_REF_SHA" || "$BASE_REF_SHA" == "null" ]]; then
