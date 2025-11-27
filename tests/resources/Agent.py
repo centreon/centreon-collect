@@ -63,6 +63,15 @@ def ctn_host_hostname():
     return environ.get('HOST_HOSTNAME', Common.ctn_get_hostname())
 
 
+def ctn_get_agent_conf_path():
+    """
+    ctn_get_conf_path
+
+    Get CONF_DIR path
+    """
+    return CONF_DIR+"/centagent.json"
+
+
 agent_config = """
 {
     "log_level":"trace",

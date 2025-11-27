@@ -2104,11 +2104,17 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
 
 
 BEOTEL_CENTREON_AGENT_TOKEN
-    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
-    ...    When the Centreon Agent attempts to connect using an valid JWT token
-    ...    Then the connection should be accepted
-    ...    And the log should confirm that the token is valid
-    [Tags]    broker    engine    opentelemetry    MON-160084
+        [Documentation]    Scenario: Validate agent connection with valid JWT token
+        ...    Given the OpenTelemetry server is configured with encryption enabled and the server trusts a JWT token
+        ...    And the Centreon Agent is configured to use that valid token and the server certificate
+        ...    When the broker, engine and agent are started
+        ...    Then the engine should expose an encrypted OTEL listener
+        ...    And the engine log should report that the token is valid
+        ...    When the agent is reconfigured to use an unencrypted connection and the engine is reloaded
+        ...    And the agent is restarted
+        ...    Then the engine should expose an unencrypted OTEL listener
+        ...    And the engine log should still report that the token is valid
+    [Tags]    broker    engine    opentelemetry    MON-160084    MON-186322
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2143,7 +2149,7 @@ BEOTEL_CENTREON_AGENT_TOKEN
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
+
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -2158,12 +2164,47 @@ BEOTEL_CENTREON_AGENT_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    #if the message apear mean that the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "Token is valid" should appear.
+
+
 BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
-    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled
-    ...    When the Centreon Agent attempts to connect without a JWT token
-    ...    Then the connection should be refused
-    ...    And the log should contain the message "UNAUTHENTICATED: No authorization header"
-    [Tags]    broker    engine    opentelemetry    MON-160435
+    [Documentation]    Scenario: Missing JWT header over encrypted OTEL connection
+    ...    Given Centreon Engine is configured with an encrypted OTEL server (port 4318) and a trusted token list
+    ...    And Centreon Agent is configured to connect without a JWT token (no Authorization header)
+    ...    When Broker, Engine and Agent are started
+    ...    Then the encrypted OTEL server is listening
+    ...    And the agent connection is rejected
+    ...    And the engine log contains "UNAUTHENTICATED: No authorization header"
+    ...    Scenario: Missing JWT header over unencrypted OTEL connection
+    ...    Given Engine and Agent are reconfigured to use an unencrypted OTEL connection still without a JWT token
+    ...    When the Engine is reloaded and the Agent restarted
+    ...    Then the unencrypted OTEL server is listening
+    ...    And the agent connection is rejected
+    ...    And the engine log contains "UNAUTHENTICATED: No authorization header"
+    [Tags]    broker    engine    opentelemetry    MON-160435    MON-186322
     
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2209,7 +2250,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -2223,13 +2263,46 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     ${content}    Create List    UNAUTHENTICATED: No authorization header
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    #if the message apear mean that the connection is refused
+    ${content}    Create List    UNAUTHENTICATED: No authorization header
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "UNAUTHENTICATED: No authorization header" should appear.
     
 BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
-    [Documentation]    Given the Centreon Engine is configured with OpenTelemetry server with encryption enabled with no token in the trusted_token
-    ...    When the Centreon Agent attempts to connect with tls with a token
-    ...    Then the connection should be refused
-    ...    And the log should contain the message "Token is not trusted"
-    [Tags]    broker    engine    opentelemetry    MON-170625
+    [Documentation]    Scenario: Encrypted connection rejected with untrusted token
+    ...    Given Centreon Engine is configured with an encrypted OpenTelemetry server on port 4318 and an empty trusted token list
+    ...    And host_1 is configured with a passive check using otel_check_icmp
+    ...    And Centreon Agent is configured with a JWT token and the server certificate
+    ...    When Broker, Engine and Agent are started
+    ...    Then the encrypted OTEL server starts listening
+    ...    And the agent connection is refused
+    ...    And host_1 resource status is not updated in the resources table
+    ...    And the engine log contains 'UNAUTHENTICATED : Token is not trusted'
+    ...    Scenario: Unencrypted connection rejected with untrusted token
+    ...    When the Engine is reloaded and the Agent restarted
+    ...    Then the unencrypted OTEL server starts listening
+    ...    And the agent connection is refused
+    ...    And host_1 resource status is not updated in the resources table
+    ...    And the engine log contains 'UNAUTHENTICATED : Token is not trusted'
+    [Tags]    broker    engine    opentelemetry    MON-170625    MON-186322
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2289,14 +2362,50 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "UNAUTHENTICATED : Token is not trusted" should appear.
 
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    15    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Not Be True    ${result}    resources table should not be updated for host_1
+
+    ${content}    Create List    UNAUTHENTICATED : Token is not trusted
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "UNAUTHENTICATED : Token is not trusted" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
-    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
-...   And the server uses a public certificate and private key for secure communication
-...   When the Centreon Agent attempts to connect using an invalid JWT token
-...   Then the connection should be refused
-...   And the log should contain the message "Token is not trusted"
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Documentation]    Scenario: Encrypted connection with untrusted token
+    ...    Given Centreon Engine is configured with an encrypted OpenTelemetry server
+    ...    And the server trusts a JWT token different from the one configured on the Centreon Agent
+    ...    When Broker, Engine and Agent are started
+    ...    Then the encrypted OTEL server starts listening
+    ...    And the agent connection is refused
+    ...    And the engine log contains "Token is not trusted"
+    ...    Scenario: Unencrypted connection with untrusted token
+    ...    Given Engine and Agent are reconfigured to use an unencrypted OTEL connection with the same untrusted agent token
+    ...    When the Engine is reloaded and the Agent restarted
+    ...    Then the unencrypted OTEL server starts listening
+    ...    And the agent connection is refused
+    ...    And the engine log contains "Token is not trusted"
+    [Tags]    broker    engine    opentelemetry    MON-160084    MON-186322
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2330,7 +2439,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -2345,14 +2453,45 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "Token is not trusted" should appear.
 
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    #if the message apear mean that the connection is refused
+    ${content}    Create List    Token is not trusted
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "Token is not trusted" should appear.
+
 
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
-    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
-...   And the server uses a public certificate and private key for secure communication
-...   When the Centreon Agent attempts to connect using an expired JWT token
-...   Then the connection should be refused
-...   And the log should contain the message "Token is expired"
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Documentation]    Scenario: Encrypted connection with expired token
+...    Given Centreon Engine is configured with an encrypted OpenTelemetry server on port 4318 
+...    And a JWT token with 1 second validity is created and added to the trusted token list
+...    And Centreon Agent is configured to use that token
+...    When the test waits long enough for the token to expire before starting Broker, Engine and Agent
+...    Then the encrypted OTEL server starts listening
+...    And the agent connection is refused
+...    And the engine log contains "UNAUTHENTICATED : Token expired"
+...    Scenario: Unencrypted connection with expired token
+...    Given Engine and Agent are reconfigured to use an unencrypted OTEL server still with the expired token
+...    When the Engine is reloaded and the Agent restarted
+...    Then the unencrypted OTEL server starts listening
+...    And the agent connection is refused
+...    And the engine log contains "UNAUTHENTICATED : Token expired"
+    [Tags]    broker    engine    opentelemetry    MON-160084    MON-186322
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2371,7 +2510,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
-    ${token1}    Ctn Create Jwt Token    ${10}
+    ${token1}    Ctn Create Jwt Token    ${1}
 
     Ctn Add Token Otl Server Module    0    ${token1}
 
@@ -2385,8 +2524,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
-    Sleep    10s
+    Sleep    2s
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -2400,15 +2538,45 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
 
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    ${content}    Create List    UNAUTHENTICATED : Token expired
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
-    [Documentation]    Given the OpenTelemetry server is configured with encryption enabled
-...   And the server uses a public certificate and private key for secure communication
-...   When the Centreon Agent attempts to connect using an JWT token valid
-...   Then the connection should be accepted
-...   When the token expires
-...   Then the connection should be refused
-...   And the log should contain the message "Token is expired"
-    [Tags]    broker    engine    opentelemetry    MON-160084
+    [Documentation]    Scenario: Token expires during encrypted connection
+    ...    Given Centreon Engine is configured with an encrypted OTEL server on port 4318
+    ...    And Centreon Agent is configured with a valid JWT token (20s lifetime) and the server certificate
+    ...    When Broker, Engine and Agent are started
+    ...    Then the engine log reports the encrypted server is listening
+    ...    And the engine log reports "Token is valid"
+    ...    When the token lifetime elapses
+    ...    Then the engine log reports "UNAUTHENTICATED : Token expired"
+    ...    Scenario: Token expires during unencrypted connection after reconfiguration
+    ...    Given a new valid JWT token (20s lifetime) is created and added to the OTEL server
+    ...    And Engine and Agent are reconfigured to use an unencrypted OTEL server with the new token
+    ...    When the Engine is reloaded and the Agent restarted
+    ...    Then the engine log reports the unencrypted server is listening
+    ...    And the engine log reports "Token is valid"
+    ...    When the token lifetime elapses
+    ...    Then the engine log reports "UNAUTHENTICATED : Token expired"
+    [Tags]    broker    engine    opentelemetry    MON-160084    MON-186322
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2454,7 +2622,6 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
@@ -2469,7 +2636,35 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "Token is valid" should appear.
 
-    Sleep   30s
+    ${content}    Create List    UNAUTHENTICATED : Token expired
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "UNAUTHENTICATED : Token expired" should appear.
+
+    Ctn Kindly Stop Agent
+    
+    ${token1}    Ctn Create Jwt Token    ${20}
+    Ctn Add Token Otl Server Module    0    ${token1} 
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${agent_path}    token    ${token1} 
+    Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4318" should be available.
+
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "Token is valid" should appear.
 
     ${content}    Create List    UNAUTHENTICATED : Token expired
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
@@ -2677,11 +2872,19 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
 
 
 BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
-    [Documentation]    Given the Centreon Engine is configured as client with token and the agent as server with encryption enables
-    ...    When the Centreon engine attempts to connect using an valid JWT token
-    ...    Then the connection should be accepted
-    ...    And the log should confirm that the token is valid
-    [Tags]    broker    engine    opentelemetry    MON-160435
+    [Documentation]    Scenario: Encrypted reversed connection with valid token
+    ...    Given Centreon Engine is configured as a client with a reverse encrypted connection to the Agent server on port 4321 and the Agent trusts a valid JWT token
+    ...    When Broker, Engine and Agent are started
+    ...    Then the Agent starts an encrypted reversed OTEL server
+    ...    And the Engine connects to the Agent (init log appears)
+    ...    And the Agent log reports "Token is valid"
+    ...    Scenario: Unencrypted reversed connection with valid token after reconfiguration
+    ...    Given encryption is disabled for the reverse connection while keeping the same trusted JWT token
+    ...    When the Agent is stopped, the Engine configuration is reloaded, and the Agent is restarted
+    ...    Then the Agent starts an unencrypted reversed OTEL server
+    ...    And the Engine reconnects to the Agent (init log appears)
+    ...    And the Agent log reports "Token is valid"
+    [Tags]    broker    engine    opentelemetry    MON-160435    MON-186322
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2720,21 +2923,70 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Clear Retention
 
     ${start}    Get Current Date
-    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
     
+    # if message apear the connection is accepted
+    ${content}    Create List    ] encrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] encrypted server listening" should appear.
+
     ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
 
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "Token is valid" should appear.
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # Let's wait for the otel server start
+    ${content}    Create List    init from ${host_host_name}:4321
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] unencrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] unencrypted server listening " should appear.
+
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "Token is valid" should appear.
+
 BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
-    [Documentation]    Given the Centreon Engine is configured as client with token and the agent as server with encryption enables
-    ...    When the Centreon engine attempts to connect using an invalid JWT token
-    ...    Then the connection should be refused
-    ...    And the log should confirm that the token is not trusted
-    [Tags]    broker    engine    opentelemetry    MON-160435
+    [Documentation]    Scenario: Encrypted reversed connection refused with untrusted token
+    ...    Given Centreon Engine is configured as a client using a reverse encrypted OTEL connection to the Agent on port 4321
+    ...    And the Agent reverse OTEL server trusts token1
+    ...    And the Engine is configured to connect with a different (untrusted) token2
+    ...    When Broker, Engine and Agent are started
+    ...    Then the Agent starts its encrypted reversed server (listening is logged)
+    ...    And the Engine connection is refused
+    ...    And the engine log contains "client::OnDone(Token not trusted)"
+    ...    Scenario: Unencrypted reversed connection refused with untrusted token after reconfiguration
+    ...    Given encryption is disabled for the reverse connection while the Agent still trusts token1 and the Engine still uses token2
+    ...    When the Agent is stopped, the Engine configuration reloaded, and the Agent restarted
+    ...    Then the Agent starts its unencrypted reversed server (listening is logged)
+    ...    And the Engine connection is refused
+    ...    And the engine log contains "client::OnDone(Token not trusted)"
+    [Tags]    broker    engine    opentelemetry    MON-160435    MON-186322
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
@@ -2775,17 +3027,54 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] encrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] encrypted server listening" should appear.
     
     ${content}    Create List    client::OnDone(Token not trusted)
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "ithe message should appear to confirm that the connection is refused"
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] unencrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] unencrypted server listening " should appear.
+
+    ${content}    Create List    client::OnDone(Token not trusted)
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "ithe message should appear to confirm that the connection is refused"
+
     
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
-    [Documentation]    Given the Centreon Engine is configured as client with token and the agent as server with encryption enables
-    ...    When the Centreon engine attempts to connect using an valid JWT token but expired
-    ...    Then the connection should be refused
-    ...    And the log should confirm that the token is expired
-    [Tags]    broker    engine    opentelemetry    MON-160435
+    [Documentation]    Scenario: Encrypted reversed connection with expired token
+    ...    Given Centreon Engine is configured as a client using a reversed encrypted OTEL connection to the Agent on port 4321
+    ...    And the Agent reverse OTEL server trusts a JWT token that is already expired
+    ...    When Broker, Engine and Agent are started
+    ...    Then the Agent starts its encrypted reversed OTEL server (server listening appears in the agent log)
+    ...    And the Engine connection is refused because the token is expired client::OnDone(Token expired appears in engine log)
+    ...    Scenario: Unencrypted reversed connection with expired token
+    ...    Given encryption is disabled for the reverse connection while still using the same expired token
+    ...    When the Agent is stopped, the Engine configuration is reloaded, and the Agent is restarted
+    ...    Then the Agent starts its unencrypted reversed OTEL server (server listening appears in the agent log)
+    ...    And the Engine connection is refused because the token is expired client::OnDone(Token expired appears in engine log)
+    [Tags]    broker    engine    opentelemetry    MON-160435    MON-186322
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2808,9 +3097,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Ctn Engine Config Set Value    0    log_level_config    error
     Ctn Engine Config Set Value    0    log_level_events    error
 
-    ${token1}    Ctn Create Jwt Token    ${2}
+    ${token1}    Ctn Create Jwt Token    ${1}
     # make sure the token is expired
-    Sleep    3s
+    Sleep    2s
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
@@ -2831,20 +3120,54 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] encrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] encrypted server listening" should appear.
     
     ${content}    Create List    client::OnDone(Token expired)
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
-    Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
+    Should Be True    ${result}    "if message don't appear in log it mean that the connection is not accepted"
+
+    Ctn Kindly Stop Agent
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] unencrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] unencrypted server listening " should appear.
+
+    ${content}    Create List    client::OnDone(Token expired)
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't appear in log it mean that the connection is not accepted"
 
 
 BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
-    [Documentation]    Given the Centreon Engine is configured as client with token and the agent as server with encryption enables
-...   When the Centreon engine attempts to connect using an valid JWT token 
-...   Then the connection should be accepted
-...   When the token expires
-...   Then the connection should be refused
-...   And the log should contain the message "Token is expired"
-    [Tags]    broker    engine    opentelemetry    MON-160435
+    [Documentation]    Scenario: Token expires during encrypted reverse connection
+    ...    Given Centreon Engine is configured to initiate a reverse encrypted OTEL connection to the Agent using a valid JWT token (10s lifetime)
+    ...    When Broker, Engine and Agent are started
+    ...    Then the Agent starts its encrypted reverse OTEL server and the Engine connects (init log appears)
+    ...    And the Agent log reports "Token is valid"
+    ...    When the token lifetime elapses
+    ...    Then the Engine log reports "client::OnDone(Token expired)"
+    ...    Scenario: Token expires during unencrypted reverse connection after reconfiguration
+    ...    Given the Engine and Agent are reconfigured to use an unencrypted reverse OTEL connection with a new valid JWT token (10s lifetime)
+    ...    When the Engine configuration is reloaded and the Agent restarted
+    ...    Then the Agent starts its unencrypted reverse OTEL server and the Engine connects (init log appears)
+    ...    And the Agent log reports "Token is valid"
+    ...    When the new token lifetime elapses
+    ...    Then the Engine log reports "client::OnDone(Token expired)"
+    [Tags]    broker    engine    opentelemetry    MON-160435    MON-186322
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' != 'None'
@@ -2870,7 +3193,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
-    ${token1}    Ctn Create Jwt Token    ${30}
+    ${token1}    Ctn Create Jwt Token    ${10}
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
@@ -2898,13 +3221,58 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Ctn Start Engine
     Ctn Start Agent
     
+    # if message apear the connection is accepted
+    ${content}    Create List    ] encrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] encrypted server listening" should appear.
+
     ${content}    Create List    init from ${host_host_name}:4321
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
 
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "Token is valid" should appear.
+
     ${content}    Create List    client::OnDone(Token expired)
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "this message client::OnDone(Token expired) should apper in log"
+
+    Ctn Kindly Stop Agent
+
+    ${token2}    Ctn Create Jwt Token    ${10}
+
+    ${otl_path}    Ctn Get Engine Conf Path   0
+    ${agent_path}    Ctn Get Agent Conf Path
+
+    Update Json Field    ${agent_path}    encryption    no
+    Update Json Field    ${agent_path}    token    ${token2}
+    Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
+    Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.token    ${token2}
+
+    Ctn Reload Engine
+    Ctn Start Agent
+    ${start}    Get Current Date
+
+    # if message apear the connection is accepted
+    ${content}    Create List    ] unencrypted server listening
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "] unencrypted server listening " should appear.
+
+    ${content}    Create List    init from ${host_host_name}:4321
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
+
+    # if message apear the connection is accepted
+    ${content}    Create List    Token is valid
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "Token is valid" should appear.
+
+    ${content}    Create List    client::OnDone(Token expired)
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
+    Should Be True    ${result}    "this message client::OnDone(Token expired) should apper in log"
+    
 
 BEOTEL_CENTREON_AGENT_WHITE_LIST
     [Documentation]    Scenario: Enforcing command whitelist for agent checks

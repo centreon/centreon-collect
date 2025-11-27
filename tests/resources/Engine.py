@@ -74,6 +74,15 @@ TIMEOUT = 30
 import_robot_resources()
 
 
+def ctn_get_engine_conf_path(idx: int):
+    """
+    ctn_get_conf_path
+
+    Get CONF_DIR path
+    """
+    return CONF_DIR + f"/config{idx}"
+
+
 class EngineInstance:
     def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
         self.last_service_id = 0
