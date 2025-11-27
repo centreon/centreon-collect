@@ -48,7 +48,7 @@ void applier::command::add_object(const configuration::Command& obj) {
   if (obj.connector().empty()) {
     auto raw = std::make_shared<commands::raw_v2>(
         g_io_context, obj.command_name(), obj.command_line(),
-        &checks::checker::instance());
+        checks::checker::ptr_instance());
     commands::command::commands[raw->get_name()] = std::move(raw);
   } else {
     connector_map::iterator found_con{
@@ -117,7 +117,7 @@ void applier::command::modify_object(configuration::Command* to_modify,
   if (new_obj.connector().empty()) {
     auto raw = std::make_shared<commands::raw_v2>(
         g_io_context, new_obj.command_name(), new_obj.command_line(),
-        &checks::checker::instance());
+        checks::checker::ptr_instance());
     it_obj->second = raw;
   } else {
     connector_map::iterator found_con{
