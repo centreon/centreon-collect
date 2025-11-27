@@ -37,6 +37,10 @@ class server_reactor;
 class streaming_server : public common::grpc::grpc_server_base,
                          public std::enable_shared_from_this<streaming_server>,
                          public ReversedAgentService::Service {
+  using validator =
+      std::function<::grpc::Status(::grpc::CallbackServerContext*,
+                                   std::chrono::system_clock::time_point&)>;
+
   std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
   const std::string _supervised_host;
@@ -70,6 +74,24 @@ class streaming_server : public common::grpc::grpc_server_base,
       ::grpc::CallbackServerContext* context);
 
   void shutdown();
+};
+
+/*
+ * // A trivial reactor that finishes immediately with a given Status.
+ */
+class ImmediateFinishReactor
+    : public ::grpc::ServerBidiReactor<com::centreon::agent::MessageToAgent,
+                                       com::centreon::agent::MessageFromAgent> {
+ public:
+  // Constructor calls Finish(...) right away.
+  explicit ImmediateFinishReactor(const ::grpc::Status& status) {
+    Finish(status);
+  }
+
+  void OnDone() override {
+    // This reactor is now done. Typically just delete this instance.
+    delete this;
+  }
 };
 
 }  // namespace com::centreon::agent
