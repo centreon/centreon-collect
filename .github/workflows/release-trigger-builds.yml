@@ -120,7 +120,7 @@ jobs:
 
           # Creating NEW_BRANCH from BASE_REF
           # Check if NEW_BRANCH already exists and exit with error if it does
-          echo "Checking if branch already exists..."
+          echo "Checking if branch $NEW_BRANCH already exists..."
           GH_API_RESPONSE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
