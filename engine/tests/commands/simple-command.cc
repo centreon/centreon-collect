@@ -109,10 +109,10 @@ TEST_F(SimpleCommand, NewCommandSync) {
 // When async executed
 // Then we have the output in the result class.
 TEST_F(SimpleCommand, NewCommandAsync) {
-  std::unique_ptr<my_listener> lstnr(new my_listener);
+  std::shared_ptr<my_listener> lstnr = std::make_shared<my_listener>();
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/echo bonjour")};
-  cmd->set_listener(lstnr.get());
+  cmd->set_listener(lstnr);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
@@ -128,10 +128,10 @@ TEST_F(SimpleCommand, NewCommandAsync) {
 }
 
 TEST_F(SimpleCommand, LongCommandAsync) {
-  std::unique_ptr<my_listener> lstnr(new my_listener);
+  std::shared_ptr<my_listener> lstnr = std::make_shared<my_listener>();
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/sleep 10")};
-  cmd->set_listener(lstnr.get());
+  cmd->set_listener(lstnr);
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/sleep 10");
@@ -157,10 +157,10 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
 
   const char* path = "/tmp/TooRecentDoubleCommand";
   ::unlink(path);
-  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::shared_ptr<my_listener> lstnr = std::make_shared<my_listener>();
   std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
       "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
-  cmd->set_listener(lstnr.get());
+  cmd->set_listener(lstnr);
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
@@ -199,10 +199,10 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
 
   const char* path = "/tmp/TooRecentDoubleCommand";
   ::unlink(path);
-  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::shared_ptr<my_listener> lstnr = std::make_shared<my_listener>();
   std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
       "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
-  cmd->set_listener(lstnr.get());
+  cmd->set_listener(lstnr);
   const void* caller[] = {nullptr, path};
   cmd->add_caller_group(caller, caller + 2);
   nagios_macros* mac(get_global_macros());
@@ -237,10 +237,10 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
 }
 
 TEST_F(SimpleCommand, WithOneArgument) {
-  auto lstnr = std::make_unique<my_listener>();
+  std::shared_ptr<my_listener> lstnr = std::make_shared<my_listener>();
   std::unique_ptr<commands::command> cmd{
       std::make_unique<commands::raw>("test", "/bin/echo $ARG1$")};
-  cmd->set_listener(lstnr.get());
+  cmd->set_listener(lstnr);
   nagios_macros* mac(get_global_macros());
   mac->argv[0] = "Hello";
   mac->argv[1] = "";

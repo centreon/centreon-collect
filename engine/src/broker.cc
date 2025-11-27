@@ -1051,36 +1051,6 @@ void broker_statechange_data(int type __attribute__((unused)),
                              __attribute__((unused))) {}
 
 /**
- *  Send system command data to broker.
- *
- *  @param[in] type          Type.
- *  @param[in] flags         Flags.
- *  @param[in] attr          Attributes.
- *  @param[in] start_time    Start time.
- *  @param[in] end_time      End time.
- *  @param[in] exectime      Execution time.
- *  @param[in] timeout       Timeout.
- *  @param[in] early_timeout Early timeout.
- *  @param[in] retcode       Return code.
- *  @param[in] cmd           Command.
- *  @param[in] output        Output.
- *  @param[in] timestamp     Timestamp.
- */
-void broker_system_command(int type __attribute__((unused)),
-                           int flags __attribute__((unused)),
-                           int attr __attribute__((unused)),
-                           struct timeval start_time __attribute__((unused)),
-                           struct timeval end_time __attribute__((unused)),
-                           double exectime __attribute__((unused)),
-                           int timeout __attribute__((unused)),
-                           int early_timeout __attribute__((unused)),
-                           int retcode __attribute__((unused)),
-                           const char* cmd __attribute__((unused)),
-                           const char* output __attribute__((unused)),
-                           struct timeval const* timestamp
-                           __attribute__((unused))) {}
-
-/**
  *  Send timed event data to broker.
  *
  *  @param[in] type      Type.
