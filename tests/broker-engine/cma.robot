@@ -2902,13 +2902,21 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Engine Config Set Value    0    log_level_config    error
     Ctn Engine Config Set Value    0    log_level_events    error
 
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
     ${token1}    Ctn Create Jwt Token    ${-1}
 
     ${cur_dir}    Ctn Workspace Win
     IF    '${cur_dir}' == 'None'
         Ctn Add Token Agent Otl Server   0    0    ${token1}
     END
-
 
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -2931,13 +2939,17 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the connection is not accepted"
 
+    # if the resource status is OK means the connection is accepted
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
+
     # if message apear the connection is accepted
     ${content}    Create List    Token is valid
     ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
     Should Be True    ${result}    "Token is valid" should appear.
-
-    ${run_env}    Ctn Run Env
-    Pass Execution If    "${run_env}" == "WSL"    "the test ends here for WSL"
 
     Ctn Kindly Stop Agent
 
