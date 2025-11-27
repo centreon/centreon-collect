@@ -58,7 +58,7 @@ void applier::command::add_object(configuration::command const& obj) {
   if (obj.connector().empty()) {
     std::shared_ptr<commands::raw_v2> raw = std::make_shared<commands::raw_v2>(
         g_io_context, obj.command_name(), obj.command_line(),
-        &checks::checker::instance());
+        checks::checker::ptr_instance());
     commands::command::commands[raw->get_name()] = raw;
   } else {  // connector or otel, we search it to create the forward command
             // that will use it
@@ -139,8 +139,8 @@ void applier::command::modify_object(configuration::command const& obj) {
   if (obj.connector().empty()) {
     auto raw = std::make_shared<commands::raw_v2>(
         g_io_context, obj.command_name(), obj.command_line(),
-        &checks::checker::instance());
-    commands::command::commands[raw->get_name()] = raw;
+        checks::checker::ptr_instance());
+    commands::command::commands[raw->get_name()] = std::move(raw);
   } else {
     connector_map::iterator found_con{
         commands::connector::connectors.find(obj.connector())};
