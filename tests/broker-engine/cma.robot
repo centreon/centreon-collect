@@ -2931,6 +2931,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Ctn Clear Retention
 
     ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Start Agent
