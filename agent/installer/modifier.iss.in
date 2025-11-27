@@ -625,7 +625,7 @@ begin
 
   // the parameter is already checked in CheckSilentParameterValidity before calling this function
   AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(ExpandConstant('{param:agentinstance|}'));
-
+  ReadAgentRegistryValues(AgentInstanceComboBox.Text)
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
@@ -782,12 +782,6 @@ begin
         end;
     end;
      
-    if ExpandConstant('{param:token|}') = '' then
-    begin
-      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=full/insecure');
-      Result := False;
-      Exit;
-    end;
   end;
 
   Pluginsrc_p := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
@@ -1354,8 +1348,11 @@ begin
   LoadSilentParameters;
 
   // apply the change to ui
-  OnServiceChange(AgentInstanceComboBox);
-
+  if not IsSilentMode then
+  begin
+    OnServiceChange(AgentInstanceComboBox);
+  end;
+  
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
