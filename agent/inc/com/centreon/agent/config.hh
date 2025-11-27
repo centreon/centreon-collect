@@ -48,6 +48,7 @@ class config {
   std::string _token;
 
   std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
+  absl::flat_hash_map<std::string, std::string> _custom_checks;
   static std::unique_ptr<config> _global_conf;
 
  public:
@@ -108,6 +109,14 @@ class config {
   const std::shared_ptr<const absl::flat_hash_set<std::string>>&
   get_trusted_tokens() const {
     return _trusted_tokens;
+  }
+
+  /**
+   * @brief Accessor to custom checks map (name -> shared library path)
+   */
+  const absl::flat_hash_map<std::string, std::string>& get_custom_checks()
+      const {
+    return _custom_checks;
   }
 };
 };  // namespace com::centreon::agent
