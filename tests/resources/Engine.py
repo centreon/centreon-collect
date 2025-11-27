@@ -60,7 +60,7 @@ TIMEOUT = 30
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -72,7 +72,7 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host, 0, sh_command)
+        self.build_configs(hosts, srv_by_host, 0, custom_command)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -233,7 +233,7 @@ class EngineInstance:
 """
         return retval, service_id
 
-    def _create_service_with_sh_command(self, host_id: int, service_index_in_host: int):
+    def create_service_with_custom_command(self, host_id: int, service_index_in_host: int):
         """
             Create a service that uses command_{host_id}_{service_index_in_host}
             if service_id is a multiple of 10, we set _KO macro and check.sh will return 1
@@ -412,10 +412,10 @@ define command {
         return retval
 
     @staticmethod
-    def create_sh_command(host_id: int, service_id: int):
+    def create_custom_command(host_id: int, service_id: int, custom_command: str):
         return f"""define command {{
     command_name                    command_{host_id}_{service_id}
-    command_line                    {ENGINE_HOME}/check.sh {host_id} {service_id}
+    command_line                    {ENGINE_HOME}/{custom_command} {host_id} {service_id}
 }}
 """
 
@@ -594,7 +594,7 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, sh_command: bool = False):
+    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = ""):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -622,9 +622,8 @@ passive_checks_enabled 1
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
-                            if (sh_command):
-                                svc = self._create_service_with_sh_command(
-                                    h["hid"], j)
+                            if (len(custom_command)) > 0:
+                                svc = self.create_service_with_custom_command(h["hid"], j)
                             else:
                                 svc = self._create_service(
                                     h["hid"], (inst * self.commands_count + 1, (inst + 1) * self.commands_count))
@@ -632,11 +631,11 @@ passive_checks_enabled 1
                             self.services.append(f"service_{svc[1]}")
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
-                if (sh_command):
+                if (len(custom_command) > 0):
                     for host_id in range(1, nb_hosts + 1):
                         for service_id in range(1, services_by_host + 1):
-                            f.write(self.create_sh_command(
-                                host_id, service_id))
+                            f.write(self.create_custom_command(
+                                host_id, service_id, custom_command))
                 else:
                     for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
                         f.write(self.create_command(i))
@@ -795,7 +794,7 @@ define contact {
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
-            for file in ["check.pl", "check.sh", "notif.pl"]:
+            for file in ["check.pl", "check.sh", "check_long.sh", "notif.pl"]:
                 shutil.copyfile(f"{SCRIPT_DIR}/{file}",
                                 f"{ENGINE_HOME}/{file}")
                 chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
@@ -830,7 +829,7 @@ define contact {
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, sh_command: bool = False):
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -841,7 +840,7 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, sh_comma
         sh_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host, sh_command)
+    engine = EngineInstance(num, hosts, srv_by_host, custom_command)
 
 
 def ctn_get_engines_count():
@@ -4465,7 +4464,7 @@ def ctn_engine_command_remove_connector(idx: int, command_name: str):
         f.writelines(lines)
 
 
-def ctn_engine_check_sh_command_output():
+def ctn_engine_check_sh_command_output(max_check_duration: int = 5):
     """
     Scan the engine log and search service::handle_async_check_result lines
     Check the output of check.sh witch return arguments and NAGIOS__SERVICEVAR1 and NAGIOS__SERVICEVAR2 
@@ -4497,7 +4496,7 @@ def ctn_engine_check_sh_command_output():
             env_host_id = int(m.group(9))
             env_service_id = int(m.group(10))
             env_host_id_2 = int(m.group(11))
-            if int(finish_time) - int(start_time) > 5:
+            if int(finish_time) - int(start_time) > max_check_duration:
                 logger.console(f"check duration too long: {line}")
                 return 0
             if timeout != '0':
