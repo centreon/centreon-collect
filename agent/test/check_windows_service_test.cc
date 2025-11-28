@@ -31,7 +31,9 @@ using namespace std::string_literals;
 
 class mock_service_enumerator : public service_enumerator {
  public:
-  using enum_with_conf = std::pair<ENUM_SERVICE_STATUSA, QUERY_SERVICE_CONFIGA>;
+  using enum_with_conf = std::tuple<ENUM_SERVICE_STATUSA,
+                                    QUERY_SERVICE_CONFIGA,
+                                    BOOL /*auto start delayed*/>;
 
   std::vector<enum_with_conf> data;
 
@@ -42,19 +44,24 @@ class mock_service_enumerator : public service_enumerator {
 
   bool _query_service_config(
       LPCSTR service_name,
+      unsigned query_flags,
       std::unique_ptr<unsigned char[]>& buffer,
       size_t* buffer_size,
+      BOOL* start_delayed,
       const std::shared_ptr<spdlog::logger>& logger) override;
 
-  static enum_with_conf create_serv(const char* name,
-                                    const char* display,
-                                    DWORD state,
-                                    DWORD start_type) {
+  static enum_with_conf create_serv(
+      const char* name,
+      const char* display,
+      DWORD state,
+      DWORD start_type,
+      DWORD service_type = SERVICE_WIN32_OWN_PROCESS,
+      BOOL start_auto_delayed = FALSE) {
     ENUM_SERVICE_STATUSA serv;
     serv.lpServiceName = const_cast<char*>(name);
     serv.lpDisplayName = const_cast<char*>(display);
     serv.ServiceStatus.dwCurrentState = state;
-    serv.ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    serv.ServiceStatus.dwServiceType = service_type;
     serv.ServiceStatus.dwControlsAccepted = SERVICE_ACCEPT_STOP;
     serv.ServiceStatus.dwWin32ExitCode = 0;
     serv.ServiceStatus.dwServiceSpecificExitCode = 0;
@@ -62,7 +69,7 @@ class mock_service_enumerator : public service_enumerator {
     serv.ServiceStatus.dwWaitHint = 0;
 
     QUERY_SERVICE_CONFIGA serv_conf;
-    serv_conf.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
+    serv_conf.dwServiceType = service_type;
     serv_conf.dwStartType = start_type;
     serv_conf.dwErrorControl = SERVICE_ERROR_NORMAL;
     static char dummy_path[] = "C:\\path\\to\\service.exe";
@@ -73,7 +80,7 @@ class mock_service_enumerator : public service_enumerator {
     serv_conf.lpServiceStartName = nullptr;
     serv_conf.lpDisplayName = const_cast<char*>(display);
 
-    return {serv, serv_conf};
+    return {serv, serv_conf, start_auto_delayed};
   }
 };
 
@@ -83,7 +90,7 @@ bool mock_service_enumerator::_enumerate_services(serv_array& services,
   to_return = std::min(to_return, service_array_size);
   *services_returned = to_return;
   for (unsigned i = 0; i < to_return; ++i) {
-    services[i] = data[i].first;
+    services[i] = std::get<0>(data[i]);
   }
   _resume_handle += to_return;
   return true;
@@ -91,12 +98,16 @@ bool mock_service_enumerator::_enumerate_services(serv_array& services,
 
 bool mock_service_enumerator::_query_service_config(
     LPCSTR service_name,
+    unsigned query_flags,
     std::unique_ptr<unsigned char[]>& buffer,
     size_t* buffer_size,
+    BOOL* start_delayed,
     const std::shared_ptr<spdlog::logger>& logger) {
   for (const auto& service : data) {
-    if (strcmp(service_name, service.first.lpServiceName) == 0) {
-      memcpy(buffer.get(), &service.second, sizeof(QUERY_SERVICE_CONFIGA));
+    if (strcmp(service_name, std::get<0>(service).lpServiceName) == 0) {
+      memcpy(buffer.get(), &std::get<1>(service),
+             sizeof(QUERY_SERVICE_CONFIGA));
+      *start_delayed = std::get<2>(service);
       return true;
     }
   }
@@ -130,6 +141,7 @@ TEST_F(check_service_test, service_no_threshold_all_running) {
                                            SERVICE_RUNNING, SERVICE_AUTO_START),
   };
 
+  SPDLOG_ERROR("un");
   mock_service_enumerator mock;
   mock.data = {std::begin(data), std::end(data)};
 
