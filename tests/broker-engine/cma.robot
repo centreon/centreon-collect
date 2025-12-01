@@ -1026,10 +1026,16 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_AUTO
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    60    HARD
     Should Be True    ${result}    resources table not updated
 
-    #no filter bis => OK service
-    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
+    #other filter on CMA
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": { "filter-name": "CentreonMonitoringAgent1", "critical-total-running": 1, "delayed" : "true"}}    OTEL connector
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": { "start-auto":"", "filter-name": "CentreonMonitoringAgent1", "critical-total-running": 1}}    OTEL connector
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    HARD
+    Should Be True    ${result}    resources table not updated
+
+
+    #no filter bis => OK service
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": { "start-type":"auto", "filter-name": "CentreonMonitoringAgent1", "critical-total-running": 1, "delayed": "FALSE", "type": "service-own-process"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    60    HARD
@@ -3625,15 +3631,15 @@ Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side
     ${host_name}  Ctn Host Hostname
     ${run_env}       Ctn Run Env
-    IF    "${run_env}" == "WSL"
-        Copy File    ../server_grpc.key    /tmp/server_grpc.key
-        Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
-        Copy File    ../reverse_server_grpc.crt    /tmp/reverse_server_grpc.crt
-    ELSE
-        Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
-        Copy File    /tmp/server_grpc.crt    /tmp/reverse_server_grpc.crt
-        Copy File    /tmp/server_grpc.key    /tmp/reverse_server_grpc.key
-    END
+   IF    "${run_env}" == "WSL"
+       Copy File    ../server_grpc.key    /tmp/server_grpc.key
+       Copy File    ../server_grpc.crt    /tmp/server_grpc.crt
+       Copy File    ../reverse_server_grpc.crt    /tmp/reverse_server_grpc.crt
+   ELSE
+       Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+       Copy File    /tmp/server_grpc.crt    /tmp/reverse_server_grpc.crt
+       Copy File    /tmp/server_grpc.key    /tmp/reverse_server_grpc.key
+   END
 
     Ctn Clean Before Suite
 
