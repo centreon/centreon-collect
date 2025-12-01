@@ -48,7 +48,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
   push:
     branches:
       - develop
@@ -68,7 +68,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
     tags:
       - "centreon-monitoring-agent-*"
 
@@ -133,7 +133,7 @@ jobs:
         "agent/test/**"
       e2e_test_paths: |
         "resources/**"
-        "tests/**/cma.robot"
+        "tests/**/cma*.robot"
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
       labels: ${{ needs.get-environment.outputs.labels }}
@@ -470,7 +470,7 @@ jobs:
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: 'cma\.robot'
+      features_pattern: 'cma.*\.robot'
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}

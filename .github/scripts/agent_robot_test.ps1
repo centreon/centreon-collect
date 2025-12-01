@@ -30,6 +30,7 @@
 # That's why we rewrite /etc/hosts on wsl side
 # agent logs are saved in reports and wsl fail tests are saved in it also in case of failure
 
+param($robot="cma.robot")
 
 Write-Host "Work in" $pwd.ToString()
 
@@ -171,7 +172,7 @@ $json_test_param = $test_param | ConvertTo-Json -Compress
 Write-Host "json_test_param" $json_test_param
 $quoted_json_test_param = "'" + $json_test_param + "'"
 
-wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $quoted_json_test_param
+wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/$robot $quoted_json_test_param
 
 #something wrong in robot test => exit 1 => failure
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {
