@@ -54,7 +54,7 @@ class service_filter {
   enum e_start_auto : unsigned {
     auto_start = 1,
     boot = 2,
-    manual = 4,
+    demand = 4,
     disabled = 8,
     system = 16
   };

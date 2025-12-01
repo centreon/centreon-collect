@@ -105,9 +105,14 @@ bool mock_service_enumerator::_query_service_config(
     const std::shared_ptr<spdlog::logger>& logger) {
   for (const auto& service : data) {
     if (strcmp(service_name, std::get<0>(service).lpServiceName) == 0) {
-      memcpy(buffer.get(), &std::get<1>(service),
-             sizeof(QUERY_SERVICE_CONFIGA));
-      *start_delayed = std::get<2>(service);
+      if (query_flags & e_query_service_config_type::query_service_config) {
+        memcpy(buffer.get(), &std::get<1>(service),
+               sizeof(QUERY_SERVICE_CONFIGA));
+      }
+      if (query_flags &
+          e_query_service_config_type::query_service_start_auto_delayed) {
+        *start_delayed = std::get<2>(service);
+      }
       return true;
     }
   }
@@ -141,7 +146,6 @@ TEST_F(check_service_test, service_no_threshold_all_running) {
                                            SERVICE_RUNNING, SERVICE_AUTO_START),
   };
 
-  SPDLOG_ERROR("un");
   mock_service_enumerator mock;
   mock.data = {std::begin(data), std::end(data)};
 
@@ -869,6 +873,1190 @@ TEST_F(check_service_test,
     if (perf.name() == "services.stopped.count" ||
         perf.name() == "services.starting.count" ||
         perf.name() == "services.stopping.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_auto) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "start-type": "auto"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped, 1 running, 1 pausing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.running.count" ||
+        perf.name() == "services.pausing.count" ||
+        perf.name() == "services.stopped.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_system) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "start-type": "system"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopping");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopping.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_boot) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "start-type": "boot"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 starting");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.starting.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_demand) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "start-type": "demand"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 continuing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.continuing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_disabled) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv("service_stopped",
+                                           "desc service_stopped",
+                                           SERVICE_STOPPED, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "start-type": "disabled", "delayed": "" })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 paused");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.paused.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_start_type_auto_delayed) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "start-type": "auto", "delayed": "true"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped, 1 pausing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.pausing.count" ||
+        perf.name() == "services.stopped.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_kernel) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv("service_paused",
+                                           "desc service_paused",
+                                           SERVICE_PAUSED, SERVICE_DISABLED)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "kernel-driver"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopped.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_kernel_fs_adapter) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_ADAPTER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "type": "kernel-driver|file-system-driver|adapter"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped, 1 stopping, 1 paused");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopped.count" ||
+        perf.name() == "services.stopping.count" ||
+        perf.name() == "services.paused.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_driver) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "driver"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped, 1 stopping, 1 paused");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopped.count" ||
+        perf.name() == "services.stopping.count" ||
+        perf.name() == "services.paused.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_service_own_process) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_AUTO_START, SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "service-own-process"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 pausing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.pausing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_service_share_process) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_AUTO_START, SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "type": "service-share-process"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 starting, 1 running, 1 continuing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.starting.count" ||
+        perf.name() == "services.running.count" ||
+        perf.name() == "services.continuing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_service) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_running", "desc service_running", SERVICE_RUNNING,
+          SERVICE_AUTO_START, SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START, SERVICE_WIN32_OWN_PROCESS,
+          TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "service"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output,
+            "OK: services: 1 starting, 1 running, 1 continuing, 1 pausing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.starting.count" ||
+        perf.name() == "services.running.count" ||
+        perf.name() == "services.pausing.count" ||
+        perf.name() == "services.continuing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_user_service_instance) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START,
+          SERVICE_USERSERVICE_INSTANCE, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "type": "user-service-instance"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 pausing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.pausing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_user_share_process) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START, SERVICE_USER_SERVICE),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START,
+          SERVICE_USERSERVICE_INSTANCE, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "user-share-process"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 starting, 1 continuing");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.starting.count" ||
+        perf.name() == "services.continuing.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_user_own_process) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_KERNEL_DRIVER),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START, SERVICE_USER_SERVICE),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START,
+          SERVICE_USERSERVICE_INSTANCE, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "user-own-process"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 starting, 1 running");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.starting.count" ||
+        perf.name() == "services.running.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_interactive_process) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_INTERACTIVE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START, SERVICE_USER_SERVICE),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START,
+          SERVICE_USERSERVICE_INSTANCE, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({ "type": "interactive-process.*|interactive-process"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopped.count") {
+      EXPECT_EQ(perf.value(), 1.0);
+    } else {
+      EXPECT_EQ(perf.value(), 0.0);
+    }
+    EXPECT_EQ(perf.min(), 0);
+    EXPECT_EQ(perf.max(), snap->get_metric(e_service_metric::total));
+  }
+}
+
+TEST_F(check_service_test, service_filter_type_pkg_service) {
+  mock_service_enumerator::enum_with_conf data[] = {
+      mock_service_enumerator::create_serv(
+          "service_stopped", "desc service_stopped", SERVICE_STOPPED,
+          SERVICE_AUTO_START, SERVICE_PKG_SERVICE),
+      mock_service_enumerator::create_serv(
+          "service_start_pending", "desc service_start_pending",
+          SERVICE_START_PENDING, SERVICE_BOOT_START, SERVICE_USER_SERVICE),
+      mock_service_enumerator::create_serv(
+          "service_stopping", "desc service_stopping", SERVICE_STOP_PENDING,
+          SERVICE_SYSTEM_START, SERVICE_FILE_SYSTEM_DRIVER),
+      mock_service_enumerator::create_serv("service_running",
+                                           "desc service_running",
+                                           SERVICE_RUNNING, SERVICE_AUTO_START),
+      mock_service_enumerator::create_serv(
+          "service_continue_pending", "desc service_continue_pending",
+          SERVICE_CONTINUE_PENDING, SERVICE_DEMAND_START,
+          SERVICE_WIN32_SHARE_PROCESS),
+      mock_service_enumerator::create_serv(
+          "service_pause_pending", "desc service_pause_pending",
+          SERVICE_PAUSE_PENDING, SERVICE_AUTO_START,
+          SERVICE_USERSERVICE_INSTANCE, TRUE),
+      mock_service_enumerator::create_serv(
+          "service_paused", "desc service_paused", SERVICE_PAUSED,
+          SERVICE_DISABLED, SERVICE_RECOGNIZER_DRIVER)};
+
+  mock_service_enumerator mock;
+  mock.data = {std::begin(data), std::end(data)};
+
+  check_service::_enumerator_constructor = [&mock]() {
+    return std::make_unique<mock_service_enumerator>(mock);
+  };
+
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args = R"({ "type": "pkg-service"  })"_json;
+
+  check_service test_check(
+      g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
+      [](const std::shared_ptr<check>& caller, int status,
+         const std::list<com::centreon::common::perfdata>& perfdata,
+         const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  auto snap = test_check.measure();
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perfs;
+  e_status status = test_check.compute(*snap, &output, &perfs);
+
+  EXPECT_EQ(status, e_status::ok);
+
+  EXPECT_EQ(output, "OK: services: 1 stopped");
+
+  EXPECT_EQ(perfs.size(), 7);
+
+  for (const com::centreon::common::perfdata& perf : perfs) {
+    EXPECT_NE(std::find(expected_metrics.begin(), expected_metrics.end(),
+                        perf.name()),
+              expected_metrics.end());
+    if (perf.name() == "services.stopped.count") {
       EXPECT_EQ(perf.value(), 1.0);
     } else {
       EXPECT_EQ(perf.value(), 0.0);

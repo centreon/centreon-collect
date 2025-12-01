@@ -45,7 +45,9 @@ service_enumerator::service_enumerator() {
  * @brief Destructor
  */
 service_enumerator::~service_enumerator() {
-  CloseServiceHandle(_sc_manager_handler);
+  if (_sc_manager_handler) {
+    CloseServiceHandle(_sc_manager_handler);
+  }
 }
 
 /**
@@ -57,13 +59,13 @@ void service_enumerator::enumerate_services(
     const std::shared_ptr<spdlog::logger>& logger) {
   if (filter.use_start_auto_filter()) {
     if (filter.use_start_auto_delayed()) {
-      _enumerate_services<true, false>(filter, std::move(callback), logger);
+      _enumerate_services<true, true>(filter, std::move(callback), logger);
     } else {
       _enumerate_services<true, false>(filter, std::move(callback), logger);
     }
   } else {
     if (filter.use_start_auto_delayed()) {
-      _enumerate_services<false, false>(filter, std::move(callback), logger);
+      _enumerate_services<false, true>(filter, std::move(callback), logger);
     } else {
       _enumerate_services<false, false>(filter, std::move(callback), logger);
     }
@@ -185,15 +187,17 @@ void service_enumerator::_enumerate_services(
         BOOL start_auto_delayed = FALSE;
 
         constexpr unsigned query_flags =
-            need_start_auto ? e_query_service_config_type::query_service_config
-            : 0 + need_start_auto_delayed
-                ? e_query_service_config_type::query_service_start_auto_delayed
-                : 0;
-
-        if (!_query_service_config(
-                serv->lpServiceName, query_flags, query_serv_conf_buff,
-                &query_serv_conf_buff_size, &start_auto_delayed, logger)) {
-          continue;
+            (need_start_auto ? e_query_service_config_type::query_service_config
+                             : 0) +
+            (need_start_auto_delayed
+                 ? e_query_service_config_type::query_service_start_auto_delayed
+                 : 0);
+        if constexpr (query_flags) {
+          if (!_query_service_config(
+                  serv->lpServiceName, query_flags, query_serv_conf_buff,
+                  &query_serv_conf_buff_size, &start_auto_delayed, logger)) {
+            continue;
+          }
         }
         if constexpr (need_start_auto) {
           start_type = reinterpret_cast<const QUERY_SERVICE_CONFIGA*>(
@@ -331,7 +335,7 @@ service_filter::service_filter(const rapidjson::Value& args)
         _start_auto = arg.get_bool("start-auto")
                           ? e_start_auto::auto_start | e_start_auto::boot |
                                 e_start_auto::system
-                          : e_start_auto::manual;
+                          : e_start_auto::demand;
       } else if (key == "filter-name") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
@@ -384,23 +388,23 @@ service_filter::service_filter(const rapidjson::Value& args)
         } else {
           throw exceptions::msg_fmt("exclude-display must be a string");
         }
-      } else if (key == "start_type") {
+      } else if (key == "start-type") {
         _start_auto = 0;
-        std::string value = arg.get_string("start_type");
+        std::string value = arg.get_string("start-type");
         if (value.empty()) {
           continue;
         }
         absl::AsciiStrToLower(&value);
         re2::RE2 value_re(value);
         if (!value_re.ok()) {
-          throw exceptions::msg_fmt("start_type: {} is not a valid regex",
+          throw exceptions::msg_fmt("start-type: {} is not a valid regex",
                                     value);
         }
         using namespace std::literals;
         constexpr std::array<std::pair<std::string_view, unsigned>, 5>
-            str_to_value = {{{"auto_start"sv, e_start_auto::auto_start},
+            str_to_value = {{{"auto"sv, e_start_auto::auto_start},
                              {"boot"sv, e_start_auto::boot},
-                             {"manual"sv, e_start_auto::manual},
+                             {"demand"sv, e_start_auto::demand},
                              {"disabled"sv, e_start_auto::disabled},
                              {"system"sv, e_start_auto::system}}};
         for (const auto& to_test : str_to_value) {
@@ -426,23 +430,23 @@ service_filter::service_filter(const rapidjson::Value& args)
         }
         constexpr std::array<std::pair<std::string_view, unsigned>, 14>
             str_to_value = {
-                {{"kernel_driver", SERVICE_KERNEL_DRIVER},
-                 {"file_system_driver", SERVICE_FILE_SYSTEM_DRIVER},
+                {{"kernel-driver", SERVICE_KERNEL_DRIVER},
+                 {"file-system-driver", SERVICE_FILE_SYSTEM_DRIVER},
                  {"adapter", SERVICE_ADAPTER},
-                 {"recognized_driver", SERVICE_RECOGNIZER_DRIVER},
+                 {"recognized-driver", SERVICE_RECOGNIZER_DRIVER},
                  {"driver", SERVICE_DRIVER},
-                 {"win32_own_process", SERVICE_WIN32_OWN_PROCESS},
-                 {"win32_share_process", SERVICE_WIN32_SHARE_PROCESS},
-                 {"win32", SERVICE_WIN32},
-                 {"user_service", SERVICE_USER_SERVICE},
-                 {"user_service_instance", SERVICE_USERSERVICE_INSTANCE},
-                 {"user_share_process", SERVICE_USER_SHARE_PROCESS},
-                 {"user_own_process", SERVICE_USER_OWN_PROCESS},
-                 {"interactive_process", SERVICE_INTERACTIVE_PROCESS},
-                 {"pkg_service", SERVICE_PKG_SERVICE}}};
+                 {"service-own-process", SERVICE_WIN32_OWN_PROCESS},
+                 {"service-share-process", SERVICE_WIN32_SHARE_PROCESS},
+                 {"service", SERVICE_WIN32},
+                 {"user-service", SERVICE_USER_SERVICE},
+                 {"user-service-instance", SERVICE_USERSERVICE_INSTANCE},
+                 {"user-share-process", SERVICE_USER_SHARE_PROCESS},
+                 {"user-own-process", SERVICE_USER_OWN_PROCESS},
+                 {"interactive-process", SERVICE_INTERACTIVE_PROCESS},
+                 {"pkg-service", SERVICE_PKG_SERVICE}}};
         for (const auto& to_test : str_to_value) {
           if (RE2::PartialMatch(to_test.first, value_re)) {
-            _start_auto |= to_test.second;
+            _service_type |= to_test.second;
           }
         }
       }
@@ -494,7 +498,7 @@ bool service_filter::is_allowed(DWORD service_type,
         }
         break;
       case SERVICE_DEMAND_START:
-        if (!(_start_auto & e_start_auto::manual)) {
+        if (!(_start_auto & e_start_auto::demand)) {
           return false;
         }
         break;
@@ -836,27 +840,27 @@ void check_service::help(std::ostream& help_stream) {
     critical-total-stopped: number of services in the stop state above which the service goes into the critical state
     start-auto: true: only services that start automatically will be counted
     start-type: more accurate than start-auto. Values are:
-        - auto_start
+        - auto
         - boot
-        - manual
+        - demand
         - disabled
         - system
     delayed: true, if you want to filter delayed auto start services, false if you want to filter non delayed auto start services
     type: service type. Values are:
-        - kernel_driver
-        - file_system_driver
+        - kernel-driver
+        - file-system-driver
         - adapter
-        - recognized_driver
-        - driver (include kernel_driver, file_system_driver and recognized_driver)
-        - win32_own_process
-        - win32_share_process
-        - win32 (include win32_own_process and win32_share_process)
-        - user_service
-        - user_service_instance
-        - user_share_process (include user_service and win32_share_process)
-        - user_own_process (include user_service and win32_own_process)
-        - interactive_process
-        - pkg_service
+        - recognized-driver
+        - driver (include kernel-driver, file-system-driver and recognized-driver)
+        - service-own-process
+        - service-share-process
+        - service (include service-own-process and service-share-process)
+        - user-service
+        - user-service-instance
+        - user-share-process (include user-service and service-share-process)
+        - user-own-process (include user-service and service-own-process)
+        - interactive-process
+        - pkg-service
     filter-name: regex to filter service names
     exclude-name: regex to exclude service names
     filter-display: regex to filter service display names as they appear in service manager
