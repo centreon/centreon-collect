@@ -146,7 +146,6 @@ TEST_F(check_service_test, service_no_threshold_all_running) {
                                            SERVICE_RUNNING, SERVICE_AUTO_START),
   };
 
-  SPDLOG_ERROR("un");
   mock_service_enumerator mock;
   mock.data = {std::begin(data), std::end(data)};
 
