@@ -124,7 +124,7 @@ agent_service::agent_service(
       _logger(logger),
       _stats(stats),
       _is_crypted(is_crypted),
-      _is_token_valid(is_token_valid) {
+      _is_token_valid(std::move(is_token_valid)) {
   if (!_conf) {
     _conf = std::make_shared<agent_config>(100, 10, 30);
     SPDLOG_LOGGER_INFO(logger,
@@ -148,10 +148,10 @@ std::shared_ptr<agent_service> agent_service::load(
     const std::shared_ptr<spdlog::logger>& logger,
     const agent_stat::pointer& stats,
     const bool& is_crypted,
-    validator is_token_valid) {
+    validator&& is_token_valid) {
   std::shared_ptr<agent_service> ret = std::make_shared<agent_service>(
       io_context, conf, std::move(handler), logger, stats, is_crypted,
-      is_token_valid);
+      std::move(is_token_valid));
   ret->init();
   return ret;
 }

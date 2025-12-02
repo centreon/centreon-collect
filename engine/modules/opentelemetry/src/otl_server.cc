@@ -328,7 +328,7 @@ otl_server::pointer otl_server::load(
 
   ret->_agent_service = centreon_agent::agent_service::load(
       io_context, agent_config, handler, logger, agent_stats,
-      conf->is_crypted(), token_validator);
+      conf->is_crypted(), std::move(token_validator));
 
   ret->start();
   return ret;

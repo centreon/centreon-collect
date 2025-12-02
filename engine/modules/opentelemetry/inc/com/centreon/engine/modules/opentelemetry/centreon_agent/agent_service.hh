@@ -55,7 +55,7 @@ class agent_service : public agent::AgentService::Service,
                 const std::shared_ptr<spdlog::logger>& logger,
                 const agent_stat::pointer& stats,
                 const bool& _is_crypted,
-                validator is_token_valid);
+                validator&& is_token_valid);
 
   void init();
 
@@ -66,7 +66,7 @@ class agent_service : public agent::AgentService::Service,
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats,
       const bool& _is_crypted,
-      validator is_token_valid);
+      validator&& is_token_valid);
 
   // disable synchronous version of this method
   ::grpc::Status Export(
