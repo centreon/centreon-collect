@@ -719,7 +719,7 @@ jobs:
         with:
           script: |
             const alma10_mariadb_10_11 = {
-              "operating_system": "alma9",
+              "operating_system": "alma10",
               "database": "mariadb:10.11",
               "arch": "amd64"
             };
@@ -829,7 +829,8 @@ jobs:
             if (
               ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
               || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}' 
+              || '${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true')
             ) {
               matrix = {
                 ...matrix,
@@ -838,6 +839,13 @@ jobs:
               collectMatrix = collectConfigs;
               cmaMatrix = cmaConfigs;
             }
+
+            matrix = {
+              ...matrix,
+              "operating_systems": configs,
+            };
+            collectMatrix = collectConfigs;
+            cmaMatrix = cmaConfigs;
 
             console.log('matrix', matrix);
 
