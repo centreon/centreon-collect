@@ -128,7 +128,7 @@ TEST(config, reversed_grpc_streaming_token) {
   f.close();
 
   config conf(_json_config_path);  // Declare and initialize conf
-  ASSERT_TRUE(conf.get_trusted_tokens().contains("token1"));
+  ASSERT_TRUE(conf.get_trusted_tokens()->contains("token1"));
   ASSERT_TRUE(conf.use_encryption());
   ASSERT_TRUE(conf.get_security_mode() ==
               com::centreon::common::grpc::grpc_config::TLS_INSECURE);

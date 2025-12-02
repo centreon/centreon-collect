@@ -122,7 +122,8 @@ config::config(const std::string& registry_key) {
   _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
 
   if (_reverse_connection)
-    _trusted_tokens.insert(get_sz_reg_or_default("token", ""));
+    _trusted_tokens = std::make_shared<const absl::flat_hash_set<std::string>>(
+        absl::flat_hash_set<std::string>{get_sz_reg_or_default("token", "")});
   else
     _token = get_sz_reg_or_default("token", "");
 
