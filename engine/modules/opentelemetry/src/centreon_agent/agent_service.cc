@@ -117,7 +117,7 @@ agent_service::agent_service(
     const std::shared_ptr<spdlog::logger>& logger,
     const agent_stat::pointer& stats,
     const bool& is_crypted,
-    validator is_token_valid)
+    validator&& is_token_valid)
     : _io_context(io_context),
       _conf(conf),
       _metric_handler(handler),

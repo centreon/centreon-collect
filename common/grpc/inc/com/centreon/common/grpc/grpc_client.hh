@@ -32,7 +32,7 @@ class TokenInjectingInterceptor : public ::grpc::experimental::Interceptor {
   std::string _token;
 
  public:
-  TokenInjectingInterceptor(std::string token) : _token(std::move(token)) {}
+  TokenInjectingInterceptor(const std::string& token) : _token(token) {}
 
   void Intercept(
       ::grpc::experimental::InterceptorBatchMethods* methods) override {
