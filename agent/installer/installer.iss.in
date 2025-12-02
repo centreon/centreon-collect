@@ -285,8 +285,6 @@ begin
   CommonNameEdit.Hide;
   CommonNameInfoBitmapImage.Hide;
 
-  TokenLabel.Hide;
-  TokenEdit.Hide;
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
@@ -305,8 +303,6 @@ begin
       PrivateKeyBrowseButton.Show;
       PrivateKeyInfoBitmapImage.Show;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end
     else
@@ -323,8 +319,6 @@ begin
           CommonNameInfoBitmapImage.Show;
         end;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end;
   end
@@ -1340,7 +1334,6 @@ begin
   TokenLabel.Parent := EncryptionPage.Surface;
   TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
   TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
 
   TokenEdit := TNewEdit.Create(EncryptionPage);
   TokenEdit.Parent := EncryptionPage.Surface;
@@ -1348,7 +1341,6 @@ begin
   TokenEdit.Left := HostNameEdit.Left;
   TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
   TokenEdit.Text := '';
-  TokenEdit.Hide;
 
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1736,14 +1728,14 @@ begin
           exit;
         end;
       end;
-      if TokenEdit.Text = '' then begin
+    end;
+     if TokenEdit.Text = '' then begin
         TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
         exit;
       end;
-    end;
     Result := True;
   end
   else

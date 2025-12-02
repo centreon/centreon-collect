@@ -93,5 +93,21 @@ grpc_client_base::grpc_client_base(
                 conf->get_max_message_length());
   }
 
-  _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+  if (!conf->is_crypted() && !_conf->get_token().empty()) {
+    // No TLS + token → use interceptors to inject Authorization header
+    std::vector<std::unique_ptr<
+        ::grpc::experimental::ClientInterceptorFactoryInterface>>
+        interceptor_creators;
+    interceptor_creators.emplace_back(
+        std::make_unique<TokenInterceptorFactory>(_conf->get_token()));
+
+    SPDLOG_LOGGER_DEBUG(
+        _logger, "creating insecure gRPC channel with token interceptor");
+
+    _channel = ::grpc::experimental::CreateCustomChannelWithInterceptors(
+        conf->get_hostport(), creds, args, std::move(interceptor_creators));
+  } else {
+    // Either secure channel (TLS) or no token: normal channel
+    _channel = ::grpc::CreateCustomChannel(conf->get_hostport(), creds, args);
+  }
 }
