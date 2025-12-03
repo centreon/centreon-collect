@@ -18,6 +18,7 @@ BAWORST_ACK
     ...    Then the Business Activity is acknowledged
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
+    ...    We also check that we have no bam filter error
 
     [Tags]    broker    downtime    engine    bam    MON-160249
     Ctn BAM Init
@@ -64,6 +65,10 @@ BAWORST_ACK
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
     Disconnect From Database
+
+    #we must not have filter error
+    ${error_found}     Grep File     ${centralLog}      The configured write filters for the endpoint 'centreon-bam-reporting' contain forbidden filters
+    Should Be Empty    ${error_found}    filter errors found in ${centralLog}
 
 BAWORST
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
