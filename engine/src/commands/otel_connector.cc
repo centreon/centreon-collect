@@ -40,7 +40,7 @@ absl::flat_hash_map<std::string, std::shared_ptr<otel_connector>>
 std::shared_ptr<otel_connector> otel_connector::create(
     const std::string& connector_name,
     const std::string& cmd_line,
-    commands::command_listener* listener) {
+    const std::shared_ptr<commands::command_listener>& listener) {
   std::shared_ptr<otel_connector> cmd(
       std::make_shared<otel_connector>(connector_name, cmd_line, listener));
   auto iter_res = _commands.emplace(connector_name, cmd);
@@ -139,9 +139,10 @@ void otel_connector::init_all() {
  * @param cmd_line
  * @param listener
  */
-otel_connector::otel_connector(const std::string& connector_name,
-                               const std::string& cmd_line,
-                               commands::command_listener* listener)
+otel_connector::otel_connector(
+    const std::string& connector_name,
+    const std::string& cmd_line,
+    const std::shared_ptr<commands::command_listener>& listener)
     : command(connector_name, cmd_line, listener, e_type::otel),
       _host_serv_list(std::make_shared<otel::host_serv_list>()),
       _logger(log_v2::instance().get(log_v2::OTL)) {
