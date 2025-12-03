@@ -1598,9 +1598,6 @@ int host::handle_async_check_result_3x(
     set_state_type(soft);
   /* ─────────────────────────────────────────────────────────────────────── */
 
-  /* send data to event broker */
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this, get_check_type(),
-                    nullptr);
   return OK;
 }
 
@@ -1775,29 +1772,6 @@ int host::run_async_check(int check_options,
 
   // Send broker event.
   timeval start_time{0, 0};
-  int res = broker_host_check(NEBTYPE_HOSTCHECK_ASYNC_PRECHECK, this,
-                              checkable::check_active, nullptr);
-
-  // Host check was cancel by NEB module. Reschedule check later.
-  if (NEBERROR_CALLBACKCANCEL == res) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Some broker module cancelled check of host '" << name()
-        << "'";
-    runtime_logger->error(
-        "Error: Some broker module cancelled check of host '{}'", name());
-    return ERROR;
-  }
-  // Host check was overriden by NEB module.
-  else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of host '" << name()
-        << "' so we'll bail out";
-    SPDLOG_LOGGER_TRACE(
-        functions_logger,
-        "Some broker module overrode check of host '{}' so we'll bail out",
-        name());
-    return OK;
-  }
 
   // Checking starts.
   engine_logger(dbg_functions, basic) << "Checking host '" << name() << "'...";
