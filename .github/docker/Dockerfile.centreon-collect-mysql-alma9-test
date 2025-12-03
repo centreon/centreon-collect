@@ -21,9 +21,6 @@ rpm -ivh mysql84-community-release-el9-1.noarch.rpm
 #disable native mysql package from platform vendor
 yum module -y disable mysql
 
-#mandatory to install glibc 2.35
-dnf update -y
-
 dnf install --best -y \
     gcc \
     gcc-c++ \
