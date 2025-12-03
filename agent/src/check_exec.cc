@@ -289,13 +289,12 @@ static std::string _build_custom_command_line(const Service& serv,
 
   const auto& custom_map = config::instance().get_custom_checks();
   if (custom_map.empty()) {
-    throw msg_fmt("no custom checks defined for service {}",
-                  serv.service_description());
+    throw msg_fmt("no custom checks defined in agent configuration");
   }
 
   auto it = custom_map.find(name);
   if (it == custom_map.end()) {
-    throw msg_fmt("unknown custom check '{}' for service {}", name,
+    throw msg_fmt("unknown custom check '{}' called by service '{}'", name,
                   serv.service_description());
   }
 
@@ -334,6 +333,6 @@ check_custom::check_custom(
                  std::move(handler),
                  stat,
                  credentials_decrypt) {
-  SPDLOG_LOGGER_INFO(logger, "custom check command line: {}",
-                     _build_custom_command_line(serv, args));
+  SPDLOG_LOGGER_DEBUG(logger, "custom check command line: {}",
+                      _build_custom_command_line(serv, args));
 }

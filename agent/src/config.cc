@@ -109,27 +109,8 @@ const std::string_view config::config_schema(R"(
             "description": "key for token",
             "type": "string"
         },"custom_checks":{
-          "description": "custom checks",
-          "type": "array",
-          "items": {
-              "type": "object",
-              "properties": {
-                  "name": {
-                      "description": "name of the custom check",
-                      "type": "string",
-                      "minLength": 1
-                  },
-                  "path": {
-                      "description": "path of the custom check shared library",
-                      "type": "string",
-                      "pattern": "[\\w\\.:]+:\\w+"
-                  }
-              },
-              "required": [
-                  "name",
-                  "path"
-              ]
-          }
+          "description": "path to custom checks",
+          "type": "string"
         }
     },
     "required": [
@@ -224,13 +205,6 @@ config::config(const std::string& path) {
   }
 
   if (json_config.has_member("custom_checks")) {
-    const rapidjson::Value& custom_checks_v =
-        json_config.get_member("custom_checks");
-    for (const auto& v : custom_checks_v.GetArray()) {
-      common::rapidjson_helper custom_check_params(v);
-      std::string name = custom_check_params.get_string("name");
-      std::string path = custom_check_params.get_string("path");
-      _custom_checks.emplace(name, path);
-    }
+    _path_to_custom_checks = json_config.get_string("custom_checks");
   }
 }
