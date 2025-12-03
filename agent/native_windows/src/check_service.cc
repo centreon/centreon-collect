@@ -171,17 +171,19 @@ void service_enumerator::_enumerate_services(
   DWORD bytes_needed = 0;
   DWORD services_count = 0;
 
+  std::unique_ptr<unsigned char[]> query_serv_conf_buff;
+  size_t query_serv_conf_buff_size = 0;
+  if constexpr (need_start_auto) {
+    query_serv_conf_buff =
+        std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
+    query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
+  }
+
   while (true) {
     BOOL success = _enumerate_services(services, &services_count);
     if (success || GetLastError() == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
 
-      std::unique_ptr<unsigned char[]> query_serv_conf_buff;
-      if constexpr (need_start_auto) {
-        query_serv_conf_buff =
-            std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
-      }
-      size_t query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
       for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
         DWORD start_type = 0;
         BOOL start_auto_delayed = FALSE;
@@ -332,6 +334,10 @@ service_filter::service_filter(const rapidjson::Value& args)
          ++member_iter) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "start-auto") {
+        const rapidjson::Value& val = member_iter->value;
+        if (val.IsString() && !*val.GetString()) {
+          continue;
+        }
         _start_auto = arg.get_bool("start-auto")
                           ? e_start_auto::auto_start | e_start_auto::boot |
                                 e_start_auto::system

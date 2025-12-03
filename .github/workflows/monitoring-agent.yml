@@ -161,10 +161,11 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       # Install Inno Setup (ISCC) and expose its path
+      # To remove later when innosetup version will be stable on runners
       - name: Install Inno Setup
         shell: powershell
         run: |
-          choco install innosetup -y --no-progress
+          choco install innosetup -y --no-progress --version 6.6.1
 
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1

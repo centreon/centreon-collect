@@ -19,6 +19,633 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 *** Test Cases ***
 
+BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
+    [Documentation]    Given and agent who has to execute checks with different intervals, we expect to find these intervals in data_bin
+    [Tags]    broker    engine    opentelemetry    MON-164494
+    Ctn Config Engine    ${1}    ${2}    ${3}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{ "export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    # we use 3 services with different intervals and we expect to find these intervals in data_bin
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    retry_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    health_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    3
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    retry_interval    3
+    Ctn Set Services Passive       0    service_[1-3]
+
+
+    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}    Ctn Check Service Check Interval   host_1    service_1    80    10    5
+    Should Be True    ${result}    check_interval is not respected for service_1
+    ${result}    Ctn Check Service Check Interval   host_1    service_2    80    20    5
+    Should Be True    ${result}    check_interval is not respected for service_2
+    ${result}    Ctn Check Service Check Interval   host_1    service_3    80    30    5
+    Should Be True    ${result}    check_interval is not respected for service_3
+
+
+BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
+    [Documentation]    Given an agent with eventlog check, we expect status, output and metrics
+    [Tags]    broker    engine    opentelemetry    MON-155395
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+
+
+    Ctn Engine Config Add Command    ${0}    eventlog_check   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -1s and level in ('error', 'warning', critical)", "empty-state": "No event as expected"} }    OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_warning    {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "written > -1s && level == 'critical'"} }     OTEL connector
+    Ctn Engine Config Add Command    ${0}    eventlog_check_critical   {"check":"eventlog_nscp", "args":{ "file": "Application", "filter-event": "written > -2w", "warning-status": "level in ('info')", "output-syntax": "{status}: {count} '{problem-list}'", "critical-status": "level == 'info'", "verbose": "0"} }    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    Log To Console    service_1 must be ok
+    ${result}     Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start}    0    HARD    No event as expected
+    Should Be True    ${result}    resources table not updated for service_1
+
+    ${metrics_list}    Create List   critical-count    warning-count
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    Should Be True    ${result}    eventlog metrics not updated
+
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check_warning
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} > 1    output is not multiline
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    eventlog_check_critical
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+    ${nb_lines}    Get Line Count    ${result[1]}
+    Should Be True    ${nb_lines} == 1    output must not be multiline
+
+
+BEOTEL_CENTREON_AGENT_CEIP
+    [Documentation]    Scenario: Agent and "centreon_storage.agent_information" Statistics
+    ...    Given Engine connected to Broker
+    ...    When an agent connects to Engine
+    ...	  Then a message is sent to Broker that results in a new row in the "centreon_storage.agent_information" table.
+
+    [Tags]    broker    engine    opentelemetry    MON-145030
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"check_interval":10, "export_period":15}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    health_check
+    Ctn Set Services Passive       0    service_[1-2]
+
+    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Db    metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    10
+
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}    Ctn Check Agent Information    1    1    120
+    Should Be True    ${result}    agent_information table not updated as expected
+
+    Log To Console    "stop engine"
+    Ctn Stop Engine
+    ${result}    Ctn Check Agent Information    0    0    120
+    Should Be True    ${result}    agent_information table not updated as expected
+
+
+BEOTEL_CENTREON_AGENT_LINUX_NO_DEFUNCT_PROCESS
+    [Documentation]    agent check host and we expect to get it in check result
+    [Tags]    broker    engine    opentelemetry    MON-156455
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux agent version"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    2
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    retry_interval    1
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   turlututu    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    30s
+
+    ${nb_agent_process}    Ctn Get Nb Process    centagent
+    Should Be True    ${nb_agent_process} >= 1 and ${nb_agent_process} <= 2    "There should be no centagent defunct process"
+
+    Log To Console    Stop agent
+    Ctn Kindly Stop Agent
+
+    FOR   ${i}    IN RANGE    1    10
+        ${nb_agent_process}    Ctn Get Nb Process    centagent
+        IF    ${nb_agent_process} == 0
+            Exit For Loop
+        ELSE
+            Sleep    2s
+        END
+    END
+
+    Should Be True    ${nb_agent_process} == 0    "There should be no centagent process"
+
+NON_TLS_CONNECTION_WARNING
+    [Documentation]    Given an agent starts a non-TLS connection,
+    ...    we expect to get a warning message.
+    [Tags]    agent    engine    opentelemetry    MON-159308    
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --server=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    grpc    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
+    
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ../reports/centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
+
+
+NON_TLS_CONNECTION_WARNING_REVERSED
+    [Documentation]    Given an agent starts a non-TLS connection reversed,
+    ...    we expect to get a warning message.
+    [Tags]    agent    engine    opentelemetry    MON-159308 
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${host_host_name}      Ctn Host Hostname
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    Ctn Add Otl ServerModule   0    ${config_content}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Reverse Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for engine to connect to agent
+    ${content}    Create List    init from ${host_host_name}:4320
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
+    
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+            Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ../reports/reverse_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Not Be Empty    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
+
+NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
+    [Documentation]    Given agent with encrypted reversed connection, we expect no warning message.
+    [Tags]    agent    engine    opentelemetry    MON-159308    
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    ${host_host_name}      Ctn Host Hostname
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4321, "encryption": "full", "ca_certificate": "/tmp/reverse_server_grpc.crt"}]}}
+
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive    ${0}    host_1 
+
+    ${echo_command}   Ctn Echo Command  "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+
+    ${token1}    Ctn Create Jwt Token    ${3600}
+
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        Ctn Add Token Agent Otl Server   0    0    ${token1}
+    END
+    
+
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Reverse Centreon Agent    /tmp/reverse_server_grpc.key    /tmp/reverse_server_grpc.crt    ${None}    ${token1}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # for win : 
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+            ${log_path}    Set Variable    ${agentlog}
+    ELSE
+            ${log_path}    Set Variable    ../reports/encrypted_reverse_centagent.log
+    END
+
+    # Let's wait for engine to connect to agent
+    ${content}    Create List    init from ${host_host_name}:4321
+    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Not Be True   ${result}   "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION."
+    
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ../reports/encrypted_reverse_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION."
+    END
+
+NON_TLS_CONNECTION_WARNING_ENCRYPTED
+    [Documentation]    Given agent with encrypted connection, we expect no warning message.
+    [Tags]    agent    engine    opentelemetry    MON-159308 
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"},"max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${3600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Not Be True   ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
+    
+    # check if the agent is in windows or not, to get the right log path
+    ${cur_dir}    Ctn Workspace Win
+    IF    '${cur_dir}' == 'None'
+        # not windows 
+            ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+            ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    22    agent_format=True
+            Should Not Be True    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    ELSE
+        # in windows ,Ctn Start Agent doesn't create the agent
+        #  the agent are start in a different time, so we cant use find in the log
+        ${log_path}    Set Variable    ../reports/encrypted_centagent.log
+        ${result}    Grep File    ${log_path}    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+        Should Be Empty    ${result}    "This warrning message shouldn't appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    END
+
+NON_TLS_CONNECTION_WARNING_FULL
+    [Documentation]    Given an agent starts a non-TLS connection,
+    ...    we expect to get a warning message.
+    ...    After 1 hour, we expect to get a warning message about the connection time expired
+    ...    and the connection killed.
+    [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
+    # this test should not be running in CI
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0, "centreon_agent":{"export_period":10}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --server=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+
+    Ctn Engine Config Add Command    ${0}  otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    grpc    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    Sleep    1s
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
+    
+
+    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    Sleep    3580s
+    ${start}    Get Current Date
+
+    ${content}    Create List    NON TLS CONNECTION TIME EXPIRED // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION TIME EXPIRED // THIS IS NOT ALLOWED IN PRODUCTION.
+
+    ${content}    Create List    CONNECTION KILLED, AGENT NEED TO BE RESTART
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
+
+
+NON_TLS_CONNECTION_WARNING_FULL_REVERSED
+    [Documentation]    Given an agent starts a non-TLS connection reverse,
+    ...    we expect to get a warning message.
+    ...    After 1 hour, we expect to get a warning message about the connection time expired
+    ...    and the connection killed.
+    [Tags]    agent    engine    opentelemetry    MON-159308    unstable    Only_linux
+    # this test should not be running in CI
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    ${host_host_name}      Ctn Host Hostname
+    ${config_content}    Catenate    {"max_length_grpc_log":0,"centreon_agent":{"export_period":5, "reverse_connections":[{"host": "${host_host_name}","port": 4320}]}} 
+    Ctn Add Otl ServerModule   0    ${config_content}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    Ctn Set Hosts Passive  ${0}  host_1 
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Reverse Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for engine to connect to agent
+    ${content}    Create List    init from ${host_host_name}:4320
+    ${result}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
+    Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
+    Sleep    1s
+
+    # Let's wait for engine to connect to agent
+    ${content}    Create List    init from ${host_host_name}:4320
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
+
+    ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION ARE ALLOWED FOR Agents // THIS IS NOT ALLOWED IN PRODUCTION.
+    
+    ${content}    Create List    NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION CONFIGURED // THIS IS NOT ALLOWED IN PRODUCTION.
+    Sleep    3580s
+    ${start}    Get Current Date
+
+    ${content}    Create List    NON TLS CONNECTION TIME EXPIRED // THIS IS NOT ALLOWED IN PRODUCTION
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : NON TLS CONNECTION TIME EXPIRED // THIS IS NOT ALLOWED IN PRODUCTION.
+
+    ${content}    Create List    CONNECTION KILLED, AGENT NEED TO BE RESTART
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=True
+    Should Be True    ${result}    "A warning message should appear : CONNECTION KILLED, AGENT NEED TO BE RESTART.
+
 BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
     [Documentation]    Given the agent is configured with native checks for services
     ...    And the OpenTelemetry server module is added

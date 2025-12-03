@@ -1866,7 +1866,7 @@ begin
       Exit;
     end;
 
-    Frm := CreateCustomForm;
+    Frm := CreateCustomForm(ScaleX(256), ScaleY(128), False, False);
     Frm.Caption := 'Centreon Uninstall';
 
     Lbl := TLabel.Create(Frm);

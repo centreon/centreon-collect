@@ -78,6 +78,14 @@ jobs:
 
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      # Install Inno Setup (ISCC) and expose its path
+      # To remove later when innosetup version will be stable on runners
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y --no-progress --version 6.6.1
+
       - name: compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
         shell: powershell
@@ -195,7 +203,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: reports-cma-windows
+          name: reports-${{matrix.robot-files}}-windows
           path: reports
           retention-days: 1
 
