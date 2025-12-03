@@ -839,7 +839,7 @@ jobs:
               cmaMatrix = cmaConfigs;
             }
 
-            // set to true to test all OSs
+            // set to true to test all OSs, false by default
             if (true) {
               matrix = {
                 ...matrix,
