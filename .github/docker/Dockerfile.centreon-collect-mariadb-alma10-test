@@ -23,6 +23,7 @@ dnf install --best -y \
     mariadb-server \
     mariadb \
     openssh-server \
+    openssl \
     python3 \
     python3-devel \
     python3-pip \

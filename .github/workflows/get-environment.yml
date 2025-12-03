@@ -829,8 +829,7 @@ jobs:
             if (
               ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
               || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}' 
-              || '${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true')
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
             ) {
               matrix = {
                 ...matrix,
@@ -840,12 +839,15 @@ jobs:
               cmaMatrix = cmaConfigs;
             }
 
-            matrix = {
-              ...matrix,
-              "operating_systems": configs,
-            };
-            collectMatrix = collectConfigs;
-            cmaMatrix = cmaConfigs;
+            // set to true to test all OSs
+            if (true) {
+              matrix = {
+                ...matrix,
+                "operating_systems": configs,
+              };
+              collectMatrix = collectConfigs;
+              cmaMatrix = cmaConfigs;
+            }
 
             console.log('matrix', matrix);
 
@@ -908,13 +910,7 @@ jobs:
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]).filter(config => {
-              // CMA does not support robot tests on noble OS
-              if (config.operating_system === 'noble') {
-                return false;
-              }
-              return true;
-            });
+            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]);
             console.log('cmaRobotMatrix', cmaRobotMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 
