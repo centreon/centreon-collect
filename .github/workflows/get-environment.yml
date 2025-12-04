@@ -743,6 +743,11 @@ jobs:
               "database": "mysql:8.4",
               "arch": "amd64"
             };
+            const trixie_mariadb_11_8 = {
+              "operating_system": "trixie",
+              "database": "mariadb:11.8",
+              "arch": "amd64"
+            };
             const jammy_mysql_8_4 = {
               "operating_system": "jammy",
               "database": "mysql:8.4",
@@ -796,6 +801,7 @@ jobs:
               alma8_mysql_8_0,
               bullseye_mysql_8_4,
               bookworm_mysql_8_4,
+              trixie_mariadb_11_8,
               jammy_mysql_8_4,
               noble_mysql_8_4
             ];
@@ -840,7 +846,7 @@ jobs:
             }
 
             // set to true to test all OSs, false by default
-            if (true) {
+            if (false) {
               matrix = {
                 ...matrix,
                 "operating_systems": configs,

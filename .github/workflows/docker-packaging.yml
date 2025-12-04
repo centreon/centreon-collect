@@ -43,6 +43,10 @@ jobs:
           - runner: centreon-collect
             distrib: alma10
           - runner: centreon-collect
+            distrib: trixie
+          - runner: centreon-collect-arm64
+            distrib: trixie
+          - runner: centreon-collect
             distrib: bookworm
           - runner: centreon-collect-arm64
             distrib: bookworm

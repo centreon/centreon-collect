@@ -68,6 +68,12 @@ jobs:
             distrib: bookworm
             database: mariadb
           - runner: centreon-collect
+            distrib: trixie
+            database: mariadb
+          - runner: centreon-collect-arm64
+            distrib: trixie
+            database: mariadb
+          - runner: centreon-collect
             distrib: bullseye
             database: mariadb
           - runner: centreon-collect-arm64

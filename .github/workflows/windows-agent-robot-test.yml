@@ -1,5 +1,6 @@
+name: windows-agent-robot-test
+
 concurrency:
-  name: windows-agent-robot-test
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 

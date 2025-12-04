@@ -81,6 +81,14 @@ runs:
           DISTRIB_FAMILY="debian"
           DISTRIB_NAME="bookworm"
           REPO_DISTRIB_NAME="bookworm"
+        elif [[ "${{ inputs.distrib }}" == "trixie" ]]; then
+          PACKAGE_DISTRIB_SEPARATOR="+"
+          PACKAGE_VERSION_SEPARATOR="_"
+          PACKAGE_DISTRIB_NAME="deb13u1"
+          PACKAGE_EXTENSION="deb"
+          DISTRIB_FAMILY="debian"
+          DISTRIB_NAME="trixie"
+          REPO_DISTRIB_NAME="trixie"
         elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"
