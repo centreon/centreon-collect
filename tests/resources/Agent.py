@@ -79,7 +79,7 @@ agent_config = f"""
     "host":"host_1",
     "log_type":"file",
     "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log",
-    "custom_checks": "{VAR_ROOT}/lib/centreon-engine/custom_checks.ini" """
+    "custom_check_file": "{VAR_ROOT}/lib/centreon-engine/custom_checks.ini" """
 
 
 agent_encrypted_config = f"""

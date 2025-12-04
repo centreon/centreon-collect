@@ -108,7 +108,7 @@ const std::string_view config::config_schema(R"(
         },"token":{
             "description": "key for token",
             "type": "string"
-        },"custom_checks":{
+        },"custom_check_file":{
           "description": "path to custom checks",
           "type": "string"
         }
@@ -204,7 +204,7 @@ config::config(const std::string& path) {
     }
   }
 
-  if (json_config.has_member("custom_checks")) {
-    _path_to_custom_checks = json_config.get_string("custom_checks");
+  if (json_config.has_member("custom_check_file")) {
+    _path_to_custom_checks = json_config.get_string("custom_check_file");
   }
 }

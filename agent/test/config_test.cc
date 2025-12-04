@@ -189,7 +189,7 @@ TEST(config, custom_checks) {
     "port":2500,
     "encryption":"no",
     "token":"token1",
-    "custom_checks": "./tests/custom_check.ini"
+    "custom_check_file": "./tests/custom_check.ini"
 })";
   f.close();
 

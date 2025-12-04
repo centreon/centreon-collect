@@ -127,5 +127,7 @@ config::config(const std::string& registry_key) {
   else
     _token = get_sz_reg_or_default("token", "");
 
+  _path_to_custom_checks = get_sz_reg_or_default("custom_check_file", "");
+
   RegCloseKey(h_key);
 }
