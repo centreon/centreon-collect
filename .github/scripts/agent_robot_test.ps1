@@ -59,7 +59,7 @@ openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout reverse_server_
 # create custom check file
 Set-Content -Path "${current_dir}\reports\custom_check.txt" -Value @(
     '[custom_checks]'
-    'check_echo=C:\Windows\System32\cmd.exe /C echo Hello from custom check'
+    'check_echo=C:\Windows\System32\cmd.exe /C echo $ARG2$ $ARG1$ from custom check'
     'check_ping=C:\Windows\System32\cmd.exe /C ping 127.0.0.1'
 )
 

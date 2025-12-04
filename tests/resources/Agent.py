@@ -125,7 +125,8 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
     with open(f"{VAR_ROOT}/lib/centreon-engine/custom_checks.ini", "w") as ff:
         ff.write("[custom_checks]\n")
-        ff.write("check_echo = " + ctn_echo_command("$ARG2$ $ARG1$") + "\n")
+        ff.write("check_echo = " +
+                 ctn_echo_command("$ARG2$ $ARG1$ from custom check") + "\n")
         ff.write("custom_check_2 = /path/to/custom_check_2 -c /arg=<value>\n")
 
     with open(f"{CONF_DIR}/centagent.json", "w") as ff:

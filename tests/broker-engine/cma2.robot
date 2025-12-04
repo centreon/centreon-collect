@@ -147,8 +147,14 @@ BEOTEL_CENTREON_AGENT_CHECK_EVENTLOG
 
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
-    [Documentation]    agent check service with native check storage and we expect to get it in check result
-    [Tags]    broker    engine    opentelemetry    MON-147936
+    [Documentation]    Scenario: Native custom check echoes provided arguments
+    ...    Given Centreon Engine is configured with an OpenTelemetry server module and OTEL connector
+    ...    And service_1 is set as a passive service with defined check and retry intervals
+    ...    And the check command "otel_check" runs the native custom check "check_echo" with ARG1 "user" and ARG2 "hello"
+    ...    When Broker, Engine and Agent are started and the OTEL server becomes ready
+    ...    Then service_1 must reach HARD OK state within 120 seconds
+    ...    And the service output must be "hello user from custom check"
+    [Tags]    broker    engine    opentelemetry    MON-190240
 
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
@@ -164,7 +170,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
     Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
 
-    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "custom", "args": { "name": "check_echo", "ARG1": "world", "ARG2": "hello"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "custom", "args": { "name": "check_echo", "ARG1": "user", "ARG2": "hello"}}    OTEL connector
 
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
@@ -188,7 +194,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
 
     ${result}     Ctn Check Service Resource Status With Timeout rt   host_1    service_1    0    120    HARD
     Should Be True    ${result}    resources table not updated
-    Should Be Equal    ${result[1]}    hello world
+    Should Be Equal    ${result[1]}    hello user from custom check
     
 
 BEOTEL_CENTREON_AGENT_CEIP
