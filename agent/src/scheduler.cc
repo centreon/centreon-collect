@@ -790,6 +790,10 @@ std::shared_ptr<check> scheduler::default_check_builder(
         return std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
+      } else if (check_type == "custom"sv) {
+        return std::make_shared<check_custom>(
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat, credentials_decrypt);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
         return std::make_shared<check_uptime>(

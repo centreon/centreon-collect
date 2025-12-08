@@ -56,6 +56,14 @@ New-NetFirewallRule -DisplayName "Allow Port 4321" -Direction Inbound -Action Al
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server_grpc.key -out server_grpc.crt -subj "/CN=localhost"
 openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout reverse_server_grpc.key -out reverse_server_grpc.crt -subj "/CN=${my_host_name}"
 
+# create custom check file
+Set-Content -Path "${current_dir}\reports\custom_check.txt" -Value @(
+    '[custom_checks]'
+    'check_echo=C:\Windows\System32\cmd.exe /C echo $ARG2$ $ARG1$ from custom check'
+    'check_ping=C:\Windows\System32\cmd.exe /C ping 127.0.0.1'
+)
+
+
 
 $agent_log_path = $current_dir + "\reports\centagent.log"
 
@@ -63,7 +71,7 @@ $agent_log_path = $current_dir + "\reports\centagent.log"
 $installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 Write-Host "install agent only  (agent initiated connection, no encryption)"
-$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent1', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8'
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent1', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8', "/CUSTOMCHECKFILE=${current_dir}\reports\custom_check.txt"
 
 # Better: get the process, wait
 Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args

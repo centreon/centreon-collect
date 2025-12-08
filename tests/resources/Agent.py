@@ -72,13 +72,14 @@ def ctn_get_agent_conf_path():
     return CONF_DIR+"/centagent.json"
 
 
-agent_config = """
-{
+agent_config = f"""
+{{
     "log_level":"trace",
     "endpoint":"localhost:4317",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
+    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log",
+    "custom_check_file": "{VAR_ROOT}/lib/centreon-engine/custom_checks.ini" """
 
 
 agent_encrypted_config = f"""
@@ -122,6 +123,12 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
     token_default = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
 
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
+    with open(f"{VAR_ROOT}/lib/centreon-engine/custom_checks.ini", "w") as ff:
+        ff.write("[custom_checks]\n")
+        ff.write("check_echo = " +
+                 ctn_echo_command("$ARG2$ $ARG1$ from custom check") + "\n")
+        ff.write("custom_check_2 = /path/to/custom_check_2 -c /arg=<value>\n")
+
     with open(f"{CONF_DIR}/centagent.json", "w") as ff:
         if cert_path is not None or ca_path is not None:
             ff.write(agent_encrypted_config)
