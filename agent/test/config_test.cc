@@ -178,3 +178,29 @@ TEST(config, new_fields) {
   ASSERT_EQ(conf.get_ca_certificate_file(), "/path/to/ca.crt");
   ASSERT_EQ(conf.get_ca_name(), "toto");
 }
+
+TEST(config, custom_checks) {
+  ::remove(_json_config_path.c_str());
+  std::ofstream f(_json_config_path);
+  f << R"(
+{   
+    "host":"127.0.0.1",
+    "endpoint":"host1.domain2:4317",
+    "port":2500,
+    "encryption":"no",
+    "token":"token1",
+    "custom_check_file": "./tests/custom_check.ini"
+})";
+  f.close();
+
+  config conf(_json_config_path);  // Declare and initialize conf
+
+  ASSERT_EQ(conf.get_path_to_custom_checks(), "./tests/custom_check.ini");
+  conf.read_custom_checks();
+
+  const auto& custom_checks = conf.get_custom_checks();
+  ASSERT_EQ(custom_checks.size(), 2);
+  ASSERT_EQ(custom_checks.at("check_echo"), "/usr/bin/echo \"$ARG2$ $ARG1$\"");
+  ASSERT_EQ(custom_checks.at("custom_check_2"),
+            "/path/to/custom_check_2 -c /arg=<value>");
+}
