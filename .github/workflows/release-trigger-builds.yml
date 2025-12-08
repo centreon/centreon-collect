@@ -174,7 +174,7 @@ jobs:
           echo "Branch created: $NEW_BRANCH"
 
           # Final var exports
-          echo "previous_tag=$PREVIOUS_RELEASE_BUNDLE_TAG" >> $GITHUB_OUTPUT
+          echo "previous_tag=$PREVIOUS_STABLE_BUNDLE_TAG" >> $GITHUB_OUTPUT
           echo "new_branch=$NEW_BRANCH" >> $GITHUB_OUTPUT
 
         env:
