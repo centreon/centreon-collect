@@ -51,10 +51,12 @@ jobs:
           REPO="centreon-collect"
           NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}" #Possible valid values release-29.10-next or hotfix-29.10-next
           BASE_REF=""
+          BASE_REF_SHA=""
           RELEASE_BRANCH_MAJOR_VERSION=""
           RELEASE_SCOPE=""
           RELEASE_TYPE=""
           PREVIOUS_STABLE_BUNDLE_TAG=""
+          PREVIOUS_STABLE_BUNDLE_TAG_SHA=""
 
           # Extract RELEASE_BRANCH_MAJOR_VERSION
           RELEASE_BRANCH_MAJOR_VERSION="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f2)"
