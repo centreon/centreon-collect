@@ -30,6 +30,7 @@
 # That's why we rewrite /etc/hosts on wsl side
 # agent logs are saved in reports and wsl fail tests are saved in it also in case of failure
 
+param($robot="cma.robot")
 
 Write-Host "Work in" $pwd.ToString()
 
@@ -88,6 +89,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name r
 $agent_log_path = $current_dir + "\reports\reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name log_file -Value $agent_log_path
 
+Start-Sleep -Seconds 2
 Write-Host "start manually agent (poller initiated connection, no encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\reversed_centagent_stdout.log -RedirectStandardError reports\reversed_centagent_stderr.log
 
@@ -102,6 +104,7 @@ Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name t
 $agent_log_path = $current_dir + "\reports\encrypted_reverse_centagent.log"
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name log_file -Value $agent_log_path
 
+Start-Sleep -Seconds 2
 Write-Host "start manually agent (poller initiated connection, encryption)"
 Start-Process -FilePath build_windows\agent\Release\centagent.exe -ArgumentList "--standalone --service-name CentreonMonitoringAgent1" -RedirectStandardOutput reports\encrypted_reversed_centagent_stdout.log -RedirectStandardError reports\encrypted_reversed_centagent_stderr.log
 
@@ -142,9 +145,6 @@ Get-PSDrive -PSProvider FileSystem | Select Name, Used, Free | ForEach-Object -P
 $taskScriptsPath = "$env:TEMP\ExitCodeTasks"
 New-Item -Path $taskScriptsPath -ItemType Directory -Force | Out-Null
 
-# Round up to next full minute
-$nextMinute = (Get-Date).AddMinutes(1)
-$startTime = $nextMinute.ToString("HH:mm")
 
 @(
     @{ Name = "TaskExit0"; Code = 0 },
@@ -157,6 +157,10 @@ $startTime = $nextMinute.ToString("HH:mm")
 
     # Create the batch file
     Set-Content -Path $batFile -Value "exit $exitCode"
+
+    # Round up to next full minute
+    $nextMinute = (Get-Date).AddMinutes(1)
+    $startTime = $nextMinute.ToString("HH:mm")
 
     # Schedule the task
     schtasks /Create /TN $taskName /TR "`"cmd /c $batFile`"" /SC ONCE /ST $startTime /F /RL LIMITED /RU "$env:USERNAME"
@@ -171,7 +175,7 @@ $json_test_param = $test_param | ConvertTo-Json -Compress
 Write-Host "json_test_param" $json_test_param
 $quoted_json_test_param = "'" + $json_test_param + "'"
 
-wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/cma.robot $quoted_json_test_param
+wsl cd $wsl_path `&`& .github/scripts/wsl-collect-test-robot.sh broker-engine/$robot $quoted_json_test_param
 
 #something wrong in robot test => exit 1 => failure
 if (Test-Path -Path 'reports\windows-cma-failed' -PathType Container) {
