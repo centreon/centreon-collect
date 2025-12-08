@@ -141,6 +141,10 @@ class config {
       }
       std::string line;
       while (std::getline(f, line)) {
+        // skip if comments or empty line
+        if (line.empty() || line[0] == ';') {
+          continue;
+        }
         auto pos = line.find('=');
         if (pos == std::string::npos) {
           continue;

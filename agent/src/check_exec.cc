@@ -20,7 +20,6 @@
 #include "agent.grpc.pb.h"
 #include "com/centreon/common/process/process.hh"
 #include "config.hh"
-#include "spdlog/spdlog.h"
 
 using com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::agent;
@@ -332,7 +331,4 @@ check_custom::check_custom(
                  cnf,
                  std::move(handler),
                  stat,
-                 credentials_decrypt) {
-  SPDLOG_LOGGER_DEBUG(logger, "custom check command line: {}",
-                      _build_custom_command_line(serv, args));
-}
+                 credentials_decrypt) {}
