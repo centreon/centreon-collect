@@ -53,7 +53,7 @@ jobs:
           RELEASE_BRANCH_MAJOR_VERSION=""
           RELEASE_SCOPE=""
           RELEASE_TYPE=""
-          PREVIOUS_RELEASE_BUNDLE_TAG=""
+          PREVIOUS_STABLE_BUNDLE_TAG=""
 
           # Extract RELEASE_BRANCH_MAJOR_VERSION
           RELEASE_BRANCH_MAJOR_VERSION="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f2)"
@@ -173,10 +173,16 @@ jobs:
 
           echo "Branch created: $NEW_BRANCH"
 
+          # Final var exports
+          echo "previous_tag=$PREVIOUS_RELEASE_BUNDLE_TAG" >> $GITHUB_OUTPUT
+          echo "new_branch=$NEW_BRANCH" >> $GITHUB_OUTPUT
+
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Standard case
+      # Detect changes since last stable tag (ex: 25.10-latest)
+      # Across all files, and return dirs only
       - name: Detect changed dirs (simple components)
         id: simple-dir-components
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
@@ -186,6 +192,9 @@ jobs:
             */**
 
       # This case is very specific to collect
+      # Until collect is structured like other repositories
+      # Detect changes since last stable tag (ex: 25.10-latest)
+      # Across COLLECT ONLY files, and return collect only
       - name: Detect changes affecting centreon-collect component
         id: multiple-dir-components
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
