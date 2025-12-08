@@ -181,7 +181,8 @@ void service_enumerator::_enumerate_services(
 
   while (true) {
     BOOL success = _enumerate_services(services, &services_count);
-    if (success || GetLastError() == ERROR_MORE_DATA) {
+    DWORD error_code = GetLastError();
+    if (success || error_code == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
 
       for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
@@ -215,7 +216,12 @@ void service_enumerator::_enumerate_services(
         callback(*serv);
       }
     }
-    if (success) {
+    if (!success && error_code != ERROR_MORE_DATA) {
+      SPDLOG_LOGGER_ERROR(logger, " fail to enumerate services {}",
+                          GetLastError());
+      break;
+    }
+    if (success) {  // all services had been returned
       break;
     }
   }
