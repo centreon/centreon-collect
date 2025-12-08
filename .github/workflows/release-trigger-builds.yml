@@ -41,7 +41,8 @@ jobs:
           fi
         shell: bash
 
-      - name: Create requested release/hotfix branch
+      - name: Get and set references information
+        id: get_and_set_references_information
         run: |
           set -eux
 
@@ -160,6 +161,27 @@ jobs:
           fi
 
           echo "Using BASE_REF_SHA $BASE_REF_SHA from BASE_REF $BASE_REF."
+
+          # Resolve PREVIOUS_STABLE_BUNDLE_TAG_SHA pointed by $PREVIOUS_STABLE_BUNDLE_TAG
+          # TODO
+
+          # Output the vars
+          # BASE_REF
+          echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
+          # BASE_REF_SHA
+          echo "base_ref_sha=$BASE_REF_SHA" >> $GITHUB_OUTPUT
+          # PREVIOUS_STABLE_BUNDLE_TAG
+          echo "previous_stable_bundle_tag=$PREVIOUS_STABLE_BUNDLE_TAG" >> $GITHUB_OUTPUT
+          # PREVIOUS_STABLE_BUNDLE_TAG_SHA
+          echo "previous_stable_bundle_tag_sha=$PREVIOUS_STABLE_BUNDLE_TAG_SHA" >> $GITHUB_OUTPUT
+
+      - name: Create requested release/hotfix branch
+        run: |
+          # Check the previous values
+          echo "${{ steps.get_and_set_references_information.outputs.base_ref }}"
+          echo "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}"
+          echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}"
+          echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}"
 
           # Create the NEW_BRANCH
           echo "Creating requested release/hotfix branch with name $NEW_BRANCH."
