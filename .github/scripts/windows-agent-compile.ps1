@@ -77,7 +77,7 @@ $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
 $vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
-$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash + "-" + $vcpkg_release
+$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash
 $file_name_extension = "${file_name}.7z"
 
 #try to get compiled dependenciesfrom s3
