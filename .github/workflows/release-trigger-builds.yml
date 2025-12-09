@@ -135,7 +135,7 @@ jobs:
             echo "Branch '$NEW_BRANCH' already exists. Exiting."
             exit 1
           elif [[ "$GH_API_RESPONSE_STATUS" == "404" ]]; then
-            echo "Branch '$NEW_BRANCH' does not exist. Creating '$NEW_BRANCH'..."
+            echo "Branch '$NEW_BRANCH' does not exist. Branch '$NEW_BRANCH' will be created."
           else
             echo "Unexpected GitHub API response status: $GH_API_RESPONSE_STATUS"
             exit 1
@@ -190,18 +190,6 @@ jobs:
 
           echo "Setting SHA for PREVIOUS_STABLE_BUNDLE_TAG_COMMIT as PREVIOUS_STABLE_BUNDLE_TAG_COMMIT_SHA: $PREVIOUS_STABLE_BUNDLE_TAG_COMMIT_SHA."
 
-          # Resolve branch SHA
-          NEW_BRANCH_SHA=$(
-            curl -sS \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/org/repo/git/ref/heads/${NEW_BRANCH}" \
-              | jq -r '.object.sha'
-          )
-
-          # Always the current release or hotfix branch sha
-          echo "Setting SHA for NEW_BRANCH as NEW_BRANCH_SHA: $NEW_BRANCH_SHA."
-
           # Output the vars
           # BASE_REF
           echo "base_ref=$BASE_REF" >> $GITHUB_OUTPUT
@@ -237,6 +225,18 @@ jobs:
           # #   "https://api.github.com/repos/centreon/centreon-collect/git/refs" > /dev/null
 
           echo "Branch created: $NEW_BRANCH"
+
+          # Resolve branch SHA
+          NEW_BRANCH_SHA=$(
+            curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/org/repo/git/ref/heads/${NEW_BRANCH}" \
+              | jq -r '.object.sha'
+          )
+
+          # Always the current release or hotfix branch sha
+          echo "Setting SHA for NEW_BRANCH as NEW_BRANCH_SHA: $NEW_BRANCH_SHA."
 
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
