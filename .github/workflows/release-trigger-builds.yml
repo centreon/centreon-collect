@@ -189,7 +189,7 @@ jobs:
           TAG_OBJ_SHA=$(curl -sS \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/org/repo/git/ref/tags/${TAG}" \
+            "https://api.github.com/repos/org/repo/git/ref/tags/${PREVIOUS_STABLE_BUNDLE_TAG_SHA}" \
             | jq -r '.object.sha')
 
           # BASE_SHA (actual sha of the commit pointed by either type of tag)
