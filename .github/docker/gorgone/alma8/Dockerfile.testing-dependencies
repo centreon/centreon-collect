@@ -37,7 +37,7 @@ curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh 
 source ~/.bashrc
 cd /root
 pnpm install --frozen-lockfile
-echo 'export PATH="~/node_modules/.bin/:$PATH"' >> ~/.bashrc
+echo 'export PATH="~/node_modules/.bin/:$PATH"' >> /etc/profile.d/mockoon.sh
 
 dnf install -y \
   "perl-Libssh-Session" \
