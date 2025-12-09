@@ -238,12 +238,12 @@ jobs:
             curl -sS \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/org/repo/git/ref/heads/${NEW_BRANCH}" \
+              "https://api.github.com/repos/org/repo/git/ref/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" \
               | jq -r '.object.sha'
           )
 
           # Always the current release or hotfix branch sha
-          echo "Setting SHA for NEW_BRANCH as NEW_BRANCH_SHA: $NEW_BRANCH_SHA."
+          echo "Setting SHA for NEW_BRANCH ${{ steps.get_and_set_references_information.outputs.new_branch }} as NEW_BRANCH_SHA: $NEW_BRANCH_SHA."
 
           # Output the vars
           # NEW_BRANCH_SHA
