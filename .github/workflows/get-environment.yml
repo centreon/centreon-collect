@@ -200,7 +200,7 @@ jobs:
           json: true
           escape_json: false
           files: ${{ join(fromJSON(steps.get_workflow_triggered_paths.outputs.result), ';') }}
-          files_separator: ';'
+          files_separator: ";"
 
       - name: Check if current workflow should be skipped
         id: skip_workflow
@@ -645,6 +645,11 @@ jobs:
         id: get_os_database_matrix
         with:
           script: |
+            const alma10_mariadb_10_11 = {
+              "operating_system": "alma10",
+              "database": "mariadb:10.11",
+              "test_tags": "not @ignore"
+            };
             const alma9_mariadb_10_11 = {
               "operating_system": "alma9",
               "database": "mariadb:10.11",
@@ -657,6 +662,21 @@ jobs:
             };
             const bookworm_mysql_8_4 = {
               "operating_system": "bookworm",
+              "database": "mysql:8.4",
+              "test_tags": "not @ignore"
+            };
+            const trixie_mariadb_11_8 = {
+              "operating_system": "trixie",
+              "database": "mariadb:11.8",
+              "test_tags": "not @ignore"
+            };
+            const jammy_mysql_8_4 = {
+              "operating_system": "jammy",
+              "database": "mysql:8.4",
+              "test_tags": "not @ignore"
+            };
+            const noble_mysql_8_4 = {
+              "operating_system": "noble",
               "database": "mysql:8.4",
               "test_tags": "not @ignore"
             };
