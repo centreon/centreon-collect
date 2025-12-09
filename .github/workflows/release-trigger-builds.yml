@@ -206,6 +206,8 @@ jobs:
 
       - name: Create requested release/hotfix branch
         run: |
+          set -eux
+
           # Check the previous values
           echo "${{ steps.get_and_set_references_information.outputs.base_ref }}"
           echo "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}"
@@ -218,11 +220,14 @@ jobs:
           PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
             '{ref: $ref, sha: $sha}')
 
+          # DEBUG
+          echo "$PAYLOAD"
+
           curl -s -o /dev/null \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \ -X POST -H "Content-Type: application/json" \
             -d "$PAYLOAD" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs" > /dev/null
+            "https://api.github.com/repos/centreon/centreon-collect/git/refs" # > /dev/null
 
           echo "Branch created: ${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
