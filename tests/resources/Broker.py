@@ -1694,7 +1694,7 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
         line_search = re.compile(
-            f"{escaped_key}\s*=\s*{value}")
+            rf"{escaped_key}\s*=\s*{value}")
         for line in res.splitlines():
             if (line_search.match(line)):
                 return True

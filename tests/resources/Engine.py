@@ -1290,7 +1290,7 @@ def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{old_host_name}\s*$")
 
     for i in range(len(lines)):
         if host_name.match(lines[i]):
@@ -1315,8 +1315,8 @@ def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    key_name = re.compile(r"^\s*" + key)
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    key_name = re.compile(fr"^\s*{key}")
+    host_name = re.compile(fr"^\s*host_name\s+{host}\s*$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
     replaced = False
