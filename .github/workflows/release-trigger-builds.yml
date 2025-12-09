@@ -141,6 +141,7 @@ jobs:
             exit 1
           fi
 
+          #
           # Resolve BASE_REF_SHA pointed by $BASE_REF
           # If RELEASE_TYPE is release, this means BASE_REF is a dev branch => use "ref/heads/$BASE_REF"
           # If RELEASE_TYPE is hotfix, this means BASE_REF is a tag => use "ref/tags/$BASE_REF"
@@ -181,7 +182,7 @@ jobs:
           OBJECT_TYPE=$(curl -sS \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/org/repo/git/ref/tags/${TAG}" \
+            "https://api.github.com/repos/org/repo/git/ref/tags/${PREVIOUS_STABLE_BUNDLE_TAG_SHA}" \
             | jq -r '.object.type')
 
           # TAG OBJECT SHA (sha of the tag itself)
