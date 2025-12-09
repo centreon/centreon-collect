@@ -90,4 +90,4 @@ rm -rf /var/lib/apt/lists/*
 
 EOF
 
-ENV PATH="/usr/local/src/node_modules/.bin/:${PATH}"
+ENV PATH="/usr/local/src/node_modules/.bin/:$PATH"

@@ -57,4 +57,4 @@ dnf clean all
 
 EOF
 
-ENV PATH="/usr/local/src/node_modules/.bin/:${PATH}"
+ENV PATH="/usr/local/src/node_modules/.bin/:$PATH"
