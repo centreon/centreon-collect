@@ -33,29 +33,66 @@
 # updated by Evan ADAM on 10/2024
 
 package centreon::common::logger;
-=head1 NOM
+=head1 logger
 
 centreon::common::logger - Simple logging module
 
 =head1 SYNOPSIS
 
- #!/usr/bin/perl -w
+    #!/usr/bin/perl
+    use strict;
+    use warnings;
+    use centreon::common::logger;
 
- use strict;
- use warnings;
- use centreon::common::logger;
+    my $logger = new centreon::common::logger();
+    $logger->file_mode("/var/log/mylog.log");
+    $logger->withpid(1);
+    $logger->withdate(1);
+    $logger->redirect_output();
+    $logger->severity("debug");
 
- my $logger = new centreon::common::logger();
-
- $logger->writeLogInfo("information");
+    $logger->writeLogInfo("information");
+    $logger->writeLogError("error message");
 
 =head1 DESCRIPTION
 
 This module offers a simple interface to write log messages to various output:
 
-* standard output
-* file
-* syslog
+=over
+
+=item * standard output
+
+=item * file
+
+=item * syslog
+
+=back
+
+each log message is associated with a severity level:
+
+=over
+
+=item * FATAL
+
+=item * ERROR
+
+=item * WARNING
+
+=item * NOTICE
+
+=item * INFO
+
+=item * DEBUG
+
+=back
+
+each log message is only written if its severity level is greater than or equal to the configured severity level.
+You should use the writeLogXXX methods to write log messages with the appropriate severity level, writelog() is a low level method that should not be used directly.
+
+Each log can be prefixed with the current process id and/or the current date, depending on the configuration.
+Each log message is suffixed with a newline character and truncated to 20000 characters.
+
+=head2 Methods
 
 =cut
 
@@ -73,7 +110,10 @@ my %human_severities = (
     6 => 'INFO',
     7 => 'DEBUG'
 );
+=head3 new
 
+Constructor, take no parameter. Initializes the logger with default values.
+=cut
 sub new {
     my $class = shift;
 
@@ -96,7 +136,10 @@ sub new {
       }, $class;
     return $self;
 }
+=head3 $logger->file_mode("file_name")
 
+close the last opened file (if any) and open the new file for logging in append mode.
+=cut
 sub file_mode($$) {
     my ($self, $file) = @_;
 
@@ -113,7 +156,10 @@ sub file_mode($$) {
     print STDERR "Cannot open file $file: $!\n";
     return 0;
 }
+=head3 $logger->is_file_mode()
 
+Return 1 if the logger is in file mode, 0 if it log to stdout or to syslog.
+=cut
 sub is_file_mode {
     my $self = shift;
     
@@ -122,7 +168,10 @@ sub is_file_mode {
     }
     return 0;
 }
+=head3 $logger->is_debug()
 
+Return 1 if the logger severity is set to debug, 0 otherwise.
+=cut
 sub is_debug {
     my $self = shift;
 
@@ -131,7 +180,10 @@ sub is_debug {
     }
     return 0;
 }
+=head3 $logger->syslog_mode(logopt, facility)
 
+Configure the logger to use syslog with the given options and facility.
+=cut
 sub syslog_mode($$$) {
     my ($self, $logopt, $facility) = @_;
 
@@ -139,7 +191,10 @@ sub syslog_mode($$$) {
     openlog($0, $logopt, $facility);
     return 1;
 }
+=head3 $logger->redirect_output()
 
+Redirect STDOUT and STDERR to the log file if in file mode, otherwise do nothing.
+=cut
 # For daemons
 sub redirect_output {
     my $self = shift;
@@ -150,14 +205,21 @@ sub redirect_output {
         open STDERR, '>&', $lfh;
     }
 }
-# Bypass the buffers set up by the kernel/file system and always write the log
-# as soon as it is sent.
+=head3 $logger->flush_output()
+
+Bypass the buffers set up by the kernel/file system and always write the log as soon as it is sent.
+See https://perldoc.perl.org/perlvar#$%7C
+=cut
 sub flush_output {
     my ($self, %options) = @_;
 
     $| = 1 if (defined($options{enabled}));
 }
 
+=head3 $logger->force_default_severity(severity => $severity)
+
+set "default" severity (used by set_default_severity).
+=cut
 sub force_default_severity {
     my ($self, %options) = @_;
 
@@ -169,7 +231,12 @@ sub set_default_severity {
 
     $self->{severity} = $self->{old_severity};
 }
+=head3 $logger->severity([severity])
 
+if severity is given, set the log severity to the given value. can be a number between 2 and 7 or one of the following strings documented at the top of the document (case insensitive):
+
+if no severity is given, return the current log severity as a string.
+=cut
 # Getter/Setter Log severity
 sub severity {
     my $self = shift;
@@ -200,7 +267,16 @@ sub severity {
     }
     return $human_severities{$self->{severity}};
 }
+=head3 configuration of log message format
 
+each following methods are used to configure the log message format.
+
+=head4 $logger->withpid([1|0])
+
+=head4 $logger->withdate([1|0])
+
+Append the process id and/or the date at the start of each log message.
+=cut
 sub withpid {
     my $self = shift;
     if (@_) {
@@ -228,7 +304,11 @@ sub get_date {
     return sprintf("%04d-%02d-%02d %02d:%02d:%02d",
                    $year+1900, $mon+1, $mday, $hour, $min, $sec);
 }
+=head2 $logger->writeLog(severity, "msg")
 
+Internal method to write a log message with the given severity.
+You should use the writeLogXxxx methods instead, there only difference is that the severity parameter is set for you.
+=cut
 sub writeLog($$$%) {
     my ($self, $severity, $msg, %options) = @_;
 
@@ -253,27 +333,33 @@ sub writeLog($$$%) {
         print STDERR "Unknown log mode '$self->{log_mode}' or log file unavailable for the following log :\n $datedmsg\n";
     }
 }
-
+=head3 $logger->writeLogDebug("msg")
+=cut
 sub writeLogDebug {
     shift->writeLog(7, @_);
 }
-
+=head3 $logger->writeLogInfo("msg")
+=cut
 sub writeLogInfo {
     shift->writeLog(6, @_);
 }
-
+=head3 $logger->writeLogNotice("msg")
+=cut
 sub writeLogNotice {
     shift->writeLog(5, @_);
 }
-
+=head3 $logger->writeLogWarning("msg")
+=cut
 sub writeLogWarning {
     shift->writeLog(4, @_);
 }
-
+=head3 $logger->writeLogError("msg")
+=cut
 sub writeLogError {
     shift->writeLog(3, @_);
 }
-
+=head3 $logger->writeLogFatal("msg")
+=cut
 sub writeLogFatal {
     shift->writeLog(2, @_);
     die("FATAL: " . $_[0] . "\n");
