@@ -214,8 +214,8 @@ jobs:
           echo "${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
           # Create the NEW_BRANCH
-          echo "Creating requested release/hotfix branch with name $NEW_BRANCH from $BASE_REF."
-          # PAYLOAD=$(jq -n --arg ref "refs/heads/$NEW_BRANCH" --arg sha "$BASE_REF_SHA" \
+          echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
+          # PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
           #   '{ref: $ref, sha: $sha}')
 
           # # curl -s -o /dev/null \
@@ -224,7 +224,7 @@ jobs:
           # #   -d "$PAYLOAD" \
           # #   "https://api.github.com/repos/centreon/centreon-collect/git/refs" > /dev/null
 
-          echo "Branch created: $NEW_BRANCH"
+          echo "Branch created: ${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
           # Resolve branch SHA
           NEW_BRANCH_SHA=$(
