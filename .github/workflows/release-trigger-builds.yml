@@ -50,13 +50,14 @@ jobs:
           OWNER="centreon"
           REPO="centreon-collect"
           NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}" #Possible valid values release-29.10-next or hotfix-29.10-next
+          NEW_BRANCH_SHA="" # sha of the head of NEW_BRANCH
           BASE_REF=""
           BASE_REF_SHA=""
           RELEASE_BRANCH_MAJOR_VERSION=""
           RELEASE_SCOPE=""
           RELEASE_TYPE=""
-          PREVIOUS_STABLE_BUNDLE_TAG=""
-          PREVIOUS_STABLE_BUNDLE_TAG_SHA=""
+          PREVIOUS_STABLE_BUNDLE_TAG="" # bundle tag
+          PREVIOUS_STABLE_BUNDLE_TAG_SHA="" # sha of the commit pointed by PREVIOUS_STABLE_BUNDLE_TAG
 
           # Extract RELEASE_BRANCH_MAJOR_VERSION
           RELEASE_BRANCH_MAJOR_VERSION="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f2)"
@@ -165,7 +166,54 @@ jobs:
           echo "Using BASE_REF_SHA $BASE_REF_SHA from BASE_REF $BASE_REF."
 
           # Resolve PREVIOUS_STABLE_BUNDLE_TAG_SHA pointed by $PREVIOUS_STABLE_BUNDLE_TAG
-          # TODO
+          # Always the previous stable bundle tag sha.
+          echo "Setting SHA for PREVIOUS_STABLE_BUNDLE_TAG_SHA."
+          PREVIOUS_STABLE_BUNDLE_TAG_SHA=$(curl -sS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/centreon/centreon-collect/git/ref/$GITHUB_API_REF_TYPE/$BASE_REF" \
+            | jq -r '.object.sha')
+
+          # Resolve tag SHA (lightweight or annotated)
+          # Should either be annotated (release-something-version)
+          # or lightweight (XX.YY-latest)
+          # TYPE OF OBJECT (tag or not a tag)
+          OBJECT_TYPE=$(curl -sS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/org/repo/git/ref/tags/${TAG}" \
+            | jq -r '.object.type')
+
+          # TAG OBJECT SHA (sha of the tag itself)
+          TAG_OBJ_SHA=$(curl -sS \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/org/repo/git/ref/tags/${TAG}" \
+            | jq -r '.object.sha')
+
+          # BASE_SHA (actual sha of the commit pointed by either type of tag)
+          if [ "$OBJECT_TYPE" = "tag" ]; then
+            # annotated tag - follow to commit
+            BASE_SHA=$(curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/org/repo/git/tags/${TAG_OBJ_SHA}" \
+              | jq -r '.object.sha')
+          else
+            BASE_SHA="$TAG_OBJ_SHA"
+          fi
+
+          # Resolve branch SHA
+          NEW_BRANCH_SHA=$(
+            curl -sS \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/org/repo/git/ref/heads/${NEW_BRANCH}" \
+              | jq -r '.object.sha'
+          )
+
+          # Always the current release or hotfix branch sha
+          echo "Setting SHA for NEW_BRANCH_SHA."
 
           # Output the vars
           # BASE_REF
@@ -208,8 +256,8 @@ jobs:
       #   run: |
       #     set -eux
       #     PREVIOUS_STABLE_BUNDLE_TAG_SHA=""
-      #     NEW_BRANCH_SHA=""
       #     NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}"
+      #     NEW_BRANCH_SHA=""
 
       #     # Always the previous stable bundle tag sha.
       #     echo "Setting SHA for PREVIOUS_STABLE_BUNDLE_TAG_SHA."
@@ -236,7 +284,7 @@ jobs:
       #       "https://api.github.com/repos/org/repo/git/ref/tags/${TAG}" \
       #       | jq -r '.object.sha')
 
-      #     # BASE_SHA (actual sha pointed by either type of tag)
+      #     # BASE_SHA (actual sha of the commit pointed by either type of tag)
       #     if [ "$OBJECT_TYPE" = "tag" ]; then
       #       # annotated tag - follow to commit
       #       BASE_SHA=$(curl -sS \
