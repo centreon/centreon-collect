@@ -211,6 +211,8 @@ jobs:
           echo "previous_stable_bundle_tag=$PREVIOUS_STABLE_BUNDLE_TAG" >> $GITHUB_OUTPUT
           # PREVIOUS_STABLE_BUNDLE_TAG_SHA
           echo "previous_stable_bundle_tag_sha=$PREVIOUS_STABLE_BUNDLE_TAG_COMMIT_SHA" >> $GITHUB_OUTPUT
+          # NEW_BRANCH
+          echo "new_branch=$NEW_BRANCH" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -221,9 +223,10 @@ jobs:
           echo "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}"
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}"
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}"
+          echo "${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
           # Create the NEW_BRANCH
-          echo "Creating requested release/hotfix branch with name $NEW_BRANCH."
+          echo "Creating requested release/hotfix branch with name $NEW_BRANCH from $BASE_REF."
           # PAYLOAD=$(jq -n --arg ref "refs/heads/$NEW_BRANCH" --arg sha "$BASE_REF_SHA" \
           #   '{ref: $ref, sha: $sha}')
 
