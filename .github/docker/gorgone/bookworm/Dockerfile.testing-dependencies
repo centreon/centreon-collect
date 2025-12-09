@@ -40,10 +40,10 @@ pip3 cache purge
 curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - &&\
 apt-get install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} SHELL="$(which bash)" sh -
-source \$HOME/.bashrc
+source ~/.bashrc
 cd /root
 pnpm install --frozen-lockfile
-export PATH="~/node_modules/.bin/:$PATH"
+echo 'export PATH="~/node_modules/.bin/:$PATH"' >> ~/.bashrc
 
 VERSION_CODENAME=\$(
   . /etc/os-release
