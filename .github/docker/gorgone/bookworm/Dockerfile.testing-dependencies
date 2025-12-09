@@ -38,7 +38,7 @@ pip3 install --break-system-packages --no-cache-dir \
 pip3 cache purge
 
 curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - &&\
-dnf install -y nodejs
+apt-get install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
 source \$HOME/.bashrc
 cd /root
