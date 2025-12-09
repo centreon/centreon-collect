@@ -845,16 +845,6 @@ jobs:
               cmaMatrix = cmaConfigs;
             }
 
-            // set to true to test all OSs, false by default
-            if (false) {
-              matrix = {
-                ...matrix,
-                "operating_systems": configs,
-              };
-              collectMatrix = collectConfigs;
-              cmaMatrix = cmaConfigs;
-            }
-
             console.log('matrix', matrix);
 
             const setArchConfigs = (configs) => {
