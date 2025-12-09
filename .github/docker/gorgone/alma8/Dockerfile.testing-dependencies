@@ -6,7 +6,7 @@ ARG IS_CLOUD=0
 ARG NODE_VERSION=24
 ARG PNPM_VERSION=10.24.0
 
-COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /root/
+COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
 
 RUN --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_USERNAME \
     --mount=type=secret,id=ARTIFACTORY_INTERNAL_REPO_PASSWORD \
@@ -35,9 +35,8 @@ dnf module enable -y nodejs:24
 dnf install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
 source ~/.bashrc
-cd /root
+cd /usr/local/src
 pnpm install --frozen-lockfile
-echo 'export PATH="~/node_modules/.bin/:$PATH"' >> /etc/profile.d/mockoon.sh
 
 dnf install -y \
   "perl-Libssh-Session" \
@@ -57,3 +56,5 @@ dnf install -y \
 dnf clean all
 
 EOF
+
+ENV PATH="/usr/local/src/node_modules/.bin/:${PATH}"

@@ -6,7 +6,7 @@ ARG IS_CLOUD=0
 ARG NODE_VERSION=24
 ARG PNPM_VERSION=10.24.0
 
-COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /root/
+COPY .github/docker/gorgone/package.json .github/docker/gorgone/pnpm-lock.yaml /usr/local/src/
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -41,9 +41,8 @@ curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - &&\
 apt-get install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} SHELL="$(which bash)" sh -
 source ~/.bashrc
-cd /root
+cd /usr/local/src
 pnpm install --frozen-lockfile
-echo 'export PATH="~/node_modules/.bin/:$PATH"' >> /etc/profile.d/mockoon.sh
 
 VERSION_CODENAME=\$(
   . /etc/os-release
@@ -90,3 +89,5 @@ apt-get clean
 rm -rf /var/lib/apt/lists/*
 
 EOF
+
+ENV PATH="/usr/local/src/node_modules/.bin/:${PATH}"
