@@ -215,22 +215,27 @@ jobs:
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}"
           echo "${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
-          # Create the NEW_BRANCH
-          echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
-          PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
-            '{ref: $ref, sha: $sha}')
+          # Commented until tests are made with fine grained token
+          # # Create the NEW_BRANCH
+          # echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
+          # PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
+          #   '{ref: $ref, sha: $sha}')
 
-          # DEBUG
-          echo "$PAYLOAD"
+          # # DEBUG
+          # echo "$PAYLOAD"
 
-          curl \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -X POST -H "Content-Type: application/json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -d "$PAYLOAD" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs"
+          # curl \
+          #   -H "Authorization: Bearer $GH_TOKEN" \
+          #   -H "Accept: application/vnd.github+json" \
+          #   -X POST -H "Content-Type: application/json" \
+          #   -H "X-GitHub-Api-Version: 2022-11-28" \
+          #   -d "$PAYLOAD" \
+          #   "https://api.github.com/repos/centreon/centreon-collect/git/refs"
 
+          # Create the NEW_BRANCH using git
+          # Branch protection does not allow usage of API for this
+          echo "Cloning to repository."
+          git clone git@github.com:centreon/centreon-collect.git
           echo "Branch created: ${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
           # Resolve branch SHA
@@ -274,6 +279,8 @@ jobs:
         id: multiple-dir-components
         uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
         with:
+          base_sha: ${{ steps.get_and_set_references_information.outputs.base_ref_sha }}
+          sha: ${{ steps.get_and_set_references_information.outputs.new_branch_sha }}
           files: |
             .version.centreon-collect
             bbdo/**
