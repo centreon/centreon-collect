@@ -48,7 +48,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
   push:
     branches:
       - develop
@@ -68,7 +68,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
     tags:
       - "centreon-monitoring-agent-*"
 
@@ -133,7 +133,7 @@ jobs:
         "agent/test/**"
       e2e_test_paths: |
         "resources/**"
-        "tests/**/cma.robot"
+        "tests/**/cma*.robot"
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
       labels: ${{ needs.get-environment.outputs.labels }}
@@ -161,10 +161,11 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       # Install Inno Setup (ISCC) and expose its path
+      # To remove later when innosetup version will be stable on runners
       - name: Install Inno Setup
         shell: powershell
         run: |
-          choco install innosetup -y --no-progress
+          choco install innosetup -y --no-progress --version 6.6.1
 
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
@@ -187,7 +188,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
+        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -214,7 +215,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
+        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -240,7 +241,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@bb15ca63eb5548cc306f4f335c5617bb414abcad # v0.5.9
+        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -272,7 +273,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: packages-centreon-monitoring-agent-windows
           path: |
@@ -390,7 +391,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*.xml"
@@ -464,13 +465,13 @@ jobs:
 
     uses: ./.github/workflows/robot-test.yml
     with:
-      distrib: ${{ matrix.distrib }}
+      distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
       test_img_version: ${{ needs.get-environment.outputs.test_img_version }}
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: 'cma\.robot'
+      features_pattern: 'cma.*\.robot'
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
@@ -501,6 +502,8 @@ jobs:
           - distrib: el8
             arch: amd64
           - distrib: el9
+            arch: amd64
+          - distrib: el10
             arch: amd64
 
     name: deliver ${{ matrix.distrib }}
@@ -547,6 +550,10 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
+            arch: arm64
           - distrib: jammy
             arch: amd64
           - distrib: jammy
@@ -588,7 +595,7 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@88e9eba31c07e31beefa4cef5c0e93d1af9535d7 # v4.6.1
+      - uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
@@ -631,7 +638,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy, noble]
+        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources
@@ -680,7 +687,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-      - uses: jfrog/setup-jfrog-cli@88e9eba31c07e31beefa4cef5c0e93d1af9535d7 # v4.6.1
+      - uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}

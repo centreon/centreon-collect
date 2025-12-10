@@ -74,6 +74,15 @@ TIMEOUT = 30
 import_robot_resources()
 
 
+def ctn_get_engine_conf_path(idx: int):
+    """
+    ctn_get_conf_path
+
+    Get CONF_DIR path
+    """
+    return CONF_DIR + f"/config{idx}"
+
+
 class EngineInstance:
     def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
         self.last_service_id = 0
@@ -1536,7 +1545,7 @@ def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{old_host_name}\s*$")
 
     for i in range(len(lines)):
         if host_name.match(lines[i]):
@@ -1561,8 +1570,8 @@ def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    key_name = re.compile(r"^\s*" + key)
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    key_name = re.compile(fr"^\s*{key}")
+    host_name = re.compile(fr"^\s*host_name\s+{host}\s*$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
     replaced = False
@@ -3972,8 +3981,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, wit
     if "centreon_agent" in json_load:
         if "reverse_connections" in json_load["centreon_agent"]:
             for obj in json_load["centreon_agent"]["reverse_connections"]:
-                if "encryption" in obj and obj["encryption"] == "full":
-                    obj["token"] = token
+                obj["token"] = token
 
     with open(otl_server_config_path, "w") as f:
         pretty_json = json.dumps(json_load, indent=4)
@@ -4002,21 +4010,20 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
         data = json.load(f)
 
     # Check if "trusted_tokens" already exists
-    if "otel_server" in data and "encryption" in data["otel_server"]:
-        if data["otel_server"]["encryption"] == "full":
-            if "trusted_tokens" in data["otel_server"]:
-                if token not in data["otel_server"]["trusted_tokens"]:
-                    data["otel_server"]["trusted_tokens"].append(token)
+    if "otel_server" in data:
+        if "trusted_tokens" in data["otel_server"]:
+            if token not in data["otel_server"]["trusted_tokens"]:
+                data["otel_server"]["trusted_tokens"].append(token)
+                token_inserted = True
+        else:
+            # Insert trusted_tokens after otel_server
+            new_data = {}
+            for key, value in data.items():
+                new_data[key] = value
+                if key == "otel_server":
+                    new_data[key]["trusted_tokens"] = [token]
                     token_inserted = True
-            else:
-                # Insert trusted_tokens after otel_server
-                new_data = {}
-                for key, value in data.items():
-                    new_data[key] = value
-                    if key == "otel_server":
-                        new_data[key]["trusted_tokens"] = [token]
-                        token_inserted = True
-                data = new_data
+            data = new_data
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
