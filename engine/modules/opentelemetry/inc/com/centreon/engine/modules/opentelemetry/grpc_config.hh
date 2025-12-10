@@ -35,6 +35,15 @@ class grpc_config : public common::grpc::grpc_config {
   grpc_config(const std::string& hostp, bool crypted)
       : common::grpc::grpc_config(hostp, crypted) {}
 
+  grpc_config(const std::string& hostp, bool crypted, const std::string& token)
+      : common::grpc::grpc_config(hostp, crypted, token) {}
+
+  grpc_config(
+      const std::string& hostp,
+      bool crypted,
+      std::shared_ptr<const absl::flat_hash_set<std::string>> trusted_tokens)
+      : common::grpc::grpc_config(hostp, crypted, std::move(trusted_tokens)) {}
+
   grpc_config(const rapidjson::Value& json_config);
 
   bool operator==(const grpc_config& right) const;
