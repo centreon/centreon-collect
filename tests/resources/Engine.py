@@ -1809,6 +1809,42 @@ def ctn_remove_service(index: int, host_name: str, service_description: str):
         f.writelines(lines)
 
 
+def ctn_remove_host(index: int, host_name: str):
+    """
+    Remove a host from the hosts.cfg of the given engine instance.
+
+    Args:
+        index (int): Index of the poller configuration (from 0).
+        host_name (str): The host name to remove.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{index}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{host_name}\s*$")
+    host_begin = re.compile(r"^\s*define host \{$")
+    host_end = re.compile(r"^\s*\}$")
+    host_begin_idx = 0
+
+    while host_begin_idx < len(lines):
+        if host_begin.match(lines[host_begin_idx]):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if host_name_re.match(lines[host_line_idx]):
+                    for end_line_idx in range(host_line_idx, len(lines)):
+                        if host_end.match(lines[end_line_idx]):
+                            del lines[host_begin_idx:end_line_idx + 1]
+                            break
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx += 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
     """
     Create an anomaly detection on the engine instance with the given index.
