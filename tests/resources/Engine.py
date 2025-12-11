@@ -1763,6 +1763,52 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
+def ctn_remove_service(index: int, host_name: str, service_description: str):
+    """
+    Remove a service on the engine instance index, with the given service_id.
+
+    Args:
+        index (int): Index of the poller configuration (from 0).
+        service_id (int): The service ID of the service to remove.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{host_name}\s*$")
+    service_description_re = re.compile(
+        rf"^\s*service_description\s+{service_description}\s*$")
+    service_begin = re.compile(r"^define service {$")
+    service_end = re.compile(r"^}$")
+    service_begin_idx = 0
+
+    while True:
+        if (service_begin_idx >= len(lines)):
+            break
+        if (service_begin.match(lines[service_begin_idx])):
+            found_host = False
+            found_service = False
+            for service_line_idx in range(service_begin_idx, len(lines)):
+                if (host_name_re.match(lines[service_line_idx])):
+                    found_host = True
+                if (service_description_re.match(lines[service_line_idx])):
+                    found_service = True
+                if found_host and found_service:
+                    for end_service_line in range(service_line_idx, len(lines)):
+                        if service_end.match(lines[end_service_line]):
+                            del lines[service_begin_idx:end_service_line + 1]
+                            break
+                    break
+                elif service_end.match(lines[service_line_idx]):
+                    service_begin_idx = service_line_idx
+                    break
+        else:
+            service_begin_idx = service_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
     """
     Create an anomaly detection on the engine instance with the given index.
