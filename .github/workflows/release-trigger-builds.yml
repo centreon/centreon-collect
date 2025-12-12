@@ -266,6 +266,9 @@ jobs:
           git fetch origin "+refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
           git fetch --all --tags --prune
 
+          echo "[DEBUG] Checking diff between raw sha."
+          git diff ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }} ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
+
       # Standard case
       # Detect changes since last stable tag (ex: 25.10-latest)
       # Across all files, and return dirs only
