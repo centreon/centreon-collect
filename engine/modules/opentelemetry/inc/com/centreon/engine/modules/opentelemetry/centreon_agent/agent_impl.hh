@@ -67,7 +67,13 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   static absl::Mutex* _instances_m;
 
  protected:
-  void _on_new_conf(const agent::AgentConfiguration& conf);
+  std::shared_ptr<spdlog::logger> _logger;
+
+  agent_impl_base(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger(logger) {}
+
+  void _on_new_conf(const std::string_view& host_name,
+                    const agent::AgentConfiguration& conf);
 
   void _on_done();
 
@@ -78,7 +84,9 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
 
  public:
   using pointer = std::shared_ptr<agent_impl_base>;
-  // virtual void force_check() = 0;
+
+  virtual ~agent_impl_base() = default;
+
   virtual void shutdown() = 0;
 
   static void force_check(uint64_t host_id, uint64_t serv_id);
@@ -157,7 +165,6 @@ class agent_impl : public bireactor_class, public agent_impl_base {
   void _write(const std::shared_ptr<agent::MessageToAgent>& request);
 
  protected:
-  std::shared_ptr<spdlog::logger> _logger;
   bool _alive ABSL_GUARDED_BY(_protect);
 
   agent_stat::pointer _stats;

@@ -51,7 +51,8 @@ absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
  *
  * @param conf
  */
-void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
+void agent_impl_base::_on_new_conf(const std::string_view& host_name,
+                                   const agent::AgentConfiguration& conf) {
   absl::MutexLock l(_instances_m);
   auto me = shared_from_this();
   _configured_instance->get<1>().erase(me);
@@ -60,8 +61,26 @@ void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
   } else {
     _no_configured_instance->erase(me);
 
+    bool at_least_one_insert = false;
     for (const agent::Service& serv : conf.services()) {
-      _configured_instance->emplace(serv.host_id(), serv.service_id(), me);
+      bool success =
+          _configured_instance->emplace(serv.host_id(), serv.service_id(), me)
+              .second;
+      if (!success) {
+        SPDLOG_LOGGER_ERROR(_logger, "Can not insert service {}:{} for {}",
+                            serv.service_id(), serv.host_id(), host_name);
+      } else {
+        at_least_one_insert = true;
+      }
+    }
+    if (!at_least_one_insert) {
+      SPDLOG_LOGGER_ERROR(
+          _logger,
+          "!!!!! Can not insert any service for {}. Perhaps several "
+          "agents with the same host name ????? Force checks will no work for "
+          "this agent.",
+          host_name);
+      _no_configured_instance->insert(me);
     }
   }
 }
@@ -126,7 +145,8 @@ agent_impl<bireactor_class>::agent_impl(
     bool reversed,
     bool is_crypted,
     const agent_stat::pointer& stats)
-    : _io_context(io_context),
+    : agent_impl_base(logger),
+      _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
       _is_crypted(is_crypted),
@@ -134,7 +154,6 @@ agent_impl<bireactor_class>::agent_impl(
       _conf(conf),
       _metric_handler(handler),
       _write_pending(false),
-      _logger(logger),
       _alive(true),
       _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
@@ -152,7 +171,8 @@ agent_impl<bireactor_class>::agent_impl(
     bool is_crypted,
     const agent_stat::pointer& stats,
     const std::chrono::system_clock::time_point& exp_time)
-    : _io_context(io_context),
+    : agent_impl_base(logger),
+      _io_context(io_context),
       _class_name(class_name),
       _reversed(reversed),
       _is_crypted(is_crypted),
@@ -161,7 +181,6 @@ agent_impl<bireactor_class>::agent_impl(
       _agent_can_receive_encrypted_credentials(false),
       _metric_handler(handler),
       _write_pending(false),
-      _logger(logger),
       _alive(true),
       _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
@@ -323,7 +342,8 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(
             *cnf, _last_sent_config->config())) {
-      _on_new_conf(new_conf->config());
+      _on_new_conf(_agent_info ? _agent_info->init().host() : "",
+                   new_conf->config());
       _last_sent_config = new_conf;
     } else {
       new_conf.reset();
@@ -394,7 +414,7 @@ void agent_impl<bireactor_class>::_write(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
-  strm->_on_new_conf(agent::AgentConfiguration());
+  strm->_on_new_conf("", agent::AgentConfiguration());
 }
 
 /**
