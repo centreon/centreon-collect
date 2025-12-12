@@ -244,6 +244,13 @@ void streaming_server::shutdown() {
  */
 ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>*
 streaming_server::Import(::grpc::CallbackServerContext* context) {
+  std::chrono::system_clock::time_point exp_time{
+      std::chrono::system_clock::time_point::min()};
+  auto status = is_token_valid(context, exp_time);
+  if (!status.ok()) {
+    return new ImmediateFinishReactor(status);
+  }
+
   SPDLOG_LOGGER_INFO(_logger, "incoming connection from {}", context->peer());
   std::lock_guard l(_protect);
   if (_incoming) {
@@ -253,21 +260,7 @@ streaming_server::Import(::grpc::CallbackServerContext* context) {
                                    context->peer());
   server_reactor::register_stream(_incoming);
   _incoming->start_read();
-
-  std::chrono::system_clock::time_point exp_tp =
-      std::chrono::system_clock::time_point::max();  // no expiration
-
-  auto authctx = context->auth_context();
-  if (authctx) {
-    auto exp_prop = authctx->FindPropertyValues("jwt-exp");
-    if (!exp_prop.empty()) {
-      int64_t ms = std::stoll(
-          std::string(exp_prop.front().data(), exp_prop.front().length()));
-      exp_tp =
-          std::chrono::system_clock::time_point{std::chrono::milliseconds{ms}};
-      _incoming->set_expiration(exp_tp);
-    }
-  }
+  _incoming->set_expiration(exp_time);
 
   return _incoming.get();
 }

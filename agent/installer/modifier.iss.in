@@ -235,8 +235,6 @@ begin
   CommonNameEdit.Hide;
   CommonNameInfoBitmapImage.Hide;
 
-  TokenLabel.Hide;
-  TokenEdit.Hide;
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
@@ -255,8 +253,6 @@ begin
       PrivateKeyBrowseButton.Show;
       PrivateKeyInfoBitmapImage.Show;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end
     else
@@ -273,8 +269,6 @@ begin
           CommonNameInfoBitmapImage.Show;
         end;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end;
   end
@@ -631,7 +625,7 @@ begin
 
   // the parameter is already checked in CheckSilentParameterValidity before calling this function
   AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(ExpandConstant('{param:agentinstance|}'));
-
+  ReadAgentRegistryValues(AgentInstanceComboBox.Text)
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
@@ -788,12 +782,6 @@ begin
         end;
     end;
      
-    if ExpandConstant('{param:token|}') = '' then
-    begin
-      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=full/insecure');
-      Result := False;
-      Exit;
-    end;
   end;
 
   Pluginsrc_p := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
@@ -1134,7 +1122,7 @@ begin
   TokenLabel.Parent := EncryptionPage.Surface;
   TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
   TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
+
 
   TokenEdit := TNewEdit.Create(EncryptionPage);
   TokenEdit.Parent := EncryptionPage.Surface;
@@ -1142,7 +1130,7 @@ begin
   TokenEdit.Left := HostNameEdit.Left;
   TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
   TokenEdit.Text := '';
-  TokenEdit.Hide;
+
 
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1360,8 +1348,11 @@ begin
   LoadSilentParameters;
 
   // apply the change to ui
-  OnLogTypeChange(LogTypeComboBox);
-
+  if not IsSilentMode then
+  begin
+    OnServiceChange(AgentInstanceComboBox);
+  end;
+  
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
@@ -1460,13 +1451,13 @@ begin
           exit;
         end;
       end;
-      if TokenEdit.Text = '' then begin
+    end;
+    if TokenEdit.Text = '' then begin
         TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
         exit;
-      end;
     end;
     Result := True;
   end

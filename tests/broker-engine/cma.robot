@@ -1115,7 +1115,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_2    2    60    ANY
     Should Be True    ${result}    resources table not updated for service_2
 
-
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

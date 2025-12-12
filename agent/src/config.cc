@@ -190,13 +190,14 @@ config::config(const std::string& path) {
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
-  if (_reverse_connection) {
-    if (json_config.has_member("token")) {
-      _trusted_tokens.insert(json_config.get_string("token"));
-    }
-  } else {
-    if (json_config.has_member("token")) {
-      _token = json_config.get_string("token");
+  if (json_config.has_member("token")) {
+    std::string token = json_config.get_string("token");
+    if (_reverse_connection) {
+      _trusted_tokens =
+          std::make_shared<const absl::flat_hash_set<std::string>>(
+              absl::flat_hash_set<std::string>{token});
+    } else {
+      _token = token;
     }
   }
 }

@@ -184,7 +184,7 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
       hostport, security_mode, certificate, cert_key, ca_cert, ca_name,
       compress, second_keepalive_interval, second_max_reconnect_backoff,
       max_message_length, token,
-      std::make_shared<absl::flat_hash_set<std::string>>(
+      std::make_shared<const absl::flat_hash_set<std::string>>(
           std::move(trusted_tokens)));
 }
 
