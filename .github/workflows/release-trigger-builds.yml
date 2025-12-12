@@ -264,7 +264,7 @@ jobs:
           NEW_BRANCH: ${{ steps.get_and_set_references_information.outputs.new_branch }}
         run: |
           git fetch origin "+refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
-          git fetch --tags
+          git fetch --all --tags --prune
 
       # Standard case
       # Detect changes since last stable tag (ex: 25.10-latest)
