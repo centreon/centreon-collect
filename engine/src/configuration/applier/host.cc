@@ -834,8 +834,13 @@ void applier::host::remove_object(ssize_t idx) {
     applier::scheduler::instance().remove_host(obj.host_id());
 
     // remove host from hostgroup->members
-    for (auto& it_h : it->second->get_parent_groups())
+    for (auto& it_h : it->second->get_parent_groups()) {
+      // before erasing the host from the hostgroup members, we notify the
+      // broker to delete the member first
+      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second.get(),
+                          it_h);
       it_h->members.erase(it->second->name());
+    }
 
     // remove any relations
     for (const auto& [_, sptr_host] : it->second->parent_hosts)
