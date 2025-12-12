@@ -257,6 +257,14 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.TEST_GH_FINE_GRAINED_TOKEN }}
 
+        # Refresh local .git with new branch
+      - name: Fetch new branch
+        env:
+          NEW_BRANCH: ${{ steps.get_and_set_references_information.outputs.new_branch }}
+        run: |
+          git fetch origin "+refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
+          git fetch --tags
+
       # Standard case
       # Detect changes since last stable tag (ex: 25.10-latest)
       # Across all files, and return dirs only
