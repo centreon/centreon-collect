@@ -139,8 +139,8 @@ int main(int argc, char* argv[]) {
       ("extended-config,c",
        po::value<std::vector<std::string>>()->value_name("config-file"),
        "Extended configuration file")
-      ("config-file,f", po::value<std::string>()->value_name("cfg_file"),
-        "Main configuration file");
+      ("config-file,f", po::value<std::string>()->value_name("cfg_file"), "Main configuration file")
+      ("gen-cma-key,k", "generate default cma self-signed-certificate");
 
     // clang-format on
     po::positional_options_description p;
