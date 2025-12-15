@@ -42,7 +42,7 @@ sub builder {
         ' FROM ' . join(', ', @{$options{tables}}) . $where . $extra_suffix;
     return $request;
 }
-# param :
+# hash parameters :
 # request: sql request
 # bind_values: arrayref of bind values
 # keys: to document, for hashref mode only
