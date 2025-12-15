@@ -244,7 +244,63 @@ sub read_message_client {
         $connector->read_zmq_events();
     }
 }
+=head3 action_proxyaddnode($zmq_message)
 
+zmq_message : PROXYADDNODE message type, received from internal zmq socket to decode and process.
+
+If the message is valid, update the internal state to allow this new node to connect, or log an error
+
+Return : 1 in case of success 0 in case of failure
+=cut
+sub action_proxyaddnode {
+    my $self = shift;
+    my $data = shift;
+    my ($status, $node) = $self->json_decode(argument => $data);
+        if ($status == 1) {
+            $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
+            return 0;
+        }
+
+        $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
+        $self->{nodes}->{ $node->{id} } = $node;
+        return 1
+}
+=head3 action_proxydelnode($zmq_message)
+
+zmq_message : PROXYDELNODE message type, received from internal zmq socket to decode and process.
+
+If the message is valid, update the internal state to remove this node, or log an error if the message is not valid.
+
+Return :
+* 0 if message can't be decoded
+* 1 if message can be decoded but node don't exist in local state
+* 2 if node was successfully deleted from local state.
+=cut
+sub action_proxydelnode {
+    my $self = shift;
+    my $data = shift;
+    my ($status, $node) = $self->json_decode(argument => $data);
+        if ($status == 1) {
+            $self->{logger}->writeLogError("Can't decode a proxydelnode message data : " . $data);
+            return 0;
+        }
+        if ($self->{nodes}->{ $node->{id} }){
+            $self->{logger}->writeLogDebug("[proxy-httpserver] deleting node ". $node->{id} . " from pullwss." );
+            delete($self->{nodes}->{ $node->{id} });
+            return 2;
+        }else {
+            $self->{logger}->writeLogInfo("[proxy-httpserver] tried to delete node " . $node->{id} . " which don't exist, ignoring it." );
+            return 1;
+        }
+
+}
+=head3 proxy(message => $message)
+
+message : message received from internal zmq socket.
+
+process the internal messages(BCASTLOGGER, BCASTCOREKEY, PROXYADDNODE) or forward it to the distant node by searching in the message the target.
+
+=cut
 sub proxy {
     my (%options) = @_;
     
@@ -264,15 +320,9 @@ sub proxy {
         $connector->action_bcastcorekey(data => $data);
         return ;
     } elsif ($action eq 'PROXYADDNODE' && $target_complete eq '') {
-        my ($status, $node) = $connector->json_decode(argument => $data);
-        if ($status == 1) {
-            $connector->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
-            return;
-        }
-
-        $connector->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
-        $connector->{nodes}->{ $node->{id} } = $node;
-        return ;
+        return $connector->action_proxyaddnode($data);
+    } elsif ($action eq 'PROXYDELNODE' && $target_complete eq '') {
+        return $connector->action_proxydelnode($data);
     }
     # @TODO: implement a delete node action for when a user remove a node from centreon UI (need to be launched from nodes/proxy module to be catched here)
 

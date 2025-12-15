@@ -950,7 +950,18 @@ sub unregister_nodes {
         my $prevail = 0;
         $prevail = 1  if (defined($prevails->{ $node->{id} }));
 
-        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/ && $prevail == 1) {
+        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/) {
+            if ($register_nodes->{ $node->{id} }->{type} =~ /^(?:wss|pullwss)$/) {
+                $options{gorgone}->send_internal_message(
+                    identity => "gorgone-proxy-httpserver",
+                    action => "PROXYDELNODE",
+                    json_encode => 1,
+                    data => $node,
+                    token => $options{token},
+                );
+            } elsif ($register_nodes->{ $node->{id} }->{type} =~ /^(?:pull)$/) {
+                # @TODO send to pull process here.
+            }
             $register_nodes->{ $node->{id} }->{identity} = undef;
         }
 
