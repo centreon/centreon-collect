@@ -98,7 +98,7 @@ jobs:
         password: ${{ secrets.registry_password }}
       options: --cpus ${{ matrix.cpus }}
 
-    name: package
+    name: package with ${{ matrix.cpus }} cpus
 
     steps:
       - name: Checkout sources
