@@ -24,7 +24,6 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
-          ref: ''
 
       - name: Install Github CLI
         run: |
@@ -259,29 +258,15 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.TEST_GH_FINE_GRAINED_TOKEN }}
 
-        # Refresh local .git with new branch
-      - name: Fetch new branch
-        env:
-          NEW_BRANCH: ${{ steps.get_and_set_references_information.outputs.new_branch }}
-        run: |
-          git fetch origin "+refs/heads/${NEW_BRANCH}:refs/remotes/origin/${NEW_BRANCH}"
-          git fetch --all --tags --prune
-
-          echo "[DEBUG] Checking diff between raw sha."
-          git diff ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }} ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
-
-      # Standard case
       # Detect changes since last stable tag (ex: 25.10-latest)
       # Across all files, and return dirs only
       - name: Detect changed dirs (simple components)
         id: simple-dir-components
-        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
+        uses: ./.github/actions/release-detect-changes-and-changelog
         with:
+          base_ref: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}
           base_sha: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
-          sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
-          dir_names: "true"
-          files: |
-            */**
+          head_sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
 
       # This case is very specific to collect
       # Until collect is structured like other repositories
