@@ -382,8 +382,17 @@ sub is_empty {
     }
     return 0;
 }
-# take a registernodes message and check token against db or default one from yaml config if db token is not set
-# if db token is set, don't allow default one
+=head3 $self->is_token_ok(ws_id => $ws_id, data => $data)
+
+validate a client sent the correct token/node Id couple to authenticate.
+
+Token validation logic :
+check in the local state if node id exist and get token from there.
+If token don't exist, use default one from yaml config file
+if db token is set, don't allow default one for this particular node.
+
+The "local state" is filled by PROXYADDNODE messages sent by nodes modules, and processed by the proxy function.
+=cut
 sub is_token_ok {
     my ($self, %options) = @_;
 
