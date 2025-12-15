@@ -128,6 +128,9 @@ jobs:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
 
+  get-aws-environment:
+    uses: ./.github/workflows/get-aws-environment.yml
+
   check-version-consistency:
     runs-on: ubuntu-24.04
     needs: [get-environment]
@@ -197,7 +200,7 @@ jobs:
       labels: ${{ needs.get-environment.outputs.labels }}
 
   unit-test:
-    needs: [get-environment, changes]
+    needs: [get-environment, get-aws-environment, changes]
     if: |
       (
         needs.changes.outputs.trigger_unit_testing == 'true' ||
@@ -214,8 +217,6 @@ jobs:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -223,6 +224,11 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       options: --cpus 8
+      env:
+        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+        AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      volumes:
+        - ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}:${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -313,7 +319,7 @@ jobs:
           retention-days: 1
 
   package:
-    needs: [get-environment, changes, check-version-consistency]
+    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -347,9 +353,9 @@ jobs:
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: false
+      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
     secrets:
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
@@ -442,7 +448,7 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
   robot-test:
-    needs: [get-environment, changes, package]
+    needs: [get-environment, get-aws-environment, changes, package]
     if: |
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -468,11 +474,11 @@ jobs:
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       features_pattern: ${{ inputs.robot_pattern }}
+      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
       xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
       jira_base_url: ${{ secrets.JIRA_BASE_URL }}
