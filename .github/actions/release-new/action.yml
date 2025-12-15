@@ -103,6 +103,11 @@ runs:
         PREVIOUS_STABLE_BUNDLE_TAG="${{ steps.get_previous_release_bundle_tag.outputs.previous_stable_bundle_tag }}"
         PREVIOUS_STABLE_COMPONENT_TAG=""
 
+        # 24.04 ONLY
+        if [[ ${{ inputs.major_version }} == "24.04" ]]; then
+          COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone" "centreon-common")
+        fi
+
         # Check and set release scope
         if [[ ${{ inputs.release_scope }} == "cloud" ]]; then
           RELEASE_CLOUD=1
