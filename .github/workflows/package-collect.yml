@@ -75,6 +75,12 @@ on:
         required: true
 jobs:
   package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - cpus: "4"
+          - cpus: "8"
     runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
 
     env:
@@ -90,7 +96,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 8
+      options: --cpus ${{ matrix.cpus }}
 
     name: package
 
