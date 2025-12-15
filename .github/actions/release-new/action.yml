@@ -105,7 +105,7 @@ runs:
 
         # 24.04 ONLY
         if [[ ${{ inputs.major_version }} == "24.04" ]]; then
-          COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone" "centreon-common")
+          COMPONENTS_COLLECT=("centreon-collect" "centreon-gorgone")
         fi
 
         # Check and set release scope
