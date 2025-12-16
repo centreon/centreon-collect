@@ -75,12 +75,6 @@ on:
         required: true
 jobs:
   package:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - cpus: "4"
-          - cpus: "8"
     runs-on: ${{ inputs.arch == 'arm64' && 'centreon-collect-arm64' || 'centreon-collect' }}
 
     env:
@@ -96,9 +90,9 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus ${{ matrix.cpus }}
+      options: --cpus 4
 
-    name: package with ${{ matrix.cpus }} cpus
+    name: package
 
     steps:
       - name: Checkout sources
