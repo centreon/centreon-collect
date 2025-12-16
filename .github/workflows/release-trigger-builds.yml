@@ -247,6 +247,11 @@ jobs:
               | jq -r '.object.sha'
           )
 
+          # Exit if NEW_BRANC_SHA is not set at all
+          if [[ -z "NEW_BRANCH_SHA" ]]; then
+            echo "[ERROR] NEW_BRANCH_SHA could not be resolved and set, exiting."
+          fi
+
           # Always the current release or hotfix branch sha
           echo "Setting SHA for NEW_BRANCH ${{ steps.get_and_set_references_information.outputs.new_branch }} as NEW_BRANCH_SHA: $NEW_BRANCH_SHA."
 
