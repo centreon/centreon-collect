@@ -248,7 +248,7 @@ jobs:
           )
 
           # Exit if NEW_BRANC_SHA is not set at all
-          if [[ -z "$NEW_BRANCH_SHA" ]]; then
+          if [[ -z "$NEW_BRANCH_SHA" || "$NEW_BRANCH_SHA" == "null" ]]; then
             echo "[ERROR] NEW_BRANCH_SHA could not be resolved and set, exiting."
           fi
 
