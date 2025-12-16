@@ -100,7 +100,7 @@ jobs:
           fi
 
           features=$(grep -Rl '*** Test Cases ***' . | grep -P '.robot$' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')
-          if [[ "${{ inputs.database_type}}" == "mysql" ]]; then
+          if [[ "${{ inputs.database_type }}" == "mysql" ]]; then
             for feature in $(echo "${features}" | jq -r '.[]'); do
               if [[ ! -f "$feature.mysql" ]]; then
                 features=$(echo "${features}" | jq -c "del(.[index(\"$feature\")])")
