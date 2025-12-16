@@ -259,86 +259,13 @@ jobs:
           GH_TOKEN: ${{ secrets.TEST_GH_FINE_GRAINED_TOKEN }}
 
       # Detect changes since last stable tag (ex: 25.10-latest)
-      # Across all files, and return dirs only
-      - name: Detect changed dirs (simple components)
-        id: simple-dir-components
-        uses: ./.github/actions/release-detect-changes-and-changelog
+      - name: Detect changed components since last stable release bundle tag
+        uses: ./.github/actions/release-detect-changed-components
         with:
           base_ref: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}
           base_sha: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
           head_sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
 
-      # This case is very specific to collect
-      # Until collect is structured like other repositories
-      # Detect changes since last stable tag (ex: 25.10-latest)
-      # Across COLLECT ONLY files, and return collect only
-      - name: Detect changes affecting centreon-collect component
-        id: multiple-dir-components
-        uses: tj-actions/changed-files@24d32ffd492484c1d75e0c0b894501ddb9d30d62 # v47.0.0
-        with:
-          base_sha: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
-          sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
-          files: |
-            .version.centreon-collect
-            bbdo/**
-            broker/**
-            ccc/**
-            clib/**
-            connectors/**
-            custom-triplets/**
-            engine/**
-            grpc/**
-            packaging/centreon-collect/**
-            cmake.sh
-            cmake-vcpkg.sh
-            CMakeLists.txt
-            CMakeListsLinux.txt
-            vcpkg.json
-            overlays/**
-            selinux/centreon-broker/**
-            selinux/centreon-engine/**
-            !**/test/**
-            !**/tests/**
-            !agent/test/**
-
-      - name: Identify simple components
-        id: mapped-components
-        run: |
-          # List of all files changed for simple components (e.g components with a single dir)
-          SIMPLE_CHANGED="${{ steps.simple.outputs.all_changed_files }}"
-
-          # List of all components with a single dir
-          SIMPLE_COMPONENTS="centreon-gorgone"
-
-          echo "Simple components files with changes: ${SIMPLE_CHANGED[*]}"
-
-          # For each file changed (all components)
-          FOUND=""
-          for d in $SIMPLE_CHANGED; do
-            for comp in $SIMPLE_COMPONENTS; do
-              if [[ "$d" == "$comp" || "$d" == "$comp/"* ]]; then
-                FOUND="$FOUND $comp"
-              fi
-            done
-          done
-
-          FOUND=$(echo $FOUND | xargs -n1 | sort -u | xargs)
-          echo "Components found: ${FOUND[*]}"
-          echo "simple_components=$FOUND" >> $GITHUB_OUTPUT
-
-      - name: Merge final component list
-        id: final
-        run: |
-          simple="${{ steps.mapped.outputs.simple_components }}"
-          multi=""
-
-          # Add centreon-collect if its patterns were modified
-          if [[ "${{ steps.collect.outputs.any_modified }}" == "true" ]]; then
-            multi="$multi centreon-collect"
-          fi
-
-          final="$(echo $simple $multi | xargs -n1 | sort -u | xargs)"
-          echo "components=($final)" >> $GITHUB_OUTPUT
 
       - name: Trigger changed components on selected branches
         run: |
