@@ -244,7 +244,7 @@ jobs:
             -X POST -H "Content-Type: application/json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             -d "$PAYLOAD" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs"
+            "https://api.github.com/repos/centreon/centreon-collect/git/refs")
 
           API_HTTP_CODE=$(echo API_HTTP_CODE: "$API_RESPONSE_BODY" | tail -n1)
           API_RESPONSE=$(echo "API_RESPONSE: $API_RESPONSE_BODY" | sed '$d')
