@@ -217,9 +217,21 @@ jobs:
 
           # Commented until tests are made with fine grained token
           # Create the NEW_BRANCH
-          echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
-          PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
-            '{ref: $ref, sha: $sha}')
+          # If RELEASE_TYPE is release, this means BASE_REF is a dev branch => use "ref/heads/$BASE_REF" (base_ref_sha) to create NEW_BRANCH
+          # If RELEASE_TYPE is hotfix, this means BASE_REF is a tag => use "ref/tags/$BASE_REF" to create NEW_BRANCH
+
+          # Get release type
+          RELEASE_TYPE="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f1)"
+
+          if [[ "$RELEASE_TYPE" == "release" ]]; then
+            echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
+            PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.base_ref_sha }}" \
+              '{ref: $ref, sha: $sha}')
+          elif [[ "$RELEASE_TYPE" == "hotfix" ]]; then
+            echo "Creating requested release/hotfix branch with name ${{ steps.get_and_set_references_information.outputs.new_branch }} from ${{ steps.get_and_set_references_information.outputs.base_ref }}."
+            PAYLOAD=$(jq -n --arg ref "refs/heads/${{ steps.get_and_set_references_information.outputs.new_branch }}" --arg sha "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}" \
+              '{ref: $ref, sha: $sha}')
+          fi
 
           # DEBUG
           echo "$PAYLOAD"
