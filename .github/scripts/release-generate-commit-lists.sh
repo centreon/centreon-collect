@@ -9,6 +9,9 @@ HEAD_SHA="$2"
 
 echo "[DEBUG] Using BASE_SHA $BASE_SHA and HEAD_SHA $HEAD_SHA to build commit list..."
 
+# Paths to identify changes in components
+source "$(dirname "$0")/release-component-paths.sh"
+
 # Prepare list of commit-list
 mkdir -p artifacts/commit-lists
 
