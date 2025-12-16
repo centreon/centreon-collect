@@ -236,13 +236,21 @@ jobs:
           # DEBUG
           echo "$PAYLOAD"
 
-          curl \
+          # Create the NEW_BRANCH using API and fine grained
+          API_RESPONSE_BODY=$(curl \
+            -w "\n%{http_code}" \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -X POST -H "Content-Type: application/json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             -d "$PAYLOAD" \
             "https://api.github.com/repos/centreon/centreon-collect/git/refs"
+
+          API_HTTP_CODE=$(echo API_HTTP_CODE: "$API_RESPONSE_BODY" | tail -n1)
+          API_RESPONSE=$(echo "API_RESPONSE: $API_RESPONSE_BODY" | sed '$d')
+
+          echo "Create ref HTTP status: $API_HTTP_CODE"
+          echo "Create ref response: $API_RESPONSE"
 
           # # Create the NEW_BRANCH using git
           # # Branch protection does not allow usage of API for this
