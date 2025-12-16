@@ -3151,9 +3151,6 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_MANY_AGENT
     ${content}    Create List    encrypted server listening on 0.0.0.0:4318
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
-    ${content}    Create List    Perhaps several agents with the same host name
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
-    Should Be True    ${result}    "Perhaps several agents with the same host name" not found in logs.
 
     Sleep    1
 

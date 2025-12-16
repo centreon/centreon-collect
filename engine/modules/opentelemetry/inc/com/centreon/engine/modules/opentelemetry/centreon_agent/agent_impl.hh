@@ -51,7 +51,7 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   using instance_container = boost::multi_index::multi_index_container<
       instance_element,
       boost::multi_index::indexed_by<
-          boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_MEMBER(
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
               instance_element,
               instance_element::host_serv_pair,
               host_serv)>,
@@ -67,13 +67,7 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   static absl::Mutex* _instances_m;
 
  protected:
-  std::shared_ptr<spdlog::logger> _logger;
-
-  agent_impl_base(const std::shared_ptr<spdlog::logger>& logger)
-      : _logger(logger) {}
-
-  void _on_new_conf(const std::string_view& host_name,
-                    const agent::AgentConfiguration& conf);
+  void _on_new_conf(const agent::AgentConfiguration& conf);
 
   void _on_done();
 
@@ -165,6 +159,7 @@ class agent_impl : public bireactor_class, public agent_impl_base {
   void _write(const std::shared_ptr<agent::MessageToAgent>& request);
 
  protected:
+  std::shared_ptr<spdlog::logger> _logger;
   bool _alive ABSL_GUARDED_BY(_protect);
 
   agent_stat::pointer _stats;
