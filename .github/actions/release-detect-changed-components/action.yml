@@ -6,11 +6,12 @@ inputs:
     description: ref for the base (latest stable release bundle tag)
     required: true
   head_ref:
-    descrption: ref for current release or hotfix branch
+    description: ref for current release or hotfix branch
     required: true
 
 outputs:
   changed_components:
+    description: changedccomponent list
     value: ${{ steps.detect.outputs.changed_components }}
 
 runs:
@@ -22,7 +23,7 @@ runs:
         git fetch --all --tags --prune
 
     - name: Detect changed components
-    - id: detect-changed-components
+      id: detect-changed-components
       shell: bash
       run: |
         ci-scripts/release-detect-changed-components.sh "${{ inputs.base_ref }}" "${{ inputs.base_ref }}"
