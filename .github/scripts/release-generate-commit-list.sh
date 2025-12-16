@@ -7,10 +7,12 @@ set -euo pipefail
 BASE_SHA="$1"
 HEAD_SHA="$2"
 
+echo "[DEBUG] Using BASE_SHA $BASE_SHA and HEAD_SHA $HEAD_SHA to build commit list..."
+
 # Prepare list of commit-list
 mkdir -p artifacts/commit-lists
 
-# Generate list of commits for components
+# Generate list of commits for changed components list
 while read -r component; do
   echo "Generating commit list for $component"
 
@@ -21,10 +23,11 @@ while read -r component; do
     continue
   fi
 
+  # Add commits to component commit list
   git log \
     --pretty=format:'%h %s' \
     "$BASE_SHA..$HEAD_SHA" \
     -- $paths \
     > "artifacts/commit-lists/${component}.txt"
 
-done < artifacts/components.txt
+done < artifacts/changed-components.txt
