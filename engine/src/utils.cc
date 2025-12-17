@@ -84,12 +84,6 @@ int my_system_r(nagios_macros* mac,
   // time to start command.
   gettimeofday(&start_time, nullptr);
 
-  // send event broker.
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_time, end_time, *exectime, timeout,
-                        *early_timeout, service::state_ok,
-                        const_cast<char*>(cmd.c_str()), nullptr, nullptr);
-
   std::shared_ptr<commands::raw_v2> raw_cmd =
       std::make_shared<commands::raw_v2>(g_io_context, "system", cmd);
   commands::result res;
@@ -114,12 +108,6 @@ int my_system_r(nagios_macros* mac,
       commands_logger,
       "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
       *exectime, *early_timeout, result, output);
-
-  // send event broker.
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_time, end_time, *exectime, timeout,
-                        *early_timeout, result, const_cast<char*>(cmd.c_str()),
-                        const_cast<char*>(output.c_str()), nullptr);
 
   return result;
 }
@@ -248,110 +236,6 @@ void sighandler(int sig) {
   /* else begin shutting down... */
   else
     sigshutdown = true;
-}
-
-/******************************************************************/
-/************************* IPC FUNCTIONS **************************/
-/******************************************************************/
-
-/**
- * @brief Parse buffer and fill the three strings given as references:
- *    * short_output
- *    * long_output
- *    * perf_data
- *
- * @param[in] buffer
- * @param[out] short_output
- * @param[out] long_output
- * @param[out] perf_data
- * @param[in] escape_newlines_please To escape new lines in the returned strings
- * @param[in] newlines_are_escaped To consider input newlines as escaped.
- *
- */
-void parse_check_output(std::string const& buffer,
-                        std::string& short_buffer,
-                        std::string& long_buffer,
-                        std::string& pd_buffer,
-                        bool escape_newlines_please,
-                        bool newlines_are_escaped) {
-  bool long_pipe{false};
-  bool perfdata_already_filled{false};
-
-  bool eof{false};
-  std::string line;
-  /* pos_line is used to cut a line
-   * start_line is the position of the line begin
-   * end_line is the position of the line end. */
-  size_t start_line{0}, end_line, pos_line;
-  int line_number{1};
-  while (!eof) {
-    if (newlines_are_escaped &&
-        (pos_line = buffer.find("\\n", start_line)) != std::string::npos) {
-      end_line = pos_line;
-      pos_line += 2;
-    } else if ((pos_line = buffer.find("\n", start_line)) !=
-               std::string::npos) {
-      end_line = pos_line;
-      pos_line++;
-    } else {
-      end_line = buffer.size();
-      eof = true;
-    }
-    line = buffer.substr(start_line, end_line - start_line);
-    size_t pipe;
-    if (!long_pipe)
-      pipe = line.find_last_of('|');
-    else
-      pipe = std::string::npos;
-
-    if (pipe != std::string::npos) {
-      end_line = pipe;
-      /* Let's trim the output */
-      while (end_line > 1 && std::isspace(line[end_line - 1]))
-        end_line--;
-
-      /* Let's trim the output */
-      pipe++;
-      while (pipe < line.size() - 1 && std::isspace(line[pipe]))
-        pipe++;
-
-      if (line_number == 1) {
-        short_buffer.append(line.substr(0, end_line));
-        pd_buffer.append(line.substr(pipe));
-        perfdata_already_filled = true;
-      } else {
-        if (line_number > 2)
-          long_buffer.append(escape_newlines_please ? "\\n" : "\n");
-        long_buffer.append(line.substr(0, end_line));
-        if (perfdata_already_filled)
-          pd_buffer.append(" ");
-        pd_buffer.append(line.substr(pipe));
-        // Now, all new lines contain perfdata.
-        long_pipe = true;
-      }
-    } else {
-      /* Let's trim the output */
-      end_line = line.size();
-      while (end_line > 1 && std::isspace(line[end_line - 1]))
-        end_line--;
-      line.erase(end_line);
-      if (line_number == 1)
-        short_buffer.append(line);
-      else {
-        if (!long_pipe) {
-          if (line_number > 2)
-            long_buffer.append(escape_newlines_please ? "\\n" : "\n");
-          long_buffer.append(line);
-        } else {
-          if (perfdata_already_filled)
-            pd_buffer.append(" ");
-          pd_buffer.append(line);
-        }
-      }
-    }
-    start_line = pos_line;
-    line_number++;
-  }
 }
 
 /******************************************************************/

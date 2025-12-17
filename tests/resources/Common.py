@@ -392,9 +392,9 @@ def ctn_start_mysql():
         getoutput("systemctl start mysql")
         logger.console("Mariadb started with systemd")
     else:
-        if os.path.exists("/usr/libexec/mysqldtoto"):
+        if os.path.exists("/usr/sbin/mysqldtoto"):
             logger.console("Starting mysqld directly")
-            Popen(["/usr/libexec/mysqldtoto",
+            Popen(["/usr/sbin/mysqldtoto",
                    "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
             logger.console("mysqld directly started")
         elif os.path.exists("/run/mysqld"):
@@ -415,7 +415,7 @@ def ctn_stop_mysql():
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
     else:
-        if os.path.exists("/usr/libexec/mysqldtoto"):
+        if os.path.exists("/usr/sbin/mysqldtoto"):
             logger.console("Stopping directly mysqld")
             for proc in psutil.process_iter():
                 if ('mysqldtoto' in proc.name()):

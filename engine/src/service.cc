@@ -1309,8 +1309,8 @@ int service::handle_async_check_result(
     std::string plugin_output;
     std::string long_plugin_output;
     std::string perf_data;
-    parse_check_output(output, plugin_output, long_plugin_output, perf_data,
-                       true, false);
+    common::parse_check_output(output, plugin_output, long_plugin_output,
+                               perf_data, true, false);
 
     set_long_plugin_output(long_plugin_output);
     set_perf_data(perf_data);
@@ -2658,42 +2658,6 @@ int service::run_async_check_local(int check_options,
 
   // Send broker event.
   timeval start_time = {0, 0};
-  int res = broker_service_check(NEBTYPE_SERVICECHECK_ASYNC_PRECHECK, this,
-                                 checkable::check_active, nullptr);
-
-  // Service check was cancelled by NEB module. reschedule check later.
-  if (NEBERROR_CALLBACKCANCEL == res) {
-    if (preferred_time != nullptr) {
-#ifdef LEGACY_CONF
-      uint32_t interval_length = config->interval_length();
-#else
-      uint32_t interval_length = pb_config.interval_length();
-#endif
-      *preferred_time +=
-          static_cast<time_t>(check_interval() * interval_length);
-    }
-    engine_logger(log_runtime_error, basic)
-        << "Error: Some broker module cancelled check of service '"
-        << description() << "' on host '" << get_hostname();
-    SPDLOG_LOGGER_ERROR(
-        runtime_logger,
-        "Error: Some broker module cancelled check of service '{}' on host "
-        "'{}'",
-        description(), get_hostname());
-    return ERROR;
-  }
-  // Service check was override by NEB module.
-  else if (NEBERROR_CALLBACKOVERRIDE == res) {
-    engine_logger(dbg_functions, basic)
-        << "Some broker module overrode check of service '" << description()
-        << "' on host '" << get_hostname() << "' so we'll bail out";
-    SPDLOG_LOGGER_TRACE(
-        functions_logger,
-        "Some broker module overrode check of service '{}' on host '{}' so "
-        "we'll bail out",
-        description(), get_hostname());
-    return OK;
-  }
 
   // Checking starts.
   engine_logger(dbg_checks, basic) << "Checking service '" << description()
@@ -2727,17 +2691,11 @@ int service::run_async_check_local(int check_options,
   set_is_executing(true);
 
   // Send event broker.
-  res = broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
-                             checkable::check_active, processed_cmd.c_str());
+  broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
+                       checkable::check_active, processed_cmd.c_str());
 
   // Restore latency.
   set_latency(old_latency);
-
-  // Service check was override by neb_module.
-  if (NEBERROR_CALLBACKOVERRIDE == res) {
-    clear_volatile_macros_r(macros);
-    return OK;
-  }
 
   // Update statistics.
   update_check_stats(scheduled_check ? ACTIVE_SCHEDULED_SERVICE_CHECK_STATS
@@ -4128,10 +4086,13 @@ void service::set_check_command_ptr(
  * @return std::string
  */
 std::string service::get_check_command_line(nagios_macros* macros) {
-  grab_host_macros_r(macros, get_host_ptr());
-  grab_service_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
-  return get_check_command_ptr()->process_cmd(macros);
+  if (get_check_command_ptr()) {
+    grab_host_macros_r(macros, get_host_ptr());
+    grab_service_macros_r(macros, this);
+    std::string tmp;
+    get_raw_command_line_r(macros, get_check_command_ptr(),
+                           check_command().c_str(), tmp, 0);
+    return get_check_command_ptr()->process_cmd(macros);
+  } else
+    return "";
 }

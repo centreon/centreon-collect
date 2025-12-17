@@ -36,7 +36,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::checks;
 
-checker* checker::_instance = nullptr;
+std::shared_ptr<checker> checker::_instance;
 static constexpr time_t max_check_reaper_time = 30;
 
 /**
@@ -53,14 +53,11 @@ checker& checker::instance() {
 
 void checker::init(bool used_by_test) {
   if (!_instance)
-    _instance = new checker(used_by_test);
+    _instance = std::make_shared<checker>(used_by_test);
 }
 
 void checker::deinit() {
-  if (_instance) {
-    delete _instance;
-    _instance = nullptr;
-  }
+  _instance.reset();
 }
 
 void checker::clear() noexcept {
@@ -328,11 +325,6 @@ void checker::run_sync(host* hst,
       << "* Sync host check done: new state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(checks_logger, "* Sync host check done: new state={}",
                       static_cast<uint32_t>(hst->get_current_state()));
-
-  // Send event broker.
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
-                    nullptr,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 }
 
 /**************************************
@@ -345,13 +337,18 @@ void checker::run_sync(host* hst,
  *  Default constructor.
  */
 checker::checker(bool used_by_test)
-    : commands::command_listener(), _used_by_test(used_by_test) {}
+    : commands::command_listener(), _used_by_test(used_by_test) {
+  SPDLOG_LOGGER_DEBUG(commands_logger, "create checker {:p}",
+                      static_cast<const void*>(this));
+}
 
 /**
  *  Default destructor.
  */
-checker::~checker() noexcept {
+checker::~checker() {
   clear();
+  SPDLOG_LOGGER_DEBUG(commands_logger, "delete checker {:p}",
+                      static_cast<const void*>(this));
 }
 
 /**
@@ -448,12 +445,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   // Send broker event.
   timeval start_time{0, 0};
   timeval end_time{0, 0};
-  int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
-                            checkable::check_active, nullptr, nullptr));
-
-  // Host sync check was cancelled or overriden by NEB module.
-  if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
-    return hst->get_current_state();
 
   // Get current host macros.
   nagios_macros* macros(get_global_macros());
@@ -471,12 +462,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   // Get command object.
   commands::command::pointer cmd = hst->get_check_command_ptr();
   std::string processed_cmd(cmd->process_cmd(macros));
-  const char* tmp_processed_cmd = processed_cmd.c_str();
-
-  // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
-                    processed_cmd.c_str(),
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Debug messages.
   engine_logger(dbg_commands, more)
@@ -494,22 +479,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   hst->set_plugin_output("");
   hst->set_long_plugin_output("");
   hst->set_perf_data("");
-
-  // Send broker event.
-  timeval start_cmd;
-  timeval end_cmd{0, 0};
-  gettimeofday(&start_cmd, nullptr);
-#ifdef LEGACY_CONF
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_cmd, end_cmd, 0,
-                        config->host_check_timeout(), false, 0,
-                        tmp_processed_cmd, nullptr, nullptr);
-#else
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
-                        NEBATTR_NONE, start_cmd, end_cmd, 0,
-                        pb_config.host_check_timeout(), false, 0,
-                        tmp_processed_cmd, nullptr, nullptr);
-#endif
 
   commands::result res;
 
@@ -558,28 +527,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   if (res.end_time >= res.start_time)
     execution_time = res.end_time.to_seconds() - res.start_time.to_seconds();
 
-  // Send broker event.
-  memset(&start_cmd, 0, sizeof(start_time));
-  start_cmd.tv_sec = res.start_time.to_seconds();
-  start_cmd.tv_usec =
-      res.start_time.to_useconds() - start_cmd.tv_sec * 1000000ull;
-  memset(&end_cmd, 0, sizeof(end_time));
-  end_cmd.tv_sec = res.end_time.to_seconds();
-  end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
-#ifdef LEGACY_CONF
-  broker_system_command(
-      NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE, start_cmd,
-      end_cmd, execution_time, config->host_check_timeout(),
-      res.exit_status == common::e_exit_status::timeout, res.exit_code,
-      tmp_processed_cmd, res.output.c_str(), nullptr);
-#else
-  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
-                        start_cmd, end_cmd, execution_time,
-                        pb_config.host_check_timeout(),
-                        res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, res.output.c_str(), nullptr);
-#endif
-
   // Cleanup.
   clear_volatile_macros_r(macros);
 
@@ -613,8 +560,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   std::string perfdata_output;
 
   // Parse the output: short and long output, and perf data.
-  parse_check_output(res.output, pl_output, lpl_output, perfdata_output, true,
-                     false);
+  common::parse_check_output(res.output, pl_output, lpl_output, perfdata_output,
+                             true, false);
 
   hst->set_plugin_output(pl_output);
   hst->set_long_plugin_output(lpl_output);
@@ -644,11 +591,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Get the end time of command.
   gettimeofday(&end_time, nullptr);
-
-  // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
-                    tmp_processed_cmd,
-                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Termination.
   engine_logger(dbg_checks, basic)

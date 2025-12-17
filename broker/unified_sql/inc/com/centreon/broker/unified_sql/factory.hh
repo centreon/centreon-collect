@@ -36,7 +36,7 @@ class factory : public io::factory {
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const&) = delete;
-  bool has_endpoint(config::endpoint& cfg, io::extension* ext);
+  bool has_endpoint(const config::endpoint& cfg, io::extension* ext) const;
   io::endpoint* new_endpoint(config::endpoint& cfg,
                              bool& is_acceptor,
                              std::shared_ptr<persistent_cache> cache =
@@ -44,6 +44,6 @@ class factory : public io::factory {
 };
 }  // namespace unified_sql
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_FACTORY_HH

@@ -132,7 +132,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Try configuration parsing.
       com::centreon::broker::config::parser p;
       com::centreon::broker::config::state s{
-          p.parse(neb::gl_configuration_file)};
+          p.parse(neb::gl_configuration_file, true)};
 
       // Initialization.
       /* This is a little hack to avoid to replace the log file set by

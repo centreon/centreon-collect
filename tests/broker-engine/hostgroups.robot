@@ -190,16 +190,9 @@ EBNHGU4_${test_label}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
-    Ctn Broker Config Log    central    sql    trace
-    Ctn Broker Config Log    module0    core    error
-    Ctn Broker Config Log    module0    processing    error
-    Ctn Broker Config Log    module1    core    error
-    Ctn Broker Config Log    module1    processing    error
-    Ctn Broker Config Log    module1    core    error
-    Ctn Broker Config Log    module2    processing    error
-    Ctn Broker Config Log    central    core    error
-    Ctn Broker Config Log    central    processing    error
+    Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    lua    trace
+    Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Source Log    central    1
     Ctn Broker Config Source Log    module0    1
     Ctn Config Broker Sql Output    central    unified_sql    5
