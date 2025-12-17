@@ -115,3 +115,32 @@ curl --request GET "https://hostname:8443/api/core/proxy/remotecopy" \
     \"cache_dir\": \"/var/cache/centreon\"
 }"
 ```
+
+### Developer manual
+
+This module uses **register** and **node** modules to get the list of nodes to manage.
+
+
+This module uses multiple processes: one controls a pool of workers to process events and optionally an httpserver process if pullwss is used.
+
+
+## check()
+Run by the gorgone-core process regularly (5s).
+
+
+- start a history synchronization if needed
+
+- delete old history synchronization if older than synchistory_timeout
+- launch a ping to all nodes
+- delete old pings if older than **pong_discard_timeout**
+
+
+For the sync history, the process is as follows : [sequence diagram](./pullwss-log-sync.mmd)
+
+
+Two things can start a history sync:
+
+* synchistory_time configuration, run by check()
+
+* an api call to a specific node (in the form [/api/nodes/:nodeid/...](../../api.md)). It is not shown on the above sequence diagram.
+
