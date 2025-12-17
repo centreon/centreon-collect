@@ -26,6 +26,7 @@
 namespace com::centreon::engine::modules::opentelemetry {
 class otl_config {
   grpc_config::pointer _grpc_conf;
+  unsigned _minute_certificate_ttl;
   telegraf::conf_server_config::pointer _telegraf_conf_server_config;
 
   centreon_agent::agent_config::pointer _centreon_agent_config;
@@ -38,6 +39,7 @@ class otl_config {
   otl_config(const std::string_view& file_path, asio::io_context& io_context);
 
   grpc_config::pointer get_grpc_config() const { return _grpc_conf; }
+  grpc_config::pointer get_mutable_grpc_config() { return _grpc_conf; }
   telegraf::conf_server_config::pointer get_telegraf_conf_server_config()
       const {
     return _telegraf_conf_server_config;
@@ -49,6 +51,9 @@ class otl_config {
 
   int get_max_length_grpc_log() const { return _max_length_grpc_log; }
   bool get_json_grpc_log() const { return _json_grpc_log; }
+  unsigned get_minute_certificate_ttl() const {
+    return _minute_certificate_ttl;
+  }
 
   bool operator==(const otl_config& right) const;
 

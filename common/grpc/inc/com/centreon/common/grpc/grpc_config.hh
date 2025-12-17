@@ -175,6 +175,9 @@ class grpc_config {
   const std::string& get_cert() const { return _certificate; }
   const std::string& get_key() const { return _cert_key; }
   const std::string& get_ca() const { return _ca_cert; }
+  void set_cert(const std::string_view& new_cert) { _certificate = new_cert; }
+  void set_key(const std::string_view& new_key) { _cert_key = new_key; }
+  void set_ca(const std::string_view& new_ca) { _ca_cert = new_ca; }
   const std::string& get_ca_name() const { return _ca_name; }
   bool is_compressed() const { return _compress; }
   int get_second_keepalive_interval() const {

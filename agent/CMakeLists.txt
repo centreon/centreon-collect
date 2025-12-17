@@ -115,6 +115,13 @@ endif()
 set(NATIVE_INC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/inc/com/centreon/agent")
 set(NATIVE_SRC "${PROJECT_SOURCE_DIR}/${NATIVE_DIR}/src")
 
+set ( SRC_PB_OTEL
+  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
+  ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
+)
+
 set( SRC_COMMON
   ${NATIVE_SRC}/agent_info.cc
   ${NATIVE_SRC}/check_cpu.cc
@@ -127,10 +134,6 @@ set( SRC_COMMON
   ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/metrics/v1/metrics.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/common/v1/common.pb.cc
-  ${SRC_DIR}/opentelemetry/proto/resource/v1/resource.pb.cc
   ${SRC_DIR}/scheduler.cc
   ${SRC_DIR}/streaming_client.cc
   ${SRC_DIR}/streaming_server.cc
@@ -170,10 +173,10 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SRC ${SRC_COMMON} ${SRC_LINUX})
+  set(SRC ${SRC_COMMON} ${SRC_LINUX} )
 else()
   add_compile_options("/wd5232")
-  set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
+  set(SRC ${SRC_COMMON} ${SRC_WINDOWS} ${SRC_PB_OTEL})
   set_source_files_properties(${SRC_DIR}/filter.cc PROPERTIES COMPILE_FLAGS /bigobj)
 endif()
 
@@ -208,6 +211,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    pb_open_telemetry_lib
     ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++

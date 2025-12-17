@@ -50,7 +50,14 @@ if(WITH_TESTING)
 
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
-  target_link_libraries(bin_connector_test_run cce_core pthread)
+  target_link_libraries(bin_connector_test_run 
+    cce_core 
+    -Wl,--whole-archive
+    centreon_grpc
+    gRPC::grpc++
+    -Wl,--no-whole-archive 
+    pthread)
+
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 
   # Unit test executable.
@@ -179,34 +186,37 @@ if(WITH_TESTING)
 
   target_link_libraries(
     ut_engine
-    PRIVATE enginerpc
-            ut_engine_utils
-            -Wl,-whole-archive
-            cce_core
-            log_v2
-            opentelemetry
-            centagent_lib
-            -Wl,-no-whole-archive
-            pb_open_telemetry_lib
-            centreon_grpc
-            centreon_http
-            centreon_process
+    PRIVATE
+    enginerpc
+    ut_engine_utils
+    centreon_process
+    pb_open_telemetry_lib
+    centagent_lib
+    centreon_grpc
+    centreon_http
+    -Wl,-whole-archive
+    cce_core
+    log_v2
+    opentelemetry
+    ctncrypto
+    gRPC::grpc++
+    Boost::program_options
+    -Wl,-no-whole-archive
 	    #Boost::url
-	    Boost::program_options
-            pthread
-            ${GCOV}
-            GTest::gtest
-            GTest::gtest_main
-            GTest::gmock
-            GTest::gmock_main
-            gRPC::grpc++
-            crypto
-            ssl
-            z
-            fmt::fmt
-            ryml::ryml
-            stdc++fs
-            dl)
+    ${GCOV}
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    GTest::gmock_main
+    gRPC::grpc++
+    fmt::fmt
+    ryml::ryml
+    stdc++fs
+    crypto
+    ssl
+    z
+    pthread
+    dl)
 
   if(WITH_COVERAGE)
     set(COVERAGE_EXCLUDES

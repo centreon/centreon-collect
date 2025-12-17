@@ -108,7 +108,6 @@ target_link_libraries(
           process_stat
           centreon_common
           nebbase
-	  gRPC::grpc++
           -Wl,--no-whole-archive
 	  pb_bam_lib
 	  pb_storage_lib

@@ -17,6 +17,9 @@
  */
 
 #include "grpc_config.hh"
+#include <cstdlib>
+#include <filesystem>
+#include <string_view>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -108,7 +111,9 @@ using namespace com::centreon::engine::modules::opentelemetry;
  *
  * @param json_config_v content of the json config file
  */
-grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
+grpc_config::grpc_config(const rapidjson::Value& json_config_v,
+                         const std::string_view& default_cert_path,
+                         const std::string_view& default_key_path) {
   common::rapidjson_helper json_config(json_config_v);
 
   static common::json_validator validator(_grpc_config_schema);
@@ -149,11 +154,25 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
     }
   }
 
-  read_file(json_config_v, "public_cert", certificate);
-  read_file(json_config_v, "private_key", cert_key);
-  read_file(json_config_v, "ca_certificate", ca_cert);
-  if (json_config.has_member("ca_name"))
-    ca_name = json_config.get_string("ca_name");
+  if (security_mode != NONE) {
+    _cert_path =
+        json_config.get_string("public_cert", default_cert_path.data());
+    if (!_cert_path.empty()) {
+      _cert_mtime = read_file(_cert_path, certificate);
+    }
+
+    _key_path = json_config.get_string("private_key", default_key_path.data());
+    if (_key_path.empty()) {
+      _key_mtime = read_file(_key_path, cert_key);
+    }
+
+    _ca_path = json_config.get_string("ca_certificate", "");
+    if (!_ca_path.empty()) {
+      _ca_mtime = read_file(_ca_path, ca_cert);
+    }
+    if (json_config.has_member("ca_name"))
+      ca_name = json_config.get_string("ca_name");
+  }
   if (json_config.has_member("compression"))
     compress = json_config.get_bool("compression");
 
@@ -191,29 +210,25 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v) {
 /**
  * @brief read a file as certificate
  *
- * @param json_config
- * @param key json key that contains file path
+ * @param path of file
  * @param file_content out: file content
+ * @return mtime of the file if file path is configured
  */
-void grpc_config::read_file(const rapidjson::Value& json_config,
-                            const std::string_view& key,
-                            std::string& file_content) {
-  std::string path;
+std::filesystem::file_time_type grpc_config::read_file(
+    std::string_view path,
+    std::string& file_content) {
   try {
-    path = rapidjson_helper(json_config).get_string(key.data());
-  } catch (const std::exception&) {
-    return;
-  }
-  try {
-    boost::trim(path);
+    path = absl::StripLeadingAsciiWhitespace(path);
+    path = absl::StripTrailingAsciiWhitespace(path);
     if (path.empty()) {
-      return;
+      return {};
     }
-    std::ifstream file(path);
+    std::ifstream file(path.data());
     std::stringstream ss;
     ss << file.rdbuf();
     file.close();
     file_content = ss.str();
+    return std::filesystem::last_write_time((path));
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(config_logger, "fail to read {}: {}", path, e.what());
     throw;
@@ -223,4 +238,58 @@ void grpc_config::read_file(const rapidjson::Value& json_config,
 bool grpc_config::operator==(const grpc_config& right) const {
   return static_cast<const common::grpc::grpc_config>(*this) ==
          static_cast<const common::grpc::grpc_config>(right);
+}
+
+/**
+ * @brief reload certificate if usefull (change on disk)
+ *
+ * @return true certificate had been reloaded
+ * @return false
+ */
+bool grpc_config::reload_certificates() {
+  std::filesystem::file_time_type cert_mtime, key_mtime, ca_mtime;
+  std::error_code err;
+  if (!_cert_path.empty()) {
+    cert_mtime = std::filesystem::last_write_time(_cert_path, err);
+    if (err) {
+      return false;
+    }
+  }
+  if (!_key_path.empty()) {
+    key_mtime = std::filesystem::last_write_time(_key_path, err);
+    if (err) {
+      return false;
+    }
+  }
+  if (!_ca_path.empty()) {
+    ca_mtime = std::filesystem::last_write_time(_ca_path);
+  }
+
+  std::string cert, key, ca;
+  bool ret = false;
+  if (cert_mtime != _cert_mtime) {
+    try {
+      _cert_mtime = read_file(_cert_path, cert);
+      ret = true;
+      set_cert(cert);
+    } catch (const std::exception&) {
+    }
+  }
+  if (key_mtime != _key_mtime) {
+    try {
+      _key_mtime = read_file(_key_path, key);
+      ret = true;
+      set_key(key);
+    } catch (const std::exception&) {
+    }
+  }
+  if (ca_mtime != _ca_mtime) {
+    try {
+      _ca_mtime = read_file(_ca_path, ca);
+      ret = true;
+      set_ca(ca);
+    } catch (const std::exception&) {
+    }
+  }
+  return ret;
 }

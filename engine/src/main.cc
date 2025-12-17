@@ -19,6 +19,8 @@
  * <http://www.gnu.org/licenses/>.
  */
 
+#include <openssl/pem.h>
+#include <pwd.h>
 #include <unistd.h>
 #include <random>
 #include <string>
@@ -69,11 +71,13 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/logging/engine.hh"
+#include "common/crypto/cert_tree.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+namespace crypto = com::centreon::common::crypto;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
 
@@ -89,6 +93,49 @@ std::shared_ptr<asio::io_context> g_io_context(
   "    version. Make sure to read the documentation regarding the config\n"  \
   "    files, as well as the version changelog to find out what has\n"       \
   "    changed.\n"
+
+static void set_engine_owner(const std::string_view& path) {
+  struct passwd user_info;
+  struct passwd* result;
+  char buff[1024];
+  int failure =
+      getpwnam_r("centreon-engine", &user_info, buff, sizeof(buff), &result);
+  if (failure) {
+    throw std::runtime_error("fail to get centreon-engine informations");
+  }
+
+  failure = chown(path.data(), result->pw_uid, result->pw_gid);
+  if (failure) {
+    throw com::centreon::exceptions::msg_fmt("fail to chown {}: {}", path,
+                                             strerror(errno));
+  }
+}
+
+static void gen_cma_key() {
+  std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> ca =
+      crypto::cert_tree::generate_self_signed_ca_key_pair(
+          boost::asio::ip::host_name(),
+          3650);  // 10 years
+
+  std::error_code err;
+  std::filesystem::create_directories(default_cma_pki_dir, err);
+
+  set_engine_owner(default_cma_pki_dir);
+
+  try {
+    crypto::cert_tree::key_to_file(ca.second, default_cma_ca_key, "centengine");
+    set_engine_owner(default_cma_ca_key);
+  } catch (const std::exception& e) {
+    SPDLOG_CRITICAL("fail to save {}. Are you root?", default_cma_ca_key);
+  }
+
+  try {
+    crypto::cert_tree::cert_to_file(ca.first, default_cma_ca_crt);
+    set_engine_owner(default_cma_ca_crt);
+  } catch (const std::exception& e) {
+    SPDLOG_CRITICAL("fail to save {}. Are you root?", default_cma_ca_crt);
+  }
+}
 
 /**
  *  Centreon Engine entry point.
@@ -186,6 +233,8 @@ int main(int argc, char* argv[]) {
              "<http://www.gnu.org/licenses/>.\n";
 
       retval = EXIT_SUCCESS;
+    } else if (vm.count("gen-cma-key")) {
+      gen_cma_key();
     } else {
       if (vm.count("verify-config"))
         verify_config = true;

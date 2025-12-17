@@ -26,9 +26,16 @@
 
 #include "com/centreon/engine/command_manager.hh"
 
+#include <absl/synchronization/mutex.h>
+#include <openssl/x509.h>
+#include <boost/system/detail/error_code.hpp>
+#include <chrono>
+#include <memory>
+#include <mutex>
 #include "open_telemetry.hh"
 
 #include "com/centreon/engine/commands/otel_connector.hh"
+#include "common/crypto/cert_tree.hh"
 #include "otl_fmt.hh"
 #include "otl_server.hh"
 
@@ -44,7 +51,8 @@ open_telemetry::open_telemetry(
     const std::string_view config_file_path,
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _config_file_path(config_file_path),
+    : _minute_timer(*io_context),
+      _config_file_path(config_file_path),
       _logger(logger),
       _io_context(io_context),
       _agent_stats(centreon_agent::agent_stat::load(io_context)) {
@@ -56,14 +64,23 @@ open_telemetry::open_telemetry(
  *
  */
 void open_telemetry::_reload() {
+  absl::MutexLock l(&_protect);
   std::unique_ptr<otl_config> new_conf =
       std::make_unique<otl_config>(_config_file_path, *_io_context);
 
   if (new_conf->get_grpc_config()) {
     if (!_conf || !_conf->get_grpc_config() ||
         *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
+      if (new_conf->get_grpc_config()->is_crypted()) {
+        _server_ca = std::make_unique<crypto::cert_tree>(
+            _conf->get_grpc_config()->get_cert(),
+            _conf->get_grpc_config()->get_key(), "centengine",
+            crypto::cert_tree::load_from_str());
+      }
+
       this->_create_otl_server(new_conf->get_grpc_config(),
-                               new_conf->get_centreon_agent_config());
+                               new_conf->get_centreon_agent_config(),
+                               new_conf->get_minute_certificate_ttl());
     }
     if (!new_conf->get_grpc_config()->is_crypted())
       SPDLOG_LOGGER_WARN(_logger,
@@ -142,9 +159,45 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
   if (!_instance) {
     _instance =
         std::make_shared<open_telemetry>(config_path, io_context, logger);
+    std::static_pointer_cast<open_telemetry>(_instance)->_start_minute_timer();
     instance()->_reload();
   }
   return instance();
+}
+
+void open_telemetry::_start_minute_timer() {
+  absl::MutexLock l(&_protect);
+  _minute_timer.expires_after(std::chrono::minutes(1));
+  _minute_timer.async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        if (!err) {
+          me->_minute_timer_handler();
+        }
+      });
+}
+
+void open_telemetry::_minute_timer_handler() {
+  {
+    absl::MutexLock l(&_protect);
+    if (_conf && _conf->get_grpc_config() &&
+        _conf->get_grpc_config()->is_crypted()) {
+      if (_conf->get_mutable_grpc_config()->reload_certificates()) {
+        _server_ca = std::make_unique<crypto::cert_tree>(
+            _conf->get_grpc_config()->get_cert(),
+            _conf->get_grpc_config()->get_key(), "centengine",
+            crypto::cert_tree::load_from_str());
+        _create_otl_server(_conf->get_grpc_config(),
+                           _conf->get_centreon_agent_config(),
+                           _conf->get_minute_certificate_ttl());
+      } else if (_certificate_ttl.time_since_epoch().count() &&
+                 _certificate_ttl < std::chrono::system_clock::now()) {
+        _create_otl_server(_conf->get_grpc_config(),
+                           _conf->get_centreon_agent_config(),
+                           _conf->get_minute_certificate_ttl());
+      }
+    }
+  }
+  _start_minute_timer();
 }
 
 /**
@@ -154,14 +207,30 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
  */
 void open_telemetry::_create_otl_server(
     const grpc_config::pointer& server_conf,
-    const centreon_agent::agent_config::pointer& agent_conf) {
+    const centreon_agent::agent_config::pointer& agent_conf,
+    unsigned minute_cert_ttl) {
   try {
     std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
     if (to_shutdown) {
       to_shutdown->shutdown(std::chrono::seconds(10));
     }
+
+    grpc_config::pointer low_ttl_conf;
+    // in case of self signed certificate we create shorter ttl certificate from
+    // configured it
+    if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
+        crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
+      std::pair<X509*, EVP_PKEY*> cert_key =
+          _server_ca->generate_cert_key_pair(minute_cert_ttl);
+      low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
+      low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
+      low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));
+      X509_free(cert_key.first);
+      EVP_PKEY_free(cert_key.second);
+    }
+
     _otl_server = otl_server::load(
-        _io_context, server_conf, agent_conf,
+        _io_context, low_ttl_conf ? low_ttl_conf : server_conf, agent_conf,
         [me = shared_from_this()](const metric_request_ptr& request) {
           me->on_metric(request);
         },
@@ -288,7 +357,7 @@ open_telemetry::create_extractor(
       }
     }
   };
-  std::lock_guard l(_protect);
+  absl::MutexLock l(&_protect);
   auto exist = _extractors.find(cmdline);
   if (exist != _extractors.end()) {
     std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
@@ -328,7 +397,7 @@ open_telemetry::create_check_result_builder(const std::string& cmdline) {
 void open_telemetry::on_metric(const metric_request_ptr& metrics) {
   std::vector<otl_data_point> unknown;
   {
-    std::lock_guard l(_protect);
+    absl::MutexLock l(&_protect);
     if (_extractors.empty()) {  // no extractor configured => all unknown
       otl_data_point::extract_data_points(
           metrics, [&unknown](const otl_data_point& data_pt) {
