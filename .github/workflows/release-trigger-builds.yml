@@ -322,7 +322,7 @@ jobs:
           ls -l component-commit-lists-dir
 
           # Loading component changed into array
-          mapfile -t COMPONENTS_COLLECT_CHANGED < changed-components.txt
+          mapfile -t COMPONENTS_COLLECT_CHANGED < component-commit-lists-dir/changed-components.txt
 
           # Accept the branche types listed below, nothing else
           # release prefixed branches: standard release type (release-xxxxx)
