@@ -265,6 +265,19 @@ createEngineContextFile() {
   fi
 }
 
+
+#────────────────────────────────────────────────────────
+#  Create default cma self signed ca if it does not exist
+#────────────────────────────────────────────────────────
+createDefaultCmaCaCrtKeyFiles() {
+  if [ ! -f "/etc/pki/centreon-engine/default_cma_ca.key" || 
+       ! -f "/etc/pki/centreon-engine/default_cma_ca.crt"]; then
+       /usr/sbin/centengine -k
+  fi
+}
+
+
+
 # on debian, it is needed to recreate centreon-engine user at each upgrade because it is removed on postrm step on versions < 23.10
 if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-engine)" ]; then
@@ -314,10 +327,12 @@ fi
 case "$action" in
   "1" | "install")
     createEngineContextFile
+    createDefaultCmaCaCrtKeyFiles
     startCentengine
     ;;
   "2" | "upgrade")
     createEngineContextFile
+    createDefaultCmaCaCrtKeyFiles
     patch_folder_whitelist
     startCentengine
     ;;

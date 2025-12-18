@@ -258,7 +258,7 @@ bool cert_tree::is_self_signed(const std::string_view& cert_content) {
 std::string cert_tree::cert_to_string(const X509* cert) {
   BIO* bio = BIO_new(BIO_s_mem());
 
-  PEM_write_bio_X509(bio, cert);
+  PEM_write_bio_X509(bio, const_cast<X509*>(cert));
 
   BUF_MEM* mem;
   BIO_get_mem_ptr(bio, &mem);
@@ -274,7 +274,7 @@ std::string cert_tree::key_to_string(const EVP_PKEY* key) {
   if (!bio)
     return {};
 
-  PEM_write_bio_PrivateKey(bio, key,
+  PEM_write_bio_PrivateKey(bio, const_cast<EVP_PKEY*>(key),
                            nullptr,  // no encryption
                            nullptr, 0, nullptr, nullptr);
 
