@@ -299,6 +299,7 @@ jobs:
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 #5.0.0
         with:
           name: component-commit-lists
+          path: component-commit-lists-dir
 
       - name: Trigger changed components on selected branches
         run: |
@@ -318,7 +319,7 @@ jobs:
 
           # DEBUG DL ARTIFACT
           echo "Checking artifacts."
-          ls -l
+          ls -l component-commit-lists-dir
 
           # Accept the branche types listed below, nothing else
           # release prefixed branches: standard release type (release-xxxxx)
