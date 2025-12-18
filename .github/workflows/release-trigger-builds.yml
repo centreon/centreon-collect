@@ -359,7 +359,7 @@ jobs:
 
             "CHANGED_ONLY")
             echo "Triggering components that received at least one change since last stable release bundle tag."
-            for COMPONENT in "${COMMPONENTS_COLLECT_CHANGED[@]}"; do
+            for COMPONENT in "${COMPONENTS_COLLECT_CHANGED[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
               # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
