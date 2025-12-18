@@ -258,6 +258,9 @@ jobs:
           # git clone git@github.com:centreon/centreon-collect.git
           # echo "Branch created: ${{ steps.get_and_set_references_information.outputs.new_branch }}"
 
+          # Sleep 10sec
+          sleep 10
+
           # Resolve branch SHA
           NEW_BRANCH_SHA=$(
             curl -sS \
