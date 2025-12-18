@@ -1,5 +1,6 @@
 ---
 name: release-trigger-builds
+run-name: release-trigger-builds-${{ inputs.dispatch_content }}-${{ inputs.dispatch_target_release_branch }}
 
 on:
   workflow_dispatch:
