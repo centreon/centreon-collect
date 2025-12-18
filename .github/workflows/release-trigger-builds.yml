@@ -316,9 +316,9 @@ jobs:
           COMPONENTS_CHANGED=("")
           RUNS_URL=""
 
-          # Unzip the artifact archive
-          echo "Extracting components-commit-list archive."
-          unzip component-commit-lists
+          # DEBUG DL ARTIFACT
+          echo "Checking artifacts."
+          ls -l
 
           # Accept the branche types listed below, nothing else
           # release prefixed branches: standard release type (release-xxxxx)
