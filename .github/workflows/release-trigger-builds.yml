@@ -318,7 +318,7 @@ jobs:
 
           # Unzip the artifact archive
           echo "Extracting components-commit-list archive."
-          unzip components-commit-list
+          unzip component-commit-lists
 
           # Accept the branche types listed below, nothing else
           # release prefixed branches: standard release type (release-xxxxx)
