@@ -292,6 +292,10 @@ jobs:
           base_sha: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
           head_sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
 
+      - name: Download component lists
+        uses: actions/download-artifact@v4
+        with:
+          name: components-commit-list
 
       - name: Trigger changed components on selected branches
         run: |
@@ -306,7 +310,12 @@ jobs:
           #COMPONENTS_MODULES_FULL=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm" "php-pecl-gnupg" "sourceguardian-loader")
           COMPONENTS_COLLECT_REGULAR=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent")
           COMPONENTS_COLLECT_FULL=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent" "docker-packaging" "docker-collect-testing" "docker-gorgone-testing" "libzmq" "lua-curl")
+          COMPONENTS_CHANGED=("")
           RUNS_URL=""
+
+          # Unzip the artifact archive
+          echo "Extracting components-commit-list archive."
+          unzip components-commit-list
 
           # Accept the branche types listed below, nothing else
           # release prefixed branches: standard release type (release-xxxxx)
@@ -331,18 +340,22 @@ jobs:
               echo "Dispatching trigger to $COMPONENT workflow."
               # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
-
             ;;
+
             "REGULAR")
             echo "Triggering all components only."
-            for COMPONENT in "${COMPONENTS_COLLECT[@]}"; do
+            for COMPONENT in "${COMPONENTS_COLLECT_REGULAR[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
               # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
-
             ;;
+
             "CHANGED_ONLY")
-            echo "Triggering components that received at least one change."
+            echo "Triggering components that received at least one change since last stable release bundle tag."
+            for COMPONENT in "${COMMPONENTS_COLLECT_CHANGED[@]}"; do
+              echo "Dispatching trigger to $COMPONENT workflow."
+              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+            done
             ;;
           esac
 
