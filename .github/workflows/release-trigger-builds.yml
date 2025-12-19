@@ -318,7 +318,9 @@ jobs:
           COMPONENTS_CHANGED=("")
           RUNS_URL=""
 
-          # Display what components have received changes
+          # DEBUG
+          echo "Selected dispatch_target_release_branch is ${{ inputs.dispatch_target_release_branch }}."
+          echo "Selected dispatch_content mode is ${{ inputs.dispatch_content }}."
           echo "Components with changes are: $(cat component-commit-lists-dir/changed-components.txt)"
 
           # Loading component changed into array
@@ -359,10 +361,19 @@ jobs:
 
             "CHANGED_ONLY")
             echo "Triggering components that received at least one change since last stable release bundle tag."
-            for COMPONENT in "${COMPONENTS_COLLECT_CHANGED[@]}"; do
-              echo "Dispatching trigger to $COMPONENT workflow."
-              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
-            done
+
+            # There can be no changes at all
+            # Exit 0 with warning if no change at all is reported.
+            if (( ${COMPONENTS_COLLECT_CHANGED[@]} == 0 )); then
+              echo "::warning::No changed component(s) found, exiting workflow."
+              exit 0
+            else
+              for COMPONENT in "${COMPONENTS_COLLECT_CHANGED[@]}"; do
+                echo "Dispatching trigger to $COMPONENT workflow."
+                # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              done
+            fi
+
             ;;
           esac
 
