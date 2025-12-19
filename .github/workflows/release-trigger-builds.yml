@@ -381,3 +381,84 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release summary
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+            BASE_SHA: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
+            HEAD_SHA: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Data from previous steps and context
+            const baseSha = process.env.BASE_SHA;
+            const headSha = process.env.HEAD_SHA;
+            const repo = process.env.GITHUB_REPOSITORY;
+
+            // Artifacts from previous steps
+            const componentsFile = 'artifacts/changed-components.txt';
+            const commitListsDir = 'artifacts/commit-lists';
+
+            // Build summary
+            core.summary
+              .addHeading('Release impact summary', 2)
+              .addRaw(`**Base:** \`${baseSha}\`\n\n`)
+              .addRaw(`**Head:** \`${headSha}\`\n\n`)
+              .addLink(
+                'Full repository diff',
+                `https://github.com/${repo}/compare/${baseSha}...${headSha}`
+              )
+              .addRaw('\n\n');
+
+            if (!fs.existsSync(componentsFile)) {
+              core.summary.addRaw('_No components changed._\n');
+              await core.summary.write();
+              return;
+            }
+
+            // Get components, 1 per line from the file
+            const components = fs
+              .readFileSync(componentsFile, 'utf8')
+              .split('\n')
+              .map(l => l.trim())
+              .filter(Boolean);
+
+            let shown = false;
+
+            for (const component of components) {
+              const commitsPath = `${commitListsDir}/${component}.txt`;
+              if (!fs.existsSync(commitsPath)) continue;
+
+              const lines = fs.readFileSync(commitsPath, 'utf8')
+                .split('\n')
+                .map(l => l.trim())
+                .filter(Boolean);
+
+              if (lines.length === 0) continue;
+
+              shown = true;
+
+              const rendered = lines.map(line => {
+                const [sha, ...rest] = line.split(' ');
+                const subject = rest.join(' ');
+                const url = `https://github.com/${repo}/commit/${sha}`;
+                return `- [\`${sha}\`](${url}) ${subject}`;
+              }).join('\n');
+
+              core.summary
+                .addHeading(component, 3)
+                .addLink(
+                  'Component diff',
+                  `https://github.com/${repo}/compare/${baseSha}...${headSha}`
+                )
+                .addRaw(`\n\n**Commits:** ${lines.length}\n\n`)
+                .addDetails('Commit list', rendered)
+                .addRaw('\n');
+            }
+
+            if (!shown) {
+              core.summary.addRaw('_No components changed._\n');
+            }
+
+            await core.summary.write();
