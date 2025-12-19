@@ -315,7 +315,7 @@ jobs:
           #COMPONENTS_MODULES_FULL=("anomaly-detection" "autodiscovery" "bam" "cloud-business-extensions" "cloud-extensions" "it-edition-extensions" "lm" "map" "mbi" "ppm" "php-pecl-gnupg" "sourceguardian-loader")
           COMPONENTS_COLLECT_REGULAR=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent")
           COMPONENTS_COLLECT_FULL=("centreon-collect" "centreon-common" "gorgone" "monitoring-agent" "docker-packaging" "docker-collect-testing" "docker-gorgone-testing" "libzmq" "lua-curl")
-          COMPONENTS_CHANGED=("")
+          declare -a COMPONENTS_CHANGED=()
           RUNS_URL=""
 
           # DEBUG
@@ -364,7 +364,7 @@ jobs:
 
             # There can be no changes at all
             # Exit 0 with warning if no change at all is reported.
-            if (( ${COMPONENTS_COLLECT_CHANGED[@]} == 0 )); then
+            if (( ${#COMPONENTS_COLLECT_CHANGED[@]:-0} == 0 )) || [[ -z "${COMPONENTS_COLLECT_CHANGED[*]}" ]]; then
               echo "::warning::No changed component(s) found, exiting workflow."
               exit 0
             else
