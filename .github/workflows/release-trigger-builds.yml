@@ -453,7 +453,7 @@ jobs:
               core.summary.addSeparator()
 
               core.summary
-                .addRaw(`### ${component} — [diff](${diffUrl})\n\n`)
+                .addRaw(`\n\n### ${component} — [diff](${diffUrl})\n\n`)
                 .addHeading(component, 3)
                 .addDetails(`Commit list (${lines.length})`, `\n\n${rendered}\n`)
                 .addRaw('\n');
