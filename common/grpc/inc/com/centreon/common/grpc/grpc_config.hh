@@ -44,7 +44,7 @@ constexpr uint32_t calc_accept_all_compression_mask() {
  */
 class grpc_config {
  public:
-  enum e_security_mode { NONE, TLS_INSECURE, TLS_SECURE };
+  enum e_security_mode { NONE, TLS_INSECURE, TLS_SECURE, TLS_SKIP_VERIFY_CA };
 
  private:
   /**

@@ -81,8 +81,7 @@ grpc_server_base::grpc_server_base(
   return ::grpc::Status::OK;
 };
 
-void grpc_server_base::_init(const builder_option& options,
-                             bool with_auth_process) {
+void grpc_server_base::_init(const builder_option& options) {
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;

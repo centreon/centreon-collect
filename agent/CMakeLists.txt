@@ -189,6 +189,7 @@ include_directories(
   ${INCLUDE_DIR}
   ${NATIVE_INC}
   ${SRC_DIR}
+  ${CMAKE_SOURCE_DIR}/bbdo
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
@@ -199,6 +200,8 @@ target_precompile_headers(centagent_lib PRIVATE precomp_inc/precomp.hh)
 SET(CENTREON_AGENT centagent)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_dependencies(centagent_lib pb_open_telemetry_lib)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main.cc)
 
   target_link_libraries(

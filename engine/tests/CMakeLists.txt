@@ -55,7 +55,8 @@ if(WITH_TESTING)
     -Wl,--whole-archive
     centreon_grpc
     gRPC::grpc++
-    -Wl,--no-whole-archive 
+    stdc++fs
+    -Wl,--no-whole-archive
     pthread)
 
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)

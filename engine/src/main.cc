@@ -114,7 +114,7 @@ static void set_engine_owner(const std::string_view& path) {
 static void gen_cma_key() {
   std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> ca =
       crypto::cert_tree::generate_self_signed_ca_key_pair(
-          boost::asio::ip::host_name(),
+          "centreon-engine-cma-self-signed-root-ca",
           3650);  // 10 years
 
   std::error_code err;
@@ -409,6 +409,10 @@ int main(int argc, char* argv[]) {
             port = generate_port();
 
           const std::string& listen_address = new_config.rpc_listen_address();
+
+          SPDLOG_LOGGER_INFO(external_command_logger,
+                             "Start of grpc server on {}:{}", listen_address,
+                             port);
 
           std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {

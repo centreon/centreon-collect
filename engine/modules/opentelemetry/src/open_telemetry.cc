@@ -220,8 +220,8 @@ void open_telemetry::_create_otl_server(
     // configured it
     if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
         crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
-      std::pair<X509*, EVP_PKEY*> cert_key =
-          _server_ca->generate_cert_key_pair(minute_cert_ttl);
+      std::pair<X509*, EVP_PKEY*> cert_key = _server_ca->generate_cert_key_pair(
+          boost::asio::ip::host_name(), minute_cert_ttl);
       low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
       low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
       low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));

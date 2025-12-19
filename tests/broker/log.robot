@@ -6,6 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
+Test Teardown       Run Keywords    Ctn Kindly Stop Broker    AND    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -25,7 +26,6 @@ BLDIS1
     ${content}    Create List    [core]
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be Equal    ${result}    ${False}    "We should not have core logs"
-    Ctn Kindly Stop Broker
 
 BLEC1
     [Documentation]    Change live the core level log from trace to debug

@@ -38,7 +38,7 @@ class grpc_server_base {
 
  protected:
   using builder_option = std::function<void(::grpc::ServerBuilder&)>;
-  void _init(const builder_option& options, bool with_auth_process = false);
+  void _init(const builder_option& options);
 
  public:
   grpc_server_base(const grpc_config::pointer& conf,

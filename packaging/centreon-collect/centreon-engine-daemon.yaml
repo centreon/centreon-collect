@@ -101,7 +101,7 @@ contents:
   - dst: "/etc/pki/centreon-engine"
     type: dir
     file_info:
-      mode: 0700
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 

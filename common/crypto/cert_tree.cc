@@ -23,6 +23,10 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 namespace com::centreon::common::crypto {
+/**
+ * @brief exception with ssl error string
+ *
+ */
 class ssl_exception : public std::runtime_error {
   static int _append_ssl_error_to_str(const char* str, size_t len, void* out) {
     std::string* sz_out = reinterpret_cast<std::string*>(out);
@@ -46,6 +50,13 @@ class ssl_exception : public std::runtime_error {
 
 using namespace com::centreon::common::crypto;
 
+/**
+ * @brief load a certificate from pem format file
+ *
+ * @param path file path
+ * @return X509* certificate to free
+ * @throw ssl_exception, msg_fmt
+ */
 X509* cert_tree::load_cert_from_file(const std::string_view& path) {
   FILE* fp = fopen(path.data(), "r");
   if (!fp) {
@@ -62,6 +73,14 @@ X509* cert_tree::load_cert_from_file(const std::string_view& path) {
   return ret;
 }
 
+/**
+ * @brief load a key (encrypted or not) from a pem format file
+ *
+ * @param path file path
+ * @param key_password password used to encrypt file (empty if no encryption)
+ * @return EVP_PKEY*
+ * @throw ssl_exception, msg_fmt
+ */
 EVP_PKEY* cert_tree::load_key_from_file(const std::string_view& path,
                                         const std::string_view& key_password) {
   FILE* fp = fopen(path.data(), "r");
@@ -82,6 +101,13 @@ EVP_PKEY* cert_tree::load_key_from_file(const std::string_view& path,
   return ret;
 }
 
+/**
+ * @brief load a certificate from pem format string
+ *
+ * @param content file content
+ * @return X509* certificate to free
+ * @throw ssl_exception
+ */
 X509* cert_tree::load_cert_from_string(const std::string_view& content) {
   BIO* bio = BIO_new_mem_buf(content.data(), content.length());
   X509* ret = PEM_read_bio_X509(bio, nullptr, nullptr, nullptr);
@@ -92,6 +118,14 @@ X509* cert_tree::load_cert_from_string(const std::string_view& content) {
   return ret;
 }
 
+/**
+ * @brief load a key (encrypted or not) from a pem format string
+ *
+ * @param content file content
+ * @param key_password password used to encrypt file (empty if no encryption)
+ * @return EVP_PKEY*
+ * @throw ssl_exception
+ */
 EVP_PKEY* cert_tree::load_key_from_string(const std::string_view& content,
                                           const std::string_view& password) {
   BIO* bio = BIO_new_mem_buf(content.data(), content.length());
@@ -105,13 +139,20 @@ EVP_PKEY* cert_tree::load_key_from_string(const std::string_view& content,
   return ret;
 }
 
+/**
+ * @brief save a certificate to a file
+ *
+ * @param cert
+ * @param path
+ * @throw ssl_exception, msg_fmt
+ */
 void cert_tree::cert_to_file(const X509* cert, const std::string_view& path) {
   FILE* fp = fopen(path.data(), "w");
   if (!fp) {
     throw exceptions::msg_fmt("fail to open certificate file {}: {}", path,
                               strerror(errno));
   }
-  int ret = PEM_write_X509(fp, cert);
+  int ret = PEM_write_X509(fp, const_cast<X509*>(cert));
   if (!ret) {
     fclose(fp);
     ::remove(path.data());
@@ -121,6 +162,14 @@ void cert_tree::cert_to_file(const X509* cert, const std::string_view& path) {
   fclose(fp);
 }
 
+/**
+ * @brief save key to a file
+ *
+ * @param key
+ * @param path file path
+ * @param password if empty, no encryption of the key
+ * @throw ssl_exception, msg_fmt
+ */
 void cert_tree::key_to_file(const EVP_PKEY* key,
                             const std::string_view& path,
                             const std::string_view& password) {
@@ -130,7 +179,7 @@ void cert_tree::key_to_file(const EVP_PKEY* key,
                               strerror(errno));
   }
   int ret = PEM_write_PrivateKey(
-      fp, key, EVP_aes_256_cbc(), nullptr, 0, nullptr,
+      fp, const_cast<EVP_PKEY*>(key), EVP_aes_256_cbc(), nullptr, 0, nullptr,
       (void*)(password.empty() ? nullptr : password.data()));
   if (!ret) {
     fclose(fp);
@@ -142,6 +191,12 @@ void cert_tree::key_to_file(const EVP_PKEY* key,
   ::chmod(path.data(), 0600);
 }
 
+/**
+ * @brief generate a prime256v1 key
+ *
+ * @return EVP_PKEY*
+ * @throw ssl_exception
+ */
 EVP_PKEY* cert_tree::generate_ec_key() {
   std::unique_ptr<EVP_PKEY_CTX, decltype(&EVP_PKEY_CTX_free)> ctx(
       EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free);
@@ -167,6 +222,18 @@ EVP_PKEY* cert_tree::generate_ec_key() {
   return ret;
 }
 
+/**
+ * @brief generate a certificate
+ * if ca_cert is provided, returned cert is certified by ca, else is self signed
+ * Same, returned cert is signed by ca_key if provided
+ * @param pkey key of certificate
+ * @param cn CN recorded in certificate
+ * @param minute_cert_ttl time to live
+ * @param version version usually 1
+ * @param ca_key key of the  ca
+ * @param ca_cert ca
+ * @return X509*
+ */
 X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                                const std::string_view& cn,
                                unsigned minute_cert_ttl,
@@ -196,6 +263,13 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
     X509_set_issuer_name(x509, X509_get_subject_name(ca_cert));
   } else {
     X509_set_issuer_name(x509, name);  // auto-signé
+    // Extension : Basic Constraints = CA:TRUE
+    X509V3_CTX ctx;
+    X509V3_set_ctx(&ctx, x509, x509, NULL, NULL, 0);
+    X509_EXTENSION* ext = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints,
+                                              "critical,CA:TRUE");
+    X509_add_ext(x509, ext, -1);
+    X509_EXTENSION_free(ext);
   }
 
   // Signature
@@ -207,6 +281,13 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
   return x509;
 }
 
+/**
+ * @brief generate a self signed cert with his prime256v1 key
+ *
+ * @param cn
+ * @param minute_cert_ttl tie to leave
+ * @return std::pair<X509* , EVP_PKEY* >
+ */
 std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
 cert_tree::generate_self_signed_ca_key_pair(const std::string_view& cn,
                                             unsigned minute_cert_ttl) {
@@ -218,16 +299,31 @@ cert_tree::generate_self_signed_ca_key_pair(const std::string_view& cn,
   return std::make_pair(ca, ca_key.release());
 }
 
+/**
+ * @brief generate a cert with his prime256v1 key certified by _ca
+ *
+ * @param cn cn of generated certificate
+ * @param minute_cert_ttl
+ * @return std::pair<X509* , EVP_PKEY* >
+ */
 std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
-cert_tree::generate_cert_key_pair(unsigned minute_cert_ttl) {
+cert_tree::generate_cert_key_pair(const std::string_view& cn,
+                                  unsigned minute_cert_ttl) {
   std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> priv_key(
       generate_ec_key(), EVP_PKEY_free);
 
-  X509* cert = generate_cert(priv_key.get(), "", minute_cert_ttl, 1 /*v2*/,
-                             _ca_priv_key, _ca);
+  X509* cert = generate_cert(priv_key.get(), cn.data(), minute_cert_ttl,
+                             1 /*v2*/, _ca_priv_key, _ca);
   return std::make_pair(cert, priv_key.release());
 }
 
+/**
+ * @brief test if cert is a self signed certificate
+ *
+ * @param cert
+ * @return true cert is self signed
+ * @return false
+ */
 bool cert_tree::is_self_signed(const X509* cert) {
   // 1️⃣ Subject == Issuer ?
   if (X509_NAME_cmp(X509_get_subject_name(cert), X509_get_issuer_name(cert)) !=
@@ -245,6 +341,13 @@ bool cert_tree::is_self_signed(const X509* cert) {
   return ret == 1;
 }
 
+/**
+ * @brief test if cert is a self signed certificate
+ *
+ * @param cert_content
+ * @return true cert is self signed
+ * @return false
+ */
 bool cert_tree::is_self_signed(const std::string_view& cert_content) {
   X509* cert = load_cert_from_string(cert_content);
   if (!cert) {
@@ -255,6 +358,12 @@ bool cert_tree::is_self_signed(const std::string_view& cert_content) {
   return ret;
 }
 
+/**
+ * @brief output cert content to a string
+ *
+ * @param cert
+ * @return std::string
+ */
 std::string cert_tree::cert_to_string(const X509* cert) {
   BIO* bio = BIO_new(BIO_s_mem());
 
@@ -269,6 +378,12 @@ std::string cert_tree::cert_to_string(const X509* cert) {
   return pem;
 }
 
+/**
+ * @brief output a key to a string
+ *
+ * @param key
+ * @return std::string
+ */
 std::string cert_tree::key_to_string(const EVP_PKEY* key) {
   BIO* bio = BIO_new(BIO_s_mem());
   if (!bio)

@@ -50,6 +50,7 @@ class cert_tree {
         _ca_priv_key(load_key_from_string(priv_key_content, key_password)) {}
 
   std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> generate_cert_key_pair(
+      const std::string_view& cn,
       unsigned minute_cert_ttl);
 
   static X509* load_cert_from_file(const std::string_view& path);
@@ -71,7 +72,7 @@ class cert_tree {
 
   static std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
   generate_self_signed_ca_key_pair(const std::string_view& cn,
-                                   unsigned day_peremption);
+                                   unsigned minute_peremption);
 
   static EVP_PKEY* generate_ec_key();
 
