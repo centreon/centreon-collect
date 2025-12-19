@@ -364,7 +364,7 @@ jobs:
 
             # There can be no changes at all
             # Exit 0 with warning if no change at all is reported.
-            if (( ${#COMPONENTS_COLLECT_CHANGED[@]:-0} == 0 )) || [[ -z "${COMPONENTS_COLLECT_CHANGED[*]}" ]]; then
+            if (( ${#COMPONENTS_COLLECT_CHANGED[@]} == 0 )) || [[ -z "${COMPONENTS_COLLECT_CHANGED[*]}" ]]; then
               echo "::warning::No changed component(s) found, exiting workflow."
               exit 0
             else
