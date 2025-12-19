@@ -448,14 +448,13 @@ jobs:
                 return `- [\`${sha}\`](${url}) ${subject}`;
               }).join('\n');
 
+              const diffUrl = `https://github.com/${repo}/compare/${baseSha}...${headSha}`;
+
               core.summary.addSeparator()
 
               core.summary
+                .addRaw(`### ${component} — [diff](${diffUrl})\n\n`)
                 .addHeading(component, 3)
-                .addLink(
-                  'Component diff',
-                  `https://github.com/${repo}/compare/${baseSha}...${headSha}`
-                )
                 .addDetails(`Commit list (${lines.length})`, `\n\n${rendered}\n`)
                 .addRaw('\n');
             }
