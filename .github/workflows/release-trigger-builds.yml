@@ -455,7 +455,7 @@ jobs:
                   `https://github.com/${repo}/compare/${baseSha}...${headSha}`
                 )
                 .addRaw(`\n\n**Commits:** ${lines.length}\n\n`)
-                .addDetails('Commit list\n', rendered)
+                .addDetails('Commit list', `\n${rendered}\n`)
                 .addRaw('\n');
             }
 
