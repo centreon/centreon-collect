@@ -9,7 +9,7 @@ on:
         description: "Release or hotfix branch to trigger"
         required: true
       dispatch_content:
-        description: "Dispatch content (what workflow is going to be triggered)"
+        description: "Dispatch content mode (affects what workflow is going to be triggered)"
         required: true
         type: choice
         options:
@@ -318,9 +318,8 @@ jobs:
           COMPONENTS_CHANGED=("")
           RUNS_URL=""
 
-          # DEBUG DL ARTIFACT
-          echo "Checking artifacts."
-          ls -l component-commit-lists-dir
+          # Display what components have received changes
+          echo "Components with changes are: $(cat component-commit-lists-dir/changed-components.txt)"
 
           # Loading component changed into array
           mapfile -t COMPONENTS_COLLECT_CHANGED < component-commit-lists-dir/changed-components.txt
