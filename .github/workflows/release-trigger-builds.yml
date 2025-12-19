@@ -401,8 +401,10 @@ jobs:
             const commitListsDir = 'artifacts/commit-lists';
 
             // Build summary
+            // Full diff between baseSha and headSha
             core.summary
               .addHeading('Release impact summary', 2)
+              .addRaw('\n\n')
               .addRaw(`**Base:** \`${baseSha}\`\n\n`)
               .addRaw(`**Head:** \`${headSha}\`\n\n`)
               .addLink(
@@ -453,7 +455,7 @@ jobs:
                   `https://github.com/${repo}/compare/${baseSha}...${headSha}`
                 )
                 .addRaw(`\n\n**Commits:** ${lines.length}\n\n`)
-                .addDetails('Commit list', rendered)
+                .addDetails('Commit list\n', rendered)
                 .addRaw('\n');
             }
 
