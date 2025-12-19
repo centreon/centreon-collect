@@ -448,14 +448,15 @@ jobs:
                 return `- [\`${sha}\`](${url}) ${subject}`;
               }).join('\n');
 
+              core.summary.addSeparator()
+
               core.summary
                 .addHeading(component, 3)
                 .addLink(
                   'Component diff',
                   `https://github.com/${repo}/compare/${baseSha}...${headSha}`
                 )
-                .addRaw(`\n\n**Commits:** ${lines.length}\n\n`)
-                .addDetails('Commit list', `\n\n${rendered}\n`)
+                .addDetails(`Commit list (${lines.length})`, `\n\n${rendered}\n`)
                 .addRaw('\n');
             }
 
