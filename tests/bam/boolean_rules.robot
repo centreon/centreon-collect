@@ -385,9 +385,7 @@ BABOOCOMPL_RESTART
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
 
-    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical.
-    ...               And in each step, Broker is restarted to check that the BA states
-    ...               did not change during the restart.
+    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical. And in each step, Broker is restarted to check that the BA states did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
         Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
@@ -479,9 +477,7 @@ BABOOCOMPL_RELOAD
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
 
-    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical.
-    ...               And in each step, Broker is restarted to check that the BA states
-    ...               did not change during the restart.
+    Log To Console    Services from 15 to 20 by 2 are set OK. The BA must stay critical. And in each step, Broker is restarted to check that the BA states did not change during the restart.
     FOR    ${i}    IN RANGE    ${15}    ${21}    ${2}
         Remove Files    /tmp/ba${id_ba__sid[0]}_*.dot
         ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
