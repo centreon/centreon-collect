@@ -374,6 +374,11 @@ jobs:
             package_extension: rpm
             runner: centreon-collect
             arch: amd64
+          - image: packaging-centreon-collect-vcpkg-alma10
+            distrib: el10
+            package_extension: rpm
+            runner: centreon-collect
+            arch: amd64
           - image: packaging-centreon-collect-vcpkg-bullseye
             distrib: bullseye
             package_extension: deb
@@ -391,6 +396,16 @@ jobs:
             arch: amd64
           - image: packaging-centreon-collect-vcpkg-bookworm-arm64
             distrib: bookworm
+            package_extension: deb
+            runner: centreon-collect-arm64
+            arch: arm64
+          - image: packaging-centreon-collect-vcpkg-trixie
+            distrib: trixie
+            package_extension: deb
+            runner: centreon-collect
+            arch: amd64
+          - image: packaging-centreon-collect-vcpkg-trixie-arm64
+            distrib: trixie
             package_extension: deb
             runner: centreon-collect-arm64
             arch: arm64
@@ -568,6 +583,8 @@ jobs:
             arch: amd64
           - distrib: el9
             arch: amd64
+          - distrib: el10
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -609,6 +626,10 @@ jobs:
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
+            arch: arm64
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
             arch: arm64
           - distrib: jammy
             arch: amd64
@@ -691,7 +712,7 @@ jobs:
     runs-on: centreon-ubuntu-22.04
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy, noble]
+        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources
