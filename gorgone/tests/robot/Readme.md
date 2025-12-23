@@ -93,8 +93,8 @@ mkdir -p /usr/share/perl5/centreon/ && cp -r /centreon-collect/perl-libs/lib/cen
 
 You can use perl debug mechanism on gorgone to add breakpoint or to see the code coverage : 
 ```bash
-apt install -y cpanminus
-cpanm Devel::Cover Devel::Camelcadedb
+apt install -y cpanminus libdevel-cover-perl
+cpanm Devel::Camelcadedb
 ```
 
 To see the code coverage, run your robot test with this variable environment : 
