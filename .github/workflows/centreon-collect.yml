@@ -27,16 +27,11 @@ on:
         required: true
         default: "^((?!cma).)*$"
         type: string
-      packages_in_artifact:
-        description: "Save packages in artifacts"
-        required: true
-        default: false
-        type: boolean
-      unit_tests:
-        description: "Execute the unit tests"
-        required: true
-        default: true
-        type: boolean
+      labels:
+        description: "Labels to add to the run (comma separated)"
+        required: false
+        default: ""
+        type: string
 
   schedule:
     - cron: "30 0 * * 1-5"
@@ -127,6 +122,7 @@ jobs:
     with:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || inputs.robot_pattern != '^((?!cma).)*$' || false }}
+      labels: ${{ inputs.labels || '' }}
 
   get-aws-environment:
     uses: ./.github/workflows/get-aws-environment.yml
@@ -202,10 +198,7 @@ jobs:
   unit-test:
     needs: [get-environment, get-aws-environment, changes]
     if: |
-      (
-        needs.changes.outputs.trigger_unit_testing == 'true' ||
-        github.event.inputs.unit_tests == 'true'
-      ) &&
+      needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:
@@ -347,7 +340,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
+      packages_in_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
       image: ${{ format('packaging-centreon-collect-vcpkg-{0}{1}', matrix.operating_system, matrix.arch == 'arm64' && '-arm64' || '') }}
       distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
