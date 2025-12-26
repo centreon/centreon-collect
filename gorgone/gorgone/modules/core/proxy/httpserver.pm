@@ -408,7 +408,7 @@ sub is_token_ok {
     my $db_token = $connector->{nodes}->{ $client_id }->{token};
     my $correct_token = !is_empty($db_token) ? $db_token : $self->{config}->{httpserver}->{token};
 
-    if ($client_token ne $correct_token){
+    if (!is_empty($client_token) and $client_token ne $correct_token){
         $self->{logger}->writeLogDebug(sprintf("[proxy-httpserver] WS client %s as node %s could not be authenticated." , $options{ws_id}, $client_id ));
         return 0;
     }

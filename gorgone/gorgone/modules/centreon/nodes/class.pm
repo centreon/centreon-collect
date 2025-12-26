@@ -177,13 +177,14 @@ sub action_centreonnodessync {
                 type => 'pull', # this is ZMQ where node is initiating connection.
                 # Letting address and port for consistency and if in the future we want to validate source ip/port
                 address => $node->{ns_ip_address},
-                port => $node->{gorgone_port}
+                port => $node->{gorgone_port},
+                token => $node->{gorgone_auth_token} // "",
             };
         } elsif($node->{gorgone_communication_type} == 4) {
             push @$register_nodes, {
                 id    => $node->{id},
                 type  => 'pullwss',
-                token => $node->{gorgone_auth_token},
+                token => $node->{gorgone_auth_token} // "",
             };
         } else{ # value 1 and unknown is zmq push
             push @$register_nodes, {
