@@ -37,7 +37,7 @@ Legacycmd Teardown
     [Arguments]    ${central}    ${poller}    ${comm}
     @{process_list}    Create List    ${central}    ${poller}
 
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Terminate Process    pipeWatcher_${comm}
     Run    rm -rf /var/cache/centreon/config
     Run    rm -rf /etc/centreon/centreon_vmware.json
