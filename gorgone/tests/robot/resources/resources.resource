@@ -118,7 +118,7 @@ Setup Gorgone Config
     FOR    ${file}    IN    @{file_list}
         Copy File    ${file}    /etc/centreon-gorgone/${gorgone_name}/config.d/
     END
-    ${key_thumbprint}    Run    perl /usr/bin/gorgone_key_thumbprint.pl --key-path=/var/lib/centreon-gorgone/.keys/rsakey.priv.pem | cut -d: -f4
+    ${key_thumbprint}    Run    perl /usr/local/bin/gorgone_key_thumbprint.pl --key-path=/var/lib/centreon-gorgone/.keys/rsakey.priv.pem | cut -d: -f4
 
     ${result}    Run    sed -i -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g' /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
@@ -177,10 +177,13 @@ Check Poller Communicate
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
     ${start_time}   Get Time    str=epoch
-    ${result}    Run    perl /usr/bin/gorgone_key_generation.pl
+
     # generate key if there is none.
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
     # this script only create key if the files don't exists, and silently finish if the files already exists.
+    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+    # add central node to the database, the poller will be added in the next if/else.
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
     IF    '${communication_mode}' == 'push_zmq'
         @{central_push_config}=    Copy List    ${central_config}
         Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
@@ -188,7 +191,7 @@ Setup Two Gorgone Instances
         @{poller_push_config}=    Copy List    ${poller_config}
         Append To List    ${poller_push_config}    ${push_poller_config}
 
-        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_push_poller.sql
         Setup Gorgone Config    ${poller_push_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${poller_name}
@@ -207,7 +210,7 @@ Setup Two Gorgone Instances
         @{poller_pullwss_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
 
-        Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -224,7 +227,7 @@ Setup Two Gorgone Instances
         @{poller_pull_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pull_config}    ${pull_poller_config}    ${gorgone_core_config}
 
-        Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pull_poller.sql
         Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
