@@ -801,7 +801,7 @@ jobs:
               alma8_mysql_8_0,
               bullseye_mysql_8_4,
               bookworm_mysql_8_4,
-              trixie_mysql_8_4,
+              trixie_mariadb_11_8,
               jammy_mysql_8_4,
               noble_mysql_8_4
             ];
