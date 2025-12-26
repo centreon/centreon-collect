@@ -721,7 +721,7 @@ jobs:
             const alma10_mariadb_10_11 = {
               "operating_system": "alma10",
               "database": "mariadb:10.11",
-              "test_tags": "not @ignore"
+              "test_tags": "amd64"
             };
             const alma9_mariadb_10_11 = {
               "operating_system": "alma9",
@@ -756,17 +756,7 @@ jobs:
             const trixie_mariadb_11_8 = {
               "operating_system": "trixie",
               "database": "mariadb:11.8",
-              "test_tags": "not @ignore"
-            };
-            const jammy_mysql_8_4 = {
-              "operating_system": "jammy",
-              "database": "mysql:8.4",
-              "test_tags": "not @ignore"
-            };
-            const noble_mysql_8_4 = {
-              "operating_system": "noble",
-              "database": "mysql:8.4",
-              "test_tags": "not @ignore"
+              "test_tags": "amd64"
             };
 
             const getDailyConfig = (configs) => {
