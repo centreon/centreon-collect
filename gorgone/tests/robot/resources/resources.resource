@@ -205,7 +205,7 @@ Setup Two Gorgone Instances
     ELSE IF    '${communication_mode}' == 'pullwss'
 
         @{central_pullwss_config}=    Copy List    ${central_config}
-        Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${ROOT_CONFIG}pullwss_node_register_one_node.yaml    ${gorgone_core_config}
+        Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
 
         @{poller_pullwss_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
@@ -222,7 +222,7 @@ Setup Two Gorgone Instances
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
         @{central_pull_config}=    Copy List    ${central_config}
-        Append To List    ${central_pull_config}    ${pull_central_config}    ${ROOT_CONFIG}pull_node_register_one_node.yaml    ${gorgone_core_config}
+        Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
 
         @{poller_pull_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pull_config}    ${pull_poller_config}    ${gorgone_core_config}
