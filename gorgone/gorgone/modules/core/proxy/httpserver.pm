@@ -404,28 +404,28 @@ sub is_token_ok {
     if ($options{data} !~ /^\[REGISTERNODES\]\s+\[(?:.*?)\]\s+\[.*?\]\s+(.*)/ms) {
         return 0;
     }
-    my ($status,$json) = $connector->json_decode(argument => $1);
+    my ($status,$json) = $self->json_decode(argument => $1);
     return 0 if ($status == 1);
     if (is_empty($json->{nodes}->[0]->{id})){
         $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for client " . $options{ws_id});
     }
     my $client_id = $json->{nodes}->[0]->{id};
-    if (!defined($connector->{nodes}->{ $client_id })) {
+    if (!defined($self->{nodes}->{ $client_id })) {
         $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for id " . $client_id);
         return 0;
     }
-    my $db_token = $connector->{nodes}->{ $client_id }->{token};
-    my $correct_token = !is_empty($db_token) ? $db_token : $self->{config}->{httpserver}->{token};
+    my $db_token = $self->{nodes}->{ $client_id }->{token};
+    my $correct_token = $db_token ? $db_token : $self->{config}->{httpserver}->{token};
 
-    if (!is_empty($client_token) and $client_token ne $correct_token){
-        $self->{logger}->writeLogDebug(sprintf("[proxy-httpserver] WS client %s as node %s could not be authenticated." , $options{ws_id}, $client_id ));
+    if (!$client_token or $client_token ne $correct_token){
+        $self->{logger}->writeLogDebug(sprintf("[proxy-httpserver] WS client '%s' as node '%s' could not be authenticated." , $options{ws_id}, $client_id ));
         return 0;
     }
 
     $self->{ws_clients}->{ $options{ws_id} }->{identity} = $client_id;
     $self->{identities}->{ $client_id } = $options{ws_id};
     $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
-    $self->{logger}->writeLogDebug("[proxy-httpserver] WS client " . $options{ws_id} . " authenticated successfully as node " . $client_id);
+    $self->{logger}->writeLogDebug("[proxy-httpserver] WS client '" . $options{ws_id} . "' authenticated successfully as node " . $client_id);
     return 1;
 }
 sub is_logged_websocket {
