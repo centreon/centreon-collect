@@ -34,7 +34,7 @@ namespace com::centreon::engine::modules::opentelemetry {
  */
 struct whitelist_cache {
   using cache = absl::flat_hash_map<std::string, bool>;
-  uint whitelist_instance_id;
+  uint whitelist_instance_id = 0;
   cache data;
 };
 
