@@ -105,6 +105,11 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         key_path: path of the private key file
         cert_path: path of public certificate file
         ca_path: path of the authority certificate file
+        token:
+        ca_common_name: CN
+        security_mode: full, no or insecure
+        have_token: add token or empty token in config file
+        nb_agent: nb conf agent (several agents config files)
     """
     # in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV", "") == "WSL":
@@ -129,7 +134,7 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
 
-        ff.write("\n}\n")
+            ff.write("\n}\n")
 
 
 def ctn_config_centreon_agent_set_value(key: str, value: str):
@@ -141,7 +146,7 @@ def ctn_config_centreon_agent_set_value(key: str, value: str):
     """
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
 
-    with open(f"{CONF_DIR}/centagent.json", "r+") as ff:
+    with open(f"{CONF_DIR}/centagent0.json", "r+") as ff:
         content = json.load(ff)
         print(content)
         content[key] = value
@@ -163,7 +168,7 @@ def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = Non
         return
 
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
-    with open(f"{CONF_DIR}/centagent.json", "w") as ff:
+    with open(f"{CONF_DIR}/centagent0.json", "w") as ff:
         if cert_path is not None or ca_path is not None:
             ff.write(reversed_agent_encrypted_config)
         else:

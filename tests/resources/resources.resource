@@ -487,6 +487,7 @@ Ctn Wait For Engine To Be Ready
 
 
 Ctn Start Agent
+    [Arguments]    ${nb_agent}=1
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" != "WSL"
@@ -503,34 +504,36 @@ Ctn Workspace Win
     RETURN    None
     
 Ctn Kindly Stop Agent
+    [Arguments]    ${nb_agent}=1
     ${run_env}    Ctn Run Env
 
     IF    "${run_env}" == "WSL"
         RETURN
     END
 
-    #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
+    FOR    ${index_agent}    IN RANGE    ${nb_agent}
+        #in most case centreon_agent is not started
+        ${centreon_agent_process}    Get Process Object  centreon_agent${index_agent}
 
-    IF  ${{$centreon_agent_process is None}}  RETURN
+        IF  ${{$centreon_agent_process is None}}  RETURN
 
-    Send Signal To Process    SIGTERM    centreon_agent
-    ${result}    Wait For Process    centreon_agent    timeout=60s
-    # In case of process not stopping
-    IF    "${result}" == "${None}"
-        Log To Console    "fail to stop centreon_agent"
-        Ctn Save Logs
-        Ctn Dump Process    centreon_agent    /usr/bin/centagent   centreon_agent
-        Send Signal To Process    SIGKILL    centreon_agent
-        Fail    centreon_agent not correctly stopped (coredump generated)
-    ELSE
-        IF    ${result.rc} != 0
+        Send Signal To Process    SIGTERM    centreon_agent${index_agent}
+        ${result}    Wait For Process    centreon_agent${index_agent}    timeout=60s
+        # In case of process not stopping
+        IF    "${result}" == "${None}"
+            Log To Console    "fail to stop centreon_agent"
             Ctn Save Logs
-            Ctn Coredump Info    centreon_agent    /usr/bin/centagent    centreon_agent
-            Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+            Ctn Dump Process    centreon_agent${index_agent}    /usr/bin/centagent   centreon_agent${index_agent}
+            Send Signal To Process    SIGKILL    centreon_agent${index_agent}
+            Fail    centreon_agent not correctly stopped (coredump generated)
+        ELSE
+            IF    ${result.rc} != 0
+                Ctn Save Logs
+                Ctn Coredump Info    centreon_agent${index_agent}    /usr/bin/centagent    centreon_agent${index_agent}
+                Fail   centreon_agent not correctly stopped, result status: ${result.rc} 
+            END
         END
     END
-
 
 Ctn Wait For Otel Server To Be Ready
     [Documentation]    Wait for engine otel server to be ready
