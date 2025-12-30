@@ -250,7 +250,7 @@ zmq_message : PROXYADDNODE message type, received from internal zmq socket to de
 
 If the message is valid, update the internal state to allow this new node to connect, or log an error
 
-Return : 1 in case of success 0 in case of failure
+Return : 1 in case of failure, 0 in case of success
 =cut
 sub action_proxyaddnode {
     my $self = shift;
@@ -258,12 +258,12 @@ sub action_proxyaddnode {
     my ($status, $node) = $self->json_decode(argument => $data);
         if ($status == 1) {
             $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
-            return 0;
-        }
+            return 1;
+    }
 
         $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
         $self->{nodes}->{ $node->{id} } = $node;
-        return 1
+        return 0;
 }
 =head3 action_proxydelnode($zmq_message)
 
@@ -272,9 +272,9 @@ zmq_message : PROXYDELNODE message type, received from internal zmq socket to de
 If the message is valid, update the internal state to remove this node, or log an error if the message is not valid.
 
 Return :
-* 0 if message can't be decoded
-* 1 if message can be decoded but node don't exist in local state
-* 2 if node was successfully deleted from local state.
+* 0 if node was successfully deleted from local state.
+* 1 if message can't be decoded
+* 2 if message can be decoded but node don't exist in local state
 =cut
 sub action_proxydelnode {
     my $self = shift;
@@ -282,15 +282,15 @@ sub action_proxydelnode {
     my ($status, $node) = $self->json_decode(argument => $data);
         if ($status == 1) {
             $self->{logger}->writeLogError("Can't decode a proxydelnode message data : " . $data);
-            return 0;
+            return 1;
         }
         if ($self->{nodes}->{ $node->{id} }){
             $self->{logger}->writeLogDebug("[proxy-httpserver] deleting node ". $node->{id} . " from pullwss." );
             delete($self->{nodes}->{ $node->{id} });
-            return 2;
+            return 0;
         }else {
             $self->{logger}->writeLogInfo("[proxy-httpserver] tried to delete node " . $node->{id} . " which don't exist, ignoring it." );
-            return 1;
+            return 2;
         }
 
 }
@@ -324,7 +324,6 @@ sub proxy {
     } elsif ($action eq 'PROXYDELNODE' && $target_complete eq '') {
         return $connector->action_proxydelnode($data);
     }
-    # @TODO: implement a delete node action for when a user remove a node from centreon UI (need to be launched from nodes/proxy module to be catched here)
 
     if ($target_complete !~ /^(.+)~~(.+)$/) {
         $connector->send_log(
