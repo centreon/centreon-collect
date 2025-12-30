@@ -313,9 +313,10 @@ TEST_F(grpc_test, without_ca_verify) {
       std::make_shared<test::grpc_server>(server_conf);
   server->start();
 
-  std::shared_ptr<grpc_config> client_conf = std::make_shared<grpc_config>(
-      "localhost:7896", grpc_config::TLS_SKIP_VERIFY_CA, "", "", "", "", false,
-      60, 120, 4096, "", nullptr);
+  std::shared_ptr<grpc_config> client_conf /* = std::make_shared<grpc_config>(
+       "localhost:7896", grpc_config::TLS_SKIP_VERIFY_CA, "", "", "", "", false,
+       60, 120, 4096, "", nullptr)*/
+      ;
   std::shared_ptr<test::grpc_client> client =
       std::make_shared<test::grpc_client>(client_conf);
 
