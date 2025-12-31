@@ -6,6 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 *** Test Cases ***
 ESS1
@@ -137,6 +138,32 @@ NO_BROKER_LOG
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     Ctn Stop Engine
+
+NO_HOST_CHECK_COMMAND
+    [Documentation]     Given a host without check command, engine should not crash
+    [Tags]     engine    MON-192949
+    Ctn Config Engine    ${1}     ${1}
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1
+
+    Ctn Engine Config Del Value In Hosts    ${0}    host_1    check_command    
+
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Engine
+    Ctn Start Broker
+
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Connection between Engine and Broker not established
+    ${result}    Ctn Check Poller Enabled In Database    1    10
+    Should Be True    ${result}    Poller not visible in database
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 *** Keywords ***
 Ctn Start Stop Instances
