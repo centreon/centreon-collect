@@ -28,7 +28,7 @@
 #include <tuple>
 
 #include "common/crypto/cert_tree.hh"
-#include "common/tests/grpc/grpc_test.grpc.pb.h"
+#include "grpc/grpc_test.grpc.pb.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"
 #include "com/centreon/common/grpc/grpc_server.hh"
@@ -122,7 +122,8 @@ class grpc_server : public common::grpc::grpc_server_base,
 };
 
 class client_reactor
-    : public ::grpc::ClientBidiReactor<MessageToServer, MessageToClient> {
+    : public ::grpc::ClientBidiReactor<MessageToServer, MessageToClient>,
+      public std::enable_shared_from_this<client_reactor> {
   MessageToServer _request;
   MessageToClient _response;
   uint32_t _received_value ABSL_LOCKS_EXCLUDED(_received_value_m);
@@ -132,7 +133,7 @@ class client_reactor
  public:
   ::grpc::ClientContext& get_context() { return _context; }
 
-  static std::shared_ptr<client_reactor> instance;
+  static std::set<std::shared_ptr<client_reactor>> instances;
 
   void send_to_server(uint32_t value) {
     _request.set_int_value(value);
@@ -168,15 +169,14 @@ class client_reactor
     }
   }
 
-  void OnDone(const ::grpc::Status&) override { instance.reset(); }
-
-  void shutdown() {
-    RemoveHold();
-    _context.TryCancel();
+  void OnDone(const ::grpc::Status&) override {
+    instances.erase(shared_from_this());
   }
+
+  void shutdown() { _context.TryCancel(); }
 };
 
-std::shared_ptr<client_reactor> client_reactor::instance;
+std::set<std::shared_ptr<client_reactor>> client_reactor::instances;
 
 class grpc_client : public common::grpc::grpc_client_base {
   std::unique_ptr<TestService::Stub> _stub;
@@ -190,7 +190,8 @@ class grpc_client : public common::grpc::grpc_client_base {
   }
 
   void start(uint32_t value_to_send) {
-    client_reactor::instance = _reactor = std::make_shared<client_reactor>();
+    _reactor = std::make_shared<client_reactor>();
+    client_reactor::instances.insert(_reactor);
     auto& context = _reactor->get_context();
     auto auth = context.auth_context();
     _stub->async()->Export(&context, _reactor.get());
@@ -202,7 +203,11 @@ class grpc_client : public common::grpc::grpc_client_base {
     return _reactor->wait(expected_received_value);
   }
 
-  void shutdown() { _reactor->shutdown(); }
+  void shutdown() {
+    if (_reactor) {
+      _reactor->shutdown();
+    }
+  }
 };
 
 }  // namespace com::centreon::common::grpc::test
@@ -236,6 +241,7 @@ TEST_F(grpc_test, with_cert_verify) {
   client->start(value);
   ASSERT_TRUE(client->wait(value));
 
+  client->shutdown();
   server->shutdown(std::chrono::seconds(2));
 }
 
@@ -267,6 +273,7 @@ TEST_F(grpc_test, with_root_cert_verify) {
   client->start(value);
   ASSERT_TRUE(client->wait(value));
 
+  client->shutdown();
   server->shutdown(std::chrono::seconds(2));
 }
 
@@ -294,6 +301,7 @@ TEST_F(grpc_test, with_cert_verify_but_without_cert) {
   client->start(value);
   ASSERT_FALSE(client->wait(value));
 
+  client->shutdown();
   server->shutdown(std::chrono::seconds(2));
 }
 
@@ -324,5 +332,6 @@ TEST_F(grpc_test, without_ca_verify) {
   client->start(value);
   ASSERT_TRUE(client->wait(value));
 
+  client->shutdown();
   server->shutdown(std::chrono::seconds(2));
 }

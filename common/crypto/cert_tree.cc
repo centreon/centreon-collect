@@ -18,8 +18,11 @@
 
 #include "cert_tree.hh"
 #include <openssl/bio.h>
+#include <openssl/err.h>
 #include <openssl/pem.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
+#include <stdexcept>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 namespace com::centreon::common::crypto {
@@ -232,6 +235,8 @@ EVP_PKEY* cert_tree::generate_ec_key() {
  * @param version version usually 1
  * @param ca_key key of the  ca
  * @param ca_cert ca
+ * @param use_ca_cert_cn if true, cn param is ignored and generated certificate
+ * will have same cn as ca_cert
  * @return X509*
  */
 X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
@@ -239,7 +244,8 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                                unsigned minute_cert_ttl,
                                unsigned version,
                                const EVP_PKEY* ca_key,
-                               const X509* ca_cert) {
+                               const X509* ca_cert,
+                               bool use_ca_cert_cn) {
   X509* x509 = X509_new();
   X509_NAME* name;
 
@@ -255,8 +261,26 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                              -1, 0);
   X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC,
                              (unsigned char*)"centreon", -1, -1, 0);
-  X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
-                             (unsigned char*)cn.data(), -1, -1, 0);
+  if (use_ca_cert_cn) {
+    if (!ca_cert) {
+      throw std::invalid_argument(
+          "we should use ca_cert CN, but no ca_cert provided");
+    }
+    const X509_NAME* subject = X509_get_subject_name(ca_cert);
+    char ca_cn[1024];
+    ca_cn[1023] = 0;
+    int cn_index = X509_NAME_get_text_by_NID(subject, NID_commonName, ca_cn,
+                                             sizeof(ca_cn) - 1);
+    if (cn_index < 0) {
+      throw std::invalid_argument(
+          "we should use ca_cert CN, but ca_cert has no cn");
+    }
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (unsigned char*)ca_cn,
+                               -1, -1, 0);
+  } else {
+    X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC,
+                               (unsigned char*)cn.data(), -1, -1, 0);
+  }
 
   // Issuer
   if (ca_cert) {
@@ -295,7 +319,7 @@ cert_tree::generate_self_signed_ca_key_pair(const std::string_view& cn,
                                                              EVP_PKEY_free);
 
   X509* ca = generate_cert(ca_key.get(), cn, minute_cert_ttl, 1 /*v2*/, nullptr,
-                           nullptr);
+                           nullptr, false);
   return std::make_pair(ca, ca_key.release());
 }
 
@@ -313,7 +337,23 @@ cert_tree::generate_cert_key_pair(const std::string_view& cn,
       generate_ec_key(), EVP_PKEY_free);
 
   X509* cert = generate_cert(priv_key.get(), cn.data(), minute_cert_ttl,
-                             1 /*v2*/, _ca_priv_key, _ca);
+                             1 /*v2*/, _ca_priv_key, _ca, false);
+  return std::make_pair(cert, priv_key.release());
+}
+
+/**
+ * @brief generate a cert with his prime256v1 key certified by _ca
+ * _ca CN is written in returned certificate
+ *
+ * @return std::pair<X509* , EVP_PKEY* >
+ */
+std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
+cert_tree::generate_cert_key_pair(unsigned minute_cert_ttl) {
+  std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> priv_key(
+      generate_ec_key(), EVP_PKEY_free);
+
+  X509* cert = generate_cert(priv_key.get(), "", minute_cert_ttl, 1 /*v2*/,
+                             _ca_priv_key, _ca, true);
   return std::make_pair(cert, priv_key.release());
 }
 

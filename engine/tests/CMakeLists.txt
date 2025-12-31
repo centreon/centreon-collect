@@ -196,6 +196,7 @@ if(WITH_TESTING)
     centagent_lib
     centreon_grpc
     centreon_http
+    centreon_process
     -Wl,-whole-archive
     cce_core
     log_v2

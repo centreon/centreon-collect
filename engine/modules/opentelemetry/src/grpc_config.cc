@@ -162,7 +162,7 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v,
     }
 
     _key_path = json_config.get_string("private_key", default_key_path.data());
-    if (_key_path.empty()) {
+    if (!_key_path.empty()) {
       _key_mtime = read_file(_key_path, cert_key);
     }
 

@@ -84,7 +84,7 @@ add_library(
 add_dependencies(${NEB} nebbase)
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive spdlog::spdlog)
+target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive fmt::fmt)
 
 set_target_properties(
   ${NEB} PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY

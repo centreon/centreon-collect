@@ -47,7 +47,9 @@
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-#ifndef _WIN32
+#ifdef _WIN32
+#include <openssl/ssl.h>
+#else
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #endif

@@ -17,7 +17,6 @@
 */
 
 #include <grpcpp/create_channel.h>
-#include "com/centreon/common/grpc/grpc_config.hh"
 #include "grpcpp/security/credentials.h"
 
 #include "com/centreon/common/grpc/grpc_client.hh"

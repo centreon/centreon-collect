@@ -15,11 +15,7 @@ then
     if [ -f /tmp/core-$test* ]
     then
         gdb -batch -ex "thread apply all bt 30" tests/ut_$test /tmp/core-$test* > ut_$test.core.txt
-        ls -l .
-        pwd
     fi
-    echo exit 1
     exit 1
 fi
-echo exit 0
 exit 0

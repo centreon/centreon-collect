@@ -37,7 +37,7 @@ set_property(TARGET "externalcmd" PROPERTY PREFIX "")
 target_precompile_headers("externalcmd" PRIVATE precomp_inc/precomp.hh)
 
 add_dependencies(externalcmd centreon_clib pb_neb_lib)
-target_link_libraries(externalcmd PRIVATE centreon_clib spdlog::spdlog)
+target_link_libraries(externalcmd PRIVATE centreon_clib)
 
 install(
   TARGETS "externalcmd"

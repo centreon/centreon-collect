@@ -50,6 +50,8 @@ else()
     ut_common
     absl_flyweight_factory_test.cc
     grpc/grpc_test.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
     perfdata_test.cc
     threshold_test.cc
     process_test.cc
@@ -142,6 +144,7 @@ else()
     PRIVATE centreon_common
             centreon_process
             ctncrypto
+            centreon_grpc
             Boost::program_options
             Boost::process
             gRPC::grpc++

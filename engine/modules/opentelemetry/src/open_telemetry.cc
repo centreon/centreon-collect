@@ -28,6 +28,7 @@
 
 #include <absl/synchronization/mutex.h>
 #include <openssl/x509.h>
+#include <spdlog/spdlog.h>
 #include <boost/system/detail/error_code.hpp>
 #include <chrono>
 #include <memory>
@@ -72,10 +73,16 @@ void open_telemetry::_reload() {
     if (!_conf || !_conf->get_grpc_config() ||
         *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
       if (new_conf->get_grpc_config()->is_crypted()) {
-        _server_ca = std::make_unique<crypto::cert_tree>(
-            _conf->get_grpc_config()->get_cert(),
-            _conf->get_grpc_config()->get_key(), "centengine",
-            crypto::cert_tree::load_from_str());
+        try {
+          _server_ca = std::make_unique<crypto::cert_tree>(
+              new_conf->get_grpc_config()->get_cert(),
+              new_conf->get_grpc_config()->get_key(), "centengine",
+              crypto::cert_tree::load_from_str());
+        } catch (const std::exception& e) {
+          SPDLOG_LOGGER_ERROR(_logger, "fail to load otel grpc server keys:{}",
+                              e.what());
+          throw;
+        }
       }
 
       this->_create_otl_server(new_conf->get_grpc_config(),
@@ -220,8 +227,8 @@ void open_telemetry::_create_otl_server(
     // configured it
     if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
         crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
-      std::pair<X509*, EVP_PKEY*> cert_key = _server_ca->generate_cert_key_pair(
-          boost::asio::ip::host_name(), minute_cert_ttl);
+      std::pair<X509*, EVP_PKEY*> cert_key =
+          _server_ca->generate_cert_key_pair(minute_cert_ttl);
       low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
       low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
       low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));

@@ -53,6 +53,9 @@ class cert_tree {
       const std::string_view& cn,
       unsigned minute_cert_ttl);
 
+  std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> generate_cert_key_pair(
+      unsigned minute_cert_ttl);
+
   static X509* load_cert_from_file(const std::string_view& path);
 
   static EVP_PKEY* load_key_from_file(const std::string_view& path,
@@ -81,7 +84,8 @@ class cert_tree {
                              unsigned minute_cert_ttl,
                              unsigned version,
                              const EVP_PKEY* ca_key,
-                             const X509* ca_cert);
+                             const X509* ca_cert,
+                             bool use_ca_cert_cn);
 
   static bool is_self_signed(const X509* cert);
   static bool is_self_signed(const std::string_view& cert_content);
