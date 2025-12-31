@@ -4105,11 +4105,15 @@ void host::set_check_command_ptr(
  * @return std::string
  */
 std::string host::get_check_command_line(nagios_macros* macros) {
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
-  return get_check_command_ptr()->process_cmd(macros);
+  auto cmd = get_check_command_ptr();
+  if (cmd) {
+    grab_host_macros_r(macros, this);
+    std::string tmp;
+    get_raw_command_line_r(macros, cmd, check_command().c_str(), tmp, 0);
+    return cmd->process_cmd(macros);
+  } else {
+    return "";
+  }
 }
 
 /**
