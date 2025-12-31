@@ -114,8 +114,7 @@ target_link_libraries(
           multiplexing
           pb_common_lib
           pb_neb_lib
-          pb_header_lib
-          log_v2)
+          pb_header_lib)
 
 get_property(
   CBMOD_DEFINES

@@ -51,8 +51,9 @@ if(WITH_TESTING)
   add_executable(bin_connector_test_run
                  "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run 
-    cce_core 
+    cce_core
     -Wl,--whole-archive
+    log_v2 
     centreon_grpc
     gRPC::grpc++
     stdc++fs

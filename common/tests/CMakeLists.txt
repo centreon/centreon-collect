@@ -113,12 +113,12 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_http
             centreon_process
             centreon_grpc
+            engine_conf
+            log_v2
             gRPC::grpc++
             protobuf::libprotobuf
-            engine_conf
             Boost::program_options
             re2::re2
-            log_v2
             OpenSSL::SSL
             OpenSSL::Crypto
             GTest::gtest
