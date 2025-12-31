@@ -1159,6 +1159,51 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
         f.writelines(lines)
 
 
+def ctn_engine_config_del_value_in_hosts(idx: int, desc: str, key: str,  file: str = 'hosts.cfg'):
+    """
+    Remove a parameter in the hosts.cfg file of the Engine config idx.
+
+    Args:
+        idx (int): index of the configuration (from 0).
+        desc (str): host name of the host to modify.
+        key (str): the parameter whose value has to change.
+        file (str): The file to modify, default value 'hosts.cfg'.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
+    found = False
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            while i < len(lines) and lines[i] != "}":
+                if rkey.match(lines[i]):
+                    lines.pop(i)
+                    found = True
+                    break
+                i += 1
+        if found:
+            break
+
+    if not found:
+        for i in range(len(lines)):
+            if rbis.match(lines[i]):
+                while i < len(lines) and lines[i] != "}":
+                    if rkey.match(lines[i]):
+                        lines.pop(i)
+                        found = True
+                        break
+                    i += 1
+            if found:
+                break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
     Changes the command line of command whose index is command_index in the Engine config idx.
