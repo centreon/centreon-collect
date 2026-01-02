@@ -128,6 +128,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   create_check_result_builder(const std::string& cmdline) override;
 
   void force_check(uint64_t host_id, uint64_t serv_id) override;
+
+  certificate_info get_otel_service_certificate_info() override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

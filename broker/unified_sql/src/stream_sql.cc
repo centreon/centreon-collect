@@ -2973,7 +2973,14 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
            {9, "version", 0,
             get_centreon_storage_instances_col_size(
                 centreon_storage_instances_version)},
-           {11, "is_encryption_ready", 0, 0}});
+           {11, "is_encryption_ready", 0, 0},
+           {12, "cma_certificate_sha", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_sha)},
+           {13, "cma_certificate_cn", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_cn)},
+           {14, "cma_certificate_peremption", 0, 0}});
     }
 
     // Process object.

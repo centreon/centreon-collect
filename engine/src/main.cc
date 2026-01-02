@@ -112,10 +112,13 @@ static void set_engine_owner(const std::string_view& path) {
 }
 
 static void gen_cma_key() {
+  using namespace std::literals;
+
   std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> ca =
       crypto::cert_tree::generate_self_signed_ca_key_pair(
-          "centreon-engine-cma-self-signed-root-ca",
-          3650);  // 10 years
+          {{NID_commonName, boost::asio::ip::host_name()},
+           {NID_description, "cma centreon auto signed certificate"s}},
+          3652 * 24 * 60);  // 10 years
 
   std::error_code err;
   std::filesystem::create_directories(default_cma_pki_dir, err);

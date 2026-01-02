@@ -21,6 +21,16 @@
 
 namespace com::centreon::common::crypto {
 
+/**
+ * @brief type used to add field to certificate NAME
+ * first element of pair should be a ssl NID value such as NID_commonName,
+ * NID_countryName, NID_organizationName...
+ *
+ */
+using name_entries = std::vector<std::pair<int /*nid*/, std::string /*value*/>>;
+
+name_entries cn_to_name_entries(const std::string_view& cn);
+
 class cert_tree {
   const X509* _ca;
   const EVP_PKEY* _ca_priv_key;
@@ -49,11 +59,12 @@ class cert_tree {
       : _ca(load_cert_from_string(ca_content)),
         _ca_priv_key(load_key_from_string(priv_key_content, key_password)) {}
 
-  std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> generate_cert_key_pair(
-      const std::string_view& cn,
-      unsigned minute_cert_ttl);
+  time_t get_ca_peremption() { return get_peremption(_ca); }
+
+  const X509* get_ca() const { return _ca; }
 
   std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/> generate_cert_key_pair(
+      const name_entries& name_fields,
       unsigned minute_cert_ttl);
 
   static X509* load_cert_from_file(const std::string_view& path);
@@ -66,6 +77,8 @@ class cert_tree {
   static EVP_PKEY* load_key_from_string(const std::string_view& content,
                                         const std::string_view& password);
 
+  static std::string cert_sha(X509* cert);
+
   static void cert_to_file(const X509* cert, const std::string_view& path);
   static void key_to_file(const EVP_PKEY* key,
                           const std::string_view& path,
@@ -74,21 +87,26 @@ class cert_tree {
   static std::string key_to_string(const EVP_PKEY* key);
 
   static std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
-  generate_self_signed_ca_key_pair(const std::string_view& cn,
+  generate_self_signed_ca_key_pair(const name_entries& name_fields,
                                    unsigned minute_peremption);
 
   static EVP_PKEY* generate_ec_key();
 
   static X509* generate_cert(const EVP_PKEY* pkey,
-                             const std::string_view& CN,
+                             const name_entries& name_fields,
                              unsigned minute_cert_ttl,
                              unsigned version,
                              const EVP_PKEY* ca_key,
-                             const X509* ca_cert,
-                             bool use_ca_cert_cn);
+                             const X509* ca_cert);
 
   static bool is_self_signed(const X509* cert);
   static bool is_self_signed(const std::string_view& cert_content);
+
+  static name_entries get_name_fields(const X509* cert);
+
+  static void set_name_fields(X509* cert, const name_entries& name_fields);
+
+  static time_t get_peremption(const X509* cert);
 };
 
 }  // namespace com::centreon::common::crypto

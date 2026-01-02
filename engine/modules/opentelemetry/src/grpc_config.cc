@@ -17,9 +17,6 @@
  */
 
 #include "grpc_config.hh"
-#include <cstdlib>
-#include <filesystem>
-#include <string_view>
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/globals.hh"
 
@@ -225,7 +222,7 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v,
  *
  * @param path of file
  * @param file_content out: file content
- * @return mtime of the file if file path is configured
+ * @return mtime of the file if file path is not empty
  */
 std::filesystem::file_time_type grpc_config::read_file(
     std::string_view path,
@@ -255,7 +252,7 @@ bool grpc_config::operator==(const grpc_config& right) const {
 }
 
 /**
- * @brief reload certificate if usefull (change on disk)
+ * @brief reload certificate if usefull (changed on disk)
  *
  * @return true certificate had been reloaded
  * @return false
@@ -276,7 +273,10 @@ bool grpc_config::reload_certificates() {
     }
   }
   if (!_ca_path.empty()) {
-    ca_mtime = std::filesystem::last_write_time(_ca_path);
+    ca_mtime = std::filesystem::last_write_time(_ca_path, err);
+    if (err) {
+      return false;
+    }
   }
 
   std::string cert, key, ca;

@@ -27,13 +27,6 @@
 
 #include "com/centreon/engine/command_manager.hh"
 
-#include <absl/synchronization/mutex.h>
-#include <openssl/x509.h>
-#include <spdlog/spdlog.h>
-#include <boost/system/detail/error_code.hpp>
-#include <chrono>
-#include <memory>
-#include <mutex>
 #include "open_telemetry.hh"
 
 #include "com/centreon/engine/commands/otel_connector.hh"
@@ -230,11 +223,28 @@ void open_telemetry::_create_otl_server(
     // configured it
     if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
         crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
+      crypto::name_entries ca_entries =
+          crypto::cert_tree::get_name_fields(_server_ca->get_ca());
+
+      // in order to not have a self signed certificate, we just reuse CN of ca
+      crypto::name_entries entries;
+      std::copy_if(ca_entries.begin(), ca_entries.end(),
+                   std::back_inserter(entries),
+                   [](const crypto::name_entries::value_type& to_test) {
+                     return to_test.first == NID_commonName;
+                   });
+
+      entries.emplace_back(std::make_pair(
+          NID_description,
+          fmt::format("centengine otel certificate {}", time(nullptr))));
+
       std::pair<X509*, EVP_PKEY*> cert_key = _server_ca->generate_cert_key_pair(
-          server_conf->get_minute_certificate_ttl());
+          entries, server_conf->get_minute_certificate_ttl());
       low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
       low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
       low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));
+      low_ttl_conf->set_ca(
+          crypto::cert_tree::cert_to_string(_server_ca->get_ca()));
       X509_free(cert_key.first);
       EVP_PKEY_free(cert_key.second);
     }
@@ -246,11 +256,15 @@ void open_telemetry::_create_otl_server(
         },
         _logger, _agent_stats);
 
-    _certificate_ttl =
-        std::chrono::system_clock::now() +
-        std::chrono::minutes(server_conf->get_minute_certificate_ttl() > 2
+    if (low_ttl_conf) {
+      _certificate_ttl = std::chrono::system_clock::now() +
+                         std::chrono::minutes(
+                             server_conf->get_minute_certificate_ttl() > 2
                                  ? server_conf->get_minute_certificate_ttl() - 2
                                  : server_conf->get_minute_certificate_ttl());
+    } else {
+      _certificate_ttl = {};
+    }
     SPDLOG_LOGGER_INFO(_logger, "start otel server on {}",
                        server_conf->get_hostport());
   } catch (const std::exception& e) {
@@ -508,4 +522,36 @@ void open_telemetry::_forward_to_broker(
 
 void open_telemetry::force_check(uint64_t host_id, uint64_t serv_id) {
   centreon_agent::agent_impl_base::force_check(host_id, serv_id);
+}
+
+open_telemetry::certificate_info
+open_telemetry::get_otel_service_certificate_info() {
+  absl::MutexLock l(&_protect);
+
+  open_telemetry::certificate_info ret;
+
+  if (_conf->get_grpc_config() &&
+      !_conf->get_grpc_config()->get_cert().empty()) {
+    std::unique_ptr<X509, std::function<void(X509*)>> cert(
+        common::crypto::cert_tree::load_cert_from_string(
+            _conf->get_grpc_config()->get_cert()),
+        [](X509* to_delete) {
+          if (to_delete)
+            X509_free(to_delete);
+        });
+    crypto::name_entries ca_entries =
+        common::crypto::cert_tree::get_name_fields(cert.get());
+    auto cn_iter =
+        std::find_if(ca_entries.begin(), ca_entries.end(),
+                     [](const crypto::name_entries::value_type& field) {
+                       return field.first == NID_commonName;
+                     });
+    if (cn_iter != ca_entries.end()) {
+      ret.cn = cn_iter->second;
+    }
+    ret.peremption = common::crypto::cert_tree::get_peremption(cert.get());
+    ret.sha = common::crypto::cert_tree::cert_sha(cert.get());
+  }
+
+  return ret;
 }

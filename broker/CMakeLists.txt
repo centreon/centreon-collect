@@ -426,8 +426,8 @@ target_link_libraries(
   gRPC::grpc++
   protobuf::libprotobuf
   -Wl,--no-whole-archive
-  z
   spdlog::spdlog
+  z
   pthread
   dl
   stdc++fs)

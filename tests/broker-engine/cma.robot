@@ -1185,6 +1185,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT
     [Documentation]    Given an engine with an encrypted otel server with one minute ttl, we expect that otel server
     ...    will restart after on minute, then we recreate certificates and otel server must restart also
     [Tags]    broker    engine    opentelemetry    MON-192057
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     Ctn Add Otl ServerModule
@@ -1228,6 +1232,12 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT
     Sleep    1
     ${first_serv_start}    Get Current Date
 
+    #sha should be register in db
+    ${host_name}  Ctn Host Hostname
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM instances WHERE LENGTH(cma_certificate_sha) > 20 AND cma_certificate_cn = '${host_name}' AND cma_certificate_peremption > UNIX_TIMESTAMP() + 364*86400    >=    ${1}    retry_timeout=10s    retry_pause=3s
+    Disconnect From Database
+
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
@@ -1262,6 +1272,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
     [Documentation]    Given an engine with an encrypted otel server with one minute ttl and default engine generated certificates, 
     ...    we expect that otel server will restart after on minute, then we recreate certificates and otel server must restart also
     [Tags]    broker    engine    opentelemetry    MON-192057
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     Run    /usr/sbin/centengine -k 
@@ -1287,12 +1301,13 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     ${token}    Ctn Create Jwt Token    ${3600}
-    Ctn Config Centreon Agent    ${None}    ${None}    /etc/pki/centreon-engine/default_cma_ca.crt    ${token}     centreon-engine-cma-self-signed-root-ca
+    Ctn Config Centreon Agent    ${None}    ${None}    /etc/pki/centreon-engine/default_cma_ca.crt    ${token}
     Ctn Add Token Otl Server Module    0    ${token}   
     Ctn Broker Config Log    central    sql    trace
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
+    Ctn Clear Db    instances
 
     ${start}    Get Current Date
     ${start_int}    Ctn Get Round Current Date
@@ -1307,9 +1322,14 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
     Sleep    1
     ${first_serv_start}    Get Current Date
 
+    #sha should be register in db
+    ${host_name}  Ctn Host Hostname
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM instances WHERE LENGTH(cma_certificate_sha) > 20 AND cma_certificate_cn = '${host_name}' AND cma_certificate_peremption > UNIX_TIMESTAMP() + 10*365*86400    >=    ${1}    retry_timeout=10s    retry_pause=3s
+    Disconnect From Database
+
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
-
 
     # wait certificate peremption
     ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318

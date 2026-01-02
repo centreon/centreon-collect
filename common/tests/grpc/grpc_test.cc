@@ -15,17 +15,9 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/base/thread_annotations.h>
-#include <absl/synchronization/mutex.h>
-#include <absl/time/time.h>
 #include <grpcpp/support/server_callback.h>
 #include <grpcpp/support/status.h>
 #include <gtest/gtest.h>
-#include <openssl/x509.h>
-#include <spdlog/spdlog.h>
-#include <fstream>
-#include <memory>
-#include <tuple>
 
 #include "common/crypto/cert_tree.hh"
 #include "grpc/grpc_test.grpc.pb.h"
@@ -50,8 +42,8 @@ class grpc_test : public ::testing::Test {
     EVP_PKEY* key;
     X509* crt;
 
-    std::tie(crt, key) =
-        crypto::cert_tree::generate_self_signed_ca_key_pair("root ca", 60);
+    std::tie(crt, key) = crypto::cert_tree::generate_self_signed_ca_key_pair(
+        crypto::cn_to_name_entries("root ca"), 60);
     _cert_generator = std::make_unique<crypto::cert_tree>(crt, key);
     _key = crypto::cert_tree::key_to_string(key);
     _crt = crypto::cert_tree::cert_to_string(crt);
@@ -221,7 +213,8 @@ using namespace com::centreon::common::grpc;
  *
  */
 TEST_F(grpc_test, with_cert_verify) {
-  auto key_cert = _cert_generator->generate_cert_key_pair("localhost", 60);
+  auto key_cert = _cert_generator->generate_cert_key_pair(
+      crypto::cn_to_name_entries("localhost"), 60);
   std::string key = crypto::cert_tree::key_to_string(key_cert.second);
   std::string crt = crypto::cert_tree::cert_to_string(key_cert.first);
   std::shared_ptr<grpc_config> server_conf = std::make_shared<grpc_config>(
@@ -252,7 +245,8 @@ TEST_F(grpc_test, with_cert_verify) {
  *
  */
 TEST_F(grpc_test, with_root_cert_verify) {
-  auto key_cert = _cert_generator->generate_cert_key_pair("localhost", 60);
+  auto key_cert = _cert_generator->generate_cert_key_pair(
+      crypto::cn_to_name_entries("localhost"), 60);
   std::string key = crypto::cert_tree::key_to_string(key_cert.second);
   std::string crt = crypto::cert_tree::cert_to_string(key_cert.first);
 
@@ -311,7 +305,8 @@ TEST_F(grpc_test, with_cert_verify_but_without_cert) {
  *
  */
 TEST_F(grpc_test, without_ca_verify) {
-  auto key_cert = _cert_generator->generate_cert_key_pair("localhost", 60);
+  auto key_cert = _cert_generator->generate_cert_key_pair(
+      crypto::cn_to_name_entries("localhost"), 60);
   std::string key = crypto::cert_tree::key_to_string(key_cert.second);
   std::string crt = crypto::cert_tree::cert_to_string(key_cert.first);
   std::shared_ptr<grpc_config> server_conf = std::make_shared<grpc_config>(
