@@ -33,6 +33,7 @@ class grpc_config : public common::grpc::grpc_config {
   std::filesystem::file_time_type _ca_mtime;
   std::filesystem::file_time_type _cert_mtime;
   std::filesystem::file_time_type _key_mtime;
+  unsigned _minute_certificate_ttl = 30 * 86400;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
@@ -55,6 +56,10 @@ class grpc_config : public common::grpc::grpc_config {
               const std::string_view& default_key_path);
 
   bool reload_certificates();
+
+  unsigned get_minute_certificate_ttl() const {
+    return _minute_certificate_ttl;
+  }
 
   bool operator==(const grpc_config& right) const;
 

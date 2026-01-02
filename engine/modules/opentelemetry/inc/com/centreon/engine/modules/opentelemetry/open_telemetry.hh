@@ -88,10 +88,12 @@ class open_telemetry : public commands::otel::open_telemetry_base {
  protected:
   virtual void _create_otl_server(
       const grpc_config::pointer& server_conf,
-      const centreon_agent::agent_config::pointer& agent_conf,
-      unsigned minute_cert_ttl) ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+      const centreon_agent::agent_config::pointer& agent_conf)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void _reload();
-  void _shutdown();
+  void _shutdown() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+
+  void _shutdown_otl_server() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
  public:
   open_telemetry(const std::string_view config_file_path,

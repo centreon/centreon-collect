@@ -80,6 +80,11 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "minimum": 0,
             "maximum": 600
         },
+        "minute_certificate_ttl": {
+            "description:": "peremption in minutes of certificate built from self signed ca",
+            "type": "integer",
+            "min": 1
+        },
         "max_message_length": {
             "description": "maximum protobuf message length in Mo",
             "type": "integer",
@@ -155,13 +160,18 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v,
   }
 
   if (security_mode != NONE) {
-    _cert_path =
-        json_config.get_string("public_cert", default_cert_path.data());
+    _cert_path = json_config.get_string("public_cert", "");
+    if (_cert_path.empty()) {
+      _cert_path = default_cert_path;
+    }
     if (!_cert_path.empty()) {
       _cert_mtime = read_file(_cert_path, certificate);
     }
 
-    _key_path = json_config.get_string("private_key", default_key_path.data());
+    _key_path = json_config.get_string("private_key", "");
+    if (_key_path.empty()) {
+      _key_path = default_key_path.data();
+    }
     if (!_key_path.empty()) {
       _key_mtime = read_file(_key_path, cert_key);
     }
@@ -175,6 +185,9 @@ grpc_config::grpc_config(const rapidjson::Value& json_config_v,
   }
   if (json_config.has_member("compression"))
     compress = json_config.get_bool("compression");
+
+  _minute_certificate_ttl = json_config.get_unsigned(
+      "minute_certificate_ttl", 30 * 24 * 60);  // 30 days by default
 
   if (json_config.has_member("keepalive_interval"))
     second_keepalive_interval = json_config.get_int("keepalive_interval");
@@ -237,7 +250,8 @@ std::filesystem::file_time_type grpc_config::read_file(
 
 bool grpc_config::operator==(const grpc_config& right) const {
   return static_cast<const common::grpc::grpc_config>(*this) ==
-         static_cast<const common::grpc::grpc_config>(right);
+             static_cast<const common::grpc::grpc_config>(right) &&
+         _minute_certificate_ttl == right._minute_certificate_ttl;
 }
 
 /**

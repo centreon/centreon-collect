@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "centreon_agent/agent_service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "centreon_agent/agent_impl.hh"
@@ -86,8 +87,7 @@ void open_telemetry::_reload() {
       }
 
       this->_create_otl_server(new_conf->get_grpc_config(),
-                               new_conf->get_centreon_agent_config(),
-                               new_conf->get_minute_certificate_ttl());
+                               new_conf->get_centreon_agent_config());
     }
     if (!new_conf->get_grpc_config()->is_crypted())
       SPDLOG_LOGGER_WARN(_logger,
@@ -99,10 +99,7 @@ void open_telemetry::_reload() {
       _otl_server->update_agent_config(new_conf->get_centreon_agent_config());
     }
   } else {  // only reverse connection
-    std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
-    if (to_shutdown) {
-      to_shutdown->shutdown(std::chrono::seconds(10));
-    }
+    _shutdown_otl_server();
   }
 
   if (!new_conf->get_telegraf_conf_server_config()) {
@@ -172,6 +169,10 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
   return instance();
 }
 
+/**
+ * @brief start one minute delayed timer
+ *
+ */
 void open_telemetry::_start_minute_timer() {
   absl::MutexLock l(&_protect);
   _minute_timer.expires_after(std::chrono::minutes(1));
@@ -183,24 +184,31 @@ void open_telemetry::_start_minute_timer() {
       });
 }
 
+/**
+ * @brief each minute, we check if we have to reload certificates
+ *
+ */
 void open_telemetry::_minute_timer_handler() {
   {
     absl::MutexLock l(&_protect);
     if (_conf && _conf->get_grpc_config() &&
         _conf->get_grpc_config()->is_crypted()) {
       if (_conf->get_mutable_grpc_config()->reload_certificates()) {
+        SPDLOG_LOGGER_INFO(
+            _logger, "otl certificates had been updated => restart otl server");
         _server_ca = std::make_unique<crypto::cert_tree>(
             _conf->get_grpc_config()->get_cert(),
             _conf->get_grpc_config()->get_key(), "centengine",
             crypto::cert_tree::load_from_str());
         _create_otl_server(_conf->get_grpc_config(),
-                           _conf->get_centreon_agent_config(),
-                           _conf->get_minute_certificate_ttl());
+                           _conf->get_centreon_agent_config());
       } else if (_certificate_ttl.time_since_epoch().count() &&
                  _certificate_ttl < std::chrono::system_clock::now()) {
+        SPDLOG_LOGGER_INFO(_logger,
+                           "otl used certificate end of life => recreate and "
+                           "restart otl server");
         _create_otl_server(_conf->get_grpc_config(),
-                           _conf->get_centreon_agent_config(),
-                           _conf->get_minute_certificate_ttl());
+                           _conf->get_centreon_agent_config());
       }
     }
   }
@@ -214,21 +222,16 @@ void open_telemetry::_minute_timer_handler() {
  */
 void open_telemetry::_create_otl_server(
     const grpc_config::pointer& server_conf,
-    const centreon_agent::agent_config::pointer& agent_conf,
-    unsigned minute_cert_ttl) {
+    const centreon_agent::agent_config::pointer& agent_conf) {
   try {
-    std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
-    if (to_shutdown) {
-      to_shutdown->shutdown(std::chrono::seconds(10));
-    }
-
+    _shutdown_otl_server();
     grpc_config::pointer low_ttl_conf;
     // in case of self signed certificate we create shorter ttl certificate from
     // configured it
     if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
         crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
-      std::pair<X509*, EVP_PKEY*> cert_key =
-          _server_ca->generate_cert_key_pair(minute_cert_ttl);
+      std::pair<X509*, EVP_PKEY*> cert_key = _server_ca->generate_cert_key_pair(
+          server_conf->get_minute_certificate_ttl());
       low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
       low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
       low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));
@@ -242,6 +245,14 @@ void open_telemetry::_create_otl_server(
           me->on_metric(request);
         },
         _logger, _agent_stats);
+
+    _certificate_ttl =
+        std::chrono::system_clock::now() +
+        std::chrono::minutes(server_conf->get_minute_certificate_ttl() > 2
+                                 ? server_conf->get_minute_certificate_ttl() - 2
+                                 : server_conf->get_minute_certificate_ttl());
+    SPDLOG_LOGGER_INFO(_logger, "start otel server on {}",
+                       server_conf->get_hostport());
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to create opentelemetry grpc server: {}",
                         e.what());
@@ -329,11 +340,21 @@ void open_telemetry::unload(const std::shared_ptr<spdlog::logger>& logger) {
  *
  */
 void open_telemetry::_shutdown() {
+  _shutdown_otl_server();
+  _agent_stats->stop_send_timer();
+  _minute_timer.cancel();
+}
+
+/**
+ * @brief shutdown agent incoming connections and agent server
+ *
+ */
+void open_telemetry::_shutdown_otl_server() {
+  centreon_agent::agent_service::shutdown_all_accepted();
   std::shared_ptr<otl_server> to_shutdown = std::move(_otl_server);
   if (to_shutdown) {
     to_shutdown->shutdown(std::chrono::seconds(10));
   }
-  _agent_stats->stop_send_timer();
 }
 
 /**

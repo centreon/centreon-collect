@@ -43,11 +43,6 @@ static constexpr std::string_view _grpc_config_schema(R"(
             "type": "integer",
             "min": -1
         },
-        "minute_certificate_ttl": {
-            "description:": "peremption in minutes of certificate built from self signed ca",
-            "type": "integer",
-            "min": 1
-        },
         "grpc_json_log": {
             "description": "true if we log otl grpc object to json format",
             "type": "boolean"
@@ -93,8 +88,6 @@ otl_config::otl_config(const std::string_view& file_path,
   file_content.validate(validator);
   _max_length_grpc_log = file_content.get_unsigned("max_length_grpc_log", 400);
   _json_grpc_log = file_content.get_bool("grpc_json_log", false);
-  _minute_certificate_ttl = file_content.get_unsigned(
-      "minute_certificate_ttl", 30 * 24 * 60);  // 30 days by default
   if (file_content.has_member("otel_server")) {
     try {
       _grpc_conf =
@@ -158,8 +151,7 @@ bool otl_config::operator==(const otl_config& right) const {
   }
   bool ret = *_grpc_conf == *right._grpc_conf &&
              _max_length_grpc_log == right._max_length_grpc_log &&
-             _json_grpc_log == right._json_grpc_log &&
-             _minute_certificate_ttl == right._minute_certificate_ttl;
+             _json_grpc_log == right._json_grpc_log;
 
   if (!ret) {
     return false;

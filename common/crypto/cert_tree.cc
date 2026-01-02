@@ -266,7 +266,7 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
       throw std::invalid_argument(
           "we should use ca_cert CN, but no ca_cert provided");
     }
-    const X509_NAME* subject = X509_get_subject_name(ca_cert);
+    X509_NAME* subject = X509_get_subject_name(ca_cert);
     char ca_cn[1024];
     ca_cn[1023] = 0;
     int cn_index = X509_NAME_get_text_by_NID(subject, NID_commonName, ca_cn,
