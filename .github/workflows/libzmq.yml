@@ -201,7 +201,7 @@ jobs:
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
 
   deliver-rpm:
-    needs: [get-environment, package-rpm]
+    needs: [get-environment, sign-rpm]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
