@@ -12,6 +12,9 @@ on:
       latest_major_version:
         description: "latest major version"
         value: ${{ jobs.get-environment.outputs.latest_major_version }}
+      previous_release_bundle_tag:
+        description: "previous release bundle tag"
+        value: ${{ jobs.get-environment.outputs.previous_release_bundle_tag }}
       is_cloud:
         description: "context of release (cloud or not cloud)"
         value: ${{ jobs.get-environment.outputs.is_cloud }}
@@ -51,6 +54,18 @@ on:
       os_and_database_matrix:
         description: "matrix to use for dockerize and test jobs"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
+      collect_matrix:
+        description: "matrix to use for collect jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.collect_matrix }}
+      collect_robot_matrix:
+        description: "matrix to use for collect jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.collect_robot_matrix }}
+      cma_matrix:
+        description: "matrix to use for cma jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.cma_matrix }}
+      cma_robot_matrix:
+        description: "matrix to use for cma jobs (contains arch)"
+        value: ${{ jobs.get-environment.outputs.cma_robot_matrix }}
       is_targeting_feature_branch:
         description: "if it is a PR, check if targeting a feature branch"
         value: ${{ jobs.get-environment.outputs.is_targeting_feature_branch }}
@@ -75,6 +90,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       latest_major_version: ${{ steps.latest_major_version.outputs.latest_major_version }}
+      previous_release_bundle_tag: ${{ steps.get_previous_release_bundle_tag.outputs.previous_release_bundle_tag }}
       is_cloud: ${{ steps.detect_cloud_version.outputs.isCloud }}
       delivery_type: ${{ steps.detect_delivery_type.outputs.delivery_type }}
       linked_dev_branch: ${{ steps.linked_branches.outputs.linked_dev_branch }}
@@ -88,6 +104,10 @@ jobs:
       target_stability: ${{ steps.get_stability.outputs.target_stability }}
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
+      collect_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
+      collect_robot_matrix: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
+      cma_matrix: ${{ steps.get_os_database_matrix.outputs.cma_matrix }}
+      cma_robot_matrix: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
       is_targeting_feature_branch: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
       is_nightly: ${{ steps.get_nightly_status.outputs.is_nightly }}
       packaging_img_version: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
@@ -173,7 +193,7 @@ jobs:
                 }
 
                 if (hasReadOn && hasReadPullRequest && hasReadPaths) {
-                  const matches = line.match(/^\s{6}-\s['"]?(.+)['"]?\s*$/);
+                  const matches = line.match(/^\s{6}-\s['"]?(.+?)['"]?\s*$/);
                   if (matches) {
                     paths.push(matches[1].trim());
                   } else {
@@ -640,6 +660,59 @@ jobs:
             core.setOutput('linked_dev_branch', linkedDevBranch);
             core.setOutput('linked_stable_branch', linkedStableBranch);
 
+      - name: Get previous release bundle tag
+        id: get_previous_release_bundle_tag
+        env:
+          IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            if (process.env.STABILITY !== 'testing' && process.env.STABILITY !== 'stable') {
+              core.setOutput('previous_release_bundle_tag', '');
+              return;
+            }
+
+            let execOutput = '';
+            let execError = '';
+            const execOptions = {
+              listeners: {
+                stdout: (data) => {
+                  execOutput += data.toString();
+                },
+                stderr: (data) => {
+                  execError += data.toString();
+                }
+              },
+              silent: true
+            };
+
+            let previousStableBundleSha = '';
+            let previousStableBundleTag = '';
+
+            await exec.exec(
+              `bash -c "git ls-remote --tags origin 'refs/tags/release-${process.env.IS_CLOUD === 'true' && 'cloud' || 'onprem'}-*' | grep -v '{}' | sort -t'-' -k4r,4 -k3r,3"`,
+              [],
+              execOptions
+            );
+
+            for (const line of execOutput.split('\n')) {
+              const tag = line.trim();
+              const matches = tag.match(/^(.+)\s+.+\/(release-(cloud|onprem)-\d{8}-(\d{2}\.\d{2}))$/);
+              if (matches && Number(matches[4]) <= Number(process.env.MAJOR_VERSION)) {
+                previousStableBundleSha = matches[1];
+                previousStableBundleTag = matches[2];
+                break;
+              } else {
+                console.log(`Ignoring non-matching tag: ${tag}`);
+              }
+            }
+
+            console.log(`Previous release bundle tag is: ${previousStableBundleTag} (${previousStableBundleSha})`);
+
+            core.setOutput('previous_release_bundle_tag', previousStableBundleTag);
+
       - name: Detect operating systems and databases to test
         uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         id: get_os_database_matrix
@@ -648,37 +721,42 @@ jobs:
             const alma10_mariadb_10_11 = {
               "operating_system": "alma10",
               "database": "mariadb:10.11",
-              "test_tags": "not @ignore"
+              "test_tags": "amd64"
             };
             const alma9_mariadb_10_11 = {
               "operating_system": "alma9",
               "database": "mariadb:10.11",
-              "test_tags": "not @ignore"
+              "arch": "amd64"
             };
             const alma8_mysql_8_0 = {
               "operating_system": "alma8",
               "database": "mysql:8.0",
-              "test_tags": "not @ignore"
+              "arch": "amd64"
+            };
+            const bullseye_mysql_8_4 = {
+              "operating_system": "bullseye",
+              "database": "mysql:8.4",
+              "arch": "amd64"
             };
             const bookworm_mysql_8_4 = {
               "operating_system": "bookworm",
               "database": "mysql:8.4",
-              "test_tags": "not @ignore"
-            };
-            const trixie_mariadb_11_8 = {
-              "operating_system": "trixie",
-              "database": "mariadb:11.8",
-              "test_tags": "not @ignore"
+              "arch": "amd64"
             };
             const jammy_mysql_8_4 = {
               "operating_system": "jammy",
               "database": "mysql:8.4",
-              "test_tags": "not @ignore"
+              "arch": "amd64"
             };
             const noble_mysql_8_4 = {
               "operating_system": "noble",
               "database": "mysql:8.4",
-              "test_tags": "not @ignore"
+              "arch": "amd64"
+            };
+            const trixie_mariadb_11_8 = {
+              "operating_system": "trixie",
+              "database": "mariadb:11.8",
+              "test_tags": "amd64"
             };
 
             const getDailyConfig = (configs) => {
@@ -712,6 +790,21 @@ jobs:
             };
 
             const configs = [alma9_mariadb_10_11, alma8_mysql_8_0, bookworm_mysql_8_4];
+            const collectConfigs = [
+              alma9_mariadb_10_11,
+              alma8_mysql_8_0,
+              bookworm_mysql_8_4
+            ];
+            const cmaConfigs = [
+              alma10_mariadb_10_11,
+              alma9_mariadb_10_11,
+              alma8_mysql_8_0,
+              bullseye_mysql_8_4,
+              bookworm_mysql_8_4,
+              trixie_mariadb_11_8,
+              jammy_mysql_8_4,
+              noble_mysql_8_4
+            ];
 
             const cloud = alma8_mysql_8_0;
 
@@ -723,8 +816,7 @@ jobs:
             let matrix = {
               "cloud": [cloud],
               "main": [main],
-              "operating_systems": [main],
-              "databases": [main],
+              "operating_systems": [main]
             };
 
             if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
@@ -733,23 +825,96 @@ jobs:
               matrix = {
                 "cloud": [cloud],
                 "main": [dailyConfig],
-                "operating_systems": [dailyConfig],
-                "databases": [dailyConfig],
+                "operating_systems": [dailyConfig]
               };
             }
+
+            let collectMatrix = [...matrix.operating_systems];
+            let cmaMatrix = [...matrix.operating_systems];
 
             if (
               ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
               || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
             ) {
               matrix = {
                 ...matrix,
                 "operating_systems": configs,
-                "databases": configs,
               };
+              collectMatrix = collectConfigs;
+              cmaMatrix = cmaConfigs;
             }
 
-            console.log(matrix);
+            console.log('matrix', matrix);
+
+            const setArchConfigs = (configs) => {
+              const archConfigs = [];
+
+              for (const config of configs) {
+                archConfigs.push({...config, "arch": "amd64"});
+                if (["bullseye", "bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
+                  archConfigs.push({...config, "arch": "arm64"});
+                }
+              }
+
+              return archConfigs;
+            };
+
+            if (
+              ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
+            ) {
+              collectMatrix = setArchConfigs([...collectMatrix]);
+              cmaMatrix = setArchConfigs([...cmaMatrix]);
+            }
+
+            console.log('collectMatrix', collectMatrix);
+            core.setOutput('collect_matrix', collectMatrix);
+
+            console.log('cmaMatrix', cmaMatrix);
+            core.setOutput('cma_matrix', cmaMatrix);
+
+            const setTestConfigs = (configs) => {
+              let hasGrpcConfig = false;
+              let hasMysqlConfig = false;
+              const testConfigs = [];
+
+              for (const config of configs) {
+                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
+                if (config.arch === "amd64" && hasGrpcConfig === false) {
+                  testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
+                  hasGrpcConfig = true;
+                }
+                if (
+                  ['alma8', 'alma9', 'alma10'].includes(config.operating_system) &&
+                  hasMysqlConfig === false &&
+                  config.arch === "amd64" &&
+                  (
+                    ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}') ||
+                    ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
+                  )
+                ) {
+                  testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
+                  hasMysqlConfig = true;
+                }
+              }
+
+              return testConfigs;
+            };
+
+            let collectRobotMatrix = setTestConfigs([...collectMatrix]);
+            console.log('collectRobotMatrix', collectRobotMatrix);
+            core.setOutput('collect_robot_matrix', collectRobotMatrix);
+
+            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]).filter(config => {
+              // CMA does not support robot tests on noble OS
+              if (config.operating_system === 'noble') {
+                return false;
+              }
+              return true;
+            });
+            console.log('cmaRobotMatrix', cmaRobotMatrix);
+            core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 
             return matrix;
 
@@ -770,6 +935,7 @@ jobs:
               [{data: 'Name', header: true}, {data: 'Value', header: true}],
               ['latest_major_version', '${{ steps.latest_major_version.outputs.latest_major_version }}'],
               ['is_cloud', '${{ steps.detect_cloud_version.outputs.isCloud }}'],
+              ['previous_release_bundle_tag', '${{ steps.get_previous_release_bundle_tag.outputs.previous_release_bundle_tag || '<em>not found</em>' }}'],
               ['delivery_type', '${{ steps.detect_delivery_type.outputs.delivery_type }}'],
               ['linked_dev_branch', '${{ steps.linked_branches.outputs.linked_dev_branch }}'],
               ['linked_stable_branch', '${{ steps.linked_branches.outputs.linked_stable_branch }}'],
