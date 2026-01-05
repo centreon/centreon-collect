@@ -14,26 +14,16 @@ on:
         required: true
         default: false
         type: boolean
-      packages_in_artifact:
-        description: "Save packages in artifacts"
-        required: true
-        default: false
-        type: boolean
-      installer_in_artifact:
-        description: "Save installer and binary in artifacts"
-        required: true
-        default: false
-        type: boolean
       force_signing:
         description: "Force signing"
         required: true
         default: false
         type: boolean
-      unit_tests:
-        description: "Execute the unit tests"
-        required: true
-        default: true
-        type: boolean
+      labels:
+        description: "Labels to add to the run (comma separated)"
+        required: false
+        default: ""
+        type: string
 
   pull_request:
     paths:
@@ -78,6 +68,7 @@ jobs:
     with:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+      labels: ${{ inputs.labels || '' }}
 
   check-version-consistency:
     runs-on: ubuntu-24.04
@@ -267,9 +258,11 @@ jobs:
 
       - name: Upload package artifacts
         if: |
-          inputs.installer_in_artifact == true ||
-          (github.event_name != 'workflow_dispatch' &&
-          contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+          contains(needs.get-environment.outputs.labels, 'upload-artifacts') ||
+          (
+            github.event_name != 'workflow_dispatch' &&
+            contains(fromJson('["stable"]'), needs.get-environment.outputs.stability
+          ) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
@@ -284,10 +277,7 @@ jobs:
   unit-test-linux:
     needs: [get-environment, changes, check-version-consistency]
     if: |
-      (
-        github.event.inputs.unit_tests == 'true' ||
-        needs.changes.outputs.trigger_unit_testing == 'true'
-      ) &&
+      needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -426,7 +416,7 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
+      packages_in_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
       image: ${{ format('packaging-centreon-collect-vcpkg-{0}{1}', matrix.operating_system, matrix.arch == 'arm64' && '-arm64' || '') }}
       distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
