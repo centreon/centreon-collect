@@ -54,6 +54,15 @@ class servicedependency_helper : public message_helper {
       absl::flat_hash_map<std::string, configuration::Servicegroup*>&
           servicegroups);
 };
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value,
+                        const Servicedependency& to_hash) {
+  return hash_type::combine(std::move(previous_value),
+                            servicedependency_key(to_hash));
+}
+
+bool operator==(const Servicedependency& left, const Servicedependency& right);
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_SERVICEDEPENDENCY */
