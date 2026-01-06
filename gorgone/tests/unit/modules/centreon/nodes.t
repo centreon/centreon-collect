@@ -9,16 +9,14 @@ use lib "$FindBin::Bin/../../../../";
 use tests::unit::lib::mockCentreonvault;
 use gorgone::standard::library;
 use gorgone::class::db;
-use Data::Dumper;
-use centreon::common::logger;
+use tests::unit::lib::mockLogger;
 use gorgone::modules::centreon::nodes::class;
-
 sub main {
     test_centreonnodessync();
     done_testing();
 }
 
-sub test_centreonnodessync {
+
 my $check_action_ran = {};
 my $action_expected = {
     'SETCOREID'     => { id => 1 },
@@ -41,6 +39,7 @@ my $action_expected = {
             {
                 'port'    => undef,
                 'id'      => 13,
+                'token'   => "TokenPull",
                 'address' => '127.0.0.4',
                 'type'    => 'pull'
             },
@@ -52,7 +51,8 @@ my $action_expected = {
 
         ] } };
 
-sub main {
+
+sub test_centreonnodessync {
 
     my $gorint = mock 'gorgone::class::module' => (override => [ 'send_internal_action' => sub {
         my $action_name = $_[1]->{action};
@@ -94,8 +94,6 @@ sub main {
         ]
     };
     $self->action_centreonnodessync();
-
-    done_testing();
 
 }
 # create a sqlite db with centreon nodes data. This should be a mariadb database but for unit test we use sqlite for simplicity.
