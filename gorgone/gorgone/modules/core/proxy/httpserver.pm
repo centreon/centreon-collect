@@ -416,6 +416,7 @@ sub is_token_ok {
         $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for client " . $options{ws_id});
     }
     my $client_id = $json->{nodes}->[0]->{id};
+    $client_id or return 0;
     if (!defined($self->{nodes}->{ $client_id })) {
         $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for id " . $client_id);
         return 0;
