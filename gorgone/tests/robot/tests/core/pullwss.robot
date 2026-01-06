@@ -15,6 +15,19 @@ check one poller can connect to a central and gorgone central stop first
     Log To Console    \nStarting the gorgone setup
     Setup Two Gorgone Instances    communication_mode=pullwss    central_name=${central_process}    poller_name=${poller_process}
     Ctn Check No Error In Logs    ${poller_process}
+    Sleep    3
+    Execute Sql String    UPDATE nagios_server SET gorgone_auth_token = 'wrongToken' WHERE id = 2
+    ${start_date}    Get Current Date    increment=-1s
+    ${api_resp}    POST    http://127.0.0.1:8085/api/centreon/nodes/sync    data={}
+
+    ${log_poller2_query}    Create List    websocket message: {"code":500,"message":"authentication failed"}
+    ${logs_poller}    Ctn Find In Log With Timeout
+    ...    log=/var/log/centreon-gorgone/${poller_process}/gorgoned.log
+    ...    content=${log_poller2_query}
+    ...    date=${start_date}
+    ...    timeout=65
+    Should Be True    ${logs_poller}    can't find connexion failure log
+
     Log To Console    End of tests.
 
 pullwss use token from DB or conf
