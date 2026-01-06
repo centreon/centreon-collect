@@ -185,6 +185,7 @@ Setup Two Gorgone Instances
     ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
     # add central node to the database, the poller will be added in the next if/else.
     Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+    Gorgone Fix Schema
     IF    '${communication_mode}' == 'push_zmq'
         @{central_push_config}=    Copy List    ${central_config}
         Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
@@ -265,3 +266,11 @@ Ctn Check No Error In Logs
 
     ${log_line_wrong}    RUN    ${cmd}
     Should Be Empty     ${log_line_wrong}    There is Log in ${gorgone_id} not mathcing the standard gorgone format : ${log_line_wrong}
+
+Gorgone Fix Schema
+    [Documentation]    gorgone will now need new field in the db. while waiting to include it by the webapp, let's fix the tests manually.
+        Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
+        ${nb_column}=    Query   SELECT count(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'centreon' AND TABLE_NAME = 'nagios_server' AND COLUMN_NAME = 'gorgone_auth_token'
+        IF    ${nb_column} == 0
+            Execute SQL Script    ${ROOT_CONFIG}database/gorgone-pullwss-db-update.sql
+        END
