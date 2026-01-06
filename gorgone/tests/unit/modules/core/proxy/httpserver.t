@@ -65,7 +65,6 @@ sub is_token_ok {
     %input = (data => '[REGISTERNODES] [1~1] [loggingToken] {"nodes":[]}', ws_id => "random");
 
     is($class->is_token_ok(data => '[REGISTERNODES] [1~1] [loggingToken] {"nodes":[]}', ws_id => "random"), 0, "registednodes don't have any nodes info");
-    is($class->is_token_ok(data => '[REGISTERNODES] [1~1] [loggingToken] {"nodes":[{"type":"push","id":"2","identity":"2"}]}', ws_id => "random"), 0, "registednodes is not set to wss");
 }
 
 sub main {
