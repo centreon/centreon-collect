@@ -260,10 +260,17 @@ sub action_proxyaddnode {
             $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
             return 1;
     }
+    $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
 
-        $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
-        $self->{nodes}->{ $node->{id} } = $node;
-        return 0;
+    my $ws_id = $self->{identities}->{ $node->{id} };
+    if ($node->{token} and $self->{nodes}->{ $node->{id} }->{token} ne $node->{token} and $ws_id){
+        $self->{ws_clients}->{ $ws_id }->{tx}->finish();
+        $self->{ws_clients}->{$ws_id}->{logged} = 0;
+        $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
+        # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
+    }
+    $self->{nodes}->{ $node->{id} } = $node;
+    return 0;
 }
 =head3 action_proxydelnode($zmq_message)
 
