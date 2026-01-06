@@ -377,6 +377,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
   } else
     h->set_severity(nullptr);
 
+  // update the global host configuration
+  old_obj->CopyFrom(new_obj);
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
                             it_obj->second.get(), MODATTR_ALL);

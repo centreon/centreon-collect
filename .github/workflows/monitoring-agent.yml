@@ -446,7 +446,6 @@ jobs:
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.get-environment.outputs.is_nightly == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -457,7 +456,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.cma_robot_matrix) }}
 
-    name: ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.operating_system }} ${{ matrix.database_type }} ${{ matrix.arch }} ${{ contains(matrix.tests_params, 'grpc') && 'grpc' || '' }}
 
     uses: ./.github/workflows/robot-test.yml
     with:

@@ -90,7 +90,7 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 8
+      options: --cpus 4
       env:
         AWS_WEB_IDENTITY_TOKEN_FILE: ${{ inputs.aws_web_identity_token_file }}
         AWS_ROLE_ARN: ${{ inputs.aws_role_arn }}
