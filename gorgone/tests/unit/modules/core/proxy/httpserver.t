@@ -10,7 +10,7 @@ use lib "$FindBin::Bin/../../../../../";
 use tests::unit::lib::mockCentreonvault;
 use gorgone::standard::library;
 use gorgone::modules::core::proxy::httpserver;
-use centreon::common::logger;
+use tests::unit::lib::mockLogger;
 use gorgone::class::db;
 
 sub is_token_ok {
