@@ -112,6 +112,7 @@ Gorgone Execute Sql
 Setup Gorgone Config
     [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=
     Gorgone Execute Sql    ${sql_file}
+    Run    rm -rf /etc/centreon-gorgone/${gorgone_name}/*
     Create Directory    /var/log/centreon-gorgone/${gorgone_name}/
     Copy File    ${CURDIR}${/}..${/}config${/}includer.yaml    /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
