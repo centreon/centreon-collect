@@ -34,6 +34,18 @@
 
 namespace com::centreon::engine::configuration {
 
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value, const StringSet& to_hash) {
+  return hash_type::combine_unordered(
+      std::move(previous_value), to_hash.data().begin(), to_hash.data().end());
+}
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value, const StringList& to_hash) {
+  return hash_type::combine_unordered(
+      std::move(previous_value), to_hash.data().begin(), to_hash.data().end());
+}
+
 /**
  * @brief Error counter, it contains two attributes, one for warnings and
  * another for errors.

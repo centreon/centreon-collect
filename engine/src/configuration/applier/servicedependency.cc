@@ -217,13 +217,19 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   auto& obj = pb_config.servicedependencies(idx);
   size_t key = servicedependency_key(obj);
 
-  servicedependency_mmap::iterator it =
-      engine::servicedependency::servicedependencies_find(
-          std::make_tuple(obj.dependent_hosts().data(0),
-                          obj.dependent_service_description().data(0), key));
-  if (it != engine::servicedependency::servicedependencies.end()) {
-    // Remove service dependency from its list.
-    engine::servicedependency::servicedependencies.erase(it);
+  auto to_remove = engine::servicedependency::servicedependencies.equal_range(
+      std::make_pair(obj.dependent_hosts().data(0),
+                     obj.dependent_service_description().data(0)));
+
+  for (; to_remove.first != to_remove.second;) {
+    if (to_remove.first->second->internal_key() == key) {
+      auto to_delete = to_remove.first;
+      ++to_remove.first;
+      // Remove host dependency from its list.
+      engine::servicedependency::servicedependencies.erase(to_delete);
+    } else {
+      ++to_remove.first;
+    }
   }
 
   // Remove dependency from the global configuration set.
@@ -243,15 +249,20 @@ void applier::servicedependency::resolve_object(
 
   // Find service dependency.
   size_t key = configuration::servicedependency_key(obj);
-  servicedependency_mmap::iterator it =
-      engine::servicedependency::servicedependencies_find(
-          {obj.dependent_hosts().data(0),
-           obj.dependent_service_description().data(0), key});
-  if (engine::servicedependency::servicedependencies.end() == it)
-    throw engine_error() << "Cannot resolve non-existing service dependency";
 
-  // Resolve service dependency.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  auto to_resolve = engine::servicedependency::servicedependencies.equal_range(
+      std::make_pair(obj.dependent_hosts().data(0),
+                     obj.dependent_service_description().data(0)));
+
+  if (to_resolve.first == to_resolve.second) {
+    throw engine_error() << "Cannot resolve non-existing host escalation";
+  }
+  for (; to_resolve.first != to_resolve.second; ++to_resolve.first) {
+    // Resolve service dependency.
+    if (to_resolve.first->second->internal_key() == key) {
+      to_resolve.first->second->resolve(err.config_warnings, err.config_errors);
+    }
+  }
 }
 
 /**

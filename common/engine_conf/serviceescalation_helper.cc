@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+
+#include <google/protobuf/util/message_differencer.h>
+
 #include "common/engine_conf/serviceescalation_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -25,11 +28,15 @@ using com::centreon::exceptions::msg_fmt;
 namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se) {
-  return absl::HashOf(se.hosts().data(0), se.service_description().data(0),
-                      // se.contactgroups(),
-                      se.escalation_options(), se.escalation_period(),
-                      se.first_notification(), se.last_notification(),
-                      se.notification_interval());
+  return absl::HashOf(se.contactgroups(), se.escalation_options(),
+                      se.escalation_period(), se.first_notification(),
+                      se.hostgroups(), se.hosts(), se.last_notification(),
+                      se.notification_interval(), se.servicegroups(),
+                      se.service_description());
+}
+
+bool operator==(const Serviceescalation& left, const Serviceescalation& right) {
+  return ::google::protobuf::util::MessageDifferencer::Equals(left, right);
 }
 
 /**
