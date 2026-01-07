@@ -936,11 +936,21 @@ jobs:
               return testConfigs;
             };
 
+            //No grpc no mysql for CMA robot tests
+            const setTestConfigsCMA = (configs) => {
+              const testConfigs = [];
+
+              for (const config of configs) {
+                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
+              }
+              return testConfigs;
+            };
+
             let collectRobotMatrix = setTestConfigs([...collectMatrix]);
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]);
+            let cmaRobotMatrix = setTestConfigsCMA([...cmaMatrix]);
             console.log('cmaRobotMatrix', cmaRobotMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 
