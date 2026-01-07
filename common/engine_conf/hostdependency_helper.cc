@@ -36,11 +36,10 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostdependency_key(const Hostdependency& hd) {
-  return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
-                      hd.dependent_hostgroups(), hd.dependent_hosts(),
-                      hd.execution_failure_options(),
-                      hd.hostgroups(), hd.hosts(), hd.inherits_parent(),
-                      hd.notification_failure_options());
+  return absl::HashOf(
+      hd.dependency_period(), hd.dependency_type(), hd.dependent_hostgroups(),
+      hd.dependent_hosts(), hd.execution_failure_options(), hd.hostgroups(),
+      hd.hosts(), hd.inherits_parent(), hd.notification_failure_options());
 }
 
 bool operator==(const Hostdependency& left, const Hostdependency& right) {
