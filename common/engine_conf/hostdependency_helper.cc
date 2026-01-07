@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
+
+#include <google/protobuf/util/message_differencer.h>
+
 #include "common/engine_conf/hostdependency_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -33,12 +36,14 @@ namespace com::centreon::engine::configuration {
  * @return A number of type size_t.
  */
 size_t hostdependency_key(const Hostdependency& hd) {
-  assert(hd.hosts().data().size() == 1 && hd.hostgroups().data().empty() &&
-         hd.dependent_hosts().data().size() == 1 &&
-         hd.dependent_hostgroups().data().empty());
-  return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
-                      hd.dependent_hosts().data(0), hd.hosts().data(0),
-                      hd.inherits_parent(), hd.notification_failure_options());
+  return absl::HashOf(
+      hd.dependency_period(), hd.dependency_type(), hd.dependent_hostgroups(),
+      hd.dependent_hosts(), hd.execution_failure_options(), hd.hostgroups(),
+      hd.hosts(), hd.inherits_parent(), hd.notification_failure_options());
+}
+
+bool operator==(const Hostdependency& left, const Hostdependency& right) {
+  return ::google::protobuf::util::MessageDifferencer::Equals(left, right);
 }
 
 /**
