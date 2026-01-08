@@ -29,6 +29,10 @@ on:
       aws_web_identity_token_file:
         required: true
         type: string
+      store_docker_image_in_cache:
+        required: false
+        type: boolean
+        default: true
     secrets:
       registry_username:
         required: true
@@ -47,6 +51,7 @@ on:
 
 jobs:
   test-image-to-cache:
+    if: ${{ inputs.store_docker_image_in_cache == true }}
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     env:
       IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
@@ -114,6 +119,9 @@ jobs:
           echo "features=${features}" >> $GITHUB_OUTPUT
 
   robot-test:
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'cancelled')
     needs: [robot-test-list, test-image-to-cache]
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
@@ -149,7 +157,7 @@ jobs:
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: ${{ inputs.store_docker_image_in_cache == true }}
 
       - name: load image
         run: |
@@ -215,7 +223,9 @@ jobs:
 
   robot-test-report:
     needs: [robot-test-list, robot-test]
-    if: ${{ failure() }}
+    if: |
+      failure() &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
 
     steps:

@@ -469,6 +469,7 @@ jobs:
       features_pattern: 'cma.*\.robot'
       aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
       aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      store_docker_image_in_cache: false
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
