@@ -270,8 +270,7 @@ createEngineContextFile() {
 #  Create default cma self signed ca if it does not exist
 #────────────────────────────────────────────────────────
 createDefaultCmaCaCrtKeyFiles() {
-  if [ ! -f "/etc/pki/centreon-engine/default_cma_ca.key" || 
-       ! -f "/etc/pki/centreon-engine/default_cma_ca.crt"]; then
+  if [[ ! -f "/etc/pki/centreon-engine/default_cma_ca.key" || ! -f "/etc/pki/centreon-engine/default_cma_ca.crt" ]]; then
        /usr/sbin/centengine -k
   fi
 }

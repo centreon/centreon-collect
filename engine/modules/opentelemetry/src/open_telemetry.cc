@@ -186,17 +186,24 @@ void open_telemetry::_minute_timer_handler() {
     absl::MutexLock l(&_protect);
     if (_conf && _conf->get_grpc_config() &&
         _conf->get_grpc_config()->is_crypted()) {
-      if (_conf->get_mutable_grpc_config()->reload_certificates()) {
-        SPDLOG_LOGGER_INFO(
-            _logger, "otl certificates had been updated => restart otl server");
-        _server_ca = std::make_unique<crypto::cert_tree>(
-            _conf->get_grpc_config()->get_cert(),
-            _conf->get_grpc_config()->get_key(), "centengine",
-            crypto::cert_tree::load_from_str());
+      /* to restore once we will survey certificate to finish in another PR
+          don't forget to send new fingerprint to broker, it is not done here
+
+          if (_conf->get_mutable_grpc_config()->reload_certificates()) {
+        SPDLOG_LOGGER_INFO(_logger,
+                           "otl certificates had been updated => restart otl
+                           server
+                           "); _server_ca = std::make_unique<crypto::cert_tree>(
+                           _conf->get_grpc_config()
+                               ->get_cert(),
+                           _conf->get_grpc_config()->get_key(), "centengine",
+                           crypto::cert_tree::load_from_str());
         _create_otl_server(_conf->get_grpc_config(),
                            _conf->get_centreon_agent_config());
-      } else if (_certificate_ttl.time_since_epoch().count() &&
-                 _certificate_ttl < std::chrono::system_clock::now()) {
+      }
+      else*/
+      if (_certificate_ttl.time_since_epoch().count() &&
+          _certificate_ttl < std::chrono::system_clock::now()) {
         SPDLOG_LOGGER_INFO(_logger,
                            "otl used certificate end of life => recreate and "
                            "restart otl server");
@@ -219,14 +226,16 @@ void open_telemetry::_create_otl_server(
   try {
     _shutdown_otl_server();
     grpc_config::pointer low_ttl_conf;
-    // in case of self signed certificate we create shorter ttl certificate from
-    // configured it
+    // in case of self signed certificate we create shorter ttl certificate
+    // from configured it
     if (server_conf->is_crypted() && server_conf->get_ca().empty() &&
+        !server_conf->get_cert().empty() &&
         crypto::cert_tree::is_self_signed(server_conf->get_cert())) {
       crypto::name_entries ca_entries =
           crypto::cert_tree::get_name_fields(_server_ca->get_ca());
 
-      // in order to not have a self signed certificate, we just reuse CN of ca
+      // in order to not have a self signed certificate, we just reuse CN of
+      // ca
       crypto::name_entries entries;
       std::copy_if(ca_entries.begin(), ca_entries.end(),
                    std::back_inserter(entries),
@@ -530,17 +539,13 @@ open_telemetry::get_otel_service_certificate_info() {
 
   open_telemetry::certificate_info ret;
 
-  if (_conf->get_grpc_config() &&
-      !_conf->get_grpc_config()->get_cert().empty()) {
-    std::unique_ptr<X509, std::function<void(X509*)>> cert(
-        common::crypto::cert_tree::load_cert_from_string(
-            _conf->get_grpc_config()->get_cert()),
-        [](X509* to_delete) {
-          if (to_delete)
-            X509_free(to_delete);
-        });
+  if (_conf->get_grpc_config() && _conf->get_grpc_config()->get_ca().empty() &&
+      !_conf->get_grpc_config()->get_cert().empty() &&
+      crypto::cert_tree::is_self_signed(_conf->get_grpc_config()->get_cert())) {
+    X509* cert = common::crypto::cert_tree::load_cert_from_string(
+        _conf->get_grpc_config()->get_cert());
     crypto::name_entries ca_entries =
-        common::crypto::cert_tree::get_name_fields(cert.get());
+        common::crypto::cert_tree::get_name_fields(cert);
     auto cn_iter =
         std::find_if(ca_entries.begin(), ca_entries.end(),
                      [](const crypto::name_entries::value_type& field) {
@@ -549,8 +554,9 @@ open_telemetry::get_otel_service_certificate_info() {
     if (cn_iter != ca_entries.end()) {
       ret.cn = cn_iter->second;
     }
-    ret.peremption = common::crypto::cert_tree::get_peremption(cert.get());
-    ret.sha = common::crypto::cert_tree::cert_sha(cert.get());
+    ret.peremption = common::crypto::cert_tree::get_peremption(cert);
+    ret.sha = common::crypto::cert_tree::cert_sha(cert);
+    X509_free(cert);
   }
 
   return ret;
