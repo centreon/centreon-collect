@@ -161,7 +161,7 @@ jobs:
           fail-on-cache-miss: true
 
       - name: load image
-        if: steps.restore-image.outputs.cache-hit != 'true'
+        if: steps.restore-image.outputs.cache-hit == 'true'
         run: |
           docker load --input ./${{ env.IMAGE_NAME }}
 
