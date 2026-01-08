@@ -165,6 +165,14 @@ jobs:
         run: |
           docker load --input ./${{ env.IMAGE_NAME }}
 
+      - name: Login to Registry
+        if: steps.restore-image.outputs.cache-hit != 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         run: |
