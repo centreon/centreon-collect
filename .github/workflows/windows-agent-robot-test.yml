@@ -91,7 +91,7 @@ jobs:
         shell: powershell
 
       - name: save agent installer and proto in cache
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: |
             opentelemetry-proto
@@ -154,7 +154,7 @@ jobs:
           wsl ip address show
 
       - name: Restore agent installer and proto
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: |
             opentelemetry-proto
@@ -171,7 +171,7 @@ jobs:
           wsl cd $wsl_path `&`& .github/scripts/collect-setup-database.sh
 
       - name: Restore packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-noble-amd64-${{ github.head_ref || github.ref_name }}

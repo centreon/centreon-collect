@@ -742,14 +742,29 @@ jobs:
               "database": "mysql:8.0",
               "arch": "amd64"
             };
+            const alma8_mariadb_10_11 = {
+              "operating_system": "alma8",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const bullseye_mysql_8_4 = {
               "operating_system": "bullseye",
               "database": "mysql:8.4",
               "arch": "amd64"
             };
+            const bullseye_mariadb_10_11 = {
+              "operating_system": "bullseye",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const bookworm_mysql_8_4 = {
               "operating_system": "bookworm",
               "database": "mysql:8.4",
+              "arch": "amd64"
+            };
+            const bookworm_mariadb_10_11 = {
+              "operating_system": "bookworm",
+              "database": "mariadb:10.11",
               "arch": "amd64"
             };
             const trixie_mariadb_11_8 = {
@@ -762,9 +777,19 @@ jobs:
               "database": "mysql:8.4",
               "arch": "amd64"
             };
+            const jammy_mariadb_10_11 = {
+              "operating_system": "jammy",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const noble_mysql_8_4 = {
               "operating_system": "noble",
               "database": "mysql:8.4",
+              "arch": "amd64"
+            };
+            const noble_mariadb_10_11 = {
+              "operating_system": "noble",
+              "database": "mariadb:10.11",
               "arch": "amd64"
             };
 
@@ -807,12 +832,12 @@ jobs:
             const cmaConfigs = [
               alma10_mariadb_10_11,
               alma9_mariadb_10_11,
-              alma8_mysql_8_0,
-              bullseye_mysql_8_4,
-              bookworm_mysql_8_4,
+              alma8_mariadb_10_11,
+              bullseye_mariadb_10_11,
+              bookworm_mariadb_10_11,
               trixie_mariadb_11_8,
-              jammy_mysql_8_4,
-              noble_mysql_8_4
+              jammy_mariadb_10_11,
+              noble_mariadb_10_11
             ];
 
             const cloud = alma8_mysql_8_0;
@@ -911,11 +936,21 @@ jobs:
               return testConfigs;
             };
 
+            //No grpc no mysql for CMA robot tests
+            const setTestConfigsCMA = (configs) => {
+              const testConfigs = [];
+
+              for (const config of configs) {
+                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
+              }
+              return testConfigs;
+            };
+
             let collectRobotMatrix = setTestConfigs([...collectMatrix]);
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]);
+            let cmaRobotMatrix = setTestConfigsCMA([...cmaMatrix]);
             console.log('cmaRobotMatrix', cmaRobotMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 
