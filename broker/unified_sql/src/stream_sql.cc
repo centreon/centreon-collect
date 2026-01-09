@@ -3720,7 +3720,7 @@ void stream::_process_pb_service_group_member(
       _pb_service_group_member_delete =
           qp.prepare_delete_table(_mysql, "services_servicegroups ");
     }
-    _service_group_member_delete << sgmp;
+    _pb_service_group_member_delete << sgmp;
     _mysql.run_statement(_pb_service_group_member_delete,
                          database::mysql_error::delete_service_group_member,
                          conn);

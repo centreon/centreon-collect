@@ -8,6 +8,10 @@ on:
       nightly_manual_trigger:
         required: false
         type: boolean
+      labels:
+        required: false
+        type: string
+        default: ""
     outputs:
       latest_major_version:
         description: "latest major version"
@@ -140,6 +144,11 @@ jobs:
               } catch (e) {
                 core.warning(`failed to list labels: ${e}`);
               }
+            } else if ('${{ github.event_name }}' === 'workflow_dispatch' && '${{ inputs.labels }}'.length > 0) {
+              labels = '${{ inputs.labels }}'
+                .split(',')
+                .map(label => label.trim())
+                .filter(label => label.length > 0);
             }
 
             core.setOutput('labels', labels);
@@ -220,7 +229,7 @@ jobs:
           json: true
           escape_json: false
           files: ${{ join(fromJSON(steps.get_workflow_triggered_paths.outputs.result), ';') }}
-          files_separator: ';'
+          files_separator: ";"
 
       - name: Check if current workflow should be skipped
         id: skip_workflow
@@ -718,6 +727,11 @@ jobs:
         id: get_os_database_matrix
         with:
           script: |
+            const alma10_mariadb_10_11 = {
+              "operating_system": "alma10",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const alma9_mariadb_10_11 = {
               "operating_system": "alma9",
               "database": "mariadb:10.11",
@@ -728,9 +742,19 @@ jobs:
               "database": "mysql:8.0",
               "arch": "amd64"
             };
+            const alma8_mariadb_10_11 = {
+              "operating_system": "alma8",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const bullseye_mysql_8_4 = {
               "operating_system": "bullseye",
               "database": "mysql:8.4",
+              "arch": "amd64"
+            };
+            const bullseye_mariadb_10_11 = {
+              "operating_system": "bullseye",
+              "database": "mariadb:10.11",
               "arch": "amd64"
             };
             const bookworm_mysql_8_4 = {
@@ -738,14 +762,34 @@ jobs:
               "database": "mysql:8.4",
               "arch": "amd64"
             };
+            const bookworm_mariadb_10_11 = {
+              "operating_system": "bookworm",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
+            const trixie_mariadb_11_8 = {
+              "operating_system": "trixie",
+              "database": "mariadb:11.8",
+              "arch": "amd64"
+            };
             const jammy_mysql_8_4 = {
               "operating_system": "jammy",
               "database": "mysql:8.4",
               "arch": "amd64"
             };
+            const jammy_mariadb_10_11 = {
+              "operating_system": "jammy",
+              "database": "mariadb:10.11",
+              "arch": "amd64"
+            };
             const noble_mysql_8_4 = {
               "operating_system": "noble",
               "database": "mysql:8.4",
+              "arch": "amd64"
+            };
+            const noble_mariadb_10_11 = {
+              "operating_system": "noble",
+              "database": "mariadb:10.11",
               "arch": "amd64"
             };
 
@@ -786,12 +830,14 @@ jobs:
               bookworm_mysql_8_4
             ];
             const cmaConfigs = [
+              alma10_mariadb_10_11,
               alma9_mariadb_10_11,
-              alma8_mysql_8_0,
-              bullseye_mysql_8_4,
-              bookworm_mysql_8_4,
-              jammy_mysql_8_4,
-              noble_mysql_8_4
+              alma8_mariadb_10_11,
+              bullseye_mariadb_10_11,
+              bookworm_mariadb_10_11,
+              trixie_mariadb_11_8,
+              jammy_mariadb_10_11,
+              noble_mariadb_10_11
             ];
 
             const cloud = alma8_mysql_8_0;
@@ -840,7 +886,7 @@ jobs:
 
               for (const config of configs) {
                 archConfigs.push({...config, "arch": "amd64"});
-                if (["bullseye", "bookworm", "jammy", "noble"].includes(config.operating_system)) {
+                if (["bullseye", "bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
                   archConfigs.push({...config, "arch": "arm64"});
                 }
               }
@@ -890,17 +936,21 @@ jobs:
               return testConfigs;
             };
 
+            //No grpc no mysql for CMA robot tests
+            const setTestConfigsCMA = (configs) => {
+              const testConfigs = [];
+
+              for (const config of configs) {
+                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
+              }
+              return testConfigs;
+            };
+
             let collectRobotMatrix = setTestConfigs([...collectMatrix]);
             console.log('collectRobotMatrix', collectRobotMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigs([...cmaMatrix]).filter(config => {
-              // CMA does not support robot tests on noble OS
-              if (config.operating_system === 'noble') {
-                return false;
-              }
-              return true;
-            });
+            let cmaRobotMatrix = setTestConfigsCMA([...cmaMatrix]);
             console.log('cmaRobotMatrix', cmaRobotMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
 

@@ -17,8 +17,11 @@
  */
 
 #include "check_exec.hh"
+#include "agent.grpc.pb.h"
 #include "com/centreon/common/process/process.hh"
+#include "config.hh"
 
+using com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::agent;
 
 /******************************************************************
@@ -246,3 +249,86 @@ void check_dummy::start_check(const duration& timeout) {
                      me->get_command_line(), get_output())});
   });
 }
+
+/******************************************************************
+ * check_custom
+ ******************************************************************/
+static std::string _build_custom_command_line(const Service& serv,
+                                              const rapidjson::Value& args) {
+  // args expected schema: {"name": "name_cmd", "ARG1": "args_cmd","ARG2":
+  // "args_cmd"}
+  std::string name;
+  std::string cmd_args;
+  if (!args.IsObject()) {
+    throw msg_fmt("custom check arguments must be a JSON object for service {}",
+                  serv.service_description());
+  }
+  if (args.HasMember("name") && args["name"].IsString()) {
+    name = args["name"].GetString();
+  } else {
+    throw msg_fmt("custom check missing 'name' field for service {}",
+                  serv.service_description());
+  }
+
+  // extract argument from json
+  unsigned num_args = args.MemberCount() - 1;  // exclude "name"
+  std::vector<std::string> arguments;
+  arguments.reserve(num_args);
+
+  // Collect ARGn values (ensure vector is sized correctly)
+  arguments.reserve(num_args);
+  for (unsigned idx = 0; idx < num_args; ++idx) {
+    const std::string arg_key = fmt::format("ARG{}", idx + 1);
+    if (args.HasMember(arg_key.c_str()) && args[arg_key.c_str()].IsString()) {
+      arguments.push_back(args[arg_key.c_str()].GetString());
+    } else {
+      arguments.push_back("");
+    }
+  }
+
+  const auto& custom_map = config::instance().get_custom_checks();
+  if (custom_map.empty()) {
+    throw msg_fmt("no custom checks defined in agent configuration");
+  }
+
+  auto it = custom_map.find(name);
+  if (it == custom_map.end()) {
+    throw msg_fmt("unknown custom check '{}' called by service '{}'", name,
+                  serv.service_description());
+  }
+
+  // reconstruct the path with args
+  std::string cmd_line = it->second;
+
+  if (num_args > 0) {
+    // replace $ARGn$ with {n} in the commandline
+    for (unsigned idx = 0; idx < num_args; ++idx) {
+      const std::string arg_key = fmt::format("$ARG{}$", idx + 1);
+      size_t pos = cmd_line.find(arg_key);
+      if (pos != std::string::npos) {
+        cmd_line.replace(pos, arg_key.size(), arguments[idx]);
+      }
+    }
+  }
+  return cmd_line;
+}
+
+check_custom::check_custom(
+    const std::shared_ptr<asio::io_context>& io_context,
+    const std::shared_ptr<spdlog::logger>& logger,
+    time_point first_start_expected,
+    const Service& serv,
+    const rapidjson::Value& args,
+    const engine_to_agent_request_ptr& cnf,
+    check::completion_handler&& handler,
+    const checks_statistics::pointer& stat,
+    const std::shared_ptr<common::crypto::aes256>& credentials_decrypt)
+    : check_exec(io_context,
+                 logger,
+                 first_start_expected,
+                 serv,
+                 _build_custom_command_line(serv, args),
+                 cnf,
+                 std::move(handler),
+                 stat,
+                 credentials_decrypt) {}

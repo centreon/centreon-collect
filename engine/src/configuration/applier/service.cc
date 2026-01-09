@@ -399,6 +399,10 @@ void applier::service::modify_object(configuration::Service* old_obj,
         s->mut_tags().emplace_front(it_tag->second);
     }
   }
+
+  // update the global service configuration
+  old_obj->CopyFrom(new_obj);
+
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
                                MODATTR_ALL);
@@ -449,8 +453,13 @@ void applier::service::remove_object(ssize_t idx) {
                                                   obj.service_id());
 
     // remove service from servicegroup->members
-    for (auto& it_s : svc->get_parent_groups())
+    for (auto& it_s : svc->get_parent_groups()) {
+      // before erasing the service from the servicegroup members, we notify the
+      // broker to delete the member first
+
+      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, svc.get(), it_s);
       it_s->members.erase({host_name, service_description});
+    }
 
     // Notify event broker.
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,

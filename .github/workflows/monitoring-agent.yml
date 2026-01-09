@@ -14,26 +14,16 @@ on:
         required: true
         default: false
         type: boolean
-      packages_in_artifact:
-        description: "Save packages in artifacts"
-        required: true
-        default: false
-        type: boolean
-      installer_in_artifact:
-        description: "Save installer and binary in artifacts"
-        required: true
-        default: false
-        type: boolean
       force_signing:
         description: "Force signing"
         required: true
         default: false
         type: boolean
-      unit_tests:
-        description: "Execute the unit tests"
-        required: true
-        default: true
-        type: boolean
+      labels:
+        description: "Labels to add to the run (comma separated)"
+        required: false
+        default: ""
+        type: string
 
   pull_request:
     paths:
@@ -48,7 +38,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
   push:
     branches:
       - develop
@@ -68,7 +58,7 @@ on:
       - CMakeListsLinux.txt
       - CMakeListsWindows.txt
       - vcpkg.json
-      - tests/**/cma.robot
+      - tests/**/cma*.robot
     tags:
       - "centreon-monitoring-agent-*"
 
@@ -78,6 +68,10 @@ jobs:
     with:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
+      labels: ${{ inputs.labels || '' }}
+
+  get-aws-environment:
+    uses: ./.github/workflows/get-aws-environment.yml
 
   check-version-consistency:
     runs-on: ubuntu-24.04
@@ -133,7 +127,7 @@ jobs:
         "agent/test/**"
       e2e_test_paths: |
         "resources/**"
-        "tests/**/cma.robot"
+        "tests/**/cma*.robot"
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       base_sha: ${{ needs.get-environment.outputs.previous_release_bundle_tag }}
       labels: ${{ needs.get-environment.outputs.labels }}
@@ -161,10 +155,11 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       # Install Inno Setup (ISCC) and expose its path
+      # To remove later when innosetup version will be stable on runners
       - name: Install Inno Setup
         shell: powershell
         run: |
-          choco install innosetup -y --no-progress
+          choco install innosetup -y --no-progress --version 6.6.1
 
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
@@ -266,9 +261,11 @@ jobs:
 
       - name: Upload package artifacts
         if: |
-          inputs.installer_in_artifact == true ||
-          (github.event_name != 'workflow_dispatch' &&
-          contains(fromJson('["stable"]'), needs.get-environment.outputs.stability) &&
+          contains(needs.get-environment.outputs.labels, 'upload-artifacts') ||
+          (
+            github.event_name != 'workflow_dispatch' &&
+            contains(fromJson('["stable"]'), needs.get-environment.outputs.stability
+          ) &&
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
@@ -281,12 +278,9 @@ jobs:
             build_windows\agent\Release\centagent.pdb
 
   unit-test-linux:
-    needs: [get-environment, changes, check-version-consistency]
+    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
-      (
-        github.event.inputs.unit_tests == 'true' ||
-        needs.changes.outputs.trigger_unit_testing == 'true'
-      ) &&
+      needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
@@ -301,8 +295,6 @@ jobs:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/packaging-centreon-collect-vcpkg-${{ matrix.operating_system }}:${{ needs.get-environment.outputs.packaging_img_version }}
@@ -310,6 +302,11 @@ jobs:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       options: --cpus 8
+      env:
+        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+        AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      volumes:
+        - ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}:${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -397,7 +394,7 @@ jobs:
           retention-days: 1
 
   package-linux:
-    needs: [get-environment, changes, check-version-consistency]
+    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -425,15 +422,15 @@ jobs:
       stability: ${{ needs.get-environment.outputs.stability }}
       legacy_engine: "OFF"
       build_debug_packages: ${{ needs.get-environment.outputs.stability == 'testing' || contains(github.event.pull_request.labels.*.name, 'build-debug-packages') }}
-      packages_in_artifact: ${{ github.event.inputs.packages_in_artifact == 'true' || needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
+      packages_in_artifact: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') }}
       image: ${{ format('packaging-centreon-collect-vcpkg-{0}{1}', matrix.operating_system, matrix.arch == 'arm64' && '-arm64' || '') }}
       distrib: ${{ matrix.operating_system }}
       arch: ${{ matrix.arch }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
       only_robot_cma: true
+      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
     secrets:
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
@@ -444,12 +441,11 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   robot-test:
-    needs: [get-environment, changes, package-linux]
+    needs: [get-environment, get-aws-environment, changes, package-linux]
     if: |
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
-      needs.get-environment.outputs.is_nightly == 'true' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -460,7 +456,7 @@ jobs:
       matrix:
         include: ${{ fromJson(needs.get-environment.outputs.cma_robot_matrix) }}
 
-    name: ${{ matrix.test_group_name }}
+    name: robot-test ${{ matrix.operating_system }} ${{ matrix.database_type }} ${{ matrix.arch }} ${{ contains(matrix.tests_params, 'grpc') && 'grpc' || '' }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
@@ -470,12 +466,13 @@ jobs:
       database_type: ${{ matrix.database_type }}
       tests_params: ${{ matrix.tests_params }}
       is_nightly: ${{ needs.get-environment.outputs.is_nightly }}
-      features_pattern: 'cma\.robot'
+      features_pattern: 'cma.*\.robot'
+      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
+      store_docker_image_in_cache: false
     secrets:
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       xray_client_id: ${{ secrets.XRAY_CLIENT_ID }}
       xray_client_secret: ${{ secrets.XRAY_CLIENT_SECRET }}
       jira_base_url: ${{ secrets.JIRA_BASE_URL }}
@@ -501,6 +498,8 @@ jobs:
           - distrib: el8
             arch: amd64
           - distrib: el9
+            arch: amd64
+          - distrib: el10
             arch: amd64
 
     name: deliver ${{ matrix.distrib }}
@@ -546,6 +545,10 @@ jobs:
           - distrib: bookworm
             arch: amd64
           - distrib: bookworm
+            arch: arm64
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
             arch: arm64
           - distrib: jammy
             arch: amd64
@@ -631,7 +634,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bullseye, bookworm, jammy, noble]
+        distrib: [el8, el9, el10, bullseye, bookworm, trixie, jammy, noble]
 
     steps:
       - name: Checkout sources

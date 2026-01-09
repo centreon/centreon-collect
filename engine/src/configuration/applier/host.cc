@@ -377,6 +377,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
   } else
     h->set_severity(nullptr);
 
+  // update the global host configuration
+  old_obj->CopyFrom(new_obj);
   // Notify event broker.
   broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE,
                             it_obj->second.get(), MODATTR_ALL);
@@ -407,8 +409,13 @@ void applier::host::remove_object(ssize_t idx) {
     applier::scheduler::instance().remove_host(obj.host_id());
 
     // remove host from hostgroup->members
-    for (auto& it_h : it->second->get_parent_groups())
+    for (auto& it_h : it->second->get_parent_groups()) {
+      // before erasing the host from the hostgroup members, we notify the
+      // broker to delete the member first
+      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second.get(),
+                          it_h);
       it_h->members.erase(it->second->name());
+    }
 
     // remove any relations
     for (const auto& [_, sptr_host] : it->second->parent_hosts)
