@@ -23,14 +23,20 @@ on:
         required: false
         type: string
         default: .robot
+      aws_role_arn:
+        required: true
+        type: string
+      aws_web_identity_token_file:
+        required: true
+        type: string
+      store_docker_image_in_cache:
+        required: false
+        type: boolean
+        default: true
     secrets:
       registry_username:
         required: true
       registry_password:
-        required: true
-      collect_s3_access_key:
-        required: true
-      collect_s3_secret_key:
         required: true
       xray_client_id:
         required: true
@@ -45,6 +51,7 @@ on:
 
 jobs:
   test-image-to-cache:
+    if: ${{ inputs.store_docker_image_in_cache == true }}
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     env:
       IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
@@ -92,14 +99,29 @@ jobs:
         id: list-features
         run: |
           cd tests
+
           #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
           FEATURES_PATTERN="${{ inputs.features_pattern }}"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
-            FEATURES_PATTERN="^((?!cma).)*$"
+            FEATURES_PATTERN='^((?!cma).)*$'
           fi
-          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+          features=$(grep -Rl '*** Test Cases ***' . | grep -P '.robot$' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')
+          if [[ "${{ inputs.database_type }}" == "mysql" ]]; then
+            for feature in $(echo "${features}" | jq -r '.[]'); do
+              if [[ ! -f "$feature.mysql" ]]; then
+                features=$(echo "${features}" | jq -c "del(.[index(\"$feature\")])")
+              fi
+            done
+          fi
+
+          echo $features
+          echo "features=${features}" >> $GITHUB_OUTPUT
 
   robot-test:
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'cancelled')
     needs: [robot-test-list, test-image-to-cache]
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
@@ -124,11 +146,12 @@ jobs:
           distrib: ${{ inputs.distrib }}
 
       - name: Restore image
+        id: restore-image
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ./${{ env.IMAGE_NAME }}
           key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: ${{ inputs.store_docker_image_in_cache == true }}
 
       - name: Restore packages
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -138,14 +161,20 @@ jobs:
           fail-on-cache-miss: true
 
       - name: load image
+        if: steps.restore-image.outputs.cache-hit == 'true'
         run: |
           docker load --input ./${{ env.IMAGE_NAME }}
 
+      - name: Login to Registry
+        if: steps.restore-image.outputs.cache-hit != 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
         run: |
           privilege_status=""
           if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
@@ -153,8 +182,9 @@ jobs:
           fi
           docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
             -v $(pwd):/test_collect  \
-            --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-            --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+            -v  ${{ inputs.aws_web_identity_token_file }}:${{ inputs.aws_web_identity_token_file }} \
+            --env AWS_WEB_IDENTITY_TOKEN_FILE=${{ inputs.aws_web_identity_token_file }} \
+            --env AWS_ROLE_ARN=${{ inputs.aws_role_arn }} \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }} \
@@ -203,7 +233,9 @@ jobs:
 
   robot-test-report:
     needs: [robot-test-list, robot-test]
-    if: ${{ failure() }}
+    if: |
+      failure() &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
 
     steps:

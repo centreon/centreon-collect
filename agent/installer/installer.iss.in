@@ -121,11 +121,11 @@ var
   HostInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
   HostWarningBitmapImage, PollerWarningBitmapImage:TBitmapImage;
   
-  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel: TNewStaticText;
-  LogFileEdit, MaxFileEdit, MaxNumberEdit: TNewEdit;
+  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel, CustomCheckLabel: TNewStaticText;
+  LogFileEdit, MaxFileEdit, MaxNumberEdit, CustomCheckEdit: TNewEdit;
   MaxFileInfoBitmapImage, MaxNumberInfoBitmapImage:TBitmapImage;
   LogTypeComboBox, LogLeveLComboBox:TNewComboBox;
-  LogFileBrowseButton : TButton;
+  LogFileBrowseButton, CustomCheckBrowseButton : TButton;
   LogFileWarningBitmapImage:TBitmapImage;
 // ─────────────────────────────────────────────
 // Widget for Encryption
@@ -247,6 +247,18 @@ begin
   end;
 end;
 
+
+// Opens a file picker for selecting 
+procedure CheckFileBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select custom check file', Path, '','All Files (*.*)|*.*|INI Files (*.ini)|*.ini|TXT Files (*.txt)|*.txt', 'txt')) then
+  begin
+     CustomCheckEdit.Text:= Path;
+  end;
+end;
+
 //Allows only digits and backspace in the input; shows an error message for invalid characters and cancels the keystroke.
 procedure NumbersOnlyKeyPress(Sender: TObject; var Key: Char);
 begin
@@ -285,8 +297,6 @@ begin
   CommonNameEdit.Hide;
   CommonNameInfoBitmapImage.Hide;
 
-  TokenLabel.Hide;
-  TokenEdit.Hide;
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
@@ -305,8 +315,6 @@ begin
       PrivateKeyBrowseButton.Show;
       PrivateKeyInfoBitmapImage.Show;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end
     else
@@ -323,8 +331,6 @@ begin
           CommonNameInfoBitmapImage.Show;
         end;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end;
   end
@@ -606,6 +612,9 @@ begin
   if RegQueryStringValue(RootKey, BaseKey, 'log_level', StrValue) then
     LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf(StrValue);
 
+  if RegQueryStringValue(RootKey, BaseKey, 'custom_check_file', StrValue) then
+    CustomCheckEdit.Text := StrValue;
+
   if RegQueryStringValue(RootKey, BaseKey, 'log_type', StrValue) then
     LogTypeComboBox.ItemIndex := LogTypeComboBox.Items.IndexOf(StrValue);
 
@@ -660,6 +669,7 @@ begin
   RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'endpoint', PollerEndpointEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_file', LogFileEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'custom_check_file', CustomCheckEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_level', LowerCase(LogLeveLComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'log_type', LowerCase(LogTypeComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'public_cert', PublicCertEdit.Text);
@@ -848,6 +858,7 @@ begin
     else        LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Error');
   end;
   LogFileEdit.Text := ExpandConstant('{param:logfile|}');
+  CustomCheckEdit.Text := ExpandConstant('{param:customcheckfile|}');
   MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|}');
   MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|}');
   PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
@@ -1012,8 +1023,8 @@ WarningBmp: String;
 begin
 
 // ── Wizard config
-  WizardForm.ClientWidth := 460;
-  WizardForm.ClientHeight := 400;
+  WizardForm.ClientWidth := 630;
+  WizardForm.ClientHeight := 570;
   PluginURL := GetBrowserDownloadURL(
          'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
          'centreon_plugins.exe');
@@ -1169,16 +1180,40 @@ begin
   PollerInitiatedInfoBitmapImage.Cursor := crHand;
   PollerInitiatedInfoBitmapImage.OnClick := @BitmapImageOnClick;
 
+  // ──── CustomCheck
+  
+  CustomCheckLabel := TNewStaticText.Create(ConfigPage);
+  CustomCheckLabel.Parent := ConfigPage.Surface;
+  CustomCheckLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  CustomCheckLabel.Caption := 'Custom check file:';
+
+  CustomCheckEdit := TNewEdit.Create(ConfigPage);
+  CustomCheckEdit.Parent := ConfigPage.Surface;
+  CustomCheckEdit.Top := CustomCheckLabel.Top - ScaleY(3);
+  CustomCheckEdit.Left := HostNameEdit.Left;
+  CustomCheckEdit.Width := ConfigPage.SurfaceWidth div 2;
+  CustomCheckEdit.Text := '';
+
+  CustomCheckBrowseButton := TButton.Create(ConfigPage);
+  CustomCheckBrowseButton.Parent := ConfigPage.Surface;
+  CustomCheckBrowseButton.Caption := '...';
+  CustomCheckBrowseButton.Left := CustomCheckEdit.Left + CustomCheckEdit.Width + ScaleX(4) ;
+  CustomCheckBrowseButton.Top := CustomCheckEdit.Top - ScaleY(1);
+  CustomCheckBrowseButton.Width := 35;
+  CustomCheckBrowseButton.Height := CustomCheckEdit.Height + ScaleY(2);
+  CustomCheckBrowseButton.OnClick := @CheckFileBrowseFile;
+
+
   // ──── Log type
 
   LogTypeLabel := TNewStaticText.Create(ConfigPage);
   LogTypeLabel.Parent := ConfigPage.Surface;
-  LogTypeLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  LogTypeLabel.Top := CustomCheckLabel.Top + ScaleY(30);
   LogTypeLabel.Caption := 'Log type:';
 
   LogTypeComboBox := TNewComboBox.Create(ConfigPage);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth;
-  LogTypeComboBox.top := PollerInitiatedCheckBox.Top + ScaleY(27);
+  LogTypeComboBox.top := CustomCheckLabel.Top + ScaleY(27);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth div 2;
   LogTypeComboBox.Left := HostNameEdit.Left;
   LogTypeComboBox.Parent := ConfigPage.Surface;
@@ -1340,7 +1375,6 @@ begin
   TokenLabel.Parent := EncryptionPage.Surface;
   TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
   TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
 
   TokenEdit := TNewEdit.Create(EncryptionPage);
   TokenEdit.Parent := EncryptionPage.Surface;
@@ -1348,7 +1382,6 @@ begin
   TokenEdit.Left := HostNameEdit.Left;
   TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
   TokenEdit.Text := '';
-  TokenEdit.Hide;
 
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1736,14 +1769,14 @@ begin
           exit;
         end;
       end;
-      if TokenEdit.Text = '' then begin
+    end;
+     if TokenEdit.Text = '' then begin
         TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
         exit;
       end;
-    end;
     Result := True;
   end
   else
@@ -1874,10 +1907,8 @@ begin
       Exit;
     end;
 
-    Frm := CreateCustomForm;
+    Frm := CreateCustomForm(ScaleX(480), ScaleY(340), False, False);
     Frm.Caption := 'Centreon Uninstall';
-    Frm.ClientWidth := ScaleX(480);
-    Frm.ClientHeight := ScaleY(340);
 
     Lbl := TLabel.Create(Frm);
     Lbl.Parent := Frm;

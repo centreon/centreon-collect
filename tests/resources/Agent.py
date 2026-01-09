@@ -63,13 +63,23 @@ def ctn_host_hostname():
     return environ.get('HOST_HOSTNAME', Common.ctn_get_hostname())
 
 
-agent_config = """
-{
+def ctn_get_agent_conf_path():
+    """
+    ctn_get_conf_path
+
+    Get CONF_DIR path
+    """
+    return CONF_DIR+"/centagent0.json"
+
+
+agent_config = f"""
+{{
     "log_level":"trace",
     "endpoint":"localhost:4317",
     "host":"host_1",
     "log_type":"file",
-    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log" """
+    "log_file":"/tmp/var/log/centreon-engine/centreon-agent.log",
+    "custom_check_file": "{VAR_ROOT}/lib/centreon-engine/custom_checks.ini" """
 
 
 agent_encrypted_config = f"""
@@ -98,38 +108,55 @@ reversed_agent_encrypted_config = f"""
     "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
-def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None, ca_common_name: str = None, security_mode: str = "full"):
+def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None, ca_common_name: str = None, security_mode: str = "full", have_token: bool = True, nb_agent: int = 1):
     """ctn_config_centreon_agent
-    Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption) 
+    Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption)
     Args:
         key_path: path of the private key file
         cert_path: path of public certificate file
         ca_path: path of the authority certificate file
+        token:
+        ca_common_name: CN
+        security_mode: full, no or insecure
+        have_token: add token or empty token in config file
+        nb_agent: nb conf agent (several agents config files)
     """
     # in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV", "") == "WSL":
         return
 
-    makedirs(CONF_DIR, mode=0o777, exist_ok=True)
-    with open(f"{CONF_DIR}/centagent.json", "w") as ff:
-        if cert_path is not None or ca_path is not None:
-            ff.write(agent_encrypted_config)
-        else:
-            ff.write(agent_config)
-        if key_path is not None or cert_path is not None or ca_path is not None:
-            ff.write(f",\n  \"encryption\":\"{security_mode}\"")
-        if key_path is not None:
-            ff.write(f",\n  \"private_key\":\"{key_path}\"")
-        if cert_path is not None:
-            ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
-        if ca_path is not None:
-            ff.write(f",\n  \"ca\":\"{ca_path}\"")
-        if ca_common_name is not None:
-            ff.write(f",\n  \"ca_common_name\":\"{ca_common_name}\"")
-        if token is not None:
-            ff.write(f",\n  \"token\":\"{token}\"")
+    token_default = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
 
-        ff.write("\n}\n")
+    makedirs(CONF_DIR, mode=0o777, exist_ok=True)
+    with open(f"{VAR_ROOT}/lib/centreon-engine/custom_checks.ini", "w") as ff:
+        ff.write("[custom_checks]\n")
+        ff.write("check_echo = " +
+                 ctn_echo_command("$ARG2$ $ARG1$ from custom check") + "\n")
+        ff.write("custom_check_2 = /path/to/custom_check_2 -c /arg=<value>\n")
+
+    for agent_index in range(nb_agent):
+        with open(f"{CONF_DIR}/centagent{agent_index}.json", "w") as ff:
+            if cert_path is not None or ca_path is not None:
+                ff.write(agent_encrypted_config)
+            else:
+                ff.write(agent_config)
+            if key_path is not None or cert_path is not None or ca_path is not None:
+                ff.write(f",\n  \"encryption\":\"{security_mode}\"")
+            if key_path is not None:
+                ff.write(f",\n  \"private_key\":\"{key_path}\"")
+            if cert_path is not None:
+                ff.write(f",\n  \"public_cert\":\"{cert_path}\"")
+            if ca_path is not None:
+                ff.write(f",\n  \"ca\":\"{ca_path}\"")
+            if ca_common_name is not None:
+                ff.write(f",\n  \"ca_common_name\":\"{ca_common_name}\"")
+            if have_token:
+                if token is not None:
+                    ff.write(f",\n  \"token\":\"{token}\"")
+                else:
+                    ff.write(f",\n  \"token\":\"{token_default}\"")
+
+            ff.write("\n}\n")
 
 
 def ctn_config_centreon_agent_set_value(key: str, value: str):
@@ -141,7 +168,7 @@ def ctn_config_centreon_agent_set_value(key: str, value: str):
     """
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
 
-    with open(f"{CONF_DIR}/centagent.json", "r+") as ff:
+    with open(f"{CONF_DIR}/centagent0.json", "r+") as ff:
         content = json.load(ff)
         print(content)
         content[key] = value
@@ -162,8 +189,10 @@ def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = Non
     if environ.get("RUN_ENV", "") == "WSL":
         return
 
+    token_default = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
+
     makedirs(CONF_DIR, mode=0o777, exist_ok=True)
-    with open(f"{CONF_DIR}/centagent.json", "w") as ff:
+    with open(f"{CONF_DIR}/centagent0.json", "w") as ff:
         if cert_path is not None or ca_path is not None:
             ff.write(reversed_agent_encrypted_config)
         else:
@@ -179,6 +208,8 @@ def ctn_config_reverse_centreon_agent(key_path: str = None, cert_path: str = Non
             ff.write(f",\n  \"ca\":\"{ca_path}\"")
         if token is not None:
             ff.write(f",\n  \"token\":\"{token}\"")
+        else:
+            ff.write(f",\n  \"token\":\"{token_default}\"")
         ff.write("\n}\n")
 
 
