@@ -51,7 +51,7 @@ jobs:
     steps:
       - name: Checkout sources
         if: github.event_name == 'pull_request' || inputs.base_sha != ''
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Fetch tags
         if: inputs.base_sha != ''
@@ -89,7 +89,7 @@ jobs:
       - name: Get changed files
         if: github.event_name == 'pull_request' || inputs.base_sha != ''
         id: get_changed_files
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        uses: tj-actions/changed-files@e0021407031f5be11a464abee9a0776171c79891 # v47.0.1
         with:
           base_sha: ${{ github.event_name == 'pull_request' && ' ' || inputs.base_sha }}
           files_yaml: |
