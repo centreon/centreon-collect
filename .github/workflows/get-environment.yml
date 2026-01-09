@@ -302,7 +302,6 @@ jobs:
             } else {
               stability = getStability(ref);
             }
-            stability = 'unstable'; // Force unstable for centreon-collect for now
 
             console.log(`Final stability: ${stability}`);
             core.setOutput('stability', stability);
