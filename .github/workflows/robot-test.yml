@@ -29,6 +29,10 @@ on:
       aws_web_identity_token_file:
         required: true
         type: string
+      store_docker_image_in_cache:
+        required: false
+        type: boolean
+        default: true
     secrets:
       registry_username:
         required: true
@@ -47,6 +51,7 @@ on:
 
 jobs:
   test-image-to-cache:
+    if: ${{ inputs.store_docker_image_in_cache == true }}
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     env:
       IMAGE_NAME: centreon-collect-${{ inputs.database_type }}-${{ inputs.distrib }}${{ inputs.arch == 'arm64' && '-arm64' || '' }}-test
@@ -114,6 +119,9 @@ jobs:
           echo "features=${features}" >> $GITHUB_OUTPUT
 
   robot-test:
+    if: |
+      ! cancelled() &&
+      ! contains(needs.*.result, 'cancelled')
     needs: [robot-test-list, test-image-to-cache]
     runs-on: ${{ inputs.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
 
@@ -138,11 +146,12 @@ jobs:
           distrib: ${{ inputs.distrib }}
 
       - name: Restore image
+        id: restore-image
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ./${{ env.IMAGE_NAME }}
           key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
-          fail-on-cache-miss: true
+          fail-on-cache-miss: ${{ inputs.store_docker_image_in_cache == true }}
 
       - name: Restore packages
         uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
@@ -152,8 +161,17 @@ jobs:
           fail-on-cache-miss: true
 
       - name: load image
+        if: steps.restore-image.outputs.cache-hit == 'true'
         run: |
           docker load --input ./${{ env.IMAGE_NAME }}
+
+      - name: Login to Registry
+        if: steps.restore-image.outputs.cache-hit != 'true'
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
 
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
@@ -215,7 +233,9 @@ jobs:
 
   robot-test-report:
     needs: [robot-test-list, robot-test]
-    if: ${{ failure() }}
+    if: |
+      failure() &&
+      ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
 
     steps:
