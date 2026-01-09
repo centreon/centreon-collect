@@ -84,13 +84,11 @@ class servicedependency : public dependency {
   service* dependent_service_ptr;
 
   static servicedependency_mmap servicedependencies;
-  static servicedependency_mmap::iterator servicedependencies_find(
-      const std::tuple<std::string, std::string, size_t>& key);
 };
-
-};  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicedependency const& obj);
+
+};  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_SERVICEDEPENDENCY_HH

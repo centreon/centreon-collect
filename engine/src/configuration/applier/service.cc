@@ -399,6 +399,10 @@ void applier::service::modify_object(configuration::Service* old_obj,
         s->mut_tags().emplace_front(it_tag->second);
     }
   }
+
+  // update the global service configuration
+  old_obj->CopyFrom(new_obj);
+
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE, s.get(),
                                MODATTR_ALL);
