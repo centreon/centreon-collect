@@ -94,10 +94,10 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Checkout sources of lua-curl
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: Lua-cURL/Lua-cURLv3
           path: lua-curl-src
@@ -167,7 +167,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Publish RPM packages
         uses: ./.github/actions/rpm-delivery
@@ -203,7 +203,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Publish DEB packages
         uses: ./.github/actions/deb-delivery
@@ -233,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable

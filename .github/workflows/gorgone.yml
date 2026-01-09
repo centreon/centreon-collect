@@ -110,10 +110,10 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: centreon/centreon
           path: centreon
@@ -157,7 +157,7 @@ jobs:
 
       - name: Upload logs as artifacts if tests failed
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: centreon-collect-perl-unit-tests-${{ matrix.operating_system }}
           path: ./lastlog.jsonl
@@ -190,7 +190,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Parse distrib name
         id: parse-distrib
@@ -259,7 +259,7 @@ jobs:
       project: gorgone-testing
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Login to registry
         uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
@@ -295,7 +295,7 @@ jobs:
         shell: bash
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
@@ -320,7 +320,7 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           repository: centreon/centreon
           path: centreon
@@ -329,7 +329,7 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Docker build and push
         uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
@@ -365,7 +365,7 @@ jobs:
         shell: bash
 
       - name: Store docker image in cache
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1
         with:
           path: ./docker-image
           key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
@@ -405,7 +405,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
@@ -436,7 +436,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -471,7 +471,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Delivery
         uses: ./.github/actions/deb-delivery
@@ -503,7 +503,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
