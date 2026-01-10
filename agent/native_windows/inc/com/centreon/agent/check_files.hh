@@ -168,8 +168,8 @@ class check_files : public check {
   std::string _ok_syntax;
   std::string _warning_status;
   std::string _critical_status;
-  unsigned _warning_threshold_count{0};
-  unsigned _critical_threshold_count{0};
+  common::threshold _warning_threshold;
+  common::threshold _critical_threshold;
   bool _verbose{false};
 
   int _max_depth;
