@@ -20,6 +20,7 @@
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::check_cpu_detail;
 
 /**
@@ -179,7 +180,7 @@ void cpu_to_status<nb_metric>::compute_status(
         double val = _data_index >= nb_metric
                          ? values.second.get_proportional_used()
                          : values.second.get_proportional_value(_data_index);
-        if (val > _threshold) {
+        if (_threshold.is_triggered(val)) {
           auto& to_update = (*per_cpu_status)[values.first];
           // if ok (=0) and _status is warning (=1) or critical(=2), we update
           if (_status > to_update) {
@@ -398,15 +399,15 @@ e_status native_check_cpu<nb_metric>::_compute(
     auto cpu_to_status_search = _cpu_to_status.find(
         std::make_tuple(index, is_average, e_status::warning));
     if (cpu_to_status_search != _cpu_to_status.end()) {
-      to_add.warning_low(0);
-      to_add.warning(100 * cpu_to_status_search->second.get_threshold());
+      cpu_to_status_search->second.get_threshold().set_pref_details_w(to_add,
+                                                                      100.0);
     }
     // critical
     cpu_to_status_search = _cpu_to_status.find(
         std::make_tuple(index, is_average, e_status::critical));
     if (cpu_to_status_search != _cpu_to_status.end()) {
-      to_add.critical_low(0);
-      to_add.critical(100 * cpu_to_status_search->second.get_threshold());
+      cpu_to_status_search->second.get_threshold().set_pref_details_c(to_add,
+                                                                      100.0);
     }
     perfs->emplace_back(std::move(to_add));
   };
