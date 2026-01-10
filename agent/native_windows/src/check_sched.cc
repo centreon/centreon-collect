@@ -108,9 +108,24 @@ check_sched::check_sched(const std::shared_ptr<asio::io_context>& io_context,
       _warning_status = arg.get_string("warning-status", "exit_code != 0");
       _critical_status = arg.get_string("critical-status", "exit_code < 0");
 
-      // conditions to trigger warning and critical
-      _warning_threshold_count = arg.get_int("warning-count", 1);
-      _critical_threshold_count = arg.get_int("critical-count", 1);
+      // check if the field warning_count and critical_count are int or string
+      _warning_threshold.extract_range(
+          arg.get_string_or_int_as_string("warning-count", "0"));
+      _critical_threshold.extract_range(
+          arg.get_string_or_int_as_string("critical-count", "0"));
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_threshold.set_default_low(0);
+      _critical_threshold.set_default_low(0);
+
+      if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "check_counter, invalid warning-count or critical-count range");
+        throw std::runtime_error(
+            "check_counter, invalid warning-count or critical-count range");
+      }
 
       _verbose = arg.get_bool("verbose", false);
     }
@@ -192,11 +207,9 @@ e_status check_sched::compute(
   }
 
   // check the status
-  if (_critical_list.size() != 0 &&
-      _critical_list.size() >= _critical_threshold_count) {
+  if (_critical_threshold.is_triggered(_critical_list.size())) {
     ret = e_status::critical;
-  } else if (_warning_list.size() != 0 &&
-             _warning_list.size() >= _warning_threshold_count) {
+  } else if (_warning_threshold.is_triggered(_warning_list.size())) {
     ret = e_status::warning;
   } else {
     ret = e_status::ok;
@@ -211,10 +224,12 @@ e_status check_sched::compute(
 
     perf.name("warning_count");
     perf.value(_warning_list.size());
+    _warning_threshold.set_pref_details_w(perf);
     perfs->emplace_back(std::move(perf));
 
     perf.name("critical_count");
     perf.value(_critical_list.size());
+    _critical_threshold.set_pref_details_c(perf);
     perfs->emplace_back(std::move(perf));
   }
   if (_verbose) {
@@ -904,12 +919,10 @@ JSON arguments
     "critical-status"    : string,                 # Filter expression that
                                                      marks a task CRITICAL.
                                                      Default: "exit_code < 0"
-    "warning-count"      : integer (default 1),    # Minimum WARNING tasks
-                                                     before overall status is
-                                                     WARNING.
-    "critical-count"     : integer (default 1),    # Minimum CRITICAL tasks
-                                                     before overall status is
-                                                     CRITICAL.
+    "warning-count"      : string (default 0),     # Threshold of items number with warning status
+                                                     to trigger WARNING.
+    "critical-count"     : string (default 0),     # Threshold of items number with critical status
+                                                     to trigger CRITICAL.
     "verbose"            : bool (default false),    # Add verbose output including
                                                      detailed task information.
   }
@@ -956,8 +969,8 @@ Example
   "filter-tasks"       : "enabled == 1",
   "warning-status"     : "exit_code != 0",
   "critical-status"    : "exit_code < 0 || missed_runs > 2",
-  "warning-count"      : 1,
-  "critical-count"     : 1,
+  "warning-count"      : "1",
+  "critical-count"     : "1",
   "verbose"            : false
 })";
 }
