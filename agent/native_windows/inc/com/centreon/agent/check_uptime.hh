@@ -28,8 +28,8 @@ namespace com::centreon::agent {
  *
  */
 class check_uptime : public check {
-  unsigned _second_warning_threshold;
-  unsigned _second_critical_threshold;
+  common::threshold _warning_threshold;
+  common::threshold _critical_threshold;
 
  public:
   check_uptime(const std::shared_ptr<asio::io_context>& io_context,
