@@ -33,6 +33,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     log_v2/log_v2.cc
     node_allocator_test.cc
     perfdata_test.cc
+    threshold_test.cc
     process_stat_test.cc
     process_test.cc
     rapidjson_helper_test.cc
@@ -44,6 +45,7 @@ else()
     ut_common
     absl_flyweight_factory_test.cc
     perfdata_test.cc
+    threshold_test.cc
     process_test.cc
     rapidjson_helper_test.cc
     test_main_win.cc
