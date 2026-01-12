@@ -40,6 +40,12 @@ static inline bool to_double(std::string_view s, double& out) {
 #else
   if (s.empty())
     return false;
+
+  // Reject any whitespace to keep strict parsing (e.g. "@1: 2" is invalid).
+  if (std::any_of(s.begin(), s.end(),
+                  [](unsigned char c) { return std::isspace(c) != 0; }))
+    return false;
+
   const char* begin = s.data();
   const char* end = s.data() + s.size();
 
