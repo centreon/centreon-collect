@@ -658,17 +658,14 @@ sub setlogs {
             instant => $_->{instant},
             data => $_->{data}
         });
-        last if ($status == -1);
-        $ctime_recent = $_->{ctime} if ($ctime_recent < $_->{ctime});
-    }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent) == 0) {
         if ($status == -1){
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
             last;
         }
-        $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
+        $ctime_recent = $_->{ctime} if ($ctime_recent < $_->{ctime});
     }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $node_status->{ctime} ) == 0) {
+
+    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $ctime_recent ) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
