@@ -17,11 +17,14 @@
  */
 
 #include "threshold.hh"
+#include <cerrno>
 #include <charconv>
+#include <cstdlib>
 
 using namespace com::centreon::common;
 
 static inline bool to_double(std::string_view s, double& out) {
+#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
   auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
 
   if (ec == std::errc::invalid_argument)
@@ -34,6 +37,23 @@ static inline bool to_double(std::string_view s, double& out) {
     return false;
 
   return true;
+#else
+  const char* begin = s.data();
+  const char* end = s.data() + s.size();
+
+  char* parsed = nullptr;
+  errno = 0;  // macro from <cerrno>
+
+  out = std::strtod(begin, &parsed);
+
+  if (errno != 0)
+    return false;
+
+  if (parsed != end)
+    return false;
+
+  return true;
+#endif
 }
 
 /**
