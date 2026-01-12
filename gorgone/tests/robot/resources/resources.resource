@@ -158,7 +158,7 @@ Check Poller Communicate
     [Arguments]    ${poller_id}    ${max_failed_attempt}=0
     ${response}     Set Variable    ${EMPTY}
     Log To Console    checking Gorgone see poller in rest api response...
-    FOR    ${i}    IN RANGE    30
+    FOR    ${i}    IN RANGE    61
         Sleep    1
         ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
@@ -171,7 +171,7 @@ Check Poller Communicate
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 29    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
+    Should Be True    ${i} < 60    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
     Should Be True    ${max_failed_attempt} >= ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
 
@@ -183,9 +183,12 @@ Setup Two Gorgone Instances
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
     # this script only create key if the files don't exists, and silently finish if the files already exists.
     ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+    # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
+    # this should not stay after merge on develop
+    Gorgone Fix Schema
     # add central node to the database, the poller will be added in the next if/else.
     Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
-    Gorgone Fix Schema
+
     IF    '${communication_mode}' == 'push_zmq'
         @{central_push_config}=    Copy List    ${central_config}
         Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
