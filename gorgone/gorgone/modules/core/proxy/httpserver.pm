@@ -377,7 +377,6 @@ sub read_zmq_events {
     while ($self->{internal_socket}->has_pollin()) {
 
         my ($message) = $connector->read_message();
-        `echo "$message" >> /tmp/proxy_httpserver_evan.log`;
         proxy(message => $message);
     }
 }
