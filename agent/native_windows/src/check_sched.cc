@@ -122,9 +122,9 @@ check_sched::check_sched(const std::shared_ptr<asio::io_context>& io_context,
       if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
         SPDLOG_LOGGER_ERROR(
             _logger,
-            "check_counter, invalid warning-count or critical-count range");
+            "check_sched, invalid warning-count or critical-count range");
         throw std::runtime_error(
-            "check_counter, invalid warning-count or critical-count range");
+            "check_sched, invalid warning-count or critical-count range");
       }
 
       _verbose = arg.get_bool("verbose", false);

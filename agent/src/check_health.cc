@@ -77,7 +77,8 @@ check_health::check_health(const std::shared_ptr<asio::io_context>& io_context,
         SPDLOG_LOGGER_ERROR(
             _logger,
             "check_health, invalid warning/critical interval/runtime range");
-        throw;
+        throw exceptions::msg_fmt(
+            "invalid warning/critical interval/runtime range");
       }
     }
   } catch (const std::exception& e) {

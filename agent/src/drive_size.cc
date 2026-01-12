@@ -365,7 +365,7 @@ check_drive_size::check_drive_size(
 
       if (!_warning.is_valid() || !_critical.is_valid()) {
         SPDLOG_LOGGER_ERROR(_logger, "check_drive_size invalid threshold");
-        throw;
+        throw exceptions::msg_fmt("check_drive_size invalid threshold");
       }
 
       if (_prct_threshold) {
