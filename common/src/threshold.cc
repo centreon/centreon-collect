@@ -38,6 +38,8 @@ static inline bool to_double(std::string_view s, double& out) {
 
   return true;
 #else
+  if (s.empty())
+    return false;
   const char* begin = s.data();
   const char* end = s.data() + s.size();
 
