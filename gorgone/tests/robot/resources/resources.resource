@@ -274,6 +274,6 @@ Gorgone Fix Schema
     [Documentation]    gorgone will now need new field in the db. while waiting to include it by the webapp, let's fix the tests manually.
         Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
         ${nb_column}=    Query   SELECT count(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'centreon' AND TABLE_NAME = 'nagios_server' AND COLUMN_NAME = 'gorgone_auth_token'
-        IF    ${nb_column} == 0
+        IF    ${nb_column}[0][0] == 0
             Execute SQL Script    ${ROOT_CONFIG}database/gorgone-pullwss-db-update.sql
         END
