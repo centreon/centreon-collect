@@ -1006,6 +1006,16 @@ sub register_nodes {
 
     return if (!defined($options{data}->{nodes}));
 
+    # send all data to proxy-httpserver, which manage pullwss nodes.
+    # need to send the complete list in one message to be able to delete node when they are removed from the db.
+    # on plateform which don't have this module, the message should be thrown away
+    $options{gorgone}->send_internal_message(
+        identity    => "gorgone-proxy-httpserver",
+        action      => "PROXYADDNODE",
+        json_encode => 1,
+        data        => $options{data}->{nodes},
+        token       => $options{token},
+    );
     foreach my $node (@{$options{data}->{nodes}}) {
         my ($new_node, $prevail) = (1, 0);
 
@@ -1104,28 +1114,9 @@ sub register_nodes {
                     logger => $options{logger}
                 );
             }
-        } elsif ($node->{type} =~ /wss/) {
-            # for pull and pullwss we send data to http server so it can check token and node existence.
-            $options{gorgone}->send_internal_message(
-                identity => "gorgone-proxy-httpserver",
-                action => "PROXYADDNODE",
-                json_encode => 1,
-                data => $node,
-                token => $options{token},
-            );
         }
 
         if ($new_node == 1) {
-            # for pull and pullwss we send data to http server so it can check token and node existence.
-            if ($node->{type} =~ /wss/){
-                $options{gorgone}->send_internal_message(
-                    identity => "gorgone-proxy-httpserver",
-                    action => "PROXYADDNODE",
-                    json_encode => 1,
-                    data => $node,
-                    token => $options{token},
-                );
-            }
             $constatus_ping->{ $node->{id} } = {
                 type => $node->{type},
                 in_progress_ping => 0,

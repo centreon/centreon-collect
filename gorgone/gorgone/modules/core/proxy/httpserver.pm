@@ -207,6 +207,13 @@ sub run {
     );
     $daemon->inactivity_timeout(180);
 
+    # now that httpserver is ready, we need to tell nodes module to send us the data of every nodes configured.
+    # there is now way for nodes module to wait on this module as it is optional, and if httpserver start after nodes, messages will be lost
+    # and httpserver will refuse connexion until nodes next retrival (30min)
+    $self->send_internal_action({
+        action => 'CENTREONNODESSYNC',
+        data => {}}
+    );
     $daemon->run();
 
     exit(0);
@@ -247,29 +254,50 @@ sub read_message_client {
 =head3 action_proxyaddnode($zmq_message)
 
 zmq_message : PROXYADDNODE message type, received from internal zmq socket to decode and process.
+    expect an array of nodes with id, token, type (connection type as in 'pullwss')
 
-If the message is valid, update the internal state to allow this new node to connect, or log an error
+If the message is valid, update the internal state to allow new nodes connect, and disconnect any node not existing anymore
 
 Return : 1 in case of failure, 0 in case of success
 =cut
 sub action_proxyaddnode {
     my $self = shift;
     my $data = shift;
-    my ($status, $node) = $self->json_decode(argument => $data);
+    my ($status, $nodes) = $self->json_decode(argument => $data);
         if ($status == 1) {
             $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
             return 1;
     }
-    $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
+    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come nodes module, so we keep the old token.
+    # if you want to remove the token to use the default one from the conf use "" instead of undef.
+    my $temp_nodes = {};
+    for my $node (@{$nodes}){
+        next if $node->{type} !~ /wss/;
+        my $ws_id = $self->{identities}->{ $node->{id} };
 
-    my $ws_id = $self->{identities}->{ $node->{id} };
-    if ($node->{token} and $self->{nodes}->{ $node->{id} }->{token} ne $node->{token} and $ws_id){
-        $self->{ws_clients}->{ $ws_id }->{tx}->finish();
-        $self->{ws_clients}->{$ws_id}->{logged} = 0;
-        $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
-        # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
+        if (!defined($node->{token})) {
+            if (!is_empty($self->{nodes}->{ $node->{id} })) {
+                $node->{token} = $self->{nodes}->{ $node->{id} }->{token};
+            }
+        } elsif ($self->{nodes}->{ $node->{id} }->{token} ne $node->{token} and $ws_id){
+            $self->{ws_clients}->{ $ws_id }->{tx}->finish();
+            $self->{ws_clients}->{$ws_id}->{logged} = 0;
+            $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
+            # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
+        }
+        $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
+        $temp_nodes->{$node->{id}} = $node;
     }
-    $self->{nodes}->{ $node->{id} } = $node;
+    # disconnect every node that don't exist anymore.
+    for my $delete_node (keys %{$self->{nodes}}){
+        next if $temp_nodes->{$delete_node};
+
+        my $ws_id = $self->{identities}->{ $delete_node };
+        $self->{ws_clients}->{ $ws_id }->{tx}->finish();
+        $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore, disconnecting client " . $ws_id );
+    }
+
+    $self->{nodes} = $temp_nodes;
     return 0;
 }
 =head3 action_proxydelnode($zmq_message)

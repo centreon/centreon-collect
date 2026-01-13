@@ -10,13 +10,13 @@ ${poller_process}    pullwss_gorgone_poller_2_simple
 @{process_list}    ${central_process}    ${poller_process}
 
 *** Test Cases ***
-check one poller can connect to a central and gorgone central stop first
+check ${id} poller get disconnected if token change in DB.
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}        sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Log To Console    \nStarting the gorgone setup
     Setup Two Gorgone Instances    communication_mode=pullwss    central_name=${central_process}    poller_name=${poller_process}
     Ctn Check No Error In Logs    ${poller_process}
     Sleep    3
-    Execute Sql String    UPDATE nagios_server SET gorgone_auth_token = 'wrongToken' WHERE id = 2
+    Execute Sql String    ${sql_string}
     ${start_date}    Get Current Date    increment=-1s
     ${api_resp}    POST    http://127.0.0.1:8085/api/centreon/nodes/sync    data={}
 
@@ -28,7 +28,11 @@ check one poller can connect to a central and gorgone central stop first
     ...    timeout=65
     Should Be True    ${logs_poller}    can't find connexion failure log
 
-    Log To Console    End of tests.
+    
+    Examples:    id    sql_string   --
+        ...    1    UPDATE nagios_server SET gorgone_auth_token = 'wrongToken' WHERE id = 2
+        ...    2    DELETE FROM nagios_server WHERE id = 2
+
 
 pullwss use token from DB or conf
     [Documentation]    check a central honor the token in the yaml configuration
