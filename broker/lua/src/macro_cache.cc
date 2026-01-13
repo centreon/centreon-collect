@@ -299,17 +299,6 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
 }
 
 /**
- *  Get a map of the host groups members index by host_id and host_group.
- *
- *  @return             A std::map
- */
-const absl::btree_map<std::pair<uint64_t, uint64_t>,
-                      std::shared_ptr<neb::pb_host_group_member>>&
-macro_cache::get_host_group_members() const {
-  return _host_group_members;
-}
-
-/**
  *  Get the name of a host group.
  *
  *  @param[in] id  The id of the host group.
@@ -317,14 +306,14 @@ macro_cache::get_host_group_members() const {
  *  @return             The name of the host group.
  */
 const std::string& macro_cache::get_host_group_name(uint64_t id) const {
-  const auto found = _host_groups.find(id);
+  auto found = _host_groups.lower_bound(std::make_pair(id, 0));
 
-  if (found == _host_groups.end()) {
-    _cache->logger()->error("lua: could not find information on host group {}",
-                            id);
+  if (found == _host_groups.end() || found->first.first != id) {
+    SPDLOG_LOGGER_ERROR(_cache->logger(),
+                        "lua: could not find information on host group {}", id);
     throw msg_fmt("lua: could not find information on host group {}", id);
   }
-  return found->second.first->obj().name();
+  return found->second->obj().name();
 }
 
 /**
@@ -335,15 +324,15 @@ const std::string& macro_cache::get_host_group_name(uint64_t id) const {
  *  @return             The alias of the host group.
  */
 const std::string& macro_cache::get_host_group_alias(uint64_t id) const {
-  const auto found = _host_groups.find(id);
+  const auto found = _host_groups.lower_bound(std::make_pair(id, 0));
 
-  if (found == _host_groups.end()) {
-    _cache->logger()->error("lua: could not find information on host group {}",
-                            id);
+  if (found == _host_groups.end() || found->first.first != id) {
+    SPDLOG_LOGGER_ERROR(_cache->logger(),
+                        "lua: could not find information on host group {}", id);
     throw msg_fmt("lua: could not find information on host group {}", id);
   }
 
-  return found->second.first->obj().alias();
+  return found->second->obj().alias();
 }
 
 /**
@@ -389,8 +378,9 @@ std::string const& macro_cache::get_service_group_name(uint64_t id) const {
   auto found = _service_groups.find(id);
 
   if (found == _service_groups.end()) {
-    _cache->logger()->error(
-        "lua: could not find information on service group {}", id);
+    SPDLOG_LOGGER_ERROR(_cache->logger(),
+                        "lua: could not find information on service group {}",
+                        id);
     throw msg_fmt("lua: could not find information on service group {}", id);
   }
   return found->second.first->obj().name();
@@ -744,35 +734,16 @@ void macro_cache::_process_pb_host_group(
     const std::shared_ptr<io::data>& data) {
   auto pb_hg = std::static_pointer_cast<neb::pb_host_group>(data);
   const HostGroup& hg = pb_hg->obj();
-  SPDLOG_LOGGER_DEBUG(_cache->logger(),
-                      "lua: processing pb host group '{}' of id {}, enabled {}",
-                      hg.name(), hg.hostgroup_id(), hg.enabled());
+  SPDLOG_LOGGER_DEBUG(
+      _cache->logger(),
+      "lua: processing pb host group '{}' of id {} for poller {}, enabled {}",
+      hg.name(), hg.hostgroup_id(), hg.poller_id(), hg.enabled());
   if (hg.enabled()) {
-    auto found = _host_groups.find(hg.hostgroup_id());
-    if (found != _host_groups.end()) {
-      found->second.second.insert(hg.poller_id());
-      HostGroup& current_hg =
-          std::static_pointer_cast<neb::pb_host_group>(found->second.first)
-              ->mut_obj();
-      current_hg.set_name(hg.name());
-    } else {
-      absl::flat_hash_set<uint32_t> pollers{hg.poller_id()};
-      _host_groups[hg.hostgroup_id()] =
-          std::make_pair(std::move(pb_hg), pollers);
-    }
+    _host_groups[std::make_pair(hg.hostgroup_id(), hg.poller_id())] = pb_hg;
   } else {
-    /* We check that no more pollers need this host group. So if the set is
-     * empty, we can also remove the host group. */
-    auto found = _host_groups.find(hg.hostgroup_id());
-    if (found != _host_groups.end()) {
-      auto f = found->second.second.find(hg.poller_id());
-      if (f != found->second.second.end()) {
-        found->second.second.erase(f);
-        if (found->second.second.empty()) {
-          _host_groups.erase(found);
-        }
-      }
-    }
+    _host_groups.erase(std::make_pair(hg.hostgroup_id(), hg.poller_id()));
+    _host_group_members.get<0>().erase(
+        std::make_pair(hg.hostgroup_id(), hg.poller_id()));
   }
 }
 
@@ -788,13 +759,29 @@ void macro_cache::_process_pb_host_group_member(
   SPDLOG_LOGGER_DEBUG(
       _cache->logger(),
       "lua: processing pb host group member (group_name: '{}', group_id: {}, "
-      "host_id: {}, enabled: {})",
+      "host_id: {} poller_id: {}, enabled: {})",
       hgm_obj.name(), hgm_obj.hostgroup_id(), hgm_obj.host_id(),
-      hgm_obj.enabled());
-  if (hgm_obj.enabled())
-    _host_group_members[{hgm_obj.host_id(), hgm_obj.hostgroup_id()}] = hgm;
-  else
-    _host_group_members.erase({hgm_obj.host_id(), hgm_obj.hostgroup_id()});
+      hgm_obj.poller_id(), hgm_obj.enabled());
+
+  if (hgm_obj.enabled()) {
+    auto res_insert = _host_group_members.insert(hgm);
+    if (!res_insert.second) {
+      _host_group_members.replace(res_insert.first, hgm);
+    }
+  } else {
+    _host_group_members.get<1>().erase(
+        std::make_pair(hgm_obj.host_id(), hgm_obj.hostgroup_id()));
+
+    // remainded members
+    auto remainded = _host_group_members.get<0>().find(
+        std::make_pair(hgm_obj.hostgroup_id(), hgm_obj.poller_id()));
+
+    if (remainded == _host_group_members.get<0>().end()) {
+      // no more hostgroup member for this group and this poller => erase
+      _host_groups.erase(
+          std::make_pair(hgm_obj.hostgroup_id(), hgm_obj.poller_id()));
+    }
+  }
 }
 
 /**
@@ -1142,17 +1129,12 @@ void macro_cache::_save_to_disk() {
   for (auto it(_hosts.begin()), end(_hosts.end()); it != end; ++it)
     _cache->add(it->second);
 
-  for (auto it = _host_groups.begin(), end = _host_groups.end(); it != end;
-       ++it) {
-    for (auto poller_id : it->second.second) {
-      it->second.first->mut_obj().set_poller_id(poller_id);
-      _cache->add(it->second.first);
-    }
+  for (const auto& hgrp : _host_groups) {
+    _cache->add(hgrp.second);
   }
-
-  for (auto it(_host_group_members.begin()), end(_host_group_members.end());
-       it != end; ++it)
-    _cache->add(it->second);
+  for (const auto& member : _host_group_members) {
+    _cache->add(member);
+  }
 
   for (auto it(_services.begin()), end(_services.end()); it != end; ++it)
     _cache->add(it->second);

@@ -31,19 +31,45 @@ namespace com::centreon::broker::lua {
  *  @brief Data cache for Lua macro.
  */
 class macro_cache {
+ public:
+  struct pb_host_group_member_group_id_poller_id_getter {
+    using result_type = std::pair<uint64_t, uint64_t>;
+
+    result_type operator()(
+        const std::shared_ptr<neb::pb_host_group_member>& data) const {
+      return std::make_pair(data->obj().hostgroup_id(),
+                            data->obj().poller_id());
+    }
+  };
+
+  struct pb_host_group_member_host_id_group_id_getter {
+    using result_type = std::pair<uint64_t, uint64_t>;
+
+    result_type operator()(
+        const std::shared_ptr<neb::pb_host_group_member>& data) const {
+      return std::make_pair(data->obj().host_id(), data->obj().hostgroup_id());
+    }
+  };
+
+  using host_group_member_cont = boost::multi_index::multi_index_container<
+      std::shared_ptr<neb::pb_host_group_member>,
+      boost::multi_index::indexed_by<
+          boost::multi_index::ordered_non_unique<
+              pb_host_group_member_group_id_poller_id_getter>,
+          boost::multi_index::ordered_unique<
+              pb_host_group_member_host_id_group_id_getter>>>;
+
+ private:
   std::shared_ptr<persistent_cache> _cache;
   absl::flat_hash_map<uint64_t, std::shared_ptr<neb::pb_instance>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<neb::pb_host>> _hosts;
-  /* The host groups cache stores also a set with the pollers telling they need
-   * the cache. So if no more poller needs a host group, we can remove it from
-   * the cache. */
-  absl::flat_hash_map<uint64_t,
-                      std::pair<std::shared_ptr<neb::pb_host_group>,
-                                absl::flat_hash_set<uint32_t>>>
+
+  absl::btree_map<std::pair<uint64_t /*group id*/, uint64_t /*poller id*/>,
+                  std::shared_ptr<neb::pb_host_group>>
       _host_groups;
-  absl::btree_map<std::pair<uint64_t, uint64_t>,
-                  std::shared_ptr<neb::pb_host_group_member>>
-      _host_group_members;
+
+  host_group_member_cont _host_group_members;
+
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
                       std::shared_ptr<neb::pb_custom_variable>>
       _custom_vars;
@@ -97,9 +123,9 @@ class macro_cache {
                                      uint64_t service_id = 0) const;
   const std::string& get_host_group_name(uint64_t id) const;
   const std::string& get_host_group_alias(uint64_t id) const;
-  absl::btree_map<std::pair<uint64_t, uint64_t>,
-                  std::shared_ptr<neb::pb_host_group_member>> const&
-  get_host_group_members() const;
+  const host_group_member_cont& get_host_group_members() const {
+    return _host_group_members;
+  }
   const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
   const std::string& get_service_group_name(uint64_t id) const;

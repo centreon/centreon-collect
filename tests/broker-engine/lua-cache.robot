@@ -2,6 +2,7 @@
 Documentation       Centreon Broker and Engine progressively add services
 
 Resource            ../resources/import.resource
+Library             ../resources/lua.py
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
@@ -266,5 +267,282 @@ LUA_CACHE_SAVE_BBDO3
         Sleep    1s
     END
     Should Not Be Empty    ${result}    Service cache OK not found in lua output
+
+LUA_CACHE_SAVE_HOST_GROUP
+    [Documentation]    Given two engines configured, 
+    ...    we create a first host group of two hosts of poller1, then we create a second host group that only contains one host of poller1
+    ...    then we delete all hosts from second host group, we delete a host from first host
+    ...    we create a group that contains one host of each poller, we remove first host group, we remove one host from the last created group
+    ...    we expect that lua cache will be synchronized with all that modifications
+
+    [Tags]    broker    engine    services    lua    MON-191980
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+
+    Remove File    /tmp/test-LUA.log
+    Ctn Config Engine    ${2}    ${4}    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${2}
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${2}
+
+    Ctn Broker Config Log    central    neb    trace
+    Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_host.lua
+
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+
+    Ctn Clear Db    instances
+    Ctn Clear Db    hosts
+    Ctn Clear Db    services
+
+    ${empty_dict}    Create Dictionary
+
+    Log To Console    group 1 ["host_1", "host_2"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    processing pb host group
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_1 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    # add host group 2 with host_2 inside
+    Log To Console    group 1 ["host_1", "host_2"] group 2 ["host_2"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_2"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_1 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+    Should Be Equal    ${host_info}[hostgroups][2][name][group_id]    2    no host group 2 for hor host_2 ${host_info} 
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
+
+    #remove host group 2
+    Log To Console    group 1 ["host_1", "host_2"]
+    Remove File    /tmp/test-LUA.log
+    Ctn Engine Config Del Block In Cfg    ${0}    hostgroup    2    hostgroups.cfg
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_1 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${1}    several host groups for host 2: ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Log To Console    ${hostgroup_info}
+    Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 2 ${hostgroup_info}
+
+
+    # only host_2 in host group 1
+    Log To Console    group 1 ["host_2"]
+    Remove File    /tmp/test-LUA.log
+    Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
+    Ctn Add Host Group    ${0}    ${1}    ["host_2"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${1}    several host groups for host 2: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 1: ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Log To Console    ${hostgroup_info}
+    Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 2 ${hostgroup_info}
+
+    #group1 poller0, group 2 on two pollers
+    Log To Console    group 1 ["host_1", "host_2"] group 2 ["host_2", "host_3", "host_4"]
+    Remove File    /tmp/test-LUA.log
+    Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_2"]
+    Ctn Add Host Group    ${1}    ${2}    ["host_3", "host_4"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_1 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+    Should Be Equal    ${host_info}[hostgroups][2][name][group_id]    2    no host group 2 for hor host_2 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    3
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_3 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    4
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_4 ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
+
+
+    #remove host group 1
+    Log To Console    group 2 ["host_2", "host_3", "host_4"]
+    Remove File    /tmp/test-LUA.log
+    Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
+    Remove File    ${EtcRoot}/centreon-engine/config1/hostgroups.cfg
+    Ctn Add Host Group    ${0}    ${2}    ["host_2"]
+    Ctn Add Host Group    ${1}    ${2}    ["host_3", "host_4"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 1: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_2 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    3
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_3 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    4
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_4 ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
+
+    #remove host 4 from group 2
+    Log To Console    group 2 [ "host_2", "host_3"]
+    Remove File    /tmp/test-LUA.log
+    Remove File    ${EtcRoot}/centreon-engine/config1/hostgroups.cfg
+    Ctn Add Host Group    ${1}    ${2}    ["host_3"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 1: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_2 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    3
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_3 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    4
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 4: ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
+
+    #move host 2 to group 1
+    Log To Console    group 1 ["host_1", "host_2"] group 2 ["host_3"]
+    Remove File    /tmp/test-LUA.log
+    Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
+    Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_1 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    1    no host group 1 for hor host_2 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    3
+    Should Be Equal    ${host_info}[hostgroups][1][name][group_id]    2    no host group 2 for hor host_3 ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    4
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 4: ${host_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${1}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
+
+    ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
+    Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
+
+    #remove all host groups
+    Log To Console    Remove all host groups
+    Remove File    /tmp/test-LUA.log
+    Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
+    Ctn Config Engine Remove Cfg File    ${1}    hostgroups.cfg
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Engine
+
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Sleep    ${1}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    1
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 1: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    2
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 2: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    3
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 3: ${host_info}
+
+    ${host_info}    Ctn Get Host Cache Info    /tmp/test-LUA.log    4
+    ${len}    Evaluate    len(${host_info}[hostgroups])
+    Should Be Equal    ${len}    ${0}    at least one host groups for host 4: ${host_info}
 
 
