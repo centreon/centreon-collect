@@ -623,7 +623,8 @@ passive_checks_enabled 1
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
                             if (len(custom_command)) > 0:
-                                svc = self.create_service_with_custom_command(h["hid"], j)
+                                svc = self.create_service_with_custom_command(
+                                    h["hid"], j)
                             else:
                                 svc = self._create_service(
                                     h["hid"], (inst * self.commands_count + 1, (inst + 1) * self.commands_count))
@@ -1157,6 +1158,131 @@ def ctn_engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value
             elif line.strip() == "}":
                 lines.insert(i, f"    {key}                     {value}\n")
                 break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_set_key_value_in_cfg(idx: int, desc: str, key: str, value: str, file: str):
+    """
+    Modify a parameter in the file.cfg for the Engine config idx.
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        desc (str): The description of the section to modify in.
+        key (str): The parameter to be added.
+        value (str): The new value to set.
+        file (str): The file to modify, can be any *.cfg file.
+
+    Example:
+    ctn_engine_config_set_key_value_in_cfg(idx=0, desc='hostgroup_1', key='alias', value='alias_1', file='hostgroups.cfg')
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    found = False
+    if file == "hostgroups.cfg":
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
+    elif file == "contactgroups.cfg":
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
+    elif file == "connectors.cfg":
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+        r = re.compile(rf"^\s*name\s+{desc}\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            found = True
+            break
+
+    if not found:
+        logger.console(
+            f'\n\033[91mFailed : Cannot add the line  {key} : {value} to {desc} in {file}\033[0m')
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_delete_key(idx: int, key: str):
+    """
+    Delete a parameter in the centengine.cfg for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        key (str): The parameter that will be deleted.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            del lines[i]
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_engine_config_delete_key_in_cfg(idx: int, desc: str, key: str, file):
+    """
+    Delete a parameter in the file given for the Engine configuration idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0)
+        desc (str): The description of the section to delete in.
+        key (str): The parameter that will be deleted.
+        file (str): The file to delete the key from.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    if file == "hostgroups.cfg":
+        r = re.compile(rf"^\s*hostgroup_name\s+{desc}\s*$")
+    elif file == "servicegroups.cfg":
+        r = re.compile(rf"^\s*servicegroup_name\s+{desc}\s*$")
+    elif file == "contactgroups.cfg":
+        r = re.compile(rf"^\s*contactgroup_name\s+{desc}\s*$")
+    elif file == "commands.cfg":
+        r = re.compile(rf"^\s*command_name\s+{desc}\s*$")
+    elif file == "connectors.cfg":
+        r = re.compile(rf"^\s*connector_name\s+{desc}\s*$")
+    elif file == "escalations.cfg":
+        r = re.compile(rf"^\s*;escalation_name\s+{desc}\s*$")
+    elif len(file) > 13 and file[-13:] == "Templates.cfg":
+        if file[-13:] == "Templates.cfg":
+            r = re.compile(rf"^\s*name\s+{desc}\s*$")
+    else:
+        logger.console(f'\n\033[91mThe file : {file} not supported \033[0m')
+        return
+
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            for j in range(i + 1, len(lines)):
+                if '}' in lines[j]:
+                    break
+                if key in lines[j]:
+                    del lines[j]
+                    found = True
+                    break
+            break
+
+    if not found:
+        logger.console(
+            f'\n\033[91mFailed : Cannot delete the line  with the key : {key} to {desc} in {file}\033[0m')
 
     with open(filename, "w") as f:
         f.writelines(lines)
@@ -2664,7 +2790,7 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
     with open(filename, "r") as ff:
         lines = ff.readlines()
 
-    tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
+    tag_name = re.compile(rf"^\s*id\s+{tag_id}\s*$")
     tag_begin = re.compile(r"^define tag {$")
     tag_end = re.compile(r"^}$")
     tag_begin_idx = 0
@@ -2798,7 +2924,7 @@ def ctn_set_services_passive(poller: int, srv_regex):
 
     with open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*service_description\s*({srv_regex})$")
+    r = re.compile(rf"^\s*service_description\s*({srv_regex})$")
     rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
     rc = re.compile(r"^\s*}\s*$")
     desc = ""
@@ -2833,7 +2959,7 @@ def ctn_set_hosts_passive(poller: int, host_regex):
 
     with open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r") as ff:
         lines = ff.readlines()
-    r = re.compile(f"^\s*host_name\s*({host_regex})$")
+    r = re.compile(rf"^\s*host_name\s*({host_regex})$")
     for i in range(len(lines)):
         m = r.match(lines[i])
         if m:
