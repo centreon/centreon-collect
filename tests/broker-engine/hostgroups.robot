@@ -355,7 +355,6 @@ EBNHG5
     Ctn Start Engine
 
     Ctn Wait For Engine To Be Ready    ${start}
-    Ctn Config Engine Add Cfg File    ${0}    hostgroups.cfg
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
