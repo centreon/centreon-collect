@@ -25,6 +25,7 @@ import re
 def ctn_get_host_cache_info(log_file_path: str, host_id: int):
     """
     Find last line like host 1 : { "host_id" : "1","name" : "host_1","notes_url" : "","hostgroups" : .....
+    These lines are produced by dump_host.lua
 
     Args:
         log_file_path (str): log file path
@@ -36,7 +37,7 @@ def ctn_get_host_cache_info(log_file_path: str, host_id: int):
         lines = f.readlines()
 
     search_pattern = re.compile(
-        rf"^.*INFO:\s+host {host_id}\s+:\s+({{.*}})$")
+        rf"^.*INFO:\s*host\s*{host_id}\s*:\s*({{.*}})$")
 
     last = {}
     for line in lines:
@@ -49,6 +50,7 @@ def ctn_get_host_cache_info(log_file_path: str, host_id: int):
 def ctn_get_hostgroup_cache_info(log_file_path: str, hostgroup_id: int):
     """
     Find last line like hostgroup 1 : { "name" : "hostgroup_1","id" : "1"}
+    These lines are produced by dump_host.lua
 
     Args:
         log_file_path (str): log file path
@@ -61,6 +63,56 @@ def ctn_get_hostgroup_cache_info(log_file_path: str, hostgroup_id: int):
 
     search_pattern = re.compile(
         rf"^.*INFO:\s+hostgroup {hostgroup_id}\s+:\s+({{.*}})$")
+
+    last = {}
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            last = json.loads(m.group(1))
+    return last
+
+
+def ctn_get_service_cache_info(log_file_path: str, service_id: int):
+    """
+    Find last line like serv 1 : { "host_id" : "1", "serv_id" : "1", "name" : "serv_1","servgroups" : .....
+    These lines are produced by dump_service.lua
+
+    Args:
+        log_file_path (str): log file path
+        service_id:
+    Returns:
+        Data of the json string as a python object 
+    """
+    with open(log_file_path) as f:
+        lines = f.readlines()
+
+    search_pattern = re.compile(
+        rf"^.*INFO:\s*serv\s*{service_id}\s*:\s*({{.*}})$")
+
+    last = {}
+    for line in lines:
+        m = search_pattern.search(line)
+        if m is not None:
+            last = json.loads(m.group(1))
+    return last
+
+
+def ctn_get_servgroup_cache_info(log_file_path: str, group_id: int):
+    """
+    Find last line like servgroup 1 : { "name" : "servgroup_1","id" : "1"}
+    These lines are produced by dump_service.lua
+
+    Args:
+        log_file_path (str): log file path
+        group_id:
+    Returns:
+        Data of the json string as a python object 
+    """
+    with open(log_file_path) as f:
+        lines = f.readlines()
+
+    search_pattern = re.compile(
+        rf"^.*INFO:\s+servgroup {group_id}\s+:\s+({{.*}})$")
 
     last = {}
     for line in lines:
