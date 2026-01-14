@@ -7,7 +7,7 @@ cd build
 
 sysctl -w kernel.core_pattern=/tmp/core-$test
 
-tests/ut_$test --gtest_output=xml:ut_$test.xml --gtest_filter=grpc*
+tests/ut_$test --gtest_output=xml:ut_$test.xml
 
 
 if [ $? != 0 ]

@@ -68,6 +68,7 @@ void open_telemetry::_reload() {
         *new_conf->get_grpc_config() != *_conf->get_grpc_config()) {
       if (new_conf->get_grpc_config()->is_crypted()) {
         try {
+          // Works even if the private key is unencrypted
           _server_ca = std::make_unique<crypto::cert_tree>(
               new_conf->get_grpc_config()->get_cert(),
               new_conf->get_grpc_config()->get_key(), "centengine",
@@ -205,8 +206,8 @@ void open_telemetry::_minute_timer_handler() {
       if (_certificate_ttl.time_since_epoch().count() &&
           _certificate_ttl < std::chrono::system_clock::now()) {
         SPDLOG_LOGGER_INFO(_logger,
-                           "otl used certificate end of life => recreate and "
-                           "restart otl server");
+                           "otl used certificate end of life => auto renew "
+                           "certificate and restart otl server");
         _create_otl_server(_conf->get_grpc_config(),
                            _conf->get_centreon_agent_config());
       }

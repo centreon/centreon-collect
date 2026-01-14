@@ -280,30 +280,39 @@ bool grpc_config::reload_certificates() {
   }
 
   std::string cert, key, ca;
-  bool ret = false;
-  if (cert_mtime != _cert_mtime) {
+  unsigned ret = 0;
+  if (!_cert_path.empty() && cert_mtime != _cert_mtime) {
     try {
       _cert_mtime = read_file(_cert_path, cert);
-      ret = true;
-      set_cert(cert);
+      ret |= 1;
     } catch (const std::exception&) {
+      return false;
     }
   }
-  if (key_mtime != _key_mtime) {
+  if (!_key_path.empty() && key_mtime != _key_mtime) {
     try {
       _key_mtime = read_file(_key_path, key);
-      ret = true;
-      set_key(key);
+      ret |= 2;
     } catch (const std::exception&) {
+      return false;
     }
   }
-  if (ca_mtime != _ca_mtime) {
+  if (!_ca_path.empty() && ca_mtime != _ca_mtime) {
     try {
       _ca_mtime = read_file(_ca_path, ca);
-      ret = true;
-      set_ca(ca);
+      ret |= 4;
     } catch (const std::exception&) {
+      return false;
     }
+  }
+  if (ret & 1) {
+    set_cert(cert);
+  }
+  if (ret & 2) {
+    set_key(key);
+  }
+  if (ret & 4) {
+    set_ca(ca);
   }
   return ret;
 }
