@@ -54,14 +54,11 @@ function get_service_all_infos(host_id, service_id)
 
     local serv_info = {}
 
-    -- Informations de base
     serv_info.host_id = host_id
     serv_info.service_id = service_id
 
-    -- Récupérer le hostname (peut être une table ou une string)
     local hostname = broker_cache:get_hostname(host_id)
 
-    -- Si c'est une table, essayer d'extraire le nom
     if type(hostname) == "table" then
         serv_info.host_name = hostname.name or hostname[1] or hostname.hostname or "unknown"
         serv_info.host_name_raw = hostname -- Garder la structure complète

@@ -286,7 +286,6 @@ LUA_CACHE_SAVE_HOST_GROUP
     Ctn Config Broker    rrd
     Ctn Config BBDO3    ${2}
 
-    #Ctn Broker Config Log    central    processing    trace
     Ctn Broker Config Log    central    neb    trace
     Ctn Broker Config Log    central    lua    debug
     Ctn Broker Config Add Lua Output    central    test-LUA    ${SCRIPTS}/dump_host.lua
@@ -341,6 +340,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
 
     #remove host group 2
+    Sleep    ${1}
     Log To Console    group 1 ["host_1", "host_2"]
     Remove File    /tmp/test-LUA.log
     Ctn Engine Config Del Block In Cfg    ${0}    hostgroup    2    hostgroups.cfg
@@ -362,11 +362,11 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
 
     ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
-    Log To Console    ${hostgroup_info}
     Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 2 ${hostgroup_info}
 
 
     # only host_2 in host group 1
+    Sleep    ${1}
     Log To Console    group 1 ["host_2"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
@@ -390,10 +390,10 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_1    no hostgroup 1 ${hostgroup_info}
 
     ${hostgroup_info}    Ctn Get Hostgroup Cache Info    /tmp/test-LUA.log    ${2}
-    Log To Console    ${hostgroup_info}
     Should Be Equal    ${hostgroup_info}    ${empty_dict}    hostgroup 2 ${hostgroup_info}
 
     #group1 poller0, group 2 on two pollers
+    Sleep    ${1}
     Log To Console    group 1 ["host_1", "host_2"] group 2 ["host_2", "host_3", "host_4"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
@@ -427,6 +427,7 @@ LUA_CACHE_SAVE_HOST_GROUP
 
 
     #remove host group 1
+    Sleep    ${1}
     Log To Console    group 2 ["host_2", "host_3", "host_4"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
@@ -459,6 +460,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
 
     #remove host 4 from group 2
+    Sleep    ${1}
     Log To Console    group 2 [ "host_2", "host_3"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config1/hostgroups.cfg
@@ -490,6 +492,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
 
     #move host 2 to group 1
+    Sleep    ${1}
     Log To Console    group 1 ["host_1", "host_2"] group 2 ["host_3"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/hostgroups.cfg
@@ -520,6 +523,7 @@ LUA_CACHE_SAVE_HOST_GROUP
     Should Be Equal    ${hostgroup_info}[name]    hostgroup_2    no hostgroup 2 ${hostgroup_info}
 
     #remove all host groups
+    Sleep    ${1}
     Log To Console    Remove all host groups
     Remove File    /tmp/test-LUA.log
     Ctn Config Engine Remove Cfg File    ${0}    hostgroups.cfg
@@ -622,6 +626,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Should Be Equal    ${servgroup_info}[name]    servicegroup_2    no servgroup 2 ${servgroup_info}
 
     #remove service group 2
+    Sleep    ${1}
     Log To Console    group 1 ["host_1","service_1", "host_1","service_2"]
     Remove File    /tmp/test-LUA.log
     Ctn Engine Config Del Block In Cfg    ${0}    servicegroup    2    servicegroups.cfg
@@ -647,6 +652,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
 
 
     # only service_2 in service group 1
+    Sleep    ${1}
     Log To Console    group 1 ["host_1","service_2"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/servicegroups.cfg
@@ -673,6 +679,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Should Be Equal    ${servgroup_info}    ${empty_dict}    servicegroup 2 ${servgroup_info}
 
     #group1 poller0, group 2 on two pollers
+    Sleep    ${1}
     Log To Console    group 1 ["host_1" "service_1", "host_1" "service_2"] group 2 ["host_1" "service_2", "host_2" "service_3", "host_2" "service_4"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/servicegroups.cfg
@@ -707,6 +714,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
 
 
     #remove service group 1
+    Sleep    ${1}
     Log To Console    group 2 ["host_1" "service_2", "host_2" "service_3", "host_2" "service_4"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/servicegroups.cfg
@@ -739,6 +747,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Should Be Equal    ${servgroup_info}[name]    servicegroup_2    no servgroup 2 ${servgroup_info}
 
     #remove service 4 from group 2
+    Sleep    ${1}
     Log To Console    group 2 [ "host_1" "service_2", "host_2" "service_3"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config1/servicegroups.cfg
@@ -770,6 +779,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Should Be Equal    ${servgroup_info}[name]    servicegroup_2    no servgroup 2 ${servgroup_info}
 
     #move service 2 to group 1
+    Sleep    ${1}
     Log To Console    group 1 ["host_1" "service_1", "host_1" "service_2"] group 2 ["host_2" "service_3"]
     Remove File    /tmp/test-LUA.log
     Remove File    ${EtcRoot}/centreon-engine/config0/servicegroups.cfg
@@ -800,6 +810,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Should Be Equal    ${servgroup_info}[name]    servicegroup_2    no servgroup 2 ${servgroup_info}
 
     #remove all host groups
+    Sleep    ${1}
     Log To Console    Remove all service groups
     Remove File    /tmp/test-LUA.log
     Ctn Config Engine Remove Cfg File    ${0}    servicegroups.cfg
@@ -808,7 +819,7 @@ LUA_CACHE_SAVE_SERVICE_GROUP
     Ctn Reload Engine
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Sleep    ${5}
+    Sleep    ${2}
 
     ${serv_info}    Ctn Get Service Cache Info    /tmp/test-LUA.log    1
     ${len}    Evaluate    len(${serv_info}[servgroups])
