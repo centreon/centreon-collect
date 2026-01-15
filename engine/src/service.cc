@@ -1178,8 +1178,15 @@ int service::handle_async_check_result(
    */
   if (queued_check_result.get_check_options() &
       (CHECK_OPTION_FRESHNESS_CHECK | CHECK_OPTION_PASSIVE_IS_HARD |
-       CHECK_OPTION_PASSIVE_IS_SOFT))
+       CHECK_OPTION_PASSIVE_IS_SOFT)) {
     set_is_being_freshened(false);
+    nagios_macros* macros(get_global_macros());
+    std::string cmdline = get_check_command_line(macros);
+    if (!cmdline.empty()) {
+      broker_service_check(NEBTYPE_SERVICECHECK_INITIATE, this,
+                           checkable::check_passive, cmdline.c_str());
+    }
+  }
 
   /* clear the execution flag if this was an active check */
   if (queued_check_result.get_check_type() == check_active)

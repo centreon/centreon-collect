@@ -1568,8 +1568,17 @@ int host::handle_async_check_result_3x(
   // before processing the check result, we force current attempt to cma
   // attempts , only for passive checks cma
   if (queued_check_result.get_check_options() &
-      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
     set_current_attempt(queued_check_result.get_current_attempt());
+    // as check is passive and done by cma, we have to send command line to
+    // broker
+    nagios_macros* macros(get_global_macros());
+    std::string cmdline = get_check_command_line(macros);
+    if (!cmdline.empty()) {
+      broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, this,
+                        checkable::check_passive, cmdline.c_str());
+    }
+  }
   /* process the host check result */
   process_check_result_3x(hst_res, old_plugin_output,
                           queued_check_result.get_check_options(),
