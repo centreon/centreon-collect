@@ -371,7 +371,7 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     }
 
     execute_write = lua_toboolean(_L, -1);
-    SPDLOG_LOGGER_DEBUG(_logger, "lua: `filter' returned {}",
+    SPDLOG_LOGGER_TRACE(_logger, "lua: `filter' returned {}",
                         (execute_write ? "true" : "false"));
     lua_pop(_L, lua_gettop(_L));
   }
