@@ -159,7 +159,7 @@ jobs:
       - name: Install Inno Setup
         shell: powershell
         run: |
-          choco install innosetup -y --no-progress --version 6.6.1
+          choco install innosetup --allow-downgrade -y --no-progress --version 6.6.1
 
       - name: Compile Agent only
         run: .github/scripts/windows-agent-compile.ps1
@@ -278,7 +278,8 @@ jobs:
             build_windows\agent\Release\centagent.pdb
 
   unit-test-linux:
-    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
+    needs:
+      [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -394,7 +395,8 @@ jobs:
           retention-days: 1
 
   package-linux:
-    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
+    needs:
+      [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&

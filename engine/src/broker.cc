@@ -2449,7 +2449,7 @@ static void forward_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -2489,7 +2489,7 @@ static void forward_pb_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -4386,7 +4386,8 @@ static void forward_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
@@ -4429,7 +4430,8 @@ static void forward_pb_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
