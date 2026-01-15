@@ -30,10 +30,13 @@
 #include <unordered_map>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 namespace asio = boost::asio;
 
