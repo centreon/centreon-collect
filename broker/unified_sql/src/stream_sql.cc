@@ -2259,10 +2259,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
              {78, "retain_status_information", 0, 0},
              {79, "timezone", 0,
               get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_timezone)},
-             {83, "command_line", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_command_line)}});
+                  centreon_storage_hosts_timezone)}});
         if (_store_in_resources) {
           _resources_host_insert_or_update = _mysql.prepare_query(
               "INSERT INTO resources "
@@ -3946,10 +3943,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
            {79, "stalk_on_unknown", 0, 0},
            {80, "stalk_on_warning", 0, 0},
            {81, "retain_nonstatus_information", 0, 0},
-           {82, "retain_status_information", 0, 0},
-           {88, "command_line", 0,
-            get_centreon_storage_hosts_col_size(
-                centreon_storage_hosts_command_line)}});
+           {82, "retain_status_information", 0, 0}});
       if (_store_in_resources) {
         _resources_service_insert_or_update = _mysql.prepare_query(
             "INSERT INTO resources "

@@ -153,8 +153,6 @@ message Service {
    * here. */
   uint64 internal_id = 86;
   uint64 icon_id = 87;
-
-  string command_line = 88;
 }
 
 /**
@@ -368,7 +366,6 @@ message Host {
   uint64 severity_id = 80;
   repeated TagInfo tags = 81;
   uint64 icon_id = 82;
-  string command_line = 83;
 }
 
 /**
