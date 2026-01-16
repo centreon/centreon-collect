@@ -43,7 +43,6 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/nebstructs.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/severity.hh"
@@ -480,8 +479,7 @@ static void forward_host(int type,
 static void forward_pb_host(int type,
                             int flags [[maybe_unused]],
                             uint64_t modified_attribute,
-                            const engine::host* eh,
-                            const std::string& cmd_line) {
+                            const engine::host* eh) {
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb host event protobuf");
@@ -657,9 +655,6 @@ static void forward_pb_host(int type,
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
     host.set_icon_id(eh->get_icon_id());
 
-    if (!cmd_line.empty())
-      host.set_command_line(cmd_line);
-
     for (auto& tg : eh->tags()) {
       com::centreon::broker::TagInfo* ti = host.mutable_tags()->Add();
       ti->set_id(tg->id());
@@ -705,7 +700,7 @@ void broker_adaptive_host_data(int type,
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_host(type, flags, modattr, hst, "");
+    forward_pb_host(type, flags, modattr, hst);
   else
     forward_host(type, flags, modattr, hst);
 }
@@ -938,8 +933,7 @@ static void fill_service_type(SrvStatus& ss,
 static void forward_pb_service(int type,
                                int flags [[maybe_unused]],
                                uint64_t modified_attribute,
-                               const engine::service* es,
-                               const std::string& cmd_line) {
+                               const engine::service* es) {
   SPDLOG_LOGGER_DEBUG(neb_logger,
                       "callbacks: generating pb service event protobuf");
 
@@ -1153,9 +1147,6 @@ static void forward_pb_service(int type,
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
     srv.set_icon_id(es->get_icon_id());
 
-    if (!cmd_line.empty())
-      srv.set_command_line(cmd_line);
-
     for (auto& tg : es->tags()) {
       com::centreon::broker::TagInfo* ti = srv.mutable_tags()->Add();
       ti->set_id(tg->id());
@@ -1207,7 +1198,7 @@ void broker_adaptive_service_data(int type,
 
   // Make callbacks.
   if (cbm->use_protobuf())
-    forward_pb_service(type, flags, modattr, svc, "");
+    forward_pb_service(type, flags, modattr, svc);
   else
     forward_service(type, flags, modattr, svc);
 }
@@ -2458,7 +2449,7 @@ static void forward_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -2498,7 +2489,7 @@ static void forward_pb_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -3788,10 +3779,7 @@ static void send_host_list() {
        it != end; ++it) {
     // Callback.
     if constexpr (proto) {
-      nagios_macros* macros(get_global_macros());
-      std::string cmdline = it->second->get_check_command_line(macros);
-      forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get(),
-                      cmdline);
+      forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
     }
 
     else
@@ -3814,12 +3802,8 @@ static void send_service_list() {
        it != end; ++it) {
     // Callback.
     if constexpr (proto) {
-      nagios_macros* macros(get_global_macros());
-      std::string cmdline = it->second->get_check_command_line(macros);
-      forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get(),
-                         cmdline);
-    }
-    else
+      forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
+    } else
       forward_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
   }
 
@@ -4402,7 +4386,8 @@ static void forward_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
@@ -4445,7 +4430,8 @@ static void forward_pb_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
