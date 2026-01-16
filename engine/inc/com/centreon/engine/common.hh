@@ -224,6 +224,7 @@ enum class acknowledgement_resource_type : short { HOST = 0, SERVICE = 1 };
 #define CHECK_OPTION_ORPHAN_CHECK 4            /* This is an orphan check. */
 #define CHECK_OPTION_PASSIVE_IS_HARD (1u << 3) /* Agent check is hard. */
 #define CHECK_OPTION_PASSIVE_IS_SOFT (1u << 4) /* Agent check is soft. */
+#define CHECK_OPTION_CMA_RESULT (1u << 5)      /* Agent check. */
 
 /* Program modes. */
 #define STANDBY_MODE 0

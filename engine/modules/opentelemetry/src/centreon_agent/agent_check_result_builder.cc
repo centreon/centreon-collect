@@ -135,6 +135,8 @@ bool agent_check_result_builder::build_result_from_metrics(
   if (status_metric == data_pts.end()) {
     return false;
   }
+  res.set_check_options(res.get_check_options() | CHECK_OPTION_CMA_RESULT);
+
   const auto& last_sample = status_metric->second.rbegin();
   last_time = last_sample->get_nano_timestamp();
   res.set_return_code(last_sample->get_value());
