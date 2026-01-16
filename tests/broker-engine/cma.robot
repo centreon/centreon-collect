@@ -660,6 +660,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
     ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    60
     Should Be True    ${result}    metrics not updated
+    ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    30   {"check": "cpu_percentage"}
+    Should Be True    ${result}    command line not found in db
 
 
     #a small threshold to make service_1 warning
@@ -670,6 +672,9 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
     Should Be True    ${result}    resources table not updated
+    ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    30   {"check": "cpu_percentage", "args": {"warning-average" : "0.01"}}
+    Should Be True    ${result}    command line not found in db
+
 
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
@@ -679,6 +684,8 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CPU
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
     Should Be True    ${result}    resources table not updated
+    ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    30   {"check": "cpu_percentage", "args": {"critical-average" : "0.02", "warning-average" : "0.01"}}
+    Should Be True    ${result}    command line not found in db
 
 
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_STORAGE
