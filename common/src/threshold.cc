@@ -17,27 +17,11 @@
  */
 
 #include "threshold.hh"
-#include <cerrno>
-#include <charconv>
-#include <cstdlib>
 
 using namespace com::centreon::common;
 
+// Helper function to convert string_view to double with strict parsing
 static inline bool to_double(std::string_view s, double& out) {
-#if defined(__cpp_lib_to_chars) && __cpp_lib_to_chars >= 201611L
-  auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), out);
-
-  if (ec == std::errc::invalid_argument)
-    return false;  // not a number
-
-  if (ec == std::errc::result_out_of_range)
-    return false;  // overflow / underflow
-
-  if (ptr != s.data() + s.size())
-    return false;
-
-  return true;
-#else
   if (s.empty())
     return false;
 
@@ -46,28 +30,14 @@ static inline bool to_double(std::string_view s, double& out) {
                   [](unsigned char c) { return std::isspace(c) != 0; }))
     return false;
 
-  const char* begin = s.data();
-  const char* end = s.data() + s.size();
-
-  char* parsed = nullptr;
-  errno = 0;  // macro from <cerrno>
-
-  out = std::strtod(begin, &parsed);
-
-  if (errno != 0)
-    return false;
-
-  if (parsed != end)
-    return false;
-
-  return true;
-#endif
+  std::string str(s);
+  return absl::SimpleAtod(str, &out);
 }
 
 /**
  *  Default constructor.
  */
-threshold::threshold(std::string const& str)
+threshold::threshold(const std::string& str)
     : _low(NAN),
       _high(NAN),
       _default_low(NAN),
@@ -97,7 +67,12 @@ bool threshold::is_triggered(double value) const {
   return _inclusive ? inside_range : !inside_range;
 }
 
-void threshold::extract_range(std::string str) {
+/**
+ * @brief Parse a threshold string following Nagios syntax.
+ *
+ * @param str The threshold string to parse.
+ */
+void threshold::extract_range(std::string_view str) {
   bool valid = true;
   _high = NAN;
   _low = NAN;
@@ -111,7 +86,7 @@ void threshold::extract_range(std::string str) {
   // Exclusive range ?
   if (str[0] == '@') {
     _inclusive = true;
-    str = str.substr(1);
+    str.remove_prefix(1);
   } else
     _inclusive = false;
 
@@ -119,18 +94,18 @@ void threshold::extract_range(std::string str) {
   size_t sep_pos = str.find(':');
 
   // Check for valid separator position
-  if (str.find(':', sep_pos + 1) != std::string::npos) {
+  if (str.find(':', sep_pos + 1) != std::string_view::npos) {
     valid = false;
   }
 
-  if (sep_pos != std::string::npos) {
+  if (sep_pos != std::string_view::npos) {
     if (!to_double(str.substr(0, sep_pos), _low))
       valid = false;
     if (sep_pos + 1 < str.size())
       if (!to_double(str.substr(sep_pos + 1), _high))
         valid = false;
   } else {
-    // Single value : low threshold
+    // Single value : high threshold
     if (!to_double(str, _high)) {
       valid = false;
     }

@@ -19,6 +19,7 @@
 #ifndef CENTREON_COMMON_THRESHOLD_HH
 #define CENTREON_COMMON_THRESHOLD_HH
 
+#include <string_view>
 #include "perfdata.hh"
 
 namespace com::centreon::common {
@@ -47,11 +48,11 @@ class threshold {
         _error_code(0),
         _disabled(false) {}
 
-  threshold(std::string const& str);
+  threshold(const std::string& str);
 
   ~threshold() noexcept = default;
 
-  void extract_range(std::string str);
+  void extract_range(std::string_view str);
 
   double get_low() const { return _low; }
   void set_low(double l) { _low = l; }

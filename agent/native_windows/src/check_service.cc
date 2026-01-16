@@ -647,43 +647,43 @@ using w_service_to_status =
 
 using service_to_status_constructor =
     std::function<std::unique_ptr<w_service_to_status>(
-        common::threshold /*threshold*/)>;
+        const common::threshold& /*threshold*/)>;
 
 static const absl::flat_hash_map<std::string_view,
                                  service_to_status_constructor>
     _label_to_service_status = {
         {"warning-total-running",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::running, threshold,
                e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-running",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::running, threshold,
                e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-paused",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::paused, threshold,
                e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-paused",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::paused, threshold,
                e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-stopped",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::stopped, threshold,
                e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-stopped",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::stopped, threshold,
                e_service_metric::nb_service_metric, false);

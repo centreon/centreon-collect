@@ -95,28 +95,28 @@ proc_stat_file::proc_stat_file(const char* proc_file, size_t nb_to_reserve) {
 using linux_cpu_to_status = cpu_to_status<e_proc_stat_index::nb_field>;
 
 using cpu_to_status_constructor =
-    std::function<linux_cpu_to_status(common::threshold /*threshold*/)>;
+    std::function<linux_cpu_to_status(const common::threshold& /*threshold*/)>;
 
 #define BY_TYPE_CPU_TO_STATUS(TYPE_METRIC)                                     \
   {"warning-core-" #TYPE_METRIC,                                               \
-   [](common::threshold threshold) {                                           \
+   [](const common::threshold& threshold) {                                    \
      return linux_cpu_to_status(                                               \
          e_status::warning, e_proc_stat_index::TYPE_METRIC, false, threshold); \
    }},                                                                         \
       {"critical-core-" #TYPE_METRIC,                                          \
-       [](common::threshold threshold) {                                       \
+       [](const common::threshold& threshold) {                                \
          return linux_cpu_to_status(e_status::critical,                        \
                                     e_proc_stat_index::TYPE_METRIC, false,     \
                                     threshold);                                \
        }},                                                                     \
       {"warning-average-" #TYPE_METRIC,                                        \
-       [](common::threshold threshold) {                                       \
+       [](const common::threshold& threshold) {                                \
          return linux_cpu_to_status(e_status::warning,                         \
                                     e_proc_stat_index::TYPE_METRIC, true,      \
                                     threshold);                                \
        }},                                                                     \
   {                                                                            \
-    "critical-average-" #TYPE_METRIC, [](common::threshold threshold) {        \
+    "critical-average-" #TYPE_METRIC, [](const common::threshold& threshold) { \
       return linux_cpu_to_status(e_status::critical,                           \
                                  e_proc_stat_index::TYPE_METRIC, true,         \
                                  threshold);                                   \
@@ -131,24 +131,24 @@ using cpu_to_status_constructor =
 static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
     _label_to_cpu_to_status = {
         {"warning-core",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::warning,
                                       e_proc_stat_index::nb_field, false,
                                       threshold);
          }},
         {"critical-core",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::critical,
                                       e_proc_stat_index::nb_field, false,
                                       threshold);
          }},
         {"warning-average",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(
                e_status::warning, e_proc_stat_index::nb_field, true, threshold);
          }},
         {"critical-average",
-         [](common::threshold threshold) {
+         [](const common::threshold& threshold) {
            return linux_cpu_to_status(e_status::critical,
                                       e_proc_stat_index::nb_field, true,
                                       threshold);
