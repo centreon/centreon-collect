@@ -84,7 +84,7 @@ jobs:
       - name: Install Inno Setup
         shell: powershell
         run: |
-          choco install innosetup -y --no-progress --version 6.6.1
+          choco install innosetup --allow-downgrade -y --no-progress --version 6.6.1
 
       - name: compile Agent
         run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
