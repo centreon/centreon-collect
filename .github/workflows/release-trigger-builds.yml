@@ -286,7 +286,7 @@ jobs:
 
 
         env:
-          GH_TOKEN: ${{ secrets.TEST_GH_FINE_GRAINED_TOKEN }}
+          GH_TOKEN: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
       # Detect changes since last stable tag (ex: 25.10-latest)
       - name: Detect changed components since last stable release bundle tag
