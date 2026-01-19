@@ -1,10 +1,9 @@
 gorgone/tests/robot/config/vault.json:generic-api-key:7
 perl-libs/lib/t/common/centreonvault.t:generic-api-key:38
-broker/grpc/test/grpc_test_keys/ca_1234.key
 gorgone/keys/poller/privkey.pem:private-key:1
 gorgone/keys/central/privkey.pem:private-key:1
-common/http/test/http_connection_test.cc:private-key:131
-common/http/test/http_server_test.cc:private-key:81
 broker/grpc/test/grpc_test_keys/client_1234.key:private-key:1
 broker/grpc/test/grpc_test_keys/ca_1234.key:private-key:1
 broker/grpc/test/grpc_test_keys/server_1234.key:private-key:1
+common/http/test/http_connection_test.cc:private-key:131
+common/http/test/http_server_test.cc:private-key:81
