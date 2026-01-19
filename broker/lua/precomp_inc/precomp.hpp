@@ -35,6 +35,8 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 namespace asio = boost::asio;
 

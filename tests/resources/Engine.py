@@ -3871,6 +3871,10 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         pattern = rf"define host \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
     elif type == "service":
         pattern = rf"define service \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+    elif type == "hostgroup":
+        pattern = rf"define hostgroup \{{\s*hostgroup_id\s+{key}\b.*?\}}"
+    elif type == "servicegroup":
+        pattern = rf"define servicegroup \{{\s*servicegroup_id\s+{key}\b.*?\}}"
 
     # Use re.sub to remove the matched block
     new_content = re.sub(pattern, '', content, flags=re.DOTALL)

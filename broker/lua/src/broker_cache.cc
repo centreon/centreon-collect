@@ -467,39 +467,26 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
 
   auto const& members = cache->get_service_group_members();
 
-  auto first(members.lower_bound(std::make_tuple(host_id, service_id, 0)));
-  auto second(members.upper_bound(std::make_tuple(host_id, service_id + 1, 0)));
+  auto found =
+      members.get<1>().lower_bound(std::make_tuple(host_id, service_id, 0));
 
   lua_newtable(L);
 
-  if (first != members.end()) {
-    int i{1};
-    for (auto it(first), end(second); it != end; ++it) {
-      lua_createtable(L, 0, 2);
-      if (it->second->type() == neb::service_group_member::static_type()) {
-        const neb::service_group_member& sgm =
-            *std::static_pointer_cast<neb::service_group_member>(it->second);
+  int i = 1;
+  for (; found != members.get<1>().end() &&
+         (*found)->obj().host_id() == host_id &&
+         (*found)->obj().service_id() == service_id;
+       ++found) {
+    lua_createtable(L, 0, 2);
+    const ServiceGroupMember& sgm = (*found)->obj();
 
-        lua_pushinteger(L, sgm.group_id);
-        lua_setfield(L, -2, "group_id");
+    lua_pushinteger(L, sgm.servicegroup_id());
+    lua_setfield(L, -2, "group_id");
 
-        lua_pushstring(L, sgm.group_name.c_str());
-        lua_setfield(L, -2, "group_name");
-
-      } else {
-        const ServiceGroupMember& sgm =
-            std::static_pointer_cast<neb::pb_service_group_member>(it->second)
-                ->obj();
-
-        lua_pushinteger(L, sgm.servicegroup_id());
-        lua_setfield(L, -2, "group_id");
-
-        lua_pushstring(L, sgm.name().c_str());
-        lua_setfield(L, -2, "group_name");
-      }
-      lua_rawseti(L, -2, i);
-      ++i;
-    }
+    lua_pushstring(L, sgm.name().c_str());
+    lua_setfield(L, -2, "group_name");
+    lua_rawseti(L, -2, i);
+    ++i;
   }
   return 1;
 }
@@ -508,7 +495,7 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
  *  The get_hostgroups() method available in the Lua interpreter
  *  It returns an array of host groups from a host id.
  *
- *  @param L The Lua interpreter
+ *  @param L The Lua interpreter (host_id)
  *
  *  @return 1
  */
@@ -517,39 +504,25 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
       *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache"))};
   uint64_t id{static_cast<uint64_t>(luaL_checkinteger(L, 2))};
 
-  auto const& members = cache->get_host_group_members();
+  const auto& members = cache->get_host_group_members();
 
-  auto const first = members.lower_bound({id, 0});
-  auto const second = members.upper_bound({id + 1, 0});
+  auto found = members.get<1>().lower_bound(std::make_pair(id, 0));
 
+  int i = 1;
   lua_newtable(L);
-  if (first != members.end()) {
-    int i = 1;
-    for (auto it(first); it != second; ++it) {
-      lua_createtable(L, 0, 2);
-      std::shared_ptr<io::data> evt = it->second;
-      if (it->second->type() == neb::host_group_member::static_type()) {
-        const neb::host_group_member& hgm =
-            *std::static_pointer_cast<neb::host_group_member>(it->second);
-        lua_pushinteger(L, hgm.group_id);
-        lua_setfield(L, -2, "group_id");
+  for (; found != members.get<1>().end() && (*found)->obj().host_id() == id;
+       ++found) {
+    lua_createtable(L, 0, 2);
+    const HostGroupMember& hgm = (*found)->obj();
+    lua_pushinteger(L, hgm.hostgroup_id());
+    lua_setfield(L, -2, "group_id");
 
-        lua_pushstring(L, hgm.group_name.c_str());
-        lua_setfield(L, -2, "group_name");
-      } else {
-        const HostGroupMember& hgm =
-            std::static_pointer_cast<neb::pb_host_group_member>(it->second)
-                ->obj();
-        lua_pushinteger(L, hgm.hostgroup_id());
-        lua_setfield(L, -2, "group_id");
-
-        lua_pushstring(L, hgm.name().c_str());
-        lua_setfield(L, -2, "group_name");
-      }
-      lua_rawseti(L, -2, i);
-      ++i;
-    }
+    lua_pushstring(L, hgm.name().c_str());
+    lua_setfield(L, -2, "group_name");
+    lua_rawseti(L, -2, i);
+    ++i;
   }
+
   return 1;
 }
 
