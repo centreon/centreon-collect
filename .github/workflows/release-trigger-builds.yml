@@ -412,7 +412,7 @@ jobs:
               .addRaw(`**Base (${previousReleaseBundleTag}):** \`${baseSha}\`\n\n`)
               .addRaw(`**Head (${newBranch}):** \`${headSha}\`\n\n`)
               .addLink(
-                'Full diff ${previousReleaseBundleTag} <> ${newBranch}',
+                'Full diff `${previousReleaseBundleTag} <> ${newBranch}`',
                 `https://github.com/${repo}/compare/${baseSha}...${headSha}`
               )
               .addRaw('\n\n');
