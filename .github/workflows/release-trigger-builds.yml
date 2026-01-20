@@ -412,7 +412,7 @@ jobs:
               .addRaw(`**Base (${previousReleaseBundleTag}):** \`${baseSha}\`\n\n`)
               .addRaw(`**Head (${newBranch}):** \`${headSha}\`\n\n`)
               .addLink(
-                'Full diff ${previousReleaseBundleTag} <> ${newBranch}',
+                `Full diff ${previousReleaseBundleTag} <> ${newBranch}`,
                 `https://github.com/${repo}/compare/${baseSha}...${headSha}`
               )
               .addRaw('\n\n');
@@ -457,7 +457,7 @@ jobs:
               core.summary.addSeparator()
 
               core.summary
-                .addRaw(`\n\n### ${component} — [Full diff \`${previousReleaseBundleTag} <> ${newBranch}\`](${diffUrl})\n\n`)
+                .addRaw(`\n\n### ${component} — [Full diff ${previousReleaseBundleTag} <> ${newBranch}](${diffUrl})\n\n`)
                 .addDetails(`Commit list (${lines.length})`, `\n\n${rendered}\n`)
                 .addRaw('\n');
             }
