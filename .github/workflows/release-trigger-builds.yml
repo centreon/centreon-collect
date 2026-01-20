@@ -253,12 +253,6 @@ jobs:
           echo "Create ref HTTP status: $API_HTTP_CODE"
           echo "Create ref response: $API_RESPONSE"
 
-          # # Create the NEW_BRANCH using git
-          # # Branch protection does not allow usage of API for this
-          # echo "Cloning to repository."
-          # git clone git@github.com:centreon/centreon-collect.git
-          # echo "Branch created: ${{ steps.get_and_set_references_information.outputs.new_branch }}"
-
           # Sleep 10sec
           sleep 10
 
