@@ -219,7 +219,7 @@ jobs:
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}"
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}"
           echo "${{ steps.get_and_set_references_information.outputs.new_branch }}"
-          echo "${{ steps.get_and_set_references_information.outputs.new_branch_exists }}" (e.g NEW_BRANCH_EXISTS)
+          echo "${{ steps.get_and_set_references_information.outputs.new_branch_exists }}" # e.g NEW_BRANCH_EXISTS
 
           # Get release type
           RELEASE_TYPE="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f1)"
