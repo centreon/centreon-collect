@@ -50,8 +50,9 @@ jobs:
           # VARS
           OWNER="centreon"
           REPO="centreon-collect"
-          NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}" #Possible valid values release-29.10-next or hotfix-29.10-next
+          NEW_BRANCH="${{ inputs.dispatch_target_release_branch }}" # Possible valid values release-29.10-next or hotfix-29.10-next
           NEW_BRANCH_SHA="" # sha of the head of NEW_BRANCH
+          NEW_BRANCH_EXISTS="false" # False by default, updated to true later to skip branch creation
           BASE_REF=""
           BASE_REF_SHA=""
           RELEASE_BRANCH_MAJOR_VERSION=""
@@ -124,7 +125,8 @@ jobs:
             exit 1
           fi
 
-          # Check if NEW_BRANCH already exists and exit with error if it does
+          # Check if NEW_BRANCH already exists
+          # Set NEW_BRANCH_EXISTS accordingly
           echo "Checking if branch $NEW_BRANCH already exists..."
           GH_API_RESPONSE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer $GH_TOKEN" \
@@ -132,16 +134,16 @@ jobs:
             "https://api.github.com/repos/centreon/centreon-collect/git/ref/heads/$NEW_BRANCH")
 
           if [[ "$GH_API_RESPONSE_STATUS" == "200" ]]; then
-            echo "Branch '$NEW_BRANCH' already exists. Exiting."
-            exit 1
+            echo "Branch '$NEW_BRANCH' already exists. Setting NEW_BRANCH_EXISTS flag to true."
+            NEW_BRANCH_EXISTS="true"
           elif [[ "$GH_API_RESPONSE_STATUS" == "404" ]]; then
             echo "Branch '$NEW_BRANCH' does not exist. Branch '$NEW_BRANCH' will be created."
+            NEW_BRANCH_EXISTS="false"
           else
             echo "Unexpected GitHub API response status: $GH_API_RESPONSE_STATUS"
             exit 1
           fi
 
-          #
           # Resolve BASE_REF_SHA pointed by $BASE_REF
           # If RELEASE_TYPE is release, this means BASE_REF is a dev branch => use "ref/heads/$BASE_REF"
           # If RELEASE_TYPE is hotfix, this means BASE_REF is a tag => use "ref/tags/$BASE_REF"
@@ -201,6 +203,8 @@ jobs:
           echo "previous_stable_bundle_tag_sha=$PREVIOUS_STABLE_BUNDLE_TAG_COMMIT_SHA" >> $GITHUB_OUTPUT
           # NEW_BRANCH
           echo "new_branch=$NEW_BRANCH" >> $GITHUB_OUTPUT
+          # NEW_BRANCH_EXISTS
+          echo "new_branch_exists=$NEW_BRANCH_EXISTS" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -215,11 +219,7 @@ jobs:
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag }}"
           echo "${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}"
           echo "${{ steps.get_and_set_references_information.outputs.new_branch }}"
-
-          # Commented until tests are made with fine grained token
-          # Create the NEW_BRANCH
-          # If RELEASE_TYPE is release, this means BASE_REF is a dev branch => use "ref/heads/$BASE_REF" (base_ref_sha) to create NEW_BRANCH
-          # If RELEASE_TYPE is hotfix, this means BASE_REF is a tag => use "ref/tags/$BASE_REF" to create NEW_BRANCH
+          echo "${{ steps.get_and_set_references_information.outputs.new_branch_exists }}" (e.g NEW_BRANCH_EXISTS)
 
           # Get release type
           RELEASE_TYPE="$(echo ${{ inputs.dispatch_target_release_branch }} | cut -d "-" -f1)"
@@ -238,20 +238,28 @@ jobs:
           echo "$PAYLOAD"
 
           # Create the NEW_BRANCH using API and fine grained
-          API_RESPONSE_BODY=$(curl \
-            -w "\n%{http_code}" \
-            -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            -X POST -H "Content-Type: application/json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            -d "$PAYLOAD" \
-            "https://api.github.com/repos/centreon/centreon-collect/git/refs")
+          # If NEW_BRANCH_EXISTS is false => create it
+          # If NEW_BRANCH_EXISTS is true => skip creation and move on to the diff step
 
-          API_HTTP_CODE=$(echo API_HTTP_CODE: "$API_RESPONSE_BODY" | tail -n1)
-          API_RESPONSE=$(echo "API_RESPONSE: $API_RESPONSE_BODY" | sed '$d')
+          if [[ "${{ steps.get_and_set_references_information.outputs.new_branch_exists }}" == "false" ]]; then
+            echo "NEW_BRANCH_EXISTS is false, creating new branch."
+            API_RESPONSE_BODY=$(curl \
+              -w "\n%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -X POST -H "Content-Type: application/json" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -d "$PAYLOAD" \
+              "https://api.github.com/repos/centreon/centreon-collect/git/refs")
 
-          echo "Create ref HTTP status: $API_HTTP_CODE"
-          echo "Create ref response: $API_RESPONSE"
+            API_HTTP_CODE=$(echo API_HTTP_CODE: "$API_RESPONSE_BODY" | tail -n1)
+            API_RESPONSE=$(echo "API_RESPONSE: $API_RESPONSE_BODY" | sed '$d')
+
+            echo "Create ref HTTP status: $API_HTTP_CODE"
+            echo "Create ref response: $API_RESPONSE"
+          else
+            echo "NEW_BRANCH_EXISTS is true, skipping creation."
+          fi
 
           # Sleep 10sec
           sleep 10
@@ -340,7 +348,7 @@ jobs:
             echo "Triggering all components, docker builders, php and extra libs."
             for COMPONENT in "${COMPONENTS_COLLECT_FULL[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
-              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
             ;;
 
@@ -348,7 +356,7 @@ jobs:
             echo "Triggering all components only."
             for COMPONENT in "${COMPONENTS_COLLECT_REGULAR[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
-              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
             ;;
 
@@ -363,7 +371,7 @@ jobs:
             else
               for COMPONENT in "${COMPONENTS_COLLECT_CHANGED[@]}"; do
                 echo "Dispatching trigger to $COMPONENT workflow."
-                gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+                # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
               done
             fi
 
