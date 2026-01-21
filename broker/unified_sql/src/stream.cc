@@ -221,7 +221,6 @@ stream::stream(const database_config& dbcfg,
     stats->set_max_pending_events(max_queries);
   });
   _state = running;
-  _action.resize(_mysql.connections_count());
 
   _bulk_prepared_statement = _mysql.support_bulk_statement();
   _logger_sql->info("Unified sql stream connected to '{}' Server",
@@ -643,30 +642,6 @@ void stream::update_metric_info_cache(uint64_t index_id,
 }
 
 /**
- *  Take a look if a given action is done on a mysql connection. If it is
- *  done, the method waits for tasks on this connection to be finished and
- *  clear the flag.
- *  In case of a conn < 0, the methods checks all the connections.
- *
- * @param conn The connection number or a negative number to check all the
- *             connections
- * @param action An action.
- */
-void stream::_finish_action(int32_t conn, uint32_t action) {
-  if (conn < 0) {
-    for (std::size_t i = 0; i < _action.size(); i++) {
-      if (_action[i] & action) {
-        _mysql.commit(i);
-        _action[i] = actions::none;
-      }
-    }
-  } else if (_action[conn] & action) {
-    _mysql.commit(conn);
-    _action[conn] = actions::none;
-  }
-}
-
-/**
  *  The main goal of this method is to commit queries sent to the db.
  *  When the commit is done (all the connections commit), we count how
  *  many events can be acknowledged. So we can also update the number of pending
@@ -675,28 +650,10 @@ void stream::_finish_action(int32_t conn, uint32_t action) {
 void stream::_finish_actions() {
   SPDLOG_LOGGER_TRACE(_logger_sql, "unified sql: finish actions");
   _mysql.commit();
-  for (uint32_t& v : _action)
-    v = actions::none;
   _ack += _processed;
   _processed = 0;
   SPDLOG_LOGGER_TRACE(_logger_sql, "finish actions processed = {}",
                       static_cast<int>(_processed));
-}
-
-/**
- *  Add an action on the connection conn in the list of current actions.
- *  If conn < 0, the action is added to all the connections.
- *
- * @param conn The connection number or a negative number to add to all the
- *             connections
- * @param action An action.
- */
-void stream::_add_action(int32_t conn, actions action) {
-  if (conn < 0) {
-    for (uint32_t& v : _action)
-      v |= action;
-  } else
-    _action[conn] |= action;
 }
 
 /**
@@ -892,11 +849,6 @@ int32_t stream::stop() {
  */
 void stream::process_stop(const std::shared_ptr<io::data>& d) {
   auto& stop = static_cast<local::pb_stop*>(d.get())->obj();
-  int32_t conn = _mysql.choose_connection_by_instance(stop.poller_id());
-  _finish_action(-1, actions::hosts | actions::acknowledgements |
-                         actions::modules | actions::downtimes |
-                         actions::comments | actions::servicegroups |
-                         actions::hostgroups);
 
   // Log message.
   _logger_sql->info("unified_sql: Disabling poller (id: {}, running: no)",
@@ -912,9 +864,7 @@ void stream::process_stop(const std::shared_ptr<io::data>& d) {
       std::string query(fmt::format(
           "UPDATE instances SET end_time={}, running=0 WHERE instance_id={}",
           time(nullptr), stop.poller_id()));
-      _mysql.run_query(query, database::mysql_error::clean_hosts_services,
-                       conn);
-      _add_action(conn, actions::instances);
+      _mysql.run_query(query, database::mysql_error::clean_hosts_services, 0);
     }
   }
 }
@@ -1060,7 +1010,6 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
   try {
     std::promise<database::mysql_result> promise;
     std::future<mysql_result> future = promise.get_future();
-    int32_t conn = _mysql.choose_best_connection(-1);
     std::list<uint64_t> ids;
     uint32_t count = 0;
     if (poller.obj().has_str()) {
@@ -1068,7 +1017,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
           fmt::format("SELECT instance_id from instances WHERE name='{}' AND "
                       "(running=0 OR deleted=1)",
                       poller.obj().str()),
-          std::move(promise), conn);
+          std::move(promise), 0);
       database::mysql_result res(future.get());
 
       while (_mysql.fetch_row(res)) {
@@ -1085,7 +1034,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         _mysql.run_query_and_get_result(
             fmt::format("SELECT instance_id from instances WHERE name='{}'",
                         poller.obj().str()),
-            std::move(promise), conn);
+            std::move(promise), 0);
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
@@ -1107,7 +1056,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
               "SELECT instance_id from instances WHERE instance_id={} AND "
               "(running=0 OR deleted=1)",
               poller.obj().idx()),
-          std::move(promise), conn);
+          std::move(promise), 0);
       database::mysql_result res(future.get());
 
       while (_mysql.fetch_row(res)) {
@@ -1125,7 +1074,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
         _mysql.run_query_and_get_result(
             fmt::format("SELECT name from instances WHERE instance_id={}",
                         poller.obj().idx()),
-            std::move(promise), conn);
+            std::move(promise), 0);
         database::mysql_result res(future.get());
 
         while (_mysql.fetch_row(res)) {
@@ -1144,22 +1093,21 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     }
 
     for (uint64_t id : ids) {
-      conn = _mysql.choose_connection_by_instance(id);
       SPDLOG_LOGGER_INFO(_logger_sql, "unified sql: removing poller {}", id);
       _mysql.run_query(
           fmt::format("DELETE FROM instances WHERE instance_id={}", id),
-          database::mysql_error::delete_poller, conn);
+          database::mysql_error::delete_poller, 0);
       SPDLOG_LOGGER_TRACE(_logger_sql, "unified sql: removing poller {} hosts",
                           id);
       _mysql.run_query(
           fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
-          database::mysql_error::delete_poller, conn);
+          database::mysql_error::delete_poller, 0);
 
       SPDLOG_LOGGER_TRACE(_logger_sql,
                           "unified sql: removing poller {} resources", id);
       _mysql.run_query(
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
-          database::mysql_error::delete_poller, conn);
+          database::mysql_error::delete_poller, 0);
       _cache_deleted_instance_id.insert(id);
     }
     _clear_instances_cache(ids);

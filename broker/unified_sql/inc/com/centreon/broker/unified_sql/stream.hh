@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2024 Centreon
+ * Copyright 2019-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -161,29 +161,6 @@ class stream : public io::stream {
     comment
   };
 
-  enum actions {
-    none = 0,
-    acknowledgements = 1 << 0,
-    comments = 1 << 1,
-    custom_variables = 1 << 2,
-    downtimes = 1 << 3,
-    host_hostgroups = 1 << 4,
-    host_parents = 1 << 5,
-    hostgroups = 1 << 6,
-    hosts = 1 << 7,
-    instances = 1 << 8,
-    modules = 1 << 9,
-    service_servicegroups = 1 << 10,
-    servicegroups = 1 << 11,
-    services = 1 << 12,
-    index_data = 1 << 13,
-    metrics = 1 << 14,
-    severities = 1 << 15,
-    tags = 1 << 16,
-    resources = 1 << 17,
-    resources_tags = 1 << 18,
-  };
-
   struct index_info {
     uint64_t index_id;
     std::string host_name;
@@ -222,9 +199,6 @@ class stream : public io::stream {
   std::atomic_int _pending_events;
   uint32_t _count;
   bool _bulk_prepared_statement = false;
-
-  /* Current actions by connection */
-  std::vector<uint32_t> _action;
 
   // bool _exit;
   uint32_t _loop_timeout;
@@ -458,13 +432,13 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
+  uint64_t _process_pb_host_in_resources(const Host& h);
   void _process_pb_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_service_in_resources(const Service& s, int32_t conn);
+  uint64_t _process_pb_service_in_resources(const Service& s);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_service_status(const std::shared_ptr<io::data>& d);
@@ -472,8 +446,7 @@ class stream : public io::stream {
   void _process_tag(const std::shared_ptr<io::data>& d);
   void _process_tag_from_resources(uint64_t resource_id,
                                    uint64_t tag_id,
-                                   int32_t tag_type,
-                                   int32_t conn);
+                                   int32_t tag_type);
   void _process_pb_log(const std::shared_ptr<io::data>& d);
   void _process_pb_responsive_instance(const std::shared_ptr<io::data>& d);
   void _process_agent_stats(const std::shared_ptr<io::data>& d);
@@ -491,9 +464,7 @@ class stream : public io::stream {
   void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
   void _prepare_pb_sg_insupdate_statement();
-  void _finish_action(int32_t conn, uint32_t action);
   void _finish_actions();
-  void _add_action(int32_t conn, actions action);
   void _update_metrics();
   // void __exit();
   void _clear_instances_cache(const std::list<uint64_t>& ids);
