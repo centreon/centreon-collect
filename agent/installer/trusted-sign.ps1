@@ -4,7 +4,7 @@ param(
 )
 
 # Ensure module exists (action installs it; this makes local builds work too)
-$wantedVersion = "0.5.10"
+$wantedVersion = "0.5.8"
 if (-not (Get-Module -ListAvailable -Name TrustedSigning | Where-Object Version -eq $wantedVersion)) {
   Install-Module -Name TrustedSigning -RequiredVersion $wantedVersion -Force -Scope CurrentUser -Repository PSGallery
 }
