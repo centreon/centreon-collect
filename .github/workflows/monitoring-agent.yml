@@ -145,6 +145,9 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
 
     steps:
       # in order to have the same checksum between windows-agent and windows-agent-robot-test
@@ -223,31 +226,10 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      - name: Build installer
+      - name: Build installer and sign
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=On  -Bbuild_windows
+          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=On -DWITH_INSTALLER_SIGNING=${{ (inputs.force_signing == true || contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) && 'ON' || 'OFF' }} -Bbuild_windows
           cmake --build build_windows --config Release
-
-      - name: Sign installer
-        if: |
-          ( inputs.force_signing == true ||
-          contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) &&
-          ! cancelled() &&
-          ! contains(needs.*.result, 'failure') &&
-          ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
-        with:
-          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          endpoint: https://weu.codesigning.azure.net/
-          trusted-signing-account-name: Centreon-signature-RD
-          certificate-profile-name: Cert-Signature-RD
-          files-folder: agent\installer
-          files-folder-filter: centreon-monitoring-agent.exe
-          file-digest: SHA256
-          timestamp-rfc3161: http://timestamp.acs.microsoft.com
-          timestamp-digest: SHA256
 
       - name: Installer test
         run: .github/scripts/agent_installer_test.ps1
