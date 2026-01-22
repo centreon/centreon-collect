@@ -116,7 +116,6 @@ START_STOP_CBD
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    ${1}
     Ctn Config Engine    ${1}    ${50}    ${20}
-    Ctn Config Broker Sql Output    central    unified_sql
 
     Ctn Clear Db    services
     Ctn Clear Db    hosts
@@ -129,7 +128,7 @@ START_STOP_CBD
     Ctn Wait For Engine To Be Ready    ${start}    1
 
     # restart central broker
-    Ctn Stop Broker
+    Ctn Kindly Stop Broker
     Ctn Start Broker
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

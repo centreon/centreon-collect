@@ -243,9 +243,9 @@ state parser::parse(std::string const& file) {
                        {it.key(), it.value()}, "cache_config_directory", retval,
                        &state::set_cache_config_dir, &json::is_string))
           ;
-	else if (get_conf<state>(
-                       {it.key(), it.value()}, "pollers_config_directory", retval,
-                       &state::set_pollers_config_dir, &json::is_string))
+        else if (get_conf<state>(
+                     {it.key(), it.value()}, "pollers_config_directory", retval,
+                     &state::set_pollers_config_dir, &json::is_string))
           ;
         else if (get_conf<state>({it.key(), it.value()}, "broker_name", retval,
                                  &state::broker_name, &json::is_string))
@@ -592,12 +592,8 @@ void parser::_parse_endpoint(const json& elem,
         module = "50-tcp.so";
       else if (e.type == "rrd")
         module = "70-rrd.so";
-      else if (e.type == "sql")
-        module = "80-sql.so";
       else if (e.type == "unified_sql")
         module = "20-unified_sql.so";
-      else if (e.type == "storage")
-        module = "20-storage.so";
       else if (e.type == "bam")
         module = "20-bam.so";
       else if (e.type == "bam_bi")

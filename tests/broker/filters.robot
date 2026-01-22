@@ -10,7 +10,11 @@ Test Setup          Ctn Stop Processes
 
 *** Test Cases ***
 BFC1
-    [Documentation]    Start broker with invalid filters but one filter ok
+    [Documentation]    Scenario: Start broker with valid and invalid filters on an output
+    ...   Given Broker is configured with filters "neb", "foo", and "bar" on the unified SQL output
+    ...   When Broker is started
+    ...   Then error messages should appear for invalid categories "foo" and "bar"
+    ...   And only the valid "neb" filter should be applied
     [Tags]    broker    start-stop    log-v2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -19,7 +23,7 @@ BFC1
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Output Set Json
     ...    central
-    ...    central-broker-master-sql
+    ...    central-broker-unified-sql
     ...    filters
     ...    {"category": ["neb", "foo", "bar"]}
     ${start}    Ctn Get Round Current Date
@@ -34,7 +38,10 @@ BFC1
     Ctn Kindly Stop Broker
 
 BFC2
-    [Documentation]    Start broker with only invalid filters on an output
+    [Documentation]    Scenario: Start broker with only invalid filters on an output
+    ...   Given Broker is configured with filters "doe", "foo", and "bar" on the unified SQL output
+    ...   When Broker is started
+    ...   Then error messages should appear for invalid categories
     [Tags]    broker    start-stop    log-v2
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -43,7 +50,7 @@ BFC2
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Output Set Json
     ...    central
-    ...    central-broker-master-sql
+    ...    central-broker-unified-sql
     ...    filters
     ...    {"category": ["doe", "foo", "bar"]}
     ${start}    Ctn Get Round Current Date

@@ -155,7 +155,7 @@ TEST_F(StatsTest, BuilderWithEndpoints) {
       "    \"output\": [\n"
       "      {\n"
       "        \"name\": \"CentreonDatabase\",\n"
-      "        \"type\": \"sql\",\n"
+      "        \"type\": \"unified_sql\",\n"
       "        \"db_type\": \"mysql\",\n"
       "        \"db_host\": \"localhost\",\n"
       "        \"db_port\": \"3306\",\n"

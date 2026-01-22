@@ -33,7 +33,7 @@ Ctn Config BBDO3
         Ctn Broker Config Add Item    rrd    bbdo_version    ${version}
     END
     IF    not ${only_engine}
-	Ctn Config Broker Sql Output    central    unified_sql
+        Ctn Config Broker Sql Output    central    unified_sql
         Ctn Broker Config Add Item    central    bbdo_version    ${version}
     END
     FOR    ${i}    IN RANGE    ${nbEngine}
@@ -369,13 +369,19 @@ Ctn Check Connections
 
 Ctn Disable Eth Connection On Port
     [Arguments]    ${port}
-    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    ${result}    RUN    iptables -A INPUT -p tcp --dport ${port} -j DROP
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
     RUN    iptables -A OUTPUT -p tcp --dport ${port} -j DROP
     RUN    iptables -A FORWARD -p tcp --dport ${port} -j DROP
 
 Ctn Reset Eth Connection
-    Run    iptables -F
-    Run    iptables -X
+    ${result}    RUN    iptables -F
+    Should Not Contain    ${result}    not found
+    ...    iptables is not installed or you don't have the rights to use it.
+    ...    Please fix this issue.
+    RUN    iptables -X
 
 Ctn Save Logs If Failed
     Run Keyword If Test Failed    Ctn Save Logs

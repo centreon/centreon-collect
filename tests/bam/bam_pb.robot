@@ -1169,10 +1169,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker
 
 BA_CHANGED
-    [Documentation]    A BA of type worst is configured with one service kpi.
-    ...    Then it is modified so that the service kpi is replaced
-    ...    by a boolean rule kpi. When cbd is reloaded, the BA is
-    ...    well updated.
+    [Documentation]    Scenario: Replace Service KPI with Boolean Rule KPI in Worst-type BA
+    ...    Given a BA of type "worst" is configured with one service KPI
+    ...    When the service KPI is replaced by a boolean rule KPI
+    ...    And Broker is reloaded
+    ...    Then the BA is correctly updated with the new KPI configuration
     [Tags]    MON-34895
     Ctn Bam Init
 

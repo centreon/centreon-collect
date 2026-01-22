@@ -4,8 +4,10 @@ show_help() {
 cat << EOF
 Usage: ${0##*/} -n=[yes|no] -v
 
-This program build Centreon-broker
+This program builds Centreon-broker, Centreon-engine, Centreon-agent and their
+modules through cmake and vcpkg.
 
+    -b|--build-dir : specify build directory
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -og           : C++14 standard
@@ -25,6 +27,8 @@ export PATH="$VCPKG_ROOT:$PATH"
 #echo "Please, before the build, execute the following commands:"
 #echo "export VCPKG_ROOT=\$PWD/vcpkg"
 #echo "export PATH=\$VCPKG_ROOT:\$PATH"
+BUILD_DIR="build"
+force=0
 
 COMPILER=gcc
 CC=gcc
@@ -40,6 +44,11 @@ do
       echo "Forced rebuild"
       force=1
       shift
+      ;;
+    -b|--build-dir)
+      echo "Build directory specified: $2"
+      BUILD_DIR="$2"
+      shift 2
       ;;
     -og)
       echo "C++14 applied on this compilation"
@@ -199,78 +208,81 @@ elif [ -r /etc/issue ] ; then
     exit 1
   fi
 
-  if [[ "$maj" == "Debian" ]] || [[ "$maj" == "Ubuntu" ]]; then
-    pkgs=(
-      cmake
-      g++
-      gcc
-      curl
-      git
-      libcurl4-openssl-dev
-      libgcrypt20-dev
-      libgnutls28-dev
-      liblua5.3-dev
-      libmariadb-dev
-      libperl-dev
-      librrd-dev
-      libssh2-1-dev
-      libssl-dev
-      mold
-      ninja-build
-      pkg-config
-      python3
-      python3-pip
-      zip
-      zlib1g-dev
-    )
-    apt update
-    for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
-        if [[ "$my_id" == 0 ]] ; then
-          apt install -y $i
-        else
-          echo -e "The package \"$i\" is not installed, you can install it, as root, with the command:\n\tapt install -y $i\n\n"
-          exit 1
+  if ping -w2 google.com ; then
+    if [[ "$maj" == "Debian" ]] || [[ "$maj" == "Ubuntu" ]]; then
+      pkgs=(
+        cmake
+        g++
+        gcc
+        curl
+        git
+        libcurl4-openssl-dev
+        libgcrypt20-dev
+        libgnutls28-dev
+        liblua5.3-dev
+        libmariadb-dev
+        libperl-dev
+        librrd-dev
+        libssh2-1-dev
+        libssl-dev
+        mold
+        ninja-build
+        pkg-config
+        python3
+        python3-pip
+        rrdcached
+        zip
+        zlib1g-dev
+      )
+      apt update
+      for i in "${pkgs[@]}"; do
+        if ! $dpkg -l $i | grep "^ii" ; then
+          if [[ "$my_id" == 0 ]] ; then
+            apt install -y $i
+          else
+            echo -e "The package \"$i\" is not installed, you can install it, as root, with the command:\n\tapt install -y $i\n\n"
+            exit 1
+          fi
         fi
-      fi
-    done
-  elif [[ "$maj" == "Raspbian" ]] ; then
-    pkgs=(
-      gcc
-      g++
-      curl
-      pkg-config
-      libmariadb3
-      librrd-dev
-      libgnutls28-dev
-      ninja-build
-      liblua5.3-dev
-      python3
-      python3-pip
-      libperl-dev
-      libgcrypt20-dev
-      libssl-dev
-      libssh2-1-dev
-      zlib1g-dev
-    )
-    for i in "${pkgs[@]}"; do
-      if ! $dpkg -l $i | grep "^ii" ; then
-        if [[ "$my_id" == 0 ]] ; then
-          apt install -y $i
-        else
-          echo -e "The package \"$i\" is not installed, you can install it, as root, with the command:\n\tapt install -y $i\n\n"
-          exit 1
+      done
+    elif [[ "$maj" == "Raspbian" ]] ; then
+      pkgs=(
+        gcc
+        g++
+        curl
+        pkg-config
+        libmariadb3
+        librrd-dev
+        libgnutls28-dev
+        ninja-build
+        liblua5.3-dev
+        python3
+        python3-pip
+        libperl-dev
+        libgcrypt20-dev
+        libssl-dev
+        libssh2-1-dev
+        zlib1g-dev
+      )
+      for i in "${pkgs[@]}"; do
+        if ! $dpkg -l $i | grep "^ii" ; then
+          if [[ "$my_id" == 0 ]] ; then
+            apt install -y $i
+          else
+            echo -e "The package \"$i\" is not installed, you can install it, as root, with the command:\n\tapt install -y $i\n\n"
+            exit 1
+          fi
         fi
-      fi
-    done
+      done
+    fi
   fi
 fi
 
 if [ "$force" = "1" ] ; then
-  echo "Build forced, removing the 'build' directory before recreating it"
-  rm -rf build
+  echo "Build forced, removing the '$BUILD_DIR' directory before recreating it"
+  rm -rf "$BUILD_DIR"
   rm -rf vcpkg
-  mkdir build
+  mkdir "$BUILD_DIR"
 fi
 
 if [ ! -d vcpkg ] ; then
@@ -297,10 +309,10 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
 
 elif [[ "$maj" == "Debian" ]] ; then
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF $NG $* -S .
 else
-  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B build -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
+  CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra $MOLD" $cmake -B "$BUILD_DIR" -DVCPKG_OVERLAY_TRIPLETS=custom-triplets -DVCPKG_TARGET_TRIPLET=x64-linux-release -DVCPKG_OVERLAY_PORTS=overlays -S . -GNinja $DR $SCCACHE -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $*
 fi

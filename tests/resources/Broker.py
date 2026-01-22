@@ -95,19 +95,24 @@ config = {
         ],
         "output": [
             {{
-                "name": "central-broker-master-sql",
-                "db_type": "mysql",
-                "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
+                "check_replication": "no",
                 "connections_count": "3",
+                "db_host": "{2}",
+                "db_name": "{6}",
+                "db_password": "{5}",
+                "db_port": "{3}",
+                "db_type": "mysql",
+                "db_user": "{4}",
+                "insert_in_index_data": "1",
+                "interval": "60",
+                "length": "15552000",
+                "name": "central-broker-unified-sql",
+                "queries_per_transaction": "1000",
                 "read_timeout": "1",
-                "type": "sql"
+                "retry_interval": "5",
+                "store_in_data_bin": "yes",
+                "type": "unified_sql"
             }},
             {{
                 "name": "centreon-broker-master-rrd",
@@ -121,26 +126,6 @@ config = {
                 "one_peer_retention_mode": "no",
                 "compression": "no",
                 "type": "ipv4"
-            }},
-            {{
-                "name": "central-broker-master-perfdata",
-                "interval": "60",
-                "retry_interval": "5",
-                "buffering_timeout": "0",
-                "length": "15552000",
-                "db_type": "mysql",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
-                "read_timeout": "1",
-                "check_replication": "no",
-                "store_in_data_bin": "yes",
-                "connections_count": "3",
-                "insert_in_index_data": "1",
-                "type": "storage"
             }}
         ],
         "stats": [
@@ -336,19 +321,24 @@ config = {
         ],
         "output": [
             {{
-                "name": "central-broker-master-sql",
-                "db_type": "mysql",
-                "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
+                "check_replication": "no",
                 "connections_count": "3",
+                "db_host": "{2}",
+                "db_name": "{6}",
+                "db_password": "{5}",
+                "db_port": "{3}",
+                "db_type": "mysql",
+                "db_user": "{4}",
+                "insert_in_index_data": "1",
+                "interval": "60",
+                "length": "15552000",
+                "name": "central-broker-unified-sql",
+                "queries_per_transaction": "1000",
                 "read_timeout": "1",
-                "type": "sql"
+                "retry_interval": "5",
+                "store_in_data_bin": "yes",
+                "type": "unified_sql"
             }},
             {{
                 "name": "centreon-broker-master-rrd",
@@ -374,26 +364,6 @@ config = {
                 "one_peer_retention_mode": "no",
                 "compression": "no",
                 "type": "ipv4"
-            }},
-            {{
-                "name": "central-broker-master-perfdata",
-                "interval": "60",
-                "retry_interval": "5",
-                "buffering_timeout": "0",
-                "length": "15552000",
-                "db_type": "mysql",
-                "db_host": "{2}",
-                "db_port": "{3}",
-                "db_user": "{4}",
-                "db_password": "{5}",
-                "db_name": "{6}",
-                "queries_per_transaction": "1000",
-                "read_timeout": "1",
-                "check_replication": "no",
-                "store_in_data_bin": "yes",
-                "connections_count": "3",
-                "insert_in_index_data": "1",
-                "type": "storage"
             }}
         ],
         "stats": [
@@ -2614,13 +2584,14 @@ def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
+def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):
     """
     Check if all the hosts monitored by a poller are disabled.
 
     Args:
         poller_id: The poller ID.
         timeout: A timeout in seconds.
+        in_resources: A boolean to tell if the check is made on resources table or not.
 
     Returns:
         True on success.
@@ -2636,8 +2607,12 @@ def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
+                if in_resources:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
+                else:
+                    cursor.execute(
+                        f"SELECT DISTINCT enabled FROM hosts WHERE instance_id = {poller_id} AND enabled > 0")
                 result = cursor.fetchall()
                 if len(result) == 0:
                     return True
@@ -2652,6 +2627,7 @@ def ctn_check_poller_enabled_in_database(poller_id: int, timeout: int, in_resour
     Args:
         poller_id: The poller ID.
         timeout: A timeout in seconds.
+        in_resources: A boolean to tell if the check is made on resources table or not.
 
     Returns:
         True on success.

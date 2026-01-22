@@ -30,45 +30,23 @@ BESS1
     Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
 
 BESS2
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
-    Ctn Clear Retention
-    Ctn Config Engine    ${1}
-    Ctn Config Broker    central
-    Ctn Config Broker    module
-    Ctn Config Broker    rrd
-    Ctn Broker Config Log    central    sql    debug
-    Ctn Broker Config Log    central    bbdo    info
-    Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
-    ${result}    Ctn In Bbdo2
-    Should Be True    ${result}    We should be in BBDO2 in this test.
-    ${start}    Get Current Date
-    Ctn Start Broker
-    Ctn Start Engine
-    ${result}    Ctn Check Connections
-    Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
-    Should Be True    ${result}    Poller not visible in database
-    Ctn Stop Engine
-    ${content}    Create List    SQL: Disabling poller
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
-    Should Be True    ${result}    Poller still visible in database
-    Ctn Kindly Stop Broker
-    Should Not Exist    ${varRoot}/lib/centreon-broker/pollers-configuration
-
-BESS2U
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first.
-    ...    Unified_sql is used.
+    [Documentation]    Scenario: Start and stop Broker/Engine with Broker started first and Engine stopped first
+    ...    Given the Broker is started before the Engine and both use BBDO 3
+    ...    When the Engine is started after the Broker
+    ...    Then the connection between Engine and Broker should be established
+    ...    And the poller should be visible in the database
+    ...    When the Engine is stopped before the Broker
+    ...    Then the poller should be disabled and not visible in the database
+    ...    And neither Broker nor Engine should crash
     [Tags]    broker    engine    start-stop
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Log    central    bbdo    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    core    debug
+    Ctn Broker Config Log    central    bbdo    error
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
@@ -77,7 +55,7 @@ BESS2U
     Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
-    ${result}    Ctn Check Poller Enabled In Database    1    10
+    ${result}    Ctn Check Poller Enabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller not visible in database
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
@@ -88,7 +66,7 @@ BESS2U
     ${content}    Create List    unified_sql: Disabling poller
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No stop event processed by central cbd
-    ${result}    Ctn Check Poller Disabled In Database    1    10
+    ${result}    Ctn Check Poller Disabled In Database    1    10    ${True}
     Should Be True    ${result}    Poller still visible in database
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
@@ -530,7 +508,7 @@ BESSBQ1
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
-    Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
+    Ctn Create Bad Queue    central-broker-master.queue.central-broker-unified-sql
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
     ${result}    Ctn In Bbdo2
     Should Be True    ${result}    We should be in BBDO2 in this test.

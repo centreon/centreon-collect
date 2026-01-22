@@ -43,6 +43,7 @@ import grpc
 import grpc_stream_pb2_grpc
 import state_pb2
 from confcmp import ConfComparator
+import Engine
 
 
 def import_robot_resources():
@@ -147,9 +148,9 @@ def ctn_check_connection(port: int, pid1: int, pid2: int):
 def ctn_wait_for_connections(port: int, nb: int, timeout: int = 60):
     """!  wait until nb connection are established on localhost and port
     @param port connection port
-    @param nb number of connection expected
-    @param timeout  timeout in second
-    @return True if nb connection are established
+    @param nb number of connections expected
+    @param timeout  timeout in seconds
+    @return True if nb connections are established
     """
     limit = time.time() + timeout
     r = re.compile(
@@ -302,12 +303,15 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
     verbose = True
     regex = False
     agent_format = False
+    one_of = False
     if 'verbose' in kwargs:
         verbose = 'verbose' == 'True'
     if 'regex' in kwargs:
         regex = bool(kwargs['regex'])
     if 'agent_format' in kwargs:
         agent_format = bool(kwargs['agent_format'])
+    if 'one_of' in kwargs:
+        one_of = bool(kwargs['one_of'])
 
     res = []
 
@@ -316,22 +320,38 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
             lines = f.readlines()
         idx = ctn_find_line_from(lines, date, agent_format)
 
-        for c in content:
+        if one_of:
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if regex:
-                    match = re.search(c, line)
-                else:
-                    match = c in line
-                if match:
-                    if verbose:
-                        logger.console(f"\"{c}\" found at line {i} from {idx}")
-                    found = True
-                    res.append(line)
-                    break
-            if not found:
-                return False, c
+                for c in content:
+                    if regex:
+                        match = re.search(c, line)
+                    else:
+                        match = c in line
+                    if match:
+                        if verbose:
+                            logger.console(f"\"{c}\" found at line {i} from {idx}")
+                        found = True
+                        res.append(line)
+                        return True, res
+        else:
+            for c in content:
+                found = False
+                for i in range(idx, len(lines)):
+                    line = lines[i]
+                    if regex:
+                        match = re.search(c, line)
+                    else:
+                        match = c in line
+                    if match:
+                        if verbose:
+                            logger.console(f"\"{c}\" found at line {i} from {idx}")
+                        found = True
+                        res.append(line)
+                        break
+                if not found:
+                    return False, c
 
         return True, res
     except IOError:
@@ -393,7 +413,10 @@ def ctn_start_mysql():
             logger.console("Mariadb started with systemd")
         elif os.path.exists("/usr/sbin/service"):
             logger.console("Starting Mariadb with service")
-            getoutput("service mysql start")
+            err = getoutput("service mysql start")
+            if err == "mysql: unrecognized service":
+                logger.console("Trying mariadb service name")
+                getoutput("service mariadb start")
             logger.console("Mariadb started with service")
         else:
             logger.console("Unable to start the database")
@@ -423,7 +446,10 @@ def ctn_stop_mysql():
             logger.console("Mariadb stopped with systemd")
         elif os.path.exists("/usr/sbin/service"):
             logger.console("Stopping Mariadb with service")
-            getoutput("service mysql stop")
+            err = getoutput("service mysql stop")
+            if err == "mysql: unrecognized service":
+                logger.console("Trying mariadb service name")
+                getoutput("service mariadb stop")
             logger.console("Mariadb stopped with service")
         else:
             logger.console("Unable to stop the database")
@@ -487,10 +513,11 @@ def ctn_kill_broker():
 def ctn_kill_engine():
     getoutput(
         "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
+    Engine.ctn_clear_instances()
 
 
 def ctn_clear_retention():
-    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
@@ -1692,6 +1719,18 @@ def ctn_check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
 
 
 def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int, timeout: int):
+    """
+    Check the number of resources monitored by a poller.
+
+    Args:
+        poller: The poller id
+        value: The expected number of resources
+        timeout: The timeout in seconds
+
+    Returns:
+        True if the number of resources monitored by the poller is equal to the expected value,
+        False otherwise.
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
@@ -1704,7 +1743,7 @@ def ctn_check_number_of_resources_monitored_by_poller_is(poller: int, value: int
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
+                    f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1")
                 result = cursor.fetchall()
                 logger.console(
                     f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1 => {result[0]} <-> {value}")
@@ -2068,7 +2107,7 @@ def ctn_compare_dot_files(file1: str, file2: str):
 
 def ctn_create_bbdo_grpc_server(port: int, ):
     """
-    start a bbdo streamming grpc server.
+    Start a BBDO streaming grpc server.
     It answers nothing and simulates proxy behavior when cbd is down
     Args:
         port: port to listen
@@ -2214,11 +2253,16 @@ def ctn_check_service_perfdata(host: str, serv: str, timeout: int, precision: fl
 def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expected_interval: int, precision: float):
     """
     Check if performance data of a metric are spaced of expected_interval.
+
+    Args:
         host (str): The hostname of the service to check.
         serv (str): The service name to check.
         timeout (int): The timeout value for the check.
         expected_interval (int): The expected interval between two performance data points.
         precision (float): The precision required for the interval comparison.
+
+    Returns:
+        True if the intervals are as expected, False otherwise.
     """
 
     # we work on last metric in order to not take into account metrics of previous tests
@@ -2229,6 +2273,7 @@ def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expecte
                 JOIN index_data id ON id.id = m.index_id
                 WHERE id.host_name='{host}' AND id.service_description='{serv}') sub_query 
             ON db.id_metric = sub_query.id_metric ORDER BY db.ctime"""
+    result = ()
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -2243,8 +2288,7 @@ def ctn_check_service_check_interval(host: str, serv: str, timeout: int, expecte
                 # we don't take first check into account as it may be generated by previous test
                 if (len(result) >= 3):
                     for i in range(len(result) - 2):
-                        time_diff = result[i + 2]['ctime'] - \
-                            result[i + 1]['ctime']
+                        time_diff = result[i + 2]['ctime'] - result[i + 1]['ctime']
                         logger.console(
                             f"serv:{serv}, metric: {result[i + 1]['id_metric']}, ctime:{result[i + 1]['ctime']}, time_diff: {time_diff}")
                         if abs(time_diff - expected_interval) > precision:

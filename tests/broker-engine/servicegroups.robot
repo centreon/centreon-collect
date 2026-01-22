@@ -19,8 +19,7 @@ EBNSG1
     Ctn Config Broker    module    ${3}
 
     Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
     Ctn Clear Retention
     ${start}    Get Current Date

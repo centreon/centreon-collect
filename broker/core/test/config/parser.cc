@@ -54,7 +54,7 @@ TEST(parser, endpoint) {
       "    \"output\": [\n"
       "      {\n"
       "        \"name\": \"CentreonDatabase\",\n"
-      "        \"type\": \"sql\",\n"
+      "        \"type\": \"unified_sql\",\n"
       "        \"db_type\": \"mysql\",\n"
       "        \"db_host\": \"localhost\",\n"
       "        \"db_socket\": \"/var/lib/mysql/mysql.sock\",\n"
@@ -122,7 +122,7 @@ TEST(parser, endpoint) {
   // Check output #1.
   config::endpoint output1(*(it++));
   ASSERT_EQ(output1.name, "CentreonDatabase");
-  ASSERT_EQ(output1.type, "sql");
+  ASSERT_EQ(output1.type, "unified_sql");
   ASSERT_EQ(output1.failovers.size(), 1u);
   ASSERT_EQ(output1.failovers.front(), "CentreonRetention");
   ASSERT_EQ(output1.buffering_timeout, 10);
