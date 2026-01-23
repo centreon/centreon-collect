@@ -23,4 +23,4 @@ gorgone/tests/robot/tests      @centreon/owners-robot-e2e
 .gitleaks.toml                @centreon/owners-security
 .gitleaksignore               @centreon/owners-security
 **/workflows/*-analysis.yml   @centreon/owners-security
-.githooks/pre-commit          @centreon/owners-security
+**/secu-*.yml                 @centreon/owners-security
