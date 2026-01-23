@@ -5,6 +5,28 @@ concurrency:
 
 on:
   pull_request:
+    paths:
+      - '**'
+      - '!bbdo/**'
+      - '!broker/**'
+      - '!ccc/**'
+      - '!clib/**'
+      - '!connectors/**'
+      - '!agent/**'
+      - '!common/**'
+      - '!custom-triplets/**'
+      - '!packaging/centreon-monitoring-agent/**'
+      - '!engine/**'
+      - '!grpc/**'
+      - '!packaging/centreon-collect/**'
+      - '!overlays/**'
+      - '!selinux/centreon-broker/**'
+      - '!selinux/centreon-engine/**'
+      - '!tests/**'
+      - '!gorgone/**'
+      - '!perl-libs/**'
+      - '!.github/docker/gorgone/**'
+
   workflow_dispatch:
 
 jobs:
