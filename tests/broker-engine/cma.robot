@@ -813,7 +813,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "uptime", "args": {"warning-uptime" : "1000000000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "uptime", "args": {"warning-uptime" : "1000000000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -822,7 +822,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "uptime", "args": {"critical-uptime" : "1000000000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "uptime", "args": {"critical-uptime" : "1000000000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
@@ -953,7 +953,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"warning-total-running" : "1000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"warning-total-running" : "1000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -962,7 +962,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"critical-total-running" : "1000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"critical-total-running" : "1000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
