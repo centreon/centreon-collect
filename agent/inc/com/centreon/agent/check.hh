@@ -21,6 +21,7 @@
 
 #include "agent.pb.h"
 #include "com/centreon/common/perfdata.hh"
+#include "com/centreon/common/threshold.hh"
 
 namespace com::centreon::agent {
 
@@ -252,6 +253,9 @@ class check : public std::enable_shared_from_this<check> {
                                           const char* field_name,
                                           const rapidjson::Value& val,
                                           bool must_be_positive);
+  static std::optional<std::string> get_string(const std::string& cmd_name,
+                                               const char* field_name,
+                                               const rapidjson::Value& val);
 
   static std::optional<bool> get_bool(const std::string& cmd_name,
                                       const char* field_name,

@@ -97,8 +97,24 @@ check_counter::check_counter(
       _calc_output_format();
       _warning_status = arg.get_string("warning-status", "");
       _critical_status = arg.get_string("critical-status", "");
-      _warning_threshold_count = arg.get_int("warning-count", 1);
-      _critical_threshold_count = arg.get_int("critical-count", 1);
+
+      // check if the field warning_count and critical_count are int or string
+
+      _warning_threshold.extract_range(
+          arg.get_string_or_int_as_string("warning-count", "0"));
+      _critical_threshold.extract_range(
+          arg.get_string_or_int_as_string("critical-count", "0"));
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_threshold.set_default_low(0);
+      _critical_threshold.set_default_low(0);
+
+      if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
+        throw std::runtime_error(
+            "check_counter, invalid warning-count or critical-count range");
+      }
+
       _verbose = arg.get_bool("verbose", false);
       _use_english = arg.get_bool("use_english", false);
     }
@@ -396,17 +412,22 @@ e_status check_counter::compute(
     common::perfdata c_warn_pref;
     c_warn_pref.name("warning-count");
     c_warn_pref.value(_warning_list.size());
+    _warning_threshold.set_pref_details_w(c_warn_pref);
+
     perfs->emplace_back(std::move(c_warn_pref));
     common::perfdata c_crit_pref;
     c_crit_pref.name("critical-count");
     c_crit_pref.value(_critical_list.size());
+    _critical_threshold.set_pref_details_c(c_crit_pref);
+
     perfs->emplace_back(std::move(c_crit_pref));
   }
 
   // check the status
-  if (is_critical && _critical_list.size() >= _critical_threshold_count) {
+  if (is_critical && _critical_threshold.is_triggered(_critical_list.size())) {
     ret = e_status::critical;
-  } else if (is_warning && _warning_list.size() >= _warning_threshold_count) {
+  } else if (is_warning &&
+             _warning_threshold.is_triggered(_warning_list.size())) {
     ret = e_status::warning;
   } else {
     ret = e_status::ok;
@@ -537,12 +558,10 @@ JSON arguments
     "critical-status"    : string,                 # Filter expression that
                                                      marks an item CRITICAL.
                                                      Ex: "value > 90".
-    "warning-count"      : integer (default 1),    # Minimum WARNING items
-                                                     before overall status is
-                                                     WARNING.
-    "critical-count"     : integer (default 1),    # Minimum CRITICAL items
-                                                     before overall status is
-                                                     CRITICAL.
+    "warning-count"      : string (default 0),     # Threshold of items number with warning status
+                                                     to trigger WARNING.
+    "critical-count"     : string (default 0),     # Threshold of items number with critical status
+                                                     to trigger CRITICAL.
     "verbose"            : bool (default false),   # add verbose output in the end.
     "use_english"        : bool (default false)    # Force English counter
                                                      names.
@@ -569,7 +588,7 @@ Example
   "detail_syntax"   : "{label}={value}",
   "warning-status"  : "value > 75",
   "critical-status" : "value > 90",
-  "warning-count"   : 10,
+  "warning-count"   : "10",
   "verbose"         : false
 }")";
 }

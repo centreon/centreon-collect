@@ -37,8 +37,8 @@ class check_event_log : public check {
   std::unique_ptr<event_log::event_container> _data;
   std::unique_ptr<event_log::event_comparator> _event_compare;
 
-  unsigned _warning_threshold;
-  unsigned _critical_threshold;
+  common::threshold _warning_threshold;
+  common::threshold _critical_threshold;
   std::string _empty_output;
   std::string _ok_syntax;
   std::string _event_detail_syntax;

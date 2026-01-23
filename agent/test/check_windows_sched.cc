@@ -96,8 +96,8 @@ class check_windows_sched : public ::testing::Test {
  * filter-tasks : "enabled == 1"
  * warning-status : "exit_code != 0x0"
  * critical-status : "exit_code < 0x0"
- * warning-count : 1
- * critical-count : 1
+ * warning_count : 1
+ * critical_count : 1
  * verbose : false
  */
 TEST_F(check_windows_sched, default_check_sched) {

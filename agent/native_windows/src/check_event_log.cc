@@ -84,8 +84,23 @@ check_event_log::check_event_log(
 
       _verbose = arg.get_bool("verbose", true);
 
-      _warning_threshold = arg.get_unsigned("warning-count", 1);
-      _critical_threshold = arg.get_unsigned("critical-count", 1);
+      // check if the field warning_count and critical_count are int or string
+      _warning_threshold.extract_range(
+          arg.get_string_or_int_as_string("warning-count", "0"));
+
+      _critical_threshold.extract_range(
+          arg.get_string_or_int_as_string("critical-count", "0"));
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_threshold.set_default_low(0);
+      _critical_threshold.set_default_low(0);
+
+      if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
+        throw std::runtime_error(
+            "check event log, invalid warning-count or critical-count range");
+      }
+
       _empty_output =
           arg.get_string("empty-state", "Empty or no match for this filter");
 
@@ -323,9 +338,9 @@ e_status check_event_log::compute(
   e_status status = e_status::ok;
 
   // Determine status based on thresholds
-  if (data.get_nb_critical() >= _critical_threshold) {
+  if (_critical_threshold.is_triggered(data.get_nb_critical())) {
     status = e_status::critical;
-  } else if (data.get_nb_warning() >= _warning_threshold) {
+  } else if (_warning_threshold.is_triggered(data.get_nb_warning())) {
     status = e_status::warning;
   } else {
     if (data.get_critical().empty() && data.get_warning().empty() &&
@@ -453,8 +468,8 @@ void check_event_log::help(std::ostream& help_stream) {
 - eventlog params:
     scan-range : validity of events, can be s, second, m, minute, h, hour, d, day, w, week, default: 24h
     verbose : display all events in long plugins output format (one line per event), default: true
-    warning-count : number of warning events to trigger a warning, default: 1
-    critical-count : number of critical events to trigger a critical, default: 1
+    warning-count : Threshold of items number with warning status to trigger WARNING. default: "0"
+    critical-count : Threshold of items number with critical status to trigger CRITICAL. default: "0"
     empty-state : message to display when no event is found, default: "Empty or no match for this filter"
     output-syntax : output format when status is not ok, default: "{status}: {count} {problem_list}"
     ok-syntax : output format when status is ok, default: "{status}: Event log seems fine"

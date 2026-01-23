@@ -611,7 +611,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 TEST_F(drive_size_test, test_fs_filter_free_percent) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning" : "70", "critical" : "50", "unit": "%", "free": true,
+      R"({ "warning" : "70:", "critical" : "50:", "unit": "%", "free": true,
          "exclude-fs": "tmpfs", "exclude-mountpoint":"/dev" })"_json;
 
   absl::Mutex wait_m;
@@ -650,10 +650,10 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
   for (const auto& p : perfs) {
     ASSERT_EQ(p.unit(), "%");
     ASSERT_EQ(p.min(), 0);
-    ASSERT_EQ(p.warning_low(), 0);
-    ASSERT_EQ(p.critical_low(), 0);
-    ASSERT_EQ(p.warning(), 70);
-    ASSERT_EQ(p.critical(), 50);
+    ASSERT_EQ(p.warning_low(), 70);
+    ASSERT_EQ(p.critical_low(), 50);
+    ASSERT_TRUE(std::isnan(p.warning()));
+    ASSERT_TRUE(std::isnan(p.critical()));
     if (p.name() == "free_/") {
       ASSERT_NEAR(p.value(), 60.46, 0.01);
       ASSERT_EQ(p.max(), 100);
