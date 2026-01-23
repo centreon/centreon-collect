@@ -286,6 +286,9 @@ class rapidjson_helper {
 
   bool get_bool(const char* field_name, bool default_value) const;
 
+  std::string get_string_or_int_as_string(const char* field_name,
+                                          const char* default_string) const;
+
   // as overriding can't be done with returned type, we use a templated method
   template <typename value_type>
   value_type get(const char* field_name);
@@ -448,8 +451,8 @@ struct formatter<rapidjson::Value> : formatter<std::string_view, char> {
 
   // Formats a rapidjson::Value
   template <typename FormatContext>
-  auto format(const rapidjson::Value& val, FormatContext& ctx) const
-      -> decltype(ctx.out()) {
+  auto format(const rapidjson::Value& val,
+              FormatContext& ctx) const -> decltype(ctx.out()) {
     using namespace rapidjson;
 
     StringBuffer buffer;
