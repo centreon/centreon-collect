@@ -156,7 +156,7 @@ void kpi_boolexp::_fill_impact(impact_values& impact) {
   // Get nominal impact from state.
   bam::state state = _current_state;
   double nominal;
-  if (state_ok == state)
+  if (state_ok == state || state_unknown == state)
     nominal = 0.0;
   else
     nominal = _impact;
