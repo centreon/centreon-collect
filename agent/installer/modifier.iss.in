@@ -635,12 +635,19 @@ end;
 // Handles log type, log level, encryption, and certificate settings.
 // Only executes if installer is running in silent mode.
 procedure LoadSilentParameters;
+var
+  AgentInstanceParam: string;
 begin
   if not IsSilentMode then Exit;
 
   // the parameter is already checked in CheckSilentParameterValidity before calling this function
-  AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(ExpandConstant('{param:agentinstance|}'));
-  ReadAgentRegistryValues(AgentInstanceComboBox.Text)
+  AgentInstanceParam := ExpandConstant('{param:agentinstance|}');
+  if AgentInstanceParam <> '' then
+    AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(AgentInstanceParam)
+  else
+    AgentInstanceComboBox.ItemIndex := 0;
+
+  ReadAgentRegistryValues(AgentInstanceComboBox.Text);
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
