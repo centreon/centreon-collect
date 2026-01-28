@@ -469,6 +469,7 @@ else()
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
+  add_broker_module(EVENT_SCRIPT ON)
   add_subdirectory(http_tsdb)
 endif()
 
