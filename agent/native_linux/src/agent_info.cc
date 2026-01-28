@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+#include <ifaddrs.h>
+#include <netdb.h>
+
 #include "agent_info.hh"
 #include "version.hh"
 
@@ -61,6 +64,7 @@ void com::centreon::agent::read_os_version() {
  */
 void com::centreon::agent::fill_agent_info(
     const std::string& supervised_host,
+    const std::string& host_template,
     ::com::centreon::agent::AgentInfo* agent_info) {
   agent_info->mutable_centreon_version()->set_major(
       CENTREON_AGENT_VERSION_MAJOR);
@@ -69,7 +73,33 @@ void com::centreon::agent::fill_agent_info(
   agent_info->mutable_centreon_version()->set_patch(
       CENTREON_AGENT_VERSION_PATCH);
   agent_info->set_host(supervised_host);
+  agent_info->set_host_template(host_template);
   agent_info->set_os(_os);
   agent_info->set_os_version(_os_version);
   agent_info->set_encryption_ready(true);
+
+  struct ifaddrs* ifaddr = nullptr;
+  if (getifaddrs(&ifaddr)) {
+    return;
+  }
+  for (struct ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
+    if (ifa->ifa_addr == nullptr || !(ifa->ifa_flags & IFF_UP)) {
+      continue;
+    }
+    if (ifa->ifa_flags & IFF_LOOPBACK) {
+      continue;
+    }
+    int family = ifa->ifa_addr->sa_family;
+    if (family == AF_INET || family == AF_INET6) {
+      char host[NI_MAXHOST];
+      int res = getnameinfo(ifa->ifa_addr,
+                            (family == AF_INET) ? sizeof(struct sockaddr_in)
+                                                : sizeof(struct sockaddr_in6),
+                            host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+      if (!res) {
+        agent_info->add_ips(host);
+      }
+    }
+  }
+  freeifaddrs(ifaddr);
 }

@@ -19,6 +19,7 @@
 #include <google/protobuf/util/message_differencer.h>
 
 #include "centreon_agent/agent_impl.hh"
+#include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/base64.hh"
@@ -301,7 +302,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     }
     if (_agent_info) {
       const std::string& peer = get_peer();
-      bool at_least_one_command_found = get_otel_commands(
+      e_get_otel_commands_ret command_added = get_otel_commands(
           _agent_info->init().host(),
           [cnf, &peer, crypt_credentials](
               const std::string& cmd_name, const std::string& cmd_line,
@@ -315,9 +316,24 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
                 crypt_credentials);
           },
           _whitelist_cache, _logger);
-      if (!at_least_one_command_found) {
-        SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} (host: {})",
-                            get_peer(), _agent_info->init().host());
+      if (command_added == e_get_otel_commands_ret::no_cma_service) {
+        SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} : {}",
+                            get_peer(), _agent_info->init().ShortDebugString());
+      } else if (command_added == e_get_otel_commands_ret::unknown_host) {
+        SPDLOG_LOGGER_ERROR(_logger, "unknown host for agent {} : {}",
+                            get_peer(), _agent_info->init().ShortDebugString());
+        // notify broker of an unknown cma host
+        com::centreon::broker::UnknownHost to_send;
+        const auto& agent_info = _agent_info->init();
+        to_send.set_host_name(agent_info.host());
+        to_send.set_host_template(agent_info.host_template());
+        to_send.set_os(agent_info.os());
+        to_send.set_os_version(agent_info.os_version());
+        for (const auto& ip : agent_info.ips()) {
+          to_send.add_ips(ip);
+        }
+        to_send.set_incoming_ip(get_peer());
+        broker_agent_unknown_host(to_send);
       }
     }
     if (!_last_sent_config ||

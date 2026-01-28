@@ -116,6 +116,10 @@ config::config(const std::string& registry_key) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);

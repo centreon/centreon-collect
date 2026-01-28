@@ -26,6 +26,7 @@ namespace com::centreon::agent {
 void read_os_version();
 
 void fill_agent_info(const std::string& supervised_host,
+                     const std::string& host_template,
                      ::com::centreon::agent::AgentInfo* agent_info);
 }  // namespace com::centreon::agent
 #endif
