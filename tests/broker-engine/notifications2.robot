@@ -980,6 +980,160 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent outside time period
 
+not21
+    [Documentation]    No notifications should be sent for UNKNOWN services when host goes DOWN.
+    ...    When a host transitions to DOWN (soft or hard), services become UNKNOWN due to
+    ...    host unreachability. These services should not trigger notifications.
+    [Tags]    broker    engine    host    services    notification
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${3}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value    0    host_down_disable_service_checks    1    ${True}
+    
+    # Configure host with notifications enabled
+    Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
+    Ctn Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Hosts    0    host_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Hosts    0    host_1    notification_interval    1
+    Ctn Engine Config Replace Value In Hosts    0    host_1    max_check_attempts    2
+    Ctn Engine Config Replace Value In Hosts    0    host_1    check_interval    1
+    Ctn Engine Config Replace Value In Hosts    0    host_1    retry_interval    1
+    Ctn Engine Config Replace Value In Hosts    0    host_1    check_command    command_1
+    
+    # Configure services with notifications enabled
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,u,c
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    2
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_2
+
+    
+    Ctn Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_2    notification_options    w,u,c
+    Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_2    notification_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts    2
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_3
+    
+    Ctn Engine Config Set Value In Services    0    service_3    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_3    notification_options    w,u,c
+    Ctn Engine Config Set Value In Services    0    service_3    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_3    notification_period    24x7
+    Ctn Engine Config Set Value In Services    0    service_3    first_notification_delay    0
+    Ctn Engine Config Set Value In Services    0    service_3    notification_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_3    max_check_attempts    2
+    Ctn Engine Config Replace Value In Services    0    service_3    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_3    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_3    check_command    command_4
+    
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    bbdo    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_functions    warning
+    Ctn Engine Config Set Value    0    log_level_notifications    info
+    Ctn Engine Config Set Value    0    log_level_checks    info
+    
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Log To Console    Waiting for engine to be ready...
+    # Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    
+    # Get command IDs and set initial statuses
+    ${cmd_host_1}    Set Variable    1
+    ${cmd_service_1}    Set Variable    2
+    ${cmd_service_2}    Set Variable    3
+    ${cmd_service_3}    Set Variable    4
+    
+    # Set service_2 to WARNING and service_3 to CRITICAL
+    Log To Console    Setting service command statuses: service_1=OK, service_2=WARNING, service_3=CRITICAL
+    Ctn Set Command Status    ${cmd_service_1}    ${0}
+    Ctn Set Command Status    ${cmd_service_2}    ${1}
+    Ctn Set Command Status    ${cmd_service_3}    ${2}
+    
+    # Host is initially UP
+    Ctn Set Command Status    ${cmd_host_1}    ${0}
+    
+
+    # Verify services are initially OK
+    Log To Console    Checking service_1 status (should be OK)...
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK
+
+    Log To Console    Checking service_2 status (should be WARNING HARD)...
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_2    ${1}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_2) should be WARNING HARD
+    
+    Log To Console    Checking service_3 status (should be CRITICAL HARD)...
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_3    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_3) should be CRITICAL HARD
+
+    # Verify notifications are sent for WARNING and CRITICAL states
+    Log To Console    Checking for WARNING notification for service_2...
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_2;WARNING;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    WARNING notification should be sent for service_2
+
+    Log To Console    Checking for CRITICAL notification for service_3...
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_3;CRITICAL;command_notif;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    CRITICAL notification should be sent for service_3
+
+
+    # host to DOWN SOFT
+    Log To Console    ===== Testing host DOWN SOFT state =====
+    ${start}    Get Current Date
+    Log To Console    Setting host command status to DOWN...
+    Ctn Set Command Status    ${cmd_host_1}    ${2}
+    
+    # Wait for host to be checked and go DOWN SOFT
+    Log To Console    Checking for host DOWN SOFT alert...
+    ${content}    Create List    HOST ALERT: host_1;DOWN;SOFT;1;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Host should be in DOWN SOFT state
+
+
+    # Verify services are in UNKNOWN state (due to host DOWN)
+    Log To Console    Checking service_1 for UNKNOWN state...
+    ${content}    Create List    SERVICE ALERT:.*service_1;UNKNOWN;
+    ${result}    ${msg}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Service service_1 should be in UNKNOWN state
+
+    Log To Console    Checking for UNKNOWN notifications during DOWN (should be none)
+    # Verify NO service UNKNOWN notifications are sent during SOFT DOWN
+    ${content}    Create List    SERVICE NOTIFICATION:.*service_1;UNKNOWN
+    ${result}    ${msg}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Not Be True    ${result}    No UNKNOWN notification should be sent for service_1 during host DOWN
+
+    ${content}    Create List    SERVICE NOTIFICATION:.*service_2;UNKNOWN
+    ${result}    ${msg}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Not Be True    ${result}    No UNKNOWN notification should be sent for service_2 during host DOWN
+
+    ${content}    Create List    SERVICE NOTIFICATION:.*service_3;UNKNOWN
+    ${result}    ${msg}    Ctn Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Not Be True    ${result}    No UNKNOWN notification should be sent for service_3 during host DOWN
+
+    Log To Console    ===== Test completed successfully =====
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 *** Keywords ***
 Ctn Config Notifications
     [Documentation]    Configuring engine notification settings.
