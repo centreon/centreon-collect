@@ -420,6 +420,7 @@ target_link_libraries(
   roker
   multiplexing
   centreon_common
+  centreon_process
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive

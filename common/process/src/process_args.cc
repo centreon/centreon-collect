@@ -215,3 +215,14 @@ void process_args::clear_unencrypted_args() {
     s.clear();
   }
 }
+
+/**
+ * @brief Add an argument to command at the end of the command
+ *
+ * @param arg
+ */
+void process_args::add_arg(const std::string& arg) {
+  _args.push_back(arg);
+  *_c_args.rbegin() = _args.rbegin()->c_str();
+  _c_args.push_back(nullptr);
+}

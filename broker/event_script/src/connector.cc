@@ -33,9 +33,11 @@ connector::connector() : io::endpoint(false, {}, {}) {}
  */
 void connector::connect_to(
     const std::string_view& script_path,
-    std::chrono::system_clock::duration managed_event_ttl) {
+    const std::chrono::system_clock::duration& managed_event_ttl,
+    const std::chrono::system_clock::duration& timeout) {
   _script_path = script_path;
   _managed_event_ttl = managed_event_ttl;
+  _timeout = timeout;
 }
 
 /**
@@ -44,5 +46,6 @@ void connector::connect_to(
  * @return An Influxdb connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(new stream(_script_path, _managed_event_ttl));
+  return std::unique_ptr<stream>(
+      new stream(_script_path, _managed_event_ttl, _timeout));
 }

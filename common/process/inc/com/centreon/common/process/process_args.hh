@@ -62,14 +62,14 @@ class process_args {
   }
 
   process_args(const std::string_view& unix_commandline);
-  process_args(const process_args&) = delete;
-  process_args& operator=(const process_args&) = delete;
 
   void encrypt_args(const crypto::aes256& crypto);
 
   void decrypt_args(const crypto::aes256& crypto);
 
   void clear_unencrypted_args();
+
+  void add_arg(const std::string& arg);
 
   void dump(std::string* output) const;
 

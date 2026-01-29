@@ -30,6 +30,7 @@ namespace com::centreon::broker::event_script {
 class connector : public io::endpoint {
   std::string _script_path;
   std::chrono::system_clock::duration _managed_event_ttl;
+  std::chrono::system_clock::duration _timeout;
 
  public:
   connector();
@@ -37,7 +38,8 @@ class connector : public io::endpoint {
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   void connect_to(const std::string_view& script_path,
-                  std::chrono::system_clock::duration managed_event_ttl);
+                  const std::chrono::system_clock::duration& managed_event_ttl,
+                  const std::chrono::system_clock::duration& timeout);
   std::shared_ptr<io::stream> open() override;
 };
 

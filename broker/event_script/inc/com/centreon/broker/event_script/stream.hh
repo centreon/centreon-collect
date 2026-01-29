@@ -19,17 +19,13 @@
 #ifndef CCB_EVENT_SCRIPT_STREAM_HH
 #define CCB_EVENT_SCRIPT_STREAM_HH
 
-#include <absl/base/thread_annotations.h>
-#include <spdlog/logger.h>
-#include <atomic>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/indexed_by.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
-#include <chrono>
-#include <memory>
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/common/process/process_args.hh"
 
 namespace com::centreon::broker::event_script {
 
@@ -47,7 +43,6 @@ struct io_data_compare {
 };
 
 class stream : public io::stream {
-  std::string _script_path;
   std::chrono::system_clock::duration _managed_event_ttl;
   std::chrono::system_clock::duration _timeout;
 
@@ -76,9 +71,12 @@ class stream : public io::stream {
 
   std::shared_ptr<std::atomic_uint> _to_ack;
 
+  com::centreon::common::process_args::pointer _script_cmdline;
+
  public:
   stream(const std::string_view& script_path,
-         const std::chrono::system_clock::duration managed_event_ttl);
+         const std::chrono::system_clock::duration& managed_event_ttl,
+         const std::chrono::system_clock::duration& timeout);
 
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   int write(const std::shared_ptr<io::data>& d) override;

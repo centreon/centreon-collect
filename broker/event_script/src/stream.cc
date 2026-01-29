@@ -54,12 +54,15 @@ size_t io_data_compare::operator()(
 }
 
 stream::stream(const std::string_view& script_path,
-               const std::chrono::system_clock::duration managed_event_ttl)
+               const std::chrono::system_clock::duration& managed_event_ttl,
+               const std::chrono::system_clock::duration& timeout)
     : io::stream("event_script"),
-      _script_path(script_path),
       _managed_event_ttl(managed_event_ttl),
+      _timeout(timeout),
       _logger(log_v2::log_v2::instance().get(log_v2::log_v2::EVENT_SCRIPT)),
-      _to_ack(std::make_shared<std::atomic_uint>(0)) {}
+      _to_ack(std::make_shared<std::atomic_uint>(0)) {
+  _script_cmdline = common::process<true>::parse_cmd_line(script_path);
+}
 
 /**
  *  Read
@@ -98,9 +101,15 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     [[maybe_unused]] auto dummy = google::protobuf::util::MessageToJsonString(
         *pb_event->msg(), &json_dump);
 
-    std::shared_ptr<common::process<true>> proc(new common::process<true>(
-        common::pool::io_context_ptr(), _logger, _script_path, true, false,
-        {json_dump}, nullptr));
+    com::centreon::common::process_args::pointer cmdline =
+        std::make_shared<com::centreon::common::process_args>(*_script_cmdline);
+
+    cmdline->add_arg(json_dump);
+
+    std::shared_ptr<common::process<true>> proc =
+        std::make_shared<common::process<true>>(common::pool::io_context_ptr(),
+                                                _logger, cmdline, true, false,
+                                                nullptr);
 
     proc->start_process(
         [to_ack = _to_ack](const common::process<true>& proc, int exit_code,

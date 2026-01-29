@@ -37,17 +37,15 @@ target_precompile_headers("80-event_script" PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("80-event_script" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 
-# Testing.
-# if(WITH_TESTING)
-#   set(TESTS_SOURCES
-#       ${TESTS_SOURCES} ${TEST_DIR}/column.cc ${TEST_DIR}/factory.cc
-#       ${TEST_DIR}/influxdb.cc ${TEST_DIR}/line_protocol_query.cc
-#       ${TEST_DIR}/stream.cc
-#       PARENT_SCOPE)
-#   set(TESTS_LIBRARIES
-#       ${TESTS_LIBRARIES} event_script
-#       PARENT_SCOPE)
-# endif(WITH_TESTING)
+#Testing.
+if(WITH_TESTING)
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TEST_DIR}/factory_test.cc ${TEST_DIR}/stream_test.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} 80-event_script
+      PARENT_SCOPE)
+endif(WITH_TESTING)
 
 # Install rule.
 install(TARGETS "80-event_script" LIBRARY DESTINATION "${PREFIX_MODULES}")

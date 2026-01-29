@@ -66,10 +66,22 @@ io::endpoint* factory::new_endpoint(
 
   auto script_path = absl::StripAsciiWhitespace(it->second);
 
-  unsigned minute_managed_event_ttl(60);
-  it = cfg.params.find("minute_managed_event_ttl");
+  unsigned managed_event_ttl(3600);
+  it = cfg.params.find("managed_event_ttl");
   if (it != cfg.params.end()) {
-    if (!absl::SimpleAtoi(it->second, &minute_managed_event_ttl)) {
+    if (!absl::SimpleAtoi(it->second, &managed_event_ttl)) {
+      throw msg_fmt(
+          "event_script: couldn't parse managed_event_ttl '{}' defined "
+          "for "
+          "endpoint '{}'",
+          it->second, cfg.name);
+    }
+  }
+
+  unsigned timeout = 15;
+  it = cfg.params.find("timeout");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &timeout)) {
       throw msg_fmt(
           "event_script: couldn't parse minute_managed_event_ttl '{}' defined "
           "for "
@@ -92,7 +104,8 @@ io::endpoint* factory::new_endpoint(
   }
   // Connector.
   std::unique_ptr<event_script::connector> c(new event_script::connector);
-  c->connect_to(script_path, std::chrono::minutes(minute_managed_event_ttl));
+  c->connect_to(script_path, std::chrono::seconds(managed_event_ttl),
+                std::chrono::seconds(timeout));
   is_acceptor = false;
   return c.release();
 }
