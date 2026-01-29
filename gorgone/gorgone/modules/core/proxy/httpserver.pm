@@ -279,7 +279,9 @@ sub action_proxyaddnode {
             if (!is_empty($self->{nodes}->{ $node->{id} })) {
                 $node->{token} = $self->{nodes}->{ $node->{id} }->{token};
             }
-        } elsif ($self->{nodes}->{ $node->{id} }->{token} ne $node->{token} and $ws_id){
+        } elsif ($ws_id and (
+            defined($self->{nodes}->{ $node->{id} }->{token}) and $self->{nodes}->{ $node->{id} }->{token} ne $node->{token}
+              or !defined($self->{nodes}->{ $node->{id} }->{token}) and defined($node->{token}) )){
             $self->{ws_clients}->{ $ws_id }->{tx}->finish();
             $self->{ws_clients}->{$ws_id}->{logged} = 0;
             $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
