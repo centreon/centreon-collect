@@ -88,7 +88,8 @@ bulk_or_multi::bulk_or_multi(
     unsigned bulk_row,
     const std::chrono::system_clock::duration execute_delay_ready,
     unsigned row_count_ready)
-    : _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
+    : _row_count{0},
+      _bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
       _bulk_bind(_bulk_stmt->create_bind()),
       _bulk_row(bulk_row),
       _execute_delay_ready(execute_delay_ready),

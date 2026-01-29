@@ -1118,6 +1118,7 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
         timeout: timeout in seconds
     """
     limit = time.time() + timeout
+    result = []
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1138,7 +1139,11 @@ def ctn_check_downtimes_with_timeout(nb: int, timeout: int):
                     else:
                         logger.console(
                             f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
+                        cursor.execute(
+                            "SELECT * FROM downtimes WHERE deletion_time IS NULL")
+                        result = cursor.fetchall()
         time.sleep(2)
+    logger.console(f"Wrong result: {result}")
     return False
 
 

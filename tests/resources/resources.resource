@@ -54,6 +54,7 @@ Ctn Clean Before Suite
     Ctn Clear Engine Logs
     Ctn Clear Broker Logs
     Ctn Clear Commands Status
+    Ctn Clear Engine White List
 
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
@@ -85,7 +86,10 @@ Ctn Clear Broker Logs
     Directory Should Exist    ${BROKER_LOG}
 
 Ctn Start Vault
-    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    ${result}    Start Process    /usr/bin/perl    vault/vault-server.pl    alias=vault
+    Sleep    2s    # Waiting 2s to be sure vault is started
+    ${running}    Is Process Running    ${result}
+    Should Be True    ${running}    Vault not correctly started
 
 Ctn Stop Vault
     ${result}    Terminate Process    vault    kill=False
@@ -531,9 +535,9 @@ Ctn Workspace Win
         ${workspace}    Ctn Get Workspace Win
         RETURN    ${workspace}
     END
-    
+
     RETURN    None
-    
+
 Ctn Kindly Stop Agent
     ${run_env}    Ctn Run Env
 

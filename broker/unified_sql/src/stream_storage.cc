@@ -926,13 +926,24 @@ void stream::_check_queues(boost::system::error_code ec) {
 
       bool downtimes_done = false;
       {
-        std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
-        if (_downtimes->ready()) {
+	SPDLOG_LOGGER_DEBUG(_logger_sql, "BEFORE: {} new downtimes inserted",
+                              _downtimes->row_count());
+        absl::flat_hash_map<std::tuple<time_t, uint64_t, uint64_t>,
+                            std::shared_ptr<neb::pb_downtime>>
+            local_downtimes;
+        absl::ReleasableMutexLock lck(&_downtimes_m);
+        if (!_pending_downtimes.empty()) {
+          local_downtimes.swap(_pending_downtimes);
+          lck.Release();
+
+          for (const auto& dt : local_downtimes) {
+            _internal_process_downtime(dt.second);
+          }
+
+          std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
           SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new downtimes inserted",
                               _downtimes->row_count());
-          int32_t conn = special_conn::downtime % _mysql.connections_count();
-          _downtimes->execute(_mysql, database::mysql_error::store_downtime,
-                              conn);
+          _downtimes->execute(_mysql, database::mysql_error::store_downtime, 0);
           downtimes_done = true;
         }
       }

@@ -5076,14 +5076,15 @@ def ctn_clear_engine_white_list():
     Clear the Centreon Engine whitelist by removing the centreon-engine-whitelist
     directory content.
     """
-    whitelist_dir = "/etc/centreon-engine-whitelist"
+    whitelist_dir = ["/etc/centreon-engine-whitelist", "/usr/share/centreon-engine/whitelist.conf.d"]
     try:
-        for item in os.listdir(whitelist_dir):
-            item_path = os.path.join(whitelist_dir, item)
-            if os.path.isfile(item_path) or os.path.islink(item_path):
-                os.unlink(item_path)
-            elif os.path.isdir(item_path):
-                shutil.rmtree(item_path)
+        for directory in whitelist_dir:
+            for item in os.listdir(directory):
+                item_path = os.path.join(directory, item)
+                if os.path.isfile(item_path) or os.path.islink(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
     except Exception as e:
         print(f"Error while cleaning the directory: {e}")
 

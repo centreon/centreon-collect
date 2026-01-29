@@ -26,6 +26,7 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
+#include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
 #include "com/centreon/broker/neb/host_group_member.hh"
@@ -414,6 +415,33 @@ static std::shared_ptr<io::data> _inherited_downtime_to_pb(
   return pb;
 }
 
+static std::shared_ptr<io::data> _downtime_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<neb::downtime>(d).get();
+  auto pb = std::make_shared<neb::pb_downtime>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  auto& obj = pb->mut_obj();
+  obj.set_type(static_cast<Downtime_DowntimeType>(in.downtime_type));
+  obj.set_instance_id(in.poller_id);
+  obj.set_id(in.internal_id);
+  obj.set_cancelled(in.was_cancelled);
+  obj.set_started(in.was_started);
+  obj.set_comment_data(in.comment);
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (actual_end_time)(actual_start_time)(author)(deletion_time)(duration)(end_time)(entry_time)(fixed)(host_id)(service_id)(start_time)(triggered_by));
+
+  return pb;
+}
+
+/**
+ * @brief Convert a BBDO v2 event to BBDO v3
+ *
+ * @param d Input event to convert
+ *
+ * @return Converted event
+ */
 std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
     const std::shared_ptr<io::data>& d) {
   if (!d) {
@@ -454,6 +482,8 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _dimension_truncate_table_signal_to_pb(d);
     case bam::inherited_downtime::static_type():
       return _inherited_downtime_to_pb(d);
+    case neb::downtime::static_type():
+      return _downtime_to_pb(d);
     default:
       return d;
   }

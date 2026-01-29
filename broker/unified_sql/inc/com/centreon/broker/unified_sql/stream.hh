@@ -21,13 +21,13 @@
 
 #include <boost/bimap.hpp>
 
-#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 #include "com/centreon/common/perfdata.hh"
@@ -286,6 +286,12 @@ class stream : public io::stream {
   std::unique_ptr<database::bulk_or_multi> _perfdata_query;
 
   std::unique_ptr<database::bulk_or_multi> _logs;
+
+  mutable absl::Mutex _downtimes_m;
+  /* Downtimes are indexed by a tuple (entry_time, instance_id, internal_id) */
+  absl::flat_hash_map<std::tuple<time_t, uint64_t, uint64_t>,
+                      std::shared_ptr<neb::pb_downtime>>
+      _pending_downtimes ABSL_GUARDED_BY(_downtimes_m);
   std::unique_ptr<database::bulk_or_multi> _downtimes;
   std::unique_ptr<database::bulk_or_multi> _comments;
 
@@ -404,6 +410,8 @@ class stream : public io::stream {
   void _process_pb_custom_variable(const std::shared_ptr<io::data>& d);
   void _process_pb_custom_variable_status(const std::shared_ptr<io::data>& d);
   void _process_downtime(const std::shared_ptr<io::data>& d);
+
+  void _internal_process_downtime(const std::shared_ptr<neb::pb_downtime>& dt);
   void _process_pb_downtime(const std::shared_ptr<io::data>& d);
   void _process_host_check(const std::shared_ptr<io::data>& d);
   void _process_pb_host_check(const std::shared_ptr<io::data>& d);

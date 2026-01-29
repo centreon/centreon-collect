@@ -28,8 +28,7 @@
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
-#include "com/centreon/broker/unified_sql/internal.hh"
-#include "com/centreon/broker/unified_sql/stream.hh"
+#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 
@@ -823,9 +822,8 @@ void stream::_process_pb_custom_variable_status(
 /**
  *  Process a downtime event.
  *
- *  @param[in] e Uncasted downtime.
+ *  @param[in] d Uncasted downtime.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
   // Cast object.
@@ -833,105 +831,70 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
 
   // Log message.
   SPDLOG_LOGGER_INFO(_logger_sql,
-                     "unified_sql: processing downtime event (poller: {}"
-                     ", host: {}, service: {}, start time: {}, end_time: {}"
-                     ", actual start time: {}, actual end time: {}, duration: "
-                     "{}, entry time: {}, deletion time: {})",
-                     dd.poller_id, dd.host_id, dd.service_id, dd.start_time,
-                     dd.end_time, dd.actual_start_time, dd.actual_end_time,
-                     dd.duration, dd.entry_time, dd.deletion_time);
+                     "unified_sql: processing downtime event (entry time: {}, "
+                     "poller: {}, internal ID: {}, host: {}, service: {}, "
+                     "start time: {}, end_time: {}, actual start time: {}, "
+                     "actual end time: {}, duration: {}, deletion time: {})",
+                     dd.entry_time, dd.poller_id, dd.internal_id, dd.host_id,
+                     dd.service_id, dd.start_time, dd.end_time,
+                     dd.actual_start_time, dd.actual_end_time, dd.duration,
+                     dd.deletion_time);
 
-  // Check if poller is valid.
-  if (_is_valid_poller(dd.poller_id)) {
-    if (_downtimes->is_bulk()) {
-      auto binder = [&](database::mysql_bulk_bind& b) {
-        if (dd.actual_end_time.is_null())
-          b.set_null_i64(0);
-        else
-          b.set_value_as_i64(0, dd.actual_end_time);
-        if (dd.actual_start_time.is_null())
-          b.set_null_i64(1);
-        else
-          b.set_value_as_i64(1, dd.actual_start_time);
-        b.set_value_as_str(
-            2, misc::string::escape(dd.author,
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
-        b.set_value_as_i32(3, dd.downtime_type);
-        if (dd.deletion_time.is_null())
-          b.set_null_i64(4);
-        else
-          b.set_value_as_i64(4, dd.deletion_time);
-        b.set_value_as_i64(5, dd.duration);
-        if (dd.end_time.is_null())
-          b.set_null_i64(6);
-        else
-          b.set_value_as_i64(6, dd.end_time);
-        if (dd.entry_time.is_null())
-          b.set_null_i64(7);
-        else
-          b.set_value_as_i64(7, dd.entry_time);
-        b.set_value_as_tiny(8, int(dd.fixed));
-        b.set_value_as_i64(9, dd.host_id);
-        b.set_value_as_i64(10, dd.poller_id);
-        b.set_value_as_i64(11, dd.internal_id);
-        b.set_value_as_i64(12, dd.service_id);
-        if (dd.start_time.is_null())
-          b.set_null_i64(13);
-        else
-          b.set_value_as_i64(13, dd.start_time);
-        if (dd.triggered_by == 0)
-          b.set_null_i32(14);
-        else
-          b.set_value_as_i32(14, dd.triggered_by);
-        b.set_value_as_tiny(15, int(dd.was_cancelled));
-        b.set_value_as_tiny(16, int(dd.was_started));
-        b.set_value_as_str(
-            17, misc::string::escape(
-                    dd.comment, get_centreon_storage_downtimes_col_size(
-                                    centreon_storage_downtimes_comment_data)));
-        b.next_row();
-      };
-      _downtimes->add_bulk_row(binder);
-    } else {
-      _logger_sql->error("original actual end time {} is null {}",
-                         dd.actual_end_time.get_time_t(),
-                         dd.actual_end_time.is_null());
-      _logger_sql->error("actual end time {}", dd.actual_end_time);
-      _downtimes->add_multi_row(fmt::format(
-          "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
-          misc::string::escape(dd.author,
-                               get_centreon_storage_downtimes_col_size(
-                                   centreon_storage_downtimes_author)),
-          dd.downtime_type, dd.deletion_time.to_string(), dd.duration,
-          dd.end_time.to_string(), dd.entry_time.to_string(), dd.fixed,
-          dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
-          dd.start_time, int64_not_minus_one{dd.triggered_by}, dd.was_cancelled,
-          dd.was_started,
-          misc::string::escape(dd.comment,
-                               get_centreon_storage_downtimes_col_size(
-                                   centreon_storage_downtimes_comment_data))));
-    }
-  }
+  // Cast object.
+  std::shared_ptr<neb::pb_downtime> pb_dd =
+      std::static_pointer_cast<neb::pb_downtime>(neb::bbdo2_to_bbdo3(d));
+
+  absl::MutexLock l(&_downtimes_m);
+  auto& obj = pb_dd->obj();
+  _logger_sql->debug("Storing downtime at {}:{}:{}", obj.entry_time(),
+                     obj.instance_id(), obj.id());
+  _pending_downtimes.insert_or_assign(
+      std::make_tuple(obj.entry_time(), obj.instance_id(), obj.id()), pb_dd);
 }
 
 /**
  *  Process a downtime (protobuf) event.
  *
- *  @param[in] e Uncasted downtime.
+ *  @param[in] d Uncasted downtime.
  *
- * @return The number of events that can be acknowledged.
  */
 void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
-  // Cast object.
-  const neb::pb_downtime& dd = *static_cast<neb::pb_downtime const*>(d.get());
-  auto& dt_obj = dd.obj();
-
+  auto& dt_obj = static_cast<const neb::pb_downtime*>(d.get())->obj();
   // Log message.
   SPDLOG_LOGGER_INFO(
       _logger_sql,
-      "unified_sql: processing pb downtime event (poller: {}"
+      "unified_sql: processing pb downtime event (entry time: {}, "
+      "poller: {}, internal ID: {}, host: {}, service: {}, "
+      "start time: {}, end_time: {}, actual start time: {}, "
+      "actual end time: {}, duration: {}, deletion time: {}, "
+      "started: {}, cancelled: {})",
+      dt_obj.entry_time(), dt_obj.instance_id(), dt_obj.id(), dt_obj.host_id(),
+      dt_obj.service_id(), dt_obj.start_time(), dt_obj.end_time(),
+      dt_obj.actual_start_time(), dt_obj.actual_end_time(), dt_obj.duration(),
+      dt_obj.deletion_time(), dt_obj.started(), dt_obj.cancelled());
+
+  // Cast object.
+  const auto dd = std::static_pointer_cast<neb::pb_downtime>(d);
+
+  absl::MutexLock l(&_downtimes_m);
+  auto& obj = dd->obj();
+  _pending_downtimes.insert_or_assign(
+      std::make_tuple(obj.entry_time(), obj.instance_id(), obj.id()), dd);
+}
+
+/**
+ *  Process a downtime (protobuf) event, specific function to write into DB.
+ *
+ *  @param[in] d Shared pointer to downtime event.
+ *
+ */
+void stream::_internal_process_downtime(
+    const std::shared_ptr<neb::pb_downtime>& d) {
+  // Cast object.
+  auto& dt_obj = d->obj();
+  SPDLOG_LOGGER_INFO(
+      _logger_sql,
+      "unified_sql: writing into database downtime event (poller: {}"
       ", host: {}, service: {}, start time: {}, end_time: {}, "
       "actual start time: {}, actual end time: {}, duration: "
       "{}, entry time: {}, deletion time: {}, started: {}, cancelled: {})",
@@ -1066,7 +1029,6 @@ void stream::_process_host_check(const std::shared_ptr<io::data>& d) {
       store = false;
 
     if (store) {
-
       _host_check_update << hc;
       _mysql.run_statement(_host_check_update,
                            database::mysql_error::store_host_check, 0);
