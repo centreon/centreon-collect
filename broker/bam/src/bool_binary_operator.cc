@@ -33,13 +33,15 @@ static constexpr double eps = 0.000001;
 void bool_binary_operator::_update_state() {
   if (_left && _right) {
     _state_known = _left->state_known() && _right->state_known();
-    _logger->trace("{}::_update_state: bool binary operator: state updated? {}",
-                   typeid(*this).name(), _state_known ? "yes" : "no");
+    SPDLOG_LOGGER_TRACE(
+        _logger, "{}::_update_state: bool binary operator: state known? {}",
+        typeid(*this).name(), _state_known ? "yes" : "no");
     if (_state_known) {
       _left_hard = _left->value_hard();
       _right_hard = _right->value_hard();
       _in_downtime = _left->in_downtime() || _right->in_downtime();
-      _logger->trace(
+      SPDLOG_LOGGER_TRACE(
+          _logger,
           "{}::_update_state: bool binary operator: new left value: {} - new "
           "right value: {} - downtime: {}",
           typeid(*this).name(), _left_hard, _right_hard,
@@ -47,7 +49,8 @@ void bool_binary_operator::_update_state() {
     }
   } else {
     _state_known = false;
-    _logger->trace(
+    SPDLOG_LOGGER_TRACE(
+        _logger,
         "{}::_update_state: bool binary operator: some children are empty",
         typeid(*this).name());
   }
@@ -59,7 +62,13 @@ void bool_binary_operator::_update_state() {
  *  @param[in] left Left member of the boolean operator.
  */
 void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
-  _logger->trace("{}::set_left", typeid(*this).name());
+  if (left) {
+    SPDLOG_LOGGER_TRACE(_logger, "{}::set_left known: {}, value: {}",
+                        typeid(*this).name(), left->state_known(),
+                        left->value_hard());
+  } else {
+    SPDLOG_LOGGER_TRACE(_logger, "{}::set_left nill", typeid(*this).name());
+  }
   _left = left;
   _update_state();
 }
@@ -70,7 +79,13 @@ void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
  *  @param[in] right Right member of the boolean operator.
  */
 void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
-  _logger->trace("{}::set_right", typeid(*this).name());
+  if (right) {
+    SPDLOG_LOGGER_TRACE(_logger, "{}::set_right known: {}, value: {}",
+                        typeid(*this).name(), right->state_known(),
+                        right->value_hard());
+  } else {
+    SPDLOG_LOGGER_TRACE(_logger, "{}::set_right nill", typeid(*this).name());
+  }
   _right = right;
   _update_state();
 }
@@ -100,14 +115,15 @@ bool bool_binary_operator::in_downtime() const {
  * @param visitor The visitor to handle events.
  */
 void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
-  _logger->trace("bool_binary_operator::update_from");
+  SPDLOG_LOGGER_TRACE(_logger, "bool_binary_operator::update_from");
   // Check operation members values.
   bool changed = false;
   if (child) {
     if (child == _left.get()) {
       if (_left->state_known() != _state_known ||
           std::abs(_left_hard - _left->value_hard()) > ::eps) {
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "{}::update_from: on left: old state known: {} - new state "
             "known: {} - old value: {} - new value: {}",
             typeid(*this).name(), _state_known, _left->state_known(),
@@ -115,14 +131,16 @@ void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
         _update_state();
         changed = true;
       } else
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "{}::update_from: bool_binary_operator: update_from: no "
             "on left - state known: {} - value: {}",
             typeid(*this).name(), _state_known, _left_hard);
     } else if (child == _right.get()) {
       if (_right->state_known() != _state_known ||
           std::abs(_right_hard - _right->value_hard()) > ::eps) {
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "{}::update_from on right: old state known: {} - new state "
             "known: {} - old value: {} - new value: {}",
             typeid(*this).name(), _state_known, _right->state_known(),
@@ -130,7 +148,8 @@ void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
         _update_state();
         changed = true;
       } else
-        _logger->trace(
+        SPDLOG_LOGGER_TRACE(
+            _logger,
             "{}::update_from: bool_binary_operator: update_from: no "
             "on right",
             typeid(*this).name());
