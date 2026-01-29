@@ -203,7 +203,7 @@ TEST(native_check_memory_windows, output_no_threshold3) {
 TEST(native_check_memory_windows, output_threshold) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-usage-free": "8388609", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
+      R"({ "warning-usage-free": "8388609:", "critical-usage-prct": 99.99, "warning-virtual": "20000000000", "critical-virtual": 50000000000 })"_json;
   test_check to_check(check_args);
   std::string output;
   std::list<com::centreon::common::perfdata> perfs;
@@ -218,8 +218,8 @@ TEST(native_check_memory_windows, output_threshold) {
   test_perfs(perfs);
   for (const auto& perf : perfs) {
     if (perf.name() == "memory.free.bytes") {
-      ASSERT_EQ(perf.warning_low(), 0);
-      ASSERT_EQ(perf.warning(), 8388609);
+      ASSERT_TRUE(std::isnan(perf.warning()));
+      ASSERT_EQ(perf.warning_low(), 8388609);
     } else if (perf.name() == "memory.usage.percentage") {
       ASSERT_EQ(perf.critical_low(), 0);
       ASSERT_NEAR(perf.critical(), 99.99, 0.01);

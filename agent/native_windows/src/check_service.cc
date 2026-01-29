@@ -23,6 +23,7 @@
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::native_check_detail;
 
 namespace com::centreon::agent::native_check_detail {
@@ -603,12 +604,12 @@ class w_service_info_to_status
     : public measure_to_status<e_service_metric::nb_service_metric> {
  public:
   w_service_info_to_status()
-      : measure_to_status<e_service_metric::nb_service_metric>(e_status::ok,
-                                                               0,
-                                                               0,
-                                                               0,
-                                                               false,
-                                                               false) {}
+      : measure_to_status<e_service_metric::nb_service_metric>(
+            e_status::ok,
+            0,
+            common::threshold(),
+            0,
+            false) {}
 
   void compute_status(
       const snapshot<e_service_metric::nb_service_metric>& to_test,
@@ -645,46 +646,47 @@ using w_service_to_status =
     measure_to_status<e_service_metric::nb_service_metric>;
 
 using service_to_status_constructor =
-    std::function<std::unique_ptr<w_service_to_status>(double /*threshold*/)>;
+    std::function<std::unique_ptr<w_service_to_status>(
+        const common::threshold& /*threshold*/)>;
 
 static const absl::flat_hash_map<std::string_view,
                                  service_to_status_constructor>
     _label_to_service_status = {
         {"warning-total-running",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::running, threshold,
-               e_service_metric::nb_service_metric, false, true);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-running",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::running, threshold,
-               e_service_metric::nb_service_metric, false, true);
+               e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-paused",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::paused, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-paused",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::paused, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-stopped",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::stopped, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-stopped",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::stopped, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }}
 
 };
@@ -772,11 +774,19 @@ check_service::check_service(
     } else {
       auto threshold = _label_to_service_status.find(key);
       if (threshold != _label_to_service_status.end()) {
-        std::optional<double> val =
-            get_double(get_command_name(), member_iter->name.GetString(),
-                       member_iter->value, true);
-        if (val) {
-          std::unique_ptr<w_service_to_status> to_ins = threshold->second(*val);
+        std::optional<std::string> thr_str =
+            get_string(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value);
+        if (thr_str) {
+          common::threshold thr(thr_str.value());
+          if (!thr.is_valid()) {
+            SPDLOG_LOGGER_ERROR(logger, "command: {}, invalid threshold: {}",
+                                get_command_name(), thr_str.value());
+            throw exceptions::msg_fmt("command: {}, invalid threshold: {}",
+                                      get_command_name(), thr_str.value());
+          }
+          thr.set_default_low(0);
+          std::unique_ptr<w_service_to_status> to_ins = threshold->second(thr);
           _measure_to_status.emplace(
               std::make_tuple(to_ins->get_data_index(),
                               e_service_metric::nb_service_metric,
@@ -844,12 +854,12 @@ void check_service::help(std::ostream& help_stream) {
         - pausing
         - paused
     critical-state: regex to match service state that will trigger a critical
-    warning-total-running: running service number threshold below which the service will pass in the warning state
-    critical-total-running: running service number threshold below which the service will pass in the critical state
-    warning-total-paused: number of services in the pause state above which the service goes into the warning state
-    critical-total-paused: number of services in the pause state above which the service goes into the critical state
-    warning-total-stopped: number of services in the stop state above which the service goes into the warning state
-    critical-total-stopped: number of services in the stop state above which the service goes into the critical state
+    warning-total-running: Threshold expression applied to the count of services in the "running" state to trigger a WARNING
+    critical-total-running: Threshold expression applied to the count of services in the "running" state to trigger a CRITICAL
+    warning-total-paused: Threshold expression applied to the count of services in the "paused" state to trigger a WARNING
+    critical-total-paused: Threshold expression applied to the count of services in the "paused" state to trigger a CRITICAL
+    warning-total-stopped: Threshold expression applied to the count of services in the "stopped" state to trigger a WARNING
+    critical-total-stopped: Threshold expression applied to the count of services in the "stopped" state to trigger a CRITICAL
     start-auto: true: only services that start automatically will be counted
     start-type: more accurate than start-auto. Values are:
         - auto
@@ -883,8 +893,8 @@ void check_service::help(std::ostream& help_stream) {
     "args": {
       "warning-state": "stopped",
       "critical-state": "running",
-      "warning-total-running": 20,
-      "critical-total-running": 150,
+      "warning-total-running": "20",
+      "critical-total-running": "150",
       "start-auto": true,
       "filter-name": ".*",
       "exclude-name": ".*"

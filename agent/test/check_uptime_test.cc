@@ -41,7 +41,7 @@ class native_check_uptime_test : public testing::Test {
 TEST_F(native_check_uptime_test, ok) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "345600", "critical-uptime" : "172800"})"_json;
+      R"({ "warning-uptime" : "345600:", "critical-uptime" : "172800:"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -62,16 +62,17 @@ TEST_F(native_check_uptime_test, ok) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, ok_m) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "5760", "critical-uptime" : "2880", "unit": "m"})"_json;
+      R"({ "warning-uptime" : "5760:", "critical-uptime" : "2880:", "unit": "m"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -92,16 +93,17 @@ TEST_F(native_check_uptime_test, ok_m) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, ok_h) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "96", "critical-uptime" : "48", "unit": "h"})"_json;
+      R"({ "warning-uptime" : "96:", "critical-uptime" : "48:", "unit": "h"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -122,16 +124,17 @@ TEST_F(native_check_uptime_test, ok_h) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, ok_d) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
+      R"({ "warning-uptime" : "4:", "critical-uptime" : "2:", "unit": "d"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -152,16 +155,17 @@ TEST_F(native_check_uptime_test, ok_d) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 5 + 3600 + 60 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, ok_w) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "2", "critical-uptime" : "1", "unit": "w"})"_json;
+      R"({ "warning-uptime" : "2:", "critical-uptime" : "1:", "unit": "w"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -182,16 +186,17 @@ TEST_F(native_check_uptime_test, ok_w) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 14 + 3600 + 60 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 7 * 86400);
-  ASSERT_EQ(perf.warning(), 14 * 86400);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 7 * 86400);
+  ASSERT_EQ(perf.warning_low(), 14 * 86400);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, warning) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
+      R"({ "warning-uptime" : "4:", "critical-uptime" : "2:", "unit": "d"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -212,16 +217,17 @@ TEST_F(native_check_uptime_test, warning) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 3 + 3600 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, warning_bis) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "4", "critical-uptime" : "", "unit": "d"})"_json;
+      R"({ "warning-uptime" : "4:", "critical-uptime" : "", "unit": "d"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -242,16 +248,18 @@ TEST_F(native_check_uptime_test, warning_bis) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 * 3 + 3600 + 1);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_TRUE(std::isnan(perf.critical()));
-  ASSERT_EQ(perf.warning(), 345600);
+
+  ASSERT_EQ(perf.warning_low(), 345600);
+
   ASSERT_TRUE(std::isnan(perf.critical_low()));
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, critical) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "4", "critical-uptime" : "2", "unit": "d"})"_json;
+      R"({ "warning-uptime" : "4:", "critical-uptime" : "2:", "unit": "d"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -271,16 +279,17 @@ TEST_F(native_check_uptime_test, critical) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 + 3600 * 4);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_EQ(perf.warning(), 345600);
-  ASSERT_EQ(perf.critical_low(), 0);
-  ASSERT_EQ(perf.warning_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+  ASSERT_EQ(perf.warning_low(), 345600);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
 
 TEST_F(native_check_uptime_test, critical_bis) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "warning-uptime" : "", "critical-uptime" : "2", "unit": "d"})"_json;
+      R"({ "warning-uptime" : "", "critical-uptime" : "2:", "unit": "d"})"_json;
 
   check_uptime checker(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -300,8 +309,9 @@ TEST_F(native_check_uptime_test, critical_bis) {
   ASSERT_EQ(perf.unit(), "s");
   ASSERT_EQ(perf.value(), 86400 + 3600 * 4);
   ASSERT_EQ(perf.min(), 0);
-  ASSERT_EQ(perf.critical(), 172800);
-  ASSERT_TRUE(std::isnan(perf.warning()));
-  ASSERT_EQ(perf.critical_low(), 0);
+  ASSERT_EQ(perf.critical_low(), 172800);
+
+  ASSERT_TRUE(std::isnan(perf.critical()));
   ASSERT_TRUE(std::isnan(perf.warning_low()));
+  ASSERT_TRUE(std::isnan(perf.warning()));
 }
