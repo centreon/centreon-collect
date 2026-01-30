@@ -28,6 +28,7 @@ add_library(
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
+  "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
 )
 target_link_libraries(

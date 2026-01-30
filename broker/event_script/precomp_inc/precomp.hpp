@@ -19,27 +19,33 @@
 #ifndef CC_EVENT_SCRIPT_PRECOMP_HH
 #define CC_EVENT_SCRIPT_PRECOMP_HH
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <future>
 #include <limits>
 #include <list>
+#include <queue>
 #include <set>
 #include <string>
 #include <thread>
 #include <unordered_map>
 #include <vector>
 
+#include <absl/base/thread_annotations.h>
 #include <absl/container/btree_map.h>
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 

@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/broker/event_script/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -61,12 +62,15 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
-  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+  auto logger = log_v2::instance().get(log_v2::EVENT_SCRIPT);
   // Increment instance number.
   if (!instances++) {
     // Storage module.
     logger->info("event_script: module for Centreon Broker {}",
                  CENTREON_BROKER_VERSION);
+    // Register storage layer.
+    io::protocols::instance().reg(
+        "event_script", std::make_shared<event_script::factory>(), 1, 7);
   }
 }
 }

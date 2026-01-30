@@ -18,14 +18,25 @@
 
 #include "com/centreon/broker/event_script/connector.hh"
 #include "com/centreon/broker/event_script/stream.hh"
+#include "events.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::event_script;
 
+static constexpr multiplexing::muxer_filter _event_script_mandatory_filter = {
+    multiplexing::muxer_filter::zero_init()};
+
+static constexpr multiplexing::muxer_filter _event_script_forbidden_filter = {
+    multiplexing::muxer_filter::zero_init()};
+;
+
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false, {}, {}) {}
+connector::connector()
+    : io::endpoint(false,
+                   _event_script_mandatory_filter,
+                   _event_script_forbidden_filter) {}
 
 /**
  *  Set connection parameters.
@@ -46,6 +57,5 @@ void connector::connect_to(
  * @return An Influxdb connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(
-      new stream(_script_path, _managed_event_ttl, _timeout));
+  return std::make_shared<stream>(_script_path, _managed_event_ttl, _timeout);
 }

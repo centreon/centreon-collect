@@ -65,14 +65,14 @@ TEST_F(event_script_factory, several_filter) {
 
   cfg.params["script_path"] = "/toto.sh";
 
-  cfg.read_filters.insert("all");
+  cfg.write_filters.insert("all");
   ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
-  cfg.read_filters.clear();
-  cfg.read_filters.insert("neb:ServiceStatus");
-  cfg.read_filters.insert("neb:AdaptiveServiceStatus");
+  cfg.write_filters.clear();
+  cfg.write_filters.insert("neb:ServiceStatus");
+  cfg.write_filters.insert("neb:AdaptiveServiceStatus");
   ASSERT_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache), msg_fmt);
-  cfg.read_filters.clear();
-  cfg.read_filters.insert("neb:ServiceStatus");
+  cfg.write_filters.clear();
+  cfg.write_filters.insert("neb:ServiceStatus");
   ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache));
 }
 
@@ -84,6 +84,6 @@ TEST_F(event_script_factory, onefilter) {
 
   cfg.params["script_path"] = "/toto.sh";
 
-  cfg.read_filters.insert("neb:AdaptiveServiceStatus");
+  cfg.write_filters.insert("neb:AdaptiveServiceStatus");
   ASSERT_NO_THROW(fact.new_endpoint(cfg, {}, is_acceptor, cache));
 }

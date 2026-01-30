@@ -19,13 +19,9 @@
 #ifndef CCB_EVENT_SCRIPT_STREAM_HH
 #define CCB_EVENT_SCRIPT_STREAM_HH
 
-#include <boost/multi_index/hashed_index.hpp>
-#include <boost/multi_index/indexed_by.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/common/process/process_args.hh"
+#include "com/centreon/common/process/process.hh"
 
 namespace com::centreon::broker::event_script {
 
@@ -42,12 +38,12 @@ struct io_data_compare {
   size_t operator()(const std::shared_ptr<io::protobuf_base>& to_hash) const;
 };
 
-class stream : public io::stream {
+class stream : public io::stream, public std::enable_shared_from_this<stream> {
   std::chrono::system_clock::duration _managed_event_ttl;
   std::chrono::system_clock::duration _timeout;
 
   struct event_with_time {
-    std::shared_ptr<io::protobuf_base> event;
+    std::shared_ptr<io::protobuf_base> evt;
     std::chrono::system_clock::time_point inserted;
   };
 
@@ -57,21 +53,32 @@ class stream : public io::stream {
           boost::multi_index::hashed_unique<
               BOOST_MULTI_INDEX_MEMBER(event_with_time,
                                        std::shared_ptr<io::protobuf_base>,
-                                       event),
+                                       evt),
               io_data_compare,
               io_data_compare>,
           boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
               event_with_time,
               std::chrono::system_clock::time_point,
-              inserted)> > >;
+              inserted)>>>;
 
   event_cont _events;
 
   std::shared_ptr<spdlog::logger> _logger;
 
-  std::shared_ptr<std::atomic_uint> _to_ack;
+  std::atomic_uint _to_ack;
+  bool _writing ABSL_GUARDED_BY(_write_queue_m);
+
+  std::queue<std::shared_ptr<io::protobuf_base>> _write_queue
+      ABSL_GUARDED_BY(_write_queue_m);
+  absl::Mutex _write_queue_m;
 
   com::centreon::common::process_args::pointer _script_cmdline;
+
+  void _write(const std::shared_ptr<io::protobuf_base>& event);
+  void _write_completion(const common::process<true>& proc,
+                         int exit_code,
+                         common::e_exit_status exit_status,
+                         const std::string& std_err);
 
  public:
   stream(const std::string_view& script_path,

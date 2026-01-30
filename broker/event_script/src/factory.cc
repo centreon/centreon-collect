@@ -19,7 +19,6 @@
 #include <absl/strings/ascii.h>
 #include <absl/strings/match.h>
 #include <absl/strings/str_join.h>
-#include <chrono>
 
 #include "com/centreon/broker/event_script/connector.hh"
 #include "com/centreon/broker/event_script/factory.hh"
@@ -90,17 +89,17 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  if (cfg.read_filters.size() != 1) {
+  if (cfg.write_filters.size() != 1) {
     throw msg_fmt("event_script allows only one mandatory read filter: {}",
-                  absl::StrJoin(cfg.read_filters, " "));
+                  absl::StrJoin(cfg.write_filters, " "));
   }
 
   const io::events::events_container& filter(
-      io::events::instance().get_matching_events(*cfg.read_filters.begin()));
+      io::events::instance().get_matching_events(*cfg.write_filters.begin()));
 
   if (filter.size() != 1) {
     throw msg_fmt("event_script allows only one mandatory read filter: {}",
-                  *cfg.read_filters.begin());
+                  *cfg.write_filters.begin());
   }
   // Connector.
   std::unique_ptr<event_script::connector> c(new event_script::connector);
