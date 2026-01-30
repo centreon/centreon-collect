@@ -91,6 +91,9 @@ on:
       - "centreon-collect-*"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   dispatch-to-maintained-branches:
     if: |
       github.run_attempt == 1 &&
@@ -118,6 +121,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
