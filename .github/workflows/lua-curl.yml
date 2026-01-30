@@ -28,7 +28,11 @@ env:
   release: 20 # 10 for openssl 1.1.1 / 20 for openssl system
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
 
   package:
