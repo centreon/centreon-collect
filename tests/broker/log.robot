@@ -174,6 +174,10 @@ BLBD
 ...    ${SPACE}${SPACE}value: "error"
 ...    }
 ...    level {
+...    ${SPACE}${SPACE}key: "event_script"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
 ...    ${SPACE}${SPACE}key: "downtimes"
 ...    ${SPACE}${SPACE}value: "error"
 ...    }

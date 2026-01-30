@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/event_script/stream.hh"
-#include <absl/synchronization/mutex.h>
 #include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -28,6 +27,14 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::event_script;
 namespace log_v2 = com::centreon::common::log_v2;
 
+/**
+ * @brief In order to calculate a hash on a protobuf message, we serialize it
+ * into a string with deterministic serialization in order to have the same hash
+ * even if object has repeated fields
+ *
+ * @param message
+ * @return std::string
+ */
 static std::string serialize_deterministic(
     const google::protobuf::Message& message) {
   std::string output;
@@ -40,6 +47,14 @@ static std::string serialize_deterministic(
   return output;
 }
 
+/**
+ * @brief compare two protobuf object
+ *
+ * @param left
+ * @param right
+ * @return true messages are identical
+ * @return false
+ */
 bool io_data_compare::operator()(
     const std::shared_ptr<io::protobuf_base>& left,
     const std::shared_ptr<io::protobuf_base>& right) const {
@@ -47,12 +62,26 @@ bool io_data_compare::operator()(
                                                             *right->msg());
 }
 
+/**
+ * @brief returns a hash of protobuf message
+ *
+ * @param to_hash
+ * @return size_t
+ */
 size_t io_data_compare::operator()(
     const std::shared_ptr<io::protobuf_base>& to_hash) const {
   static absl::Hash<std::string> hasher;
   return hasher(serialize_deterministic(*to_hash->msg()));
 }
 
+/**
+ * @brief Construct a new stream::stream object
+ *
+ * @param script_path path of the script to execute on each event
+ * @param managed_event_ttl during this duration after reception of an event,
+ * any identical event will be ignored
+ * @param timeout script execution timeout
+ */
 stream::stream(const std::string_view& script_path,
                const std::chrono::system_clock::duration& managed_event_ttl,
                const std::chrono::system_clock::duration& timeout)
@@ -61,9 +90,8 @@ stream::stream(const std::string_view& script_path,
       _timeout(timeout),
       _logger(log_v2::log_v2::instance().get(log_v2::log_v2::EVENT_SCRIPT)),
       _to_ack(0),
-      _writing(false) {
-  _script_cmdline = common::process<true>::parse_cmd_line(script_path);
-}
+      _writing(false),
+      _script_cmdline(common::process<true>::parse_cmd_line(script_path)) {}
 
 /**
  *  Read
@@ -96,7 +124,8 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 
   std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
   std::chrono::system_clock::time_point perempt = now - _managed_event_ttl;
-  if (_events.empty()) {
+  // little cleanup
+  if (!_events.empty()) {
     auto& index = _events.get<1>();
     auto to_test = index.begin();
     while (!_events.empty() && to_test->inserted < perempt) {
@@ -122,6 +151,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     }
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "event ignored: {}", *d);
+    _to_ack.fetch_add(1);
   }
 
   return _to_ack.exchange(0);

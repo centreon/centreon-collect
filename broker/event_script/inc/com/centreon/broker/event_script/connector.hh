@@ -24,8 +24,8 @@
 namespace com::centreon::broker::event_script {
 
 /**
- *  @class connector connector.hh "com/centreon/broker/influxdb/connector.hh"
- *  @brief Connect to an influxdb stream.
+ *  @class connector connector.hh "com/centreon/broker/event_script/connector.hh"
+ *  @brief Crate an event_script stream.
  */
 class connector : public io::endpoint {
   std::string _script_path;

@@ -38,10 +38,20 @@ struct io_data_compare {
   size_t operator()(const std::shared_ptr<io::protobuf_base>& to_hash) const;
 };
 
+/**
+ * @brief This stream executes a script on each event received from muxer
+ *
+ */
 class stream : public io::stream, public std::enable_shared_from_this<stream> {
   std::chrono::system_clock::duration _managed_event_ttl;
   std::chrono::system_clock::duration _timeout;
 
+  /**
+   * @brief we store event with insertion timestamp
+   * So we are able to not deal several times the same event object over a
+   * defined period
+   *
+   */
   struct event_with_time {
     std::shared_ptr<io::protobuf_base> evt;
     std::chrono::system_clock::time_point inserted;
@@ -72,7 +82,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
       ABSL_GUARDED_BY(_write_queue_m);
   absl::Mutex _write_queue_m;
 
-  com::centreon::common::process_args::pointer _script_cmdline;
+  const com::centreon::common::process_args::pointer _script_cmdline;
 
   void _write(const std::shared_ptr<io::protobuf_base>& event);
   void _write_completion(const common::process<true>& proc,

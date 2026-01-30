@@ -25,9 +25,9 @@ namespace com::centreon::broker::event_script {
 
 /**
  *  @class factory factory.hh "com/centreon/broker/influxdb/factory.hh"
- *  @brief Influxdb layer factory.
+ *  @brief event_script layer factory.
  *
- *  Build Influxdb layer objects.
+ *  Build event_script layer objects.
  */
 class factory : public io::factory {
  public:

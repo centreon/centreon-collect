@@ -32,7 +32,7 @@ EVENT_SCRIPT_BASIC_SERVICE_CHECK
     Ctn Clear Retention
     Ctn Broker Config Log    central    event_script    trace
     Ctn Config Broker Sql Output    central    unified_sql
-    Ctn Config Broker Event Script Output    neb:Service
+    Ctn Config Broker Event Script Output    neb:Service    ${SCRIPTS}/event_script_test.sh
 
     Remove File    /tmp/event_script_test.log
 

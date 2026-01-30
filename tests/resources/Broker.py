@@ -1033,7 +1033,7 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_config_broker_event_script_output(allowed_event: str):
+def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
     """
     Configure broker to add an event_script output. If some old event_script
     outputs exist, they are removed.
@@ -1043,8 +1043,6 @@ def ctn_config_broker_event_script_output(allowed_event: str):
     """
     import os
     filename = "central-broker.json"
-    script_path = os.path.join(os.path.dirname(
-        __file__), "scripts", "event_script_test.sh")
 
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
         buf = f.read()

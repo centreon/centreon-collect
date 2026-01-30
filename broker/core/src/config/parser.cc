@@ -577,7 +577,7 @@ void parser::_parse_endpoint(const json& elem,
       const auto& filter_obj = it.value();
       if (filter_obj.is_string() && filter_obj.get<std::string>() == "all") {
         (e.*member).insert("all");
-      } else if (!it.value().is_object()) {
+      } else if (!filter_obj.is_object()) {
         throw msg_fmt(
             "config parser: cannot parse key "
             "'filters':  value is not an object");

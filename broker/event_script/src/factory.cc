@@ -31,11 +31,11 @@ using namespace nlohmann;
 using namespace com::centreon::exceptions;
 
 /**
- *  Check if a configuration match the storage layer.
+ *  Check if a configuration match the event_script layer.
  *
  *  @param[in] cfg  Endpoint configuration.
  *
- *  @return True if the configuration matches the storage layer.
+ *  @return True if the configuration matches the event_script layer.
  */
 bool factory::has_endpoint(const config::endpoint& cfg,
                            io::extension* ext) const {

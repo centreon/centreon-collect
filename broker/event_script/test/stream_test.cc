@@ -56,9 +56,10 @@ class event_script_stream : public ::testing::Test {
 };
 
 TEST_F(event_script_stream, correct_args) {
-  event_script::stream stream("/bin/sh /tmp/event_script.sh",
-                              std::chrono::minutes(1),
-                              std::chrono::seconds(10));
+  std::shared_ptr<event_script::stream> stream =
+      std::make_shared<event_script::stream>("/bin/sh /tmp/event_script.sh",
+                                             std::chrono::minutes(1),
+                                             std::chrono::seconds(10));
 
   std::shared_ptr<pb_service_status> event =
       std::make_shared<pb_service_status>();
@@ -68,7 +69,7 @@ TEST_F(event_script_stream, correct_args) {
 
   ::remove("/tmp/script.log");
 
-  stream.write(event);
+  stream->write(event);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -85,9 +86,10 @@ TEST_F(event_script_stream, correct_args) {
 }
 
 TEST_F(event_script_stream, two_same_events) {
-  event_script::stream stream("/bin/sh /tmp/event_script.sh",
-                              std::chrono::minutes(1),
-                              std::chrono::seconds(10));
+  std::shared_ptr<event_script::stream> stream =
+      std::make_shared<event_script::stream>("/bin/sh /tmp/event_script.sh",
+                                             std::chrono::minutes(1),
+                                             std::chrono::seconds(10));
 
   std::shared_ptr<pb_service_status> event =
       std::make_shared<pb_service_status>();
@@ -97,12 +99,12 @@ TEST_F(event_script_stream, two_same_events) {
 
   ::remove("/tmp/script.log");
 
-  stream.write(event);
+  stream->write(event);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-  stream.write(event);
+  stream->write(event);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -112,9 +114,10 @@ TEST_F(event_script_stream, two_same_events) {
 }
 
 TEST_F(event_script_stream, two_differents_events) {
-  event_script::stream stream("/bin/sh /tmp/event_script.sh",
-                              std::chrono::minutes(1),
-                              std::chrono::seconds(10));
+  std::shared_ptr<event_script::stream> stream =
+      std::make_shared<event_script::stream>("/bin/sh /tmp/event_script.sh",
+                                             std::chrono::minutes(1),
+                                             std::chrono::seconds(10));
 
   std::shared_ptr<pb_service_status> event =
       std::make_shared<pb_service_status>();
@@ -124,7 +127,7 @@ TEST_F(event_script_stream, two_differents_events) {
 
   ::remove("/tmp/script.log");
 
-  stream.write(event);
+  stream->write(event);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -134,7 +137,7 @@ TEST_F(event_script_stream, two_differents_events) {
   event2->mut_obj().set_host_id(6);
   event2->mut_obj().set_service_id(10);
   event2->mut_obj().set_output("check output");
-  stream.write(event2);
+  stream->write(event2);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -144,9 +147,10 @@ TEST_F(event_script_stream, two_differents_events) {
 }
 
 TEST_F(event_script_stream, two_same_events_but_with_time_interval) {
-  event_script::stream stream("/bin/sh /tmp/event_script.sh",
-                              std::chrono::seconds(10),
-                              std::chrono::seconds(10));
+  std::shared_ptr<event_script::stream> stream =
+      std::make_shared<event_script::stream>("/bin/sh /tmp/event_script.sh",
+                                             std::chrono::seconds(10),
+                                             std::chrono::seconds(10));
 
   std::shared_ptr<pb_service_status> event =
       std::make_shared<pb_service_status>();
@@ -156,7 +160,7 @@ TEST_F(event_script_stream, two_same_events_but_with_time_interval) {
 
   ::remove("/tmp/script.log");
 
-  stream.write(event);
+  stream->write(event);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::seconds(15));
@@ -166,11 +170,24 @@ TEST_F(event_script_stream, two_same_events_but_with_time_interval) {
   event2->mut_obj().set_host_id(5);
   event2->mut_obj().set_service_id(10);
   event2->mut_obj().set_output("check output");
-  stream.write(event2);
+  stream->write(event2);
+
+  // let time to process to execute
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+  // there should be two lines in log file
+  ASSERT_EQ(std::filesystem::file_size("/tmp/script.log"), 112);
+
+  std::shared_ptr<pb_service_status> event3 =
+      std::make_shared<pb_service_status>();
+  event2->mut_obj().set_host_id(5);
+  event2->mut_obj().set_service_id(10);
+  event2->mut_obj().set_output("check output");
+  stream->write(event2);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   // there should be only one line in log file
-  ASSERT_EQ(std::filesystem::file_size("/tmp/script.log"), 56);
+  ASSERT_EQ(std::filesystem::file_size("/tmp/script.log"), 112);
 }
