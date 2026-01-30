@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 import pymysql.cursors
-from robot.libraries.BuiltIn import BuiltIn,RobotNotRunningError
-
+from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 
 
 def import_robot_resources():
@@ -25,6 +24,7 @@ def import_robot_resources():
         # Handle this case if Robot Framework is not running
         print("Robot Framework is not running. Skipping resource import.")
 
+
 DB_NAME_STORAGE = ""
 DB_NAME_CONF = ""
 DB_USER_ROOT = ""
@@ -41,6 +41,7 @@ ENGINE_HOME = ""
 
 import_robot_resources()
 
+
 class DbConf:
     def __init__(self, engine):
         self.last_service_id = 0
@@ -53,8 +54,9 @@ class DbConf:
         self.commands_count = 50
         self.instances = engine.instances
         self.service_cmd = engine.service_cmd
-        self.hosts_count = 50
-        self.services_per_host_count = 20
+        self.hosts_count = len(engine.hosts)
+        self.services_per_host_count = int(
+            len(engine.services)/len(engine.hosts))
         self.commands_per_poller_count = 50
         self.ctn_clear_db()
         self.engine = engine
@@ -290,7 +292,8 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
             else:
                 inherit_dt = 0
             with connection.cursor() as cursor:
-                cursor.execute(f"INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{name}',{t},'{activate}',1, {warning_impact}, {critical_impact}, 1,'0', '0','{inherit_dt}')")
+                cursor.execute(
+                    f"INSERT INTO mod_bam (name, state_source, activate,id_reporting_period,level_w,level_c,id_notification_period,notifications_enabled,event_handler_enabled, inherit_kpi_downtimes) VALUES ('{name}',{t},'{activate}',1, {warning_impact}, {critical_impact}, 1,'0', '0','{inherit_dt}')")
                 id_ba = cursor.lastrowid
                 sid = self.engine.create_bam_service("ba_{}".format(
                     id_ba), name, "_Module_BAM_1", "centreon-bam-check!{}".format(id_ba))
@@ -328,7 +331,8 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"DELETE FROM mod_bam_kpi WHERE host_id={self.host[host]} AND service_id={self.service[svc]} AND id_ba={id_ba}")
+                cursor.execute(
+                    f"DELETE FROM mod_bam_kpi WHERE host_id={self.host[host]} AND service_id={self.service[svc]} AND id_ba={id_ba}")
             connection.commit()
 
     def ctn_add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
@@ -380,7 +384,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
             connection.commit()
 
-    def ctn_add_relations_ba_timeperiods(self, id_ba:int, id_time_period:int):
+    def ctn_add_relations_ba_timeperiods(self, id_ba: int, id_time_period: int):
         """
         Add a line in mod_bam_relations_ba_timeperiods table
 
@@ -397,6 +401,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(f"INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES ({id_ba},{id_time_period})")
+                cursor.execute(
+                    f"INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES ({id_ba},{id_time_period})")
 
             connection.commit()

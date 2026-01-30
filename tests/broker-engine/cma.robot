@@ -813,7 +813,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "uptime", "args": {"warning-uptime" : "1000000000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "uptime", "args": {"warning-uptime" : "1000000000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -822,7 +822,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_UPTIME
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "uptime", "args": {"critical-uptime" : "1000000000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "uptime", "args": {"critical-uptime" : "1000000000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
@@ -953,7 +953,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     #a small threshold to make service_1 warning
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
 
-    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"warning-total-running" : "1000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"warning-total-running" : "1000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
@@ -962,7 +962,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     #a small threshold to make service_1 critical
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
 
-    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"critical-total-running" : "1000"}}    OTEL connector
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"critical-total-running" : "1000:"}}    OTEL connector
 
     Ctn Reload Engine
     ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
@@ -1180,6 +1180,182 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_MANY_AGENT
     Should Be True    ${result}    resources table not updated
 
     [teardown]    Run Keywords     Ctn Kindly Stop Agent    ${2}     AND     Ctn Stop Engine Broker And Save Logs
+
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT
+    [Documentation]    Given an engine with an encrypted otel server with one minute ttl, we expect that otel server
+    ...    will restart after on minute, then we recreate certificates and otel server must restart also
+    [Tags]    broker    engine    opentelemetry    MON-192057
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key", "minute_certificate_ttl": 1}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${3600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    Sleep    1
+    ${first_serv_start}    Get Current Date
+
+    #sha should be register in db
+    ${host_name}  Ctn Host Hostname
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM instances WHERE LENGTH(cma_certificate_sha) > 20 AND cma_certificate_cn = '${host_name}' AND cma_certificate_peremption > UNIX_TIMESTAMP() + 364*86400    >=    ${1}    retry_timeout=10s    retry_pause=3s
+    Disconnect From Database
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+
+    # wait certificate peremption
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${first_serv_start}    ${content}    180
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    ${first_restart_int}    Ctn Get Round Current Date
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${first_restart_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    # to restore once we have done certifiate survey
+    # Sleep    1
+
+    # # recreate certificates
+    # ${host_name}  Ctn Host Hostname
+    # Ctn Create Key And Certificate  ${host_name}  /tmp/server_grpc.key   /tmp/server_grpc.crt
+    # ${second_serv_restart}    Get Current Date
+    # ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${second_serv_restart}    ${content}    120
+    # Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    # Sleep    1
+
+    # ${second_restart_int}    Ctn Get Round Current Date
+
+    # #as ca is not the same as one used by agent, agent can't connect to engine
+    # ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${second_restart_int}    0  HARD  OK - 127.0.0.1
+    # Should Not Be True    ${result}    resources table updated, agent must not be able to connect to engine
+
+
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
+    [Documentation]    Given an engine with an encrypted otel server with one minute ttl and default engine generated certificates, 
+    ...    we expect that otel server will restart after on minute, then we recreate certificates and otel server must restart also
+    [Tags]    broker    engine    opentelemetry    MON-192057
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Run    /usr/sbin/centengine -k 
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "", "private_key": "", "minute_certificate_ttl": 1}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${3600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /etc/pki/centreon-engine/default_cma_ca.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}   
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Clear Db    instances
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    Sleep    1
+    ${first_serv_start}    Get Current Date
+
+    #sha should be register in db
+    ${host_name}  Ctn Host Hostname
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Query Result    SELECT COUNT(*) FROM instances WHERE LENGTH(cma_certificate_sha) > 20 AND cma_certificate_cn = '${host_name}' AND cma_certificate_peremption > UNIX_TIMESTAMP() + 10*365*86400    >=    ${1}    retry_timeout=10s    retry_pause=3s
+    Disconnect From Database
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    # wait certificate peremption
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${first_serv_start}    ${content}    180
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    ${first_restart_int}    Ctn Get Round Current Date
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${first_restart_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+    # to restore once we have done certifiate survey
+    # Sleep    1
+
+    # # recreate certificates
+    # Run    /usr/sbin/centengine -k 
+    # ${second_serv_restart}    Get Current Date
+    # ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${second_serv_restart}    ${content}    120
+    # Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    # Sleep    1
+
+    # ${second_restart_int}    Ctn Get Round Current Date
+
+    # #as ca is not the same as one used by agent, agent can't connect to engine
+    # ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${second_restart_int}    0  HARD  OK - 127.0.0.1
+    # Should Not Be True    ${result}    resources table updated, agent must not be able to connect to engine
 
 
 *** Keywords ***

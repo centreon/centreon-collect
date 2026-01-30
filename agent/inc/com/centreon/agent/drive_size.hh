@@ -134,26 +134,26 @@ struct fs_stat {
   uint64_t used;
   uint64_t total;
 
-  bool is_used_more_than_threshold(uint64_t threshold) const {
-    return used >= threshold;
+  bool is_used_more_than_threshold(common::threshold threshold) const {
+    return threshold.is_triggered(used);
   }
 
-  bool is_free_less_than_threshold(uint64_t threshold) const {
-    return total - used < threshold;
+  bool is_free_less_than_threshold(common::threshold threshold) const {
+    return threshold.is_triggered(total - used);
   }
 
-  bool is_used_more_than_prct_threshold(uint64_t percent_hundredth) const {
+  bool is_used_more_than_prct_threshold(common::threshold threshold) const {
     if (!total) {
       return true;
     }
-    return (used * 10000) / total >= percent_hundredth;
+    return threshold.is_triggered((used * 10000.0) / total);
   }
 
-  bool is_free_less_than_prct_threshold(uint64_t percent_hundredth) const {
+  bool is_free_less_than_prct_threshold(common::threshold threshold) const {
     if (!total) {
       return true;
     }
-    return ((total - used) * 10000) / total < percent_hundredth;
+    return threshold.is_triggered((total - used) * 10000.0 / total);
   }
 
   double get_used_prct() const {
@@ -227,8 +227,8 @@ class check_drive_size : public check {
   std::shared_ptr<check_drive_size_detail::filter> _filter;
   bool _prct_threshold;
   bool _free_threshold;
-  uint64_t _warning;  // value in bytes or percent * 100
-  uint64_t _critical;
+  common::threshold _warning;  // value in bytes or percent * 100
+  common::threshold _critical;
 
   typedef e_status (check_drive_size::*fs_stat_test)(
       const check_drive_size_detail::fs_stat&) const;

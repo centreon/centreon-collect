@@ -56,6 +56,7 @@ DisableStartupPrompt=yes
 WizardImageFile={#CentreonLogoLarge}
 WizardSmallImageFile={#CentreonLogo}
 WizardImageStretch=yes
+@INNO_SIGNING_SETUP@
 
 
 [Languages]
@@ -1888,7 +1889,12 @@ begin
 
     // Targeted uninstall shortcut: parse agentinstance param (if any) + plugins if /plugins
     if Agentinstance <> '' then
-      ParseParam(Agentinstance);
+      ParseParam(Agentinstance)
+    else if GetArrayLength(AgentNames) > 0 then
+    begin
+      SetArrayLength(SelectedAgents, 1);
+      SelectedAgents[0] := AgentNames[0];
+    end;
     
     if (GetArrayLength(SelectedAgents) = 0) and (not HavePluginsInInstall) then begin
       LogToStdOutFile('Nothing to uninstall: no Centreon agents or plugins. Check your parameters.');

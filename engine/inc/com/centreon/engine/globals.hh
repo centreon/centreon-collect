@@ -145,4 +145,10 @@ extern std::unique_ptr<com::centreon::common::crypto::aes256>
 
 void init_loggers();
 
+constexpr std::string_view default_cma_pki_dir = "/etc/pki/centreon-engine";
+constexpr std::string_view default_cma_ca_key =
+    "/etc/pki/centreon-engine/default_cma_ca.key";
+constexpr std::string_view default_cma_ca_crt =
+    "/etc/pki/centreon-engine/default_cma_ca.crt";
+
 #endif /* !CCE_GLOBALS_HH */

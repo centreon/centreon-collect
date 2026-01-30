@@ -342,8 +342,6 @@ check_drive_size::check_drive_size(
       _filter(std::make_shared<check_drive_size_detail::filter>(args)),
       _prct_threshold(false),
       _free_threshold(false),
-      _warning(0),
-      _critical(0),
       _fs_test(&check_drive_size::_no_test) {
   using namespace std::literals;
   try {
@@ -357,17 +355,28 @@ check_drive_size::check_drive_size(
       }
       _free_threshold = helper.get_bool("free", false);
 
-      _warning = helper.get_uint64_t("warning", 0);
-      _critical = helper.get_uint64_t("critical", 0);
+      // the default value should be empty "" , to disable the threshold
+      _warning.extract_range(helper.get_string_or_int_as_string("warning", ""));
+      _critical.extract_range(
+          helper.get_string_or_int_as_string("critical", ""));
+
+      _warning.set_default_low(0);
+      _critical.set_default_low(0);
+
+      if (!_warning.is_valid() || !_critical.is_valid()) {
+        SPDLOG_LOGGER_ERROR(_logger, "check_drive_size invalid threshold");
+        throw exceptions::msg_fmt("check_drive_size invalid threshold");
+      }
+
       if (_prct_threshold) {
-        if (_warning || _critical) {
-          _warning *= 100;
-          _critical *= 100;
+        if (!_warning.is_disabled() || !_critical.is_disabled()) {
+          _warning.unit_multiplier(100);
+          _critical.unit_multiplier(100);
           _fs_test = _free_threshold ? &check_drive_size::_prct_free_test
                                      : &check_drive_size::_prct_used_test;
         }
       } else {
-        if (_warning || _critical) {
+        if (!_warning.is_disabled() || !_critical.is_disabled()) {
           _fs_test = _free_threshold ? &check_drive_size::_free_test
                                      : &check_drive_size::_used_test;
         }
@@ -399,10 +408,10 @@ e_status check_drive_size::_no_test(
  */
 e_status check_drive_size::_used_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_used_more_than_threshold(_critical)) {
+  if (!_critical.is_disabled() && fs.is_used_more_than_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_used_more_than_threshold(_warning)) {
+  if (!_warning.is_disabled() && fs.is_used_more_than_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -416,10 +425,12 @@ e_status check_drive_size::_used_test(
  */
 e_status check_drive_size::_prct_used_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_used_more_than_prct_threshold(_critical)) {
+  if (!_critical.is_disabled() &&
+      fs.is_used_more_than_prct_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_used_more_than_prct_threshold(_warning)) {
+  if (!_warning.is_disabled() &&
+      fs.is_used_more_than_prct_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -433,10 +444,10 @@ e_status check_drive_size::_prct_used_test(
  */
 e_status check_drive_size::_free_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_free_less_than_threshold(_critical)) {
+  if (!_critical.is_disabled() && fs.is_free_less_than_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_free_less_than_threshold(_warning)) {
+  if (!_warning.is_disabled() && fs.is_free_less_than_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -450,10 +461,12 @@ e_status check_drive_size::_free_test(
  */
 e_status check_drive_size::_prct_free_test(
     const check_drive_size_detail::fs_stat& fs) const {
-  if (_critical && fs.is_free_less_than_prct_threshold(_critical)) {
+  if (!_critical.is_disabled() &&
+      fs.is_free_less_than_prct_threshold(_critical)) {
     return e_status::critical;
   }
-  if (_warning && fs.is_free_less_than_prct_threshold(_warning)) {
+  if (!_warning.is_disabled() &&
+      fs.is_free_less_than_prct_threshold(_warning)) {
     return e_status::warning;
   }
   return e_status::ok;
@@ -530,27 +543,15 @@ void check_drive_size::_completion_handler(
       perf.unit("%");
       perf.min(0);
       perf.max(100.0);
-      if (_warning) {
-        perf.warning_low(0);
-        perf.warning(static_cast<double>(_warning) / 100);
-      }
-      if (_critical) {
-        perf.critical_low(0);
-        perf.critical(static_cast<double>(_critical) / 100);
-      }
+      _warning.set_pref_details_w(perf, 1 / 100.0);
+      _critical.set_pref_details_c(perf, 1 / 100.0);
       perf.value(_free_threshold ? fs.get_free_prct() : fs.get_used_prct());
     } else {
       perf.unit("B");
       perf.min(0);
       perf.max(fs.total);
-      if (_warning) {
-        perf.warning_low(0);
-        perf.warning(_warning);
-      }
-      if (_critical) {
-        perf.critical_low(0);
-        perf.critical(_critical);
-      }
+      _warning.set_pref_details_w(perf);
+      _critical.set_pref_details_c(perf);
       perf.value(_free_threshold ? (fs.total - fs.used) : fs.used);
     }
   }
@@ -585,8 +586,8 @@ void check_drive_size::help(std::ostream& help_stream) {
       R"(
 - storage  params: 
     unit (default %): unit of threshold. If different from % threshold are in bytes
-    free (default used): true: threshold is applied on free space and service become warning if free sapce is lower than threshold
-                         false: threshold is applied on used space and service become warning if used space is higher than threshold
+    free (default used): true: threshold is applied on free space.
+                         false: threshold is applied on used space.
     warning: warning threshold
     critical: critical threshold
     filters:
@@ -612,8 +613,8 @@ void check_drive_size::help(std::ostream& help_stream) {
     "args": {
         "unit": "%",
         "free": false,
-        "warning": 80,
-        "critical": 90,
+        "warning": "80",
+        "critical": "90",
         "filter-storage-type": "hrstoragefixeddisk",
         "filter-fs": "[C-D]:\\"
     }

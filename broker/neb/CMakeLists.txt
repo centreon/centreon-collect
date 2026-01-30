@@ -84,7 +84,7 @@ add_library(
 add_dependencies(${NEB} nebbase)
 
 # Flags needed to include all symbols in binary.
-target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive spdlog::spdlog)
+target_link_libraries(${NEB} PRIVATE -Wl,--whole-archive nebbase -Wl,--no-whole-archive fmt::fmt)
 
 set_target_properties(
   ${NEB} PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
@@ -108,15 +108,13 @@ target_link_libraries(
           process_stat
           centreon_common
           nebbase
-	  gRPC::grpc++
           -Wl,--no-whole-archive
 	  pb_bam_lib
 	  pb_storage_lib
           multiplexing
           pb_common_lib
           pb_neb_lib
-          pb_header_lib
-          log_v2)
+          pb_header_lib)
 
 get_property(
   CBMOD_DEFINES
