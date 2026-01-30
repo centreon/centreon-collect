@@ -20,6 +20,16 @@ paths = [
 
 regexTarget = "match"
 regexes = [
-  '''ABCDEFG1234567890''',
-  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8'''
+  '''ABCDEFG1234567890''', # dummy test
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8''', # test base64
+  '''ZuFqRKdv0Oz6RItt6elajMugmy1whBrP''', # test agent token
+  '''j5zwPmA/XD6/6IZrbY5UVGBrKb0Od8dRMhviR6bFo6GKbvXv7XBqfSpgz92oDxMyfZuVtffW0ZV+/0oFB3vTFU/lJf8cBOKhbte9AoH06kIQxDwMVfDVB9lh4s0vshjvL/0wwIpXZvgNKSeJqjqTXQ==''', # test vault.json in gorgone robot tests
+  '''Io/F35iUm6XW3z03X0wKrYMPi+lIWnLz2Cfj39hqlP7OT0AivEqXs6ut2Mtu9LSZnLuEF9xE2W3b3JsuxUARIEAB8itwhGGvt2JnONqvdgNXxW0dFwc1ooqXRHQ3/TLhEdFd1NlNuimTcNZeyB8z9w==''', # perl centreon vault unit tests
+  '''PIuuuf8XMQ6j2dYwjDnNgTpzASXxTbpIRDogP9Rctc1QGXJIYUC2S6hpSq2rmUs6wltRKy5D0ft96rq+0t2gr539pVBSN2lLCKNThEfmRtXhpo3lXbkmQN9kx2eXqTvhoNUdN4irKKFNX5R1BgnIHg==''',
+  '''nJSH9nZN2ugQeksHif7Jtv19RQA58yjxfX-Cpnhx09s''', # dummy documentation fingerprint
+  '''NmnPME43IoWpkQoam6CLnrI5hjmdq6Kq8QMUCCg-F4g''', # rebound dummy token
+  '''3f25bc3a797fe989d1fb052b1886a806e73fe2d8ccfc6377ee3d4490f8ad03c02cb2533edcc1b3d8e1770e28d6f2de83bd98923b66c0c33395e5f835759de4b1''', # dummy documentation token
+  '''tRGkO5tjVA2qHOYfgKkY21SoTYPNif6ualYmeBpm''',  # dummy lua mock
+  '''pnI6EWkiTbazjikJXRkLmjml5wvVECYtQduJUjS4QK4''', # dummy poller conf
+  '''b3f825f87d64764316d872c59e4bae69299b0003f6e5d27bbc7de4e27c50eb65fc17440baf218578343eff7f4d67f7e98ab6da40b050a2635bb735c7cec276bd''' # dummy example result
 ]
