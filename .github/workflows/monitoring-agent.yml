@@ -284,7 +284,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8
+      options: --cpus 8 --ulimit core=-1 --privileged
       env:
         AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
         AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
@@ -363,9 +363,9 @@ jobs:
 
       - name: Run agent common unit tests
         run: |
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
-        working-directory: build
+          .github/scripts/collect-ut.sh common
+          .github/scripts/collect-ut.sh agent
+        working-directory: .
         shell: bash
 
       - name: Upload test results
@@ -373,7 +373,7 @@ jobs:
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
-          path: "build/ut_*.xml"
+          path: "build/ut_*"
           retention-days: 1
 
   package-linux:

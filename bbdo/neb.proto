@@ -655,6 +655,9 @@ message Instance {
   string version = 9;
   string engine_config_version = 10;
   bool is_encryption_ready = 11;
+  string cma_cert_sha = 12;
+  string cma_cert_cn = 13;
+  uint64 cma_cert_peremption = 14; 
 }
 
 /* io::neb, neb::de_pb_responsive_instance, 19 */

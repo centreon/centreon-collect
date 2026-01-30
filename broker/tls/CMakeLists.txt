@@ -61,7 +61,7 @@ add_library("${TLS}" SHARED
   "${INC_DIR}/params.hh"
   "${INC_DIR}/stream.hh")
 
-target_link_libraries("${TLS}" PRIVATE ${GNUTLS_LIBRARIES} spdlog::spdlog)
+target_link_libraries("${TLS}" PRIVATE ${GNUTLS_LIBRARIES} fmt::fmt)
 target_precompile_headers(${TLS} PRIVATE precomp_inc/precomp.hpp)
 add_dependencies("${TLS}" process_stat pb_common_lib)
 

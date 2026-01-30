@@ -82,12 +82,3 @@ include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 target_precompile_headers(engine_conf PRIVATE
                           ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
 set_target_properties(engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(
-  engine_conf
-  log_v2
-  absl::any
-  absl::log
-  absl::base
-  absl::bits
-  centreon_common
-  protobuf::libprotobuf)
