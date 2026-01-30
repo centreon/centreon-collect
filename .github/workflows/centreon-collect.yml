@@ -193,7 +193,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -269,10 +269,10 @@ jobs:
         run: |
           for test in common broker engine clib connector; do
             echo "::group::Running unit tests for $test"
-            tests/ut_$test --gtest_output=xml:ut_$test.xml
+            .github/scripts/collect-ut.sh $test
             echo "::endgroup::"
           done
-        working-directory: build
+        working-directory: .
         shell: bash
 
       - name: Upload test results
@@ -280,7 +280,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: unit-test-${{ matrix.operating_system }}-${{ matrix.arch }}-reports
-          path: "build/ut_*.xml"
+          path: "build/ut_*"
           retention-days: 1
 
   package:

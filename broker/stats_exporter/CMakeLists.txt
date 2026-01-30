@@ -32,7 +32,7 @@ set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
 target_link_libraries(
   ${STATS_EXPORTER}
   ${CURL_LIBRARY_RELEASE}
-  spdlog::spdlog
+  fmt::fmt
   -L${OTLP_LIB_DIR}
   opentelemetry_version
   opentelemetry_exporter_otlp_grpc

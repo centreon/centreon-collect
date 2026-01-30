@@ -46,6 +46,9 @@ CREATE TABLE `instances` (
   `deleted` tinyint(1) NOT NULL DEFAULT '0',
   `outdated` tinyint(1) NOT NULL DEFAULT '0',
   `is_encryption_ready` tinyint(1) NOT NULL DEFAULT '0',
+  `cma_certificate_sha` varchar(255) DEFAULT NULL,
+  `cma_certificate_cn` varchar(255) DEFAULT NULL,
+  `cma_certificate_peremption` int(11) DEFAULT '0',
   PRIMARY KEY (`instance_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 

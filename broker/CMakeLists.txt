@@ -398,11 +398,7 @@ target_link_libraries(
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  process_stat
-  z
-  spdlog::spdlog
-  pthread
-  dl)
+  process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
@@ -426,11 +422,14 @@ target_link_libraries(
   centreon_common
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
-  fmt::fmt
   -Wl,--whole-archive
   gRPC::grpc++
   protobuf::libprotobuf
   -Wl,--no-whole-archive
+  spdlog::spdlog
+  z
+  pthread
+  dl
   stdc++fs)
 
 # Centreon Broker Watchdog

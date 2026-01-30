@@ -76,4 +76,4 @@ set_property(
   PROPERTY PREFIX ""
   PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
-target_link_libraries(enginerpc PRIVATE cerpc centreon_common spdlog::spdlog)
+target_link_libraries(enginerpc PRIVATE cerpc)
