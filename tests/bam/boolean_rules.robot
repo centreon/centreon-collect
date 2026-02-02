@@ -6,7 +6,7 @@ Resource            ../resources/import.resource
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
 Test Setup          Ctn BAM Setup
-Test Teardown       Ctn Save Logs If Failed
+Test Teardown       Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -81,8 +81,6 @@ BABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
-
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
     [Tags]    broker    engine    bam    boolean_expression
@@ -129,8 +127,6 @@ BABOOOR
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
-
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
     [Tags]    broker    engine    bam    boolean_expression
@@ -176,8 +172,6 @@ BABOOAND
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    2    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
-
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
@@ -270,8 +264,6 @@ BABOOORREL
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True
-
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression
@@ -325,9 +317,6 @@ BABOOCOMPL
     ${result}    Ctn Check Ba Status With Timeout    boolean-ba    0    30
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
-
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
-
 
 BABOOCOMPL_RESTART
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -419,9 +408,6 @@ BABOOCOMPL_RESTART
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
-
-
 BABOOCOMPL_RELOAD
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
     [Tags]    broker    engine    bam    boolean_expression    MON-34246
@@ -512,7 +498,60 @@ BABOOCOMPL_RELOAD
     Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Ctn Stop engine    AND    Ctn Kindly Stop Broker
+
+BABOO_UNKNOWN
+    [Documentation]    Given a broker/engine running
+    ...    we add simple boolean rule with 100% impact, we do a check on only one of the two services of the BA, 
+    ...    Then boolean rule "and" stays in unknown state and must not apply impact on BA, Ba must be OK.
+    [Tags]    broker    engine    bam    boolean_expression
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    core    error
+    Ctn Broker Config Log    central    bam    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Source Log    central    1
+    Ctn Config BBDO3    ${1}
+    Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Set Services Passive    ${0}    service_1
+    Ctn Set Services Passive    ${0}    service_2
+
+
+    Ctn Clone Engine Config To Db
+    Ctn Add Bam Config To Broker    central
+
+
+    Ctn Start Broker
+    ${start}    Get Current Date
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    Sleep    5
+
+    Ctn Add Bam Config To Engine
+
+    ${id_ba__sid}    Ctn Create Ba    boolean-ba    impact    70    80
+    Ctn Add Boolean Kpi
+    ...    ${id_ba__sid[0]}
+    ...    {host_1 service_1} {IS} {OK} {AND} {host_2 service_2} {IS} {OK}
+    ...    False
+    ...    100
+
+    Ctn Reload Engine
+    Ctn Reload Broker
+
+    Sleep    5
+
+    Ctn Process Service Result Hard    host_1    service_1    ${0}    output OK for service_1@host_1
+
+    ${result}    Ctn Check Ba Status With Timeout    boolean-ba    0    60
+    Ctn Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
 
 *** Keywords ***
@@ -524,5 +563,6 @@ Ctn BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_timeperiods
     Execute SQL String    DELETE FROM mod_bam_reporting_relations_ba_timeperiods
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
+    Execute Sql String    DELETE FROM mod_bam_reporting_kpi_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
