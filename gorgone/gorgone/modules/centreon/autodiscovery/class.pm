@@ -185,7 +185,7 @@ Output : Bool
 =cut
 sub hdisco_can_start_job {
     my ($self, %options) = @_;
-    if (!$options{job} or !defined($options{job}->{status}) or !defined($options{job}->{job_id})){
+    if (!$options{job} || !defined($options{job}->{status}) || !defined($options{job}->{job_id})){
         return 0;
     }
     if ($options{job}->{status} != JOB_RUNNING &&
