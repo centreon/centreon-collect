@@ -350,7 +350,7 @@ jobs:
             echo "Triggering all components, docker builders, php and extra libs."
             for COMPONENT in "${COMPONENTS_COLLECT_FULL[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
-              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
             ;;
 
@@ -358,7 +358,7 @@ jobs:
             echo "Triggering all components only."
             for COMPONENT in "${COMPONENTS_COLLECT_REGULAR[@]}"; do
               echo "Dispatching trigger to $COMPONENT workflow."
-              # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+              gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
             done
             ;;
 
@@ -373,7 +373,7 @@ jobs:
             else
               for COMPONENT in "${COMPONENTS_COLLECT_CHANGED[@]}"; do
                 echo "Dispatching trigger to $COMPONENT workflow."
-                # gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
+                gh workflow run "$COMPONENT" -r ${{ inputs.dispatch_target_release_branch }}
               done
             fi
 
