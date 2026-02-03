@@ -69,13 +69,13 @@ readonly SCRIPT_NAME="$(basename "$0")"
 readonly SCRIPT_VERSION="1.0.0"
 
 # Default values
-DEFAULT_CENTREON_VERSION="24.10"
+DEFAULT_CENTREON_VERSION="25.10"
 DEFAULT_ENCRYPTION="no"
-DEFAULT_LOG_LEVEL="info"
+DEFAULT_LOG_LEVEL="warning"
 DEFAULT_LOG_TYPE="file"
 DEFAULT_LOG_FILE="/var/log/centreon-monitoring-agent/centagent.log"
-DEFAULT_MAX_FILE_SIZE=""
-DEFAULT_MAX_NUMBER=""
+DEFAULT_MAX_FILE_SIZE="10"
+DEFAULT_MAX_NUMBER="3"
 
 # Configuration paths
 readonly CONFIG_DIR="/etc/centreon-monitoring-agent"
@@ -218,12 +218,6 @@ validate_required_params() {
     else
         # Validate endpoint format (host:port)
         validate_endpoint_format "${ENDPOINT}" || errors=$((errors + 1))
-    fi
-
-    # Validate token is provided
-    if [[ -z "${TOKEN}" ]]; then
-        log_error "Missing required parameter: --token"
-        errors=$((errors + 1))
     fi
 
     # Validate encryption-related parameters based on mode
@@ -807,6 +801,19 @@ create_config_file() {
         return 0
     fi
 
+    # Check if token is missing before generating config
+    if [[ -z "${TOKEN}" ]]; then
+        log_warn "Authentication token is missing"
+        echo -n "Please enter the authentication token: "
+        read -r TOKEN
+        
+        # Validate token after user input
+        if [[ -z "${TOKEN}" ]]; then
+            die "Installation stopped: Authentication token is required"
+        fi
+        log_info "Token provided successfully"
+    fi
+
     # Create config directory if it doesn't exist
     mkdir -p "${CONFIG_DIR}"
 
@@ -873,6 +880,7 @@ generate_config_json() {
     fi
 
     config_json="${config_json%,}"
+
     if [[ -n "${TOKEN}" ]]; then
         config_json+=","
         config_json+=$'\n'"    \"token\": \"${TOKEN}\""
