@@ -1,0 +1,16 @@
+FROM registry.access.redhat.com/ubi8/ubi-init:latest
+
+RUN dnf -y install systemd systemd-libs \
+    && dnf -y install bash-completion\
+    && dnf install -y \
+    https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+
+# Copy installation script
+COPY install_cma.sh /opt/centreon/install_cma.sh
+RUN chmod +x /opt/centreon/install_cma.sh
+
+# Set working directory
+WORKDIR /opt/centreon
+
+# Default command - start systemd (ubi-init handles this)
+CMD ["/sbin/init"]
