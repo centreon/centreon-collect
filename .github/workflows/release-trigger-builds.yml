@@ -253,8 +253,8 @@ jobs:
               -d "$PAYLOAD" \
               "https://api.github.com/repos/centreon/centreon-collect/git/refs")
 
-            API_HTTP_CODE=$(echo API_HTTP_CODE: "$API_RESPONSE_BODY" | tail -n1)
-            API_RESPONSE=$(echo "API_RESPONSE: $API_RESPONSE_BODY" | sed '$d')
+            API_HTTP_CODE=$(printf '%s' "$API_RESPONSE_BODY" | tail -n1)
+            API_RESPONSE=$(printf '%s' "$API_RESPONSE_BODY" | sed '$d')
 
             echo "Create ref HTTP status: $API_HTTP_CODE"
             echo "Create ref response: $API_RESPONSE"
