@@ -364,22 +364,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -399,22 +383,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RESTART') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         # restart centreon-engine
         my $cmd = $self->{pollers}->{$options{target}}->{engine_restart_command};
         $self->send_internal_action({
@@ -435,22 +403,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'ENGINERELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{ $options{target} }->{engine_reload_command};
         $self->send_internal_action({
             action => 'ACTIONENGINE',
@@ -469,22 +421,6 @@ sub execute_cmd {
             }
         });
     } elsif ($options{cmd} eq 'RELOAD') {
-        # restart centreon_vwmare
-        $self->send_internal_action({
-            action => 'ACTIONENGINE',
-            target => $options{target},
-            token => $token,
-            data => {
-                logging => $options{logging},
-                content => {
-                    command => 'sudo systemctl restart centreon_vmware.service',
-                    metadata => {
-                        centcore_proxy => 1,
-                        centcore_cmd => 'ENGINERESTART'
-                    }
-                }
-            }
-        });
         my $cmd = $self->{pollers}->{$options{target}}->{engine_reload_command};
         $self->send_internal_action({
             action => 'COMMAND',
@@ -622,8 +558,22 @@ sub execute_cmd {
                 ]
             }
         });
+    }
+    elsif ($options{cmd} eq 'VMWARERESTART') {
+
+        $self->send_internal_action({
+            action => 'ACTIONENGINE',
+            target => $options{target},
+            token => $token,
+            data => {
+                logging => $options{logging},
+                content => {
+                    command => 'sudo systemctl restart centreon_vmware.service',
+                }
+            }
+        });
     } else{
-        $self->{logger}->writeLogError('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
+        $self->{logger}->writeLogWarning('[legacycmd] Cannot process message type ' . $options{cmd} . "throwing it away.");
     }
 
     return 0;
