@@ -1978,7 +1978,8 @@ int service::handle_async_check_result(
 
       /* (re)send notifications out about this service problem if the host is up
        * (and was at last check also) and the dependencies were okay... */
-      notify(reason_normal, "", "", notification_option_none);
+      if (hst->get_current_state() == host::state_up)
+        notify(reason_normal, "", "", notification_option_none);
 
       /* run the service event handler if we changed state from the last hard
        * state or if this service is flagged as being volatile */
