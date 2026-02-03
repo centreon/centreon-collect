@@ -64,7 +64,7 @@ jobs:
           TARGET_IS_RELEASE_BRANCH=""
 
           # Check if dispatch_target_release_branch is a release or hotfix branch
-          if [[ "${{ inputs.dispatch_target_release_branch }}" =~ ^(release|hotfix)-*-next$ ]]; then
+          if [[ "${{ inputs.dispatch_target_release_branch }}" =~ ^(release|hotfix)-.*-next$ ]]; then
             echo "DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, setting TARGET_IS_RELEASE_BRANCH to true."
             TARGET_IS_RELEASE_BRANCH="true"
           else
