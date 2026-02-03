@@ -764,8 +764,7 @@ BEOTEL_INVALID_CHECK_COMMANDS_AND_ARGUMENTS
  
     ${result}    ${content}     Ctn Check Service Resource Status With Timeout RT    host_1    service_4    2    60    ANY
     Should Be True    ${result}    resources table not updated for service_4
-    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : field warning-interval is not a unsigned int string
-    ...    "Error the output for invalid check args is not correct"
+    Should Be Equal As Strings    ${content}    unable to execute native check {"check": "health","args":{"warning-interval": "A", "critical-interval": "6"} } , output error : invalid warning/critical interval/runtime range
 
 
 BEOTEL_CENTREON_AGENT_CHECK_PROCESS

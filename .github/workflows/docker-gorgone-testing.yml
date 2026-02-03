@@ -21,7 +21,11 @@ on:
       - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
 

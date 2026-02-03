@@ -101,6 +101,23 @@ file(DOWNLOAD "${CENTREON_PLUGIN_URL}" "${PLUGIN_DOWNLOAD_PATH}"
   STATUS status
   TIMEOUT 10)
 
+#signning setup
+if (WITH_INSTALLER_SIGNING)
+  set(INNO_SIGNING_SETUP
+"SignTool=TrustedSigning
+SignedUninstaller=yes")
+else()
+  set(INNO_SIGNING_SETUP "")
+endif()
+
+set(INNO_SIGN_CMD "")
+if (WITH_INSTALLER_SIGNING)
+  set(INNO_SIGN_CMD
+    "/STrustedSigning=pwsh.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ${PROJECT_SOURCE_DIR}/trusted-sign.ps1 $f"
+  )
+endif()
+
+
 # Get the size of the downloaded file
 if(EXISTS "${PLUGIN_DOWNLOAD_PATH}")
   file(SIZE "${PLUGIN_DOWNLOAD_PATH}" PLUGIN_SIZE)
@@ -142,7 +159,7 @@ if (WITH_BUILD_AGENT_INSTALLER )
   add_custom_command(
     OUTPUT "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent.exe"
     DEPENDS "${PROJECT_SOURCE_DIR}/centreon-monitoring-agent-modify.exe"
-    COMMAND ${ISCC_EXECUTABLE} ${PROJECT_SOURCE_DIR}/installer_configured.iss
+    COMMAND ${ISCC_EXECUTABLE} ${INNO_SIGN_CMD} "${PROJECT_SOURCE_DIR}/installer_configured.iss"
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
     COMMENT "Building installer using Inno Setup"
     VERBATIM)

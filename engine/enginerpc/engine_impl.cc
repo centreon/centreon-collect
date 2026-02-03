@@ -4212,6 +4212,10 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
     SPDLOG_LOGGER_ERROR(external_command_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
+    SPDLOG_LOGGER_INFO(external_command_logger, "set log level of {} to {}",
+                       logger_name,
+                       spdlog::level::to_string_view(
+                           spdlog::level::level_enum(request->level())));
     logger->set_level(spdlog::level::level_enum(request->level()));
     return grpc::Status::OK;
   }

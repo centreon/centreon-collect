@@ -24,10 +24,10 @@
 namespace com::centreon::agent {
 
 class check_health : public check {
-  unsigned _warning_check_interval;
-  unsigned _critical_check_interval;
-  unsigned _warning_check_duration;
-  unsigned _critical_check_duration;
+  common::threshold _warning_check_interval;
+  common::threshold _critical_check_interval;
+  common::threshold _warning_check_duration;
+  common::threshold _critical_check_duration;
 
   std::string _info_output;
 

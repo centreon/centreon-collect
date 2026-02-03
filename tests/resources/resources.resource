@@ -358,12 +358,20 @@ Ctn Save Logs
     Log To Console      Save test logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir0}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config0
+    ${failDir1}    Catenate    SEPARATOR=    failed/    ${Test Name}    /config1
     Create Directory    ${failDir}
+    Create Directory    ${failDir0}
+    Create Directory    ${failDir1}
     Copy Files    ${BROKER_LOG}/*    ${failDir}
-    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir}
-    Copy Files    ${ENGINE_LOG}/config0/*.dat    ${failDir}
+    Copy Files    ${ENGINE_LOG}/config0/*.log    ${failDir0}
+    Copy Files    ${ENGINE_LOG}/config0/*.dat    ${failDir0}
+    Copy Files    ${ENGINE_LOG}/config1/*.log    ${failDir1}
+    Copy Files    ${ENGINE_LOG}/config1/*.dat    ${failDir1}
+
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/config1/*.cfg    ${failDir}/etc/centreon-engine/config1
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}

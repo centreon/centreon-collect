@@ -1178,8 +1178,20 @@ int service::handle_async_check_result(
    */
   if (queued_check_result.get_check_options() &
       (CHECK_OPTION_FRESHNESS_CHECK | CHECK_OPTION_PASSIVE_IS_HARD |
-       CHECK_OPTION_PASSIVE_IS_SOFT))
+       CHECK_OPTION_PASSIVE_IS_SOFT)) {
     set_is_being_freshened(false);
+  }
+
+  if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
+    // as check is passive and done by cma, we have to send command line to
+    // broker
+    nagios_macros* macros(get_global_macros());
+    std::string cmdline = get_check_command_line(macros);
+    if (!cmdline.empty()) {
+      broker_service_check(NEBTYPE_SERVICECHECK_PROCESSED, this,
+                           checkable::check_passive, cmdline.c_str());
+    }
+  }
 
   /* clear the execution flag if this was an active check */
   if (queued_check_result.get_check_type() == check_active)
@@ -1966,7 +1978,8 @@ int service::handle_async_check_result(
 
       /* (re)send notifications out about this service problem if the host is up
        * (and was at last check also) and the dependencies were okay... */
-      notify(reason_normal, "", "", notification_option_none);
+      if (hst->get_current_state() == host::state_up)
+        notify(reason_normal, "", "", notification_option_none);
 
       /* run the service event handler if we changed state from the last hard
        * state or if this service is flagged as being volatile */

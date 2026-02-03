@@ -91,6 +91,9 @@ on:
       - "centreon-collect-*"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   dispatch-to-maintained-branches:
     if: |
       github.run_attempt == 1 &&
@@ -118,6 +121,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
@@ -216,7 +220,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8
+      options: --cpus 8 --ulimit core=-1 --privileged
       env:
         AWS_WEB_IDENTITY_TOKEN_FILE: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
         AWS_ROLE_ARN: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
@@ -297,10 +301,10 @@ jobs:
         run: |
           for test in common broker engine clib connector; do
             echo "::group::Running unit tests for $test"
-            tests/ut_$test --gtest_output=xml:ut_$test.xml
+            .github/scripts/collect-ut.sh $test
             echo "::endgroup::"
           done
-        working-directory: build
+        working-directory: .
         shell: bash
 
       - name: Upload test results
@@ -308,11 +312,12 @@ jobs:
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: unit-test-${{ matrix.operating_system }}-${{ matrix.arch }}-reports
-          path: "build/ut_*.xml"
+          path: "build/ut_*"
           retention-days: 1
 
   package:
-    needs: [get-environment, get-aws-environment, changes, check-version-consistency]
+    needs:
+      [get-environment, get-aws-environment, changes, check-version-consistency]
     if: |
       needs.changes.outputs.trigger_packaging == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&

@@ -490,7 +490,7 @@ TEST_F(check_service_test, service_filter_allow_some_service_warning_running) {
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "filter-name": "service_s.*", "warning-total-running": "5", "critical-total-running": ""  })"_json;
+      R"({ "filter-name": "service_s.*", "warning-total-running": "5:", "critical-total-running": ""  })"_json;
 
   check_service test_check(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,
@@ -845,7 +845,7 @@ TEST_F(check_service_test,
 
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
-      R"({ "filter-display": "desc service_s.*", "warning-total-running": "5"  })"_json;
+      R"({ "filter-display": "desc service_s.*", "warning-total-running": "5:"  })"_json;
 
   check_service test_check(
       g_io_context, spdlog::default_logger(), {}, serv, check_args, nullptr,

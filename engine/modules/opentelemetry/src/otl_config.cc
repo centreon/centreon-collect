@@ -91,7 +91,8 @@ otl_config::otl_config(const std::string_view& file_path,
   if (file_content.has_member("otel_server")) {
     try {
       _grpc_conf =
-          std::make_shared<grpc_config>(file_content.get_member("otel_server"));
+          std::make_shared<grpc_config>(file_content.get_member("otel_server"),
+                                        default_cma_ca_crt, default_cma_ca_key);
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(config_logger,
                           "fail to parse otl_server object: ", e.what());

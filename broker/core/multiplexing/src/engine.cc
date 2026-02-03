@@ -27,6 +27,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/common/defer.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -377,6 +378,10 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
   bool expected = false;
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
+    // sending  => we will try later
+    common::defer(com::centreon::common::pool::io_context_ptr(),
+                  std::chrono::milliseconds(100),
+                  [me = _instance]() { me->_send_to_subscribers(nullptr); });
     return false;
   }
   // Now we continue and _sending_to_subscribers is true.
