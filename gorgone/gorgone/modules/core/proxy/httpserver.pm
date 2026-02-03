@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::standard::misc;
+use centreon::common::centreonvault;
 use Mojolicious::Lite;
 use Mojo::Server::Daemon;
 use IO::Socket::SSL;
@@ -83,6 +84,11 @@ sub construct {
     $connector->{identities} = {};
     $connector->{nodes} = {}; # store nodes info from node module which take it from centreon DB.
 
+    # didn't sent the vault object to avoid duplicating connection and any unforeseen concurrency issue.
+    # should probably be passed as an object already constructed
+    $connector->{vault} = centreon::common::centreonvault->new(
+        logger => $options{logger},
+        config_file => $options{config_core}->{vault_file});
     $connector->set_signal_handlers();
     return $connector;
 }
@@ -268,11 +274,12 @@ sub action_proxyaddnode {
             $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
             return 1;
     }
-    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come nodes module, so we keep the old token.
+    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come from the nodes module, so we keep the old token.
     # if you want to remove the token to use the default one from the conf use "" instead of undef.
     my $temp_nodes = {};
     for my $node (@{$nodes}){
         next if $node->{type} !~ /wss/;
+        $node->{token} = $self->{vault}->get_secret($node->{token});
         my $ws_id = $self->{identities}->{ $node->{id} };
 
         if (!defined($node->{token})) {
