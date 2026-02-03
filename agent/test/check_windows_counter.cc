@@ -547,7 +547,7 @@ TEST(counter_check_windows, complex_rules_8) {
 }
 
 // test the threshold
-TEST_F(counter_check_windows_test, threshold_greater) {
+TEST(counter_check_windows, threshold_greater) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\Process V2(*)\\Thread Count",
@@ -585,7 +585,7 @@ TEST_F(counter_check_windows_test, threshold_greater) {
 }
 
 // test the threshold
-TEST_F(counter_check_windows_test, threshold_range) {
+TEST(counter_check_windows, threshold_range) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\Process V2(*)\\Thread Count",
@@ -624,7 +624,7 @@ TEST_F(counter_check_windows_test, threshold_range) {
 }
 
 // test the threshold
-TEST_F(counter_check_windows_test, threshold_inside_range) {
+TEST(counter_check_windows, threshold_inside_range) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\Process V2(*)\\Thread Count",
@@ -663,7 +663,7 @@ TEST_F(counter_check_windows_test, threshold_inside_range) {
                                   // inside the range 2:5 and use @
 }
 
-TEST_F(counter_check_windows_test, threshold_below) {
+TEST(counter_check_windows, threshold_below) {
   using namespace com::centreon::common::literals;
   rapidjson::Document check_args =
       R"({"counter": "\\Process V2(*)\\Thread Count",
