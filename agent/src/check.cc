@@ -295,6 +295,33 @@ std::optional<double> check::get_double(const std::string& cmd_name,
 }
 
 /**
+ * @brief get a string value from a json a string containing a number
+ *
+ * @param cmd_name used to trace exception
+ * @param field_name used to trace exception
+ * @param val rapidjson value
+ * @throw exception-object if value is not a number
+ * @return std::optional<string> set if value is not an empty string
+ */
+std::optional<std::string> check::get_string(const std::string& cmd_name,
+                                             const char* field_name,
+                                             const rapidjson::Value& val) {
+  std::string value;
+  if (val.IsString()) {
+    value = val.GetString();
+    if (value.empty()) {
+      return {};
+    }
+  } else if (val.IsNumber()) {
+    value = std::to_string(val.GetDouble());
+  } else {
+    throw exceptions::msg_fmt("command: {}, parameter {} is not a string",
+                              cmd_name, field_name);
+  }
+  return value;
+}
+
+/**
  * @brief get a boolean value from a json object
  * It can be a boolean value or a string containing a boolean
  *

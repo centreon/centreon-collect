@@ -339,6 +339,26 @@ bool rapidjson_helper::get_bool(const char* field_name,
 }
 
 /**
+ * @brief Read a field that can be either a string or an integer and returns it
+ * as a std::string.
+ *
+ * If the field exists and is a string, return it (falling back to
+ * default_string when missing). Otherwise, read the field as an integer
+ * (accepting numeric strings) and format it using std::to_string with
+ * default_int as fallback.
+ */
+std::string rapidjson_helper::get_string_or_int_as_string(
+    const char* field_name,
+    const char* default_string) const {
+  if (has_member(field_name) && get_member(field_name).IsString()) {
+    return get_string(field_name, default_string);
+  } else if (has_member(field_name) && get_member(field_name).IsInt()) {
+    return std::to_string(get_int(field_name, 0));
+  }
+  return std::string{default_string};
+}
+
+/**
  * @brief return a member
  *
  * @param field_name

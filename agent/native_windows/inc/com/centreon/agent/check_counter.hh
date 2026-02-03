@@ -70,8 +70,8 @@ class check_counter : public check {
   std::string _warning_status;
   std::string _critical_status;
 
-  unsigned _warning_threshold_count;
-  unsigned _critical_threshold_count;
+  common::threshold _warning_threshold;
+  common::threshold _critical_threshold;
 
   bool _verbose;
   bool _use_english;

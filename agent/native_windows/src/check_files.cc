@@ -558,9 +558,24 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
       _warning_status = arg.get_string("warning-status", "");
       _critical_status = arg.get_string("critical-status", "");
 
-      // conditions to trigger warning and critical
-      _warning_threshold_count = arg.get_int("warning-count", 1);
-      _critical_threshold_count = arg.get_int("critical-count", 1);
+      // check if the field warning_count and critical_count are int or string
+      _warning_threshold.extract_range(
+          arg.get_string_or_int_as_string("warning-count", "0"));
+      _critical_threshold.extract_range(
+          arg.get_string_or_int_as_string("critical-count", "0"));
+
+      // the number of warning/critical will always be positive or zero
+      // if the low threshold is not set, we take the default value
+      _warning_threshold.set_default_low(0);
+      _critical_threshold.set_default_low(0);
+
+      if (!_warning_threshold.is_valid() || !_critical_threshold.is_valid()) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "check event log, invalid warning-count or critical-count range");
+        throw std::runtime_error(
+            "check event log, invalid warning-count or critical-count range");
+      }
 
       _verbose = arg.get_bool("verbose", false);
     }
@@ -988,11 +1003,9 @@ void check_files::_completion_handler(
   }
 
   // check the status
-  if (_critical_list.size() != 0 &&
-      _critical_list.size() >= _critical_threshold_count) {
+  if (_critical_threshold.is_triggered(_critical_list.size())) {
     ret = e_status::critical;
-  } else if (_warning_list.size() != 0 &&
-             _warning_list.size() >= _warning_threshold_count) {
+  } else if (_warning_threshold.is_triggered(_warning_list.size())) {
     ret = e_status::warning;
   } else {
     ret = e_status::ok;
@@ -1145,8 +1158,8 @@ JSON arguments
                                                   # Example: "size > 1M && extension == '.dll'"
   "warning-status"      : string,                 # Filter expression: files matching are considered WARNING.
   "critical-status"     : string,                 # Filter expression: files matching are considered CRITICAL.
-  "warning-count"       : integer (default: 1),   # Minimum WARNING files to set overall status to WARNING.
-  "critical-count"      : integer (default: 1),   # Minimum CRITICAL files to set overall status to CRITICAL.
+  "warning-count"       : string (default: 0),    # Threshold of items number with warning status to trigger WARNING.
+  "critical-count"      : string (default: 0),    # Threshold of items number with critical status to trigger CRITICAL.
   "verbose"             : bool (default: false),  # Output detailed file info.
 }
 

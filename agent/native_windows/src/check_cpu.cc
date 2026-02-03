@@ -27,6 +27,7 @@
 #include "native_check_cpu_base.cc"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::check_cpu_detail;
 
 /**************************************************************************
@@ -269,29 +270,29 @@ pdh_cpu_time_snapshot::pdh_cpu_time_snapshot(unsigned nb_core,
 ***************************************************************************/
 using windows_cpu_to_status = cpu_to_status<e_proc_stat_index::nb_field>;
 
-using cpu_to_status_constructor =
-    std::function<windows_cpu_to_status(double /*threshold*/)>;
+using cpu_to_status_constructor = std::function<windows_cpu_to_status(
+    const common::threshold& /*threshold*/)>;
 
 #define BY_TYPE_CPU_TO_STATUS(TYPE_METRIC)                                     \
   {"warning-core-" #TYPE_METRIC,                                               \
-   [](double threshold) {                                                      \
+   [](const common::threshold& threshold) {                                    \
      return windows_cpu_to_status(                                             \
          e_status::warning, e_proc_stat_index::TYPE_METRIC, false, threshold); \
    }},                                                                         \
       {"critical-core-" #TYPE_METRIC,                                          \
-       [](double threshold) {                                                  \
+       [](const common::threshold& threshold) {                                \
          return windows_cpu_to_status(e_status::critical,                      \
                                       e_proc_stat_index::TYPE_METRIC, false,   \
                                       threshold);                              \
        }},                                                                     \
       {"warning-average-" #TYPE_METRIC,                                        \
-       [](double threshold) {                                                  \
+       [](const common::threshold& threshold) {                                \
          return windows_cpu_to_status(e_status::warning,                       \
                                       e_proc_stat_index::TYPE_METRIC, true,    \
                                       threshold);                              \
        }},                                                                     \
   {                                                                            \
-    "critical-average-" #TYPE_METRIC, [](double threshold) {                   \
+    "critical-average-" #TYPE_METRIC, [](const common::threshold& threshold) { \
       return windows_cpu_to_status(e_status::critical,                         \
                                    e_proc_stat_index::TYPE_METRIC, true,       \
                                    threshold);                                 \
@@ -306,24 +307,24 @@ using cpu_to_status_constructor =
 static const absl::flat_hash_map<std::string_view, cpu_to_status_constructor>
     _label_to_cpu_to_status = {
         {"warning-core",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return windows_cpu_to_status(e_status::warning,
                                         e_proc_stat_index::nb_field, false,
                                         threshold);
          }},
         {"critical-core",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return windows_cpu_to_status(e_status::critical,
                                         e_proc_stat_index::nb_field, false,
                                         threshold);
          }},
         {"warning-average",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return windows_cpu_to_status(
                e_status::warning, e_proc_stat_index::nb_field, true, threshold);
          }},
         {"critical-average",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return windows_cpu_to_status(e_status::critical,
                                         e_proc_stat_index::nb_field, true,
                                         threshold);
@@ -378,12 +379,22 @@ check_cpu::check_cpu(const std::shared_ptr<asio::io_context>& io_context,
         auto cpu_to_status_search = _label_to_cpu_to_status.find(
             absl::AsciiStrToLower(member_iter->name.GetString()));
         if (cpu_to_status_search != _label_to_cpu_to_status.end()) {
-          std::optional<double> threshold =
-              check::get_double(cmd_name, member_iter->name.GetString(),
-                                member_iter->value, true);
-          if (threshold) {
+          std::optional<std::string> val = check::get_string(
+              get_command_name(), member_iter->name.GetString(),
+              member_iter->value);
+          if (val) {
+            common::threshold thres(val.value());
+            if (!thres.is_valid()) {
+              SPDLOG_LOGGER_ERROR(logger, "command: {}, invalid threshold: {}",
+                                  get_command_name(), val.value());
+              throw exceptions::msg_fmt("command: {}, invalid threshold: {}",
+                                        get_command_name(), val.value());
+            }
+            thres.set_default_low(0);
+            thres.unit_multiplier(1.0 / 100.0);
             check_cpu_detail::cpu_to_status cpu_checker =
-                cpu_to_status_search->second(*threshold / 100);
+                cpu_to_status_search->second(thres);
+
             _cpu_to_status.emplace(
                 std::make_tuple(cpu_checker.get_proc_stat_index(),
                                 cpu_checker.is_average(),
@@ -460,6 +471,12 @@ e_status check_cpu::compute(
 
 void check_cpu::help(std::ostream& help_stream) {
   help_stream << R"(
+- Threshold expression syntax follows standard monitoring rules:
+  x     : alert if value > x
+  x:    : alert if value < x
+  x:y   : alert if value < x or value > y
+  @x:y  : alert if value >= x and value <= y
+
 - cpu params:
     use-nt-query-system-information (default true): true: use NtQuerySystemInformation instead of performance counters
     cpu-detailed (default false): true: add detailed cpu usage metrics
@@ -480,10 +497,10 @@ void check_cpu::help(std::ostream& help_stream) {
     "check": "cpu_percentage",
     "args": {
         "cpu-detailed": true,
-        "warning-core": 80,
-        "critical-core": 90,
-        "warning-average": 60,
-        "critical-average": 70
+        "warning-core": "80",
+        "critical-core": "90",
+        "warning-average": "60",
+        "critical-average": "70"
     }
   }
   Examples of output:

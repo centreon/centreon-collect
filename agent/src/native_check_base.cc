@@ -20,6 +20,7 @@
 #include "com/centreon/common/rapidjson_helper.hh"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::native_check_detail;
 
 /**
@@ -36,16 +37,17 @@ using namespace com::centreon::agent::native_check_detail;
 template <unsigned nb_metric>
 measure_to_status<nb_metric>::measure_to_status(e_status status,
                                                 unsigned data_index,
-                                                double threshold,
+                                                common::threshold threshold,
                                                 unsigned total_data_index,
-                                                bool percent,
-                                                bool free_threshold)
+                                                bool percent)
     : _status(status),
       _data_index(data_index),
-      _threshold(threshold),
+      _threshold(std::move(threshold)),
       _total_data_index(total_data_index),
-      _percent(percent),
-      _free_threshold(free_threshold) {}
+      _percent(percent) {
+  if (percent)
+    _threshold.unit_multiplier(1.0 / 100.0);
+}
 
 template <unsigned nb_metric>
 void measure_to_status<nb_metric>::compute_status(
@@ -57,14 +59,9 @@ void measure_to_status<nb_metric>::compute_status(
   double value =
       _percent ? to_test.get_proportional_value(_data_index, _total_data_index)
                : to_test.get_metric(_data_index);
-  if (_free_threshold) {
-    if (value < _threshold) {
-      *status = _status;
-    }
-  } else {
-    if (value > _threshold) {
-      *status = _status;
-    }
+
+  if (_threshold.is_triggered(value)) {
+    *status = _status;
   }
 }
 
@@ -193,19 +190,15 @@ e_status native_check_base<nb_metric>::compute(
     auto mem_to_status_search = _measure_to_status.find(std::make_tuple(
         metric.data_index, metric.total_data_index, e_status::warning));
     if (mem_to_status_search != _measure_to_status.end()) {
-      to_add.warning_low(0);
-      to_add.warning(metric.percent
-                         ? 100 * mem_to_status_search->second->get_threshold()
-                         : mem_to_status_search->second->get_threshold());
+      mem_to_status_search->second->get_threshold().set_pref_details_w(
+          to_add, metric.percent ? 100.0 : 1.0);
     }
     // critical
     mem_to_status_search = _measure_to_status.find(std::make_tuple(
         metric.data_index, metric.total_data_index, e_status::critical));
     if (mem_to_status_search != _measure_to_status.end()) {
-      to_add.critical_low(0);
-      to_add.critical(metric.percent
-                          ? 100 * mem_to_status_search->second->get_threshold()
-                          : mem_to_status_search->second->get_threshold());
+      mem_to_status_search->second->get_threshold().set_pref_details_c(
+          to_add, metric.percent ? 100.0 : 1.0);
     }
   }
   return status;

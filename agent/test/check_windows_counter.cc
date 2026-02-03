@@ -438,8 +438,8 @@ TEST(counter_check_windows, complex_rules_6) {
         "detail-syntax": "{label}",
         "warning-status": "value >= 20",
         "critical-status": "value >= 42",
-        "warning-count": "0",
-        "critical-count": "2",
+        "warning-count": "",
+        "critical-count": "1",
         "use_english": true
     })"_json;
 
@@ -518,7 +518,7 @@ TEST(counter_check_windows, complex_rules_8) {
         "detail-syntax": "{label}",
         "warning-status": "",
         "critical-status": "chrome >= 150 || firefox >= 150 || svchost >= 20",
-        "critical-count": "1",
+        "critical-count": "0",
         "use_english": true
     })"_json;
 
@@ -544,4 +544,160 @@ TEST(counter_check_windows, complex_rules_8) {
   std::list<com::centreon::common::perfdata> perf;
   checker.compute(&output, &perf);
   ASSERT_EQ(output, "CRITICAL: Warn : --- crit : svchost");
+}
+
+// test the threshold
+TEST(counter_check_windows, threshold_greater) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({"counter": "\\Process V2(*)\\Thread Count",
+        "counter-filter":"any",
+        "output-syntax": "${status}: Warn :{warn-list} --- crit : {crit-list}",
+        "detail-syntax": "{label}",
+        "warning-status": "",
+        "critical-status": "chrome >= 40 || firefox >= 150 || svchost >= 20 || explorer>=15",
+        "critical-count": "2",
+        "use_english": true
+    })"_json;
+
+  check_counter checker(
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  absl::flat_hash_map<std::string, double> data = {
+      {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
+      {"chrome", 42.0},   {"firefox", 36.0}, {"notepad", 5.0},
+      {"winlogon", 12.0}, {"lsass", 16.0},   {"services", 28.0},
+      {"csrss", 10.0}};
+
+  checker.set_counter_data(data);
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perf;
+  auto status = checker.compute(&output, &perf);
+  ASSERT_EQ(status, e_status::critical);
+}
+
+// test the threshold
+TEST(counter_check_windows, threshold_range) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({"counter": "\\Process V2(*)\\Thread Count",
+        "counter-filter":"any",
+        "output-syntax": "${status}: Warn :{warn-list} --- crit : {crit-list}",
+        "detail-syntax": "{label}",
+        "warning-status": "",
+        "critical-status": "chrome >= 40 || firefox >= 150 || svchost >= 20 || explorer>=15",
+        "critical-count": "2:5",
+        "use_english": true
+    })"_json;
+
+  check_counter checker(
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  absl::flat_hash_map<std::string, double> data = {
+      {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
+      {"chrome", 42.0},   {"firefox", 36.0}, {"notepad", 5.0},
+      {"winlogon", 12.0}, {"lsass", 16.0},   {"services", 28.0},
+      {"csrss", 10.0}};
+
+  checker.set_counter_data(data);
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perf;
+  auto status = checker.compute(&output, &perf);
+  ASSERT_EQ(status, e_status::ok);  // ok because the critical count is 3 and it
+                                    // inside the range 2:5
+}
+
+// test the threshold
+TEST(counter_check_windows, threshold_inside_range) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({"counter": "\\Process V2(*)\\Thread Count",
+        "counter-filter":"any",
+        "output-syntax": "${status}: Warn :{warn-list} --- crit : {crit-list}",
+        "detail-syntax": "{label}",
+        "warning-status": "",
+        "critical-status": "chrome >= 40 || firefox >= 150 || svchost >= 20 || explorer>=15",
+        "critical-count": "@2:5",
+        "use_english": true
+    })"_json;
+
+  check_counter checker(
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  absl::flat_hash_map<std::string, double> data = {
+      {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
+      {"chrome", 42.0},   {"firefox", 36.0}, {"notepad", 5.0},
+      {"winlogon", 12.0}, {"lsass", 16.0},   {"services", 28.0},
+      {"csrss", 10.0}};
+
+  checker.set_counter_data(data);
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perf;
+  auto status = checker.compute(&output, &perf);
+  ASSERT_EQ(status,
+            e_status::critical);  // crit because the critical count is 3 and it
+                                  // inside the range 2:5 and use @
+}
+
+TEST(counter_check_windows, threshold_below) {
+  using namespace com::centreon::common::literals;
+  rapidjson::Document check_args =
+      R"({"counter": "\\Process V2(*)\\Thread Count",
+        "counter-filter":"any",
+        "output-syntax": "${status}: Warn :{warn-list} --- crit : {crit-list}",
+        "detail-syntax": "{label}",
+        "warning-status": "",
+        "critical-status": "chrome >= 40 || firefox >= 150 || svchost >= 20 || explorer>=15",
+        "critical-count": "2:",
+        "use_english": true
+    })"_json;
+
+  check_counter checker(
+      g_io_context, spdlog::default_logger(), {}, {}, "serv"s, "cmd_name"s,
+      "cmd_line"s, check_args, nullptr,
+      []([[maybe_unused]] const std::shared_ptr<check>& caller,
+         [[maybe_unused]] int status,
+         [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+             perfdata,
+         [[maybe_unused]] const std::list<std::string>& outputs) {},
+      std::make_shared<checks_statistics>());
+
+  absl::flat_hash_map<std::string, double> data = {
+      {"_total", 150.0},  {"svchost", 24.0}, {"explorer", 18.0},
+      {"chrome", 42.0},   {"firefox", 36.0}, {"notepad", 5.0},
+      {"winlogon", 12.0}, {"lsass", 16.0},   {"services", 28.0},
+      {"csrss", 10.0}};
+
+  checker.set_counter_data(data);
+
+  std::string output;
+  std::list<com::centreon::common::perfdata> perf;
+  auto status = checker.compute(&output, &perf);
+  ASSERT_EQ(status,
+            e_status::ok);  // ok because the critical count is 3 and it
+                            // higher than 2 , the lower bound 2:
 }
