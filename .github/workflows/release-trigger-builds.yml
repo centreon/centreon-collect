@@ -61,12 +61,10 @@ jobs:
           RELEASE_TYPE=""
           PREVIOUS_STABLE_BUNDLE_TAG="" # bundle tag
           PREVIOUS_STABLE_BUNDLE_TAG_COMMIT_SHA="" # sha of the commit pointed by PREVIOUS_STABLE_BUNDLE_TAG
-          TARGET_IS_RELEASE_BRANCH=""
 
           # Check if dispatch_target_release_branch is a release or hotfix branch
           if [[ "${{ inputs.dispatch_target_release_branch }}" =~ ^(release|hotfix)-.*-next$ ]]; then
-            echo "DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, setting TARGET_IS_RELEASE_BRANCH to true."
-            TARGET_IS_RELEASE_BRANCH="true"
+            echo "DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, proceeding further."
           else
             echo "::error::DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, exiting, only release branches are currently supported."
             exit 1
@@ -216,8 +214,6 @@ jobs:
           echo "new_branch=$NEW_BRANCH" >> $GITHUB_OUTPUT
           # NEW_BRANCH_EXISTS
           echo "new_branch_exists=$NEW_BRANCH_EXISTS" >> $GITHUB_OUTPUT
-          # TARGET_IS_RELEASE_BRANCH
-          echo "target_is_release_branch=$TARGET_IS_RELEASED_BRANCH" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
