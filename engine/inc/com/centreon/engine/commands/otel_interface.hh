@@ -169,6 +169,14 @@ class open_telemetry_base
   create_check_result_builder(const std::string& cmdline) = 0;
 
   virtual void force_check(uint64_t host_id, uint64_t serv_id) = 0;
+
+  struct certificate_info {
+    std::string sha;
+    std::string cn;
+    time_t peremption;
+  };
+
+  virtual certificate_info get_otel_service_certificate_info() = 0;
 };
 
 };  // namespace com::centreon::engine::commands::otel

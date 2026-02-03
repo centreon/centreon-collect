@@ -63,6 +63,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_common
             centreon_process
             ctncrypto
+            pb_open_telemetry_lib
             GTest::gtest
             GTest::gtest_main
             GTest::gmock

@@ -24,6 +24,8 @@
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 
+std::shared_ptr<spdlog::logger> glogger;
+
 class CentreonEngineEnvironment : public testing::Environment {
  public:
   void SetUp() override {
@@ -33,9 +35,6 @@ class CentreonEngineEnvironment : public testing::Environment {
 
   void TearDown() override { return; }
 };
-
-std::shared_ptr<spdlog::logger> pool_logger =
-    std::make_shared<spdlog::logger>("pool_logger");
 
 /**
  *  Tester entry point.
@@ -53,7 +52,8 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::common::pool::load(g_io_context, pool_logger);
+  glogger = spdlog::default_logger();
+  com::centreon::common::pool::load(g_io_context, glogger);
   com::centreon::common::pool::set_pool_size(0);
   // Run all tests.
   int ret = RUN_ALL_TESTS();

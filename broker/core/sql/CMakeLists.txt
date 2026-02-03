@@ -83,7 +83,7 @@ set(SOURCES
 add_library(sql STATIC ${SOURCES})
 set_target_properties(sql PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
-target_link_libraries(sql PRIVATE spdlog::spdlog mariadb ctnvault centreon_http)
+target_link_libraries(sql PRIVATE mariadb ctnvault centreon_http fmt::fmt)
 add_dependencies(sql process_stat pb_common_lib)
 
 if(WITH_TESTING)

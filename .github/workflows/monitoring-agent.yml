@@ -286,7 +286,7 @@ jobs:
       credentials:
         username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
         password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
-      options: --cpus 8
+      options: --cpus 8 --ulimit core=-1 --privileged
 
     name: unit test ${{ matrix.operating_system }} ${{ matrix.arch }}
 
@@ -360,9 +360,9 @@ jobs:
 
       - name: Run agent common unit tests
         run: |
-          tests/ut_common --gtest_output=xml:ut_common.xml
-          tests/ut_agent --gtest_output=xml:ut_agent.xml
-        working-directory: build
+          .github/scripts/collect-ut.sh common
+          .github/scripts/collect-ut.sh agent
+        working-directory: .
         shell: bash
 
       - name: Upload test results
@@ -370,7 +370,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
-          path: "build/ut_*.xml"
+          path: "build/ut_*"
           retention-days: 1
 
   package-linux:

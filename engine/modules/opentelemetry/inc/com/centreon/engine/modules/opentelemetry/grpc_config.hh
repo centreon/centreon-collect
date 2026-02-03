@@ -24,9 +24,16 @@
 namespace com::centreon::engine::modules::opentelemetry {
 
 class grpc_config : public common::grpc::grpc_config {
-  static void read_file(const rapidjson::Value& json_config,
-                        const std::string_view& key,
-                        std::string& file_content);
+  static std::filesystem::file_time_type read_file(std::string_view path,
+                                                   std::string& file_content);
+
+  std::string _ca_path;
+  std::string _cert_path;
+  std::string _key_path;
+  std::filesystem::file_time_type _ca_mtime;
+  std::filesystem::file_time_type _cert_mtime;
+  std::filesystem::file_time_type _key_mtime;
+  unsigned _minute_certificate_ttl = 30 * 24 * 60;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
@@ -44,7 +51,15 @@ class grpc_config : public common::grpc::grpc_config {
       std::shared_ptr<const absl::flat_hash_set<std::string>> trusted_tokens)
       : common::grpc::grpc_config(hostp, crypted, std::move(trusted_tokens)) {}
 
-  grpc_config(const rapidjson::Value& json_config);
+  grpc_config(const rapidjson::Value& json_config,
+              const std::string_view& default_cert_path,
+              const std::string_view& default_key_path);
+
+  bool reload_certificates();
+
+  unsigned get_minute_certificate_ttl() const {
+    return _minute_certificate_ttl;
+  }
 
   bool operator==(const grpc_config& right) const;
 

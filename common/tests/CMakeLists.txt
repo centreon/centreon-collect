@@ -18,6 +18,8 @@
 
 include_directories(
   ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_SOURCE_DIR}/common/grpc/inc
+  ${CMAKE_BINARY_DIR}/common/tests
       )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -28,6 +30,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/aes256.cc
     engine_conf/expand_conf.cc
     file_test.cc
+    grpc/grpc_test.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
     jwt_test.cc
     hex_dump_test.cc
     log_v2/log_v2.cc
@@ -44,6 +49,9 @@ else()
   add_executable(
     ut_common
     absl_flyweight_factory_test.cc
+    grpc/grpc_test.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
+    ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
     perfdata_test.cc
     threshold_test.cc
     process_test.cc
@@ -87,6 +95,15 @@ file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.bat
 file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_multilines.sh
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
+add_library(pb_grpc_test_lib grpc/grpc_test.proto)
+protobuf_generate(TARGET pb_grpc_test_lib)
+protobuf_generate(TARGET pb_grpc_test_lib
+ LANGUAGE grpc
+ PLUGIN protoc-gen-grpc=${GRPC_CPP_PLUGIN}
+ GENERATE_EXTENSIONS .grpc.pb.h .grpc.pb.cc
+)
+
+
 add_test(NAME tests COMMAND ut_common)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -97,12 +114,13 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
-            ctncrypto
-            protobuf::libprotobuf
+            centreon_grpc
             engine_conf
+            log_v2
+            gRPC::grpc++
+            protobuf::libprotobuf
             Boost::program_options
             re2::re2
-            log_v2
             OpenSSL::SSL
             OpenSSL::Crypto
             GTest::gtest
@@ -114,6 +132,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             absl::base
             absl::bits
             fmt::fmt
+            stdc++fs
             pthread)
 
   add_dependencies(ut_common centreon_common process_stat ctncrypto
@@ -125,6 +144,7 @@ else()
     PRIVATE centreon_common
             centreon_process
             ctncrypto
+            centreon_grpc
             Boost::program_options
             Boost::process
             gRPC::grpc++

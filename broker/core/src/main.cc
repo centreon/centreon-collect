@@ -349,6 +349,9 @@ int main(int argc, char* argv[]) {
         default_port += gl_state.broker_id();
       else
         default_port = gl_state.rpc_port();
+
+      SPDLOG_LOGGER_INFO(core_logger, "Start of grpc server on {}:{}",
+                         default_listen_address, default_port);
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
           new brokerrpc(default_listen_address, default_port, broker_name),
           [](brokerrpc* rpc) {

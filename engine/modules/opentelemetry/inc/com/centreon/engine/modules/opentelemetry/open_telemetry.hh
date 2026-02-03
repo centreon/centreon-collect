@@ -23,6 +23,7 @@
 #include "com/centreon/engine/commands/otel_interface.hh"
 
 #include "centreon_agent/agent_reverse_client.hh"
+#include "common/crypto/cert_tree.hh"
 #include "host_serv_extractor.hh"
 #include "otl_check_result_builder.hh"
 #include "otl_config.hh"
@@ -31,6 +32,7 @@ namespace com::centreon::engine::modules::opentelemetry {
 
 using host_serv_metric = commands::otel::host_serv_metric;
 namespace http = com::centreon::common::http;
+namespace crypto = com::centreon::common::crypto;
 
 class otl_server;
 
@@ -45,19 +47,29 @@ class otl_server;
  *
  */
 class open_telemetry : public commands::otel::open_telemetry_base {
-  std::shared_ptr<otl_server> _otl_server;
+  std::shared_ptr<otl_server> _otl_server ABSL_GUARDED_BY(_protect);
+  std::chrono::system_clock::time_point _certificate_ttl
+      ABSL_GUARDED_BY(_protect);
+
+  std::unique_ptr<crypto::cert_tree> _server_ca ABSL_GUARDED_BY(_protect);
+
+  std::filesystem::file_time_type _ca_mtime;
+  std::filesystem::file_time_type _ca_key_mtime;
+
+  asio::system_timer _minute_timer ABSL_GUARDED_BY(_protect);
+
   std::shared_ptr<http::server> _telegraf_conf_server;
   std::unique_ptr<centreon_agent::agent_reverse_client> _agent_reverse_client;
 
   using cmd_line_to_extractor_map =
       absl::btree_map<std::string, std::shared_ptr<host_serv_extractor>>;
-  cmd_line_to_extractor_map _extractors;
+  cmd_line_to_extractor_map _extractors ABSL_GUARDED_BY(_protect);
   std::string _config_file_path;
-  std::unique_ptr<otl_config> _conf;
+  std::unique_ptr<otl_config> _conf ABSL_GUARDED_BY(_protect);
   std::shared_ptr<spdlog::logger> _logger;
 
   std::shared_ptr<asio::io_context> _io_context;
-  mutable std::mutex _protect;
+  mutable absl::Mutex _protect;
 
   centreon_agent::agent_stat::pointer _agent_stats;
 
@@ -66,12 +78,18 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   void _create_telegraf_conf_server(
       const telegraf::conf_server_config::pointer& conf);
 
+  void _start_minute_timer();
+  void _minute_timer_handler();
+
  protected:
   virtual void _create_otl_server(
       const grpc_config::pointer& server_conf,
-      const centreon_agent::agent_config::pointer& agent_conf);
+      const centreon_agent::agent_config::pointer& agent_conf)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void _reload();
-  void _shutdown();
+  void _shutdown() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+
+  void _shutdown_otl_server() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
  public:
   open_telemetry(const std::string_view config_file_path,
@@ -106,6 +124,8 @@ class open_telemetry : public commands::otel::open_telemetry_base {
   create_check_result_builder(const std::string& cmdline) override;
 
   void force_check(uint64_t host_id, uint64_t serv_id) override;
+
+  certificate_info get_otel_service_certificate_info() override;
 };
 
 }  // namespace com::centreon::engine::modules::opentelemetry

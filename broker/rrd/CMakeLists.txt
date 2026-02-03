@@ -111,7 +111,7 @@ target_link_libraries(
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
-  spdlog::spdlog)
+  fmt::fmt)
 
 # Testing.
 if(WITH_TESTING)
