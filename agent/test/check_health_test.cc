@@ -179,7 +179,7 @@ TEST(check_health_test, threshold_1) {
   }
 }
 
-TEST_F(check_health_test, threshold_1_1) {
+TEST(check_health_test, threshold_1_1) {
   config::load(true);
 
   rapidjson::Document check_args =
