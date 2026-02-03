@@ -1,4 +1,4 @@
-name: centreon-collect
+name: collect
 run-name: |
   ${{
     (github.event_name == 'schedule' ||
