@@ -68,8 +68,8 @@ jobs:
             echo "DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, setting TARGET_IS_RELEASE_BRANCH to true."
             TARGET_IS_RELEASE_BRANCH="true"
           else
-            echo "DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, setting TARGET_IS_RELEASE_BRANCH to false."
-            TARGET_IS_RELEASE_BRANCH="false"
+            echo "::error::DISPATCH_TARGET_RELEASE_BRANCH requested is ${{ inputs.dispatch_target_release_branch }}, exiting, only release branches are currently supported."
+            exit 1
           fi
 
           # Extract RELEASE_BRANCH_MAJOR_VERSION
@@ -222,7 +222,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create requested release/hotfix branch
-        if: ${{ steps.get_and_set_references_information.outputs.target_is_release_branch == 'true' }}
         id: create_requested_release_hotfix_branch
         run: |
           set -eux
@@ -305,14 +304,12 @@ jobs:
 
       # Detect changes since last stable tag (ex: 25.10-latest)
       - name: Detect changed components since last stable release bundle tag
-        if: ${{ steps.get_and_set_references_information.outputs.target_is_release_branch == 'true' }}
         uses: ./.github/actions/release-detect-changed-components
         with:
           base_sha: ${{ steps.get_and_set_references_information.outputs.previous_stable_bundle_tag_sha }}
           head_sha: ${{ steps.create_requested_release_hotfix_branch.outputs.new_branch_sha }}
 
       - name: Download component lists
-        if: ${{ steps.get_and_set_references_information.outputs.target_is_release_branch == 'true' }}
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: component-commit-lists
@@ -349,7 +346,8 @@ jobs:
           # develop: start of a new major version (not a release) (develop)
 
           # Build link to list of runs for selected branch
-          if [[ ${{ inputs.dispatch_target_release_branch }} =~ ^release-2[0-9]\.[0-9]+-next$ ]] || [[ ${{ inputs.dispatch_target_release_branch }} == "develop" ]] || [[ ${{ inputs.dispatch_target_release_branch }} =~ ^hotfix-2[0-9]\.[0-9]+-next$ ]];then
+          # Support for develop or dev branch will be added later
+          if [[ ${{ inputs.dispatch_target_release_branch }} =~ ^release-2[0-9]\.[0-9]+-next$ ]] || [[ ${{ inputs.dispatch_target_release_branch }} =~ ^hotfix-2[0-9]\.[0-9]+-next$ ]];then
             echo "Using ${{ inputs.dispatch_target_release_branch }} as branch to build testing packages."
             RUNS_URL="https://github.com/centreon/centreon-collect/actions?query=branch%3A${{ inputs.dispatch_target_release_branch }}"
           else
