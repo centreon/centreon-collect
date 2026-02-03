@@ -1,4 +1,4 @@
-name: centreon-collect
+name: collect
 run-name: |
   ${{
     (github.event_name == 'schedule' ||
@@ -37,7 +37,7 @@ on:
     - cron: "30 0 * * 1-5"
   pull_request:
     paths:
-      - ".github/workflows/centreon-collect.yml"
+      - ".github/workflows/collect.yml"
       - ".version"
       - ".version.centreon-collect"
       - bbdo/**
