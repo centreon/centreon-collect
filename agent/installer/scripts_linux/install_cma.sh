@@ -70,8 +70,8 @@ readonly SCRIPT_VERSION="1.0.0"
 
 # Default values
 DEFAULT_CENTREON_VERSION="25.10"
-DEFAULT_ENCRYPTION="no"
-DEFAULT_LOG_LEVEL="warning"
+DEFAULT_ENCRYPTION="full"
+DEFAULT_LOG_LEVEL="error"
 DEFAULT_LOG_TYPE="file"
 DEFAULT_LOG_FILE="/var/log/centreon-monitoring-agent/centagent.log"
 DEFAULT_MAX_FILE_SIZE="10"
