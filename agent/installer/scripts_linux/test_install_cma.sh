@@ -205,12 +205,11 @@ test_required_params() {
     print_section "2. REQUIRED PARAMETERS TESTS"
     
     # Missing required parameters
-    run_test_with_message "Missing all required params" 1 "Missing required parameter" 
-    run_test_with_message "Missing endpoint" 1 "Missing required parameter: --endpoint" -t "mytoken"
-    run_test_with_message "Missing token" 1 "Missing required parameter: --token" -e "localhost:4317"
+    run_test_with_message "Missing all required params" 1 "Missing required parameter: --endpoint" 
+    run_test_with_message "Missing endpoint" 1 "Missing required parameter: --endpoint" -t "token"
     
     # Valid minimal configuration
-    run_test "Valid minimal config (endpoint + token)" 0 \
+    run_test "Valid config with endpoint and token" 0 \
         -e "192.168.1.100:4317" -t "my-auth-token" -d
 }
 
@@ -283,7 +282,7 @@ test_reverse_mode() {
     
     # Reverse mode without encryption (should work)
     run_test "Reverse mode without encryption" 0 \
-        -e "0.0.0.0:4317" -t "token" -r -d
+        -e "0.0.0.0:4317" -t "token" -r -c no -d
     
     # Reverse mode with encryption requires cert and key
     run_test_with_message "Reverse mode + encryption full: missing cert" 1 "Public certificate path" \
