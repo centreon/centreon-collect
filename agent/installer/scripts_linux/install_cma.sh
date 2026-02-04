@@ -20,7 +20,7 @@
 #
 # Options:
 #   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED]
-#   -t, --token          Authentication token [REQUIRED]
+#   -t, --token          Authentication token (can be entered interactively if not provided)
 #   -n, --hostname       Host name as defined in Centreon (default: system hostname)
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
 #   -c, --encryption     Encryption mode: full, insecure, or no (default: no)
@@ -150,9 +150,9 @@ USAGE:
 
 REQUIRED OPTIONS:
     -e, --endpoint <IP:PORT>      Poller endpoint (e.g., 192.168.1.100:4317)
-    -t, --token <TOKEN>           Authentication token from Centreon
 
 OPTIONAL OPTIONS:
+    -t, --token <TOKEN>           Authentication token (can be entered interactively if not provided)
     -n, --hostname <NAME>         Host name as defined in Centreon (default: system hostname)
     -v, --version <VERSION>       Centreon version: 24.10 or 25.10 (default: ${DEFAULT_CENTREON_VERSION})
     -c, --encryption <MODE>       Encryption mode: full, insecure, or no (default: ${DEFAULT_ENCRYPTION})
@@ -203,6 +203,11 @@ EOF
 #===============================================================================
 
 validate_root() {
+    # Skip root check in dry-run mode (for testing)
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        return 0
+    fi
+    
     if [[ $EUID -ne 0 ]]; then
         die "This script must be run as root. Please use sudo or run as root user."
     fi
@@ -437,6 +442,12 @@ detect_os() {
     OS_VERSION_MAJOR="${VERSION_ID%%.*}"
 
     log_info "Detected: ${PRETTY_NAME:-${OS_ID} ${OS_VERSION}}"
+
+    # In dry-run mode, skip OS detection (for testing)
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_info "Skipping OS detection (dry-run mode)"
+        return 0
+    fi
 
     # Validate supported OS
     validate_os_support
@@ -1071,11 +1082,11 @@ main() {
     echo "========================================"
     echo ""
 
+    # Validate required parameters first
+    validate_required_params
+
     # Validate root privileges
     validate_root
-
-    # Validate required parameters
-    validate_required_params
 
     # Print installation summary
     print_summary
