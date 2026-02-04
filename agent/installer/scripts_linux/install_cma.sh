@@ -36,7 +36,7 @@
 #   -M, --max-file-size  Maximum log file size in bytes (used with log-type=file)
 #   -m, --max-number     Maximum number of log files for rotation (used with log-type=file)
 #   -x, --custom-check   Path to custom check configuration file
-#   -p, --install-plugins Install Centreon plugins (flag, no value needed)
+#   -p, --components     Comma-separated list of components to install: agent,plugin (default: agent,plugin)
 #   -d, --dry-run        Show what would be done without making changes
 #   -h, --help           Display this help message
 #
@@ -45,7 +45,7 @@
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-auth-token"
 #
 #   # Installation with plugins and custom hostname
-#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p
+#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
 #
 #   # Installation with full encryption (agent-initiated)
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -106,7 +106,7 @@ LOG_LEVEL="${DEFAULT_LOG_LEVEL}"
 MAX_FILE_SIZE="${DEFAULT_MAX_FILE_SIZE}"
 MAX_NUMBER="${DEFAULT_MAX_NUMBER}"
 CUSTOM_CHECK_FILE=""
-INSTALL_PLUGINS=false
+COMPONENTS="agent,plugin"
 DRY_RUN=false
 OUTPUT_CONFIG=false
 
@@ -168,7 +168,7 @@ OPTIONAL OPTIONS:
     -M, --max-file-size <BYTES>   Maximum log file size in bytes (used with log-type=file)
     -m, --max-number <NUM>        Maximum number of log files for rotation
     -x, --custom-check <PATH>     Path to custom check configuration file
-    -p, --install-plugins         Install Centreon plugins
+    -p, --components <LIST>       Comma-separated list of components to install: agent,plugin (default: agent,plugin)
     -d, --dry-run                 Show what would be done without making changes
     -h, --help                    Display this help message
 
@@ -177,7 +177,7 @@ EXAMPLES:
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-auth-token"
 
     # Installation with plugins and custom hostname
-    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p
+    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
 
     # Installation with full encryption (agent-initiated)
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -720,6 +720,11 @@ configure_plugins_repo_debian() {
 #===============================================================================
 
 install_cma_agent() {
+    # Check if "agent" is in the COMPONENTS list
+    if [[ ! "${COMPONENTS}" =~ (^|,)agent(,|$) ]]; then
+        return 0
+    fi
+
     log_info "Installing Centreon Monitoring Agent..."
 
     if [[ "${DRY_RUN}" == "true" ]]; then
@@ -749,7 +754,8 @@ install_cma_agent() {
 }
 
 install_centreon_plugins() {
-    if [[ "${INSTALL_PLUGINS}" != "true" ]]; then
+    # Check if "plugin" is in the COMPONENTS list
+    if [[ ! "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
         return 0
     fi
 
@@ -931,7 +937,7 @@ parse_arguments() {
                 TOKEN="$2"
                 shift 2
                 ;;
-            -n|--hostname)
+            -n|--host)
                 HOSTNAME_CENTREON="$2"
                 shift 2
                 ;;
@@ -944,11 +950,11 @@ parse_arguments() {
                 REVERSE_MODE=true
                 shift
                 ;;
-            -a|--ca-cert)
+            -a|--ca)
                 CA_CERT="$2"
                 shift 2
                 ;;
-            -N|--ca-name)
+            -N|--commonname)
                 CA_COMMON_NAME="$2"
                 shift 2
                 ;;
@@ -964,16 +970,16 @@ parse_arguments() {
                 FINGERPRINT="$2"
                 shift 2
                 ;;
-            -T|--log-type)
+            -T|--logtype)
                 LOG_TYPE="$2"
                 validate_log_type "${LOG_TYPE}"
                 shift 2
                 ;;
-            -L|--log-file)
+            -L|--logfile)
                 LOG_FILE="$2"
                 shift 2
                 ;;
-            -l|--log-level)
+            -l|--loglevel)
                 LOG_LEVEL="$2"
                 validate_log_level "${LOG_LEVEL}"
                 shift 2
@@ -995,9 +1001,9 @@ parse_arguments() {
                 validate_centreon_version "${CENTREON_VERSION}"
                 shift 2
                 ;;
-            -p|--install-plugins)
-                INSTALL_PLUGINS=true
-                shift
+            -p|--components)
+                COMPONENTS="$2"
+                shift 2
                 ;;
             -d|--dry-run)
                 DRY_RUN=true
@@ -1039,7 +1045,7 @@ print_summary() {
     [[ -n "${PRIVATE_KEY}" ]] && echo "Private Key:     ${PRIVATE_KEY}"
     [[ -n "${FINGERPRINT}" ]] && echo "Fingerprint:     ${FINGERPRINT}"
     [[ -n "${CUSTOM_CHECK_FILE}" ]] && echo "Custom Check:    ${CUSTOM_CHECK_FILE}"
-    echo "Install Plugins: ${INSTALL_PLUGINS}"
+    echo "Components:      ${COMPONENTS}"
     echo "Config File:     ${CONFIG_FILE}"
     echo "========================================"
     echo ""
