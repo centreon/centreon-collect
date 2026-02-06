@@ -420,6 +420,7 @@ target_link_libraries(
   roker
   multiplexing
   centreon_common
+  centreon_process
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive
@@ -469,6 +470,7 @@ else()
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
+  add_broker_module(EVENT_SCRIPT ON)
   add_subdirectory(http_tsdb)
 endif()
 
