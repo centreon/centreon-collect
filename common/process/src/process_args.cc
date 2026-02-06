@@ -163,6 +163,24 @@ process_args::process_args(const std::string_view& unix_commandline) {
   _c_args.push_back(nullptr);
 }
 
+/**
+ * @brief copy a process_args object into this
+ *
+ * @param from
+ */
+void process_args::_copy_from(const process_args& from) {
+  _exe_path = from._exe_path;
+  _args = from._args;
+  _encrypted_args = from._encrypted_args;
+  _c_args.clear();
+  _c_args.reserve(_args.size() + 2);
+  _c_args.push_back(_exe_path.c_str());
+  for (const std::string& arg : _args) {
+    _c_args.push_back(arg.c_str());
+  }
+  _c_args.push_back(nullptr);
+}
+
 void process_args::dump(std::string* output) const {
   output->reserve(1024);
   output->push_back('[');

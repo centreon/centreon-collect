@@ -28,7 +28,6 @@ static constexpr multiplexing::muxer_filter _event_script_mandatory_filter = {
 
 static constexpr multiplexing::muxer_filter _event_script_forbidden_filter = {
     multiplexing::muxer_filter::zero_init()};
-;
 
 /**
  *  Default constructor.
@@ -52,9 +51,9 @@ void connector::connect_to(
 }
 
 /**
- * @brief Connect to an influxdb DB.
+ * @brief Create an event_script stream
  *
- * @return An Influxdb connection object.
+ * @return An event_script connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
   return std::make_shared<stream>(_script_path, _managed_event_ttl, _timeout);

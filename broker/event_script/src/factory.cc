@@ -82,7 +82,7 @@ io::endpoint* factory::new_endpoint(
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &timeout)) {
       throw msg_fmt(
-          "event_script: couldn't parse minute_managed_event_ttl '{}' defined "
+          "event_script: couldn't parse timeout '{}' defined "
           "for "
           "endpoint '{}'",
           it->second, cfg.name);

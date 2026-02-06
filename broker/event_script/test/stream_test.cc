@@ -180,10 +180,10 @@ TEST_F(event_script_stream, two_same_events_but_with_time_interval) {
 
   std::shared_ptr<pb_service_status> event3 =
       std::make_shared<pb_service_status>();
-  event2->mut_obj().set_host_id(5);
-  event2->mut_obj().set_service_id(10);
-  event2->mut_obj().set_output("check output");
-  stream->write(event2);
+  event3->mut_obj().set_host_id(5);
+  event3->mut_obj().set_service_id(10);
+  event3->mut_obj().set_output("check output");
+  stream->write(event3);
 
   // let time to process to execute
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
