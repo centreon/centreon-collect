@@ -373,6 +373,12 @@ try {
     # Download installer
     $installerPath = Download-Installer -CMAVersion $cmaVersion
     
+    # Set hostname to machine name if not provided
+    if ([string]::IsNullOrWhiteSpace($HostName)) {
+        $HostName = $env:COMPUTERNAME
+        Write-Log "No hostname provided, using machine name: $HostName"
+    }
+    
     # Build installer arguments
     $installerArgs = Build-InstallerArgs
     
