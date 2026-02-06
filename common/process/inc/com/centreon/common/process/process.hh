@@ -259,6 +259,10 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
     return _stderr;
   }
 
+  std::shared_ptr<spdlog::logger> get_logger() const { return _logger; }
+
+  const std::string& get_exe_path() const { return _args->get_exe_path(); }
+
   int get_exit_code() const { return _exit_code; }
 
   void kill();
