@@ -142,6 +142,7 @@ var
   PluginURL : String;
   PluginVer : String;
   PluginSrc : String;
+  Fingerprint : String;
 
   // --- Selective uninstall ---
   AgentsCheckList: TNewCheckListBox;
@@ -690,6 +691,10 @@ begin
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_file_size', StrToIntDef(MaxFileEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_files', StrToIntDef(MaxNumberEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
+  
+  // Write fingerprint if provided
+  if Fingerprint <> '' then
+    RegWriteStringValue(RootKey, BaseKey, 'fingerprint', Fingerprint);
 end;
 
 
@@ -840,6 +845,8 @@ begin
     InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
 
   HostNameEdit.Text := ExpandConstant('{param:host|}');
+  if HostNameEdit.Text = '' then
+    HostNameEdit.Text := GetWindowsHostName;
   PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
 
   if LowerCase(ExpandConstant('{param:logtype|event-log}')) = 'file' then
@@ -877,6 +884,7 @@ begin
   TokenEdit.Text := ExpandConstant('{param:token|}');
 
   PluginSrc := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
+  Fingerprint := ExpandConstant('{param:fingerprint|}');
 end;
 
 // Checks validity of silent installation parameters.
@@ -898,6 +906,8 @@ begin
 
   AgentInstance := ExpandConstant('{param:agentinstance|}');
   HostParam := ExpandConstant('{param:host|}');
+  if HostParam = '' then
+    HostParam := GetWindowsHostName;
   EndpointParam := ExpandConstant('{param:endpoint|}');
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
   LogFileParam := ExpandConstant('{param:logfile|}');
@@ -1913,7 +1923,7 @@ begin
       Exit;
     end;
 
-    Frm := CreateCustomForm(ScaleX(480), ScaleY(340), False, False);
+    Frm := CreateCustomForm(ScaleX(280), ScaleY(240), True, False);
     Frm.Caption := 'Centreon Uninstall';
 
     Lbl := TLabel.Create(Frm);
