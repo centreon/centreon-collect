@@ -122,23 +122,25 @@ CUSTOM_CHECK_FILE=""
 COMPONENTS="agent,plugin"
 DRY_RUN=false
 OUTPUT_CONFIG=false
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"  # Optional GitHub token for API authentication
 
 # Detected OS information
 OS_ID=""
 OS_VERSION=""
 OS_VERSION_MAJOR=""
 PKG_MANAGER=""
+OS_ARCH=""
 
 #===============================================================================
 # UTILITY FUNCTIONS
 #===============================================================================
 
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+    echo -e "${GREEN}[INFO]${NC} $1" >&2
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    echo -e "${YELLOW}[WARN]${NC} $1" >&2
 }
 
 log_error() {
@@ -146,7 +148,7 @@ log_error() {
 }
 
 log_debug() {
-    echo -e "${BLUE}[DEBUG]${NC} $1"
+    echo -e "${BLUE}[DEBUG]${NC} $1" >&2
 }
 
 die() {
@@ -444,6 +446,10 @@ detect_os() {
 
     log_info "Detected: ${PRETTY_NAME:-${OS_ID} ${OS_VERSION}}"
 
+    # Detect architecture
+    OS_ARCH="$(uname -m)"
+    log_info "Architecture: ${OS_ARCH}"
+
     # In dry-run mode, skip OS detection (for testing)
     if [[ "${DRY_RUN}" == "true" ]]; then
         log_info "Skipping OS detection (dry-run mode)"
@@ -515,41 +521,194 @@ determine_package_manager() {
     log_info "Package manager: ${PKG_MANAGER}"
 }
 
+ensure_installed_tools() {
+    local missing_packages=()
+    
+    # Check which tools are missing
+    command -v curl &> /dev/null || missing_packages+=("curl")
+    command -v hostname &> /dev/null || missing_packages+=("hostname")
+    
+    # If all tools are installed, return early
+    if [[ ${#missing_packages[@]} -eq 0 ]]; then
+        log_debug "All required tools are already installed"
+        return 0
+    fi
+    
+    log_info "Installing missing tools: ${missing_packages[*]}"
+    
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_info "[DRY-RUN] Would install: ${missing_packages[*]}"
+        return 0
+    fi
+    
+    # Install all missing packages in a single command
+    case "${PKG_MANAGER}" in
+        dnf|yum)
+            ${PKG_MANAGER} install -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
+            ;;
+        apt)
+            apt-get update -qq
+            apt-get install -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
+            ;;
+    esac
+    
+    log_info "Required tools installed successfully"
+}
+
 #===============================================================================
 # REPOSITORY CONFIGURATION FUNCTIONS
 #===============================================================================
+readonly GITHUB_API_URL="https://api.github.com/repos/centreon/centreon-collect"
+readonly GITHUB_RELEASE_URL="https://github.com/centreon/centreon-collect/releases/download"
+
+# Helper function to make GitHub API calls with optional authentication
+# Usage: github_api_call <url>
+github_api_call() {
+    local url="$1"
+    local response
+    
+    if [[ -n "${GITHUB_TOKEN}" ]]; then
+        log_debug "Using authenticated GitHub API request"
+        response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN}" "${url}")
+    else
+        response=$(curl -sL "${url}")
+    fi
+    
+    # Check for rate limit error
+    if echo "${response}" | grep -q '"message":.*"API rate limit exceeded'; then
+        log_error "GitHub API rate limit exceeded."
+        log_error "To increase the rate limit, set the GITHUB_TOKEN environment variable:"
+        log_error "  export GITHUB_TOKEN=\"your_github_personal_access_token\""
+        log_error "  ${SCRIPT_NAME} [options]"
+        log_error ""
+        log_error "Create a token at: https://github.com/settings/tokens"
+        log_error "No special permissions are needed for public repositories."
+        die "GitHub API rate limit exceeded. Please use a GitHub token for authentication."
+    fi
+    
+    echo "${response}"
+}
+
+# Get the latest CMA version from GitHub tags based on Centreon version
+# Usage: get_latest_cma_version <centreon_version>
+# Returns: The CMA version tag (e.g., "centreon-monitoring-agent-25.10.1")
+get_latest_cma_version() {
+    local centreon_version="$1"
+    local latest_tag="${centreon_version}-latest"
+    
+    log_info "Fetching latest CMA version for Centreon ${centreon_version}..."
+    
+    # Get the commit SHA for the latest tag
+    local commit_sha
+    local tag_response
+    tag_response=$(github_api_call "${GITHUB_API_URL}/git/refs/tags/${latest_tag}")
+    
+    commit_sha=$(echo "${tag_response}" | grep -o '"sha": *"[^"]*"' | head -1 | cut -d'"' -f4)
+    
+    if [[ -z "${commit_sha}" ]]; then
+        die "Failed to fetch tag ${latest_tag} from GitHub"
+    fi
+
+    log_info "Commit SHA for ${latest_tag}: ${commit_sha}"
+    
+    # Search through paginated results to find the CMA tag
+    # Keep searching until we find the tag or reach the last page (less than 100 items)
+    local cma_tag=""
+    local page=1
+    local page_content
+    local item_count
+    
+    while [[ -z "${cma_tag}" ]]; do
+        log_debug "Searching for CMA tag in page ${page}..."
+        page_content=$(github_api_call "${GITHUB_API_URL}/tags?per_page=100&page=${page}")
+        
+        # Try to find the CMA tag in this page
+        cma_tag=$(echo "${page_content}" | grep -B5 "\"sha\": \"${commit_sha}\"" | grep '"name":' | grep "centreon-monitoring-agent-" | head -1 | cut -d'"' -f4)
+        
+        # If we found the tag, exit the loop
+        if [[ -n "${cma_tag}" ]]; then
+            break
+        fi
+        
+        # Count items in this page (count "name" fields in the JSON array)
+        item_count=$(echo "${page_content}" | grep -c '"name":')
+        
+        # If we found fewer than 100 items, this is the last page
+        if [[ ${item_count} -lt 100 ]]; then
+            log_debug "Reached last page (${item_count} items)"
+            break
+        fi
+        
+        page=$((page + 1))
+    done
+    
+    if [[ -z "${cma_tag}" ]]; then
+        die "Failed to find CMA version tag for ${latest_tag}. Please verify that a release exists for this version."
+    fi
+    
+    log_info "Latest CMA version: ${cma_tag}"
+    echo "${cma_tag}"
+}
+
+# Build the download URL for CMA package based on OS type and CMA version
+# Usage: build_download_url <cma_version> <os_type>
+# os_type: "rpm" for RHEL-based, "deb" for Debian/Ubuntu
+build_download_url() {
+    local cma_version="$1"
+    local os_type="$2"
+    local version_number="${cma_version#centreon-monitoring-agent-}"  # Remove prefix
+    local el_version="${OS_VERSION_MAJOR}"
+    
+    # Determine architecture suffix for package naming
+    local arch_suffix
+    case "${OS_ARCH}" in
+        x86_64)
+            arch_suffix="amd64"  # For DEB packages
+            ;;
+        aarch64|arm64)
+            arch_suffix="arm64"
+            ;;
+        *)
+            die "Unsupported architecture: ${OS_ARCH}. Only x86_64 and ARM64 are supported."
+            ;;
+    esac
+    
+    case "${os_type}" in
+        rpm)
+            # Format: centreon-monitoring-agent-25.10.1-1.el8.x86_64.rpm
+            # Note:  right now : RPM packages only available for x86_64
+            if [[ "${OS_ARCH}" != "x86_64" ]]; then
+                die "RPM packages are only available for x86_64 architecture. Current: ${OS_ARCH}"
+            fi
+            echo "${GITHUB_RELEASE_URL}/${cma_version}/centreon-monitoring-agent-${version_number}-1.el${el_version}.x86_64.rpm"
+            ;;
+        deb)
+            # Format: centreon-monitoring-agent_25.10.1-1+deb12u1_amd64.deb
+            # Or: centreon-monitoring-agent_25.10.2-1-0ubuntu.22.04_amd64.deb
+            local deb_version
+            case "${OS_ID}" in
+                debian)
+                    case "${OS_VERSION_MAJOR}" in
+                        11) deb_version="${version_number}-1+deb11u1" ;;
+                        12) deb_version="${version_number}-1+deb12u1" ;;
+                        13) deb_version="${version_number}-1+deb13u1" ;;
+                    esac
+                    ;;
+                ubuntu)
+                    case "${OS_VERSION}" in
+                        22.04) deb_version="${version_number}-1-0ubuntu.22.04" ;;
+                        24.04) deb_version="${version_number}-1-0ubuntu.24.04" ;;
+                    esac
+                    ;;
+            esac
+            echo "${GITHUB_RELEASE_URL}/${cma_version}/centreon-monitoring-agent_${deb_version}_${arch_suffix}.deb"
+            ;;
+    esac
+}
 
 # Base URL for all Centreon packages
 readonly CENTREON_PACKAGES_BASE_URL="https://packages.centreon.com"
 readonly CENTREON_GPG_KEY_URL="https://apt-key.centreon.com"
-
-# Build the repository URL based on OS type and version
-# Usage: build_repo_url <os_type> <centreon_version> <el_version|codename>
-# os_type: "rpm" for RHEL-based, "apt" for Debian, "ubuntu" for Ubuntu
-build_repo_url() {
-    local os_type="$1"
-    local version="$2"
-    local distro_id="$3"
-
-    case "${os_type}" in
-        rpm)
-            # Format: rpm-standard/<version>/el<X>/centreon-<version>.repo
-            echo "${CENTREON_PACKAGES_BASE_URL}/rpm-standard/${version}/el${distro_id}/centreon-${version}.repo"
-            ;;
-        apt|ubuntu)
-            local prefix
-            [[ "${os_type}" == "ubuntu" ]] && prefix="ubuntu-standard" || prefix="apt-standard"
-            
-            # 24.10: <prefix>-24.10-stable <codename> main
-            # 25.10: <prefix>/ <codename>-25.10-stable main
-            if [[ "${version}" == "24.10" ]]; then
-                echo "deb ${CENTREON_PACKAGES_BASE_URL}/${prefix}-${version}-stable ${distro_id} main"
-            else
-                echo "deb ${CENTREON_PACKAGES_BASE_URL}/${prefix}/ ${distro_id}-${version}-stable main"
-            fi
-            ;;
-    esac
-}
 
 # Get the codename for Debian/Ubuntu distributions
 get_distro_codename() {
@@ -568,61 +727,6 @@ get_distro_codename() {
             esac
             ;;
     esac
-}
-
-configure_rhel_repos() {
-    local el_version="${OS_VERSION_MAJOR}"
-    local repo_url
-
-    repo_url=$(build_repo_url "rpm" "${CENTREON_VERSION}" "${el_version}")
-    
-    log_info "Configuring Centreon repositories for EL${el_version}..."
-
-    if [[ "${DRY_RUN}" == "true" ]]; then
-        log_info "[DRY-RUN] Would configure Centreon repo: ${repo_url}"
-        return 0
-    fi
-
-    # Install dnf-plugins-core if not present
-    ${PKG_MANAGER} install -y dnf-plugins-core hostname 2>/dev/null || true
-
-    # Add Centreon repository
-    ${PKG_MANAGER} config-manager --add-repo "${repo_url}" \
-        || die "Failed to add Centreon repository"
-
-    log_info "Centreon repository configured successfully"
-}
-
-configure_debian_ubuntu_repos() {
-    local codename
-    local standard
-    local source_repo
-
-    codename=$(get_distro_codename)
-
-    [[ "${OS_ID}" == "ubuntu" ]] && standard="ubuntu" || standard="apt"
-    source_repo=$(build_repo_url "${standard}" "${CENTREON_VERSION}" "${codename}")
-
-    log_info "Configuring Centreon repositories for ${OS_ID} ${codename}..."
-    log_info "Adding repository: ${source_repo}"
-    
-    if [[ "${DRY_RUN}" == "true" ]]; then
-        log_info "[DRY-RUN] Would configure Centreon repo for ${OS_ID} ${codename}"
-        return 0
-    fi
-
-    # Install prerequisites
-    apt-get update -qq
-    apt-get -y -qq install lsb-release gpg wget hostname
-
-    wget -O- "${CENTREON_GPG_KEY_URL}" | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-
-    echo "${source_repo}" > /etc/apt/sources.list.d/centreon.list
-
-    # Update package lists
-    apt-get update -qq
-
-    log_info "Centreon repository configured successfully"
 }
 
 configure_plugins_repo_rhel() {
@@ -740,22 +844,55 @@ install_cma_agent() {
     log_info "Installing Centreon Monitoring Agent..."
 
     if [[ "${DRY_RUN}" == "true" ]]; then
-        log_info "[DRY-RUN] Would install centreon-monitoring-agent package"
+        log_info "[DRY-RUN] Would download and install centreon-monitoring-agent package from GitHub"
         return 0
     fi
 
+    # Get the latest CMA version from GitHub
+    local cma_version
+    cma_version=$(get_latest_cma_version "${CENTREON_VERSION}")
+    
+    # Build download URL based on OS type
+    local download_url
+    local package_file
+    local os_type
+    
     case "${PKG_MANAGER}" in
         dnf|yum)
-            configure_rhel_repos
-            ${PKG_MANAGER} install -y centreon-monitoring-agent \
+            os_type="rpm"
+            download_url=$(build_download_url "${cma_version}" "rpm")
+            package_file="/tmp/centreon-monitoring-agent.rpm"
+            ;;
+        apt)
+            os_type="deb"
+            download_url=$(build_download_url "${cma_version}" "deb")
+            package_file="/tmp/centreon-monitoring-agent.deb"
+            ;;
+    esac
+    
+    log_info "Downloading from: ${download_url}"
+    
+    # Download the package
+    if ! curl -fSL "${download_url}" -o "${package_file}"; then
+        die "Failed to download CMA package from ${download_url}"
+    fi
+    
+    log_info "Package downloaded successfully"
+    
+    # Install the package
+    case "${PKG_MANAGER}" in
+        dnf|yum)
+            ${PKG_MANAGER} install -y "${package_file}" \
                 || die "Failed to install centreon-monitoring-agent"
             ;;
         apt)
-            configure_debian_ubuntu_repos
-            apt install -y centreon-monitoring-agent \
+            apt install -y "${package_file}" \
                 || die "Failed to install centreon-monitoring-agent"
             ;;
     esac
+    
+    # Clean up downloaded package
+    rm -f "${package_file}"
 
     # Verify installation
     if ! command -v centagent &> /dev/null; then
@@ -1092,6 +1229,9 @@ main() {
 
     # Detect operating system
     detect_os
+
+    # Ensure required tools are installed
+    ensure_installed_tools
 
     # Install CMA agent
     install_cma_agent
