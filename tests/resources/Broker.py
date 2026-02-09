@@ -1058,7 +1058,9 @@ def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
         "timeout": "30",
         "managed_event_ttl": "3600",
         "filters": {
-            "event": allowed_event
+            "event": [
+                allowed_event
+            ]
         }
     })
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
