@@ -64,7 +64,7 @@ run_container() {
                 #check if the plugin is installed
                 if podman exec "${container_name}" ls /usr/lib/centreon/plugins/centreon_linux_local.pl &>/dev/null; then
                     echo "✓ ${container_name}: FULL SUCCESS (plugin installed)"
-                    podman rm -f "${container_name}" &>/dev/null
+                    #podman rm -f "${container_name}" &>/dev/null
                 else
                     echo "✗ ${container_name}: PARTIAL (plugin not installed)"
                     FAILED_CONTAINERS+=("${container_name}")
