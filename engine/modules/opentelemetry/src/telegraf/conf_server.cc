@@ -321,7 +321,7 @@ void conf_session<connection_class>::answer_to_request(
 
   whitelist_cache wcache;
 
-  bool at_least_one_found = get_otel_commands(
+  e_get_otel_commands_ret ret = get_otel_commands(
       host,
       [this, &resp, &host](
           const std::string& cmd_name, const std::string& cmd_line,
@@ -336,7 +336,7 @@ void conf_session<connection_class>::answer_to_request(
       },
       wcache, this->_logger);
 
-  if (at_least_one_found) {
+  if (ret == e_get_otel_commands_ret::success) {
     resp->result(boost::beast::http::status::ok);
     resp->insert(boost::beast::http::field::content_type, "text/plain");
   } else {

@@ -315,9 +315,9 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
   grpc_config::pointer listener_cnf_agent =
       std::make_shared<grpc_config>("127.0.0.1:4623", false, DEFAULT_TOKEN);
 
-  auto agent_client =
-      streaming_client::load(_agent_io_context, spdlog::default_logger(),
-                             listener_cnf_agent, "test_host");
+  auto agent_client = streaming_client::load(
+      _agent_io_context, spdlog::default_logger(), listener_cnf_agent,
+      "test_host", "test_host_template");
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   command_manager::instance().execute();
@@ -394,9 +394,9 @@ TEST_F(
                  }
                });
 
-  auto agent_client =
-      streaming_client::load(_agent_io_context, spdlog::default_logger(),
-                             listener_cnf_agent, "test_host");
+  auto agent_client = streaming_client::load(
+      _agent_io_context, spdlog::default_logger(), listener_cnf_agent,
+      "test_host", "test_host_template");
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   command_manager::instance().execute();

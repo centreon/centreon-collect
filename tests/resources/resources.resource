@@ -548,10 +548,10 @@ Ctn Kindly Stop Agent
 
 Ctn Wait For Otel Server To Be Ready
     [Documentation]    Wait for engine otel server to be ready
-    [Arguments]    ${start}
-    ${content}    Create List    unencrypted server listening on 0.0.0.0:4317
+    [Arguments]    ${start}    ${port}=4317
+    ${content}    Create List    unencrypted server listening on 0.0.0.0:${port}
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
-    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:4317" should be available.
+    Should Be True    ${result}    "unencrypted server listening on 0.0.0.0:${port}" should be available.
 
 Ctn Create Otl Request
     [Documentation]    create an otl request with nagios telegraf style

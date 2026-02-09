@@ -25,6 +25,7 @@
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/timed_event.hh"
+#include "neb.pb.h"
 
 /* Event broker options. */
 #define BROKER_NOTHING 0
@@ -366,9 +367,7 @@ void broker_downtime_data(int type,
                           unsigned long triggered_by,
                           unsigned long duration,
                           unsigned long downtime_id);
-void broker_external_command(int type,
-                             int command_type,
-                             char* command_args);
+void broker_external_command(int type, int command_type, char* command_args);
 template <typename G>
 void broker_group(int type, const G* group);
 
@@ -404,5 +403,7 @@ void broker_bench(unsigned id,
 struct nebstruct_agent_stats_data;
 
 void broker_agent_stats(nebstruct_agent_stats_data& stats);
+
+void broker_agent_unknown_host(const com::centreon::broker::UnknownHost& event);
 
 #endif /* !CCE_BROKER_HH */
