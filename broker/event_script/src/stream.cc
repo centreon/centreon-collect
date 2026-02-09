@@ -179,7 +179,7 @@ void stream::_write(const std::shared_ptr<io::protobuf_base>& pb_event) {
   proc->start_process(
       [me = shared_from_this()](
           const common::process<true>& proc, int exit_code,
-          common::e_exit_status exit_status, const std::string& std_out,
+          common::e_exit_status exit_status, const std::string&,
           const std::string& std_err) {
         me->_write_completion(proc, exit_code, exit_status, std_err);
       },

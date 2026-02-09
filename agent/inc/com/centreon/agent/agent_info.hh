@@ -26,6 +26,8 @@ namespace com::centreon::agent {
 void read_os_version();
 
 void fill_agent_info(const std::string& supervised_host,
-                     ::com::centreon::agent::AgentInfo* agent_info);
+                     const std::string& host_template,
+                     ::com::centreon::agent::AgentInfo* agent_info,
+                     const std::shared_ptr<spdlog::logger>& logger);
 }  // namespace com::centreon::agent
 #endif

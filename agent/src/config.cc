@@ -34,6 +34,10 @@ const std::string_view config::config_schema(R"(
             "type": "string",
             "minLength": 5
         },
+        "host_template": {
+            "description": "type of host such as linux_web_server ...",
+            "type": "string"
+        },
         "endpoint": {
             "description": "Endpoint where agent has to connect to on the poller side or listening endpoint on the agent side in case of reverse_connection",
             "type": "string",
@@ -187,6 +191,10 @@ config::config(const std::string& path) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = json_config.get_string(
+      "host_template", "OS-Linux-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
   _second_max_reconnect_backoff =
       json_config.get_unsigned("second_max_reconnect_backoff", 60);

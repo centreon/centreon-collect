@@ -41,9 +41,10 @@ class streaming_server : public common::grpc::grpc_server_base,
       std::function<::grpc::Status(::grpc::CallbackServerContext*,
                                    std::chrono::system_clock::time_point&)>;
 
-  std::shared_ptr<boost::asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
+  const std::shared_ptr<spdlog::logger> _logger;
   const std::string _supervised_host;
+  const std::string _host_template;
 
   /** active engine to agent connection*/
   std::shared_ptr<server_reactor> _incoming;
@@ -60,7 +61,8 @@ class streaming_server : public common::grpc::grpc_server_base,
   streaming_server(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::shared_ptr<common::grpc::grpc_config>& conf,
-                   const std::string& supervised_host);
+                   const std::string& supervised_host,
+                   const std::string& host_template);
 
   ~streaming_server();
 
@@ -68,7 +70,8 @@ class streaming_server : public common::grpc::grpc_server_base,
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       const std::shared_ptr<common::grpc::grpc_config>& conf,
-      const std::string& supervised_host);
+      const std::string& supervised_host,
+      const std::string& host_template);
 
   ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>* Import(
       ::grpc::CallbackServerContext* context);

@@ -67,6 +67,8 @@ message AgentInfo {
   string os = 3;  // can be alma, windows, etc
   string os_version = 4;
   bool encryption_ready = 5;  // true if agent is able to receive encrypted commands
+  string host_template = 6; // type of host such windows sql server, web server .....
+  repeated string ips = 7;  //ips of the host
 }
 
 // Agent configuration sent by Engine

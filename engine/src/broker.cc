@@ -4854,3 +4854,16 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats) {
 
   cbm->write(to_send);
 }
+
+/**
+ * @brief called by opentelemetry module when an unknown agent connects to
+ * engine
+ *
+ * @param event
+ */
+void broker_agent_unknown_host(
+    const com::centreon::broker::UnknownHost& event) {
+  auto to_send = std::make_shared<neb::pb_unknown_host>(event);
+  to_send->mut_obj().set_poller_id(cbm->poller_id());
+  cbm->write(to_send);
+}
