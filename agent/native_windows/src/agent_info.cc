@@ -21,6 +21,7 @@
 #include "agent_info.hh"
 #include "ntdll.hh"
 #include "version.hh"
+#include "windows_util.hh"
 
 // Link with Iphlpapi.lib
 #pragma comment(lib, "iphlpapi.lib")
@@ -54,7 +55,8 @@ void com::centreon::agent::read_os_version() {
 void com::centreon::agent::fill_agent_info(
     const std::string& supervised_host,
     const std::string& host_template,
-    ::com::centreon::agent::AgentInfo* agent_info) {
+    ::com::centreon::agent::AgentInfo* agent_info,
+    const std::shared_ptr<spdlog::logger>& logger) {
   agent_info->mutable_centreon_version()->set_major(
       CENTREON_AGENT_VERSION_MAJOR);
   agent_info->mutable_centreon_version()->set_minor(
@@ -70,9 +72,8 @@ void com::centreon::agent::fill_agent_info(
   PIP_ADAPTER_ADDRESSES adapters = nullptr;
 
   constexpr ULONG get_adapters_adresses_flags =
-      GAA_FLAG_SKIP_ANYCAST |
-      GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER |
-      GAA_FLAG_SKIP_FRIENDLY_NAME;
+      GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST |
+      GAA_FLAG_SKIP_DNS_SERVER | GAA_FLAG_SKIP_FRIENDLY_NAME;
   // get needed size
   ULONG out_buff_len = 0;
   DWORD res = GetAdaptersAddresses(AF_UNSPEC, get_adapters_adresses_flags,
@@ -104,7 +105,13 @@ void com::centreon::agent::fill_agent_info(
           }
         }
       }
+    } else {
+      SPDLOG_LOGGER_ERROR(logger, "fail to get interface addresses: {}",
+                          error_as_string(res));
     }
     free(adapters);
+  } else {
+    SPDLOG_LOGGER_ERROR(logger, "fail to get interface addresses: {}",
+                        error_as_string(res));
   }
 }

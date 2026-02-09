@@ -145,7 +145,8 @@ void streaming_client::_create_reactor() {
   // identifies to engine
   std::shared_ptr<MessageFromAgent> who_i_am =
       std::make_shared<MessageFromAgent>();
-  fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init());
+  fill_agent_info(_supervised_host, _host_template, who_i_am->mutable_init(),
+                  _logger);
 
   _reactor->write(who_i_am);
 }

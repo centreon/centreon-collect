@@ -65,7 +65,8 @@ void com::centreon::agent::read_os_version() {
 void com::centreon::agent::fill_agent_info(
     const std::string& supervised_host,
     const std::string& host_template,
-    ::com::centreon::agent::AgentInfo* agent_info) {
+    ::com::centreon::agent::AgentInfo* agent_info,
+    const std::shared_ptr<spdlog::logger>& logger) {
   agent_info->mutable_centreon_version()->set_major(
       CENTREON_AGENT_VERSION_MAJOR);
   agent_info->mutable_centreon_version()->set_minor(
@@ -80,6 +81,7 @@ void com::centreon::agent::fill_agent_info(
 
   struct ifaddrs* ifaddr = nullptr;
   if (getifaddrs(&ifaddr)) {
+    SPDLOG_LOGGER_ERROR(logger, "fail to list interface adresses");
     return;
   }
   for (struct ifaddrs* ifa = ifaddr; ifa; ifa = ifa->ifa_next) {
@@ -98,6 +100,9 @@ void com::centreon::agent::fill_agent_info(
                             host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
       if (!res) {
         agent_info->add_ips(host);
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            logger, "fail to get ip string from {} family address", family);
       }
     }
   }
