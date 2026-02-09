@@ -1,6 +1,19 @@
 #!/bin/bash
 #===============================================================================
-# Centreon Monitoring Agent (CMA) Automated Installation Script
+# Copyright 2025 Centreon
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# For more information : contact@centreon.com
 #===============================================================================
 #
 # Description:
@@ -9,10 +22,10 @@
 #   and configuration file creation.
 #
 # Supported Operating Systems:
-#   - Alma Linux 8 / 9
+#   - Alma Linux 8 / 9 / 10
 #   - RHEL 8 / 9
 #   - Oracle Linux 8 / 9
-#   - Debian 11 / 12
+#   - Debian 11 / 12 / 13
 #   - Ubuntu 22.04 / 24.04
 #
 # Usage:
@@ -189,10 +202,10 @@ EXAMPLES:
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-token" -T file -L /var/log/agent.log -l debug -M 10485760 -m 5
 
 SUPPORTED OPERATING SYSTEMS:
-    - Alma Linux 8 / 9
+    - Alma Linux 8 / 9 / 10
     - RHEL 8 / 9
     - Oracle Linux 8 / 9
-    - Debian 11 / 12
+    - Debian 11 / 12 / 13
     - Ubuntu 22.04 / 24.04
 
 EOF
@@ -410,18 +423,6 @@ validate_encryption() {
     esac
 }
 
-validate_centreon_version() {
-    local version="$1"
-    case "${version}" in
-        24.10|25.10)
-            return 0
-            ;;
-        *)
-            die "Invalid Centreon version: ${version}. Must be '24.10' or '25.10'"
-            ;;
-    esac
-}
-
 #===============================================================================
 # OS DETECTION FUNCTIONS
 #===============================================================================
@@ -461,12 +462,12 @@ validate_os_support() {
 
     case "${OS_ID}" in
         almalinux|rhel|ol)
-            if [[ "${OS_VERSION_MAJOR}" == "8" || "${OS_VERSION_MAJOR}" == "9" ]]; then
+            if [[ "${OS_VERSION_MAJOR}" == "8" || "${OS_VERSION_MAJOR}" == "9" || "${OS_VERSION_MAJOR}" == "10" ]]; then
                 supported=true
             fi
             ;;
         debian)
-            if [[ "${OS_VERSION_MAJOR}" == "11" || "${OS_VERSION_MAJOR}" == "12" ]]; then
+            if [[ "${OS_VERSION_MAJOR}" == "11" || "${OS_VERSION_MAJOR}" == "12" || "${OS_VERSION_MAJOR}" == "13" ]]; then
                 supported=true
             fi
             ;;
@@ -480,8 +481,8 @@ validate_os_support() {
     if [[ "${supported}" != "true" ]]; then
         die "Unsupported operating system: ${OS_ID} ${OS_VERSION}
             Supported systems:
-            - Alma/RHEL/Oracle 8 or 9
-            - Debian 11 or 12
+            - Alma/RHEL/Oracle 8, 9, or 10
+            - Debian 11, 12, or 13
             - Ubuntu 22.04 or 24.04"
     fi
 
@@ -642,7 +643,7 @@ configure_plugins_repo_rhel() {
     # Enable PowerTools/CRB
     if [[ "${el_version}" == "8" ]]; then
         ${PKG_MANAGER} config-manager --set-enabled powertools 2>/dev/null || true
-    elif [[ "${el_version}" == "9" ]]; then
+    elif [[ "${el_version}" == "9" || "${el_version}" == "10" ]]; then
         ${PKG_MANAGER} config-manager --set-enabled crb 2>/dev/null || true
     fi
 
@@ -839,8 +840,7 @@ create_config_file() {
 
     # Set proper permissions
     chmod 0640 "${CONFIG_FILE}"
-    chown centreon-monitoring-agent:centreon-monitoring-agent "${CONFIG_FILE}" 2>/dev/null || \
-        chown root:root "${CONFIG_FILE}"
+    chown centreon-monitoring-agent:centreon-monitoring-agent "${CONFIG_FILE}" 2>/dev/null
 
     log_info "Configuration file created successfully"
 }
@@ -1009,7 +1009,6 @@ parse_arguments() {
                 ;;
             -v|--version)
                 CENTREON_VERSION="$2"
-                validate_centreon_version "${CENTREON_VERSION}"
                 shift 2
                 ;;
             -p|--components)
