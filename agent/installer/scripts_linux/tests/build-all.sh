@@ -35,12 +35,14 @@ fi
 CONTAINERS=(
     "cma-almalinux8:Containerfile.almalinux8"
     "cma-almalinux9:Containerfile.almalinux9"
+    "cma-almalinux10:Containerfile.almalinux10"
     "cma-rhel8:Containerfile.rhel8"
     "cma-rhel9:Containerfile.rhel9"
     "cma-oraclelinux8:Containerfile.oraclelinux8"
     "cma-oraclelinux9:Containerfile.oraclelinux9"
     "cma-debian11:Containerfile.debian11"
     "cma-debian12:Containerfile.debian12"
+    "cma-debian13:Containerfile.debian13"
     "cma-ubuntu2204:Containerfile.ubuntu2204"
     "cma-ubuntu2404:Containerfile.ubuntu2404"
 )
@@ -66,7 +68,7 @@ for entry in "${CONTAINERS[@]}"; do
     
     log_info "Building ${image_name} from ${containerfile}..."
     
-    if podman build -t "${image_name}" -f "${containerfile}" .; then
+    if podman build -t "${image_name}" -f "${SCRIPT_DIR}/${containerfile}" "${SCRIPT_DIR}/.."; then
         log_info "Successfully built ${image_name}"
         build_count=$((build_count + 1))
     else

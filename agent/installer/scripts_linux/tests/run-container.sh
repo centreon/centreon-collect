@@ -3,6 +3,8 @@
 # Podman run commands for all CMA test containers
 #===============================================================================
 
+PARENT_DIR="$(dirname "$(realpath "$PWD")")"
+
 # Centreon versions to test
 CENTREON_VERSIONS=("24.10" "25.10")
 
@@ -14,12 +16,14 @@ RHEL_CONTAINERS=(
     "cma-rhel9"
     "cma-oraclelinux8"
     "cma-oraclelinux9"
+    "cma-almalinux10"
 )
 
 # Debian-based containers (Debian, Ubuntu)
 DEBIAN_CONTAINERS=(
     "cma-debian11"
     "cma-debian12"
+    "cma-debian13"
     "cma-ubuntu2204"
     "cma-ubuntu2404"
 )
@@ -45,14 +49,14 @@ run_container() {
         run_cmd+=" --tmpfs /run/lock --cgroupns=host"
     fi
     
-    run_cmd+=" -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v $(pwd):/opt/centreon:z ${container}"
+    run_cmd+=" -v /sys/fs/cgroup:/sys/fs/cgroup:ro -v ${PARENT_DIR}:/opt/centreon:z ${container}"
 
     if eval "${run_cmd}" &>/dev/null; then
         # Wait for systemd to fully initialize
         sleep 2
 
         # Run installation script with version
-        if podman exec "${container_name}" /opt/centreon/install_cma.sh -e "host:4317" -t "token" -v "${version}" -p &>/dev/null; then
+        if podman exec "${container_name}" /opt/centreon/install_cma.sh -e "host:4317" -t "eee.eee.eee" -v "${version}" &>/dev/null; then
             # Check if service is running
             if podman exec "${container_name}" systemctl is-active centagent &>/dev/null; then
                 echo "✓ ${container_name}: SUCCESS (service running)"
