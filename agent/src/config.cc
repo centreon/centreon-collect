@@ -76,9 +76,9 @@ const std::string_view config::config_schema(R"(
             "type": "boolean"
         },
         "log_level": {
-            "description": "Minimal severity level to log, may be critical, error, info, debug, trace",
+            "description": "Minimal severity level to log, may be critical, error, warning, info, debug, trace",
             "type": "string",
-            "pattern": "critical|error|info|debug|trace"
+            "pattern": "critical|error|warning|info|debug|trace"
         },
         "log_type": {
             "description": "Define whether logs must be sent to the standard output (stdout) or to a log file (file). A path will be required in log_file field if 'file' is chosen. Default: stdout",
