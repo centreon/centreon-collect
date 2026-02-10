@@ -840,3 +840,15 @@ message AgentStats {
   int64 poller_id = 1;
   repeated AgentInfo stats = 2;
 }
+
+/* This message is sent to broker when a cma connect to engine with an unknown hostname */
+/* io::neb, neb::de_pb_unknown_host, 58 */
+message UnknownHost {
+  int64 poller_id = 1;
+  string host_name = 2;
+  string host_template = 3;
+  string os = 4;
+  string os_version = 5;
+  repeated string ips = 6; /*ips of host interfaces*/
+  string incoming_ip = 7; /*ip of cma host seen from engine */
+}

@@ -250,11 +250,13 @@ int _main(bool service_start) {
     read_os_version();
 
     if (conf.use_reverse_connection()) {
-      _streaming_server = streaming_server::load(g_io_context, g_logger,
-                                                 grpc_conf, conf.get_host());
+      _streaming_server =
+          streaming_server::load(g_io_context, g_logger, grpc_conf,
+                                 conf.get_host(), conf.get_host_template());
     } else {
-      _streaming_client = streaming_client::load(g_io_context, g_logger,
-                                                 grpc_conf, conf.get_host());
+      _streaming_client =
+          streaming_client::load(g_io_context, g_logger, grpc_conf,
+                                 conf.get_host(), conf.get_host_template());
     }
 
     if (!conf.use_encryption()) {

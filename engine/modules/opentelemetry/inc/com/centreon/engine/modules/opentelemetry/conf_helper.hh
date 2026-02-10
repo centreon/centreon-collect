@@ -38,6 +38,8 @@ struct whitelist_cache {
   cache data;
 };
 
+enum class e_get_otel_commands_ret { success, unknown_host, no_cma_service };
+
 /**
  * @brief extract opentelemetry commands from an host list
  * This function must be called from engine main thread, not grpc ones
@@ -49,10 +51,11 @@ struct whitelist_cache {
  * @return false
  */
 template <class command_handler>
-bool get_otel_commands(const std::string& host_name,
-                       command_handler&& handler,
-                       whitelist_cache& whitelist_cache,
-                       const std::shared_ptr<spdlog::logger>& logger) {
+e_get_otel_commands_ret get_otel_commands(
+    const std::string& host_name,
+    command_handler&& handler,
+    whitelist_cache& whitelist_cache,
+    const std::shared_ptr<spdlog::logger>& logger) {
   auto use_otl_command = [](const checkable& to_test) -> bool {
     if (to_test.get_check_command_ptr()) {
       if (to_test.get_check_command_ptr()->get_type() ==
@@ -87,7 +90,7 @@ bool get_otel_commands(const std::string& host_name,
     whitelist_cache.data.clear();
   }
 
-  bool ret = false;
+  e_get_otel_commands_ret ret = e_get_otel_commands_ret::no_cma_service;
 
   auto hst_iter = host::hosts.find(host_name);
   if (hst_iter == host::hosts.end()) {
@@ -96,7 +99,7 @@ bool get_otel_commands(const std::string& host_name,
         "Agent with host name '{}' not found in host list; unable to extract "
         "OpenTelemetry commands for this agent",
         host_name);
-    return false;
+    return e_get_otel_commands_ret::unknown_host;
   }
   std::shared_ptr<host> hst = hst_iter->second;
   std::string cmd_line;
@@ -107,9 +110,11 @@ bool get_otel_commands(const std::string& host_name,
     clear_volatile_macros_r(macros);
 
     if (allowed_by_white_list(cmd_line)) {
-      ret |= handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
-                     hst->check_interval(), hst->retry_interval(),
-                     hst->max_check_attempts(), logger);
+      if (handler(hst->check_command(), cmd_line, "", hst->host_id(), 0,
+                  hst->check_interval(), hst->retry_interval(),
+                  hst->max_check_attempts(), logger)) {
+        ret = e_get_otel_commands_ret::success;
+      }
     } else {
       SPDLOG_LOGGER_ERROR(
           logger,
@@ -137,10 +142,12 @@ bool get_otel_commands(const std::string& host_name,
       clear_volatile_macros_r(macros);
 
       if (allowed_by_white_list(cmd_line)) {
-        ret |=
-            handler(serv->check_command(), cmd_line, serv->name(),
+        if (handler(serv->check_command(), cmd_line, serv->name(),
                     serv->host_id(), serv->service_id(), serv->check_interval(),
-                    serv->retry_interval(), serv->max_check_attempts(), logger);
+                    serv->retry_interval(), serv->max_check_attempts(),
+                    logger)) {
+          ret = e_get_otel_commands_ret::success;
+        }
       } else {
         SPDLOG_LOGGER_ERROR(
             logger,
