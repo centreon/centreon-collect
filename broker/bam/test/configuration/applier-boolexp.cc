@@ -35,7 +35,8 @@ class ApplierBoolexp : public ::testing::Test {
         "", 0, "test_broker", 0);
     auto logger = log_v2::instance().get(log_v2::BAM);
 
-    _aply_state = std::make_unique<bam::configuration::applier::state>(logger);
+    _aply_state =
+        std::make_unique<bam::configuration::applier::state>(logger);
     _state = std::make_unique<bam::configuration::state>(logger);
   }
 

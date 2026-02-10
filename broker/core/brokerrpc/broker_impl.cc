@@ -28,7 +28,6 @@
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
 #include "common/crypto/aes256.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
@@ -453,5 +452,100 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
       peer->set_type(p.peer_type);
     }
   }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetHostIds(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const ::google::protobuf::Empty* request
+                                     [[maybe_unused]],
+                                     IdsList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  auto lst = cache.host_ids();
+  for (const uint64_t& host_id : lst) {
+    response->add_ids(host_id);
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
+                                  const GenericNameOrIndex* request,
+                                  Host* response) {
+  auto& cache = config::applier::state::instance().cache();
+  switch (request->nameOrIndex_case()) {
+    case GenericNameOrIndex::kStr: {
+      auto const& host = cache.host(request->str());
+      if (!host) {
+        return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                            fmt::format("Host '{}' not found", request->str()));
+      }
+      response->CopyFrom(host->obj());
+    } break;
+    case GenericNameOrIndex::kIdx: {
+      auto host = cache.host(request->idx());
+      if (!host) {
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Host with id '{}' not found", request->idx()));
+      } else
+        response->CopyFrom(host->obj());
+    } break;
+    case GenericNameOrIndex::NAMEORINDEX_NOT_SET:
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Either name or index must be set");
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetServiceIds(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const ::google::protobuf::Empty* request
+                                        [[maybe_unused]],
+                                        IdsPairsList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  auto lst = cache.service_ids();
+  for (const auto& [host_id, service_id] : lst) {
+    auto* pair = response->add_pairs();
+    pair->set_host_id(host_id);
+    pair->set_service_id(service_id);
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetService(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const ServiceIdentifier* request,
+                                     com::centreon::broker::Service* response) {
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t host_id = std::numeric_limits<uint64_t>::max();
+  uint64_t service_id = std::numeric_limits<uint64_t>::max();
+  switch (request->host_case()) {
+    case ServiceIdentifier::kHostName: {
+    } break;
+    case ServiceIdentifier::kHostId: {
+      host_id = request->host_id();
+    } break;
+  }
+  switch (request->service_case()) {
+    case ServiceIdentifier::kDescription: {
+    } break;
+    case ServiceIdentifier::kServiceId: {
+      service_id = request->service_id();
+    } break;
+  }
+
+  if (host_id == std::numeric_limits<uint64_t>::max() ||
+      service_id == std::numeric_limits<uint64_t>::max()) {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "Both host_id and service_id must be set");
+  }
+  auto service = cache.service(host_id, service_id);
+  if (!service)
+    return grpc::Status(
+        grpc::StatusCode::NOT_FOUND,
+        fmt::format("Service with id '{}:{}' not found", host_id, service_id));
+  else
+    response->CopyFrom(service->obj());
   return grpc::Status::OK;
 }

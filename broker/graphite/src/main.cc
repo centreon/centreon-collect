@@ -16,7 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/graphite/factory.hh"
 #include "com/centreon/broker/graphite/stream.hh"
@@ -82,17 +81,10 @@ void broker_module_init(void const* arg) {
                        "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(make_type(io::storage, storage::de_index_mapping),
-                       "index_mapping", &storage::index_mapping::operations,
-                       storage::index_mapping::entries);
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
 
-      /* Let's register the pb_index_mapping event. */
-      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
-                       "pb_index_mapping",
-                       &storage::pb_index_mapping::operations);
       /* Let's register the pb_metric_mapping event. */
       e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
                        "pb_metric_mapping",

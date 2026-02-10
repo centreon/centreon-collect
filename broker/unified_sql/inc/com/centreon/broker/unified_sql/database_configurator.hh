@@ -22,6 +22,7 @@
 #include "common/engine_conf/state.pb.h"
 
 using com::centreon::engine::configuration::DiffState;
+using com::centreon::engine::configuration::State;
 
 namespace com::centreon::broker::unified_sql {
 class database_configurator {
@@ -30,7 +31,6 @@ class database_configurator {
     MODIFIED,
     DELETED,
   };
-  const DiffState& _diff;
   stream* _stream;
   std::shared_ptr<spdlog::logger> _logger;
   database::mysql_stmt _enable_hosts;
@@ -39,8 +39,12 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_anomalydetections_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_host_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_hosts_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _wake_up_hosts_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _wake_up_host_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_service_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_services_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _wake_up_services_stmt;
+  std::unique_ptr<database::mysql_stmt_base> _wake_up_service_resources_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_severities_stmt;
   std::unique_ptr<database::mysql_stmt_base> _del_severities_stmt;
   std::unique_ptr<database::mysql_bulk_stmt> _add_tags_stmt;
@@ -54,8 +58,8 @@ class database_configurator {
   std::unique_ptr<database::mysql_bulk_stmt> _add_servicegroup_members_stmt;
   std::unique_ptr<database::mysql_stmt_base> _add_host_parents_stmt;
 
-  void _disable_resources_for_pollers_with_full_conf();
-  void _disable_hosts_and_services();
+  void _disable_resources_for_pollers_with_full_conf(const DiffState& diff);
+  void _disable_hosts_and_services(const DiffState& diff);
 
   void _add_severities_mariadb(const ::google::protobuf::RepeatedPtrField<
                                engine::configuration::Severity>& lst);
@@ -154,15 +158,18 @@ class database_configurator {
   void _del_host_parents(
       const ::google::protobuf::RepeatedField<uint64_t>& lst);
 
+  void _wake_up_resources_mariadb(const engine::configuration::State& state);
+  void _wake_up_resources_mysql(const engine::configuration::State& state);
+
  public:
-  database_configurator(const DiffState& diff,
-                        stream* stream,
+  database_configurator(stream* stream,
                         const std::shared_ptr<spdlog::logger>& logger)
-      : _diff(diff), _stream(stream), _logger(logger) {}
+      : _stream(stream), _logger(logger) {}
 
   database_configurator(const database_configurator&) = delete;
 
-  void process();
+  void process_diff(const DiffState& diff);
+  void process_state(const engine::configuration::State& state);
 };
 }  // namespace com::centreon::broker::unified_sql
 

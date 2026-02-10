@@ -64,7 +64,8 @@ class indexed_state {
       _hostescalations;
   absl::flat_hash_map<uint64_t, std::unique_ptr<Serviceescalation>>
       _serviceescalations;
-  void _index();
+  void _index(State* state);
+  void _index(const State& state);
   void _apply_containers();
   void _clear_containers();
 
@@ -141,6 +142,8 @@ class indexed_state {
   indexed_state(const indexed_state& other);
   ~indexed_state() noexcept = default;
   void set_state(std::unique_ptr<State>&& state);
+  void merge_state(const State& state);
+  void merge_state(State* state);
   void reset();
   State* release();
   const State& state() const { return *_state; }

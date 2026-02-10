@@ -44,29 +44,26 @@ class InfluxDBStream : public testing::Test {
 };
 
 TEST_F(InfluxDBStream, BadPort) {
-  std::shared_ptr<persistent_cache> cache;
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
-  ASSERT_THROW(influxdb::stream st("centreon", "pass", "localhost", 4243,
-                                   "centreon", 3, "host_status", scolumns,
-                                   "host_metrics", mcolumns, cache),
-               msg_fmt);
+  ASSERT_THROW(
+      influxdb::stream st("centreon", "pass", "localhost", 4243, "centreon", 3,
+                          "host_status", scolumns, "host_metrics", mcolumns),
+      msg_fmt);
 }
 
 TEST_F(InfluxDBStream, Read) {
-  std::shared_ptr<persistent_cache> cache;
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 3,
-                      "host_status", scolumns, "host_metrics", mcolumns, cache);
+                      "host_status", scolumns, "host_metrics", mcolumns);
 
   ASSERT_THROW(st.read(data, -1), msg_fmt);
 }
 
 TEST_F(InfluxDBStream, Write) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_metric>
       pb_m1 = std::make_shared<storage::pb_metric>(),
       pb_m2 = std::make_shared<storage::pb_metric>(),
@@ -76,7 +73,7 @@ TEST_F(InfluxDBStream, Write) {
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 3,
-                      "host_status", scolumns, "host_metrics", mcolumns, cache);
+                      "host_status", scolumns, "host_metrics", mcolumns);
 
   m1.set_time(2000llu);
   m1.set_interval(60);
@@ -113,7 +110,6 @@ TEST_F(InfluxDBStream, Write) {
 }
 
 TEST_F(InfluxDBStream, Flush) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_metric>
       pb_m1 = std::make_shared<storage::pb_metric>(),
       pb_m2 = std::make_shared<storage::pb_metric>(),
@@ -123,7 +119,7 @@ TEST_F(InfluxDBStream, Flush) {
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
-                      "host_status", scolumns, "host_metrics", mcolumns, cache);
+                      "host_status", scolumns, "host_metrics", mcolumns);
 
   m1.set_time(2000llu);
   m1.set_interval(60);
@@ -163,19 +159,17 @@ TEST_F(InfluxDBStream, Flush) {
 }
 
 TEST_F(InfluxDBStream, NullData) {
-  std::shared_ptr<persistent_cache> cache;
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
-                      "host_status", scolumns, "host_metrics", mcolumns, cache);
+                      "host_status", scolumns, "host_metrics", mcolumns);
 
   std::shared_ptr<io::data> d1{nullptr};
   ASSERT_FALSE(st.write(d1));
 }
 
 TEST_F(InfluxDBStream, FlushStatusOK) {
-  std::shared_ptr<persistent_cache> cache;
   std::shared_ptr<storage::pb_status>
       d1 = std::make_shared<storage::pb_status>(),
       d2 = std::make_shared<storage::pb_status>(),
@@ -184,7 +178,7 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
-                      "host_status", scolumns, "host_metrics", mcolumns, cache);
+                      "host_status", scolumns, "host_metrics", mcolumns);
 
   Status &s1 = d1->mut_obj(), &s2 = d2->mut_obj(), &s3 = d3->mut_obj();
 
@@ -223,13 +217,12 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
 }
 
 TEST_F(InfluxDBStream, StatsAndConnector) {
-  std::shared_ptr<persistent_cache> cache;
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::connector con;
   con.connect_to("centreon", "pass", "localhost", 4242, "centreon", 3,
-                 "host_status", scolumns, "host_metrics", mcolumns, cache);
+                 "host_status", scolumns, "host_metrics", mcolumns);
 
   nlohmann::json obj;
   con.open()->statistics(obj);

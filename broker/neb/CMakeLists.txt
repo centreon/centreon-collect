@@ -108,8 +108,8 @@ target_link_libraries(
           protobuf::libprotobuf
           gRPC::grpc++
           -Wl,--no-whole-archive
-	  pb_bam_lib
-	  pb_storage_lib
+          pb_bam_lib
+          pb_storage_lib
           multiplexing
           pb_common_lib
           pb_neb_lib

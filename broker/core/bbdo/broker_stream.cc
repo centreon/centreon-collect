@@ -20,7 +20,6 @@
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/indexed_diff_state.hh"
 
 using com::centreon::exceptions::msg_fmt;

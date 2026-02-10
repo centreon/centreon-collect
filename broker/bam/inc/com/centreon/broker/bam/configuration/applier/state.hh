@@ -68,8 +68,10 @@ class state {
   void apply(configuration::state const& my_state);
   service_book& book_service();
   void visit(io::stream* visitor);
-  void save_to_cache(persistent_cache& cache);
-  void load_from_cache(persistent_cache& cache);
+  void save_to_cache(const std::string& name,
+                     const std::deque<std::string>& pending_ext_cmds);
+  void load_from_cache(const std::string& name,
+                       std::deque<std::string>& pending_ext_cmds);
   std::shared_ptr<bam::ba> find_ba(uint32_t id) const;
 };
 }  // namespace applier

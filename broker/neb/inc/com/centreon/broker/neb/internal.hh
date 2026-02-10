@@ -123,6 +123,9 @@ using pb_agent_stats =
 using pb_global_diff_state =
     io::protobuf<com::centreon::engine::configuration::DiffState,
                  make_type(io::neb, neb::de_pb_global_diff_state)>;
+using pb_engine_state =
+    io::protobuf<com::centreon::engine::configuration::State,
+                 make_type(io::neb, neb::de_pb_engine_state)>;
 }  // namespace neb
 
 namespace storage {

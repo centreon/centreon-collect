@@ -29,6 +29,7 @@
 #include <thread>
 #include <unordered_map>
 
+#include <fmt/std.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

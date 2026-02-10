@@ -62,6 +62,8 @@ void loop::run() {
   engine_logger(dbg_functions, basic) << "events::loop::run()";
   functions_logger->trace("events::loop::run()");
 
+  engine_logger(log_info_message, basic)
+      << "Configuration loaded, main loop starting.";
   process_logger->info("Configuration loaded, main loop starting.");
   // Initialize some time members.
   time(&_last_time);

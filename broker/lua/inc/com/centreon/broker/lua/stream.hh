@@ -21,8 +21,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
-#include "com/centreon/broker/lua/macro_cache.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
 namespace com::centreon::broker::lua {
@@ -54,13 +54,9 @@ class stream : public io::stream {
 
   std::shared_ptr<spdlog::logger> _logger;
 
-  /* Macro cache */
-  macro_cache _cache;
-
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params,
-         std::shared_ptr<persistent_cache> const& cache);
+         std::map<std::string, misc::variant> const& conf_params);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;

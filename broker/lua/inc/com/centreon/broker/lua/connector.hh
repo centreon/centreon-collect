@@ -33,18 +33,16 @@ namespace com::centreon::broker::lua {
 class connector : public io::endpoint {
  public:
   connector();
-  connector(connector const& other);
+  connector(connector const& other) = delete;
   ~connector();
   connector& operator=(connector const&) = delete;
   void connect_to(std::string const& lua_script,
-                  std::map<std::string, misc::variant> const& cfg_params,
-                  std::shared_ptr<persistent_cache> const& cache);
+                  std::map<std::string, misc::variant> const& cfg_params);
   std::shared_ptr<io::stream> open() override;
 
  private:
   std::string _lua_script;
   std::map<std::string, misc::variant> _conf_params;
-  std::shared_ptr<persistent_cache> _cache;
 };
 
 }  // namespace com::centreon::broker::lua

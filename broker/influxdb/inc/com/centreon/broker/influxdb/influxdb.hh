@@ -41,7 +41,6 @@ class influxdb {
            std::vector<column> const& status_cols,
            std::string const& metric_ts,
            std::vector<column> const& metric_cols,
-           macro_cache const& cache,
            const std::shared_ptr<spdlog::logger>& logger);
 
   /**
@@ -70,8 +69,6 @@ class influxdb {
 
   std::string _host;
   uint16_t _port;
-
-  macro_cache const& _cache;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;

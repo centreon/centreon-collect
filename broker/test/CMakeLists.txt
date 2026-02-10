@@ -69,11 +69,12 @@ endif(WITH_SQL_TESTS)
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
-add_dependencies(rpc_client centreon_common)
+add_dependencies(rpc_client centreon_common pb_neb_lib)
 
 target_link_libraries(
   rpc_client PRIVATE
   pb_broker_lib
+  pb_neb_lib
   process_stat
   centreon_common
   pb_common_lib
@@ -109,6 +110,7 @@ target_link_libraries(
     broker_applier_state
     rokerbase
     broker_bbdo
+    nebbase
     -Wl,--no-whole-archive
     brokerrpc
     centreon_common
@@ -124,6 +126,7 @@ target_link_libraries(
     log_v2
     test_util
     fmt::fmt
+    protobuf::libprotobuf
     gRPC::grpc++)
 
 add_dependencies(

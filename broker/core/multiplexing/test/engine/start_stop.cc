@@ -18,6 +18,7 @@
  */
 #include <gtest/gtest.h>
 
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
@@ -50,7 +51,7 @@ class StartStop : public testing::Test {
  */
 TEST_F(StartStop, MultiplexingWorks) {
   // Initialization.
-  bool error{true};
+  bool error = true;
 
   try {
     // Subscriber.

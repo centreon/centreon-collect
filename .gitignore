@@ -18,6 +18,8 @@ build
 build_my_host
 build_centos7
 build_alma9
+sccache
+coverage
 cbd
 cbwd
 cppcheck-build

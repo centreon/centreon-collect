@@ -44,8 +44,7 @@ stream::stream(std::string const& metric_naming,
                std::string const& db_password,
                std::string const& db_host,
                unsigned short db_port,
-               uint32_t queries_per_transaction,
-               std::shared_ptr<persistent_cache> const& cache)
+               uint32_t queries_per_transaction)
     : io::stream("graphite"),
       _metric_naming{metric_naming},
       _status_naming{status_naming},
@@ -58,11 +57,10 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _metric_query{_metric_naming, escape_string, query::metric, _cache},
-      _status_query{_status_naming, escape_string, query::status, _cache},
+      _metric_query{_metric_naming, escape_string, query::metric},
+      _status_query{_status_naming, escape_string, query::status},
       _socket{_io_context},
-      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
-      _cache{cache} {
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)} {
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
@@ -164,9 +162,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   ++_pending_queries;
   if (!validate(data, get_name()))
     return 0;
-
-  // Give the event to the cache.
-  _cache.write(data);
 
   // Process metric events.
   switch (data->type()) {

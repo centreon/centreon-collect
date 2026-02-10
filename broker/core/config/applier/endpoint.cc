@@ -467,21 +467,10 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
        it != end; ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
-      std::shared_ptr<persistent_cache> cache;
-      if (cfg.cache_enabled) {
-        log_v2::logger_id log_id = log_v2::instance().get_id(it->first);
-        if (log_id == log_v2::LOGGER_SIZE)
-          log_id = log_v2::CORE;
-        cache = std::make_shared<persistent_cache>(
-            fmt::format("{}.cache.{}",
-                        config::applier::state::instance().cache_dir(),
-                        cfg.name),
-            log_v2::instance().get(log_id));
-      }
 
       endp =
           std::shared_ptr<io::endpoint>(it->second.endpntfactry->new_endpoint(
-              cfg, global_params, is_acceptor, cache));
+              cfg, global_params, is_acceptor));
       SPDLOG_LOGGER_INFO(_logger, " create endpoint {} for endpoint '{}'",
                          it->first, cfg.name);
       level = it->second.osi_to + 1;

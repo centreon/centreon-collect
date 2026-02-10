@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,10 @@
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 const std::string MSG1("0123456789abcdef");
 const std::string MSG2("foo bar baz qux");
@@ -37,6 +39,9 @@ class PublisherWrite : public testing::Test {
   void SetUp() override {
     config::applier::init<com::centreon::broker::config::applier::broker_state>(
         "", 0, "test_broker", 0);
+    log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
+    config::applier::state::instance().initialize_cache(
+        log_v2::instance().get(log_v2::CORE));
   }
 
   void TearDown() override { config::applier::deinit(); }
@@ -46,7 +51,7 @@ class PublisherWrite : public testing::Test {
  *  We should be able to read from publisher.
  */
 TEST_F(PublisherWrite, Write) {
-  int retval{0};
+  int retval = 0;
   {
     // Publisher.
     multiplexing::publisher p;

@@ -176,7 +176,9 @@ class basic_stream : public io::stream {
   virtual void _handle_bbdo_event(const std::shared_ptr<io::data>& d);
 
  public:
-  basic_stream(bool is_input, bool grpc_serialized = false);
+  basic_stream(
+      bool is_input,
+      bool grpc_serialized = false);
   virtual ~basic_stream();
   basic_stream(const basic_stream&) = delete;
   basic_stream& operator=(const basic_stream&) = delete;
