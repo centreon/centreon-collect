@@ -1,0 +1,19 @@
+FROM oraclelinux:9
+
+
+# Install systemd and basic utilities
+# Note: Oracle Linux 9 may have curl-minimal pre-installed
+RUN dnf -y install systemd systemd-libs epel-release \
+    && dnf -y install bash-completion && dnf install -y oracle-epel-release-el9 \
+    && dnf config-manager --set-enabled ol9_developer_EPEL \
+    && dnf config-manager --set-enabled ol9_codeready_builder
+
+# Copy installation script
+COPY install_cma.sh /opt/centreon/install_cma.sh
+RUN chmod +x /opt/centreon/install_cma.sh
+
+# Set working directory
+WORKDIR /opt/centreon
+
+# Default command - start systemd
+CMD ["/usr/sbin/init"]
