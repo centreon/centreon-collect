@@ -24,9 +24,6 @@
 
 namespace com::centreon::broker::storage {
 
-using pb_index_mapping =
-    io::protobuf<IndexMapping,
-                 make_type(io::storage, storage::de_pb_index_mapping)>;
 using pb_metric_mapping =
     io::protobuf<MetricMapping,
                  make_type(io::storage, storage::de_pb_metric_mapping)>;

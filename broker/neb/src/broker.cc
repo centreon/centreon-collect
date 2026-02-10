@@ -231,6 +231,8 @@ void broker_module_init(void const* arg) {
                        &neb::pb_agent_stats::operations, "agent_information");
       e.register_event(neb::pb_global_diff_state::static_type(), "DiffState",
                        &neb::pb_global_diff_state::operations, "diff_state");
+      e.register_event(neb::pb_engine_state::static_type(), "EngineState",
+                       &neb::pb_engine_state::operations, "engine_state");
     }
   }
 }

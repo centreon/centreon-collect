@@ -53,7 +53,7 @@ class state {
   size_t _pool_size;
 
   /* This is the Broker's global cache. */
-  com::centreon::broker::cache::broker_cache_v2 _global_cache;
+  std::unique_ptr<com::centreon::broker::cache::broker_cache> _global_cache;
 
   modules _modules;
 
@@ -101,6 +101,10 @@ class state {
 
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
+  com::centreon::broker::cache::broker_cache& cache() noexcept {
+    assert(_global_cache);
+    return *_global_cache;
+  }
   virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
   virtual bool supports_centralized_conf() const { return false; }
   void initialize_cache(const std::shared_ptr<spdlog::logger>& logger);

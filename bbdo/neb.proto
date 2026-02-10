@@ -343,7 +343,7 @@ message Host {
   string name = 59;
   string icon_image = 60;
   string icon_image_alt = 61;
-  int32 instance_id = 62;
+  uint32 instance_id = 62;
   double low_flap_threshold = 63;
   string notes = 64;
   string notes_url = 65;
@@ -728,6 +728,7 @@ message ServiceGroup {
   uint64 servicegroup_id = 3;
   string name = 4;
   uint64 poller_id = 5;
+  string alias = 6;
 }
 
 /* io::neb, neb::de_pb_host_group_member, 25 */
@@ -843,6 +844,50 @@ message Tag {
 message TagInfo {
   uint64 id = 1;
   TagType type = 2;
+}
+
+/* Ignore */
+message BrokerCache {
+  message InstancePair {
+    uint64 id = 1;
+    string name = 2;
+  }
+  /* Poller instances, just poller_id and name */
+  repeated InstancePair instances = 1;
+
+  /* Severities known by the broker */
+  repeated Severity severities = 2;
+
+  /* Tags known by the broker */
+  repeated Tag tags = 3;
+
+  /* Hosts known by the broker */
+  repeated Host hosts = 4;
+
+  /* Services known by the broker */
+  repeated Service services = 5;
+
+  /* Hostgroups known by the broker, the main identifiers here is hostgroups
+   * that lists the hostgroups known by the broker. */
+  message HostGroupPair {
+    HostGroup hostgroup = 1;
+    repeated uint64 pollers = 2;
+    repeated uint64 hosts = 3;
+  }
+  repeated HostGroupPair hostgroups = 6;
+
+  /* Servicegroups known by the broker, the main identifiers here is
+   * servicegroups that lists the servicegroups known by the broker. */
+  message HostServiceId {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+  }
+  message ServiceGroupPair {
+    ServiceGroup servicegroup = 1;
+    repeated uint64 pollers = 2;
+    repeated HostServiceId services = 3;
+  }
+  repeated ServiceGroupPair servicegroups = 7;
 }
 
 /* Ignore */

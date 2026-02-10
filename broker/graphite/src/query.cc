@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/graphite/query.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -37,12 +38,8 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 query::query(std::string const& naming_scheme,
              std::string const& escape_string,
-             data_type type,
-             macro_cache const& cache)
-    : _escape_string(escape_string),
-      _naming_scheme_index(0),
-      _type(type),
-      _cache(&cache) {
+             data_type type)
+    : _escape_string(escape_string), _naming_scheme_index(0), _type(type) {
   _compile_naming_scheme(naming_scheme, type);
 }
 
@@ -264,12 +261,16 @@ void query::_get_dollar_sign(io::data const& d, std::ostream& is) {
 uint64_t query::_get_index_id(io::data const& d) {
   if (_type == status)
     return static_cast<const storage::pb_status&>(d).obj().index_id();
-  else
-    return _cache
-        ->get_metric_mapping(
-            static_cast<storage::pb_metric const&>(d).obj().metric_id())
-        .obj()
-        .index_id();
+  else {
+    auto& cache = config::applier::state::instance().cache();
+    uint64_t metric_id =
+        static_cast<const storage::pb_metric&>(d).obj().metric_id();
+    auto mm = cache.get_metric_mapping(metric_id);
+    if (mm)
+      return mm->obj().index_id();
+    else
+      throw msg_fmt("graphite: could not find index of metric {}", metric_id);
+  }
 }
 
 /**
@@ -309,12 +310,16 @@ void query::_get_metric_name(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void query::_get_host(io::data const& d, std::ostream& is) {
-  if (_type == status)
-    is << _escape(_cache->get_host_name(
-        _cache->get_index_mapping(_get_index_id(d)).obj().host_id()));
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t host_id =
+      _type == status
+          ? static_cast<const storage::pb_status&>(d).obj().host_id()
+          : static_cast<const storage::pb_metric&>(d).obj().host_id();
+  auto host = cache.host(host_id);
+  if (host)
+    is << _escape(host->obj().name());
   else
-    is << _escape(_cache->get_host_name(
-        static_cast<storage::pb_metric const&>(d).obj().host_id()));
+    throw msg_fmt("graphite: could not find information on host {}", host_id);
 }
 
 /**
@@ -337,14 +342,19 @@ void query::_get_host_id(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void query::_get_service(io::data const& d, std::ostream& is) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_service> svc;
+  std::string service_description;
   if (_type == status) {
-    is << _escape(_cache->get_service_description(
-        static_cast<storage::pb_status const&>(d).obj().host_id(),
-        static_cast<storage::pb_status const&>(d).obj().service_id()));
-  } else
-    is << _escape(_cache->get_service_description(
-        static_cast<storage::pb_metric const&>(d).obj().host_id(),
-        static_cast<storage::pb_metric const&>(d).obj().service_id()));
+    auto obj = static_cast<storage::pb_status const&>(d).obj();
+    svc = cache.service(obj.host_id(), obj.service_id());
+    service_description = _escape(svc->obj().description());
+  } else {
+    auto obj = static_cast<storage::pb_metric const&>(d).obj();
+    svc = cache.service(obj.host_id(), obj.service_id());
+    service_description = _escape(svc->obj().description());
+  }
+  is << service_description;
 }
 
 /**
@@ -367,5 +377,11 @@ void query::_get_service_id(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void query::_get_instance(io::data const& d, std::ostream& is) {
-  is << _escape(_cache->get_instance(d.source_id));
+  auto& cache = config::applier::state::instance().cache();
+  auto instance = _escape(cache.instance(d.source_id));
+
+  if (instance.empty())
+    throw msg_fmt("graphite: could not find information on instance {}",
+                  d.source_id);
+  is << _escape(cache.instance(d.source_id));
 }

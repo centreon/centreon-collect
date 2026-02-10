@@ -47,34 +47,27 @@ class InfluxDB12 : public testing::Test {
 };
 
 TEST_F(InfluxDB12, BadConnection) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
-  ASSERT_THROW(
-      influxdb::influxdb idb("centreon", "pass", "localhost", 4243, "centreon",
-                             "host_status", scolumns, "host_metrics", mcolumns,
-                             mcache, _logger),
-      msg_fmt);
+  ASSERT_THROW(influxdb::influxdb idb("centreon", "pass", "localhost", 4243,
+                                      "centreon", "host_status", scolumns,
+                                      "host_metrics", mcolumns, _logger),
+               msg_fmt);
 }
 
 TEST_F(InfluxDB12, Empty) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
   idb.clear();
   ASSERT_NO_THROW(idb.commit());
 }
 
 TEST_F(InfluxDB12, Simple) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
@@ -100,7 +93,7 @@ TEST_F(InfluxDB12, Simple) {
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
   m1.set_time(2000llu);
   m1.set_interval(60);
   m1.set_metric_id(42u);
@@ -139,8 +132,6 @@ TEST_F(InfluxDB12, Simple) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse1) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
   std::vector<influxdb::column> mcolumns;
@@ -148,7 +139,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 
   influxdb::influxdb idb("centreon", "fail1", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);
@@ -188,8 +179,6 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 }
 
 TEST_F(InfluxDB12, BadServerResponse2) {
-  std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
@@ -215,7 +204,7 @@ TEST_F(InfluxDB12, BadServerResponse2) {
 
   influxdb::influxdb idb("centreon", "fail2", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
-                         mcache, _logger);
+                         _logger);
 
   m1.set_time(2000llu);
   m1.set_interval(60);

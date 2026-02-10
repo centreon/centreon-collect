@@ -81,6 +81,7 @@ std::shared_ptr<asio::io_context> g_io_context(
  *  @return EXIT_SUCCESS on success.
  */
 int main(int argc, char* argv[]) {
+  GOOGLE_PROTOBUF_VERIFY_VERSION;
   // Get global macros.
   nagios_macros* mac(get_global_macros());
 
@@ -460,8 +461,6 @@ int main(int argc, char* argv[]) {
           event_start = time(NULL);
           mac->x[MACRO_EVENTSTARTTIME] = std::to_string(event_start);
 
-          engine_logger(logging::log_info_message, logging::basic)
-              << "Event loop start at " << string::ctime(event_start);
           config_logger->info("Event loop start at {}",
                               string::ctime(event_start));
           // Start monitoring all services (doesn't return until a

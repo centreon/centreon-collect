@@ -34,7 +34,7 @@ namespace com::centreon::engine::configuration {
  */
 indexed_state::indexed_state(std::unique_ptr<State>&& state)
     : _state{std::move(state)} {
-  _index();
+  _index(_state.get());
 }
 
 indexed_state::indexed_state(const indexed_state& other) {
@@ -96,7 +96,15 @@ indexed_state::indexed_state(const indexed_state& other) {
  */
 void indexed_state::set_state(std::unique_ptr<State>&& state) {
   _state = std::move(state);
-  _index();
+  _index(_state.get());
+}
+
+void indexed_state::merge_state(State* state) {
+  _index(state);
+}
+
+void indexed_state::merge_state(const State& state) {
+  _index(state);
 }
 
 /**
@@ -208,64 +216,146 @@ void indexed_state::_clear_containers() {
 
 /**
  * @brief Index the items stored in the containers of the State object.
+ *
+ * @param state The State object to index. Usually, it is the State stored in
+ * the indexed_state. But in case of a merge, it can be another State.
  */
-void indexed_state::_index() {
+void indexed_state::_index(const State& state) {
+  for (auto& tp : state.timeperiods()) {
+    _timeperiods.emplace(tp.timeperiod_name(),
+                         std::make_unique<Timeperiod>(tp));
+  }
+  for (auto& cmd : state.commands()) {
+    _commands.emplace(cmd.command_name(), std::make_unique<Command>(cmd));
+  }
+  for (auto& conn : state.connectors()) {
+    _connectors.emplace(conn.connector_name(),
+                        std::make_unique<Connector>(conn));
+  }
+  for (auto& sev : state.severities()) {
+    _severities.emplace(std::make_pair(sev.key().id(), sev.key().type()),
+                        std::make_unique<Severity>(sev));
+  }
+  for (auto& tag : state.tags()) {
+    _tags.emplace(std::make_pair(tag.key().id(), tag.key().type()),
+                  std::make_unique<Tag>(tag));
+  }
+  for (auto& contact : state.contacts()) {
+    _contacts.emplace(contact.contact_name(),
+                      std::make_unique<Contact>(contact));
+  }
+  for (auto& contactgroup : state.contactgroups()) {
+    _contactgroups.emplace(contactgroup.contactgroup_name(),
+                           std::make_unique<Contactgroup>(contactgroup));
+  }
+  for (auto& host : state.hosts()) {
+    _hosts.emplace(host.host_id(), std::make_unique<Host>(host));
+  }
+  for (auto& hostgroup : state.hostgroups()) {
+    _hostgroups.emplace(
+        std::make_pair(hostgroup.hostgroup_name(), state.poller_id()),
+        std::make_unique<Hostgroup>(hostgroup));
+  }
+  for (auto& service : state.services()) {
+    assert(service.host_id() > 0 && service.service_id() > 0);
+    _services.emplace(std::make_pair(service.host_id(), service.service_id()),
+                      std::make_unique<Service>(service));
+  }
+  for (auto& anomalydetection : state.anomalydetections()) {
+    assert(anomalydetection.host_id() > 0 && anomalydetection.service_id() > 0);
+    _anomalydetections.emplace(
+        std::make_pair(anomalydetection.host_id(),
+                       anomalydetection.service_id()),
+        std::make_unique<Anomalydetection>(anomalydetection));
+  }
+  for (auto& servicegroup : state.servicegroups()) {
+    _servicegroups.emplace(
+        std::make_pair(servicegroup.servicegroup_name(), state.poller_id()),
+        std::make_unique<Servicegroup>(servicegroup));
+  }
+  for (auto& hostdependency : state.hostdependencies()) {
+    _hostdependencies.emplace(hostdependency_key(hostdependency),
+                              std::make_unique<Hostdependency>(hostdependency));
+  }
+  for (auto& servicedependency : state.servicedependencies()) {
+    _servicedependencies.emplace(
+        servicedependency_key(servicedependency),
+        std::make_unique<Servicedependency>(servicedependency));
+  }
+  for (auto& hostescalation : state.hostescalations()) {
+    _hostescalations.emplace(hostescalation_key(hostescalation),
+                             std::make_unique<Hostescalation>(hostescalation));
+  }
+  for (auto& serviceescalation : state.serviceescalations()) {
+    _serviceescalations.emplace(
+        serviceescalation_key(serviceescalation),
+        std::make_unique<Serviceescalation>(serviceescalation));
+  }
+}
+
+/**
+ * @brief Index the items stored in the containers of the State object.
+ *
+ * @param state The State object to index. Usually, it is the State stored in
+ * the indexed_state. But in case of a merge, it can be another State.
+ */
+void indexed_state::_index(State* state) {
   _clear_containers();
-  while (!_state->timeperiods().empty()) {
-    Timeperiod* timeperiod = _state->mutable_timeperiods()->ReleaseLast();
+  while (!state->timeperiods().empty()) {
+    Timeperiod* timeperiod = state->mutable_timeperiods()->ReleaseLast();
     _timeperiods.emplace(timeperiod->timeperiod_name(),
                          std::unique_ptr<Timeperiod>(timeperiod));
   }
-  while (!_state->commands().empty()) {
-    Command* command = _state->mutable_commands()->ReleaseLast();
+  while (!state->commands().empty()) {
+    Command* command = state->mutable_commands()->ReleaseLast();
     _commands.emplace(command->command_name(),
                       std::unique_ptr<Command>(command));
   }
-  while (!_state->connectors().empty()) {
-    Connector* connector = _state->mutable_connectors()->ReleaseLast();
+  while (!state->connectors().empty()) {
+    Connector* connector = state->mutable_connectors()->ReleaseLast();
     _connectors.emplace(connector->connector_name(),
                         std::unique_ptr<Connector>(connector));
   }
-  while (!_state->severities().empty()) {
-    Severity* severity = _state->mutable_severities()->ReleaseLast();
+  while (!state->severities().empty()) {
+    Severity* severity = state->mutable_severities()->ReleaseLast();
     _severities.emplace(
         std::make_pair(severity->key().id(), severity->key().type()),
         std::unique_ptr<Severity>(severity));
   }
-  while (!_state->tags().empty()) {
-    Tag* tag = _state->mutable_tags()->ReleaseLast();
+  while (!state->tags().empty()) {
+    Tag* tag = state->mutable_tags()->ReleaseLast();
     _tags.emplace(std::make_pair(tag->key().id(), tag->key().type()),
                   std::unique_ptr<Tag>(tag));
   }
-  while (!_state->contacts().empty()) {
-    Contact* contact = _state->mutable_contacts()->ReleaseLast();
+  while (!state->contacts().empty()) {
+    Contact* contact = state->mutable_contacts()->ReleaseLast();
     _contacts.emplace(contact->contact_name(),
                       std::unique_ptr<Contact>(contact));
   }
-  while (!_state->contactgroups().empty()) {
-    Contactgroup* contactgroup = _state->mutable_contactgroups()->ReleaseLast();
+  while (!state->contactgroups().empty()) {
+    Contactgroup* contactgroup = state->mutable_contactgroups()->ReleaseLast();
     _contactgroups.emplace(contactgroup->contactgroup_name(),
                            std::unique_ptr<Contactgroup>(contactgroup));
   }
-  while (!_state->hosts().empty()) {
-    Host* host = _state->mutable_hosts()->ReleaseLast();
+  while (!state->hosts().empty()) {
+    Host* host = state->mutable_hosts()->ReleaseLast();
     _hosts.emplace(host->host_id(), std::unique_ptr<Host>(host));
   }
-  while (!_state->hostgroups().empty()) {
-    Hostgroup* hostgroup = _state->mutable_hostgroups()->ReleaseLast();
+  while (!state->hostgroups().empty()) {
+    Hostgroup* hostgroup = state->mutable_hostgroups()->ReleaseLast();
     _hostgroups.emplace(
-        std::make_pair(hostgroup->hostgroup_name(), _state->poller_id()),
+        std::make_pair(hostgroup->hostgroup_name(), state->poller_id()),
         std::unique_ptr<Hostgroup>(hostgroup));
   }
-  while (!_state->services().empty()) {
-    Service* service = _state->mutable_services()->ReleaseLast();
+  while (!state->services().empty()) {
+    Service* service = state->mutable_services()->ReleaseLast();
     assert(service->host_id() > 0 && service->service_id() > 0);
     _services.emplace(std::make_pair(service->host_id(), service->service_id()),
                       std::unique_ptr<Service>(service));
   }
-  while (!_state->anomalydetections().empty()) {
+  while (!state->anomalydetections().empty()) {
     Anomalydetection* anomalydetection =
-        _state->mutable_anomalydetections()->ReleaseLast();
+        state->mutable_anomalydetections()->ReleaseLast();
     assert(anomalydetection->host_id() > 0 &&
            anomalydetection->service_id() > 0);
     _anomalydetections.emplace(
@@ -273,34 +363,34 @@ void indexed_state::_index() {
                        anomalydetection->service_id()),
         std::unique_ptr<Anomalydetection>(anomalydetection));
   }
-  while (!_state->servicegroups().empty()) {
-    Servicegroup* servicegroup = _state->mutable_servicegroups()->ReleaseLast();
+  while (!state->servicegroups().empty()) {
+    Servicegroup* servicegroup = state->mutable_servicegroups()->ReleaseLast();
     _servicegroups.emplace(
-        std::make_pair(servicegroup->servicegroup_name(), _state->poller_id()),
+        std::make_pair(servicegroup->servicegroup_name(), state->poller_id()),
         std::unique_ptr<Servicegroup>(servicegroup));
   }
-  while (!_state->hostdependencies().empty()) {
+  while (!state->hostdependencies().empty()) {
     Hostdependency* hostdependency =
-        _state->mutable_hostdependencies()->ReleaseLast();
+        state->mutable_hostdependencies()->ReleaseLast();
     _hostdependencies.emplace(hostdependency_key(*hostdependency),
                               std::unique_ptr<Hostdependency>(hostdependency));
   }
-  while (!_state->servicedependencies().empty()) {
+  while (!state->servicedependencies().empty()) {
     Servicedependency* servicedependency =
-        _state->mutable_servicedependencies()->ReleaseLast();
+        state->mutable_servicedependencies()->ReleaseLast();
     _servicedependencies.emplace(
         servicedependency_key(*servicedependency),
         std::unique_ptr<Servicedependency>(servicedependency));
   }
-  while (!_state->hostescalations().empty()) {
+  while (!state->hostescalations().empty()) {
     Hostescalation* hostescalation =
-        _state->mutable_hostescalations()->ReleaseLast();
+        state->mutable_hostescalations()->ReleaseLast();
     _hostescalations.emplace(hostescalation_key(*hostescalation),
                              std::unique_ptr<Hostescalation>(hostescalation));
   }
-  while (!_state->serviceescalations().empty()) {
+  while (!state->serviceescalations().empty()) {
     Serviceescalation* serviceescalation =
-        _state->mutable_serviceescalations()->ReleaseLast();
+        state->mutable_serviceescalations()->ReleaseLast();
     _serviceescalations.emplace(
         serviceescalation_key(*serviceescalation),
         std::unique_ptr<Serviceescalation>(serviceescalation));

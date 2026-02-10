@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2018-2024 Centreon
+ * Copyright 2009-2013,2018-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,25 +19,17 @@
 #include <getopt.h>
 
 #include <cerrno>
-#include <chrono>
 #include <clocale>
 #include <csignal>
 #include <cstdlib>
-#include <cstring>
 #include <exception>
 #include <thread>
-#include "bbdo/common.pb.h"
-#include "broker/core/config/applier/broker_state.hh"
 
-#include <absl/synchronization/mutex.h>
-
-#include <absl/container/flat_hash_set.h>
 #include <absl/strings/numbers.h>
 
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
-using namespace com::centreon;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
@@ -45,20 +37,17 @@ using namespace com::centreon;
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
-#include "broker/core/brokerrpc/brokerrpc.hh"
+#include "common/log_v2/log_v2.hh"
+
 #include "broker/core/config/applier/init.hh"
-#include "broker/core/config/applier/state.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
 
-#include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
-
+using namespace com::centreon;
 using log_v2 = common::log_v2::log_v2;
 
 using namespace com::centreon::broker;
@@ -284,8 +273,7 @@ int main(int argc, char* argv[]) {
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
-        config::applier::init<
-            com::centreon::broker::config::applier::broker_state>("", conf);
+        config::applier::init<broker::config::applier::broker_state>("", conf);
 
         // Apply resulting configuration totally or partially.
         config::applier::state::instance().apply(conf, !check);

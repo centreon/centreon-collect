@@ -138,6 +138,22 @@ void broker_state::add_peer(uint64_t poller_id,
       _start_watch_engine_conf_timer();
     }
 
+    /* Feeding the cache and waking up resources in the database */
+    std::filesystem::path prot_file =
+        pollers_config_dir() / fmt::format("{}.prot", poller_id);
+    std::fstream f(prot_file);
+    if (f) {
+      auto engine_state = std::make_shared<neb::pb_engine_state>();
+      auto& state = engine_state->mut_obj();
+      state.ParseFromIstream(&f);
+      multiplexing::publisher pblshr;
+      _logger->debug("Publishing poller {} configuration", poller_id);
+      pblshr.write(engine_state);
+    } else {
+      _logger->error("Unable to fill global cache: cannot open '{}'",
+                     prot_file.string());
+    }
+
     /* The directory watcher has been started but may be there were <ID>.lck
      * files already present in the cache directory. We need to check them
      * and apply the diff if needed.

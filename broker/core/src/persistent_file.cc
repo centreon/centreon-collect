@@ -44,7 +44,7 @@ persistent_file::persistent_file(const std::string& path, QueueFileStats* stats)
   cs->set_substream(_splitter);
 
   // BBDO layer.
-  auto bs{std::make_shared<bbdo::basic_stream>(true)};
+  auto bs = std::make_shared<bbdo::basic_stream>(true);
   bs->set_coarse(true);
   bs->set_substream(cs);
 

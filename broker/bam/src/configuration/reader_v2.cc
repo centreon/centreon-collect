@@ -20,10 +20,10 @@
 
 #include <fmt/format.h>
 
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql.hh"
@@ -251,7 +251,7 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
           uint32_t ba_id(res.value_as_u32(0));
           bas[ba_id] = ba(ba_id,                // ID.
                           res.value_as_str(1),  // Name.
-                          "", // host name
+                          "",                   // host name
                           static_cast<configuration::ba::state_source>(
                               res.value_as_u32(2)),  // State source.
                           res.value_as_f32(3),       // Warning level.

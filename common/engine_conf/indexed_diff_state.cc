@@ -95,7 +95,10 @@ void indexed_diff_state::add_diff_state(
           return std::make_pair(obj->hostgroup_name(), poller_id);
         });
 
-    logger->debug("There are {} added hostgroups", _added_hostgroups.size());
+    logger->debug(
+        "There are {} added hostgroups, {} modified hostgroups and {} removed",
+        _added_hostgroups.size(), _modified_hostgroups.size(),
+        _removed_hostgroups.size());
 
     _add_message<Service, std::pair<uint64_t, uint64_t>>(
         diff_state.mutable_state()->mutable_services(), _added_services,

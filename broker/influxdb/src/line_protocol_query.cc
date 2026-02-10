@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -30,7 +31,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  Create an empty query.
  */
 line_protocol_query::line_protocol_query()
-    : _type(line_protocol_query::unknown), _cache(nullptr) {}
+    : _type(line_protocol_query::unknown) {}
 
 /**
  *  Constructor.
@@ -42,9 +43,8 @@ line_protocol_query::line_protocol_query()
  */
 line_protocol_query::line_protocol_query(std::string const& timeseries,
                                          std::vector<column> const& columns,
-                                         data_type type,
-                                         macro_cache const& cache)
-    : _string_index{0}, _type{type}, _cache{&cache} {
+                                         data_type type)
+    : _string_index{0}, _type{type} {
   // Following implementation is based on
   // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/
   // The base format is <measurement>,<tag_set> <field_set> <timestamp>.
@@ -117,7 +117,6 @@ line_protocol_query& line_protocol_query::operator=(
     _compiled_strings = other._compiled_strings;
     _string_index = 0;
     _type = other._type;
-    _cache = other._cache;
   }
   return *this;
 }
@@ -384,23 +383,6 @@ void line_protocol_query::_get_dollar_sign(io::data const& d,
   (void)d;
   is << "$";
 }
-/**
- *  Get the status index id of a data, be it either metric or status.
- *
- *  @param[in] d  The data.
- *
- *  @return       The index id.
- */
-uint64_t line_protocol_query::_get_index_id(io::data const& d) {
-  if (_type == status)
-    return static_cast<storage::pb_status const&>(d).obj().index_id();
-  else
-    return _cache
-        ->get_metric_mapping(
-            static_cast<storage::pb_metric const&>(d).obj().metric_id())
-        .obj()
-        .index_id();
-}
 
 /**
  *  Get the status index id of a data, be it either metric or status.
@@ -408,8 +390,15 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) {
  *  @param[in] d    The data.
  *  @param[out] is  The stream.
  */
-void line_protocol_query::_get_index_id(io::data const& d, std::ostream& is) {
-  is << _get_index_id(d);
+void line_protocol_query::_get_index_id(const io::data& d, std::ostream& is) {
+  if (_type == status) {
+    is << static_cast<const storage::pb_status&>(d).obj().index_id();
+  } else {
+    auto& cache = config::applier::state::instance().cache();
+    auto& metric = static_cast<const storage::pb_metric&>(d).obj();
+    auto mm = cache.get_metric_mapping(metric.metric_id());
+    is << mm->obj().index_id();
+  }
 }
 
 /**
@@ -419,12 +408,18 @@ void line_protocol_query::_get_index_id(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void line_protocol_query::_get_host(io::data const& d, std::ostream& is) {
-  if (_type == status)
-    is << _cache->get_host_name(
-        static_cast<storage::pb_status const&>(d).obj().host_id());
-  else
-    is << _cache->get_host_name(
-        static_cast<storage::pb_metric const&>(d).obj().host_id());
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t host_id =
+      _type == status
+          ? static_cast<const storage::pb_status&>(d).obj().host_id()
+          : static_cast<const storage::pb_metric&>(d).obj().host_id();
+  auto host = cache.host(host_id);
+  if (host)
+    is << host->obj().name();
+  else {
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+    logger->warn("influxdb: could not find host name for host id {}", host_id);
+  }
 }
 
 /**
@@ -447,14 +442,26 @@ void line_protocol_query::_get_host_id(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void line_protocol_query::_get_service(io::data const& d, std::ostream& is) {
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t host_id;
+  uint64_t service_id;
   if (_type == status) {
-    is << _cache->get_service_description(
-        static_cast<storage::pb_status const&>(d).obj().host_id(),
-        static_cast<storage::pb_status const&>(d).obj().service_id());
+    host_id = static_cast<storage::pb_status const&>(d).obj().host_id();
+    service_id = static_cast<storage::pb_status const&>(d).obj().service_id();
   } else {
-    is << _cache->get_service_description(
-        static_cast<storage::pb_metric const&>(d).obj().host_id(),
-        static_cast<storage::pb_metric const&>(d).obj().service_id());
+    host_id = static_cast<storage::pb_metric const&>(d).obj().host_id();
+    service_id = static_cast<storage::pb_metric const&>(d).obj().service_id();
+  }
+  std::shared_ptr<neb::pb_service> svc = cache.service(host_id, service_id);
+
+  if (svc)
+    is << svc->obj().description();
+  else {
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
+    logger->warn(
+        "influxdb: could not find service description for "
+        "service id {}",
+        host_id, service_id);
   }
 }
 
@@ -478,7 +485,12 @@ void line_protocol_query::_get_service_id(io::data const& d, std::ostream& is) {
  *  @param is     The stream.
  */
 void line_protocol_query::_get_instance(io::data const& d, std::ostream& is) {
-  is << _cache->get_instance(d.source_id);
+  auto& cache = config::applier::state::instance().cache();
+  std::string instance_name(cache.instance(d.source_id));
+  if (instance_name.empty())
+    throw msg_fmt("influxdb: could not find instance name for id {}",
+                  d.source_id);
+  is << instance_name;
 }
 
 /**

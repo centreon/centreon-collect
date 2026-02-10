@@ -20,11 +20,12 @@
 
 #include <cassert>
 
-#include "com/centreon/broker/lua/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
 #include "com/centreon/broker/lua/broker_socket.hh"
 #include "com/centreon/broker/lua/broker_utils.hh"
+#include "com/centreon/broker/lua/lua_cache.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -56,12 +57,10 @@ static int l_pairs(lua_State* L) {
  *  @param[in] cache the persistent cache.
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, misc::variant> const& conf_params,
-                       macro_cache& cache)
+                       std::map<std::string, misc::variant> const& conf_params)
     : _L{nullptr},
       _filter{false},
       _flush{false},
-      _cache(cache),
       _total{0},
       _broker_api_version{1},
       _logger{log_v2::instance().get(log_v2::LUA)} {
@@ -265,7 +264,9 @@ void luabinding::_load_script(const std::string& lua_script) {
   broker_utils::broker_utils_reg(_L);
 
   // Registers the broker cache
-  broker_cache::broker_cache_reg(_L, _cache, _broker_api_version);
+  cache::broker_cache* const cache =
+      &com::centreon::broker::config::applier::state::instance().cache();
+  lua::lua_cache::broker_cache_reg(_L, cache, _broker_api_version);
   assert(lua_gettop(_L) == 0);
 }
 
@@ -337,9 +338,6 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "lua: luabinding::write call");
   }
-
-  // Give data to cache.
-  _cache.write(data);
 
   // Process event.
   uint32_t mess_type(data->type());

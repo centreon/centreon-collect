@@ -18,8 +18,7 @@
 
 #ifndef CCB_GRAPHITE_QUERY_HH
 #define CCB_GRAPHITE_QUERY_HH
-
-#include "com/centreon/broker/graphite/macro_cache.hh"
+#include "com/centreon/broker/graphite/internal.hh"
 
 namespace com::centreon::broker::graphite {
 
@@ -36,14 +35,12 @@ class query {
 
   query(std::string const& naming_scheme,
         std::string const& escape_string,
-        data_type type,
-        macro_cache const& cache);
-  ~query() = default;
+        data_type type);
 
-  query(query const& other) = delete;
-  query& operator=(query const& other) = delete;
+  query(query const&) = delete;
+  query& operator=(query const&) = delete;
 
-  std::string generate_metric(storage::pb_metric const& me);
+  std::string generate_metric(const storage::pb_metric& me);
   std::string generate_status(storage::pb_status const& st);
 
  private:
@@ -56,9 +53,6 @@ class query {
   std::string _escape_string;
   size_t _naming_scheme_index;
   data_type _type;
-
-  // Macro cache
-  macro_cache const* _cache;
 
   void _compile_naming_scheme(std::string const& naming_scheme, data_type type);
   std::string _escape(std::string const& str);

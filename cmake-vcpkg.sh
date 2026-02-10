@@ -222,6 +222,8 @@ elif [ -r /etc/issue ] ; then
         liblua5.3-dev
         libmariadb-dev
         libperl-dev
+        libhttp-daemon-ssl-perl
+        libjson-perl
         librrd-dev
         libssh2-1-dev
         libssl-dev
@@ -231,6 +233,7 @@ elif [ -r /etc/issue ] ; then
         python3
         python3-pip
         rrdcached
+	rrdtool
         zip
         zlib1g-dev
       )

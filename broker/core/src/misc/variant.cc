@@ -35,6 +35,12 @@ variant::variant(char const* value) : _type{type_string}, _str_value{value} {}
 /**
  *  Constructor
  */
+variant::variant(const std::string_view& value)
+    : _type{type_string}, _str_value{value} {}
+
+/**
+ *  Constructor
+ */
 variant::variant(std::string const& value)
     : _type{type_string}, _str_value{value} {}
 

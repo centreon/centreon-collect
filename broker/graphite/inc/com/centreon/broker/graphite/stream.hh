@@ -21,7 +21,6 @@
 
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/io/stream.hh"
 
@@ -67,9 +66,6 @@ class stream : public io::stream {
   // Logger
   std::shared_ptr<spdlog::logger> _logger;
 
-  // Cache
-  macro_cache _cache;
-
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);
   bool _process_status(storage::status const& st);
@@ -86,8 +82,7 @@ class stream : public io::stream {
          std::string const& db_password,
          std::string const& db_host,
          unsigned short db_port,
-         uint32_t queries_per_transaction,
-         std::shared_ptr<persistent_cache> const& cache);
+         uint32_t queries_per_transaction);
   ~stream();
   int32_t flush() override;
   int32_t stop() override;

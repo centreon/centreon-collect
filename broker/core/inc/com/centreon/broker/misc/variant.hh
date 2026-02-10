@@ -19,10 +19,7 @@
 #ifndef CCB_MISC_VARIANT_HH_
 #define CCB_MISC_VARIANT_HH_
 
-
-namespace com::centreon::broker {
-
-namespace misc {
+namespace com::centreon::broker::misc {
 /**
  *  @class variant variant.hh "com/centreon/misc/variant.hh"
  *  @brief Provide a type safe union.
@@ -50,7 +47,8 @@ class variant {
   variant(uint64_t value);
   variant(double value);
   variant(char const* value);
-  variant(std::string const& value);
+  variant(const std::string& value);
+  variant(const std::string_view& value);
   variant(variant const& variant);
   ~variant();
   variant& operator=(variant const& other);
@@ -78,8 +76,6 @@ class variant {
     std::string _str_value;
   };
 };
-}  // namespace misc
-
-}
+}  // namespace com::centreon::broker::misc
 
 #endif /* !CCB_MISC_VARIANT_HH */

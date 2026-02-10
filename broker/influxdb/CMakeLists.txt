@@ -39,7 +39,6 @@ add_library(
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/influxdb.cc"
   "${SRC_DIR}/line_protocol_query.cc"
-  "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
@@ -47,9 +46,7 @@ add_library(
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/influxdb.hh"
-  "${INC_DIR}/influxdb.hh"
   "${INC_DIR}/line_protocol_query.hh"
-  "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh")
 target_link_libraries(
   "${INFLUXDB}" PRIVATE bbdo_storage pb_storage_lib spdlog::spdlog)

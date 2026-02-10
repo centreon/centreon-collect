@@ -351,6 +351,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                  static_cast<void*>(this), _name, event_queue.size());
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
+    if (_name == "central-broker-unified-sql") {
+      _logger->debug("publishing into unified_sql event of type {:x}",
+                     (*evt)->type());
+    }
     bool at_least_one_push_to_queue = false;
     {
       // we stop this first loop when mux queue is full in order to release

@@ -41,13 +41,8 @@ influxdb::influxdb(std::string const& user,
                    std::vector<column> const& status_cols,
                    std::string const& metric_ts,
                    std::vector<column> const& metric_cols,
-                   macro_cache const& cache,
                    const std::shared_ptr<spdlog::logger>& logger)
-    : _socket{_io_context},
-      _host(addr),
-      _port(port),
-      _cache(cache),
-      _logger{logger} {
+    : _socket{_io_context}, _host(addr), _port(port), _logger{logger} {
   // Try to connect to the server.
   _logger->debug("influxdb: connecting using 1.2 Line Protocol");
   _connect_socket();
@@ -267,8 +262,8 @@ void influxdb::_create_queries(std::string const& user,
   _post_header.append("POST ").append(base_url).append(" HTTP/1.0\n");
 
   // Create protocol objects.
-  _status_query = line_protocol_query(status_ts, status_cols,
-                                      line_protocol_query::status, _cache);
-  _metric_query = line_protocol_query(metric_ts, metric_cols,
-                                      line_protocol_query::metric, _cache);
+  _status_query =
+      line_protocol_query(status_ts, status_cols, line_protocol_query::status);
+  _metric_query =
+      line_protocol_query(metric_ts, metric_cols, line_protocol_query::metric);
 }
