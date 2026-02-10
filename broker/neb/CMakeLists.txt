@@ -61,7 +61,7 @@ add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
                  pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
-target_link_libraries(nebbase PRIVATE pb_neb_lib pb_header_lib pb_common_lib
+target_link_libraries(nebbase PRIVATE pb_neb_lib pb_common_lib
                                       pb_open_telemetry_lib)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -90,8 +90,7 @@ target_precompile_headers(${NEB} REUSE_FROM nebbase)
 install(TARGETS "${NEB}" LIBRARY DESTINATION "${PREFIX_MODULES}")
 
 # Centreon Engine/Nagios module.
-add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc
-                         ${PROJECT_SOURCE_DIR}/core/src/config/applier/init.cc)
+add_library(cbmod SHARED ${SRC_DIR}/cbmod.cc)
 
 set_target_properties(cbmod PROPERTIES PREFIX "" POSITION_INDEPENDENT_CODE ON)
 
@@ -101,17 +100,19 @@ target_link_libraries(
   PRIVATE fmt::fmt
           -Wl,--whole-archive
           rokerbase
+          applier_state
+          bbdo
           process_stat
           centreon_common
           nebbase
-	  gRPC::grpc++
+          protobuf::libprotobuf
+          gRPC::grpc++
           -Wl,--no-whole-archive
 	  pb_bam_lib
 	  pb_storage_lib
           multiplexing
           pb_common_lib
           pb_neb_lib
-          pb_header_lib
           log_v2)
 
 get_property(

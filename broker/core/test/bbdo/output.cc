@@ -21,8 +21,8 @@
 #include <gtest/gtest.h>
 
 #include "broker/core/bbdo/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "common/log_v2/log_v2.hh"
 

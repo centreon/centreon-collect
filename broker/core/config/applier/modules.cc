@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/modules.hh"
 
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/modules/handle.hh"

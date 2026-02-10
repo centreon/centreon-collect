@@ -22,7 +22,7 @@
 #include <sys/stat.h>
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>

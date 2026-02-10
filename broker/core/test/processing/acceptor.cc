@@ -19,7 +19,7 @@
 
 #include "com/centreon/broker/processing/acceptor.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "common/log_v2/log_v2.hh"

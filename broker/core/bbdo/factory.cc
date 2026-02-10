@@ -21,7 +21,7 @@
 #include "broker/core/bbdo/acceptor.hh"
 #include "broker/core/bbdo/connector.hh"
 #include "broker/core/bbdo/factory.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "common/log_v2/log_v2.hh"

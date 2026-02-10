@@ -41,7 +41,7 @@ class endpoint;
 
 namespace applier {
 /**
- *  @class endpoint endpoint.hh "com/centreon/broker/config/applier/endpoint.hh"
+ *  @class endpoint endpoint.hh "broker/core/config/applier/endpoint.hh"
  *  @brief Apply the configuration of endpoints.
  *
  *  Apply the configuration of the configured endpoints.

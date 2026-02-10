@@ -20,7 +20,7 @@
 
 #include "broker/core/bbdo/stream.hh"
 #include "com/centreon/broker/compression/stream.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

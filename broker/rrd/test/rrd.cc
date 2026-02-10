@@ -24,7 +24,7 @@
 #include <ctime>
 #include <memory>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/rrd/lib.hh"
 
 using namespace com::centreon::broker;

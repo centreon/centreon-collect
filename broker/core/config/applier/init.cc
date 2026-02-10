@@ -33,10 +33,10 @@ namespace asio = boost::asio;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"

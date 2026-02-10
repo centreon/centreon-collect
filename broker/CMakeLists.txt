@@ -306,6 +306,7 @@ configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
 add_subdirectory(core/cache)
+add_subdirectory(core/config/applier)
 
 add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.grpc.pb.cc
@@ -339,9 +340,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/compression/stack_array.cc
     ${SRC_DIR}/compression/stream.cc
     ${SRC_DIR}/compression/zlib.cc
-    ${SRC_DIR}/config/applier/endpoint.cc
-    ${SRC_DIR}/config/applier/modules.cc
-    ${SRC_DIR}/config/applier/state.cc
     ${SRC_DIR}/config/endpoint.cc
     ${SRC_DIR}/config/parser.cc
     ${SRC_DIR}/config/state.cc
@@ -393,7 +391,9 @@ set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib
                  process_stat)
-target_include_directories(rokerbase PRIVATE ${PROJECT_SOURCE_DIR}/core)
+target_include_directories(rokerbase PRIVATE ${PROJECT_SOURCE_DIR}/core
+  ${CMAKE_SOURCE_DIR}
+)
 target_link_libraries(
   rokerbase
   PRIVATE sql
@@ -411,9 +411,6 @@ target_link_libraries(
           pthread
           dl)
 
-add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
-
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
 
@@ -428,7 +425,8 @@ target_link_libraries(
           log_v2
           sql
           rokerbase
-          roker
+          applier_state
+          bbdo
           multiplexing
           centreon_common
           -Wl,--no-whole-archive

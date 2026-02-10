@@ -16,11 +16,11 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/config/applier/endpoint.hh"
+#include "broker/core/config/applier/endpoint.hh"
 
 #include <cassert>
 
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/processing/failover.hh"

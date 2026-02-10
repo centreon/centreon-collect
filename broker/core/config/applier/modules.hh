@@ -28,7 +28,7 @@ namespace com::centreon::broker {
 namespace config {
 namespace applier {
 /**
- *  @class modules modules.hh "com/centreon/broker/config/applier/modules.hh"
+ *  @class modules modules.hh "broker/core/config/applier/modules.hh"
  *  @brief Load necessary modules.
  *
  *  Load modules as per the configuration.

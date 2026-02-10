@@ -22,8 +22,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/string.hh"

@@ -18,7 +18,7 @@
  */
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/common/pool.hh"

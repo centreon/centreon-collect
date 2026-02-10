@@ -18,8 +18,8 @@
 
 #include "com/centreon/broker/stats/helper.hh"
 
-#include "com/centreon/broker/config/applier/endpoint.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"

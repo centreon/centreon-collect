@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 
 using namespace com::centreon::broker;

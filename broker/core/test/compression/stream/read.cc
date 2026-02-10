@@ -19,7 +19,7 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 #include "com/centreon/broker/compression/stream.hh"
-#include "com/centreon/broker/config/applier/init.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "memory_stream.hh"

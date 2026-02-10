@@ -16,12 +16,12 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/state.hh"
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
 #include "bbdo/internal.hh"
-#include "com/centreon/broker/config/applier/endpoint.hh"
+#include "broker/core/config/applier/endpoint.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"

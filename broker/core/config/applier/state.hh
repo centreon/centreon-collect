@@ -23,7 +23,7 @@
 #include <boost/asio/steady_timer.hpp>
 #include "absl/synchronization/mutex.h"
 #include "broker/core/cache/broker_cache.hh"
-#include "com/centreon/broker/config/applier/modules.hh"
+#include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/file/directory_watcher.hh"
 #include "com/centreon/broker/stats/center.hh"
@@ -32,7 +32,7 @@
 
 namespace com::centreon::broker::config::applier {
 /**
- *  @class state state.hh "com/centreon/broker/config/applier/state.hh"
+ *  @class state state.hh "broker/core/config/applier/state.hh"
  *  @brief Apply a configuration.
  *
  *  Apply some configuration state.

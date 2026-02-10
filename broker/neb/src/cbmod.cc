@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/neb/cbmod.hh"
-#include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/state.hh"
+#include "broker/core/config/applier/init.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
