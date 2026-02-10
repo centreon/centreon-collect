@@ -18,7 +18,6 @@
 
 #include <gtest/gtest.h>
 #include <re2/re2.h>
-#include <chrono>
 
 #include "check.hh"
 #include "check_files.hh"
@@ -197,7 +196,8 @@ TEST_F(check_files_test, test_filter) {
 // Test the check_files class with a warning status condition
 TEST_F(check_files_test, warning_status) {
   using namespace com::centreon::common::literals;
-  std::string json_str = fmt::format(R"({{
+
+  std::vector<std::string_view> confs = {R"({{
     "path": "{}",
     "max-depth": -1,
     "pattern": "*.*",
@@ -205,46 +205,71 @@ TEST_F(check_files_test, warning_status) {
     "warning-status": "size > 1k",
     "verbose": false
     }})",
-                                     root_.generic_string());
+                                         R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "filter-files": "size > 1k",
+    "warning-status": "count > 0",
+    "verbose": false
+    }})",
+                                         R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "filter-files": "size > 1k and filename == 'turlututu.taratata'",
+    "warning-status": "count < 1",
+    "verbose": false
+    }})"};
 
-  std::cout << "JSON String: " << json_str << std::endl;
-  rapidjson::Document check_args;
-  check_args.Parse(json_str.c_str());
+  std::string root_path = root_.generic_string();
 
-  absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
-  std::string output;
-  bool complete = false;
+  for (const std::string_view& check_conf : confs) {
+    std::string json_str =
+        std::vformat(check_conf, std::make_format_args(root_path));
 
-  auto is_complete = [&]() { return complete; };
+    std::cout << "JSON String: " << json_str << std::endl;
+    rapidjson::Document check_args;
+    check_args.Parse(json_str.c_str());
 
-  auto checker = std::make_shared<check_files>(
-      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
-      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
-          [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
-              perfdata,
-          [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
-        complete = true;
-        output = outputs.front();
-      },
-      std::make_shared<checks_statistics>());
+    absl::Mutex wait_m;
+    std::list<com::centreon::common::perfdata> perfs;
+    std::string output;
+    bool complete = false;
 
-  checker->start_check(std::chrono::seconds(20));
+    auto is_complete = [&]() { return complete; };
 
-  absl::MutexLock lck(&wait_m);
-  wait_m.Await(absl::Condition(&is_complete));
+    auto checker = std::make_shared<check_files>(
+        g_io_context, spdlog::default_logger(),
+        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+            [[maybe_unused]] int status,
+            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+                perfdata,
+            [[maybe_unused]] const std::list<std::string>& outputs) {
+          absl::MutexLock lck(&wait_m);
+          complete = true;
+          output = outputs.front();
+        },
+        std::make_shared<checks_statistics>());
 
-  ASSERT_NE(output.find("WARNING:"), std::string::npos);
+    checker->start_check(std::chrono::seconds(20));
+
+    absl::MutexLock lck(&wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+
+    ASSERT_NE(output.find("WARNING:"), std::string::npos);
+  }
 }
 
 // Test the check_files class with a critical status condition
 TEST_F(check_files_test, critical_status) {
   using namespace com::centreon::common::literals;
-  std::string json_str = fmt::format(R"({{
+
+  std::vector<std::string_view> confs = {
+      R"({{
     "path": "{}",
     "max-depth": -1,
     "pattern": "*.*",
@@ -252,40 +277,118 @@ TEST_F(check_files_test, critical_status) {
     "critical-status": "size > 1k",
     "verbose": false
     }})",
-                                     root_.generic_string());
+      R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "filter-files": "size > 1k",
+    "warning-status": "count > 0",
+    "critical-status": "count > 1",
+    "verbose": false
+    }})"};
 
-  std::cout << "JSON String: " << json_str << std::endl;
-  rapidjson::Document check_args;
-  check_args.Parse(json_str.c_str());
+  std::string root_path = root_.generic_string();
 
-  absl::Mutex wait_m;
-  std::list<com::centreon::common::perfdata> perfs;
-  std::string output;
-  bool complete = false;
+  for (const std::string_view& check_conf : confs) {
+    std::string json_str =
+        std::vformat(check_conf, std::make_format_args(root_path));
 
-  auto is_complete = [&]() { return complete; };
+    std::cout << "JSON String: " << json_str << std::endl;
+    rapidjson::Document check_args;
+    check_args.Parse(json_str.c_str());
 
-  auto checker = std::make_shared<check_files>(
-      g_io_context, spdlog::default_logger(), std::chrono::system_clock::now(),
-      std::chrono::seconds(1), "serv"s, "cmd_name"s, "cmd_line"s, check_args,
-      nullptr,
-      [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
-          [[maybe_unused]] int status,
-          [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
-              perfdata,
-          [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
-        complete = true;
-        output = outputs.front();
-      },
-      std::make_shared<checks_statistics>());
+    absl::Mutex wait_m;
+    std::list<com::centreon::common::perfdata> perfs;
+    std::string output;
+    bool complete = false;
 
-  checker->start_check(std::chrono::seconds(120));
+    auto is_complete = [&]() { return complete; };
 
-  absl::MutexLock lck(&wait_m);
-  wait_m.Await(absl::Condition(&is_complete));
+    auto checker = std::make_shared<check_files>(
+        g_io_context, spdlog::default_logger(),
+        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+            [[maybe_unused]] int status,
+            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+                perfdata,
+            [[maybe_unused]] const std::list<std::string>& outputs) {
+          absl::MutexLock lck(&wait_m);
+          complete = true;
+          output = outputs.front();
+        },
+        std::make_shared<checks_statistics>());
 
-  ASSERT_NE(output.find("CRITICAL:"), std::string::npos);
+    checker->start_check(std::chrono::seconds(120));
+
+    absl::MutexLock lck(&wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+
+    ASSERT_NE(output.find("CRITICAL:"), std::string::npos);
+  }
+}
+
+// Test the check_files class with a critical status condition
+TEST_F(check_files_test, ok_status) {
+  using namespace com::centreon::common::literals;
+
+  std::vector<std::string_view> confs = {R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "filter-files": "size > 1k",
+    "critical-status": "count < 1",
+    "verbose": false
+    }})",
+                                         R"({{
+    "path": "{}",
+    "max-depth": -1,
+    "pattern": "*.*",
+    "files-detail-syntax": "${{filename}}: ${{size}}",
+    "filter-files": "size > 1k",
+    "warning-status": "count < 2",
+    "critical-status": "count < 1",
+    "verbose": false
+    }})"};
+
+  std::string root_path = root_.generic_string();
+  for (const std::string_view& check_conf : confs) {
+    std::string json_str =
+        std::vformat(check_conf, std::make_format_args(root_path));
+
+    std::cout << "JSON String: " << json_str << std::endl;
+    rapidjson::Document check_args;
+    check_args.Parse(json_str.c_str());
+
+    absl::Mutex wait_m;
+    std::list<com::centreon::common::perfdata> perfs;
+    std::string output;
+    bool complete = false;
+
+    auto is_complete = [&]() { return complete; };
+
+    auto checker = std::make_shared<check_files>(
+        g_io_context, spdlog::default_logger(),
+        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
+            [[maybe_unused]] int status,
+            [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
+                perfdata,
+            [[maybe_unused]] const std::list<std::string>& outputs) {
+          absl::MutexLock lck(&wait_m);
+          complete = true;
+          output = outputs.front();
+        },
+        std::make_shared<checks_statistics>());
+
+    checker->start_check(std::chrono::seconds(120));
+
+    absl::MutexLock lck(&wait_m);
+    wait_m.Await(absl::Condition(&is_complete));
+
+    ASSERT_NE(output.find("OK:"), std::string::npos);
+  }
 }
 
 // Test the check_files class with a version detail syntax
