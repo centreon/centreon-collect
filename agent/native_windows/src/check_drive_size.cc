@@ -20,71 +20,73 @@
 
 namespace com::centreon::agent::check_drive_size_detail {
 
-static const absl::flat_hash_map<std::string, e_drive_fs_type>
-    _sz_filesystem_map = {{"fat", e_drive_fs_type::hr_fs_fat},
-                          {"fat32", e_drive_fs_type::hr_fs_fat32},
-                          {"ntfs", e_drive_fs_type::hr_fs_ntfs},
-                          {"exfat", e_drive_fs_type::hr_fs_exfat}};
-
 /**
- * @brief Get the type of drive and type of filesystem
+ * @brief Get the type of drive
  *
  * @param fs_root like C:\
  * @param logger
- * @return e_drive_fs_type
+ * @return e_drive_type
  */
-static e_drive_fs_type get_fs_type(
+static e_drive_type get_drive_type(
     const std::string& fs_root,
     const std::shared_ptr<spdlog::logger>& logger) {
   // drive type
-  uint64_t fs_type = e_drive_fs_type::hr_unknown;
+  uint64_t fs_type = e_drive_type::hr_unknown;
   UINT drive_type = GetDriveTypeA(fs_root.c_str());
   switch (drive_type) {
     case DRIVE_FIXED:
-      fs_type = e_drive_fs_type::hr_storage_fixed_disk;
+      fs_type = e_drive_type::hr_storage_fixed_disk;
       break;
     case DRIVE_REMOVABLE:
-      fs_type = e_drive_fs_type::hr_storage_removable_disk;
+      fs_type = e_drive_type::hr_storage_removable_disk;
       break;
     case DRIVE_REMOTE:
-      fs_type = e_drive_fs_type::hr_storage_network_disk;
+      fs_type = e_drive_type::hr_storage_network_disk;
       break;
     case DRIVE_CDROM:
-      fs_type = e_drive_fs_type::hr_storage_compact_disc;
+      fs_type = e_drive_type::hr_storage_compact_disc;
       break;
     case DRIVE_RAMDISK:
-      fs_type = e_drive_fs_type::hr_storage_ram_disk;
+      fs_type = e_drive_type::hr_storage_ram_disk;
       break;
     default:
-      fs_type = e_drive_fs_type::hr_unknown;
       SPDLOG_LOGGER_ERROR(logger, "{} unknown drive type {}", fs_root,
                           drive_type);
       break;
   }
+  return static_cast<e_drive_type>(fs_type);
+}
 
+/**
+ * @brief Get the type of filesystem
+ *
+ * @param fs_root like C:\
+ * @param logger
+ * @return std::string exfat, ntfs, fat32....
+ */
+static std::string get_drive_format(
+    e_drive_type drive_type,
+    const std::string& fs_root,
+    const std::shared_ptr<spdlog::logger>& logger) {
   // format type
-  char file_system_name[MAX_PATH];  // Tampon pour le nom du syst�me de
-                                    // fichiers
+  char file_system_name[MAX_PATH];
 
   BOOL result =
       GetVolumeInformation(fs_root.c_str(), nullptr, 0, nullptr, nullptr,
                            nullptr, file_system_name, sizeof(file_system_name));
 
   if (!result) {
-    SPDLOG_LOGGER_ERROR(logger, "{} unable to get file system type", fs_root);
+    if (drive_type == hr_storage_fixed_disk) {
+      SPDLOG_LOGGER_ERROR(logger, "{} unable to get file system type", fs_root);
+    } else {
+      SPDLOG_LOGGER_DEBUG(logger, "{} unable to get file system type", fs_root);
+    }
+    return {};
   } else {
     std::string lower_fs_name = file_system_name;
     absl::AsciiStrToLower(&lower_fs_name);
-    auto fs_search = _sz_filesystem_map.find(lower_fs_name);
-    if (fs_search != _sz_filesystem_map.end()) {
-      fs_type |= fs_search->second;
-    } else {
-      fs_type |= e_drive_fs_type::hr_fs_unknown;
-      SPDLOG_LOGGER_ERROR(logger, "{} unknown file system type {}", fs_root,
-                          file_system_name);
-    }
+    return lower_fs_name;
   }
-  return static_cast<e_drive_fs_type>(fs_type);
 }
 
 /**
@@ -108,19 +110,18 @@ std::list<fs_stat> os_fs_stats(filter& filt,
       fs_to_test.push_back(':');
       fs_to_test.push_back('\\');
 
-      // first use cache of filter
-      if (filt.is_fs_yet_excluded(fs_to_test)) {
-        continue;
-      }
+      e_drive_type drive_type = get_drive_type(fs_to_test, logger);
+      std::string fs_type = get_drive_format(drive_type, fs_to_test, logger);
 
-      if (!filt.is_fs_yet_allowed(fs_to_test)) {
-        // not in cache so test it
-        if (!filt.is_allowed(fs_to_test, "", get_fs_type(fs_to_test, logger))) {
-          SPDLOG_LOGGER_TRACE(logger, "{} refused by filter", fs_to_test);
-          continue;
-        } else {
-          SPDLOG_LOGGER_TRACE(logger, "{} allowed by filter", fs_to_test);
-        }
+      if (!filt.is_allowed(fs_to_test, fs_type, "", drive_type, logger)) {
+        SPDLOG_LOGGER_TRACE(logger, "{} type {} format {} refused by filter",
+                            fs_to_test, drive_type_to_string(drive_type),
+                            fs_type);
+        continue;
+      } else {
+        SPDLOG_LOGGER_TRACE(logger, "{} type {} format {} allowed by filter",
+                            fs_to_test, drive_type_to_string(drive_type),
+                            fs_type);
       }
 
       ULARGE_INTEGER total_number_of_bytes;
