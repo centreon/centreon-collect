@@ -490,6 +490,13 @@ void ::check_files_detail::check_files_thread::async_get_files(
  *                                          check_files
  *********************************************************************************************/
 
+struct result_summary : public testable {
+  size_t count;
+  size_t ok_count;
+  size_t warning_count;
+  size_t critical_count;
+};
+
 /**
  * @brief Constructs a check_files object to perform file system checks based on
  * provided parameters.
@@ -569,6 +576,9 @@ check_files::check_files(const std::shared_ptr<asio::io_context>& io_context,
       }
 
       _verbose = arg.get_bool("verbose", false);
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "check_files failed to parse check params");
+      throw exceptions::msg_fmt("check_files failed to parse check params");
     }
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "check_files failed to parse check params: {}",
@@ -657,6 +667,10 @@ void check_files::_build_checker() {
                        (static_cast<const file_metadata&>(t)).last_write_time)
                 .count();
           });
+        } else if (filt->get_label() == "count") {
+          // count is not taken into account
+          // on process evaluation so by not providing a checker,
+          // we disable it
         } else {
           throw exceptions::msg_fmt("unknown filter label: {}", label);
         }
@@ -698,6 +712,19 @@ void check_files::_build_checker() {
     }
   };
 
+  auto result_checker_builder = [this](filter* filt) {
+    if (filt->get_type() == filter::filter_type::label_compare_to_value) {
+      filters::label_compare_to_value* flt =
+          static_cast<filters::label_compare_to_value*>(filt);
+      if (flt->get_label() == "count") {
+        flt->set_checker_from_getter([this](const testable& t) {
+          return static_cast<const result_summary&>(t).count;
+        });
+      }
+      // only counts are taken into account
+    }
+  };
+
   // create filters
   if (!_filter_files.empty()) {
     _file_filter = std::make_shared<filters::filter_combinator>();
@@ -727,6 +754,11 @@ void check_files::_build_checker() {
     _warning_rules_filter->apply_checker(_checker_builder);
     SPDLOG_LOGGER_DEBUG(_logger, "Warning filter created with filter: {}",
                         _warning_status);
+    _warning_result_filter = std::make_unique<filters::filter_combinator>();
+    // it must not fail
+    filter::create_filter(_warning_status, _logger,
+                          _warning_result_filter.get());
+    _warning_result_filter->apply_checker(result_checker_builder);
   }
 
   if (!_critical_status.empty()) {
@@ -741,6 +773,11 @@ void check_files::_build_checker() {
     _critical_rules_filter->apply_checker(_checker_builder);
     SPDLOG_LOGGER_DEBUG(_logger, "Critical filter created with filter: {}",
                         _critical_status);
+    _critical_result_filter = std::make_unique<filters::filter_combinator>();
+    // it must not fail
+    filter::create_filter(_critical_status, _logger,
+                          _critical_result_filter.get());
+    _critical_result_filter->apply_checker(result_checker_builder);
   }
 }
 
@@ -973,14 +1010,6 @@ void check_files::_completion_handler(
     return;
   }
 
-  if (result_size == 0) {
-    SPDLOG_LOGGER_DEBUG(_logger,
-                        "Check file: Empty or no match for this filter");
-    output = "Empty or no match for this filter";
-    on_completion(start_check_index, ret, perfs, {output});
-    return;
-  }
-
   // check warning and critical status
   for (const auto& [path, metadata] : result) {
     if (_critical_rules_filter && _critical_rules_filter->check(*metadata)) {
@@ -1000,6 +1029,20 @@ void check_files::_completion_handler(
     ret = e_status::warning;
   } else {
     ret = e_status::ok;
+  }
+
+  // check files count
+  result_summary counts = {
+      .count = _ok_list.size() + _warning_list.size() + _critical_list.size(),
+      .ok_count = _ok_list.size(),
+      .warning_count = _warning_list.size(),
+      .critical_count = _critical_list.size()};
+
+  if (_critical_result_filter && _critical_result_filter->check(counts)) {
+    ret = e_status::critical;
+  } else if (ret != e_status::critical && _warning_result_filter &&
+             _warning_result_filter->check(counts)) {
+    ret = e_status::warning;
   }
 
   // prepare performance data
@@ -1187,10 +1230,14 @@ Supported file metadata labels:
 - extension      (file extension, e.g. '.dll')
 - version        (for .exe/.dll files, string comparison)
 
+You can also add this result list filter in warning-status and critical-status:
+- count          number of items
+
 Examples of filters:
 - "size > 1M"                   # Files larger than 1 MB
-- "extension == '.dll'"          # DLL files only
-- "line_count > 1000"            # Files with more than 1000 lines
+- "extension == '.dll'"         # DLL files only
+- "line_count > 1000"           # Files with more than 1000 lines
+- "count <= 0"                  # No file found
 
 Warning and Critical Status
 ---------------------------
