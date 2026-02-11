@@ -110,6 +110,7 @@ target_link_libraries(
           rokerbase
           bbdo
 	  -Wl,--no-whole-archive
+          brokerrpc
           centreon_common
           centreon_grpc
           stdc++fs

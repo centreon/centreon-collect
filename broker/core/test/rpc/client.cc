@@ -21,7 +21,7 @@
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
-#include "../src/broker.grpc.pb.h"
+#include "broker/broker.grpc.pb.h"
 
 using namespace com::centreon::broker;
 

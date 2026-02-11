@@ -46,10 +46,10 @@ using namespace com::centreon;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include "com/centreon/broker/brokerrpc.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/brokerrpc/brokerrpc.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/state.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
@@ -299,7 +299,7 @@ int main(int argc, char* argv[]) {
       else
         default_port = gl_state.rpc_port();
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
-          new brokerrpc(default_listen_address, default_port, broker_name),
+          new brokerrpc(default_listen_address, default_port),
           [](brokerrpc* rpc) {
             rpc->shutdown();
             delete rpc;

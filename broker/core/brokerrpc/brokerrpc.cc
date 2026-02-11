@@ -17,10 +17,8 @@
  *
  */
 
-#include "com/centreon/broker/brokerrpc.hh"
-#include <fmt/format.h>
+#include "broker/core/brokerrpc/brokerrpc.hh"
 #include <grpcpp/server_builder.h>
-#include "bbdo/events.hh"
 #include "com/centreon/broker/io/events.hh"
 
 using namespace com::centreon::broker;
@@ -32,10 +30,7 @@ using namespace com::centreon::broker;
  * @param port
  * @param broker_name
  */
-brokerrpc::brokerrpc(const std::string& address,
-                     uint16_t port,
-                     const std::string& broker_name)
-    : _service(broker_name) {
+brokerrpc::brokerrpc(const std::string& address, uint16_t port) : _service() {
   io::events& e{io::events::instance()};
 
   /* Lets' register the rebuild_metrics bbdo event. This is needed to send the

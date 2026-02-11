@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/broker_impl.hh"
+#include "broker/core/brokerrpc/broker_impl.hh"
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 
@@ -35,7 +35,7 @@ using namespace com::centreon::broker::version;
 using com::centreon::common::crypto::aes256;
 using com::centreon::common::log_v2::log_v2;
 
-broker_impl::broker_impl(const std::string& name) : _broker_name(name) {}
+broker_impl::broker_impl() {}
 
 /**
  * @brief Return the Broker's version.
@@ -248,10 +248,6 @@ grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                 : grpc::Status(
                       grpc::StatusCode::NOT_FOUND,
                       fmt::format("no muxer stats found for name '{}'", name));
-}
-
-void broker_impl::set_broker_name(const std::string& s) {
-  _broker_name = s;
 }
 
 /**

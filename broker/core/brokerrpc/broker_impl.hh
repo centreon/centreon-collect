@@ -21,9 +21,10 @@
 
 #include <grpcpp/server_context.h>
 #include "bbdo/events.hh"
-#include "broker.grpc.pb.h"
-#include "broker/core/src/broker.pb.h"
+#include "broker/broker.grpc.pb.h"
+#include "broker/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "neb.pb.h"
 
 namespace com::centreon::broker {
 
@@ -46,8 +47,6 @@ using pb_ba_info =
 }
 
 class broker_impl final : public Broker::Service {
-  std::string _broker_name;
-
   grpc::Status GetVersion(grpc::ServerContext* context,
                           const ::google::protobuf::Empty* /*request*/,
                           Version* response) override;
@@ -133,8 +132,7 @@ class broker_impl final : public Broker::Service {
                         PeerList* response) override;
 
  public:
-  broker_impl(const std::string& name);
-  void set_broker_name(const std::string& s);
+  broker_impl();
 };
 }  // namespace com::centreon::broker
 
