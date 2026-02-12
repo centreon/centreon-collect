@@ -782,24 +782,17 @@ void check_files::_build_checker() {
 }
 
 constexpr std::array<std::pair<std::string_view, std::string_view>, 20>
-    _label_to_counter_detail{{{"${path}", "{0}"},
-                              {"{path}", "{0}"},
-                              {"${filename}", "{1}"},
-                              {"{filename}", "{1}"},
-                              {"${size}", "{2}"},
-                              {"{size}", "{2}"},
-                              {"${creation}", "{3}"},
-                              {"{creation}", "{3}"},
-                              {"${access}", "{4}"},
-                              {"{access}", "{4}"},
-                              {"${written}", "{5}"},
-                              {"{written}", "{5}"},
-                              {"${version}", "{6}"},
-                              {"{version}", "{6}"},
-                              {"${line_count}", "{7}"},
-                              {"{line_count}", "{7}"},
-                              {"${extension}", "{8}"},
-                              {"{extension}", "{8}"}}};
+    _label_to_counter_detail{
+        {{"${path}", "{0}"},       {"{path}", "{0}"},
+         {"${filename}", "{1}"},   {"{filename}", "{1}"},
+         {"${name}", "{1}"},       {"{name}", "{1}"},
+         {"${size}", "{2}"},       {"{size}", "{2}"},
+         {"${creation}", "{3}"},   {"{creation}", "{3}"},
+         {"${access}", "{4}"},     {"{access}", "{4}"},
+         {"${written}", "{5}"},    {"{written}", "{5}"},
+         {"${version}", "{6}"},    {"{version}", "{6}"},
+         {"${line_count}", "{7}"}, {"{line_count}", "{7}"},
+         {"${extension}", "{8}"},  {"{extension}", "{8}"}}};
 
 constexpr std::array<std::pair<std::string_view, std::string_view>, 40>
     _label_to_output_index{{
