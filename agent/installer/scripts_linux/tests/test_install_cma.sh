@@ -458,6 +458,22 @@ test_hostname() {
         -e "localhost:4317" -t "token" -d
 }
 
+test_host_template() {
+    print_section "12. HOST_TEMPLATE TESTS"
+    
+    # Valid host templates
+    run_test "Custom host template" 0 \
+        -e "localhost:4317" -t "token" -H "Custom-Template-01" -d
+    run_test "Host template with dots" 0 \
+        -e "localhost:4317" -t "token" -H "Template.With.Dots" -d
+    run_test "Host template with underscores" 0 \
+        -e "localhost:4317" -t "token" -H "Template_With_Underscores" -d
+    
+    # No host template
+    run_test "No host template (uses default value)" 0 \
+        -e "localhost:4317" -t "token" -d
+}
+
 test_unknown_arguments() {
     print_section "14. UNKNOWN ARGUMENT TESTS"
     
@@ -652,6 +668,13 @@ test_output_config_generation() {
         -e "localhost:4317" -t "token" -x "${TEST_TEMP_DIR}/custom_check.json"
     
     run_json_absent_test "JSON omits check_file when not specified" "check_file" \
+        -e "localhost:4317" -t "token"
+
+    # Test host template
+    run_json_test "JSON contains host_template" "host_template" "Custom-Template" \
+        -e "localhost:4317" -t "token" -H "Custom-Template"
+
+    run_json_test "JSON contains default host_template" "host_template" "OS-Linux-Centreon-Monitoring-Agent-custom" \
         -e "localhost:4317" -t "token"
     
     echo -e "${CYAN}--- Full Configuration Scenarios ---${NC}"
