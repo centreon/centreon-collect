@@ -1023,6 +1023,14 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"critical-status": "size > 1k"} }
     ...    OTEL connector
 
+    Ctn Engine Config Add Command    ${0}    agent_files_check_warning2
+    ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"warning-status": "count > 0"} }
+    ...    OTEL connector
+
+    Ctn Engine Config Add Command    ${0}    agent_files_check_critical2
+    ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"critical-status": "count > 1", "warning-status" : "count > 0"} }
+    ...    OTEL connector
+
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Clear Metrics
@@ -1061,6 +1069,18 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
 
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_warning2
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_critical2
+    Ctn Reload Engine
+
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
 
 BEOTEL_CENTREON_AGENT_TOKEN
         [Documentation]    Scenario: Validate agent connection with valid JWT token
