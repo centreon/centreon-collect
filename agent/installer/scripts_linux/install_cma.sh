@@ -50,6 +50,7 @@
 #   -m, --max-number     Maximum number of log files for rotation (used with log-type=file)
 #   -x, --custom-check   Path to custom check configuration file
 #   -p, --components     Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+#   -H, --host-template  Host template to use in Centreon (optional , default : OS-Linux-Centreon-Monitoring-Agent-custom)
 #   -d, --dry-run        Show what would be done without making changes
 #   -h, --help           Display this help message
 #
@@ -89,6 +90,7 @@ DEFAULT_LOG_TYPE="file"
 DEFAULT_LOG_FILE="/var/log/centreon-monitoring-agent/centagent.log"
 DEFAULT_MAX_FILE_SIZE="10"
 DEFAULT_MAX_NUMBER="3"
+DEFAULT_HOST_TEMPLATE="OS-Linux-Centreon-Monitoring-Agent-custom"
 
 # Configuration paths
 readonly CONFIG_DIR="/etc/centreon-monitoring-agent"
@@ -105,6 +107,7 @@ readonly NC='\033[0m' # No Color
 ENDPOINT=""
 TOKEN=""
 HOSTNAME_CENTREON=""
+HOST_TEMPLATE="${DEFAULT_HOST_TEMPLATE}"
 CENTREON_VERSION="${DEFAULT_CENTREON_VERSION}"
 ENCRYPTION="${DEFAULT_ENCRYPTION}"
 REVERSE_MODE=false
@@ -184,6 +187,7 @@ OPTIONAL OPTIONS:
     -m, --max-number <NUM>        Maximum number of log files for rotation
     -x, --custom-check <PATH>     Path to custom check configuration file
     -p, --components <LIST>       Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+    -H, --host-template <STRING>    Host template to use in Centreon (optional)
     -d, --dry-run                 Show what would be done without making changes
     -h, --help                    Display this help message
 
@@ -1040,6 +1044,11 @@ generate_config_json() {
         config_json+=$'\n'"    \"token\": \"${TOKEN}\""
     fi
 
+    if [[ -n "${HOST_TEMPLATE}" ]]; then
+        config_json+=","
+        config_json+=$'\n'"    \"host_template\": \"${HOST_TEMPLATE}\""
+    fi
+
     config_json+=$'\n'"}"
     
     echo "${config_json}"
@@ -1155,6 +1164,10 @@ parse_arguments() {
             -d|--dry-run)
                 DRY_RUN=true
                 shift
+                ;;
+            -H| --host-template)
+                HOST_TEMPLATE="$2"
+                shift 2
                 ;;
             --output-config)
                 OUTPUT_CONFIG=true
