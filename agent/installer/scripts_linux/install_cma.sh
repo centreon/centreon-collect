@@ -139,7 +139,7 @@ OS_ARCH=""
 #===============================================================================
 
 log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1" >&2
+    echo -e "${BLUE}[INFO]${NC} $1" >&2
 }
 
 log_warn() {
@@ -149,9 +149,8 @@ log_warn() {
 log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
-
-log_debug() {
-    echo -e "${BLUE}[DEBUG]${NC} $1" >&2
+log_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1" >&2
 }
 
 die() {
@@ -242,6 +241,20 @@ validate_required_params() {
     else
         # Validate endpoint format (host:port)
         validate_endpoint_format "${ENDPOINT}" || errors=$((errors + 1))
+    fi
+
+    # Check if token is missing before generating config
+    if [[ -z "${TOKEN}" ]]; then
+        log_warn "Authentication token is missing"
+        log_info "Retrieve an authentication token from “Administration > Authentication Tokens” and paste it here"
+        echo -n "Please enter the authentication token: "
+        read -r TOKEN
+        
+        # Validate token after user input
+        if [[ -z "${TOKEN}" ]]; then
+            die "Installation stopped: Authentication token is required"
+        fi
+        log_info "Token provided successfully"
     fi
 
     # Validate encryption-related parameters based on mode
@@ -532,9 +545,14 @@ ensure_installed_tools() {
     command -v curl &> /dev/null || missing_packages+=("curl")
     command -v hostname &> /dev/null || missing_packages+=("hostname")
     
+    # For Debian/Ubuntu, also check for gpg (provided by gnupg package)
+    if [[ "${PKG_MANAGER}" == "apt" ]]; then
+        command -v gpg &> /dev/null || missing_packages+=("gnupg")
+    fi
+    
     # If all tools are installed, return early
     if [[ ${#missing_packages[@]} -eq 0 ]]; then
-        log_debug "All required tools are already installed"
+        log_info "All required tools are already installed"
         return 0
     fi
     
@@ -548,11 +566,11 @@ ensure_installed_tools() {
     # Install all missing packages in a single command
     case "${PKG_MANAGER}" in
         dnf|yum)
-            ${PKG_MANAGER} install -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
+            ${PKG_MANAGER} install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
         apt)
             apt-get update -qq
-            apt-get install -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
+            apt-get install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
     esac
     
@@ -572,7 +590,7 @@ github_api_call() {
     local response
     
     if [[ -n "${GITHUB_TOKEN}" ]]; then
-        log_debug "Using authenticated GitHub API request"
+        log_info "Using authenticated GitHub API request"
         response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN}" "${url}")
     else
         response=$(curl -sL "${url}")
@@ -623,7 +641,7 @@ get_latest_cma_version() {
     local item_count
     
     while [[ -z "${cma_tag}" ]]; do
-        log_debug "Searching for CMA tag in page ${page}..."
+        log_info "Searching for CMA tag in page ${page}..."
         page_content=$(github_api_call "${GITHUB_API_URL}/tags?per_page=100&page=${page}")
         
         # Try to find the CMA tag in this page
@@ -639,7 +657,7 @@ get_latest_cma_version() {
         
         # If we found fewer than 100 items, this is the last page
         if [[ ${item_count} -lt 100 ]]; then
-            log_debug "Reached last page (${item_count} items)"
+            log_info "Reached last page (${item_count} items)"
             break
         fi
         
@@ -746,7 +764,7 @@ configure_plugins_repo_rhel() {
     fi
 
     # Install dnf-plugins-core and EPEL repository
-    ${PKG_MANAGER} install -y dnf-plugins-core epel-release 2>/dev/null || true
+    ${PKG_MANAGER} install -qq -y dnf-plugins-core epel-release 2>/dev/null || true
 
     # Enable PowerTools/CRB
     if [[ "${el_version}" == "8" ]]; then
@@ -827,7 +845,12 @@ configure_plugins_repo_debian() {
         return 0
     fi
 
-    # Add plugins repository (GPG key already imported during main repo setup)
+    # Import Centreon GPG key
+    log_info "Importing Centreon GPG key..."
+    curl -fsSL "${CENTREON_GPG_KEY_URL}" | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 \
+        || die "Failed to import Centreon GPG key"
+
+    # Add plugins repository
     echo "${plugins_repo}" > /etc/apt/sources.list.d/centreon-plugins.list
 
     apt-get update -qq
@@ -886,11 +909,11 @@ install_cma_agent() {
     # Install the package
     case "${PKG_MANAGER}" in
         dnf|yum)
-            ${PKG_MANAGER} install -y "${package_file}" \
+            ${PKG_MANAGER} install -qq -y "${package_file}" \
                 || die "Failed to install centreon-monitoring-agent"
             ;;
         apt)
-            apt install -y "${package_file}" \
+            apt install -qq -y "${package_file}" \
                 || die "Failed to install centreon-monitoring-agent"
             ;;
     esac
@@ -903,7 +926,7 @@ install_cma_agent() {
         die "Installation verification failed: centagent command not found"
     fi
 
-    log_info "Centreon Monitoring Agent installed successfully"
+    log_success "Centreon Monitoring Agent installed successfully"
 }
 
 install_centreon_plugins() {
@@ -922,17 +945,27 @@ install_centreon_plugins() {
     case "${PKG_MANAGER}" in
         dnf|yum)
             configure_plugins_repo_rhel
-            ${PKG_MANAGER} install -y centreon-plugin-Operatingsystems-Linux-Local.noarch \
+            ${PKG_MANAGER} install -qq -y centreon-plugin-Operatingsystems-Linux-Local.noarch \
                 || log_warn "Failed to install Linux local plugin (may already be installed)"
             ;;
         apt)
             configure_plugins_repo_debian
-            apt-get install -y centreon-plugin-operatingsystems-linux-local \
+            apt-get install -qq -y centreon-plugin-operatingsystems-linux-local \
                 || log_warn "Failed to install Linux local plugin (may already be installed)"
             ;;
     esac
 
-    log_info "Centreon plugins installed successfully"
+    # Verify plugin installation (check if the plugin file exists)
+    local plugin_path="/usr/lib/centreon/plugins"
+    # if /usr/lib/centreon/plugins/centreon_linux_local.pl exists.
+
+    if [[ ! -f "${plugin_path}/centreon_linux_local.pl" ]]; then
+        log_error "Plugin installation verification failed: ${plugin_path}/centreon_linux_local.pl not found"
+        log_error "Please check the repository configuration and package availability for your OS."
+        exit 1
+    else
+        log_success "Plugins installed successfully"
+    fi
 }
 
 #===============================================================================
@@ -958,19 +991,6 @@ create_config_file() {
         [[ -n "${MAX_NUMBER}" ]] && log_info "  - Max Number: ${MAX_NUMBER}"
         [[ -n "${CUSTOM_CHECK_FILE}" ]] && log_info "  - Custom Check File: ${CUSTOM_CHECK_FILE}"
         return 0
-    fi
-
-    # Check if token is missing before generating config
-    if [[ -z "${TOKEN}" ]]; then
-        log_warn "Authentication token is missing"
-        echo -n "Please enter the authentication token: "
-        read -r TOKEN
-        
-        # Validate token after user input
-        if [[ -z "${TOKEN}" ]]; then
-            die "Installation stopped: Authentication token is required"
-        fi
-        log_info "Token provided successfully"
     fi
 
     # Create config directory if it doesn't exist
@@ -1073,10 +1093,88 @@ configure_service() {
 
     # Check service status
     if systemctl is-active --quiet centagent; then
-        log_info "centagent service is running"
+        log_success "centagent service is running"
     else
         log_warn "centagent service may not be running correctly. Check with: systemctl status centagent"
     fi
+}
+
+print_installation_verification() {
+    echo ""
+    echo "========================================"
+    echo "Installation Verification"
+    echo "========================================"
+    
+    # Check centagent installation
+    local agent_installed="NO"
+    local agent_version="N/A"
+    local agent_status="N/A"
+    
+    if command -v centagent &> /dev/null; then
+        agent_installed="YES"
+        
+        # Get version from installed package
+        case "${PKG_MANAGER}" in
+            dnf|yum)
+                agent_version=$(rpm -q --queryformat '%{VERSION}-%{RELEASE}' centreon-monitoring-agent 2>/dev/null || echo "N/A")
+                ;;
+            apt)
+                agent_version=$(dpkg-query -W -f='${Version}' centreon-monitoring-agent 2>/dev/null || echo "N/A")
+                ;;
+        esac
+        
+        if systemctl is-active --quiet centagent 2>/dev/null; then
+            agent_status="${GREEN}Running${NC}"
+        elif systemctl is-enabled --quiet centagent 2>/dev/null; then
+            agent_status="${YELLOW}Enabled but not running${NC}"
+        else
+            agent_status="${RED}Not running${NC}"
+        fi
+    else
+        agent_installed="${RED}NO${NC}"
+    fi
+    
+    # Check plugin installation
+    local plugin_installed="N/A"
+    local plugin_path="N/A"
+    
+    if [[ "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
+        case "${PKG_MANAGER}" in
+            dnf|yum)
+                if rpm -q centreon-plugin-Operatingsystems-Linux-Local &> /dev/null; then
+                    plugin_installed="${GREEN}YES${NC}"
+                    plugin_path="/usr/lib/centreon/plugins/"
+                else
+                    plugin_installed="${RED}NO${NC}"
+                fi
+                ;;
+            apt)
+                if dpkg -l centreon-plugin-operatingsystems-linux-local &> /dev/null; then
+                    plugin_installed="${GREEN}YES${NC}"
+                    plugin_path="/usr/lib/centreon/plugins/"
+                else
+                    plugin_installed="${RED}NO${NC}"
+                fi
+                ;;
+        esac
+    else
+        plugin_installed="Not requested"
+    fi
+    
+    echo -e "Centreon Agent:       ${agent_installed}"
+    [[ "${agent_installed}" == "YES" ]] && echo "  Version:            ${agent_version}"
+    [[ "${agent_installed}" == "YES" ]] && echo -e "  Status:             ${agent_status}"
+    echo -e "Centreon Plugin:      ${plugin_installed}"
+    [[ "${plugin_path}" != "N/A" ]] && echo "  Path:               ${plugin_path}"
+    
+    echo "Configuration File:   ${CONFIG_FILE}"
+    if [[ -f "${CONFIG_FILE}" ]]; then
+        echo -e "  Status:             ${GREEN}Created${NC}"
+    else
+        echo -e"  Status:             ${RED}Missing${NC}"
+    fi
+    
+    echo "========================================"
 }
 
 #===============================================================================
@@ -1246,11 +1344,11 @@ main() {
     # Ensure required tools are installed
     ensure_installed_tools
 
-    # Install CMA agent
-    install_cma_agent
-
     # Install plugins if requested
     install_centreon_plugins
+
+    # Install CMA agent
+    install_cma_agent
 
     # Create configuration file
     create_config_file
@@ -1258,10 +1356,11 @@ main() {
     # Configure and start service
     configure_service
 
+    # Print installation verification summary
+    print_installation_verification
+
     echo ""
-    log_info "========================================"
-    log_info "Installation completed successfully!"
-    log_info "========================================"
+    log_info "=== Script execution completed ==="
 
 }
 
