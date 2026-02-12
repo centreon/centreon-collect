@@ -100,8 +100,8 @@ target_link_libraries(
   PRIVATE fmt::fmt
           -Wl,--whole-archive
           rokerbase
-          applier_state
-          bbdo
+          cbmod_applier_state
+          cbmod_bbdo
           process_stat
           centreon_common
           nebbase

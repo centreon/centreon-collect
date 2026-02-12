@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 
 #include "broker/core/bbdo/stream.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/neb/service.hh"
@@ -69,8 +70,9 @@ class OutputTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::CORE);
     io::data::broker_id = 0;
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "broker_test",
-                            0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -100,11 +102,9 @@ TEST_F(OutputTest, WriteService) {
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
@@ -151,11 +151,9 @@ TEST_F(OutputTest, WriteLongService) {
 
   std::shared_ptr<io::stream> stream;
   std::shared_ptr<into_memory> memory_stream(new into_memory());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
@@ -210,11 +208,9 @@ TEST_F(OutputTest, WriteReadService) {
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
   std::shared_ptr<into_memory> memory_stream(new into_memory());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
 
   std::shared_ptr<io::data> e;
@@ -328,11 +324,9 @@ TEST_F(OutputTest, WriteReadBadChksum) {
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
   /* Duplication of the serialized service in the stream. */
   std::vector<char> m1(memory_stream->get_memory().begin(),
@@ -368,11 +362,9 @@ TEST_F(OutputTest, ServiceTooShort) {
 
   std::shared_ptr<io::stream> stream;
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
   /* Duplication of the serialized service in the stream. */
   std::vector<char> m1(memory_stream->get_memory().begin(),
@@ -414,11 +406,9 @@ TEST_F(OutputTest, ServiceTooShortAndAGoodOne) {
 
   std::shared_ptr<io::stream> stream;
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(svc);
   /* Duplication of the serialized service in the stream. */
   std::vector<char> m1(memory_stream->get_memory().begin(),

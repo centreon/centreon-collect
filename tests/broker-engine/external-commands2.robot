@@ -1368,8 +1368,8 @@ BE_BACKSLASH_CHECK_RESULT
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Clear Retention
     Ctn Broker Config Log    central    sql    debug
-    FOR    ${use_grpc}    IN RANGE    0    2
-        Log To Console    external command PROCESS_SERVICE_CHECK_RESULT  use_grpc=${use_grpc}
+    FOR    ${use_grpc}    IN RANGE    2
+        Log To Console    external command PROCESS_SERVICE_CHECK_RESULT use_grpc=${use_grpc}
         Ctn Clear Retention
         ${start}    Get Current Date
         Ctn Start Broker

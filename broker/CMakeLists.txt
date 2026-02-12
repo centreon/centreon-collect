@@ -358,7 +358,6 @@ target_link_libraries(
   PRIVATE sql
           bbdo_bbdo
           pb_broker_lib
-          bbdo
           ctncrypto
           pb_bbdo_lib
           pb_common_lib
@@ -385,8 +384,8 @@ target_link_libraries(
           sql
           brokerrpc
           rokerbase
-          applier_state
-          bbdo
+          broker_applier_state
+          broker_bbdo
           multiplexing
           centreon_common
           -Wl,--no-whole-archive

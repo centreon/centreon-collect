@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -45,7 +46,8 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    config::applier::state::load(com::centreon::common::BROKER, "");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();

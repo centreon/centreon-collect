@@ -20,7 +20,7 @@ EBBPS1
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
-    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    core    debug
     Ctn Broker Config Log    central    tcp    error
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    perfdata    trace
@@ -44,20 +44,13 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    60
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    Check Query Result    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1    ==    ${0}    retry_timeout=60s    retry_pause=1s
     Disconnect From Database
 
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Ctn Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
@@ -82,14 +75,8 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    120
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    Check Query Result
+		...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2    ==    ${0}    retry_timeout=120s    retry_pause=1s
     Disconnect From Database
 
 EBBPS2

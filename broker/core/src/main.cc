@@ -27,6 +27,7 @@
 #include <exception>
 #include <thread>
 #include "bbdo/common.pb.h"
+#include "broker/core/config/applier/broker_state.hh"
 
 #include <absl/synchronization/mutex.h>
 
@@ -283,7 +284,8 @@ int main(int argc, char* argv[]) {
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
-        config::applier::init(common::BROKER, "", conf);
+        config::applier::init<
+            com::centreon::broker::config::applier::broker_state>("", conf);
 
         // Apply resulting configuration totally or partially.
         config::applier::state::instance().apply(conf, !check);

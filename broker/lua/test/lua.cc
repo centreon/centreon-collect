@@ -25,9 +25,10 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
-#include "broker/test/test_server.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/init.hh"
 #include "broker/core/config/applier/modules.hh"
+#include "broker/test/test_server.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -53,8 +54,9 @@ class LuaTest : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::LUA);
 
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "test_broker",
-                            0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }

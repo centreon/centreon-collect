@@ -18,6 +18,7 @@
 
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
+#include <fmt/ostream.h>
 
 namespace com::centreon::broker::io {
 /**

@@ -21,8 +21,8 @@
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -434,15 +434,24 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
                                    const ::google::protobuf::Empty* request
                                    [[maybe_unused]],
                                    PeerList* response) {
-  for (auto& p : config::applier::state::instance().connected_peers()) {
-    auto peer = response->add_peers();
-    peer->set_id(p.poller_id);
-    peer->set_poller_name(p.poller_name);
-    peer->set_broker_name(p.broker_name);
-    peer->mutable_connected_since()->set_seconds(p.connected_since);
-    peer->set_engine_conf(p.engine_conf);
-    peer->set_available_conf(p.available_conf);
-    peer->set_type(p.peer_type);
+  /* The Broker gRPC service is only available on Broker instances
+   * with the Broker role. So it's safe to static_cast the state to
+   * broker_state.
+   */
+  config::applier::broker_state* broker_state =
+      static_cast<config::applier::broker_state*>(
+          &config::applier::state::instance());
+  if (broker_state) {
+    for (auto& p : broker_state->connected_peers()) {
+      auto peer = response->add_peers();
+      peer->set_id(p.poller_id);
+      peer->set_poller_name(p.poller_name);
+      peer->set_broker_name(p.broker_name);
+      peer->mutable_connected_since()->set_seconds(p.connected_since);
+      peer->set_engine_conf(p.engine_conf);
+      peer->set_available_conf(p.available_conf);
+      peer->set_type(p.peer_type);
+    }
   }
   return grpc::Status::OK;
 }

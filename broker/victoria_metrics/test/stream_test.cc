@@ -24,12 +24,12 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
+#include "broker/core/config/applier/broker_state.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/common/pool.hh"
@@ -45,7 +45,8 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class victoria_stream_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
-    config::applier::state::load(com::centreon::common::BROKER, "");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     file::disk_accessor::load(1000);
   }
   static void TearDownTestSuite() {}

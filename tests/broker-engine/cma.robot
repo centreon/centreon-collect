@@ -6,7 +6,6 @@ Library             DatabaseLibrary
 Library             DateTime
 Library             String
 
-
 Resource            ../resources/import.resource
 
 Library             ../resources/Agent.py
@@ -23,6 +22,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
     [Documentation]    Given an agent host checked by centagent, we set a first output to check command, 
     ...    modify it, reload engine and expect the new output in resource table
     [Tags]    broker    engine    opentelemetry    MON-63843
+    Ctn Clear Engine White List
     Ctn Config Engine    ${1}    ${2}    ${2}
     Ctn Add Otl ServerModule
     ...    0
@@ -907,7 +907,15 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
 
 
 BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
-    [Documentation]    Given and agent who has to execute checks with different intervals, we expect to find these intervals in data_bin
+    [Documentation]    GIVEN a Centreon Engine with OpenTelemetry server module configured
+    ...                AND an OTEL connector using centreon_agent processor with 5s export period
+    ...                AND 3 passive services configured with different check intervals (1, 2, 3 minutes)
+    ...                AND interval_length is set to 10 seconds
+    ...                WHEN the Engine, Broker and Agent are started
+    ...                THEN service_1 should execute checks every 10 seconds (1*10) with 5s tolerance
+    ...                AND service_2 should execute checks every 20 seconds (2*10) with 5s tolerance
+    ...                AND service_3 should execute checks every 30 seconds (3*10) with 5s tolerance
+    ...                AND all check intervals should be verified within 80 seconds
     [Tags]    broker    engine    opentelemetry    MON-164494
     Ctn Config Engine    ${1}    ${2}    ${3}
     Ctn Add Otl ServerModule
@@ -924,7 +932,6 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    health_check
     Ctn Engine Config Replace Value In Services    ${0}    service_3    check_interval    3
     Ctn Set Services Passive       0    service_[1-3]
-
 
     Ctn Engine Config Add Command    ${0}    health_check   {"check": "health"}    OTEL connector
 

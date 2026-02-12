@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -38,7 +39,8 @@ using namespace com::centreon::broker;
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load(com::centreon::common::BROKER, "");
+    config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     mysql_manager::load();
     file::disk_accessor::load(10000);
     multiplexing::engine::load();

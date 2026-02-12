@@ -1,5 +1,5 @@
 #
-# Copyright 2016-2023 Centreon
+# Copyright 2016-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -105,33 +105,33 @@ set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 target_link_libraries(
   ut_broker
   PRIVATE
-	  -Wl,--whole-archive
-          applier_state
-          rokerbase
-          bbdo
-	  -Wl,--no-whole-archive
-          brokerrpc
-          centreon_common
-          centreon_grpc
-          stdc++fs
-          nlohmann_json::nlohmann_json
-          multiplexing
-          ${TESTS_LIBRARIES}
-          GTest::gtest
-          GTest::gtest_main
-          GTest::gmock
-          GTest::gmock_main
-          log_v2
-          test_util
-          fmt::fmt
-          gRPC::grpc++)
+    -Wl,--whole-archive
+    broker_applier_state
+    rokerbase
+    broker_bbdo
+    -Wl,--no-whole-archive
+    brokerrpc
+    centreon_common
+    centreon_grpc
+    stdc++fs
+    nlohmann_json::nlohmann_json
+    multiplexing
+    ${TESTS_LIBRARIES}
+    GTest::gtest
+    GTest::gtest_main
+    GTest::gmock
+    GTest::gmock_main
+    log_v2
+    test_util
+    fmt::fmt
+    gRPC::grpc++)
 
 add_dependencies(
   ut_broker
   test_util
-  applier_state
+  broker_applier_state
   rokerbase
-  bbdo
+  broker_bbdo
   multiplexing
   centreon_common)
 

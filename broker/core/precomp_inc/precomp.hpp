@@ -69,6 +69,7 @@
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 #include <fmt/ranges.h>
+#include <fmt/std.h>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

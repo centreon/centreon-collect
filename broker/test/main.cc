@@ -18,11 +18,10 @@
  */
 #include <gtest/gtest.h>
 
-#include "broker/core/config/applier/state.hh"
+#include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/common/pool.hh"
-#include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
 
@@ -32,8 +31,8 @@ std::shared_ptr<asio::io_context> g_io_context =
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
   void SetUp() override {
-    com::centreon::broker::config::applier::state::load(
-        com::centreon::common::BROKER, "");
+    com::centreon::broker::config::applier::state::load<
+        com::centreon::broker::config::applier::broker_state>("");
     com::centreon::broker::io::protocols::load();
     com::centreon::broker::io::events::load();
   }

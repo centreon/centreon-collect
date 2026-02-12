@@ -1027,7 +1027,7 @@ def ctn_broker_config_remove_item(name, key):
     cc.pop(key)
 
 
-def ctn_broker_config_add_lua_output(name, output, luafile):
+def ctn_broker_config_add_lua_output(name, output, luafile, params = {}):
     """
     Add a lua output to the broker configuration.
 
@@ -1042,11 +1042,16 @@ def ctn_broker_config_add_lua_output(name, output, luafile):
     """
     conf = current_configs[name]
     output_dict = conf["centreonBroker"]["output"]
-    output_dict.append({
+    lua_conf_content ={
         "name": output,
         "path": luafile,
         "type": "lua"
-    })
+    }
+
+    if len(params) > 0:
+        lua_conf_content["params"] = params
+
+    output_dict.append(lua_conf_content)
 
 
 def ctn_broker_config_output_set(name, output, key, value):
@@ -1487,16 +1492,22 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
     | Should Be True | ${result} |
     """
     limit = time.time() + timeout
+    to_search = ""
     while time.time() < limit:
         res = getoutput(
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        if "rrdtool: not found" in res:
+            logger.console("rrdtool not installed. Please install it.")
+            return False
+        logger.console(f"rrdtool info output:\n{res}")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
-        line_search = re.compile(
-            f"{escaped_key}\s*=\s*{value}")
+        to_search = rf"{escaped_key}\s*=\s*{value}"
+        line_search = re.compile(to_search)
         for line in res.splitlines():
             if (line_search.match(line)):
                 return True
         time.sleep(5)
+    logger.console(f"Failed to find: {to_search} in rrd info for metric {metric_id}")
     return False
 
 

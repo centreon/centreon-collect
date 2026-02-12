@@ -1925,7 +1925,6 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
             retval = int(m.group(1))
         else:
             raise Exception(f"Impossible to get the service id from '{good}'")
-            m = 0
         f.write(svc)
     return retval
 

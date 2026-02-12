@@ -74,8 +74,9 @@ class UnifiedSqlRebuild2Test : public ::testing::Test {
     _logger = log_v2::instance().get(log_v2::SQL);
     io::data::broker_id = 0;
     try {
-      config::applier::init(com::centreon::common::BROKER, "", 0, "broker_test",
-                            0);
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "broker_test", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -106,11 +107,9 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   (*r->mut_obj().mutable_metric_to_index_id())[5] = 1;
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(r);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
@@ -155,11 +154,9 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_DATA) {
   }
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
-  bbdo::stream stm(true);
+  bbdo::basic_stream stm(true);
   stm.set_substream(memory_stream);
   stm.set_coarse(false);
-  stm.set_negotiate(false);
-  stm.negotiate(bbdo::stream::negotiate_first);
   stm.write(r);
   const std::vector<char>& mem1 = memory_stream->get_memory();
 

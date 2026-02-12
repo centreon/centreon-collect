@@ -78,13 +78,10 @@ BEUTAG1
     Ctn Broker Config Log    central    sql    debug
     Ctn Clear Retention
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
@@ -110,19 +107,17 @@ BEUTAG2
     Ctn Broker Config Log    central    sql    error
     Ctn Clear Retention
     Ctn Start Broker
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
 
     # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${svc}    Ctn Create Service    ${0}    1    1
     Ctn Add Tags To Services    ${0}    group_tags    4    [${svc}]
 
     Ctn Stop Engine
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Reload Broker
 
@@ -663,25 +658,20 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
-    Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Log    module0    neb    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Sleep    1s
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
     Ctn Start Broker
 
-    # Let's wait for the external command check start
-    ${content}    Create List    check_for_external_commands()
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 1 should not have hostgroup tags 2
 
-    ${content}    Create List    unified_sql:_check_queues
+    ${content}    Create List    unified_sql: queues emptied
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
@@ -695,7 +685,7 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
 
     # wait for commits
     ${start}    Get Current Date
-    ${content}    Create List    unified_sql:_check_queues
+    ${content}    Create List    unified_sql: queues emptied
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message unified_sql:_check_queues should be available.
 
@@ -779,7 +769,6 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling processing tag should be available.
 
-    
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     Check Row Count     SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_time_out=30s    retry_pause=2s

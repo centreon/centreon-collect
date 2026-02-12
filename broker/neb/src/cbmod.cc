@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/broker/neb/cbmod.hh"
+#include "broker/core/config/applier/cbmod_state.hh"
 #include "broker/core/config/applier/init.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -39,6 +39,10 @@ class cbmodimpl {
 
   const multiplexing::publisher& publisher() const { return _publisher; }
   multiplexing::publisher& mut_publisher() { return _publisher; }
+  config::applier::cbmod_state& state() const {
+    return static_cast<config::applier::cbmod_state&>(
+        config::applier::state::instance());
+  }
 };
 
 static bool time_is_undefined(uint64_t t) {
@@ -63,11 +67,11 @@ cbmod::cbmod(const std::string& config_file,
   /* This is a little hack to avoid to replace the log file set by
    * centengine */
   s.mut_log_conf().allow_only_atomic_changes(true);
-  com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               engine_conf_version, s);
+  com::centreon::broker::config::applier::init<
+      com::centreon::broker::config::applier::cbmod_state>(engine_conf_version,
+                                                           s);
 
-  auto& broker_state =
-      com::centreon::broker::config::applier::state::instance();
+  auto& cbmod_state = _impl->state();
 
   try {
     log_v2::instance().apply(s.log_conf());
@@ -75,11 +79,11 @@ cbmod::cbmod(const std::string& config_file,
     log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
   }
 
-  broker_state.apply(s);
-  broker_state.set_proto_conf(proto_conf);
+  cbmod_state.apply(s);
+  cbmod_state.set_proto_conf(proto_conf);
 
   /* Once the configuration is applied, we can know if we use protobuf or not */
-  _use_protobuf = broker_state.get_bbdo_version().major_v > 2;
+  _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
 
   _centralized_conf = !proto_conf.empty() && _use_protobuf;
 }
@@ -94,14 +98,15 @@ cbmod::cbmod(const std::filesystem::path& proto_conf)
   com::centreon::broker::config::state s;
   s.poller_id(1);
   s.poller_name("test");
-  com::centreon::broker::config::applier::init(com::centreon::common::ENGINE,
-                                               "", s);
-  _use_protobuf =
-      config::applier::state::instance().get_bbdo_version().major_v > 2;
+  com::centreon::broker::config::applier::init<
+      com::centreon::broker::config::applier::cbmod_state>("", s);
 
-  com::centreon::broker::config::applier::state::instance().apply(s, false);
-  com::centreon::broker::config::applier::state::instance().set_proto_conf(
-      proto_conf);
+  auto& cbmod_state = _impl->state();
+
+  _use_protobuf = cbmod_state.get_bbdo_version().major_v > 2;
+
+  cbmod_state.apply(s, false);
+  cbmod_state.set_proto_conf(proto_conf);
 }
 
 cbmod::~cbmod() noexcept {
@@ -115,11 +120,11 @@ cbmod::~cbmod() noexcept {
 }
 
 uint64_t cbmod::poller_id() const {
-  return config::applier::state::instance().poller_id();
+  return _impl->state().poller_id();
 }
 
 const std::string& cbmod::poller_name() const {
-  return config::applier::state::instance().poller_name();
+  return _impl->state().poller_name();
 }
 
 void cbmod::write(const std::shared_ptr<io::data>& msg) {
@@ -128,7 +133,7 @@ void cbmod::write(const std::shared_ptr<io::data>& msg) {
 }
 
 const bbdo::bbdo_version cbmod::bbdo_version() const {
-  return config::applier::state::instance().get_bbdo_version();
+  return _impl->state().get_bbdo_version();
 }
 
 /**
@@ -391,18 +396,16 @@ void cbmod::remove_downtime(uint64_t downtime_id) {
  * @brief When centengine is reloaded, update the cbmod.
  */
 void cbmod::reload() {
-  if (com::centreon::broker::config::applier::state::instance()
-          .get_bbdo_version()
-          .major_v > 2) {
+  if (_impl->state().get_bbdo_version().major_v > 2) {
     auto ic = std::make_shared<neb::pb_instance_configuration>();
     auto& obj = ic->mut_obj();
     obj.set_loaded(true);
-    obj.set_poller_id(config::applier::state::instance().poller_id());
+    obj.set_poller_id(_impl->state().poller_id());
     write(ic);
   } else {
     auto ic = std::make_shared<neb::instance_configuration>();
     ic->loaded = true;
-    ic->poller_id = config::applier::state::instance().poller_id();
+    ic->poller_id = _impl->state().poller_id();
     write(ic);
   }
 }
@@ -413,13 +416,13 @@ void cbmod::reload() {
  * @return The diff state.
  */
 std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
-  auto retval = config::applier::state::instance().diff_state();
+  auto retval = _impl->state().diff_state();
   return retval;
 }
 
 void cbmod::set_diff_state_applied(const std::string& config_version) {
-  config::applier::state::instance().set_engine_conf(config_version);
-  config::applier::state::instance().set_diff_state_applied(true);
+  _impl->state().set_engine_conf(config_version);
+  _impl->state().set_diff_state_applied(true);
 }
 
 /**

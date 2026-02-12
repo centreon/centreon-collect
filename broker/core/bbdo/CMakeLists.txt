@@ -1,5 +1,5 @@
 #
-# Copyright 2024-2025 Centreon
+# Copyright 2024-2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -18,18 +18,42 @@
 
 include_directories(${CMAKE_BINARY_DIR}/bbdo)
 
-add_library(bbdo STATIC acceptor.cc connector.cc factory.cc internal.cc
-                        stream.cc)
+add_library(broker_bbdo STATIC acceptor.cc connector.cc factory.cc internal.cc
+  basic_stream.cc
+  broker_stream.cc
+  stream.cc)
 
-target_link_libraries(bbdo PRIVATE protobuf::libprotobuf engine_conf)
+target_compile_definitions(broker_bbdo PRIVATE BROKER_COMPILATION)
+
+target_link_libraries(broker_bbdo PRIVATE protobuf::libprotobuf engine_conf)
 add_dependencies(
-  bbdo
+  broker_bbdo
   pb_bbdo_lib
   pb_extcmd_lib
   process_stat
   pb_open_telemetry_lib
   pb_neb_lib
   engine_conf)
-target_precompile_headers(bbdo PRIVATE precomp_inc/precomp.hh)
+target_precompile_headers(broker_bbdo PRIVATE precomp_inc/precomp.hh)
 
-set_target_properties(bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
+set_target_properties(broker_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(cbmod_bbdo STATIC acceptor.cc connector.cc factory.cc internal.cc
+  basic_stream.cc
+  cbmod_stream.cc
+  stream.cc)
+
+target_compile_definitions(cbmod_bbdo PRIVATE CBMOD_COMPILATION)
+
+target_link_libraries(cbmod_bbdo PRIVATE engine_conf)
+add_dependencies(
+  cbmod_bbdo
+  pb_bbdo_lib
+  pb_extcmd_lib
+  process_stat
+  pb_open_telemetry_lib
+  pb_neb_lib
+  engine_conf)
+target_precompile_headers(cbmod_bbdo PRIVATE precomp_inc/precomp.hh)
+
+set_target_properties(cbmod_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)

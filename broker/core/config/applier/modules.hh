@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_MODULES_HH
 #define CCB_CONFIG_APPLIER_MODULES_HH
 
+#include <spdlog/logger.h>
 #include "com/centreon/broker/modules/handle.hh"
 
 using handle = com::centreon::broker::modules::handle;

@@ -632,7 +632,7 @@ BECSSBQ1
     ${result}    Ctn In Bbdo2
     Should Not Be True    ${result}    We should be in BBDO3 in this test.
 
-    ${content}    Create List    stream got corrupted compressed data, skipping next byte    processing pb service event
+    ${content}    Create List    stream got corrupted compressed data, skipping next byte    unified_sql: processing pb service
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Broker should raise an error about the bad queue file and the process service events
     ${start}    Get Current Date

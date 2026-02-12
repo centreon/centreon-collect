@@ -46,10 +46,11 @@ namespace asio = boost::asio;
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
-std::atomic<config::applier::applier_state> config::applier::mode{not_started};
+namespace com::centreon::broker::config::applier {
+
+std::atomic<applier_state> mode{not_started};
 
 /**
  * @brief Load necessary structures. It initializes exactly the same structures
@@ -63,11 +64,11 @@ std::atomic<config::applier::applier_state> config::applier::mode{not_started};
  * @param event_queues_total_size The total size in bytes of the event queues.
  * It is used to avoid a full disk when writing events to disk.
  */
-void config::applier::init(const common::PeerType peer_type,
-                           const std::string& engine_conf_version,
-                           size_t n_thread,
-                           const std::string& /* name */,
-                           size_t event_queues_total_size) {
+template <typename State>
+void init(const std::string& engine_conf_version,
+          size_t n_thread,
+          const std::string& /* name */,
+          size_t event_queues_total_size) {
   /* Load singletons.
    * Why so many?
    * The stats::center is now embedded by each user. We could avoid the
@@ -80,48 +81,52 @@ void config::applier::init(const common::PeerType peer_type,
    * used, we must keep the singleton.
    */
   com::centreon::common::pool::set_pool_size(n_thread);
-  config::applier::state::load(peer_type, engine_conf_version);
+  state::load<State>(engine_conf_version);
   mysql_manager::load();
   file::disk_accessor::load(event_queues_total_size);
   io::protocols::load();
   io::events::load();
   multiplexing::engine::load();
-  config::applier::endpoint::load();
+  endpoint::load();
   mode = initialized;
 }
 
 /**
  *  Unload necessary structures.
  */
-void config::applier::deinit() {
+void deinit() {
   mode = finished;
   auto logger = log_v2::instance().get(log_v2::CORE);
   logger->info("unloading applier::endpoint");
-  config::applier::endpoint::unload();
+  endpoint::unload();
   {
     auto eng = multiplexing::engine::instance_ptr();
     if (eng) {
       multiplexing::engine::unload();
     }
   }
-  config::applier::state::unload();
+  state::unload();
   io::events::unload();
   io::protocols::unload();
   mysql_manager::unload();
   file::disk_accessor::unload();
 }
 
-/**
- * @brief Load necessary structures.
- *
- * @param peer_type The type of peer this broker is.
- * @param engine_conf_version The version of the engine configuration or "" if
- * not applicable.
- * @param conf The configuration used to initialize the all.
- */
-void config::applier::init(const common::PeerType peer_type,
-                           const std::string& engine_conf_version,
-                           const config::state& conf) {
-  init(peer_type, engine_conf_version, conf.pool_size(), conf.broker_name(),
-       conf.event_queues_total_size());
-}
+// Explicit instanciations of templates
+#if defined BROKER_COMPILATION
+#include "broker/core/config/applier/broker_state.hh"
+
+template void init<broker_state>(const std::string&,
+                                 size_t,
+                                 const std::string&,
+                                 size_t);
+#elif defined CBMOD_COMPILATION
+#include "broker/core/config/applier/cbmod_state.hh"
+
+template void init<cbmod_state>(const std::string&,
+                                size_t,
+                                const std::string&,
+                                size_t);
+#endif
+
+}  // namespace com::centreon::broker::config::applier

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012, 2021-2025 Centreon
+ * Copyright 2011-2012, 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,10 @@
 
 #include <absl/container/btree_map.h>
 #include <boost/asio/steady_timer.hpp>
-#include "absl/synchronization/mutex.h"
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/file/directory_watcher.hh"
-#include "com/centreon/broker/stats/center.hh"
 #include "common.pb.h"
 #include "common/engine_conf/state_helper.hh"
 
@@ -44,63 +42,15 @@ class state {
     uint32_t sql_slowest_queries_count = false;
   };
 
-  struct peer {
-    uint64_t poller_id;
-    std::string poller_name;
-    std::string broker_name;
-    time_t connected_since;
-    /* Is it a broker, an engine, a map or an unknown peer? */
-    common::PeerType peer_type;
-    /* Does the peer support extended negotiation? */
-    bool extended_negotiation;
-    /* Does this peer need an update concerning the engine configuration? */
-    std::string available_conf;
-    /* The current Engine configuration known by this poller. Only available
-     * for an Engine peer. */
-    std::string engine_conf;
-    /* The available_conf_sent flag is set to true when the available
-     * configuration has been sent to the Engine peer. Otherwise, it is false.
-     */
-    bool available_conf_sent;
-    /* The conf_acknowledged flag is set to false when a new configuration
-     * concerning this Engine peer must be sent to it. Otherwise, it is true. */
-    bool conf_acknowledged;
-  };
-
  private:
   const common::PeerType _peer_type;
-  std::string _engine_conf;
   std::string _cache_dir;
-  std::shared_ptr<spdlog::logger> _logger;
   uint32_t _poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
   std::string _broker_name;
   size_t _pool_size;
-  std::filesystem::path _proto_conf;
-  std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
-  mutable absl::Mutex _lck_set_m;
-  std::unordered_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
-
-  /* Currently, this is the poller configurations known by this instance of
-   * Broker. It is updated during neb::instance and
-   * bbdo::pb_engine_configuration messages. And it is used in unified_sql
-   * stream when the neb::pb_instance_configuration is handled. */
-  absl::flat_hash_map<uint64_t, std::string> _engine_configuration
-      ABSL_GUARDED_BY(_connected_peers_m);
-
-  /* In a Broker configuration, this object contains the configuration cache
-   * directory used by php. We can find there all the pollers configurations. */
-  std::filesystem::path _cache_config_dir;
-  /* This object is used to watch the _cache_config_dir. */
-  std::unique_ptr<file::directory_watcher> _cache_config_dir_watcher;
-
-  /* In a Broker configuration, this object contains the pollers configurations
-   * known by the Broker. These directories are copies from the
-   * _cache_config_dir and are copied once Broker has written them in the
-   * storage database. */
-  std::filesystem::path _pollers_config_dir;
 
   /* This is the Broker's global cache. */
   com::centreon::broker::cache::broker_cache_v2 _global_cache;
@@ -108,40 +58,34 @@ class state {
   modules _modules;
 
   std::shared_ptr<com::centreon::broker::stats::center> _center;
-  mutable absl::Mutex _diff_state_m;
-  std::unique_ptr<com::centreon::engine::configuration::DiffState> _diff_state;
-  std::atomic_bool _diff_state_applied;
 
   static stats _stats_conf;
 
-  /* This map is indexed by the tuple {poller_id, poller_name, broker_name}. */
-  absl::btree_map<std::tuple<uint64_t, std::string, std::string>, peer>
-      _connected_peers ABSL_GUARDED_BY(_connected_peers_m);
-  mutable absl::Mutex _connected_peers_m;
-
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
   state(common::PeerType peer_type,
-        const std::string& engine_conf_version,
         const std::shared_ptr<spdlog::logger>& logger);
-  ~state() noexcept;
-  uint32_t _get_lck_file_if_exists(uint32_t poller_id) noexcept;
-  void _watch_engine_conf(std::unordered_set<uint32_t>* poller_ids);
-  void _start_watch_engine_conf_timer();
-  void _check_last_engine_conf() ABSL_LOCKS_EXCLUDED(_lck_set_m);
-  void _prepare_diff_for_poller(
-      uint64_t poller_id,
-      std::unique_ptr<engine::configuration::State>&& state)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
+  virtual ~state() = default;
 
  public:
   static state& instance();
-  static void load(common::PeerType peer_type,
-                   const std::string& engine_conf_version);
+  template <typename State>
+  static void load(const std::string& engine_conf_version);
   static void unload();
   static bool loaded();
 
   state(const state&) = delete;
   state& operator=(const state&) = delete;
-  void apply(const config::state& s, bool run_mux = true);
+  virtual void apply(const config::state& s, bool run_mux = true);
+  virtual void add_peer(uint64_t poller_id,
+                        const std::string& poller_name,
+                        const std::string& broker_name,
+                        common::PeerType peer_type,
+                        bool extended_negotiation,
+                        const std::string& engine_conf) = 0;
+  virtual void remove_peer(uint64_t poller_id,
+                           const std::string& poller_name,
+                           const std::string& broker_name) = 0;
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
@@ -149,64 +93,19 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;
-  const std::filesystem::path& cache_config_dir() const noexcept;
-  void set_cache_config_dir(const std::filesystem::path& engine_conf_dir);
-  const std::filesystem::path& pollers_config_dir() const noexcept;
-  void set_pollers_config_dir(const std::filesystem::path& pollers_conf_dir);
   modules& get_modules();
-  bool broker_peer_supports_extended_negotiation() const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void add_peer(uint64_t poller_id,
-                const std::string& poller_name,
-                const std::string& broker_name,
-                common::PeerType peer_type,
-                bool extended_negotiation,
-                const std::string& engine_conf)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void remove_peer(uint64_t poller_id,
-                   const std::string& poller_name,
-                   const std::string& broker_name)
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  bool has_connection_from_poller(uint64_t poller_id) const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   static stats& mut_stats_conf();
   static const stats& stats_conf();
-  std::vector<peer> connected_peers() const
-      ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   common::PeerType peer_type() const;
-  std::string get_engine_conf_from_cache(uint64_t poller_id);
-  void set_proto_conf(const std::filesystem::path& proto_conf);
-  const std::filesystem::path& proto_conf() const;
   std::shared_ptr<com::centreon::broker::stats::center> center() const;
-  bool engine_peer_needs_update(uint64_t poller_id) const;
-  // void set_engine_peer_updated(uint64_t poller_id);
-  void acknowledge_engine_peer(uint64_t poller_id, bool ack);
-  void set_diff_state(const std::shared_ptr<io::data>& diff);
-  std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
-  void set_diff_state_applied(bool done);
 
-  /**
-   * @brief Check if the diff state has been applied. This method is called from
-   * Engine. It must return true if the diff state has been applied but only
-   * once.
-   *
-   * @return a boolean.
-   */
-  bool diff_state_applied() {
-    bool expected = true;
-    return _diff_state_applied.compare_exchange_strong(expected, false);
-  }
-
-  bool all_engine_peers_acknowledged() const;
   void set_engine_conf(const std::string& engine_conf);
   const std::string& engine_conf() const;
-  void set_poller_engine_conf(uint32_t poller_id,
-                              const std::string& poller_name,
-                              const std::string& broker_name,
-
-                              const std::string& engine_conf);
-  void set_available_conf_sent_to_engine_peer(uint32_t poller_id);
+  virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
+  virtual bool supports_centralized_conf() const { return false; }
+  void initialize_cache(const std::shared_ptr<spdlog::logger>& logger);
 };
+
 }  // namespace com::centreon::broker::config::applier
 
 #endif  // !CCB_CONFIG_APPLIER_STATE_HH
