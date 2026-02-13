@@ -412,12 +412,17 @@ def ctn_start_mysql():
             getoutput("systemctl start mysql")
             logger.console("Mariadb started with systemd")
         elif os.path.exists("/usr/sbin/service"):
-            logger.console("Starting Mariadb with service")
-            err = getoutput("service mysql start")
-            if err == "mysql: unrecognized service":
-                logger.console("Trying mariadb service name")
+            if os.path.exists("/usr/libexec/mysqldtoto"):
+                logger.console("Starting Mysql with service")
+                getoutput("service mysql start")
+                logger.console("Mysql started with service")
+            elif os.path.exists("/usr/sbin/mariadbd"):
+                logger.console("Starting Mariadb with service")
                 getoutput("service mariadb start")
-            logger.console("Mariadb started with service")
+                logger.console("Mariadb started with service")
+            else:
+                logger.console("Cannot detect which database is used, trying to start mariadb with service")
+                getoutput("service mariadb start")
         else:
             logger.console("Unable to start the database")
     else:
@@ -438,22 +443,39 @@ def ctn_start_mysql():
             logger.console("Mariadb directly started")
 
 
+def is_mariadb_running():
+    for proc in psutil.process_iter():
+        if ('mariadbd' in proc.name()):
+            return True
+    return False
+
+def is_mysqld_running():
+    for proc in psutil.process_iter():
+        if ('mysqldtoto' in proc.name()):
+            return True
+    return False
+
 def ctn_stop_mysql():
+    logger.console("Stopping Mariadb/Mysql")
     if not ctn_run_env():
+        logger.console("Stopping Mariadb/Mysql with service or systemd")
         if os.path.exists("/usr/bin/systemctl"):
             logger.console("Stopping Mariadb with systemd")
             getoutput("systemctl stop mysql")
             logger.console("Mariadb stopped with systemd")
         elif os.path.exists("/usr/sbin/service"):
             logger.console("Stopping Mariadb with service")
-            err = getoutput("service mysql stop")
-            if err == "mysql: unrecognized service":
-                logger.console("Trying mariadb service name")
+            # Is it mariadb or mysql ?
+            if is_mysqld_running():
+                getoutput("service mysql stop")
+                logger.console("Mysql stopped with service")
+            elif is_mariadb_running():
                 getoutput("service mariadb stop")
-            logger.console("Mariadb stopped with service")
+                logger.console("Mariadb stopped with service")
         else:
             logger.console("Unable to stop the database")
     else:
+        logger.console("Stopping Mariadb/Mysql directly")
         if os.path.exists("/usr/libexec/mysqldtoto"):
             logger.console("Stopping directly mysqld")
             for proc in psutil.process_iter():

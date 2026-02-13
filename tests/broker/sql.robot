@@ -165,6 +165,7 @@ BDBM1
         Ctn Config Broker    rrd
         Ctn Config Broker    module
         Ctn Config Engine    ${1}
+	Ctn Broker Config Log    central    sql    debug
         ${start}    Ctn Get Round Current Date
         Ctn Stop Mysql
         Ctn Start Broker

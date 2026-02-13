@@ -10,7 +10,7 @@ Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
-EBSNU1
+BESNU1
     [Documentation]    New hosts with notes_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
@@ -42,7 +42,7 @@ EBSNU1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSAU2
+BESAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}
@@ -74,7 +74,7 @@ EBSAU2
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-EBSN3
+BESN3
     [Documentation]    New hosts with notes with more than 500 characters
     [Tags]    broker    engine    hosts    protobuf
     Ctn Config Engine    ${1}    ${50}    ${20}

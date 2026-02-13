@@ -3223,3 +3223,67 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
+
+def ctn_get_host_ids(port: int, timeout=TIMEOUT):
+    """
+    Get the list of host ids from the Broker.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetHostIds(empty_pb2.Empty())
+                retval = [id for id in res.ids]
+                return retval
+            except:
+                logger.console("gRPC server not ready")
+
+def ctn_get_host_poller_id(port: int, host_id: int, timeout=TIMEOUT):
+    """
+    Get the poller ID of a host from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        host_id: The host id to get the poller id for.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = host_id
+            try:
+                res = stub.GetHost(ref)
+                return res.instance_id
+            except:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+
+def ctn_get_host_name(port: int, host_id: int, timeout=TIMEOUT):
+    """
+    Get the name of a host from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        host_id: The host id to get the name for.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = host_id
+            try:
+                res = stub.GetHost(ref)
+                return res.name
+            except:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
