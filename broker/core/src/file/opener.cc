@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/file/opener.hh"
 
+#include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"

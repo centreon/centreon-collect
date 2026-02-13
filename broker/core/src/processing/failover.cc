@@ -158,6 +158,27 @@ void failover::_run() {
     return;
   }
 
+  unsigned error_retry_delay = 0;
+
+  auto increase_retry_delay_and_wait = [&]() {
+    // in order to avoid a write infinite loop, we increase delay between two
+    // failures
+    if (!error_retry_delay) {
+      error_retry_delay = 1;
+    } else {
+      error_retry_delay *= 2;
+    }
+    if (error_retry_delay > _endpoint->max_retry_delay()) {
+      error_retry_delay = _endpoint->max_retry_delay();
+    }
+    SPDLOG_LOGGER_ERROR(
+        _logger, " {} Failed to send event to stream, we wait {s} before retry",
+        _name, error_retry_delay);
+    for (ssize_t i = 0; !should_exit() && i < error_retry_delay * 10; i++) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  };
+
   auto on_exception_handler = [&]() {
     if (_stream) {
       int32_t ack_events;
@@ -173,6 +194,7 @@ void failover::_run() {
     }
     set_state("connecting");
     if (!should_exit()) {
+      increase_retry_delay_and_wait();
       _launch_failover();
       _initialized = true;
     }
@@ -355,8 +377,16 @@ void failover::_run() {
             int we(0);
 
             try {
-              std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
-              we = _stream->write(d);
+              {
+                std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
+                we = _stream->write(d);
+              }
+              if (we < 0) {  // stream write failure
+                increase_retry_delay_and_wait();
+              } else {
+                // no exception, no error => reset error_retry_delay
+                error_retry_delay = 0;
+              }
             } catch (exceptions::shutdown const& e) {
               SPDLOG_LOGGER_DEBUG(
                   _logger,
@@ -625,7 +655,8 @@ bool failover::should_exit() const {
 }
 
 bool failover::wait_for_all_events_written(unsigned ms_timeout) {
-  _logger->info("processing::failover::wait_for_all_events_written");
+  SPDLOG_LOGGER_INFO(
+      _logger, "{} processing::failover::wait_for_all_events_written", _name);
   std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
   if (_stream) {
     return _stream->wait_for_all_events_written(ms_timeout);
