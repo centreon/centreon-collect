@@ -323,7 +323,7 @@ function Build-InstallerArgs {
     if ($LogLevel) { $args += "/LOGLEVEL=$LogLevel" }
     if ($MaxFileSize) { $args += "/MAXFILESIZE=$MaxFileSize" }
     if ($MaxNumber) { $args += "/MAXNUMBER=$MaxNumber" }
-    if ($CustomCheck) { $args += "/CUSTOMCHECK=$CustomCheck" }
+    if ($CustomCheck) { $args += "/CUSTOMCHECKFILE=$CustomCheck" }
     if ($PluginSrc) { $args += "/PLUGINSRC=$PluginSrc" }
     
     return $args
