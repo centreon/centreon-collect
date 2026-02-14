@@ -108,6 +108,7 @@ class state {
   virtual bool has_connection_from_poller(uint64_t poller_id) const = 0;
   virtual bool supports_centralized_conf() const { return false; }
   void initialize_cache(const std::shared_ptr<spdlog::logger>& logger);
+  void clear_cache(const std::shared_ptr<spdlog::logger>& logger);
 };
 
 }  // namespace com::centreon::broker::config::applier

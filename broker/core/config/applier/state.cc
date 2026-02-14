@@ -175,6 +175,16 @@ void state::initialize_cache(const std::shared_ptr<spdlog::logger>& logger) {
 }
 
 /**
+ * @brief Clear the cache. The cache is totally cleared and reinitialized.
+ * This method is used in unit tests.
+ *
+ * @param logger
+ */
+void state::clear_cache(const std::shared_ptr<spdlog::logger>& logger) {
+  _global_cache = std::make_unique<cache::broker_cache>(logger);
+}
+
+/**
  *  Get applied cache directory.
  *
  *  @return Cache directory.
