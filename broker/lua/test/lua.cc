@@ -33,6 +33,7 @@
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/message_helper.hh"
 #include "common/log_v2/log_v2.hh"
 #include "state.pb.h"
 
@@ -54,13 +55,14 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
+    std::filesystem::remove(".cache");
     _logger = log_v2::instance().get(log_v2::LUA);
 
     try {
       config::applier::init<
           com::centreon::broker::config::applier::broker_state>(
           "", 0, "test_broker", 0);
-      config::applier::state::instance().initialize_cache(_logger);
+      config::applier::state::instance().clear_cache(_logger);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -85,10 +87,6 @@ class LuaTest : public ::testing::Test {
     while (std::getline(infile, line))
       oss << line << '\n';
     return oss.str();
-  }
-
-  void RemoveFile(const std::string& filename) {
-    std::remove(filename.c_str());
   }
 };
 
@@ -127,7 +125,7 @@ TEST_F(LuaTest, FaultyScript) {
                "local a = { 1, 2, 3 }\n"
                "local b = 18 / a[4]");
   ASSERT_THROW(new luabinding(filename, conf), msg_fmt);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a lua script that does not contain an init() function is loaded
@@ -137,7 +135,7 @@ TEST_F(LuaTest, WithoutInit) {
   std::string filename("/tmp/without_init.lua");
   CreateScript(filename, "local a = { 1, 2, 3 }\n");
   ASSERT_THROW(new luabinding(filename, conf), msg_fmt);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a lua script that does not contain a filter() function is loaded
@@ -153,7 +151,7 @@ TEST_F(LuaTest, WithoutFilter) {
                "end");
   auto bb{std::make_unique<luabinding>(filename, conf)};
   ASSERT_FALSE(bb->has_filter());
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a json parameters file exists but the lua script is incomplete
@@ -167,7 +165,7 @@ TEST_F(LuaTest, IncompleteScript) {
 // Then this event is translated into a Lua table and sent to the lua write()
 // function.
 TEST_F(LuaTest, SimpleScript) {
-  RemoveFile("/tmp/test.log");
+  std::filesystem::remove("/tmp/test.log");
   std::map<std::string, misc::variant> conf;
   conf.insert({"address", "127.0.0.1"});
   conf.insert({"port", 8857});
@@ -221,14 +219,14 @@ TEST_F(LuaTest, SimpleScript) {
   ASSERT_NE(pos3, std::string::npos);
   ASSERT_NE(pos4, std::string::npos);
   ASSERT_NE(pos5, std::string::npos);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a script is correctly loaded and a neb event has to be sent
 // Then this event is translated into a Lua table and sent to the lua write()
 // function.
 TEST_F(LuaTest, WriteAcknowledgement) {
-  RemoveFile("/tmp/test.log");
+  std::filesystem::remove("/tmp/test.log");
   std::map<std::string, misc::variant> conf;
   conf.insert({"address", "127.0.0.1"});
   conf.insert({"double", 3.14159265358979323846});
@@ -278,7 +276,7 @@ TEST_F(LuaTest, SocketCreation) {
   luabinding* bind = nullptr;
   ASSERT_NO_THROW(bind = new luabinding(filename, conf));
   delete bind;
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a script is loaded, a new socket is created
@@ -295,7 +293,7 @@ TEST_F(LuaTest, SocketConnectionWithoutArg) {
                "function write(d)\n"
                "end\n\n");
   ASSERT_THROW(new luabinding(filename, conf), std::exception);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a script is loaded, a new socket is created
@@ -312,7 +310,7 @@ TEST_F(LuaTest, SocketConnectionWithNoPort) {
                "function write(d)\n"
                "end\n\n");
   ASSERT_THROW(new luabinding(filename, conf), std::exception);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a script is loaded, a new socket is created
@@ -333,7 +331,7 @@ TEST_F(LuaAsioTest, SocketConnectionOk) {
                "end\n\n");
   std::unique_ptr<luabinding> binding;
   ASSERT_NO_THROW(binding.reset(new luabinding(filename, conf)));
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a script is loaded, a new socket is created
@@ -359,8 +357,8 @@ TEST_F(LuaAsioTest, SocketUnconnectedState) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("State: unconnected"));
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a script is loaded, a new socket is created
@@ -386,8 +384,8 @@ TEST_F(LuaAsioTest, SocketConnectedState) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(std::string::npos, lst.find("State: connected"));
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a script is loaded, a new socket is created
@@ -403,7 +401,7 @@ TEST_F(LuaAsioTest, SocketWrite) {
   ASSERT_NO_THROW(binding.reset(new luabinding(filename, conf)));
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_TRUE(lst.size() > 0);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a script is loaded, a new socket is created
@@ -434,8 +432,8 @@ TEST_F(LuaTest, JsonEncode) {
   ASSERT_NE(result.find("INFO: bb=>12"), std::string::npos);
   ASSERT_NE(result.find("INFO: cc=>table: "), std::string::npos);
   ASSERT_NE(result.find("INFO: dd=>true"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given an empty array,
@@ -456,8 +454,8 @@ TEST_F(LuaTest, EmptyJsonEncode) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("INFO: empty array: []"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a script is loaded, a new socket is created
@@ -489,8 +487,8 @@ TEST_F(LuaTest, JsonEncodeEscape) {
   ASSERT_NE(lst.find("INFO: 4=>27.1"), std::string::npos);
   ASSERT_NE(lst.find("INFO: 5=>table: "), std::string::npos);
   ASSERT_NE(lst.find("INFO: 6=>une tabulation\t..."), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a script is loaded with a lua table containing three keys
@@ -519,8 +517,8 @@ TEST_F(LuaTest, JsonEncodeEvent) {
   ASSERT_NE(result.find("INFO: category=>1"), std::string::npos);
   ASSERT_NE(result.find("INFO: element=>4"), std::string::npos);
   ASSERT_NE(result.find("INFO: type=>65540"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -543,8 +541,8 @@ TEST_F(LuaTest, CacheTest) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host does not exist"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -588,8 +586,8 @@ TEST_F(LuaTest, HostCacheTest) {
             std::string::npos);
   ASSERT_NE(lst.find("check command 1 is echo 'John Doe'"), std::string::npos);
   ASSERT_NE(lst.find("check command 2 is nil"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -627,8 +625,8 @@ TEST_F(LuaTest, HostCacheTestAdaptive) {
 
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("event_handler qwerty"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -667,8 +665,8 @@ TEST_F(LuaTest, HostCacheV2TestAdaptive) {
 
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("event_handler qwerty"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -706,8 +704,8 @@ TEST_F(LuaTest, PbHostCacheTest) {
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon"),
             std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -747,8 +745,8 @@ TEST_F(LuaTest, PbHostCacheTestAdaptive) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("event_handler azerty"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -789,8 +787,8 @@ TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("event_handler azerty"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -825,8 +823,8 @@ TEST_F(LuaTest, ServiceCacheTest) {
       lst.find(
           "service check command is echo Supercalifragilisticexpialidocious"),
       std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -864,8 +862,8 @@ TEST_F(LuaTest, ServiceCacheTestAdaptive) {
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   ASSERT_NE(lst.find("service event handler is abcdef"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -919,8 +917,8 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   ASSERT_NE(lst.find("service tag[1] is 23"), std::string::npos);
   ASSERT_NE(lst.find("service tag[2] is 24"), std::string::npos);
   ASSERT_NE(lst.find("service check command is du -h"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -959,8 +957,8 @@ TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
   ASSERT_NE(lst.find("service event handler is abcdef"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -1011,8 +1009,8 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
   ASSERT_NE(lst.find("service tag[1] is 24"), std::string::npos);
   ASSERT_NE(lst.find("service tag[2] is 25"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -1042,8 +1040,8 @@ TEST_F(LuaTest, PbServiceCacheTest) {
   std::string lst(ReadFile("/tmp/log"));
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -1085,8 +1083,8 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
 
   ASSERT_NE(lst.find("service description is MyDescription"),
             std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -1133,8 +1131,8 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   ASSERT_NE(lst.find("service description is MyDescription"),
             std::string::npos);
   ASSERT_NE(lst.find("check command is free"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for an instance is made
@@ -1175,8 +1173,8 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
 
   ASSERT_NE(lst.find("instance name is MyPoller"), std::string::npos);
   ASSERT_NE(lst.find("instance name pb is MyPollerPB"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a metric mapping is made
@@ -1207,8 +1205,8 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
   ASSERT_NE(std::string::npos, lst.find("mm type is table"));
   ASSERT_NE(std::string::npos, lst.find("metric id is 27"));
   ASSERT_NE(std::string::npos, lst.find("index id is 19"));
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, MetricMappingCacheTestV2) {
@@ -1239,8 +1237,8 @@ TEST_F(LuaTest, MetricMappingCacheTestV2) {
   ASSERT_NE(std::string::npos, lst.find("mm type is userdata"));
   ASSERT_NE(std::string::npos, lst.find("metric id is 27"));
   ASSERT_NE(std::string::npos, lst.find("index id is 19"));
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a host group name is made
@@ -1262,8 +1260,8 @@ TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is nil"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a host group name is made
@@ -1275,6 +1273,7 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 28;
   hg->name = "centreon";
+  hg->poller_id = 14;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(hg);
 
@@ -1290,8 +1289,8 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is centreon"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a host group name is made
@@ -1305,6 +1304,7 @@ TEST_F(LuaTest, HostGroupCacheTestAlias) {
   obj.set_hostgroup_id(28);
   obj.set_name("centreon");
   obj.set_enabled(true);
+  obj.set_poller_id(14);
   obj.set_alias("alias-centreon");
   auto& cache = config::applier::state::instance().cache();
   cache.publish(hg);
@@ -1321,8 +1321,8 @@ TEST_F(LuaTest, HostGroupCacheTestAlias) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is alias-centreon"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for host groups is made
@@ -1345,8 +1345,8 @@ TEST_F(LuaTest, HostGroupCacheTestEmpty) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("host group is []"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for host groups is made
@@ -1358,10 +1358,12 @@ TEST_F(LuaTest, HostGroupCacheTest) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
   hg->name = "centreon1";
+  hg->poller_id = 14;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(hg);
   hg = std::make_shared<neb::host_group>();
   hg->id = 17;
+  hg->poller_id = 14;
   hg->name = "centreon2";
   cache.publish(hg);
   auto hst{std::make_shared<neb::host>()};
@@ -1399,8 +1401,8 @@ TEST_F(LuaTest, HostGroupCacheTest) {
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
   ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"seventeen\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for host groups is made
@@ -1412,11 +1414,13 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
   hg->name = "centreon1";
+  hg->poller_id = 14;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(hg);
   hg = std::make_shared<neb::host_group>();
   hg->id = 17;
   hg->name = "centreon2";
+  hg->poller_id = 14;
   cache.publish(hg);
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(22);
@@ -1453,8 +1457,8 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
   ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"seventeen\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a service group name is made
@@ -1476,8 +1480,8 @@ TEST_F(LuaTest, ServiceGroupCacheTestNameNotAvailable) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("service group is nil"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a service group name is made
@@ -1490,6 +1494,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
   sg->id = 28;
   sg->name = "centreon";
   sg->enabled = true;
+  sg->poller_id = 14;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(sg);
 
@@ -1505,8 +1510,8 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("service group is centreon"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for service groups is made
@@ -1529,8 +1534,8 @@ TEST_F(LuaTest, ServiceGroupCacheTestEmpty) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_TRUE(lst.find("service group is []", std::string::npos));
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for service groups is made
@@ -1542,11 +1547,15 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
   sg->name = "centreon1";
+  sg->poller_id = 14;
+  sg->enabled = true;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(sg);
   sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
+  sg->poller_id = 14;
+  sg->enabled = true;
   cache.publish(sg);
   auto svc = std::make_shared<neb::service>();
   svc->service_id = 17;
@@ -1588,8 +1597,8 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
   ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"dix-sept\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for service groups is made
@@ -1601,11 +1610,15 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
   sg->name = "centreon1";
+  sg->enabled = true;
+  sg->poller_id = 14;
   auto& cache = config::applier::state::instance().cache();
   cache.publish(sg);
   sg = std::make_shared<neb::service_group>();
   sg->id = 17;
   sg->name = "centreon2";
+  sg->enabled = true;
+  sg->poller_id = 14;
   cache.publish(sg);
   auto svc{std::make_shared<neb::pb_service>()};
   svc->mut_obj().set_description("service_description");
@@ -1647,8 +1660,8 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
   ASSERT_NE(std::string::npos, lst.find("\"group_id\":17"));
   ASSERT_NE(std::string::npos, lst.find("\"group_name\":\"dix-sept\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for bvs containing a ba is made
@@ -1684,8 +1697,8 @@ TEST_F(LuaTest, BamCacheTestBvBaRelation) {
   ASSERT_NE(std::string::npos, lst.find("member of bv 18"));
   ASSERT_NE(std::string::npos, lst.find("member of bv 23"));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given a ba id,
@@ -1723,8 +1736,8 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
   ASSERT_NE(std::string::npos,
             lst.find("\"ba_description\":\"ba description\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BamCacheTestBaV2) {
@@ -1762,8 +1775,8 @@ TEST_F(LuaTest, BamCacheTestBaV2) {
   ASSERT_NE(std::string::npos,
             lst.find("\"ba_description\":\"ba description\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given a ba id,
@@ -1787,8 +1800,8 @@ TEST_F(LuaTest, BamCacheTestBaNil) {
 
   ASSERT_NE(std::string::npos, lst.find("member of ba nil"));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given a bv id,
@@ -1824,8 +1837,8 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
   ASSERT_NE(std::string::npos,
             lst.find("\"bv_description\":\"bv description\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BamCacheTestBvV2) {
@@ -1862,8 +1875,8 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
   ASSERT_NE(std::string::npos,
             lst.find("\"bv_description\":\"bv description\""));
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 //  // Given a bv id,
@@ -1885,8 +1898,8 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
 //
 //    ASSERT_TRUE(lst[0].contains("member of bv nil"));
 //
-//    RemoveFile(filename);
-//    RemoveFile("/tmp/log");
+//    std::filesystem::remove(filename);
+//    std::filesystem::remove("/tmp/log");
 //  }
 //
 TEST_F(LuaTest, ParsePerfdata) {
@@ -1956,8 +1969,8 @@ TEST_F(LuaTest, ParsePerfdata) {
   ASSERT_NE(pos18, std::string::npos);
   ASSERT_NE(pos19, std::string::npos);
   ASSERT_NE(pos20, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, ParsePerfdata2) {
@@ -2021,8 +2034,8 @@ TEST_F(LuaTest, ParsePerfdata2) {
   ASSERT_NE(pos14, std::string::npos);
   ASSERT_NE(pos15, std::string::npos);
   ASSERT_NE(pos16, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, ParsePerfdata3) {
@@ -2087,8 +2100,8 @@ TEST_F(LuaTest, ParsePerfdata3) {
   ASSERT_NE(pos14, std::string::npos);
   ASSERT_NE(pos15, std::string::npos);
   ASSERT_NE(pos16, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, ParsePerfdata4) {
@@ -2152,8 +2165,8 @@ TEST_F(LuaTest, ParsePerfdata4) {
   ASSERT_NE(pos14, std::string::npos);
   ASSERT_NE(pos15, std::string::npos);
   ASSERT_NE(pos16, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, ParsePerfdata5) {
@@ -2189,8 +2202,8 @@ TEST_F(LuaTest, ParsePerfdata5) {
   ASSERT_NE(pos2, std::string::npos);
   ASSERT_NE(pos3, std::string::npos);
   ASSERT_NE(pos4, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given a script requiring another one with the same path.
@@ -2221,9 +2234,9 @@ TEST_F(LuaTest, UpdatePath) {
 
   ASSERT_NE(lst.find("foo bar"), std::string::npos);
 
-  RemoveFile(module);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(module);
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, CheckPath) {
@@ -2245,8 +2258,8 @@ TEST_F(LuaTest, CheckPath) {
   ASSERT_NE(lst.find("/tmp/?.lua"), std::string::npos);
   ASSERT_NE(lst.find("/tmp/lib/?.so"), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // Given a string
@@ -2281,8 +2294,8 @@ TEST_F(LuaTest, UrlEncode) {
   ASSERT_NE(result.find("INFO: RES1 GOOD"), std::string::npos);
   ASSERT_NE(result.find("INFO: RES2 GOOD"), std::string::npos);
   ASSERT_NE(result.find("INFO: RES3 GOOD"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, JsonDecodeArray) {
@@ -2305,8 +2318,8 @@ TEST_F(LuaTest, JsonDecodeArray) {
   ASSERT_NE(result.find("dec[1]=2"), std::string::npos);
   ASSERT_NE(result.find("dec[2]=3"), std::string::npos);
   ASSERT_NE(result.find("dec[3]=5"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, JsonDecodeObject) {
@@ -2327,8 +2340,8 @@ TEST_F(LuaTest, JsonDecodeObject) {
 
   ASSERT_NE(result.find("dec.foo=12"), std::string::npos);
   ASSERT_NE(result.find("dec.bar=test"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, JsonDecodeFull) {
@@ -2392,8 +2405,8 @@ TEST_F(LuaTest, JsonDecodeFull) {
   ASSERT_NE(result.find("dec.quiz.maths.q1.question=5 + 7 = ?"),
             std::string::npos);
   ASSERT_NE(result.find("dec.quiz.maths.q2.options[2]=2"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, JsonDecodeError) {
@@ -2427,8 +2440,8 @@ TEST_F(LuaTest, JsonDecodeError) {
                         "line 8, column 1: syntax error while parsing value - "
                         "unexpected '}'; expected '[', '{', or a literal"),
             std::string::npos);
-  RemoveFile(filename);
-  // RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  // std::filesystem::remove("/tmp/log");
 }
 
 // When the user needs information on a file, he can use the stat function
@@ -2456,8 +2469,8 @@ TEST_F(LuaTest, Stat) {
   str = fmt::format("\"uid\":{}", uid);
   ASSERT_NE(result.find(str), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, StatError) {
@@ -2479,8 +2492,8 @@ TEST_F(LuaTest, StatError) {
   ASSERT_NE(result.find("info=nil"), std::string::npos);
   ASSERT_NE(result.find("err=No such file or directory"), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -2516,8 +2529,8 @@ TEST_F(LuaTest, CacheGetNotesUrlTest) {
   ASSERT_NE(lst.find("notes_url=host notes url"), std::string::npos);
   ASSERT_NE(lst.find("action_url=host action url"), std::string::npos);
   ASSERT_NE(lst.find("notes=host notes"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -2554,8 +2567,8 @@ TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
   ASSERT_NE(lst.find("notes_url=host notes url"), std::string::npos);
   ASSERT_NE(lst.find("action_url=host action url"), std::string::npos);
   ASSERT_NE(lst.find("notes=host notes"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a query for a hostname is made
@@ -2591,28 +2604,29 @@ TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
   ASSERT_NE(lst.find("notes_url=svc notes url"), std::string::npos);
   ASSERT_NE(lst.find("action_url=svc action url"), std::string::npos);
   ASSERT_NE(lst.find("notes=svc notes"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, CacheSeverity) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
-  auto svc = std::make_shared<neb::service>();
-  svc->host_id = 1;
-  svc->service_id = 2;
-  svc->notes = "svc notes";
-  svc->notes_url = "svc notes url";
-  svc->action_url = "svc action url";
   auto& cache = config::applier::state::instance().cache();
+  auto severity = std::make_shared<neb::pb_severity>();
+  severity->mut_obj().set_id(2);
+  severity->mut_obj().set_level(3);
+  cache.publish(severity);
+
+  auto svc = std::make_shared<neb::pb_service>();
+  auto& svc_obj = svc->mut_obj();
+  svc_obj.set_host_id(1);
+  svc_obj.set_service_id(2);
+  svc_obj.set_notes("svc notes");
+  svc_obj.set_notes_url("svc notes url");
+  svc_obj.set_action_url("svc action url");
+  svc_obj.set_severity_id(2);
+  svc_obj.set_enabled(true);
   cache.publish(svc);
-  std::shared_ptr<neb::custom_variable> cv =
-      std::make_shared<neb::custom_variable>();
-  cv->name = "CRITICALITY_LEVEL";
-  cv->value = std::to_string(3);
-  cv->host_id = 1;
-  cv->service_id = 2;
-  cache.publish(cv);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2626,8 +2640,8 @@ TEST_F(LuaTest, CacheSeverity) {
   std::string lst(ReadFile("/tmp/log"));
 
   ASSERT_NE(lst.find("severity=3"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BrokerEventIndex) {
@@ -2668,8 +2682,8 @@ TEST_F(LuaTest, BrokerEventIndex) {
   ASSERT_NE(lst.find("check_type = 14"), std::string::npos);
   ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerEventPairs) {
@@ -2702,8 +2716,8 @@ TEST_F(LuaTest, BrokerEventPairs) {
   ASSERT_NE(lst.find("action_url = svc action url"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1"), std::string::npos);
   ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 // When a query for a hostname is made
@@ -2740,13 +2754,18 @@ TEST_F(LuaTest, PbCacheSvcGetNotesUrlTest) {
   ASSERT_NE(lst.find("notes_url=svc notes url"), std::string::npos);
   ASSERT_NE(lst.find("action_url=svc action url"), std::string::npos);
   ASSERT_NE(lst.find("notes=svc notes"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, PbCacheSeverity) {
   std::map<std::string, misc::variant> conf;
   std::string filename("/tmp/cache_test.lua");
+  auto& cache = config::applier::state::instance().cache();
+  auto severity = std::make_shared<neb::pb_severity>();
+  severity->mut_obj().set_id(2);
+  severity->mut_obj().set_level(3);
+  cache.publish(severity);
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -2756,14 +2775,7 @@ TEST_F(LuaTest, PbCacheSeverity) {
   obj.set_action_url("svc action url");
   obj.set_enabled(true);
   obj.set_severity_id(2);
-  auto& cache = config::applier::state::instance().cache();
   cache.publish(svc);
-  auto cv{std::make_shared<neb::custom_variable>()};
-  cv->name = "CRITICALITY_LEVEL";
-  cv->value = std::to_string(3);
-  cv->host_id = 1;
-  cv->service_id = 2;
-  cache.publish(cv);
 
   CreateScript(filename,
                "function init(conf)\n"
@@ -2776,8 +2788,8 @@ TEST_F(LuaTest, PbCacheSeverity) {
   auto binding{std::make_unique<luabinding>(filename, conf)};
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("severity=3"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, PbBrokerEventIndex) {
@@ -2823,8 +2835,8 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
   ASSERT_NE(lst.find("check_type = 14"), std::string::npos);
   ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbBrokerEventPairs) {
@@ -2860,8 +2872,8 @@ TEST_F(LuaTest, PbBrokerEventPairs) {
   ASSERT_NE(lst.find("action_url = svc action url"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1"), std::string::npos);
   ASSERT_NE(lst.find("service_id = 2"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerEventJsonEncode) {
@@ -2926,8 +2938,8 @@ TEST_F(LuaTest, BrokerEventJsonEncode) {
           "\"retain_nonstatus_information\":false, "
           "\"retain_status_information\":false}"),
       std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, TestHostApiV1) {
@@ -2955,8 +2967,8 @@ TEST_F(LuaTest, TestHostApiV1) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = table"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, TestHostApiV2) {
@@ -2984,8 +2996,8 @@ TEST_F(LuaTest, TestHostApiV2) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = userdata"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestHostApiV1) {
@@ -3016,8 +3028,8 @@ TEST_F(LuaTest, PbTestHostApiV1) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = table"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestHostApiV2) {
@@ -3048,8 +3060,8 @@ TEST_F(LuaTest, PbTestHostApiV2) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of hst = userdata"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestCommentApiV1) {
@@ -3073,7 +3085,7 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
   hst->mut_obj().set_persistent(true);
   hst->mut_obj().set_source(com::centreon::broker::Comment_Src_EXTERNAL);
   std::string filename("/tmp/cache_test.lua");
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove("/tmp/event_log");
   CreateScript(filename,
                "broker_api_version=1\n\n"
                "function init(conf)\n"
@@ -3119,8 +3131,8 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
   ASSERT_NE(lst.find("persistent = true"), std::string::npos);
   ASSERT_NE(lst.find("source = 1"), std::string::npos);
   ASSERT_NE(lst.find("conf_version = 5"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestCommentApiV2) {
@@ -3144,7 +3156,7 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
   hst->mut_obj().set_persistent(true);
   hst->mut_obj().set_source(com::centreon::broker::Comment_Src_INTERNAL);
   std::string filename("/tmp/cache_test.lua");
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove("/tmp/event_log");
 
   CreateScript(
       filename,
@@ -3189,8 +3201,8 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
   ASSERT_NE(lst.find("persistent = true"), std::string::npos);
   ASSERT_NE(lst.find("source = 0"), std::string::npos);
   ASSERT_NE(lst.find("conf_version = 5"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, TestSvcApiV2) {
@@ -3222,8 +3234,8 @@ TEST_F(LuaTest, TestSvcApiV2) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = userdata"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, TestSvcApiV1) {
@@ -3255,8 +3267,8 @@ TEST_F(LuaTest, TestSvcApiV1) {
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = table"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerEventCache) {
@@ -3285,8 +3297,8 @@ TEST_F(LuaTest, BrokerEventCache) {
   binding->write(svc);
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("description = foo bar cache"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestSvcApiV2) {
@@ -3321,8 +3333,8 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = userdata"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = userdata"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestSvcApiV1) {
@@ -3357,8 +3369,8 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("type of d = table"), std::string::npos);
   ASSERT_NE(lst.find("type of svc = table"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestCustomVariableApiV1) {
@@ -3379,7 +3391,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove("/tmp/event_log");
   CreateScript(filename,
                "broker_api_version=1\n\n"
                "function init(conf)\n"
@@ -3420,8 +3432,8 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   ASSERT_NE(lst.find("enabled = false"), std::string::npos);
   ASSERT_NE(lst.find("password = true"), std::string::npos);
   ASSERT_NE(lst.find("type = 1"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbTestCustomVariableApiV2) {
@@ -3442,7 +3454,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   hst->mut_obj().set_type(
       com::centreon::broker::CustomVariable_VarType_SERVICE);
   std::string filename("/tmp/cache_test.lua");
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove("/tmp/event_log");
 
   CreateScript(filename,
                "broker_api_version=2\n\n"
@@ -3477,74 +3489,8 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   ASSERT_NE(lst.find("enabled = false"), std::string::npos);
   ASSERT_NE(lst.find("password = true"), std::string::npos);
   ASSERT_NE(lst.find("type = 1"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
-}
-
-TEST_F(LuaTest, PbTestCustomVariableNoIntValueNotRecordedInCache) {
-  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
-  auto cv{std::make_shared<neb::pb_custom_variable>()};
-  cv->mut_obj().mutable_header()->set_conf_version(5);
-  cv->mut_obj().set_host_id(1);
-  cv->mut_obj().set_service_id(2);
-  cv->mut_obj().set_modified(true);
-  cv->mut_obj().set_name("CRITICALITY_LEVEL");
-  cv->mut_obj().set_update_time(4);
-  cv->mut_obj().set_value("titi");
-  cv->mut_obj().set_default_value("tata");
-  cv->mut_obj().set_enabled(false);
-  cv->mut_obj().set_password(true);
-  cv->mut_obj().set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
-  std::string filename("/tmp/cache_test.lua");
-
-  CreateScript(filename,
-               "broker_api_version=2\n\n"
-               "function init(conf)\n"
-               "end\n\n"
-               "function write(d)\n"
-               "  return true\n"
-               "end\n");
-  auto& cache = config::applier::state::instance().cache();
-  cache.publish(cv);
-  auto binding{std::make_unique<luabinding>(filename, conf)};
-  binding->write(cv);
-  ASSERT_THROW(cache.severity(1, 2), msg_fmt);
-  RemoveFile(filename);
-}
-
-TEST_F(LuaTest, PbTestCustomVariableIntValueRecordedInCache) {
-  config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
-  modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
-  auto cv{std::make_shared<neb::pb_custom_variable>()};
-  cv->mut_obj().mutable_header()->set_conf_version(5);
-  cv->mut_obj().set_host_id(1);
-  cv->mut_obj().set_service_id(2);
-  cv->mut_obj().set_modified(true);
-  cv->mut_obj().set_name("CRITICALITY_LEVEL");
-  cv->mut_obj().set_update_time(4);
-  cv->mut_obj().set_value("5");
-  cv->mut_obj().set_default_value("tata");
-  cv->mut_obj().set_enabled(false);
-  cv->mut_obj().set_password(true);
-  cv->mut_obj().set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
-  std::string filename("/tmp/cache_test.lua");
-
-  CreateScript(filename,
-               "broker_api_version=2\n\n"
-               "function init(conf)\n"
-               "end\n\n"
-               "function write(d)\n"
-               "  return true\n"
-               "end\n");
-  auto binding{std::make_unique<luabinding>(filename, conf)};
-  auto& cache = config::applier::state::instance().cache();
-  cache.publish(cv);
-  binding->write(cv);
-  ASSERT_EQ(cache.severity(1, 2), 5);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, PbBrokerEventCache) {
@@ -3577,8 +3523,8 @@ TEST_F(LuaTest, PbBrokerEventCache) {
   std::string lst(ReadFile("/tmp/event_log"));
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("service_description = foo bar cache"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 // When the user needs the md5 sum of a string, he can use the md5 function
@@ -3599,8 +3545,8 @@ TEST_F(LuaTest, md5) {
   std::string result(ReadFile("/tmp/log"));
   ASSERT_NE(result.find("ed076287532e86365e841e92bfc50d8c"), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When the user needs the md5 sum of a string, he can use the md5 function
@@ -3621,8 +3567,8 @@ TEST_F(LuaTest, emptyMd5) {
   std::string result(ReadFile("/tmp/log"));
   ASSERT_NE(result.find("d41d8cd98f00b204e9800998ecf8427e"), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BrokerPbServiceStatus) {
@@ -3670,8 +3616,8 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
   ASSERT_NE(lst.find("service_id = 288"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
@@ -3720,8 +3666,8 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   ASSERT_NE(lst.find("service_id = 288"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
@@ -3776,8 +3722,8 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   ASSERT_NE(lst.find("tags => table:"), std::string::npos);
   ASSERT_NE(lst.find("internal_id => 314159265"), std::string::npos);
   ASSERT_NE(lst.find("icon_id => 358979"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
@@ -3832,8 +3778,8 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
       lst.find("\"tags\":[{\"id\":24, \"type\":2}, {\"id\":25, \"type\":2}]",
                pos1),
       std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
@@ -3887,8 +3833,8 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
     s2 = lst.find(",{\"type\":2,\"id\":25}]");
   ASSERT_NE(s1, std::string::npos);
   ASSERT_NE(s2, std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
@@ -3929,8 +3875,8 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
@@ -3970,8 +3916,8 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"description\":\"foo bar\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbHostStatus) {
@@ -4013,8 +3959,8 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
   ASSERT_NE(lst.find("check_type = 0"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
@@ -4057,8 +4003,8 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   ASSERT_NE(lst.find("check_type = 0"), std::string::npos);
   ASSERT_NE(lst.find("host_id = 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check = 123456"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
@@ -4096,8 +4042,8 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   ASSERT_NE(lst.find("check_type => 0"), std::string::npos);
   ASSERT_NE(lst.find("host_id => 1899"), std::string::npos);
   ASSERT_NE(lst.find("last_check => 123459"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
@@ -4131,8 +4077,8 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   ASSERT_NE(lst.find("\"perfdata\":\"perfdata\""), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbHostJsonEncode) {
@@ -4168,8 +4114,8 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerBbdoVersion) {
@@ -4187,8 +4133,8 @@ TEST_F(LuaTest, BrokerBbdoVersion) {
   auto binding{std::make_unique<luabinding>(filename, conf)};
   std::string lst(ReadFile("/tmp/event_log"));
   ASSERT_NE(lst.find("BBDO version: 2.0.0"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
@@ -4222,8 +4168,8 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
@@ -4256,8 +4202,8 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   ASSERT_NE(lst.find("\"state\":0"), std::string::npos);
   ASSERT_NE(lst.find("\"last_check\":123459"), std::string::npos);
   ASSERT_NE(lst.find("\"output\":\"cool\""), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
@@ -4289,8 +4235,8 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
   ASSERT_NE(lst.find("\"max_check_attempts\":5"), std::string::npos);
   ASSERT_NE(lst.find("\"check_command\":\"super command\""), std::string::npos);
   ASSERT_EQ(lst.find("\"check_freshness\":"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
@@ -4325,8 +4271,8 @@ TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   ASSERT_NE(lst.find("\"check_command\":\"super command\"", pos1),
             std::string::npos);
   ASSERT_EQ(lst.find("\"check_freshness\":", pos1), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
@@ -4410,8 +4356,8 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
       continue;
     }
   }
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
@@ -4490,8 +4436,8 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
       continue;
     }
   }
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
@@ -4569,8 +4515,8 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
       continue;
     }
   }
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
@@ -4646,8 +4592,8 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
       continue;
     }
   }
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a pb_downtime event arrives
@@ -4681,8 +4627,8 @@ TEST_F(LuaTest, PbDowntime) {
   ASSERT_NE(lst.find("\"host_id\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":3"), std::string::npos);
   ASSERT_NE(lst.find("\"type\":1"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a pb_downtime event arrives
@@ -4716,8 +4662,8 @@ TEST_F(LuaTest, PbDowntimeV2) {
   ASSERT_NE(lst.find("\"host_id\":2"), std::string::npos);
   ASSERT_NE(lst.find("\"service_id\":3"), std::string::npos);
   ASSERT_NE(lst.find("\"type\":1"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 using pb_remove_graph_message =
@@ -4753,8 +4699,8 @@ TEST_F(LuaTest, PbRemoveGraphMessage) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("\"metric_ids\":[7,11]"), std::string::npos);
   ASSERT_NE(lst.find("\"index_ids\":[2,3,5]"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, PbRemoveGraphMessageV2) {
@@ -4786,8 +4732,8 @@ TEST_F(LuaTest, PbRemoveGraphMessageV2) {
   std::cout << lst << std::endl;
   ASSERT_NE(lst.find("\"metric_ids\":[7,11]"), std::string::npos);
   ASSERT_NE(lst.find("\"index_ids\":[2,3,5]"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
@@ -4828,8 +4774,8 @@ TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
   ASSERT_NE(lst.find("  1 => 2"), std::string::npos);
   ASSERT_NE(lst.find("  2 => 3"), std::string::npos);
   ASSERT_NE(lst.find("  3 => 5"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/event_log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/event_log");
 }
 
 // When a script is loaded, a new socket is created
@@ -4855,8 +4801,8 @@ TEST_F(LuaTest, JsonDecodeNull) {
 
   ASSERT_NE(result.find("INFO: key=>nil"), std::string::npos);
   ASSERT_NE(result.find("INFO: v=>12"), std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, BadLua) {
@@ -4879,7 +4825,7 @@ TEST_F(LuaTest, BadLua) {
   s->output = "Bonjour";
   std::shared_ptr<io::data> svc(s.release());
   ASSERT_EQ(binding->write(svc), 0);
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a lua script that contains a bad filter() function. "Bad" here
@@ -4900,7 +4846,7 @@ TEST_F(LuaTest, WithBadFilter1) {
                "end");
   auto bb{std::make_unique<luabinding>(filename, conf)};
   ASSERT_FALSE(bb->has_filter());
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a lua script that contains a bad filter() function. "Bad" here
@@ -4922,7 +4868,7 @@ TEST_F(LuaTest, WithBadFilter2) {
                "end");
   auto bb{std::make_unique<luabinding>(filename, conf)};
   ASSERT_FALSE(bb->has_filter());
-  RemoveFile(filename);
+  std::filesystem::remove(filename);
 }
 
 // When a host is stored in the cache and an AdaptiveHostStatus is written
@@ -4964,8 +4910,8 @@ TEST_F(LuaTest, AdaptiveHostCacheTest) {
   ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon "
                      "scheduled_downtime_depth 2"),
             std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When an AdaptiveHostStatus is written
@@ -5029,8 +4975,8 @@ TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
   ASSERT_NE(lst.find("{\"_type\":65592, \"category\":1, \"element\":56, "
                      "\"host_id\":3, \"scheduled_downtime_depth\":5}"),
             std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 // When a service is stored in the cache and an AdaptiveServiceStatus is written
@@ -5076,8 +5022,8 @@ TEST_F(LuaTest, AdaptiveServiceCacheTest) {
       lst.find("display_name alias-centreon description centreon-description "
                "check command echo 'John Doe' scheduled_downtime_depth 3"),
       std::string::npos);
-  RemoveFile(filename);
-  //  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  //  std::filesystem::remove("/tmp/log");
 }
 
 // When an AdaptiveHostStatus is written
@@ -5149,8 +5095,8 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
                      "\"host_id\":1, \"service_id\":3, \"type\":0, "
                      "\"internal_id\":0, \"scheduled_downtime_depth\":5}"),
             std::string::npos);
-  RemoveFile(filename);
-  //  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  //  std::filesystem::remove("/tmp/log");
 }
 
 // When broker.base64_encode() is applied on a string, the string is correctly
@@ -5177,8 +5123,8 @@ TEST_F(LuaTest, Base64) {
             std::string::npos);
   ASSERT_NE(result.find("INFO: Decoded: Hello World from Broker!"),
             std::string::npos);
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
 
 TEST_F(LuaTest, GlobalConf) {
@@ -5201,6 +5147,7 @@ TEST_F(LuaTest, GlobalConf) {
 
   auto* hst = state.mutable_hosts()->Add();
   hst->set_host_id(1);
+  hst->set_poller_id(1);
   hst->set_host_name("host1");
   hst->set_address("127.0.0.1");
   hst->set_alias("My host 1");
@@ -5333,6 +5280,6 @@ TEST_F(LuaTest, GlobalConf) {
   pos = result.find("INFO: Severity on service (1, 2): nil\n", pos);
   ASSERT_NE(pos, std::string::npos);
 
-  RemoveFile(filename);
-  RemoveFile("/tmp/log");
+  std::filesystem::remove(filename);
+  std::filesystem::remove("/tmp/log");
 }
