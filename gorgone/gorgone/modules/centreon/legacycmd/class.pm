@@ -669,6 +669,7 @@ sub action_addimporttaskwithparent {
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},
+        no_fork => 1, # wait for the php command completion before sending the nodesync command.
         data => {
             logging => $options{data}->{logging},
             content => [
@@ -691,6 +692,10 @@ sub action_addimporttaskwithparent {
             ]
         }
     });
+    $self->send_internal_action({
+        action => 'CENTREONNODESSYNC',
+        data => {}}
+    );
 
     $self->send_log(
         code => GORGONE_ACTION_FINISH_OK,
