@@ -16,7 +16,7 @@ dnf install -y epel-release
 #we force mysql8.4 install
 dnf install -y wget
 wget https://dev.mysql.com/get/mysql84-community-release-el9-1.noarch.rpm
-# add mysql 8.4 repo 
+# add mysql 8.4 repo
 rpm -ivh mysql84-community-release-el9-1.noarch.rpm
 #disable native mysql package from platform vendor
 yum module -y disable mysql
