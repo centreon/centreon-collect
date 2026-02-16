@@ -105,12 +105,19 @@ runs:
                   }
                 }
 
+                let archSuffix = '';
+                if (fileName.includes('amd64') || fileName.includes('x86_64')) {
+                  archSuffix = '-amd64';
+                } else if (fileName.includes('arm64') || fileName.includes('aarch64')) {
+                  archSuffix = '-arm64';
+                }
+
                 const downloadUrl = new URL('https://download.centreon.com/api/');
                 const downloadParams = {
                   token: process.env.TOKEN_DOWNLOAD_CENTREON_COM,
                   product: product,
                   release: majorVersion,
-                  version: `${majorVersion}.${minorVersion}-${distribSuffix}`,
+                  version: `${majorVersion}.${minorVersion}${distribSuffix}${archSuffix}`,
                   extension: extension,
                   md5: fileHash,
                   size: fileSize,
