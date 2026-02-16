@@ -29,6 +29,10 @@ configuration:
         enable: true
         config_file: config/registernodes-remote.yml
 
+      - name: nodes
+        package: gorgone::modules::centreon::nodes::hooks
+        enable: true
+
       - name: legacycmd
         package: gorgone::modules::centreon::legacycmd::hooks
         enable: true

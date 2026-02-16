@@ -31,7 +31,8 @@ use constant NAME => 'legacycmd';
 use constant EVENTS => [
     { event => 'CENTREONCOMMAND', uri => '/command', method => 'POST' },
     { event => 'LEGACYCMDREADY' },
-    { event => 'ADDIMPORTTASKWITHPARENT' }
+    { event => 'ADDIMPORTTASKWITHPARENT' },
+    { event => 'LEGACYCMDNODESYNCLISTENER' }
 ];
 
 my $config_core;
