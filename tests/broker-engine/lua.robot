@@ -841,9 +841,8 @@ LUA_CACHE_SAVE_SERVICE_GROUP
 
 
 LUA_FAILURE
-    [Documentation]    Given a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
-    ...    To do that we compare host and service event with lua cache
-    [Tags]    broker    engine    services    lua    MON-157906
+    [Documentation]    Given a engine broker configured with a SC, we check write intervals in case of lua write returns nothing
+    [Tags]    broker    engine    services    lua    MON-193976
     Ctn Clear Commands Status
     Ctn Clear Retention
 

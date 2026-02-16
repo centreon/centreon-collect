@@ -39,11 +39,12 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 failover::failover(std::shared_ptr<io::endpoint> endp,
                    std::shared_ptr<multiplexing::muxer> mux,
-                   const std::string& name)
-    : endpoint(false, name),
+                   const config::endpoint& cfg)
+    : endpoint(false, cfg.name),
       _should_exit(false),
       _state(not_started),
       _logger{log_v2::instance().get(log_v2::PROCESSING)},
+      _max_retry_delay(30),
       _buffering_timeout(0),
       _endpoint(endp),
       _failover_launched(false),
@@ -52,6 +53,14 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _muxer(mux),
       _update(false) {
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' construction.", _name);
+
+  auto search = cfg.params.find("max_retry_delay");
+  if (search != cfg.params.end()) {
+    if (!absl::SimpleAtoi(search->second, &_max_retry_delay)) {
+      throw msg_fmt("max_retry_delay needs a numerical value and not {}",
+                    search->second);
+    }
+  }
 }
 
 /**
@@ -168,8 +177,8 @@ void failover::_run() {
     } else {
       error_retry_delay *= 2;
     }
-    if (error_retry_delay > _endpoint->max_retry_delay()) {
-      error_retry_delay = _endpoint->max_retry_delay();
+    if (error_retry_delay > _max_retry_delay) {
+      error_retry_delay = _max_retry_delay;
     }
     SPDLOG_LOGGER_ERROR(
         _logger, " {} Failed to send event to stream, we wait {s} before retry",
