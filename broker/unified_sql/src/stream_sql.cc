@@ -938,10 +938,6 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
       };
       _downtimes->add_bulk_row(binder);
     } else {
-      _logger_sql->error("original actual end time {} is null {}",
-                         dd.actual_end_time.get_time_t(),
-                         dd.actual_end_time.is_null());
-      _logger_sql->error("actual end time {}", dd.actual_end_time);
       _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           dd.actual_end_time.to_string(), dd.actual_start_time.to_string(),
