@@ -664,11 +664,26 @@ sub action_addimporttaskwithparent {
 
     my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
         $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+
+    my $worker_token = $self->generate_token();
+
+    $self->send_internal_action({
+        action => 'ADDLISTENER',
+        data => [
+            {
+                identity => 'gorgone-legacycmd',
+                event => 'LEGACYCMDNODESYNCLISTENER',
+                token => $worker_token,
+                timeout => 300
+            }
+        ]
+    });
+
     my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
         $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
     $self->send_internal_action({
         action => 'COMMAND',
-        token => $options{token},
+        token => $worker_token,
         data => {
             logging => $options{data}->{logging},
             content => [
@@ -679,6 +694,7 @@ sub action_addimporttaskwithparent {
             parameters => { no_fork => 1 }
         }
     });
+
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},
@@ -700,6 +716,21 @@ sub action_addimporttaskwithparent {
             message => 'Task inserted on Remote Server',
         }
     );
+
+    return 0;
+}
+
+sub action_legacycmdnodesynclistener {
+    my ($self, %options) = @_;
+
+    return 0 if ($options{data}->{code} != GORGONE_ACTION_FINISH_OK);
+
+    $self->{logger}->writeLogDebug('[legacycmd] -class- triggering nodesync after import task completion');
+    $self->send_internal_action({
+        action => 'CENTREONNODESSYNC',
+        token => $self->generate_token(),
+        data => {}
+    });
 
     return 0;
 }
