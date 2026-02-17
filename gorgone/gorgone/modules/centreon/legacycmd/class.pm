@@ -672,7 +672,7 @@ sub action_addimporttaskwithparent {
         data => [
             {
                 identity => 'gorgone-legacycmd',
-                event => 'LEGACYCMDNODESYNCLISTENER',
+                event => 'POSTIMPORTTASK',
                 token => $worker_token,
                 timeout => 300
             }
@@ -685,7 +685,7 @@ sub action_addimporttaskwithparent {
         action => 'COMMAND',
         token => $worker_token,
         data => {
-            logging => $options{data}->{logging},
+            logging => 1,
             content => [
                 {
                     command => $cmd
@@ -693,6 +693,24 @@ sub action_addimporttaskwithparent {
             ],
             parameters => { no_fork => 1 }
         }
+    });
+
+
+
+    return 0;
+}
+
+sub action_postimporttask {
+    my ($self, %options) = @_;
+
+    return 0 if ($options{data}->{code} != GORGONE_ACTION_FINISH_OK);
+
+    $self->{logger}->writeLogDebug('[legacycmd] triggering nodesync and cbd reload after import task completion');
+
+    $self->send_internal_action({
+        action => 'CENTREONNODESSYNC',
+        token => $self->generate_token(),
+        data => {}
     });
 
     $self->send_internal_action({
@@ -716,21 +734,6 @@ sub action_addimporttaskwithparent {
             message => 'Task inserted on Remote Server',
         }
     );
-
-    return 0;
-}
-
-sub action_legacycmdnodesynclistener {
-    my ($self, %options) = @_;
-
-    return 0 if ($options{data}->{code} != GORGONE_ACTION_FINISH_OK);
-
-    $self->{logger}->writeLogDebug('[legacycmd] -class- triggering nodesync after import task completion');
-    $self->send_internal_action({
-        action => 'CENTREONNODESSYNC',
-        token => $self->generate_token(),
-        data => {}
-    });
 
     return 0;
 }
