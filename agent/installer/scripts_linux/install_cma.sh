@@ -1099,84 +1099,6 @@ configure_service() {
     fi
 }
 
-print_installation_verification() {
-    echo ""
-    echo "========================================"
-    echo "Installation Verification"
-    echo "========================================"
-    
-    # Check centagent installation
-    local agent_installed="NO"
-    local agent_version="N/A"
-    local agent_status="N/A"
-    
-    if command -v centagent &> /dev/null; then
-        agent_installed="YES"
-        
-        # Get version from installed package
-        case "${PKG_MANAGER}" in
-            dnf|yum)
-                agent_version=$(rpm -q --queryformat '%{VERSION}-%{RELEASE}' centreon-monitoring-agent 2>/dev/null || echo "N/A")
-                ;;
-            apt)
-                agent_version=$(dpkg-query -W -f='${Version}' centreon-monitoring-agent 2>/dev/null || echo "N/A")
-                ;;
-        esac
-        
-        if systemctl is-active --quiet centagent 2>/dev/null; then
-            agent_status="${GREEN}Running${NC}"
-        elif systemctl is-enabled --quiet centagent 2>/dev/null; then
-            agent_status="${YELLOW}Enabled but not running${NC}"
-        else
-            agent_status="${RED}Not running${NC}"
-        fi
-    else
-        agent_installed="${RED}NO${NC}"
-    fi
-    
-    # Check plugin installation
-    local plugin_installed="N/A"
-    local plugin_path="N/A"
-    
-    if [[ "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
-        case "${PKG_MANAGER}" in
-            dnf|yum)
-                if rpm -q centreon-plugin-Operatingsystems-Linux-Local &> /dev/null; then
-                    plugin_installed="${GREEN}YES${NC}"
-                    plugin_path="/usr/lib/centreon/plugins/"
-                else
-                    plugin_installed="${RED}NO${NC}"
-                fi
-                ;;
-            apt)
-                if dpkg -l centreon-plugin-operatingsystems-linux-local &> /dev/null; then
-                    plugin_installed="${GREEN}YES${NC}"
-                    plugin_path="/usr/lib/centreon/plugins/"
-                else
-                    plugin_installed="${RED}NO${NC}"
-                fi
-                ;;
-        esac
-    else
-        plugin_installed="Not requested"
-    fi
-    
-    echo -e "Centreon Agent:       ${agent_installed}"
-    [[ "${agent_installed}" == "YES" ]] && echo "  Version:            ${agent_version}"
-    [[ "${agent_installed}" == "YES" ]] && echo -e "  Status:             ${agent_status}"
-    echo -e "Centreon Plugin:      ${plugin_installed}"
-    [[ "${plugin_path}" != "N/A" ]] && echo "  Path:               ${plugin_path}"
-    
-    echo "Configuration File:   ${CONFIG_FILE}"
-    if [[ -f "${CONFIG_FILE}" ]]; then
-        echo -e "  Status:             ${GREEN}Created${NC}"
-    else
-        echo -e"  Status:             ${RED}Missing${NC}"
-    fi
-    
-    echo "========================================"
-}
-
 #===============================================================================
 # MAIN SCRIPT
 #===============================================================================
@@ -1355,9 +1277,6 @@ main() {
 
     # Configure and start service
     configure_service
-
-    # Print installation verification summary
-    print_installation_verification
 
     echo ""
     log_info "=== Script execution completed ==="
