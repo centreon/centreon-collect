@@ -63,7 +63,7 @@ param(
     [Parameter(Mandatory=$false)]
     [string]$Version = "25.10",
     
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [string]$Token = "",
     
     [Parameter(Mandatory=$true)]
@@ -343,7 +343,7 @@ function Install-CentreonAgent {
         $process = Start-Process -FilePath $InstallerPath -ArgumentList $Arguments -Wait -PassThru -NoNewWindow
         
         if ($process.ExitCode -eq 0) {
-            Write-Log "Installation completed successfully" -Level "SUCCESS"
+            Write-Log "Centreon Monitoring Agent installed successfully" -Level "SUCCESS"
         } else {
             Write-Log "Installation completed with exit code: $($process.ExitCode)" -Level "ERROR"
             # Read the log file installer_output.log if it exists
@@ -367,6 +367,18 @@ try {
     Write-Log "=== Centreon Monitoring Agent Installation Script ===" -Level "INFO"
     Write-Log "Version tag: $Version"
     
+    # Prompt for token if not provided
+    if ([string]::IsNullOrWhiteSpace($Token)) {
+        Write-Host ""
+        Write-Host "Please retrieve an authentication token from 'Administration > Authentication Tokens' and paste it here." -ForegroundColor Yellow
+        Write-Host ""
+        $Token = Read-Host -Prompt "Enter authentication token"
+        
+        if ([string]::IsNullOrWhiteSpace($Token)) {
+            throw "Authentication token is required"
+        }
+    }
+    
     # Get CMA version from GitHub
     $cmaVersion = Get-CMAVersion -TagName $Version
     
@@ -385,7 +397,7 @@ try {
     # Execute installer
     $exitCode = Install-CentreonAgent -InstallerPath $installerPath -Arguments $installerArgs
     
-    Write-Log "=== Installation Process Completed ===" -Level "INFO"
+    Write-Log "=== Script execution completed ===" -Level "INFO"
     exit $exitCode
 }
 catch {
