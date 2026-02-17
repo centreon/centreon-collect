@@ -1,0 +1,14 @@
+FROM debian:13
+
+# Install systemd and basic utilities
+RUN apt-get update && apt-get -y install systemd systemd-sysv bash-completion
+
+# Copy installation script
+COPY install_cma.sh /opt/centreon/install_cma.sh
+RUN chmod +x /opt/centreon/install_cma.sh
+
+# Set working directory
+WORKDIR /opt/centreon
+
+# Default command - start systemd
+CMD ["/lib/systemd/systemd"]

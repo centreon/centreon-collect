@@ -71,7 +71,7 @@ $agent_log_path = $current_dir + "\reports\centagent.log"
 $installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
 $installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
 Write-Host "install agent only  (agent initiated connection, no encryption)"
-$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent1', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8', "/CUSTOMCHECKFILE=${current_dir}\reports\custom_check.txt"
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent1', '/HOST=host_1', '/ENDPOINT=localhost:4317', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/ENCRYPTION=no','/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8', "/CUSTOMCHECKFILE=${current_dir}\reports\custom_check.txt"
 
 # Better: get the process, wait
 Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
@@ -88,6 +88,18 @@ $installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTIN
 Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
 
 Start-Sleep -Seconds 5
+
+$agent_log_path = $current_dir + "\reports\centagent_unknown_host.log"
+
+#The third agent (agent initiated connection, no encryption is started by installer, unknown host from engine, others will be started manually)
+$installer_exe = 'agent\installer\centreon-monitoring-agent.exe'
+$installer_exepath = Join-Path -Path (Get-Location) -ChildPath $installer_exe
+Write-Host "install agent only  (agent initiated connection, no encryption)"
+$installer_args = '/VERYSILENT', '/TYPE=custom', '/COMPONENTS="agent"','/AGENTINSTANCE=CentreonMonitoringAgent5', '/HOST=We_dont_know_me', '/ENDPOINT=localhost:4319', '/LOGTYPE=File', "/LOGFILE=$agent_log_path", '/LOGLEVEL=trace','/ENCRYPTION=no','/TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMzV9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8', "/CUSTOMCHECKFILE=${current_dir}\reports\custom_check.txt"
+Start-Process -Wait -FilePath $installer_exepath -ArgumentList $installer_args
+
+Start-Sleep -Seconds 5
+
 
 #Start reverse agent
 Set-ItemProperty -Path HKLM:\SOFTWARE\Centreon\CentreonMonitoringAgent1  -Name ca_certificate -Value ""

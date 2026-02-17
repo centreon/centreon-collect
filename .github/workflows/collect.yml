@@ -1,4 +1,4 @@
-name: centreon-collect
+name: collect
 run-name: |
   ${{
     (github.event_name == 'schedule' ||
@@ -37,7 +37,7 @@ on:
     - cron: "30 0 * * 1-5"
   pull_request:
     paths:
-      - ".github/workflows/centreon-collect.yml"
+      - ".github/workflows/collect.yml"
       - ".version"
       - ".version.centreon-collect"
       - bbdo/**
@@ -113,7 +113,7 @@ jobs:
             echo "[INFO] - The target branch was not properly defined for that day (out-of-bounds array)."
             exit 0
           else
-            gh workflow run centreon-collect.yml -r "$TARGET_BRANCH" -f nightly_manual_trigger=true
+            gh workflow run collect.yml -r "$TARGET_BRANCH" -f nightly_manual_trigger=true
             echo "[INFO] - Dispatching nightly run to $TARGET_BRANCH branch."
           fi
         shell: bash

@@ -268,6 +268,7 @@ class rapidjson_helper {
   uint64_t get_uint64_t(const char* field_name) const;
   uint64_t get_uint64_t(const char* field_name, uint64_t default_value) const;
   int64_t get_int64_t(const char* field_name) const;
+  int64_t get_int64_t(const char* field_name, int64_t default_value) const;
 
   uint32_t get_uint32_t(const char* field_name) const;
   int32_t get_int32_t(const char* field_name) const;
@@ -451,8 +452,8 @@ struct formatter<rapidjson::Value> : formatter<std::string_view, char> {
 
   // Formats a rapidjson::Value
   template <typename FormatContext>
-  auto format(const rapidjson::Value& val,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const rapidjson::Value& val, FormatContext& ctx) const
+      -> decltype(ctx.out()) {
     using namespace rapidjson;
 
     StringBuffer buffer;
