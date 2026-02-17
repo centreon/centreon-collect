@@ -57,7 +57,8 @@ splitter::splitter(std::string const& path,
       _roffset{0},
       _write_m{},
       _wfile{},
-      _woffset{0} {
+      _woffset{0},
+      _last_write_error_log(0) {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...
@@ -143,8 +144,23 @@ long splitter::read(void* buffer, long max_size) {
   /* No lock here, there is only one consumer. */
   if (!_rfile) {
     _open_read_file();
-    if (!_rfile)
+    if (!_rfile) {
+      // open read failure => next file
+      bool have_to_read_next_file = false;
+      {
+        std::lock_guard l(_write_m);
+        if (_rid < _wid) {
+          _rid++;
+          have_to_read_next_file = true;
+        } else {
+          throw exceptions::shutdown("No more data to read");
+        }
+      }
+      if (have_to_read_next_file) {
+        return read(buffer, max_size);
+      }
       return 0;
+    }
   }
 
   /* We introduce the locker, but don't lock if not necessary */
@@ -448,10 +464,14 @@ bool splitter::_open_write_file() {
     size_t size = disk_accessor::instance().fwrite(
         header.bytes, 1, sizeof(header), _wfile.get());
     if (size != sizeof(header)) {
-      std::string wfile(get_file_path(_wid));
-      char msg[1024];
-      logger->critical("splitter: cannot write to file '{}': {}", wfile,
-                       strerror_r(errno, msg, sizeof(msg)));
+      time_t now = time(nullptr);
+      if (now > _last_write_error_log) {
+        _last_write_error_log = now;
+        std::string wfile(get_file_path(_wid));
+        char msg[1024];
+        logger->critical("splitter: cannot write to file '{}': {}", wfile,
+                         strerror_r(errno, msg, sizeof(msg)));
+      }
       _wfile.reset();
       return false;
     }

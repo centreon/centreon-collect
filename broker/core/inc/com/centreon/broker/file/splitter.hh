@@ -73,11 +73,19 @@ class splitter : public fs_file {
   std::atomic_int _wid;
   long _woffset;
 
+  /**
+   * @brief when disk is full, we will log all events write failures so we will
+   * log only once by second
+   *
+   */
+  time_t _last_write_error_log;
+
   void _open_read_file();
   bool _open_write_file();
 
  public:
-  splitter(const std::string& path, uint32_t max_file_size = 100000000u,
+  splitter(const std::string& path,
+           uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
   splitter(const splitter&) = delete;
