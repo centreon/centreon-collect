@@ -4871,7 +4871,7 @@ TEST_F(LuaTest, BadLua) {
   s->service_id = 18;
   s->output = "Bonjour";
   std::shared_ptr<io::data> svc(s.release());
-  ASSERT_EQ(binding->write(svc), 0);
+  ASSERT_EQ(binding->write(svc), -1);
   RemoveFile(filename);
 }
 
