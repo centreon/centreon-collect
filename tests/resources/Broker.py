@@ -39,7 +39,7 @@ import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToJson, MessageToDict
-from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
+from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS, DB_SSL_ENABLED, DB_SSL_CA, DB_SSL_CERT, DB_SSL_KEY, DB_TLS_VERSION
 
 TIMEOUT = 30
 
@@ -909,8 +909,22 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
             output_dict.pop(i)
     str_queries_per_transaction = str(queries_per_transaction)
+    
+    # Add TLS configuration if enabled
+    tls_config = {}
+    if DB_SSL_ENABLED and DB_SSL_ENABLED.lower() in ['true', 'yes', '1']:
+        tls_config["db_ssl_enabled"] = "true"
+        if DB_SSL_CA:
+            tls_config["db_ssl_ca"] = DB_SSL_CA
+        if DB_SSL_CERT:
+            tls_config["db_ssl_cert"] = DB_SSL_CERT
+        if DB_SSL_KEY:
+            tls_config["db_ssl_key"] = DB_SSL_KEY
+        if DB_TLS_VERSION:
+            tls_config["db_tls_version"] = DB_TLS_VERSION
+    
     if output == 'unified_sql':
-        output_dict.append({
+        unified_sql_output = {
             "name": "central-broker-unified-sql",
             "db_type": "mysql",
             "db_host": DB_HOST,
@@ -929,9 +943,11 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "type": "unified_sql",
             "store_in_data_bin": "yes",
             "insert_in_index_data": "1"
-        })
+        }
+        unified_sql_output.update(tls_config)
+        output_dict.append(unified_sql_output)
     elif output == 'sql/perfdata':
-        output_dict.append({
+        sql_output = {
             "name": "central-broker-master-sql",
             "db_type": "mysql",
             "retry_interval": "5",
@@ -945,8 +961,11 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "connections_count": "3",
             "read_timeout": "1",
             "type": "sql"
-        })
-        output_dict.append({
+        }
+        sql_output.update(tls_config)
+        output_dict.append(sql_output)
+        
+        storage_output = {
             "name": "central-broker-master-perfdata",
             "interval": "60",
             "retry_interval": "5",
@@ -965,7 +984,9 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "connections_count": "3",
             "insert_in_index_data": "1",
             "type": "storage"
-        })
+        }
+        storage_output.update(tls_config)
+        output_dict.append(storage_output)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
