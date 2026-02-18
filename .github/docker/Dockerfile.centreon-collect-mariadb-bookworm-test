@@ -80,7 +80,7 @@ cat > /etc/mysql/mariadb.conf.d/99-tls.cnf <<'EOL'
 ssl_ca=/etc/mysql/ssl/ca-cert.pem
 ssl_cert=/etc/mysql/ssl/server-cert.pem
 ssl_key=/etc/mysql/ssl/server-key.pem
-require_secure_transport=ON
+require_secure_transport=OFF
 EOL
 
 echo "TLS certificates generated and MariaDB configured for TLS"
