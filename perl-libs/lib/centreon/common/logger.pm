@@ -103,12 +103,16 @@ sub file_mode($$) {
     if (defined($self->{filehandler})) {
         $self->{filehandler}->close();
     }
+    # Use umask to set the file permissions to 0640 and reset it right after to avoid changing other code area.
+    my $old_umask = umask(0027);
     if (open($self->{filehandler}, ">>", $file)){
+        umask($old_umask);
         $self->{log_mode} = 1;
         $self->{filehandler}->autoflush(1);
         $self->{file_name} = $file;
         return 1;
     }
+    umask($old_umask);
     $self->{filehandler} = undef;
     print STDERR "Cannot open file $file: $!\n";
     return 0;
