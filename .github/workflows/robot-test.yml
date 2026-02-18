@@ -206,12 +206,19 @@ jobs:
       - name: Move reports
         if: ${{ failure() }}
         run: |
-          mkdir reports
+          mkdir -p reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ needs.robot-test-list.outputs.test_group_name }}
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
+          fi
+          if [ -f tests/log.html ] ; then
             cp tests/log.html reports/$FILE_PREFIX-log.html
+          fi
+          if [ -f tests/output.xml ] ; then
             cp tests/output.xml reports/$FILE_PREFIX-output.xml
+          fi
+          if [ -f tests/report.html ] ; then
+            cp tests/report.html reports/$FILE_PREFIX-report.html
           fi
 
       - name: Replace / with - in the feature path
