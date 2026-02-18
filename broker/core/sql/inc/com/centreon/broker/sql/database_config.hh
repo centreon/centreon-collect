@@ -56,6 +56,12 @@ class database_config {
   // where mariadb will find extension such as caching_sha2_password.so
   std::string _extension_directory;
   std::shared_ptr<spdlog::logger> _config_logger;
+  // SSL/TLS configuration
+  bool _ssl_enabled;
+  std::string _ssl_ca;
+  std::string _ssl_cert;
+  std::string _ssl_key;
+  std::string _tls_version;
 
   void _internal_copy(database_config const& other);
 
@@ -97,6 +103,11 @@ class database_config {
   const std::string& get_extension_directory() const {
     return _extension_directory;
   }
+  bool get_ssl_enabled() const { return _ssl_enabled; }
+  std::string const& get_ssl_ca() const { return _ssl_ca; }
+  std::string const& get_ssl_cert() const { return _ssl_cert; }
+  std::string const& get_ssl_key() const { return _ssl_key; }
+  std::string const& get_tls_version() const { return _tls_version; }
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
