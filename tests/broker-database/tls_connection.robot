@@ -22,9 +22,7 @@ BDBTSSLC1
     Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_port    3307
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_enabled    ${DBSslEnabled}
-    Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_ca    /home/soufiane/workspace/ws1/centreon-collect/key/ca-cert.pem
     Ctn Broker Config Output Set    central    central-broker-unified-sql    db_ssl_verify_cert    true
 
 
