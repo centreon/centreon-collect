@@ -135,7 +135,6 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   static std::shared_ptr<global_cache> _instance;
   size_t _file_size;
 
-  void _open(size_t initial_size_on_create, const void* address = 0);
   void _grow(size_t new_size, void* address = 0);
 
  protected:
@@ -149,6 +148,8 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   global_cache(const std::string& file_path,
                const std::shared_ptr<spdlog::logger>& logger);
+
+  void _open(size_t initial_size_on_create, const void* address = 0);
 
   void allocation_exception_handler();
 

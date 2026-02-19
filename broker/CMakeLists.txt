@@ -327,6 +327,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/brokerrpc.cc
     ${SRC_DIR}/cache/global_cache.cc
     ${SRC_DIR}/cache/global_cache_data.cc
+    ${SRC_DIR}/cache/protobuf.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -380,6 +381,16 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/time/timezone_manager.cc
   )
 
+
+add_custom_command(
+  OUTPUT ${SRC_DIR}/cache/protobuf.cc ${INC_DIR}/cache/protobuf.hh
+  COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
+  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND
+    python3 ARGS ${SRC_DIR}/cache/create_class_from_proto.py neb,storage,header Comment,AgentStats
+  VERBATIM)
+
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -398,6 +409,7 @@ target_link_libraries(
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
+  pb_header_lib
   process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -566,6 +578,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/bbdo/output.cc
     ${TEST_DIR}/bbdo/read.cc
     ${TEST_DIR}/cache/global_cache_test.cc
+    ${TEST_DIR}/cache/protobuf_test.cc
     ${TEST_DIR}/compression/stream/memory_stream.hh
     ${TEST_DIR}/compression/stream/read.cc
     ${TEST_DIR}/compression/stream/write.cc
