@@ -455,7 +455,7 @@ processing::failover* endpoint::_create_failover(
   }
 
   // Return failover thread.
-  auto fo{std::make_unique<processing::failover>(endp, mux, cfg.name)};
+  auto fo{std::make_unique<processing::failover>(endp, mux, cfg)};
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);
