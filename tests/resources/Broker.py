@@ -909,11 +909,12 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
             output_dict.pop(i)
     str_queries_per_transaction = str(queries_per_transaction)
-    
+
     # Add TLS configuration if enabled
     tls_config = {}
     if DB_SSL_ENABLED and DB_SSL_ENABLED.lower() in ['true', 'yes', '1']:
         tls_config["db_ssl_enabled"] = "true"
+        tls_config["db_ssl_verify"] = "true"
         if DB_SSL_CA:
             tls_config["db_ssl_ca"] = DB_SSL_CA
         if DB_SSL_CERT:
@@ -922,7 +923,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             tls_config["db_ssl_key"] = DB_SSL_KEY
         if DB_TLS_VERSION:
             tls_config["db_tls_version"] = DB_TLS_VERSION
-    
+
     if output == 'unified_sql':
         unified_sql_output = {
             "name": "central-broker-unified-sql",
@@ -964,7 +965,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         }
         sql_output.update(tls_config)
         output_dict.append(sql_output)
-        
+
         storage_output = {
             "name": "central-broker-master-perfdata",
             "interval": "60",
