@@ -48,7 +48,7 @@ openssl req -x509 -newkey rsa:4096 -days 3650 -nodes \
 # Generate server certificate
 openssl req -newkey rsa:4096 -days 3650 -nodes \
   -keyout /etc/mysql/ssl/server-key.pem -out /etc/mysql/ssl/server-req.pem \
-  -subj "/CN=localhost"
+  -subj "/CN=127.0.0.1"
 
 # Sign server certificate with CA
 openssl x509 -req -in /etc/mysql/ssl/server-req.pem -days 3650 \
@@ -58,7 +58,7 @@ openssl x509 -req -in /etc/mysql/ssl/server-req.pem -days 3650 \
 # Generate client certificate
 openssl req -newkey rsa:4096 -days 3650 -nodes \
   -keyout /etc/mysql/ssl/client-key.pem -out /etc/mysql/ssl/client-req.pem \
-  -subj "/CN=centreon-broker-client"
+  -subj "/CN=127.0.0.1"
 
 # Sign client certificate with CA
 openssl x509 -req -in /etc/mysql/ssl/client-req.pem -days 3650 \

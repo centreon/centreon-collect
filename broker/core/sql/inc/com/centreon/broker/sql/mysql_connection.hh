@@ -91,6 +91,7 @@ class mysql_connection {
   const std::string _ssl_cert;
   const std::string _ssl_key;
   const std::string _tls_version;
+  const bool _ssl_verify_cert;
   time_t _last_commit;
   std::atomic<connection_state> _state;
 

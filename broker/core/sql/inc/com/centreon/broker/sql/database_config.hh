@@ -62,6 +62,7 @@ class database_config {
   std::string _ssl_cert;
   std::string _ssl_key;
   std::string _tls_version;
+  bool _ssl_verify_cert;
 
   void _internal_copy(database_config const& other);
 
@@ -108,6 +109,7 @@ class database_config {
   std::string const& get_ssl_cert() const { return _ssl_cert; }
   std::string const& get_ssl_key() const { return _ssl_key; }
   std::string const& get_tls_version() const { return _tls_version; }
+  bool get_ssl_verify_cert() const { return _ssl_verify_cert; }
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);

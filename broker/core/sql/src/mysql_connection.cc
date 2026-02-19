@@ -199,8 +199,6 @@ bool mysql_connection::_try_to_reconnect() {
 
   // Configure SSL/TLS if enabled
   if (_ssl_enabled) {
-    SPDLOG_LOGGER_INFO(
-        _logger, "mysql_connection: configuring SSL/TLS for reconnection");
     mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
                   _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
                   _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
@@ -209,6 +207,15 @@ bool mysql_connection::_try_to_reconnect() {
     if (!_tls_version.empty()) {
       mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
     }
+
+    // Configure certificate verification based on configuration
+    if (_ssl_verify_cert) {
+      bool verify = true;
+      mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+    }
+    SPDLOG_LOGGER_INFO(
+        _logger, "mysql_connection: configuring SSL/TLS for reconnection (verify={})",
+        _ssl_verify_cert);
   }
 
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
@@ -871,8 +878,6 @@ void mysql_connection::_run() {
 
     // Configure SSL/TLS if enabled
     if (_ssl_enabled) {
-      SPDLOG_LOGGER_INFO(_logger,
-                         "mysql_connection: configuring SSL/TLS connection");
       mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
                     _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
                     _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
@@ -881,6 +886,15 @@ void mysql_connection::_run() {
       if (!_tls_version.empty()) {
         mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
       }
+
+      // Configure certificate verification based on configuration
+      if (_ssl_verify_cert) {
+        bool verify = true;
+        mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger, "mysql_connection: configuring SSL/TLS connection (verify={})",
+          _ssl_verify_cert);
     }
 
     while (config::applier::mode != config::applier::finished &&
@@ -1138,6 +1152,7 @@ mysql_connection::mysql_connection(
       _ssl_cert(db_cfg.get_ssl_cert()),
       _ssl_key(db_cfg.get_ssl_key()),
       _tls_version(db_cfg.get_tls_version()),
+      _ssl_verify_cert(db_cfg.get_ssl_verify_cert()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0
                        : std::numeric_limits<time_t>::max()),

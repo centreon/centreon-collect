@@ -59,7 +59,8 @@ database_config::database_config()
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
       _config_logger{log_v2::instance().get(log_v2::CONFIG)},
-      _ssl_enabled(false) {}
+      _ssl_enabled(false),
+      _ssl_verify_cert(true) {}
 
 /**
  *  Constructor.
@@ -103,7 +104,8 @@ database_config::database_config(const std::string& type,
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
       _config_logger{log_v2::instance().get(log_v2::CONFIG)},
-      _ssl_enabled(false) {}
+      _ssl_enabled(false),
+      _ssl_verify_cert(true) {}
 
 /**
  *  Build a database configuration from a configuration set.
@@ -291,42 +293,57 @@ database_config::database_config(
           found->second);
       _ssl_enabled = false;
     }
-    if (_ssl_enabled) {
-      _config_logger->info("SSL/TLS enabled for database connection");
-    }
   }
+  if (_ssl_enabled) {
+    _config_logger->info("SSL/TLS enabled for database connection");
 
-  found = cfg.params.find("db_ssl_ca");
-  if (found != cfg.params.end()) {
-    _ssl_ca = found->second;
-    if (_ssl_enabled && !_ssl_ca.empty()) {
-      _config_logger->info("SSL/TLS CA certificate: {}", _ssl_ca);
+    found = cfg.params.find("db_ssl_ca");
+    if (found != cfg.params.end()) {
+      _ssl_ca = found->second;
+      if (!_ssl_ca.empty()) {
+        _config_logger->info("SSL/TLS CA certificate: {}", _ssl_ca);
+      }
     }
-  }
 
-  found = cfg.params.find("db_ssl_cert");
-  if (found != cfg.params.end()) {
-    _ssl_cert = found->second;
-    if (_ssl_enabled && !_ssl_cert.empty()) {
-      _config_logger->info("SSL/TLS client certificate: {}", _ssl_cert);
+    found = cfg.params.find("db_ssl_cert");
+    if (found != cfg.params.end()) {
+      _ssl_cert = found->second;
+      if (!_ssl_cert.empty()) {
+        _config_logger->info("SSL/TLS client certificate: {}", _ssl_cert);
+      }
     }
-  }
 
-  found = cfg.params.find("db_ssl_key");
-  if (found != cfg.params.end()) {
-    _ssl_key = found->second;
-    if (_ssl_enabled && !_ssl_key.empty()) {
-      _config_logger->info("SSL/TLS client key configured");
+    found = cfg.params.find("db_ssl_key");
+    if (found != cfg.params.end()) {
+      _ssl_key = found->second;
+      if (!_ssl_key.empty()) {
+        _config_logger->info("SSL/TLS client key configured");
+      }
     }
-  }
 
-  // TLS version configuration (default to TLSv1.2,TLSv1.3)
-  _tls_version = "TLSv1.2,TLSv1.3";
-  found = cfg.params.find("db_tls_version");
-  if (found != cfg.params.end()) {
-    _tls_version = found->second;
-    if (_ssl_enabled) {
-      _config_logger->info("TLS version: {}", _tls_version);
+    // TLS version configuration (default to TLSv1.2,TLSv1.3)
+    _tls_version = "TLSv1.2,TLSv1.3";
+    found = cfg.params.find("db_tls_version");
+    if (found != cfg.params.end()) {
+      _tls_version = found->second;
+      if (!_tls_version.empty()) {
+        _config_logger->info("TLS version: {}", _tls_version);
+      }
+    }
+
+    // SSL certificate verification (default to true for security)
+    _ssl_verify_cert = true;
+    found = cfg.params.find("db_ssl_verify_cert");
+    if (found != cfg.params.end()) {
+      if (!absl::SimpleAtob(found->second, &_ssl_verify_cert)) {
+        _config_logger->error(
+            "db_ssl_verify_cert must be a boolean, got '{}'. Defaulting to "
+            "true.",
+            found->second);
+        _ssl_verify_cert = true;
+      }
+      _config_logger->info("SSL certificate verification: {}",
+                           _ssl_verify_cert ? "enabled" : "disabled");
     }
   }
 }
@@ -371,7 +388,8 @@ bool database_config::operator==(database_config const& other) const {
                 _max_commit_delay == other._max_commit_delay &&
                 _ssl_enabled == other._ssl_enabled &&
                 _ssl_ca == other._ssl_ca && _ssl_cert == other._ssl_cert &&
-                _ssl_key == other._ssl_key};
+                _ssl_key == other._ssl_key &&
+                _ssl_verify_cert == other._ssl_verify_cert};
     if (!retval) {
       auto logger = log_v2::instance().get(log_v2::SQL);
       if (_type != other._type)
@@ -677,6 +695,7 @@ void database_config::_internal_copy(database_config const& other) {
   _ssl_ca = other._ssl_ca;
   _ssl_cert = other._ssl_cert;
   _ssl_key = other._ssl_key;
+  _ssl_verify_cert = other._ssl_verify_cert;
 }
 
 /**
