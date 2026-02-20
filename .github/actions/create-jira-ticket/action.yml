@@ -153,7 +153,7 @@ runs:
 
             console.log(data);
 
-            if (["get-environment", "package", "deliver-sources", "deliver-rpm", "deliver-deb"].includes(failed_job)) {
+            if (["get-environment", "package", "dockerize", "deliver-sources", "deliver-rpm", "deliver-deb"].includes(failed_job)) {
               ticket_squad_id = 10524
               ticket_board_id = 184
               squad_name = "DEVSECOPS"

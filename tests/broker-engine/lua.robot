@@ -840,3 +840,82 @@ LUA_CACHE_SAVE_SERVICE_GROUP
 
 
 
+LUA_FAILURE
+    [Documentation]    Given a engine broker configured with a SC, we check write intervals in case of lua write returns nothing
+    [Tags]    broker    engine    services    lua    MON-193976
+    Ctn Clear Commands Status
+    Ctn Clear Retention
+
+    Remove File    /tmp/test-LUA.log
+    Ctn Config Engine    ${1}    ${5}    ${20}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Broker Config Log    central    neb    trace
+    Ctn Broker Config Log    central    sql    error
+    Ctn Broker Config Log    central    lua    debug
+    Ctn Broker Config Log    central    processing    debug
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+
+    Remove File    /tmp/test-LUA.log
+
+    ${new_content}    Catenate    SEPARATOR=\n
+    ...    function init(params)
+    ...        broker_log:set_parameters(2, '/tmp/test-LUA.log')
+    ...        broker_log:info(0, 'lua start test')
+    ...    end
+    ...
+    ...    function write(e)
+    ...        local file = io.open("/tmp/test_lua_failure.txt", "r")
+    ...        local now = os.time()
+    ...        if file ~=  nill then
+    ...            broker_log:info(0, now .. ' lua write success')
+    ...            file:close()
+    ...            return true
+    ...        else
+    ...            broker_log:info(0, now .. ' lua write error')
+    ...            return
+    ...        end
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-LUA.lua    ${new_content}
+    Create File    /tmp/test_lua_failure.txt    aa
+
+    Ctn Broker Config Add Lua Output    central    test-LUA    /tmp/test-LUA.lua
+    Ctn Broker Config Output Set    central    test-LUA    max_retry_delay    16
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    FOR    ${index}    IN RANGE    6
+        ${result}    Grep File    /tmp/test-LUA.log    lua write success
+        IF    len("""${result}""") > 0    BREAK
+        Sleep    5s
+    END
+
+    Should Not Be Empty    ${result}    no write succes found in logs
+
+    Append To File    /tmp/test-LUA.log    now failure\n
+    #now, write will fail
+    Remove File    /tmp/test_lua_failure.txt
+
+    #generate many events
+    Ctn Restart Engine
+
+    FOR    ${index}    IN RANGE    90
+        ${lua_output}    Get File    /tmp/test-LUA.log
+        ${fail_lines}    Get Regexp Matches    ${lua_output}   ([0-9]+) lua write error
+        ${fail_count}    Get Length    ${fail_lines}
+
+        IF    ${fail_count} >= 7    BREAK
+        Sleep    1s
+    END
+
+    Should Be True    ${fail_count} >= 7    no enougth write error found in logs
+
+    ${res}    Ctn Broker Check Failover Lua Retry    ${fail_lines}    16
+    Should Be True    ${res}    delays beetwen lua retry records are not as expected
