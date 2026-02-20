@@ -27,7 +27,7 @@ ETPI0
     Ctn Create Timeperiod With Template    ${0}
 
     # Set host to use the child timeperiod as check_period
-    Ctn Engine Config Set Value In Hosts    0    host_1    check_period    child_tp
+    Ctn Engine Config Replace Value In Hosts    0    host_1    check_period    child_tp
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -65,7 +65,7 @@ ETPI1
     Ctn Create Timeperiod With Template    ${0}
 
     # Set host to use the child timeperiod as check_period
-    Ctn Engine Config Set Value In Hosts    0    host_1    check_period    child_tp
+    Ctn Engine Config Replace Value In Hosts    0    host_1    check_period    child_tp
 
     ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
@@ -105,7 +105,7 @@ ETPI2
     Ctn Create Timeperiod With Template And Override    ${0}
 
     # Set host to use the child timeperiod as check_period
-    Ctn Engine Config Set Value In Hosts    0    host_1    check_period    child_tp_override
+    Ctn Engine Config Replace Value In Hosts    0    host_1    check_period    child_tp_override
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
