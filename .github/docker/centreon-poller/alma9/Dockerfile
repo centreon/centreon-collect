@@ -35,12 +35,6 @@ fi
 
 dnf install -y /tmp/packages-centreon/centreon-*.rpm centreon-gorgone
 
-# temporary fix and inspired by from centreon-poller-postinstall.sh
-usermod centreon-engine -a -G centreon,centreon-broker,centreon-gorgone
-usermod centreon-broker -a -G centreon
-usermod centreon -a -G centreon-engine,centreon-broker
-usermod centreon-gorgone -a -G centreon-engine,centreon-broker,centreon
-
 systemctl stop gorgoned
 systemctl stop centengine
 

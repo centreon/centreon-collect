@@ -39,13 +39,15 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       ${SRC_DIR}/pool.cc
       ${SRC_DIR}/rapidjson_helper.cc
       ${SRC_DIR}/utf8.cc
-      ${SRC_DIR}/file.cc)
+      ${SRC_DIR}/file.cc
+      ${SRC_DIR}/threshold.cc
+      )
 else()
   add_compile_options("/wd5232")
   # we need not many things to just compile centreon-monitoring-agent
   # (centagent)
   set(SOURCES ${SRC_DIR}/perfdata.cc ${SRC_DIR}/rapidjson_helper.cc
-              ${SRC_DIR}/utf8.cc)
+              ${SRC_DIR}/utf8.cc ${SRC_DIR}/threshold.cc)
 endif()
 
 # Include directories.

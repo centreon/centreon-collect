@@ -137,6 +137,9 @@ engine/compile_commands.json
 # gorgone
 gorgone/log
 
+# node
+node_modules
+
 # tests
 tests/apps/
 tests/src/config/centreon-engine/*.cfg

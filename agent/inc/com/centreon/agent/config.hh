@@ -42,17 +42,21 @@ class config {
   std::string _ca_certificate_file;
   std::string _ca_name;
   std::string _host;
+  std::string _host_template;
   bool _reverse_connection;
   unsigned _second_max_reconnect_backoff;
   unsigned _max_message_length;
   std::string _token;
+  std::string _path_to_custom_checks;
 
-  absl::flat_hash_set<std::string> _trusted_tokens;
+  std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
+  absl::flat_hash_map<std::string, std::string> _custom_checks;
   static std::unique_ptr<config> _global_conf;
 
  public:
   static const config& load(const std::string& path) {
     _global_conf = std::make_unique<config>(path);
+    _global_conf->read_custom_checks();
     return *_global_conf;
   }
 
@@ -98,6 +102,7 @@ class config {
   }
   const std::string& get_ca_name() const { return _ca_name; }
   const std::string& get_host() const { return _host; }
+  const std::string& get_host_template() const { return _host_template; }
   bool use_reverse_connection() const { return _reverse_connection; }
   unsigned get_second_max_reconnect_backoff() const {
     return _second_max_reconnect_backoff;
@@ -105,8 +110,60 @@ class config {
   unsigned get_max_message_length() const { return _max_message_length; }
 
   const std::string& get_token() const { return _token; }
-  const absl::flat_hash_set<std::string>& get_trusted_tokens() const {
+  const std::shared_ptr<const absl::flat_hash_set<std::string>>&
+  get_trusted_tokens() const {
     return _trusted_tokens;
+  }
+
+  const std::string& get_path_to_custom_checks() const {
+    return _path_to_custom_checks;
+  }
+
+  const absl::flat_hash_map<std::string, std::string>& get_custom_checks()
+      const {
+    return _custom_checks;
+  }
+
+  void read_custom_checks() {
+    if (_path_to_custom_checks.empty()) {
+      return;
+    }
+    // lambda for trimming spaces
+    auto trimming = [](std::string& s) {
+      s = absl::StripLeadingAsciiWhitespace(s);
+      s = absl::StripTrailingAsciiWhitespace(s);
+    };
+
+    _custom_checks.clear();
+    try {
+      std::ifstream f(_path_to_custom_checks);
+      if (!f) {
+        throw exceptions::msg_fmt("could not open file {}",
+                                  _path_to_custom_checks);
+      }
+      std::string line;
+      while (std::getline(f, line)) {
+        // skip if comments or empty line
+        if (line.empty() || line[0] == ';') {
+          continue;
+        }
+        auto pos = line.find('=');
+        if (pos == std::string::npos) {
+          continue;
+        }
+        std::string name = line.substr(0, pos);
+        std::string path = line.substr(pos + 1);
+        trimming(name);
+        trimming(path);
+        if (!name.empty() && !path.empty()) {
+          SPDLOG_INFO("custom check loaded: name: {}, path: {}", name, path);
+          _custom_checks.emplace(std::move(name), std::move(path));
+        }
+      }
+    } catch (const std::exception& e) {
+      SPDLOG_ERROR("could not read custom checks from file {}: the error: {}",
+                   _path_to_custom_checks, e.what());
+    }
   }
 };
 };  // namespace com::centreon::agent

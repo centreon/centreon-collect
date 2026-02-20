@@ -2586,3 +2586,59 @@ def ctn_randint(lower: int, higher: int):
     just call ranom.randint and retruns result
     """
     return random.randint(lower, higher)
+
+
+def update_json_field(filepath, path, value):
+    """
+    Update a nested JSON field using dot notation.
+    Supports dict keys and list indexes.
+    Example: centreon_agent.reverse_connections.0.encryption
+    """
+    keys = path.split(".")
+
+    # Load JSON
+    with open(filepath, "r", encoding="utf8") as f:
+        data = json.load(f)
+
+    current = data
+
+    for i, key in enumerate(keys[:-1]):
+        # Determine if this key is a list index
+        if isinstance(current, list):
+            try:
+                key = int(key)
+            except ValueError:
+                raise ValueError(
+                    f"Expected list index at '{key}', got non-number")
+
+            # Auto-expand list if needed
+            while key >= len(current):
+                current.append({})
+            current = current[key]
+
+        # Dictionary path
+        else:
+            if key not in current or not isinstance(current[key], (dict, list)):
+                current[key] = {}    # auto-create dict by default
+            current = current[key]
+
+    # Final key
+    final_key = keys[-1]
+
+    # Last hop: list or dict?
+    if isinstance(current, list):
+        try:
+            final_key = int(final_key)
+        except ValueError:
+            raise ValueError(f"Expected list index at '{final_key}'")
+        while final_key >= len(current):
+            current.append(None)
+        current[final_key] = value
+    else:
+        current[final_key] = value
+
+    # Save
+    with open(filepath, "w", encoding="utf8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    return data

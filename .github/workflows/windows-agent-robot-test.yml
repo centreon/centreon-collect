@@ -7,7 +7,7 @@ concurrency:
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 1-5'
+    - cron: "0 0 * * 1-5"
   pull_request:
     paths:
       - ".github/scripts/agent_robot_test.ps1"
@@ -18,13 +18,20 @@ on:
       - "tests/resources/engine-scripts/*.ps1"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
 
+  get-aws-environment:
+    uses: ./.github/workflows/get-aws-environment.yml
+
   build-collect:
-    needs: [get-environment]
+    needs: [get-environment, get-aws-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
@@ -41,16 +48,16 @@ jobs:
       release: ${{ needs.get-environment.outputs.release }}
       commit_hash: ${{ github.sha }}
       stability: ${{ needs.get-environment.outputs.stability }}
-      legacy_engine: 'OFF'
+      legacy_engine: "OFF"
       build_debug_packages: false
       packages_in_artifact: false
       image: packaging-centreon-collect-vcpkg-noble
       distrib: noble
       arch: amd64
       only_robot_cma: true
+      aws_role_arn: ${{ needs.get-aws-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ needs.get-aws-environment.outputs.aws_web_identity_token_file }}
     secrets:
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
       registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
       rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
@@ -60,9 +67,8 @@ jobs:
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
-
-  build-agent-and-execute-test:
-    needs: [get-environment, build-collect]
+  build_agent:
+    needs: [get-environment]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
@@ -70,11 +76,50 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     runs-on: windows-latest
-
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+    steps:
+      - name: nocrlf conversion
+        run: git config --system core.autocrlf false
 
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      # Install Inno Setup (ISCC) and expose its path
+      # To remove later when innosetup version will be stable on runners
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup --allow-downgrade -y --no-progress --version 6.6.1
+
+      - name: compile Agent
+        run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
+        shell: powershell
+
+      - name: save agent installer and proto in cache
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            opentelemetry-proto
+            agent\installer\centreon-monitoring-agent.exe
+            build_windows\agent\Release\centagent.exe
+          key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-installer-${{ github.head_ref || github.ref_name }}
+
+  execute-test:
+    needs: [get-environment, build-collect, build_agent]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        robot-files: [cma.robot, cma2.robot]
+
+    name: ${{matrix.robot-files}}
     steps:
       - name: nocrlf conversion
         run: git config --system core.autocrlf false
@@ -90,16 +135,15 @@ jobs:
         with:
           wsl-version: 2
           distribution: Ubuntu-24.04
-          use-cache: 'true'
-          update: 'true'
+          use-cache: "true"
+          update: "true"
           wsl-conf: |
             [automount]
             enabled = true
             [wsl2]
             localhostForwarding=true
-#            networkingMode = mirrored
-          additional-packages:
-            mariadb-server
+          #            networkingMode = mirrored
+          additional-packages: mariadb-server
             libmariadb3
             librrd8
             liblua5.3
@@ -116,14 +160,15 @@ jobs:
           Write-Host "ip address show"
           wsl ip address show
 
-      # Install Inno Setup (ISCC) and expose its path
-      - name: Install Inno Setup
-        shell: powershell
-        run: |
-          choco install innosetup -y --no-progress
-      - name: Compile Agent
-        run: .github/scripts/windows-agent-compile.ps1 -compile_ut Off -compile_installer On
-        shell: powershell
+      - name: Restore agent installer and proto
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            opentelemetry-proto
+            agent\installer\centreon-monitoring-agent.exe
+            build_windows\agent\Release\centagent.exe
+          key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-installer-${{ github.head_ref || github.ref_name }}
+          fail-on-cache-miss: true
 
       - name: install database
         run: |
@@ -158,19 +203,19 @@ jobs:
           copy tests\resources\engine-scripts\check.ps1 C:\Users\public\
 
       - name: robot tests
-        run: .github/scripts/agent_robot_test.ps1
+        run: .github/scripts/agent_robot_test.ps1 -robot ${{matrix.robot-files}}
         shell: powershell
 
       - name: Upload Test Results
         if: ${{ failure() }}
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
-          name: reports-cma-windows
+          name: reports-${{matrix.robot-files}}-windows
           path: reports
           retention-days: 1
 
   set-skip-label:
-    needs: [get-environment, build-agent-and-execute-test]
+    needs: [get-environment, execute-test]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&

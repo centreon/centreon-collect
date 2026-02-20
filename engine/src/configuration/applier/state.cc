@@ -1202,6 +1202,18 @@ void applier::state::_expand(configuration::State& new_state, error_cnt& err) {
 }
 
 /**
+ * @brief a dummy function that returns its parameter
+ *
+ * @tparam obj_type
+ * @param to_return
+ * @return const obj_type&
+ */
+template <typename obj_type>
+const obj_type& identity(const obj_type& to_return) {
+  return to_return;
+}
+
+/**
  *  Process new configuration and apply it.
  *
  *  @param[in] new_cfg        The new configuration.
@@ -1354,34 +1366,35 @@ void applier::state::_processing(configuration::State& new_cfg,
                            &configuration::Servicegroup::servicegroup_name);
 
   // Build difference for hostdependencies.
-  pb_difference<configuration::Hostdependency, size_t> diff_hostdependencies;
-  typedef size_t (*key_func)(const configuration::Hostdependency&);
-  diff_hostdependencies.parse<key_func>(*pb_config.mutable_hostdependencies(),
-                                        new_cfg.hostdependencies(),
-                                        configuration::hostdependency_key);
+  pb_difference<configuration::Hostdependency, configuration::Hostdependency>
+      diff_hostdependencies;
+
+  diff_hostdependencies.parse<decltype(identity<Hostdependency>)>(
+      *pb_config.mutable_hostdependencies(), new_cfg.hostdependencies(),
+      identity<Hostdependency>);
 
   // Build difference for servicedependencies.
-  pb_difference<configuration::Servicedependency, size_t>
+  pb_difference<configuration::Servicedependency,
+                configuration::Servicedependency>
       diff_servicedependencies;
-  typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
-  diff_servicedependencies.parse<key_func_sd>(
+  diff_servicedependencies.parse<decltype(identity<Servicedependency>)>(
       *pb_config.mutable_servicedependencies(), new_cfg.servicedependencies(),
-      configuration::servicedependency_key);
+      identity<Servicedependency>);
 
-  // Build difference for hostdependencies.
-  pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
-  typedef size_t (*key_func_he)(const configuration::Hostescalation&);
-  diff_hostescalations.parse<key_func_he>(*pb_config.mutable_hostescalations(),
-                                          new_cfg.hostescalations(),
-                                          configuration::hostescalation_key);
+  // Build difference for hostescalation.
+  pb_difference<configuration::Hostescalation, configuration::Hostescalation>
+      diff_hostescalations;
+  diff_hostescalations.parse<decltype(identity<Hostescalation>)>(
+      *pb_config.mutable_hostescalations(), new_cfg.hostescalations(),
+      identity<Hostescalation>);
 
-  // Build difference for servicedependencies.
-  pb_difference<configuration::Serviceescalation, size_t>
+  // Build difference for serviceescalation.
+  pb_difference<configuration::Serviceescalation,
+                configuration::Serviceescalation>
       diff_serviceescalations;
-  typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
-  diff_serviceescalations.parse<key_func_se>(
+  diff_serviceescalations.parse<decltype(identity<Serviceescalation>)>(
       *pb_config.mutable_serviceescalations(), new_cfg.serviceescalations(),
-      configuration::serviceescalation_key);
+      identity<Serviceescalation>);
 
   // Timing.
   gettimeofday(tv + 1, nullptr);
@@ -1492,25 +1505,25 @@ void applier::state::_processing(configuration::State& new_cfg,
         pb_config.servicegroups(), err);
 
     // Apply host dependencies.
-    _apply<configuration::Hostdependency, size_t, applier::hostdependency>(
-        diff_hostdependencies, err);
+    _apply<configuration::Hostdependency, configuration::Hostdependency,
+           applier::hostdependency>(diff_hostdependencies, err);
     _resolve<configuration::Hostdependency, applier::hostdependency>(
         pb_config.hostdependencies(), err);
 
     // Apply service dependencies.
-    _apply<configuration::Servicedependency, size_t,
+    _apply<configuration::Servicedependency, configuration::Servicedependency,
            applier::servicedependency>(diff_servicedependencies, err);
     _resolve<configuration::Servicedependency, applier::servicedependency>(
         pb_config.servicedependencies(), err);
 
     // Apply host escalations.
-    _apply<configuration::Hostescalation, size_t, applier::hostescalation>(
-        diff_hostescalations, err);
+    _apply<configuration::Hostescalation, configuration::Hostescalation,
+           applier::hostescalation>(diff_hostescalations, err);
     _resolve<configuration::Hostescalation, applier::hostescalation>(
         pb_config.hostescalations(), err);
 
     // Apply service escalations.
-    _apply<configuration::Serviceescalation, size_t,
+    _apply<configuration::Serviceescalation, configuration::Serviceescalation,
            applier::serviceescalation>(diff_serviceescalations, err);
     _resolve<configuration::Serviceescalation, applier::serviceescalation>(
         pb_config.serviceescalations(), err);

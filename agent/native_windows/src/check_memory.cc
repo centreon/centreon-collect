@@ -195,7 +195,8 @@ void w_memory_info::dump_to_output(std::string* output) const {
 using windows_mem_to_status = measure_to_status<e_memory_metric::nb_metric>;
 
 using mem_to_status_constructor =
-    std::function<std::unique_ptr<windows_mem_to_status>(double /*threshold*/)>;
+    std::function<std::unique_ptr<windows_mem_to_status>(
+        const common::threshold& /*threshold*/)>;
 
 /**
  * @brief status threshold defines
@@ -205,150 +206,150 @@ static const absl::flat_hash_map<std::string_view, mem_to_status_constructor>
     _label_to_mem_to_status = {
         // phys
         {"critical-usage",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::phys_used, threshold,
-               e_memory_metric::phys_total, false, false);
+               e_memory_metric::phys_total, false);
          }},
         {"warning-usage",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::phys_used, threshold,
-               e_memory_metric::phys_total, false, false);
+               e_memory_metric::phys_total, false);
          }},
         {"critical-usage-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::phys_free, threshold,
-               e_memory_metric::phys_total, false, true);
+               e_memory_metric::phys_total, false);
          }},
         {"warning-usage-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::phys_free, threshold,
-               e_memory_metric::phys_total, false, true);
+               e_memory_metric::phys_total, false);
          }},
         {"critical-usage-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::phys_used, threshold / 100,
-               e_memory_metric::phys_total, true, false);
+               e_status::critical, e_memory_metric::phys_used, threshold,
+               e_memory_metric::phys_total, true);
          }},
         {"warning-usage-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::phys_used, threshold / 100,
-               e_memory_metric::phys_total, true, false);
+               e_status::warning, e_memory_metric::phys_used, threshold,
+               e_memory_metric::phys_total, true);
          }},
         {"critical-usage-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::phys_free, threshold / 100,
-               e_memory_metric::phys_total, true, true);
+               e_status::critical, e_memory_metric::phys_free, threshold,
+               e_memory_metric::phys_total, true);
          }},
         {"warning-usage-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::phys_free, threshold / 100,
-               e_memory_metric::phys_total, true, true);
+               e_status::warning, e_memory_metric::phys_free, threshold,
+               e_memory_metric::phys_total, true);
          }},
         // swap
         {"critical-swap",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::swap_used, threshold,
-               e_memory_metric::swap_total, false, false);
+               e_memory_metric::swap_total, false);
          }},
         {"warning-swap",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::swap_used, threshold,
-               e_memory_metric::swap_total, false, false);
+               e_memory_metric::swap_total, false);
          }},
         {"critical-swap-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::swap_free, threshold,
-               e_memory_metric::swap_total, false, true);
+               e_memory_metric::swap_total, false);
          }},
         {"warning-swap-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::swap_free, threshold,
-               e_memory_metric::swap_total, false, true);
+               e_memory_metric::swap_total, false);
          }},
         {"critical-swap-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::swap_used, threshold / 100,
-               e_memory_metric::swap_total, true, false);
+               e_status::critical, e_memory_metric::swap_used, threshold,
+               e_memory_metric::swap_total, true);
          }},
         {"warning-swap-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::swap_used, threshold / 100,
-               e_memory_metric::swap_total, true, false);
+               e_status::warning, e_memory_metric::swap_used, threshold,
+               e_memory_metric::swap_total, true);
          }},
         {"critical-swap-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::swap_free, threshold / 100,
-               e_memory_metric::swap_total, true, true);
+               e_status::critical, e_memory_metric::swap_free, threshold,
+               e_memory_metric::swap_total, true);
          }},
         {"warning-swap-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::swap_free, threshold / 100,
-               e_memory_metric::swap_total, true, true);
+               e_status::warning, e_memory_metric::swap_free, threshold,
+               e_memory_metric::swap_total, true);
          }},
         // virtual memory
         {"critical-virtual",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::virtual_used, threshold,
-               e_memory_metric::virtual_total, false, false);
+               e_memory_metric::virtual_total, false);
          }},
         {"warning-virtual",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::virtual_used, threshold,
-               e_memory_metric::virtual_total, false, false);
+               e_memory_metric::virtual_total, false);
          }},
         {"critical-virtual-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::critical, e_memory_metric::virtual_free, threshold,
-               e_memory_metric::virtual_total, false, true);
+               e_memory_metric::virtual_total, false);
          }},
         {"warning-virtual-free",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
                e_status::warning, e_memory_metric::virtual_free, threshold,
-               e_memory_metric::virtual_total, false, true);
+               e_memory_metric::virtual_total, false);
          }},
         {"critical-virtual-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::virtual_used,
-               threshold / 100, e_memory_metric::virtual_total, true, false);
+               e_status::critical, e_memory_metric::virtual_used, threshold,
+               e_memory_metric::virtual_total, true);
          }},
         {"warning-virtual-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::virtual_used,
-               threshold / 100, e_memory_metric::virtual_total, true, false);
+               e_status::warning, e_memory_metric::virtual_used, threshold,
+               e_memory_metric::virtual_total, true);
          }},
         {"critical-virtual-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::critical, e_memory_metric::virtual_free,
-               threshold / 100, e_memory_metric::virtual_total, true, true);
+               e_status::critical, e_memory_metric::virtual_free, threshold,
+               e_memory_metric::virtual_total, true);
          }},
         {"warning-virtual-free-prct",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<windows_mem_to_status>(
-               e_status::warning, e_memory_metric::virtual_free,
-               threshold / 100, e_memory_metric::virtual_total, true, true);
+               e_status::warning, e_memory_metric::virtual_free, threshold,
+               e_memory_metric::virtual_total, true);
          }}
 
 };
@@ -406,12 +407,20 @@ check_memory::check_memory(const std::shared_ptr<asio::io_context>& io_context,
 
       auto mem_to_status_search = _label_to_mem_to_status.find(key);
       if (mem_to_status_search != _label_to_mem_to_status.end()) {
-        std::optional<double> val =
-            get_double(get_command_name(), member_iter->name.GetString(),
-                       member_iter->value, true);
+        std::optional<std::string> val =
+            get_string(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value);
         if (val) {
+          common::threshold thr(val.value());
+          if (!thr.is_valid()) {
+            SPDLOG_LOGGER_ERROR(logger, "command: {}, invalid threshold: {}",
+                                get_command_name(), val.value());
+            throw exceptions::msg_fmt("command: {}, invalid threshold: {}",
+                                      get_command_name(), val.value());
+          }
+          thr.set_default_low(0);
           std::unique_ptr<windows_mem_to_status> mem_checker =
-              mem_to_status_search->second(*val);
+              mem_to_status_search->second(thr);
           _measure_to_status.emplace(
               std::make_tuple(mem_checker->get_data_index(),
                               mem_checker->get_total_data_index(),
@@ -478,7 +487,7 @@ void check_memory::help(std::ostream& help_stream) {
     virtual (default false): true: add virtual memory to output
     critical-usage: threshold for critical status on physical memory usage in bytes
     warning-usage: threshold for warning status on physyical memory usage in bytes
-    critical-usage-free: threshold for critical status on free physical memory in bytes, if free memory is lower than threshold, service is critical
+    critical-usage-free: threshold for critical status on free physical memory in bytes.
     warning-usage-free: threshold for warning status on free physical memory in bytes
     critical-usage-prct: threshold for critical status on memory usage in percentage
     warning-usage-prct: threshold for warning status on memory usage in percentage
@@ -506,8 +515,8 @@ void check_memory::help(std::ostream& help_stream) {
     "args: {
       "swap": true,
       "virtual": true,
-      "warning-usage-prct": 80,
-      "critical-usage-prct": 90
+      "warning-usage-prct": "80",
+      "critical-usage-prct": "90"
     }
   }
   Examples of output:

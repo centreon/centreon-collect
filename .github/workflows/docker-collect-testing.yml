@@ -25,7 +25,11 @@ on:
       - "resources/*.sql"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
@@ -43,26 +47,35 @@ jobs:
       matrix:
         include:
           - runner: centreon-collect
-            distrib: alma9
-            database: mariadb
-          - runner: centreon-collect
             distrib: alma8
             database: mariadb
           - runner: centreon-collect
             distrib: alma9
-            database: mysql
-            dockerfile: centreon-collect-mysql-alma9-test
-            image: centreon-collect-mysql-alma9-test
+            database: mariadb
+          - runner: centreon-collect
+            distrib: alma10
+            database: mariadb
           - runner: centreon-collect
             distrib: alma8
             database: mysql
             dockerfile: centreon-collect-mysql-alma8-test
             image: centreon-collect-mysql-alma8-test
           - runner: centreon-collect
+            distrib: alma9
+            database: mysql
+            dockerfile: centreon-collect-mysql-alma9-test
+            image: centreon-collect-mysql-alma9-test
+          - runner: centreon-collect
             distrib: bookworm
             database: mariadb
           - runner: centreon-collect-arm64
             distrib: bookworm
+            database: mariadb
+          - runner: centreon-collect
+            distrib: trixie
+            database: mariadb
+          - runner: centreon-collect-arm64
+            distrib: trixie
             database: mariadb
           - runner: centreon-collect
             distrib: bullseye

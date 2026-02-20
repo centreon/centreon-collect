@@ -74,6 +74,15 @@ TIMEOUT = 30
 import_robot_resources()
 
 
+def ctn_get_engine_conf_path(idx: int):
+    """
+    ctn_get_conf_path
+
+    Get CONF_DIR path
+    """
+    return CONF_DIR + f"/config{idx}"
+
+
 class EngineInstance:
     def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
         self.last_service_id = 0
@@ -1159,6 +1168,51 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
         f.writelines(lines)
 
 
+def ctn_engine_config_del_value_in_hosts(idx: int, desc: str, key: str,  file: str = 'hosts.cfg'):
+    """
+    Remove a parameter in the hosts.cfg file of the Engine config idx.
+
+    Args:
+        idx (int): index of the configuration (from 0).
+        desc (str): host name of the host to modify.
+        key (str): the parameter whose value has to change.
+        file (str): The file to modify, default value 'hosts.cfg'.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/{file}"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^\s*host_name\s+{desc}\s*$")
+    rbis = re.compile(rf"^\s*name\s+{desc}\s*$")
+    rkey = re.compile(rf"^\s*{key}\s+[\w\.]+\s*$")
+    found = False
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            while i < len(lines) and lines[i] != "}":
+                if rkey.match(lines[i]):
+                    lines.pop(i)
+                    found = True
+                    break
+                i += 1
+        if found:
+            break
+
+    if not found:
+        for i in range(len(lines)):
+            if rbis.match(lines[i]):
+                while i < len(lines) and lines[i] != "}":
+                    if rkey.match(lines[i]):
+                        lines.pop(i)
+                        found = True
+                        break
+                    i += 1
+            if found:
+                break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
 def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
     Changes the command line of command whose index is command_index in the Engine config idx.
@@ -1536,7 +1590,7 @@ def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: s
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    host_name = re.compile(r"^\s*host_name\s+" + old_host_name + "\s*$")
+    host_name = re.compile(rf"^\s*host_name\s+{old_host_name}\s*$")
 
     for i in range(len(lines)):
         if host_name.match(lines[i]):
@@ -1561,8 +1615,8 @@ def ctn_engine_config_set_host_value(idx: int, host: str, key: str, value: str):
     with open(filename, "r") as f:
         lines = f.readlines()
 
-    key_name = re.compile(r"^\s*" + key)
-    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    key_name = re.compile(fr"^\s*{key}")
+    host_name = re.compile(fr"^\s*host_name\s+{host}\s*$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
     replaced = False
@@ -1752,6 +1806,88 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
             m = 0
         f.write(svc)
     return retval
+
+
+def ctn_remove_service(index: int, host_name: str, service_description: str):
+    """
+    Remove a service on the engine instance index, with the given service_id.
+
+    Args:
+        index (int): Index of the poller configuration (from 0).
+        service_id (int): The service ID of the service to remove.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{host_name}\s*$")
+    service_description_re = re.compile(
+        rf"^\s*service_description\s+{service_description}\s*$")
+    service_begin = re.compile(r"^define service {$")
+    service_end = re.compile(r"^}$")
+    service_begin_idx = 0
+
+    while True:
+        if (service_begin_idx >= len(lines)):
+            break
+        if (service_begin.match(lines[service_begin_idx])):
+            found_host = False
+            found_service = False
+            for service_line_idx in range(service_begin_idx, len(lines)):
+                if (host_name_re.match(lines[service_line_idx])):
+                    found_host = True
+                if (service_description_re.match(lines[service_line_idx])):
+                    found_service = True
+                if found_host and found_service:
+                    for end_service_line in range(service_line_idx, len(lines)):
+                        if service_end.match(lines[end_service_line]):
+                            del lines[service_begin_idx:end_service_line + 1]
+                            break
+                    break
+                elif service_end.match(lines[service_line_idx]):
+                    service_begin_idx = service_line_idx
+                    break
+        else:
+            service_begin_idx = service_begin_idx + 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
+
+def ctn_remove_host(index: int, host_name: str):
+    """
+    Remove a host from the hosts.cfg of the given engine instance.
+
+    Args:
+        index (int): Index of the poller configuration (from 0).
+        host_name (str): The host name to remove.
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{index}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{host_name}\s*$")
+    host_begin = re.compile(r"^\s*define host \{$")
+    host_end = re.compile(r"^\s*\}$")
+    host_begin_idx = 0
+
+    while host_begin_idx < len(lines):
+        if host_begin.match(lines[host_begin_idx]):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if host_name_re.match(lines[host_line_idx]):
+                    for end_line_idx in range(host_line_idx, len(lines)):
+                        if host_end.match(lines[end_line_idx]):
+                            del lines[host_begin_idx:end_line_idx + 1]
+                            break
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx += 1
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def ctn_create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
@@ -3972,8 +4108,7 @@ def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, wit
     if "centreon_agent" in json_load:
         if "reverse_connections" in json_load["centreon_agent"]:
             for obj in json_load["centreon_agent"]["reverse_connections"]:
-                if "encryption" in obj and obj["encryption"] == "full":
-                    obj["token"] = token
+                obj["token"] = token
 
     with open(otl_server_config_path, "w") as f:
         pretty_json = json.dumps(json_load, indent=4)
@@ -4002,21 +4137,20 @@ def ctn_add_token_otl_server_module(idx: int, token: str):
         data = json.load(f)
 
     # Check if "trusted_tokens" already exists
-    if "otel_server" in data and "encryption" in data["otel_server"]:
-        if data["otel_server"]["encryption"] == "full":
-            if "trusted_tokens" in data["otel_server"]:
-                if token not in data["otel_server"]["trusted_tokens"]:
-                    data["otel_server"]["trusted_tokens"].append(token)
+    if "otel_server" in data:
+        if "trusted_tokens" in data["otel_server"]:
+            if token not in data["otel_server"]["trusted_tokens"]:
+                data["otel_server"]["trusted_tokens"].append(token)
+                token_inserted = True
+        else:
+            # Insert trusted_tokens after otel_server
+            new_data = {}
+            for key, value in data.items():
+                new_data[key] = value
+                if key == "otel_server":
+                    new_data[key]["trusted_tokens"] = [token]
                     token_inserted = True
-            else:
-                # Insert trusted_tokens after otel_server
-                new_data = {}
-                for key, value in data.items():
-                    new_data[key] = value
-                    if key == "otel_server":
-                        new_data[key]["trusted_tokens"] = [token]
-                        token_inserted = True
-                data = new_data
+            data = new_data
 
     with open(otl_server_config_path, "w") as f:
         json.dump(data, f, indent=4)
@@ -4616,6 +4750,10 @@ def ctn_engine_config_del_block_in_cfg(idx: int, type: str, key: str, file):
         pattern = rf"define host \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
     elif type == "service":
         pattern = rf"define service \{{\s*host_name\s+{re.escape(key)}\b.*?\}}"
+    elif type == "hostgroup":
+        pattern = rf"define hostgroup \{{\s*hostgroup_id\s+{key}\b.*?\}}"
+    elif type == "servicegroup":
+        pattern = rf"define servicegroup \{{\s*servicegroup_id\s+{key}\b.*?\}}"
 
     # Use re.sub to remove the matched block
     new_content = re.sub(pattern, '', content, flags=re.DOTALL)

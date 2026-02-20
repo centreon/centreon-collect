@@ -44,7 +44,7 @@ constexpr uint32_t calc_accept_all_compression_mask() {
  */
 class grpc_config {
  public:
-  enum e_security_mode { NONE, TLS_INSECURE, TLS_SECURE };
+  enum e_security_mode { NONE, TLS_INSECURE, TLS_SECURE, TLS_SKIP_VERIFY_CA };
 
  private:
   /**
@@ -75,7 +75,7 @@ class grpc_config {
   unsigned _max_message_length;
 
   std::string _token;
-  std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
+  std::shared_ptr<const absl::flat_hash_set<std::string>> _trusted_tokens;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
@@ -101,6 +101,27 @@ class grpc_config {
         _second_max_reconnect_backoff(0),
         _max_message_length(0) {}
 
+  grpc_config(const std::string& hostp, bool crypted, const std::string& token)
+      : _hostport(hostp),
+        _crypted(crypted),
+        _compress(false),
+        _second_keepalive_interval(30),
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0),
+        _token(token) {}
+
+  grpc_config(
+      const std::string& hostp,
+      bool crypted,
+      std::shared_ptr<const absl::flat_hash_set<std::string>> trusted_tokens)
+      : _hostport(hostp),
+        _crypted(crypted),
+        _compress(false),
+        _second_keepalive_interval(30),
+        _second_max_reconnect_backoff(0),
+        _max_message_length(0),
+        _trusted_tokens(std::move(trusted_tokens)) {}
+
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
@@ -121,34 +142,6 @@ class grpc_config {
         _max_message_length(0) {}
 
   // used to construct grpc config for agent
-  grpc_config(const std::string& hostp,
-              e_security_mode security_mode,
-              const std::string& certificate,
-              const std::string& cert_key,
-              const std::string& ca_cert,
-              const std::string& ca_name,
-              bool compression,
-              int second_keepalive_interval,
-              unsigned second_max_reconnect_backoff,
-              unsigned max_message_length,
-              const std::string& token,
-              const absl::flat_hash_set<std::string>& trusted_tokens)
-      : _hostport(hostp),
-        _security_mode(security_mode),
-        _crypted(security_mode != NONE),
-        _certificate(certificate),
-        _cert_key(cert_key),
-        _ca_cert(ca_cert),
-        _ca_name(ca_name),
-        _compress(compression),
-        _second_keepalive_interval(second_keepalive_interval),
-        _second_max_reconnect_backoff(second_max_reconnect_backoff),
-        _max_message_length(max_message_length),
-        _token{token},
-        _trusted_tokens(std::make_shared<absl::flat_hash_set<std::string>>(
-            trusted_tokens)) {}
-
-  // use to construct grpc config for engine
   grpc_config(
       const std::string& hostp,
       e_security_mode security_mode,
@@ -161,7 +154,7 @@ class grpc_config {
       unsigned second_max_reconnect_backoff,
       unsigned max_message_length,
       const std::string& token,
-      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens)
+      std::shared_ptr<const absl::flat_hash_set<std::string>> trusted_tokens)
       : _hostport(hostp),
         _security_mode(security_mode),
         _crypted(security_mode != NONE),
@@ -174,7 +167,7 @@ class grpc_config {
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
         _token(token),
-        _trusted_tokens{trusted_tokens} {}
+        _trusted_tokens(std::move(trusted_tokens)) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
@@ -182,6 +175,9 @@ class grpc_config {
   const std::string& get_cert() const { return _certificate; }
   const std::string& get_key() const { return _cert_key; }
   const std::string& get_ca() const { return _ca_cert; }
+  void set_cert(const std::string_view& new_cert) { _certificate = new_cert; }
+  void set_key(const std::string_view& new_key) { _cert_key = new_key; }
+  void set_ca(const std::string_view& new_ca) { _ca_cert = new_ca; }
   const std::string& get_ca_name() const { return _ca_name; }
   bool is_compressed() const { return _compress; }
   int get_second_keepalive_interval() const {
@@ -195,8 +191,8 @@ class grpc_config {
   unsigned get_max_message_length() const { return _max_message_length; }
 
   const std::string& get_token() const { return _token; }
-  const std::shared_ptr<absl::flat_hash_set<std::string>>&
-  get_trusted_tokens() {
+  const std::shared_ptr<const absl::flat_hash_set<std::string>>&
+  get_trusted_tokens() const {
     return _trusted_tokens;
   }
 

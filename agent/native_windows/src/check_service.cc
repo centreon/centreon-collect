@@ -23,6 +23,7 @@
 #include "windows_util.hh"
 
 using namespace com::centreon::agent;
+using namespace com::centreon;
 using namespace com::centreon::agent::native_check_detail;
 
 namespace com::centreon::agent::native_check_detail {
@@ -45,7 +46,9 @@ service_enumerator::service_enumerator() {
  * @brief Destructor
  */
 service_enumerator::~service_enumerator() {
-  CloseServiceHandle(_sc_manager_handler);
+  if (_sc_manager_handler) {
+    CloseServiceHandle(_sc_manager_handler);
+  }
 }
 
 /**
@@ -56,9 +59,17 @@ void service_enumerator::enumerate_services(
     service_enumerator::listener&& callback,
     const std::shared_ptr<spdlog::logger>& logger) {
   if (filter.use_start_auto_filter()) {
-    _enumerate_services<true>(filter, std::move(callback), logger);
+    if (filter.use_start_auto_delayed()) {
+      _enumerate_services<true, true>(filter, std::move(callback), logger);
+    } else {
+      _enumerate_services<true, false>(filter, std::move(callback), logger);
+    }
   } else {
-    _enumerate_services<false>(filter, std::move(callback), logger);
+    if (filter.use_start_auto_delayed()) {
+      _enumerate_services<false, true>(filter, std::move(callback), logger);
+    } else {
+      _enumerate_services<false, false>(filter, std::move(callback), logger);
+    }
   }
 }
 
@@ -76,11 +87,19 @@ bool service_enumerator::_enumerate_services(serv_array& services,
 
 /**
  * @brief Query the service configuration  (overloaded in tests to do a mock)
+ * @param service_name service name
+ * @param query_flags e_query_service_config_type values
+ * @param buffer buffer used to store QUERY_SERVICE_CONFIGA datas
+ * @param buffer_size in/out sizeof buffer
+ * @param start_delayed out set to true is service is auto start delayed
+ * @param logger
  */
 bool service_enumerator::_query_service_config(
     LPCSTR service_name,
+    unsigned query_flags,
     std::unique_ptr<unsigned char[]>& buffer,
     size_t* buffer_size,
+    BOOL* start_delayed,
     const std::shared_ptr<spdlog::logger>& logger) {
   SC_HANDLE serv_handle =
       OpenService(_sc_manager_handler, service_name, GENERIC_READ);
@@ -89,40 +108,59 @@ bool service_enumerator::_query_service_config(
                         get_last_error_as_string());
     return false;
   }
+  bool success = true;
   DWORD bytes_needed = 0;
-  if (!QueryServiceConfigA(
-          serv_handle, reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
-          *buffer_size, &bytes_needed)) {
-    if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
-      buffer = std::make_unique<unsigned char[]>(bytes_needed);
-      *buffer_size = bytes_needed;
+  if (query_flags & e_query_service_config_type::query_service_config) {
+    if (!QueryServiceConfigA(
+            serv_handle, reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+            *buffer_size, &bytes_needed)) {
+      if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+        buffer = std::make_unique<unsigned char[]>(bytes_needed);
+        *buffer_size = bytes_needed;
 
-      if (!QueryServiceConfigA(
-              serv_handle,
-              reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
-              *buffer_size, &bytes_needed)) {
+        if (!QueryServiceConfigA(
+                serv_handle,
+                reinterpret_cast<QUERY_SERVICE_CONFIGA*>(buffer.get()),
+                *buffer_size, &bytes_needed)) {
+          SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
+                              service_name, GetLastError());
+          success = false;
+        }
+      } else {
         SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
                             service_name, GetLastError());
+        success = false;
       }
-    } else {
-      SPDLOG_LOGGER_ERROR(logger, " fail to query service config {}: {}",
-                          service_name, GetLastError());
     }
-    CloseServiceHandle(serv_handle);
-    return false;
   }
+  if (query_flags &
+      e_query_service_config_type::query_service_start_auto_delayed) {
+    SERVICE_DELAYED_AUTO_START_INFO info;
+    if (!QueryServiceConfig2A(
+            serv_handle, SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
+            reinterpret_cast<LPBYTE>(&info),
+            sizeof(SERVICE_DELAYED_AUTO_START_INFO), &bytes_needed)) {
+      SPDLOG_LOGGER_ERROR(logger, " fail to query service config 2 {}: {}",
+                          service_name, GetLastError());
+      success = false;
+    } else {
+      *start_delayed = info.fDelayedAutostart;
+    }
+  }
+
   CloseServiceHandle(serv_handle);
-  return true;
+  return success;
 }
 
 /**
  * @brief Enumerate services
  * @tparam start_auto if true, start_auto config parameter will be checked
+ * @tparam start_auto_delayed if true, fDelayedAutostart will be checked
  * @param filter service filter
  * @param callback callback to call on each service
  * @param logger logger
  */
-template <bool start_auto>
+template <bool need_start_auto, bool need_start_auto_delayed>
 void service_enumerator::_enumerate_services(
     service_filter& filter,
     service_enumerator::listener&& callback,
@@ -134,48 +172,57 @@ void service_enumerator::_enumerate_services(
   DWORD bytes_needed = 0;
   DWORD services_count = 0;
 
+  std::unique_ptr<unsigned char[]> query_serv_conf_buff;
+  size_t query_serv_conf_buff_size = 0;
+  if constexpr (need_start_auto) {
+    query_serv_conf_buff =
+        std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
+    query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
+  }
+
   while (true) {
     BOOL success = _enumerate_services(services, &services_count);
-    if (success || GetLastError() == ERROR_MORE_DATA) {
+    DWORD error_code = GetLastError();
+    if (success || error_code == ERROR_MORE_DATA) {
       LPENUM_SERVICE_STATUSA services_end = services + services_count;
 
-      if constexpr (start_auto) {
-        std::unique_ptr<unsigned char[]> query_serv_conf_buff =
-            std::make_unique<unsigned char[]>(sizeof(QUERY_SERVICE_CONFIGA));
-        size_t query_serv_conf_buff_size = sizeof(QUERY_SERVICE_CONFIGA);
-        for (LPENUM_SERVICE_STATUS serv = services; serv < services_end;
-             ++serv) {
-          if (!_query_service_config(serv->lpServiceName, query_serv_conf_buff,
-                                     &query_serv_conf_buff_size, logger)) {
-            continue;
-          }
+      for (LPENUM_SERVICE_STATUS serv = services; serv < services_end; ++serv) {
+        DWORD start_type = 0;
+        BOOL start_auto_delayed = FALSE;
 
-          const QUERY_SERVICE_CONFIGA* serv_conf =
-              reinterpret_cast<const QUERY_SERVICE_CONFIGA*>(
-                  query_serv_conf_buff.get());
+        constexpr unsigned query_flags =
+            (need_start_auto ? e_query_service_config_type::query_service_config
+                             : 0) +
+            (need_start_auto_delayed
+                 ? e_query_service_config_type::query_service_start_auto_delayed
+                 : 0);
+        if constexpr (query_flags) {
+          if (!_query_service_config(
+                  serv->lpServiceName, query_flags, query_serv_conf_buff,
+                  &query_serv_conf_buff_size, &start_auto_delayed, logger)) {
+            continue;
+          }
+        }
+        if constexpr (need_start_auto) {
+          start_type = reinterpret_cast<const QUERY_SERVICE_CONFIGA*>(
+                           query_serv_conf_buff.get())
+                           ->dwStartType;
+        }
 
-          bool this_serv_auto_start =
-              serv_conf->dwStartType == SERVICE_AUTO_START ||
-              serv_conf->dwStartType == SERVICE_BOOT_START ||
-              serv_conf->dwStartType == SERVICE_SYSTEM_START;
-          if (!filter.is_allowed(this_serv_auto_start, serv->lpServiceName,
-                                 serv->lpDisplayName)) {
-            continue;
-          }
-          callback(*serv);
+        if (!filter.is_allowed(serv->ServiceStatus.dwServiceType, start_type,
+                               start_auto_delayed, serv->lpServiceName,
+                               serv->lpDisplayName)) {
+          continue;
         }
-      } else {
-        for (LPENUM_SERVICE_STATUS serv = services; serv < services_end;
-             ++serv) {
-          if (!filter.is_allowed(false, serv->lpServiceName,
-                                 serv->lpDisplayName)) {
-            continue;
-          }
-          callback(*serv);
-        }
+        callback(*serv);
       }
     }
-    if (success) {
+    if (!success && error_code != ERROR_MORE_DATA) {
+      SPDLOG_LOGGER_ERROR(logger, " fail to enumerate services {}",
+                          GetLastError());
+      break;
+    }
+    if (success) {  // all services had been returned
       break;
     }
   }
@@ -286,28 +333,22 @@ void w_service_info::dump_to_output(std::string* output) const {
  * @param args JSON value containing the plugin config.
  * @throws exceptions::msg_fmt if any of the filter parameters are invalid.
  */
-service_filter::service_filter(const rapidjson::Value& args) {
+service_filter::service_filter(const rapidjson::Value& args)
+    : _start_auto(0), _service_type(0) {
   if (args.IsObject()) {
+    common::rapidjson_helper arg(args);
     for (auto member_iter = args.MemberBegin(); member_iter != args.MemberEnd();
          ++member_iter) {
       std::string key = absl::AsciiStrToLower(member_iter->name.GetString());
       if (key == "start-auto") {
         const rapidjson::Value& val = member_iter->value;
-        bool str_value;
-        if (val.IsString()) {
-          if (!*val.GetString()) {  // empty => we accept services start-auto or
-                                    // not
-            if (absl::SimpleAtob(val.GetString(), &str_value)) {
-              _start_auto = str_value;
-            } else {
-              throw exceptions::msg_fmt("start-auto must be a boolean");
-            }
-          }
-        } else if (val.IsBool()) {
-          _start_auto = val.GetBool();
-        } else {
-          throw exceptions::msg_fmt("start-auto must be a boolean");
+        if (val.IsString() && !*val.GetString()) {
+          continue;
         }
+        _start_auto = arg.get_bool("start-auto")
+                          ? e_start_auto::auto_start | e_start_auto::boot |
+                                e_start_auto::system
+                          : e_start_auto::demand;
       } else if (key == "filter-name") {
         const rapidjson::Value& val = member_iter->value;
         if (val.IsString()) {
@@ -360,6 +401,67 @@ service_filter::service_filter(const rapidjson::Value& args) {
         } else {
           throw exceptions::msg_fmt("exclude-display must be a string");
         }
+      } else if (key == "start-type") {
+        _start_auto = 0;
+        std::string value = arg.get_string("start-type");
+        if (value.empty()) {
+          continue;
+        }
+        absl::AsciiStrToLower(&value);
+        re2::RE2 value_re(value);
+        if (!value_re.ok()) {
+          throw exceptions::msg_fmt("start-type: {} is not a valid regex",
+                                    value);
+        }
+        using namespace std::literals;
+        constexpr std::array<std::pair<std::string_view, unsigned>, 5>
+            str_to_value = {{{"auto"sv, e_start_auto::auto_start},
+                             {"boot"sv, e_start_auto::boot},
+                             {"demand"sv, e_start_auto::demand},
+                             {"disabled"sv, e_start_auto::disabled},
+                             {"system"sv, e_start_auto::system}}};
+        for (const auto& to_test : str_to_value) {
+          if (RE2::PartialMatch(to_test.first, value_re)) {
+            _start_auto |= to_test.second;
+          }
+        }
+      } else if (key == "delayed") {
+        const rapidjson::Value& val = member_iter->value;
+        if (val.IsString() && !*val.GetString()) {
+          continue;
+        }
+        _start_auto_delayed = arg.get_bool("delayed") ? TRUE : FALSE;
+      } else if (key == "type") {
+        std::string value = arg.get_string("type");
+        if (value.empty()) {
+          continue;
+        }
+        absl::AsciiStrToLower(&value);
+        re2::RE2 value_re(value);
+        if (!value_re.ok()) {
+          throw exceptions::msg_fmt("type: {} is not a valid regex", value);
+        }
+        constexpr std::array<std::pair<std::string_view, unsigned>, 14>
+            str_to_value = {
+                {{"kernel-driver", SERVICE_KERNEL_DRIVER},
+                 {"file-system-driver", SERVICE_FILE_SYSTEM_DRIVER},
+                 {"adapter", SERVICE_ADAPTER},
+                 {"recognized-driver", SERVICE_RECOGNIZER_DRIVER},
+                 {"driver", SERVICE_DRIVER},
+                 {"service-own-process", SERVICE_WIN32_OWN_PROCESS},
+                 {"service-share-process", SERVICE_WIN32_SHARE_PROCESS},
+                 {"service", SERVICE_WIN32},
+                 {"user-service", SERVICE_USER_SERVICE},
+                 {"user-service-instance", SERVICE_USERSERVICE_INSTANCE},
+                 {"user-share-process", SERVICE_USER_SHARE_PROCESS},
+                 {"user-own-process", SERVICE_USER_OWN_PROCESS},
+                 {"interactive-process", SERVICE_INTERACTIVE_PROCESS},
+                 {"pkg-service", SERVICE_PKG_SERVICE}}};
+        for (const auto& to_test : str_to_value) {
+          if (RE2::PartialMatch(to_test.first, value_re)) {
+            _service_type |= to_test.second;
+          }
+        }
       }
     }
   }
@@ -382,9 +484,51 @@ static void remove_accents(std::string* sz) {
  * @param start_auto Whether the service is set to start automatically.
  * @param service_name The name of the service.
  */
-bool service_filter::is_allowed(bool start_auto,
+bool service_filter::is_allowed(DWORD service_type,
+                                DWORD start_type,
+                                BOOL start_auto_delayed,
                                 const std::string_view& service_name,
                                 const std::string_view& service_display) {
+  if (_service_type && !(_service_type & service_type)) {
+    return false;
+  }
+
+  if (_start_auto) {
+    switch (start_type) {
+      case SERVICE_BOOT_START:
+        if (!(_start_auto & e_start_auto::boot)) {
+          return false;
+        }
+        break;
+      case SERVICE_SYSTEM_START:
+        if (!(_start_auto & e_start_auto::system)) {
+          return false;
+        }
+        break;
+      case SERVICE_AUTO_START:
+        if (!(_start_auto & e_start_auto::auto_start)) {
+          return false;
+        }
+        break;
+      case SERVICE_DEMAND_START:
+        if (!(_start_auto & e_start_auto::demand)) {
+          return false;
+        }
+        break;
+      case SERVICE_DISABLED:
+        if (!(_start_auto & e_start_auto::disabled)) {
+          return false;
+        }
+        break;
+      default:
+        break;
+    }
+  }
+  if (_start_auto_delayed &&
+      _start_auto_delayed.value() != start_auto_delayed) {
+    return false;
+  }
+
   std::string lower_service_name(service_name.data(), service_name.length());
   absl::AsciiStrToLower(&lower_service_name);
 
@@ -394,9 +538,6 @@ bool service_filter::is_allowed(bool start_auto,
   // accented characters are not supported by RE2 so we remove them
   remove_accents(&lower_display);
 
-  if (_start_auto && _start_auto.value() != start_auto) {
-    return false;
-  }
   if (_name_cache_excluded.find(lower_service_name) !=
       _name_cache_excluded.end()) {
     return false;
@@ -463,12 +604,12 @@ class w_service_info_to_status
     : public measure_to_status<e_service_metric::nb_service_metric> {
  public:
   w_service_info_to_status()
-      : measure_to_status<e_service_metric::nb_service_metric>(e_status::ok,
-                                                               0,
-                                                               0,
-                                                               0,
-                                                               false,
-                                                               false) {}
+      : measure_to_status<e_service_metric::nb_service_metric>(
+            e_status::ok,
+            0,
+            common::threshold(),
+            0,
+            false) {}
 
   void compute_status(
       const snapshot<e_service_metric::nb_service_metric>& to_test,
@@ -478,7 +619,7 @@ class w_service_info_to_status
     if (serv_status > *status) {
       *status = serv_status;
     }
-  }
+  }  // namespace com::centreon::agent::native_check_detail
 };
 
 }  // namespace com::centreon::agent::native_check_detail
@@ -491,61 +632,61 @@ class w_service_info_to_status
  * we can allow different service states, so we use check_service::state_mask to
  * filter or set status to critical
  */
-const std::array<std::pair<std::string_view, check_service::state_mask>, 7>
-    check_service::_label_state = {
-        std::make_pair("stopped", check_service::state_mask::stopped),
-        std::make_pair("starting", check_service::state_mask::start_pending),
-        std::make_pair("stopping", check_service::state_mask::stop_pending),
-        std::make_pair("running", check_service::state_mask::running),
-        std::make_pair("continuing",
-                       check_service::state_mask::continue_pending),
-        std::make_pair("pausing", check_service::state_mask::pause_pending),
-        std::make_pair("paused", check_service::state_mask::paused)};
+constexpr std::array<std::pair<std::string_view, check_service::state_mask>, 7>
+    _label_state = {
+        {{"stopped", check_service::state_mask::stopped},
+         {"starting", check_service::state_mask::start_pending},
+         {"stopping", check_service::state_mask::stop_pending},
+         {"running", check_service::state_mask::running},
+         {"continuing", check_service::state_mask::continue_pending},
+         {"pausing", check_service::state_mask::pause_pending},
+         {"paused", check_service::state_mask::paused}}};
 
 using w_service_to_status =
     measure_to_status<e_service_metric::nb_service_metric>;
 
 using service_to_status_constructor =
-    std::function<std::unique_ptr<w_service_to_status>(double /*threshold*/)>;
+    std::function<std::unique_ptr<w_service_to_status>(
+        const common::threshold& /*threshold*/)>;
 
 static const absl::flat_hash_map<std::string_view,
                                  service_to_status_constructor>
     _label_to_service_status = {
         {"warning-total-running",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::running, threshold,
-               e_service_metric::nb_service_metric, false, true);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-running",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::running, threshold,
-               e_service_metric::nb_service_metric, false, true);
+               e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-paused",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::paused, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-paused",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::paused, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"warning-total-stopped",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::warning, e_service_metric::stopped, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }},
         {"critical-total-stopped",
-         [](double threshold) {
+         [](const common::threshold& threshold) {
            return std::make_unique<w_service_to_status>(
                e_status::critical, e_service_metric::stopped, threshold,
-               e_service_metric::nb_service_metric, false, false);
+               e_service_metric::nb_service_metric, false);
          }}
 
 };
@@ -633,11 +774,19 @@ check_service::check_service(
     } else {
       auto threshold = _label_to_service_status.find(key);
       if (threshold != _label_to_service_status.end()) {
-        std::optional<double> val =
-            get_double(get_command_name(), member_iter->name.GetString(),
-                       member_iter->value, true);
-        if (val) {
-          std::unique_ptr<w_service_to_status> to_ins = threshold->second(*val);
+        std::optional<std::string> thr_str =
+            get_string(get_command_name(), member_iter->name.GetString(),
+                       member_iter->value);
+        if (thr_str) {
+          common::threshold thr(thr_str.value());
+          if (!thr.is_valid()) {
+            SPDLOG_LOGGER_ERROR(logger, "command: {}, invalid threshold: {}",
+                                get_command_name(), thr_str.value());
+            throw exceptions::msg_fmt("command: {}, invalid threshold: {}",
+                                      get_command_name(), thr_str.value());
+          }
+          thr.set_default_low(0);
+          std::unique_ptr<w_service_to_status> to_ins = threshold->second(thr);
           _measure_to_status.emplace(
               std::make_tuple(to_ins->get_data_index(),
                               e_service_metric::nb_service_metric,
@@ -646,7 +795,8 @@ check_service::check_service(
         }
       } else if (key != "filter-name" && key != "exclude-name" &&
                  key != "filter-display" && key != "exclude-display" &&
-                 key != "start-auto") {
+                 key != "start-auto" && key != "start-type" &&
+                 key != "delayed" && key != "type") {
         SPDLOG_LOGGER_ERROR(logger, "command: {}, unknown parameter: {}",
                             get_command_name(), member_iter->name);
       }
@@ -704,13 +854,35 @@ void check_service::help(std::ostream& help_stream) {
         - pausing
         - paused
     critical-state: regex to match service state that will trigger a critical
-    warning-total-running: running service number threshold below which the service will pass in the warning state
-    critical-total-running: running service number threshold below which the service will pass in the critical state
-    warning-total-paused: number of services in the pause state above which the service goes into the warning state
-    critical-total-paused: number of services in the pause state above which the service goes into the critical state
-    warning-total-stopped: number of services in the stop state above which the service goes into the warning state
-    critical-total-stopped: number of services in the stop state above which the service goes into the critical state
+    warning-total-running: Threshold expression applied to the count of services in the "running" state to trigger a WARNING
+    critical-total-running: Threshold expression applied to the count of services in the "running" state to trigger a CRITICAL
+    warning-total-paused: Threshold expression applied to the count of services in the "paused" state to trigger a WARNING
+    critical-total-paused: Threshold expression applied to the count of services in the "paused" state to trigger a CRITICAL
+    warning-total-stopped: Threshold expression applied to the count of services in the "stopped" state to trigger a WARNING
+    critical-total-stopped: Threshold expression applied to the count of services in the "stopped" state to trigger a CRITICAL
     start-auto: true: only services that start automatically will be counted
+    start-type: more accurate than start-auto. Values are:
+        - auto
+        - boot
+        - demand
+        - disabled
+        - system
+    delayed: true, if you want to filter delayed auto start services, false if you want to filter non delayed auto start services
+    type: service type. Values are:
+        - kernel-driver
+        - file-system-driver
+        - adapter
+        - recognized-driver
+        - driver (include kernel-driver, file-system-driver and recognized-driver)
+        - service-own-process
+        - service-share-process
+        - service (include service-own-process and service-share-process)
+        - user-service
+        - user-service-instance
+        - user-share-process (include user-service and service-share-process)
+        - user-own-process (include user-service and service-own-process)
+        - interactive-process
+        - pkg-service
     filter-name: regex to filter service names
     exclude-name: regex to exclude service names
     filter-display: regex to filter service display names as they appear in service manager
@@ -721,8 +893,8 @@ void check_service::help(std::ostream& help_stream) {
     "args": {
       "warning-state": "stopped",
       "critical-state": "running",
-      "warning-total-running": 20,
-      "critical-total-running": 150,
+      "warning-total-running": "20",
+      "critical-total-running": "150",
       "start-auto": true,
       "filter-name": ".*",
       "exclude-name": ".*"

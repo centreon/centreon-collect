@@ -57,6 +57,14 @@ runs:
           DISTRIB_FAMILY="el9"
           DISTRIB_NAME="alma9"
           REPO_DISTRIB_NAME="el9"
+        elif [[ "${{ inputs.distrib }}" == "alma10" || "${{ inputs.distrib }}" == "el10" ]]; then
+          PACKAGE_DISTRIB_SEPARATOR="."
+          PACKAGE_VERSION_SEPARATOR="-"
+          PACKAGE_DISTRIB_NAME="el10"
+          PACKAGE_EXTENSION="rpm"
+          DISTRIB_FAMILY="el10"
+          DISTRIB_NAME="alma10"
+          REPO_DISTRIB_NAME="el10"
         elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
@@ -73,6 +81,14 @@ runs:
           DISTRIB_FAMILY="debian"
           DISTRIB_NAME="bookworm"
           REPO_DISTRIB_NAME="bookworm"
+        elif [[ "${{ inputs.distrib }}" == "trixie" ]]; then
+          PACKAGE_DISTRIB_SEPARATOR="+"
+          PACKAGE_VERSION_SEPARATOR="_"
+          PACKAGE_DISTRIB_NAME="deb13u1"
+          PACKAGE_EXTENSION="deb"
+          DISTRIB_FAMILY="debian"
+          DISTRIB_NAME="trixie"
+          REPO_DISTRIB_NAME="trixie"
         elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"

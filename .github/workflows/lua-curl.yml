@@ -6,6 +6,12 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      labels:
+        description: "Labels to add to the run (comma separated)"
+        required: false
+        default: ""
+        type: string
   pull_request:
     paths:
       - ".version"
@@ -30,8 +36,14 @@ env:
   release: 21 # 10 for openssl 1.1.1 / 20 for openssl system / 21 for openssl system and possible issue with ~
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
+    with:
+      labels: ${{ inputs.labels || '' }}
 
   package:
     needs: [get-environment]

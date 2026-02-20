@@ -173,6 +173,23 @@ int64_t rapidjson_helper::get_int64_t(const char* field_name) const {
 }
 
 /**
+ * @brief read an int64_t field
+ *
+ * @param field_name
+ * @param default_value value returned if member does not exist
+ * @return const char* field value
+ * @throw msg_fmt if field value is nor a integer nor a
+ * string containing a integer
+ */
+int64_t rapidjson_helper::get_int64_t(const char* field_name,
+                                      int64_t default_value) const {
+  return get_or_default<int64_t>(
+      field_name, "int64_t",
+      [](const rapidjson::Value& val) { return val.IsInt64(); },
+      &rapidjson::Value::GetInt64, &absl::SimpleAtoi<int64_t>, default_value);
+}
+
+/**
  * @brief read a uint32_t field
  *
  * @param field_name
@@ -335,6 +352,26 @@ bool rapidjson_helper::get_bool(const char* field_name,
       field_name, "boolean",
       [](const rapidjson::Value& val) { return val.IsBool(); },
       &rapidjson::Value::GetBool, &absl::SimpleAtob, default_value);
+}
+
+/**
+ * @brief Read a field that can be either a string or an integer and returns it
+ * as a std::string.
+ *
+ * If the field exists and is a string, return it (falling back to
+ * default_string when missing). Otherwise, read the field as an integer
+ * (accepting numeric strings) and format it using std::to_string with
+ * default_int as fallback.
+ */
+std::string rapidjson_helper::get_string_or_int_as_string(
+    const char* field_name,
+    const char* default_string) const {
+  if (has_member(field_name) && get_member(field_name).IsString()) {
+    return get_string(field_name, default_string);
+  } else if (has_member(field_name) && get_member(field_name).IsInt64()) {
+    return std::to_string(get_int64_t(field_name, 0));
+  }
+  return std::string{default_string};
 }
 
 /**

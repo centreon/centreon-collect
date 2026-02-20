@@ -283,24 +283,12 @@ std::shared_ptr<metric_service> metric_service::load(
  * @param conf grpc configuration
  * @param handler handler that will be called on every request
  */
-otl_server::otl_server(
-    const std::shared_ptr<boost::asio::io_context>& io_context,
-    const grpc_config::pointer& conf,
-    const centreon_agent::agent_config::pointer& agent_config,
-    const metric_handler& handler,
-    const std::shared_ptr<spdlog::logger>& logger,
-    const centreon_agent::agent_stat::pointer& agent_stats)
+otl_server::otl_server(const grpc_config::pointer& conf,
+                       const metric_handler& handler,
+                       const std::shared_ptr<spdlog::logger>& logger)
 
     : common::grpc::grpc_server_base(conf, logger),
-      _service(detail::metric_service::load(handler, logger)),
-      _agent_service(
-          centreon_agent::agent_service::load(io_context,
-                                              agent_config,
-                                              handler,
-                                              logger,
-                                              agent_stats,
-                                              conf->is_crypted(),
-                                              conf->get_trusted_tokens())) {}
+      _service(detail::metric_service::load(handler, logger)) {}
 
 /**
  * @brief Destroy the otl server::otl server object
@@ -324,8 +312,24 @@ otl_server::pointer otl_server::load(
     const metric_handler& handler,
     const std::shared_ptr<spdlog::logger>& logger,
     const centreon_agent::agent_stat::pointer& agent_stats) {
-  otl_server::pointer ret(new otl_server(io_context, conf, agent_config,
-                                         handler, logger, agent_stats));
+  otl_server::pointer ret(new otl_server(conf, handler, logger));
+
+  // create token validator that capture weak ptr
+  validator token_validator = [weak_self = ret->weak_from_this()](
+                                  grpc::CallbackServerContext* ctx,
+                                  std::chrono::system_clock::time_point& exp) {
+    if (auto me = weak_self.lock()) {
+      return me->is_token_valid(ctx, exp);
+    }
+    // server was destroyed → safe reject
+    return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                          "Server destroyed");
+  };
+
+  ret->_agent_service = centreon_agent::agent_service::load(
+      io_context, agent_config, handler, logger, agent_stats,
+      conf->is_crypted(), std::move(token_validator));
+
   ret->start();
   return ret;
 }

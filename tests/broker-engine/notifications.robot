@@ -104,6 +104,62 @@ not1
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
+not1_2
+    [Documentation]    Scenario: Service notification command expands contact macros
+    ...    Given a single service 'service_1' is assigned to contact 'John_Doe' with notifications enabled, options (w,c,r), and period 24x7
+    ...    And 'service_1' has check/retry intervals of 1 and max check attempts of 1
+    ...    And contact 'John_Doe' uses notification command 'command_with_macro' with macros
+    ...    When the broker and engine are started and the service is driven to a HARD CRITICAL state
+    ...    Then the service reaches HARD CRITICAL
+    ...    And a service notification is logged for 'service_1' in CRITICAL state using 'command_with_macro'
+    ...    And the processed notification command in logs is "/bin/echo pager address5 " showing macros are expanded
+    [Tags]    broker    engine    services    hosts    notification    MON-192591
+    Ctn Clear Commands Status
+    Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Config Notifications
+    Ctn Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Ctn Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Ctn Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    1
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_with_macro
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_with_macro
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    pager    pager
+    Ctn Engine Config Set Value In Contacts    0    John_Doe    address5    address5
+
+    Ctn Engine Config Add Command    ${0}    command_with_macro   /bin/echo $CONTACTPAGER$ $CONTACTADDRESS5$ $CONTACTADDRESS1$ $CONTACTADDRESS6$   ${None}
+
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${1}
+
+    ${cmd_service_1}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_service_1}    ${2}
+    ## Time to set the service to CRITICAL HARD.
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
+
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_with_macro;
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No notification has been sent concerning a critical service
+
+
+    ## Check for processed notification command
+    ${content}    Create List    Processed notification command: /bin/echo pager address5 
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    Notification command with macros was not processed correctly
+
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
 not1_WL_OK
     [Documentation]    This test case configures a single service. When it is in non-OK HARD state
     ...    a notification is sent because it is allowed by the whitelist

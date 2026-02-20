@@ -12,9 +12,6 @@ dnf install -y dnf-plugins-core
 dnf config-manager --set-enabled crb
 dnf install -y epel-release
 
-#mandatory to install glibc 2.35
-dnf update -y
-
 dnf install --best -y \
     dsniff \
     gcc \

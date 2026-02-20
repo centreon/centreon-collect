@@ -19,7 +19,11 @@ on:
       - "vcpkg.json"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
@@ -40,6 +44,12 @@ jobs:
             distrib: alma8
           - runner: centreon-collect
             distrib: alma9
+          - runner: centreon-collect
+            distrib: alma10
+          - runner: centreon-collect
+            distrib: trixie
+          - runner: centreon-collect-arm64
+            distrib: trixie
           - runner: centreon-collect
             distrib: bookworm
           - runner: centreon-collect-arm64

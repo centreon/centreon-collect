@@ -59,6 +59,11 @@ using namespace com::centreon::agent;
 using namespace com::centreon::engine::modules::opentelemetry;
 using namespace ::opentelemetry::proto::collector::metrics::v1;
 
+#define DEFAULT_TOKEN                                                          \
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."                                      \
+  "eyJpc3MiOiJjZW50cmVvbjY2MjQxIiwiaWF0IjoxNzQ0MDk3MDgxLCJleHAiOjkyMjMzNzIwMz" \
+  "V9.QkrT77i211-CvXoXqaBxRMzxajzA3-DK-DGVrbvJWA8"
+
 class agent_to_engine_test : public TestEngine {
  protected:
   std::shared_ptr<otl_server> _server;
@@ -86,8 +91,8 @@ class agent_to_engine_test : public TestEngine {
 
   void SetUp() override {
     spdlog::default_logger()->set_level(spdlog::level::trace);
-    ::fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                          ExportMetricsServiceRequest>::json_grpc_format = true;
+    ::fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
+                         ExportMetricsServiceRequest>::json_grpc_format = true;
     timeperiod::timeperiods.clear();
     contact::contacts.clear();
     host::hosts.clear();
@@ -285,8 +290,10 @@ bool compare_to_expected_serv_metric(
 }
 
 TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
-  grpc_config::pointer listen_endpoint =
-      std::make_shared<grpc_config>("127.0.0.1:4623", false);
+  grpc_config::pointer listener_cnf_server = std::make_shared<grpc_config>(
+      "127.0.0.1:4623", false,
+      std::make_shared<const absl::flat_hash_set<std::string>>(
+          absl::flat_hash_set<std::string>{DEFAULT_TOKEN}));
 
   ::credentials_decrypt.reset();
   absl::Mutex mut;
@@ -296,7 +303,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
 
   auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 5);
 
-  start_server(listen_endpoint, agent_conf,
+  start_server(listener_cnf_server, agent_conf,
                [&](const metric_request_ptr& metric) {
                  absl::MutexLock l(&mut);
                  received.push_back(metric);
@@ -305,10 +312,12 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
                    resource_metrics.push_back(&res_metric);
                  }
                });
+  grpc_config::pointer listener_cnf_agent =
+      std::make_shared<grpc_config>("127.0.0.1:4623", false, DEFAULT_TOKEN);
 
-  auto agent_client =
-      streaming_client::load(_agent_io_context, spdlog::default_logger(),
-                             listen_endpoint, "test_host");
+  auto agent_client = streaming_client::load(
+      _agent_io_context, spdlog::default_logger(), listener_cnf_agent,
+      "test_host", "test_host_template");
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   command_manager::instance().execute();
@@ -350,8 +359,10 @@ extern std::unique_ptr<com::centreon::common::crypto::aes256>
 TEST_F(
     agent_to_engine_test,
     server_send_no_encrypted_conf_on_no_crypted_connection_to_agent_and_receive_metrics) {
-  grpc_config::pointer listen_endpoint =
-      std::make_shared<grpc_config>("127.0.0.1:4623", false);
+  grpc_config::pointer listener_cnf_server = std::make_shared<grpc_config>(
+      "127.0.0.1:4623", false,
+      std::make_shared<const absl::flat_hash_set<std::string>>(
+          absl::flat_hash_set<std::string>{DEFAULT_TOKEN}));
 
   ::credentials_decrypt =
       std::make_unique<com::centreon::common::crypto::aes256>(
@@ -368,9 +379,12 @@ TEST_F(
   std::vector<const opentelemetry::proto::metrics::v1::ResourceMetrics*>
       resource_metrics;
 
+  grpc_config::pointer listener_cnf_agent =
+      std::make_shared<grpc_config>("127.0.0.1:4623", false, DEFAULT_TOKEN);
+
   auto agent_conf = std::make_shared<centreon_agent::agent_config>(1, 10, 5);
 
-  start_server(listen_endpoint, agent_conf,
+  start_server(listener_cnf_server, agent_conf,
                [&](const metric_request_ptr& metric) {
                  absl::MutexLock l(&mut);
                  received.push_back(metric);
@@ -380,9 +394,9 @@ TEST_F(
                  }
                });
 
-  auto agent_client =
-      streaming_client::load(_agent_io_context, spdlog::default_logger(),
-                             listen_endpoint, "test_host");
+  auto agent_client = streaming_client::load(
+      _agent_io_context, spdlog::default_logger(), listener_cnf_agent,
+      "test_host", "test_host_template");
 
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   command_manager::instance().execute();

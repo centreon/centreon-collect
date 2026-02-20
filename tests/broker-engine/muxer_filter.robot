@@ -33,7 +33,7 @@ NO_FILTER_NO_ERROR
 
 
 STUPID_FILTER
-    [Documentation]    Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
+    [Documentation]    Unified SQL is configured with only the bbdo category as filter. Broker should run correctly.
     [Tags]    broker    engine    filter
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    central
@@ -43,16 +43,21 @@ STUPID_FILTER
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    1
     Ctn Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
-    Ctn Clear Broker Logs
+    Ctn Set Services Passive       ${0}    service_1
+    Ctn Clear Db    resources
 
-    ${start}    Get Current Date
     Ctn Start Broker    True
+    ${start}    Ctn Get Round Current Date
     Ctn Start Engine
 
-    ${content}    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' contain forbidden filters. These ones are removed
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling bad filter should be available.
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Ctn Process Service Check Result     host_1      service_1      0     OK
+
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    60     ${start}    0    HARD     OK
+    Should Be True    ${result}    resources table not updated
 
 STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.

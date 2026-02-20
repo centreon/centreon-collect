@@ -30,7 +30,11 @@ on:
           - onprem
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   check-inputs:
+    needs: [dependency-scan]
     if: ${{ github.repository == 'centreon/centreon-collect' }}
     runs-on: ubuntu-24.04
     steps:
@@ -46,6 +50,20 @@ jobs:
             exit 1
           else
             echo "Inputs are not empty."
+          fi
+        shell: bash
+      - name: Check release branch and release type inputs coherence
+        run: |
+          # Extract release branch prefix
+          RELEASE_BRANCH="${{ inputs.release_branch }}"
+          RELEASE_BRANCH_PREFIX="${RELEASE_BRANCH%%-*}"
+
+          echo "Checking inputs coherence against $RELEASE_BRANCH <> ${{ inputs.release_branch }}..."
+          if [[ "$RELEASE_BRANCH_PREFIX" == "${{ inputs.release_type }}" ]]; then
+            echo "Inputs are ok, continue."
+          else
+            echo "Inputs are NOT ok, exiting."
+            exit 1
           fi
         shell: bash
       - name: Check if release or hotfix branch exists
@@ -121,8 +139,8 @@ jobs:
         with:
           github_ref_name: ${{ github.ref_name }}
           jira_project_id: ${{ secrets.JIRA_PROJECT_ID }}
-          jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
-          jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
+          jira_user_email: ${{ secrets.JIRA_RELEASE_USER }}
+          jira_api_token: ${{ secrets.JIRA_RELEASE_TOKEN }}
           jira_base_url: ${{ secrets.JIRA_BASE_URL }}
           release_number: ${{ inputs.release_number }}
           release_type: ${{ inputs.release_type }}

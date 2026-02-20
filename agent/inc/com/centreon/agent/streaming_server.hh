@@ -37,9 +37,14 @@ class server_reactor;
 class streaming_server : public common::grpc::grpc_server_base,
                          public std::enable_shared_from_this<streaming_server>,
                          public ReversedAgentService::Service {
-  std::shared_ptr<boost::asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
+  using validator =
+      std::function<::grpc::Status(::grpc::CallbackServerContext*,
+                                   std::chrono::system_clock::time_point&)>;
+
+  const std::shared_ptr<boost::asio::io_context> _io_context;
+  const std::shared_ptr<spdlog::logger> _logger;
   const std::string _supervised_host;
+  const std::string _host_template;
 
   /** active engine to agent connection*/
   std::shared_ptr<server_reactor> _incoming;
@@ -56,7 +61,8 @@ class streaming_server : public common::grpc::grpc_server_base,
   streaming_server(const std::shared_ptr<boost::asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
                    const std::shared_ptr<common::grpc::grpc_config>& conf,
-                   const std::string& supervised_host);
+                   const std::string& supervised_host,
+                   const std::string& host_template);
 
   ~streaming_server();
 
@@ -64,12 +70,31 @@ class streaming_server : public common::grpc::grpc_server_base,
       const std::shared_ptr<boost::asio::io_context>& io_context,
       const std::shared_ptr<spdlog::logger>& logger,
       const std::shared_ptr<common::grpc::grpc_config>& conf,
-      const std::string& supervised_host);
+      const std::string& supervised_host,
+      const std::string& host_template);
 
   ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>* Import(
       ::grpc::CallbackServerContext* context);
 
   void shutdown();
+};
+
+/*
+ * // A trivial reactor that finishes immediately with a given Status.
+ */
+class ImmediateFinishReactor
+    : public ::grpc::ServerBidiReactor<com::centreon::agent::MessageToAgent,
+                                       com::centreon::agent::MessageFromAgent> {
+ public:
+  // Constructor calls Finish(...) right away.
+  explicit ImmediateFinishReactor(const ::grpc::Status& status) {
+    Finish(status);
+  }
+
+  void OnDone() override {
+    // This reactor is now done. Typically just delete this instance.
+    delete this;
+  }
 };
 
 }  // namespace com::centreon::agent

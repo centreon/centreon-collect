@@ -1033,6 +1033,40 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
+    """
+    Configure broker to add an event_script output. If some old event_script
+    outputs exist, they are removed.
+    Args:
+        allowed_event (str): event added in filter
+
+    """
+    import os
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "event_script":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "event_script",
+        "type": "event_script",
+        "script_path": script_path,
+        "timeout": "30",
+        "managed_event_ttl": "3600",
+        "filters": {
+            "event": [
+                allowed_event
+            ]
+        }
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_add_item(name, key, value):
     """
     Add an item to the broker configuration
@@ -1674,7 +1708,7 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
         line_search = re.compile(
-            f"{escaped_key}\s*=\s*{value}")
+            rf"{escaped_key}\s*=\s*{value}")
         for line in res.splitlines():
             if (line_search.match(line)):
                 return True
@@ -3255,3 +3289,34 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
+
+
+def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
+    """
+    Check lines as 1770991869 lua write error
+    We check that first field (timestamp) obey to the failover increase interval law
+
+    :param lua_log_lines: lines given by grep
+    :param max_retry_delay: max_retry_delay configured in broker output
+    """
+    last_timestamp = 0
+    last_interval = 1
+
+    timestamp_search = re.compile(r"(\d+).*")
+    for line in lua_log_lines:
+        extract = timestamp_search.search(line)
+        if extract is not None:
+            new_ts = int(extract.group(1))
+        if last_timestamp == 0:
+            last_timestamp = new_ts
+        else:
+            if new_ts != last_timestamp + last_interval:
+                logger.console.log(
+                    f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
+                return False
+            else:
+                last_timestamp = new_ts
+                last_interval = last_interval * 2
+                if last_interval > max_retry_delay:
+                    last_interval = max_retry_delay
+    return True

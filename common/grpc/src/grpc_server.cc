@@ -35,8 +35,53 @@ grpc_server_base::grpc_server_base(
     const std::shared_ptr<spdlog::logger>& logger)
     : _conf(conf), _logger(logger) {}
 
-void grpc_server_base::_init(const builder_option& options,
-                             bool with_auth_process) {
+::grpc::Status grpc_server_base::is_token_valid(
+    ::grpc::CallbackServerContext* context,
+    std::chrono::system_clock::time_point& exp_time) {
+  // Grab *all* "authorization" metadata values (often just one).
+  auto metadata = context->client_metadata();
+  if (!metadata.empty()) {
+    auto auth_md = metadata.find("authorization");
+    if (auth_md != metadata.end()) {
+      std::string auth_header(auth_md->second.data(), auth_md->second.size());
+      SPDLOG_LOGGER_INFO(_logger, "Token found in Metadata");
+      try {
+        common::crypto::jwt jwt(auth_header);
+        if (jwt.get_exp() < std::chrono::system_clock::now()) {
+          SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED : Token expired");
+          return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                                "Token expired");
+        }
+        // check if token is trusted by the service
+        if (_conf->get_trusted_tokens()->find(jwt.get_string()) ==
+            _conf->get_trusted_tokens()->end()) {
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "UNAUTHENTICATED : Token is not trusted");
+          return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                                "Token not trusted");
+        }
+
+        SPDLOG_LOGGER_INFO(_logger, "Token is valid");
+        exp_time = jwt.get_exp();
+      } catch (const exceptions::msg_fmt& ex) {
+        SPDLOG_LOGGER_ERROR(_logger, "Error: {}", ex.what());
+        return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED, ex.what());
+      }
+    } else {
+      SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED: No authorization header");
+      return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                            "Missing authorization");
+    }
+  } else {
+    SPDLOG_LOGGER_ERROR(_logger, "UNAUTHENTICATED: No authorization header");
+    return ::grpc::Status(::grpc::StatusCode::UNAUTHENTICATED,
+                          "Missing authorization");
+  }
+  // if we reach here, the token is valid
+  return ::grpc::Status::OK;
+};
+
+void grpc_server_base::_init(const builder_option& options) {
   ::grpc::ServerBuilder builder;
 
   std::shared_ptr<::grpc::ServerCredentials> server_creds;
@@ -61,9 +106,6 @@ void grpc_server_base::_init(const builder_option& options,
     ssl_opts.pem_key_cert_pairs.push_back(pkcp);
 
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
-    if (with_auth_process)
-      server_creds->SetAuthMetadataProcessor(
-          std::make_shared<Authprocess>(_conf->get_trusted_tokens(), _logger));
   } else {
     SPDLOG_LOGGER_INFO(_logger, "unencrypted server listening on {}",
                        _conf->get_hostport());

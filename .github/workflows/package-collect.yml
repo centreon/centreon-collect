@@ -52,11 +52,13 @@ on:
         required: false
         type: boolean
         default: false
+      aws_role_arn:
+        required: true
+        type: string
+      aws_web_identity_token_file:
+        required: true
+        type: string
     secrets:
-      collect_s3_access_key:
-        required: true
-      collect_s3_secret_key:
-        required: true
       registry_username:
         required: true
       registry_password:
@@ -81,8 +83,6 @@ jobs:
       SCCACHE_PATH: "/usr/bin/sccache"
       SCCACHE_BUCKET: "centreon-github-sccache"
       SCCACHE_REGION: "eu-west-1"
-      AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
       ONLY_ROBOT_CMA: ${{ inputs.only_robot_cma && 'ON' || 'OFF' }}
 
     container:
@@ -90,7 +90,12 @@ jobs:
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
-      options: --cpus 8
+      options: --cpus 4
+      env:
+        AWS_WEB_IDENTITY_TOKEN_FILE: ${{ inputs.aws_web_identity_token_file }}
+        AWS_ROLE_ARN: ${{ inputs.aws_role_arn }}
+      volumes:
+        - ${{ inputs.aws_web_identity_token_file }}:${{ inputs.aws_web_identity_token_file }}
 
     name: package
 

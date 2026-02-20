@@ -21,7 +21,11 @@ on:
       - ".github/workflows/docker-gorgone-testing.yml"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
 
@@ -34,6 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     strategy:
+      fail-fast: false
       matrix:
         distrib: [alma8, alma9, bookworm] # No ubuntu in 24.10, 24.11 or later for now
     steps:
@@ -63,6 +68,8 @@ jobs:
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "NODE_VERSION=24"
+            "PNPM_VERSION=10.24.0"
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-dependencies-${{ matrix.distrib }}:${{ needs.get-environment.outputs.stability == 'unstable' && needs.get-environment.outputs.major_version || github.head_ref || github.ref_name }}

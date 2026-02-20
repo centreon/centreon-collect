@@ -158,7 +158,6 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-common
       - centreon-perl-libs-common
       - bzip2
       - initscripts
@@ -198,12 +197,12 @@ overrides:
       - perl(lib)
       - perl(Safe)
       - perl(Tie::File) # required by MBI module
+      - perl(DateTime::Format::Strptime)
     recommends:
       - logrotate
 
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
-      - centreon-common
       - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl
@@ -234,6 +233,7 @@ overrides:
       - libzmq-ffi-perl
       - libclone-choose-perl
       - libjson-perl # gorgone_key_thumbprint.pl needs the json module, even when json::xs is already installed
+      - libdatetime-format-strptime-perl # autodiscovery uses it to retry job scheduling
       - librrds-perl
       - perl-base
       - perl-modules

@@ -67,6 +67,8 @@
 #define BOOST_DATE_TIME_NO_LIB 1
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index_container.hpp>
 
 #include <fmt/ranges.h>
 #include <spdlog/fmt/ostr.h>

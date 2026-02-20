@@ -193,15 +193,21 @@ void applier::hostdependency::remove_object(ssize_t idx) {
   config_logger->debug("Removing a host dependency.");
 
   // Find host dependency.
-  auto& obj = pb_config.hostdependencies(0);
+  auto& obj = pb_config.hostdependencies(idx);
   size_t key = hostdependency_key(obj);
 
-  hostdependency_mmap::iterator it =
-      engine::hostdependency::hostdependencies_find(
-          {obj.dependent_hosts().data(0), key});
-  if (it != engine::hostdependency::hostdependencies.end()) {
-    // Remove host dependency from its list.
-    engine::hostdependency::hostdependencies.erase(it);
+  auto to_remove = engine::hostdependency::hostdependencies.equal_range(
+      obj.dependent_hosts().data(0));
+
+  for (; to_remove.first != to_remove.second;) {
+    if (to_remove.first->second->internal_key() == key) {
+      auto to_delete = to_remove.first;
+      ++to_remove.first;
+      // Remove host dependency from its list.
+      engine::hostdependency::hostdependencies.erase(to_delete);
+    } else {
+      ++to_remove.first;
+    }
   }
 
   // Remove dependency from the global configuration set.
@@ -222,12 +228,16 @@ void applier::hostdependency::resolve_object(
   // Find host escalation
   auto k = hostdependency_key(obj);
 
-  auto it = engine::hostdependency::hostdependencies_find(
-      {obj.dependent_hosts().data(0), k});
+  auto to_resolve = engine::hostdependency::hostdependencies.equal_range(
+      obj.dependent_hosts().data(0));
 
-  if (engine::hostdependency::hostdependencies.end() == it)
+  if (to_resolve.first == to_resolve.second) {
     throw engine_error() << "Cannot resolve non-existing host escalation";
-
-  // Resolve host dependency.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  }
+  for (; to_resolve.first != to_resolve.second; ++to_resolve.first) {
+    // Resolve host dependency.
+    if (to_resolve.first->second->internal_key() == k) {
+      to_resolve.first->second->resolve(err.config_warnings, err.config_errors);
+    }
+  }
 }

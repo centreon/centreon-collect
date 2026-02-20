@@ -77,17 +77,17 @@ var
   AgentInstanceLabel: TNewStaticText;
   AgentInstanceComboBox: TNewComboBox;
 
-  HostLabel, PollerLabel: TNewStaticText;
-  HostNameEdit, PollerEndpointEdit: TNewEdit;
+  HostLabel, HostTemplateLabel, PollerLabel: TNewStaticText;
+  HostNameEdit, HostTemplateEdit, PollerEndpointEdit: TNewEdit;
   PollerInitiatedCheckBox: TNewCheckBox;
-  HostInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
+  HostInfoBitmapImage, HostTemplateInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
   HostWarningBitmapImage, PollerWarningBitmapImage:TBitmapImage;
   
-  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel: TNewStaticText;
-  LogFileEdit, MaxFileEdit, MaxNumberEdit: TNewEdit;
+  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel, CustomCheckLabel: TNewStaticText;
+  LogFileEdit, MaxFileEdit, MaxNumberEdit, CustomCheckEdit: TNewEdit;
   MaxFileInfoBitmapImage, MaxNumberInfoBitmapImage:TBitmapImage;
   LogTypeComboBox, LogLeveLComboBox:TNewComboBox;
-  LogFileBrowseButton : TButton;
+  LogFileBrowseButton, CustomCheckBrowseButton : TButton;
   LogFileWarningBitmapImage:TBitmapImage;
 // ─────────────────────────────────────────────
 // Widget for Encryption
@@ -110,6 +110,8 @@ procedure BitmapImageOnClick(Sender: TObject);
 begin
   if Sender = HostInfoBitmapImage then
     MsgBox('The name of the host as defined in the Centreon interface.', mbInformation, MB_OK)
+  else if Sender = HostTemplateInfoBitmapImage then
+    MsgBox('The host template applied to the host in Centreon.', mbInformation, MB_OK)
   else if Sender = PollerInfoBitmapImage then begin
     if PollerInitiatedCheckBox.Checked then
       MsgBox('Interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.', mbInformation, MB_OK)
@@ -197,6 +199,17 @@ begin
   end;
 end;
 
+// Opens a file picker for selecting 
+procedure CheckFileBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select custom check file', Path, '','All Files (*.*)|*.*|INI Files (*.ini)|*.ini|TXT Files (*.txt)|*.txt', 'txt')) then
+  begin
+     CustomCheckEdit.Text:= Path;
+  end;
+end;
+
 //Allows only digits and backspace in the input; shows an error message for invalid characters and cancels the keystroke.
 procedure NumbersOnlyKeyPress(Sender: TObject; var Key: Char);
 begin
@@ -235,8 +248,6 @@ begin
   CommonNameEdit.Hide;
   CommonNameInfoBitmapImage.Hide;
 
-  TokenLabel.Hide;
-  TokenEdit.Hide;
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
@@ -255,8 +266,6 @@ begin
       PrivateKeyBrowseButton.Show;
       PrivateKeyInfoBitmapImage.Show;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end
     else
@@ -273,8 +282,6 @@ begin
           CommonNameInfoBitmapImage.Show;
         end;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end;
   end
@@ -508,6 +515,11 @@ begin
   else
     HostNameEdit.Text := GetWindowsHostName;
 
+  if RegQueryStringValue(RootKey, BaseKey, 'host_template', StrValue) then
+    HostTemplateEdit.Text := StrValue
+  else
+    HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
   if RegQueryStringValue(RootKey, BaseKey, 'endpoint', StrValue) then
     PollerEndpointEdit.Text := StrValue;
 
@@ -516,6 +528,9 @@ begin
 
   if RegQueryStringValue(RootKey, BaseKey, 'log_level', StrValue) then
     LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf(StrValue);
+
+  if RegQueryStringValue(RootKey, BaseKey, 'custom_check_file', StrValue) then
+    CustomCheckEdit.Text := StrValue;
 
   if RegQueryStringValue(RootKey, BaseKey, 'log_type', StrValue) then
     LogTypeComboBox.ItemIndex := LogTypeComboBox.Items.IndexOf(StrValue);
@@ -571,8 +586,10 @@ begin
 
   // Strings
   RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'host_template', HostTemplateEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'endpoint', PollerEndpointEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_file', LogFileEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'custom_check_file', CustomCheckEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_level', LowerCase(LogLeveLComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'log_type', LowerCase(LogTypeComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'public_cert', PublicCertEdit.Text);
@@ -626,14 +643,23 @@ end;
 // Handles log type, log level, encryption, and certificate settings.
 // Only executes if installer is running in silent mode.
 procedure LoadSilentParameters;
+var
+  AgentInstanceParam: string;
 begin
   if not IsSilentMode then Exit;
 
   // the parameter is already checked in CheckSilentParameterValidity before calling this function
-  AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(ExpandConstant('{param:agentinstance|}'));
+  AgentInstanceParam := ExpandConstant('{param:agentinstance|}');
+  if AgentInstanceParam <> '' then
+    AgentInstanceComboBox.ItemIndex := AgentInstanceComboBox.Items.IndexOf(AgentInstanceParam)
+  else
+    AgentInstanceComboBox.ItemIndex := 0;
 
+  ReadAgentRegistryValues(AgentInstanceComboBox.Text);
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
+  if ExpandConstant('{param:hosttemplate|}') <> '' then
+    HostTemplateEdit.Text := ExpandConstant('{param:hosttemplate|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
     PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
 
@@ -660,6 +686,8 @@ begin
     end;
   end;
 
+  if ExpandConstant('{param:customcheckfile|}') <> '' then
+    CustomCheckEdit.Text := ExpandConstant('{param:customcheckfile|}');
   if ExpandConstant('{param:logfile|}') <> '' then
     LogFileEdit.Text := ExpandConstant('{param:logfile|}');
   if ExpandConstant('{param:maxfilesize|}') <> '' then
@@ -788,12 +816,6 @@ begin
         end;
     end;
      
-    if ExpandConstant('{param:token|}') = '' then
-    begin
-      LogToStdOutFile('Missing /TOKEN when /ENCRYPTION=full/insecure');
-      Result := False;
-      Exit;
-    end;
   end;
 
   Pluginsrc_p := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
@@ -830,8 +852,8 @@ Index : Integer;
 begin
 
 // ── Wizard config
-  WizardForm.ClientWidth := 460;
-  WizardForm.ClientHeight := 400;
+  WizardForm.ClientWidth := 630;
+  WizardForm.ClientHeight := 570;
 
 // ── Load resources 
   ExtractTemporaryFile('info_icon.bmp');
@@ -902,11 +924,37 @@ begin
   HostWarningBitmapImage.ShowHint := True;
   HostWarningBitmapImage.Hide;
 
+  // ──── Host Template
+
+  HostTemplateLabel := TNewStaticText.Create(ConfigPage);
+  HostTemplateLabel.Parent := ConfigPage.Surface;
+  HostTemplateLabel.Top := HostLabel.Top + ScaleY(30);
+  HostTemplateLabel.Caption := 'Host template:';
+
+  HostTemplateEdit := TNewEdit.Create(ConfigPage);
+  HostTemplateEdit.Parent := ConfigPage.Surface;
+  HostTemplateEdit.Top := HostTemplateLabel.Top - ScaleY(3);
+  HostTemplateEdit.Left := HostNameEdit.Left;
+  HostTemplateEdit.Width := ConfigPage.SurfaceWidth div 2;
+  HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
+  HostTemplateInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  HostTemplateInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  HostTemplateInfoBitmapImage.Parent := ConfigPage.Surface;
+  HostTemplateInfoBitmapImage.Top := HostTemplateLabel.Top- ScaleY(3);
+  HostTemplateInfoBitmapImage.Left := HostTemplateEdit.Left + HostTemplateEdit.Width + ScaleX(4);
+  HostTemplateInfoBitmapImage.Center := True;
+  HostTemplateInfoBitmapImage.Width := 24;
+  HostTemplateInfoBitmapImage.Height := 24;
+  HostTemplateInfoBitmapImage.Stretch := True;
+  HostTemplateInfoBitmapImage.Cursor := crHand;
+  HostTemplateInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
   // ──── Poller Endpoint
 
   PollerLabel := TNewStaticText.Create(ConfigPage);
   PollerLabel.Parent := ConfigPage.Surface;
-  PollerLabel.Top := HostLabel.Top + ScaleY(30);
+  PollerLabel.Top := HostTemplateLabel.Top + ScaleY(30);
   PollerLabel.Caption := 'Poller endpoint:';
 
   PollerEndpointEdit := TNewEdit.Create(ConfigPage);
@@ -963,16 +1011,40 @@ begin
   PollerInitiatedInfoBitmapImage.Cursor := crHand;
   PollerInitiatedInfoBitmapImage.OnClick := @BitmapImageOnClick;
 
+    // ──── CustomCheck
+  
+  CustomCheckLabel := TNewStaticText.Create(ConfigPage);
+  CustomCheckLabel.Parent := ConfigPage.Surface;
+  CustomCheckLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  CustomCheckLabel.Caption := 'Custom check file:';
+
+  CustomCheckEdit := TNewEdit.Create(ConfigPage);
+  CustomCheckEdit.Parent := ConfigPage.Surface;
+  CustomCheckEdit.Top := CustomCheckLabel.Top - ScaleY(3);
+  CustomCheckEdit.Left := HostNameEdit.Left;
+  CustomCheckEdit.Width := ConfigPage.SurfaceWidth div 2;
+  CustomCheckEdit.Text := '';
+
+  CustomCheckBrowseButton := TButton.Create(ConfigPage);
+  CustomCheckBrowseButton.Parent := ConfigPage.Surface;
+  CustomCheckBrowseButton.Caption := '...';
+  CustomCheckBrowseButton.Left := CustomCheckEdit.Left + CustomCheckEdit.Width + ScaleX(4) ;
+  CustomCheckBrowseButton.Top := CustomCheckEdit.Top - ScaleY(1);
+  CustomCheckBrowseButton.Width := 35;
+  CustomCheckBrowseButton.Height := CustomCheckEdit.Height + ScaleY(2);
+  CustomCheckBrowseButton.OnClick := @CheckFileBrowseFile;
+
+
   // ──── Log type
 
   LogTypeLabel := TNewStaticText.Create(ConfigPage);
   LogTypeLabel.Parent := ConfigPage.Surface;
-  LogTypeLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  LogTypeLabel.Top := CustomCheckLabel.Top + ScaleY(30);
   LogTypeLabel.Caption := 'Log type:';
 
   LogTypeComboBox := TNewComboBox.Create(ConfigPage);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth;
-  LogTypeComboBox.top := PollerInitiatedCheckBox.Top + ScaleY(27);
+  LogTypeComboBox.top := CustomCheckLabel.Top + ScaleY(27);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth div 2;
   LogTypeComboBox.Left := HostNameEdit.Left;
   LogTypeComboBox.Parent := ConfigPage.Surface;
@@ -1134,7 +1206,7 @@ begin
   TokenLabel.Parent := EncryptionPage.Surface;
   TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
   TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
+
 
   TokenEdit := TNewEdit.Create(EncryptionPage);
   TokenEdit.Parent := EncryptionPage.Surface;
@@ -1142,7 +1214,7 @@ begin
   TokenEdit.Left := HostNameEdit.Left;
   TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
   TokenEdit.Text := '';
-  TokenEdit.Hide;
+
 
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1360,8 +1432,20 @@ begin
   LoadSilentParameters;
 
   // apply the change to ui
-  OnLogTypeChange(LogTypeComboBox);
+  if not IsSilentMode then
+  begin
+    OnServiceChange(AgentInstanceComboBox);
+  end;
+  
+end;
 
+// Keep a taller height only while the ConfigPage is active.
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = ConfigPage.ID then
+    WizardForm.ClientHeight := 600
+  else
+    WizardForm.ClientHeight := 570;
 end;
 
 { ────────────────────────────────────────────────────────────────────── }
@@ -1460,13 +1544,13 @@ begin
           exit;
         end;
       end;
-      if TokenEdit.Text = '' then begin
+    end;
+    if TokenEdit.Text = '' then begin
         TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
         exit;
-      end;
     end;
     Result := True;
   end

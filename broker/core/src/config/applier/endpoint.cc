@@ -198,25 +198,32 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
       } else {
         // Create muxer and endpoint.
 
-        /* Are there missing events in the w_filter ? */
-        if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
-          w_filter |= e->get_stream_mandatory_filter();
-          SPDLOG_LOGGER_DEBUG(
-              _logger,
-              "endpoint applier: The configured write filters for the "
-              "endpoint "
-              "'{}' are too restrictive. Mandatory categories added to them",
-              ep.name);
-        }
-        /* Are there events in w_filter that are forbidden ? */
-        if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
-          w_filter -= e->get_stream_forbidden_filter();
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "endpoint applier: The configured write filters for the "
-              "endpoint "
-              "'{}' contain forbidden filters. These ones are removed",
-              ep.name);
+        if (multiplexing::muxer_filter(e->get_stream_forbidden_filter())
+                .reverse() == e->get_stream_mandatory_filter()) {
+          // forbidden_filter = ~ mandatory_filter => filter must be
+          // e->get_stream_mandatory_filter(), we don't care about filter config
+          w_filter = e->get_stream_mandatory_filter();
+        } else {
+          /* Are there missing events in the w_filter ? */
+          if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
+            w_filter |= e->get_stream_mandatory_filter();
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "endpoint applier: The configured write filters for the "
+                "endpoint "
+                "'{}' are too restrictive. Mandatory categories added to them",
+                ep.name);
+          }
+          /* Are there events in w_filter that are forbidden ? */
+          if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+            w_filter -= e->get_stream_forbidden_filter();
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "endpoint applier: The configured write filters for the "
+                "endpoint "
+                "'{}' contain forbidden filters. These ones are removed",
+                ep.name);
+          }
         }
 
         /* Are there events in r_filter that are forbidden ? */
@@ -448,7 +455,7 @@ processing::failover* endpoint::_create_failover(
   }
 
   // Return failover thread.
-  auto fo{std::make_unique<processing::failover>(endp, mux, cfg.name)};
+  auto fo{std::make_unique<processing::failover>(endp, mux, cfg)};
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);

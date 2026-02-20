@@ -1568,8 +1568,21 @@ int host::handle_async_check_result_3x(
   // before processing the check result, we force current attempt to cma
   // attempts , only for passive checks cma
   if (queued_check_result.get_check_options() &
-      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT))
+      (CHECK_OPTION_PASSIVE_IS_HARD | CHECK_OPTION_PASSIVE_IS_SOFT)) {
     set_current_attempt(queued_check_result.get_current_attempt());
+  }
+
+  if (queued_check_result.get_check_options() & CHECK_OPTION_CMA_RESULT) {
+    // as check is passive and done by cma, we have to send command line to
+    // broker
+    nagios_macros* macros(get_global_macros());
+    std::string cmdline = get_check_command_line(macros);
+    if (!cmdline.empty()) {
+      broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, this,
+                        checkable::check_passive, cmdline.c_str());
+    }
+  }
+
   /* process the host check result */
   process_check_result_3x(hst_res, old_plugin_output,
                           queued_check_result.get_check_options(),
@@ -4079,11 +4092,15 @@ void host::set_check_command_ptr(
  * @return std::string
  */
 std::string host::get_check_command_line(nagios_macros* macros) {
-  grab_host_macros_r(macros, this);
-  std::string tmp;
-  get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
-  return get_check_command_ptr()->process_cmd(macros);
+  auto cmd = get_check_command_ptr();
+  if (cmd) {
+    grab_host_macros_r(macros, this);
+    std::string tmp;
+    get_raw_command_line_r(macros, cmd, check_command().c_str(), tmp, 0);
+    return cmd->process_cmd(macros);
+  } else {
+    return "";
+  }
 }
 
 /**

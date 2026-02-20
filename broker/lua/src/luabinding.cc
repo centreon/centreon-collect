@@ -362,16 +362,16 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
       else
         SPDLOG_LOGGER_ERROR(
             _logger, "lua: unknown error while running function `filter()'");
-      RETURN_AND_POP(0);
+      RETURN_AND_POP(-1);
     }
 
     if (!lua_isboolean(_L, -1)) {
       SPDLOG_LOGGER_ERROR(_logger, "lua: `filter' must return a boolean");
-      RETURN_AND_POP(0);
+      RETURN_AND_POP(-1);
     }
 
     execute_write = lua_toboolean(_L, -1);
-    SPDLOG_LOGGER_DEBUG(_logger, "lua: `filter' returned {}",
+    SPDLOG_LOGGER_TRACE(_logger, "lua: `filter' returned {}",
                         (execute_write ? "true" : "false"));
     lua_pop(_L, lua_gettop(_L));
   }
@@ -403,12 +403,14 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     else
       SPDLOG_LOGGER_ERROR(_logger,
                           "lua: unknown error running function `write'");
-    RETURN_AND_POP(0);
+    RETURN_AND_POP(-1);
   }
 
   if (!lua_isboolean(_L, -1)) {
-    SPDLOG_LOGGER_ERROR(_logger, "lua: `write' must return a boolean");
-    RETURN_AND_POP(0);
+    // despite the fact that it's an error, we log it as an info because some SC
+    // use it to delay next event write
+    SPDLOG_LOGGER_INFO(_logger, "lua: `write' must return a boolean");
+    RETURN_AND_POP(-1);
   }
   int acknowledge = lua_toboolean(_L, -1);
 

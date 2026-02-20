@@ -7,11 +7,11 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
-      unit_tests:
-        description: 'Execute the unit tests'
-        required: true
-        default: true
-        type: boolean
+      labels:
+        description: "Labels to add to the run (comma separated)"
+        required: false
+        default: ""
+        type: string
   pull_request:
     paths:
       - ".github/workflows/gorgone.yml"
@@ -39,10 +39,15 @@ env:
   base_directory: gorgone
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: .version.centreon-gorgone
+      labels: ${{ inputs.labels || '' }}
 
   changes:
     if: |
@@ -68,7 +73,7 @@ jobs:
   unit-test-perl:
     needs: [get-environment, changes]
     if: |
-      (github.event.inputs.unit_tests == 'true' || needs.changes.outputs.trigger_unit_testing == 'true') &&
+      needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable'
     strategy:

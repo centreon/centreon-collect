@@ -2259,10 +2259,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
              {78, "retain_status_information", 0, 0},
              {79, "timezone", 0,
               get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_timezone)},
-             {83, "command_line", 0,
-              get_centreon_storage_hosts_col_size(
-                  centreon_storage_hosts_command_line)}});
+                  centreon_storage_hosts_timezone)}});
         if (_store_in_resources) {
           _resources_host_insert_or_update = _mysql.prepare_query(
               "INSERT INTO resources "
@@ -2976,7 +2973,14 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
            {9, "version", 0,
             get_centreon_storage_instances_col_size(
                 centreon_storage_instances_version)},
-           {11, "is_encryption_ready", 0, 0}});
+           {11, "is_encryption_ready", 0, 0},
+           {12, "cma_certificate_sha", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_sha)},
+           {13, "cma_certificate_cn", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_cn)},
+           {14, "cma_certificate_peremption", 0, 0}});
     }
 
     // Process object.
@@ -3720,7 +3724,7 @@ void stream::_process_pb_service_group_member(
       _pb_service_group_member_delete =
           qp.prepare_delete_table(_mysql, "services_servicegroups ");
     }
-    _service_group_member_delete << sgmp;
+    _pb_service_group_member_delete << sgmp;
     _mysql.run_statement(_pb_service_group_member_delete,
                          database::mysql_error::delete_service_group_member,
                          conn);
@@ -3946,10 +3950,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
            {79, "stalk_on_unknown", 0, 0},
            {80, "stalk_on_warning", 0, 0},
            {81, "retain_nonstatus_information", 0, 0},
-           {82, "retain_status_information", 0, 0},
-           {88, "command_line", 0,
-            get_centreon_storage_hosts_col_size(
-                centreon_storage_hosts_command_line)}});
+           {82, "retain_status_information", 0, 0}});
       if (_store_in_resources) {
         _resources_service_insert_or_update = _mysql.prepare_query(
             "INSERT INTO resources "

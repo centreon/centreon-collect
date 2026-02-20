@@ -52,7 +52,7 @@ add_dependencies(conflictmgr
 	)
 
 set_target_properties(conflictmgr PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_link_libraries(conflictmgr PRIVATE spdlog::spdlog)
+target_link_libraries(conflictmgr PRIVATE fmt::fmt)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.
