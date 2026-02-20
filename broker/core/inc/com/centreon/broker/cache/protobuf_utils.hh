@@ -137,31 +137,19 @@ struct variant : public variant_base {
 
   variant(const message& value) : variant_base(&value) {}
 
-  variant(
-      const boost::container::vector<int32_t, private_int32_allocator>& value)
-      : variant_base(&value) {}
+  variant(const int32_vect& value) : variant_base(&value) {}
 
-  variant(
-      const boost::container::vector<int64_t, private_int64_allocator>& value)
-      : variant_base(&value) {}
+  variant(const int64_vect& value) : variant_base(&value) {}
 
-  variant(
-      const boost::container::vector<uint32_t, private_uint32_allocator>& value)
-      : variant_base(&value) {}
+  variant(const uint32_vect& value) : variant_base(&value) {}
 
-  variant(
-      const boost::container::vector<uint64_t, private_uint64_allocator>& value)
-      : variant_base(&value) {}
+  variant(const uint64_vect& value) : variant_base(&value) {}
 
-  variant(
-      const boost::container::vector<double, private_double_allocator>& value)
-      : variant_base(&value) {}
+  variant(const double_vect& value) : variant_base(&value) {}
 
-  variant(const boost::container::vector<float, private_float_allocator>& value)
-      : variant_base(&value) {}
+  variant(const float_vect& value) : variant_base(&value) {}
 
-  variant(const boost::container::vector<bool, private_bool_allocator>& value)
-      : variant_base(&value) {}
+  variant(const bool_vect& value) : variant_base(&value) {}
 
   variant(const string_vect& value) : variant_base(&value) {}
 

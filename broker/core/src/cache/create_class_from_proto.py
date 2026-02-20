@@ -3,7 +3,34 @@ import sys
 from pathlib import Path
 
 
+'''
+Module: create_class_from_proto
+
+This module generates C++ header and source files from protobuf definitions.
+It parses .proto files, extracts message and enum definitions, and creates
+corresponding C++ classes optimized for use in shared memory segments.
+
+The generated classes provide:
+- Type-safe wrappers around protobuf objects
+- Support for optional, repeated, and required fields
+- Update mechanisms to sync with protobuf changes
+- Field enumeration for serialization
+- Compatibility with interprocess shared memory allocators
+
+'''
+
+
 def remove_comments(text: str) -> str:
+    """
+    Remove C++ style comments from text.
+    Handles both /* */ block comments and // line comments.
+
+    Args:
+        text (str): Text containing comments to remove
+
+    Returns:
+        str: Text with all comments removed
+    """
     # Remove /* */ comments
     text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
     # Remove // comments
@@ -13,10 +40,17 @@ def remove_comments(text: str) -> str:
 
 def extract_blocks(text, keyword):
     """
-    Extract blocks like:
-        message Name { ... }
-        enum Name { ... }
-    Returns list of tuples: (name, block_content)
+    Extract named blocks (messages or enums) from protobuf text.
+
+    Uses regex to find block declarations like "message Name {}" or "enum Name {}",
+    then uses brace counting to extract the complete block content.
+
+    Args:
+        text (str): Protobuf file content
+        keyword (str): Block type to extract ("message" or "enum")
+
+    Returns:
+        list: List of tuples (name, block_content) for each found block
     """
     pattern = re.compile(rf'\b{keyword}\s+(\w+)\s*\{{', re.MULTILINE)
     results = []
@@ -42,8 +76,19 @@ def extract_blocks(text, keyword):
 
 def extract_fields(message_body):
     """
-    Extract fields from message body.
-    Returns list of dicts with type, label, index
+    Extract field definitions from a protobuf message body.
+
+    Parses field declarations to extract:
+    - Field label (optional, required, repeated)
+    - Field type (builtin or custom type)
+    - Field name
+    - Field index number
+
+    Args:
+        message_body (str): Content of a message block
+
+    Returns:
+        list: List of dicts with keys: name, type, label, index
     """
     fields = []
 
@@ -73,7 +118,13 @@ def extract_fields(message_body):
 
 def extract_enum_values(enum_body):
     """
-    Extract enum values with their numeric values
+    Extract enum value definitions from a protobuf enum body.
+
+    Args:
+        enum_body (str): Content of an enum block
+
+    Returns:
+        list: List of tuples (enum_name, numeric_value)
     """
     values = []
 
@@ -91,6 +142,17 @@ def extract_enum_values(enum_body):
 
 
 def parse_proto_file(filepath):
+    """
+    Parse a complete .proto file.
+
+    Reads the file, removes comments, and extracts all message and enum definitions.
+
+    Args:
+        filepath (str): Path to the .proto file
+
+    Returns:
+        tuple: (enums, messages) where each is a list of (name, content) tuples
+    """
     text = Path(filepath).read_text()
     text = remove_comments(text)
 
@@ -102,6 +164,20 @@ def parse_proto_file(filepath):
 
 
 def add_used_class_and_dependencies(class_definitions: dict, class_dependencies: dict, class_name: str):
+    """
+    Recursively collect a class and all its dependencies.
+
+    Builds a dictionary containing the requested class and all classes it depends on.
+    Used to generate only the necessary class definitions when specific classes are requested.
+
+    Args:
+        class_definitions (dict): Mapping of class names to their definitions
+        class_dependencies (dict): Mapping of class names to their dependency lists
+        class_name (str): Name of the class to start from
+
+    Returns:
+        dict: Dictionary of class_name -> definition for the class and all dependencies
+    """
     ret = {}
     if class_name in class_definitions:
         ret[class_name] = class_definitions[class_name]
@@ -113,6 +189,19 @@ def add_used_class_and_dependencies(class_definitions: dict, class_dependencies:
 
 
 def add_class_and_dependencies(class_definitions: dict, class_dependencies: dict, requested_classes: dict):
+    """
+    Collect multiple classes and all their transitive dependencies.
+
+    Iterates over requested classes and recursively adds their dependencies.
+
+    Args:
+        class_definitions (dict): Mapping of class names to definitions
+        class_dependencies (dict): Mapping of class names to dependency lists
+        requested_classes (dict): Dictionary of requested class names
+
+    Returns:
+        dict: Dictionary of all classes needed (requested + dependencies)
+    """
     ret = {}
     for class_name in requested_classes:
         ret.update(add_used_class_and_dependencies(class_definitions,
@@ -121,6 +210,30 @@ def add_class_and_dependencies(class_definitions: dict, class_dependencies: dict
 
 
 def create_header(protos: list, messages: dict, enums: dict, classes: list):
+    """
+    Generate C++ header file from protobuf messages.
+
+    Creates protobuf.hh containing:
+    - Apache 2.0 license header
+    - Include guards and protobuf includes
+    - Base message class with enum of all message types
+    - Generated message wrapper classes with:
+        - Tuple-based data storage
+        - Mutable accessors
+        - Const accessors
+        - Copy/move deletion
+        - Update methods
+    - Field enumeration support
+
+    Writes output to: broker/core/inc/com/centreon/broker/cache/protobuf.hh
+
+    Args:
+        protos (list): List of proto file basenames
+        messages (dict): Dictionary of message_name -> message_body
+        enums (dict): Dictionary of enum_name -> enum_body
+        classes (list): List of specific classes to generate (empty = all)
+    """
+
     hh = '''/**
  * Copyright 2026 Centreon
  *
@@ -322,7 +435,28 @@ class message {{
 
 
 def create_cc(messages, enums, classes):
+    """
+    Generate C++ source file with message implementations.
 
+    Creates protobuf.cc containing:
+    - Apache 2.0 license header
+    - Helper macros for field enumeration
+    - Helper macros for field updates (handles optional, repeated, nested messages)
+    - Base message class implementations
+    - Generated message wrapper implementations with:
+        - Constructor: builds tuple from protobuf object
+        - Destructor: cleans up nested message pointers
+        - enumerate_fields(): returns vector of field variants
+        - update(): syncs fields from protobuf, returns whether changed
+    - Virtual dispatch in base class for polymorphic operations
+
+    Writes output to: broker/core/src/cache/protobuf.cc
+
+    Args:
+        messages (dict): Dictionary of message_name -> message_body
+        enums (dict): Dictionary of enum_name -> enum_body
+        classes (list): List of specific classes to generate (empty = all)
+    """
     cc = ''
     class_implementations = {}
     class_dependencies = {}
@@ -460,7 +594,7 @@ def create_cc(messages, enums, classes):
         tuple_init_str = ",\n        ".join(tuple_init)
         repeated_fillers_str = "\n".join(repeated_fillers)
         repeated_mess_deleter_str = "\n".join(repeated_mess_deleter)
-        enumerate_field_str = ";\n  ".join(enumerate_field)
+        enumerate_field_str = "\n  ".join(enumerate_field)
         update_fields_str = ";\n  ".join(update_fields)
 
         class_implementations[pb_class_name] = f'''
@@ -569,7 +703,7 @@ using namespace com::centreon::broker::cache;
   ret.emplace_back(&std::get<field_index>(_data));
 
 #define ADD_ENUMERATION_MESS_FIELD(field_index) \\
-  ret.emplace_back(&std::get<field_index>(_data));
+  ret.emplace_back(std::get<field_index>(_data).get());
 
 #define ADD_ENUMERATION_OPTIONAL_STRING_FIELD(field_index) \\
   ret.emplace_back(std::get<field_index>(_data)            \\
@@ -593,6 +727,7 @@ using namespace com::centreon::broker::cache;
 
 #define UPDATE_STRING_FIELD(field)                                         \\
   if (mess.field().compare(mutable_##field().c_str())) {{                   \\
+    mutable_##field().resize(mess.field().length());                       \\
     mutable_##field().assign(mess.field().c_str(), mess.field().length()); \\
     updated = true;                                                        \\
   }}
@@ -624,6 +759,7 @@ using namespace com::centreon::broker::cache;
     updated = true;                                                         \\
   }} else if (mutable_##field() &&                                           \\
              mess.field().compare(mutable_##field()->c_str())) {{            \\
+    mutable_##field()->resize(mess.field().length());                       \\
     mutable_##field()->assign(mess.field().c_str(), mess.field().length()); \\
     updated = true;                                                         \\
   }}
@@ -643,6 +779,9 @@ using namespace com::centreon::broker::cache;
 #define UPDATE_REPEATED_FIELD(field)                                           \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
+  if (mess.field().size() > mutable_##field().size()) {{                        \\
+    mutable_##field().reserve(mess.field().size());                            \\
+  }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\
   auto dst_end = mutable_##field().end();                                      \\
   for (; src_iter != src_end && dst_iter != dst_end; ++src_iter, ++dst_iter) {{ \\
@@ -651,54 +790,53 @@ using namespace com::centreon::broker::cache;
       updated = true;                                                          \\
     }}                                                                          \\
   }}                                                                            \\
-  if (src_iter != src_end) {{                                                   \\
-    updated = true;                                                            \\
-    for (; src_iter != src_iter; ++src_iter) {{                                 \\
-      mutable_##field().push_back(*src_iter);                                  \\
-    }}                                                                          \\
-  }}                                                                            \\
   if (dst_iter != dst_end) {{                                                   \\
     mutable_##field().erase(dst_iter, dst_end);                                \\
+  }}                                                                            \\
+  else if (src_iter != src_end) {{                                               \\
+    updated = true;                                                            \\
+    for (; src_iter != src_end; ++src_iter) {{                                 \\
+      mutable_##field().push_back(*src_iter);                                  \\
+    }}                                                                          \\
   }}
 
 #define UPDATE_REPEATED_STRING_FIELD(field)                                    \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
+  if (mess.field().size() > mutable_##field().size()) {{                        \\
+    mutable_##field().reserve(mess.field().size());                            \\
+  }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\
   auto dst_end = mutable_##field().end();                                      \\
   for (; src_iter != src_end && dst_iter != dst_end; ++src_iter, ++dst_iter) {{ \\
     if (src_iter->compare(dst_iter->c_str())) {{                                \\
+      dst_iter->resize(src_iter->length());                                    \\
       dst_iter->assign(src_iter->c_str(), src_iter->length());                 \\
       updated = true;                                                          \\
     }}                                                                          \\
   }}                                                                            \\
-  if (src_iter != src_end) {{                                                   \\
+  if (dst_iter != dst_end) {{                                                   \\
+    mutable_##field().erase(dst_iter, dst_end);                                \\
+  }}                                                                            \\
+  else if (src_iter != src_end) {{                                              \\
     updated = true;                                                            \\
-    for (; src_iter != src_iter; ++src_iter) {{                                 \\
+    for (; src_iter != src_end; ++src_iter) {{                                 \\
       mutable_##field().emplace_back(src_iter->c_str(), src_iter->length(),    \\
                                      allocator.char_alloc);                    \\
     }}                                                                          \\
   }}                                                                            \\
-  if (dst_iter != dst_end) {{                                                   \\
-    mutable_##field().erase(dst_iter, dst_end);                                \\
-  }}
 
 #define UPDATE_REPEATED_MESS_FIELD(mess_type, field)                           \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
+  if (mess.field().size() > mutable_##field().size()) {{                        \\
+    mutable_##field().reserve(mess.field().size());                            \\
+  }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\
   auto dst_end = mutable_##field().end();                                      \\
   for (; src_iter != src_end && dst_iter != dst_end; ++src_iter, ++dst_iter) {{ \\
     if ((*dst_iter)->update(*src_iter, allocator)) {{                           \\
       updated = true;                                                          \\
-    }}                                                                          \\
-  }}                                                                            \\
-  if (src_iter != src_end) {{                                                   \\
-    updated = true;                                                            \\
-    for (; src_iter != src_iter; ++src_iter) {{                                 \\
-      mutable_##field().push_back(                                             \\
-          allocator.segm_manager->construct<mess_type>(                        \\
-              interprocess::anonymous_instance)(*src_iter, allocator));        \\
     }}                                                                          \\
   }}                                                                            \\
   if (dst_iter != dst_end) {{                                                   \\
@@ -707,7 +845,15 @@ using namespace com::centreon::broker::cache;
           static_cast<mess_type*>(to_destroy->get()));                         \\
     }}                                                                          \\
     mutable_##field().erase(dst_iter, dst_end);                                \\
-  }}
+  }}                                                                            \\
+  else if (src_iter != src_end) {{                                              \\
+    updated = true;                                                            \\
+    for (; src_iter != src_end; ++src_iter) {{                                 \\
+      mutable_##field().push_back(                                             \\
+          allocator.segm_manager->construct<mess_type>(                        \\
+              interprocess::anonymous_instance)(*src_iter, allocator));        \\
+    }}                                                                          \\
+  }}                                                                            \\
 
 #define REPEATED_MESS_DELETE_ALL(mess_type, field)  \\
   for (auto to_delete : mutable_##field()) {{        \\
@@ -758,9 +904,19 @@ bool message::update(const ::google::protobuf::Message& mess,
 
 
 def camel_to_snake(name: str) -> str:
-    #  add underscore between:
-    # - lower -> higher
-    # - (HTTPServer -> http_server)
+    """
+    Convert CamelCase identifier to snake_case.
+
+    Handles transitions from lowercase to uppercase letters and
+    digit/character to uppercase letter transitions.
+    Example: HTTPServerCache -> http_server_cache
+
+    Args:
+        name (str): CamelCase name to convert
+
+    Returns:
+        str: snake_case version of the name
+    """
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     s2 = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1)
     return s2.lower()

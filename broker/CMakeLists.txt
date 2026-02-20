@@ -388,7 +388,7 @@ add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
-    python3 ARGS ${SRC_DIR}/cache/create_class_from_proto.py neb,storage,header Comment,AgentStats
+    python3 ARGS ${SRC_DIR}/cache/create_class_from_proto.py neb,storage,header Comment,AgentStats,AdaptiveService
   VERBATIM)
 
 # Static libraries.
