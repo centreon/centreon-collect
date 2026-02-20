@@ -4084,6 +4084,68 @@ define timeperiod {{
 """)
 
 
+def ctn_create_timeperiod_with_template(idx: int):
+    """Append a parent timeperiod template and a child that inherits from it.
+
+    The child defines no day ranges of its own.
+
+    Args:
+        idx: poller index
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    with open(filename, "a+") as f:
+        f.write("""
+define timeperiod {
+    name                           parent_tp_template
+    timeperiod_name                parent_tp_template
+    alias                          Parent_TP_Template
+    sunday                         00:00-24:00
+    monday                         00:00-24:00
+    tuesday                        00:00-24:00
+    wednesday                      00:00-24:00
+    thursday                       00:00-24:00
+    friday                         00:00-24:00
+    saturday                       00:00-24:00
+}
+define timeperiod {
+    use                            parent_tp_template
+    timeperiod_name                child_tp
+    alias                          Child_TP
+}
+""")
+
+
+def ctn_create_timeperiod_with_template_and_override(idx: int):
+    """Append a parent timeperiod template and a child that overrides the alias.
+
+    The child defines no day ranges of its own but overrides the alias.
+
+    Args:
+        idx: poller index
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/timeperiods.cfg"
+    with open(filename, "a+") as f:
+        f.write("""
+define timeperiod {
+    name                           parent_tp_template
+    timeperiod_name                parent_tp_template
+    alias                          Parent_TP_Template
+    sunday                         00:00-24:00
+    monday                         00:00-24:00
+    tuesday                        00:00-24:00
+    wednesday                      00:00-24:00
+    thursday                       00:00-24:00
+    friday                         00:00-24:00
+    saturday                       00:00-24:00
+}
+define timeperiod {
+    use                            parent_tp_template
+    timeperiod_name                child_tp_override
+    alias                          Child_TP_Custom_Alias
+}
+""")
+
+
 def ctn_add_otl_server_module(idx: int, otl_server_config_json_content: str, with_default_token: bool = True):
     """!
     add a new broker_module line to centengine.cfg and create otl_server config file

@@ -121,23 +121,3 @@ ETPI2
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
-
-
-*** Keywords ***
-Ctn Create Timeperiod With Template
-    [Documentation]    Append a parent timeperiod template and a child that uses it to
-    ...    the timeperiods.cfg. The child defines no day ranges of its own.
-    [Arguments]    ${poller}
-    ${path}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${poller}    /timeperiods.cfg
-    ${content}    Evaluate
-    ...    """define timeperiod {\n    name                           parent_tp_template\n    timeperiod_name                parent_tp_template\n    alias                          Parent_TP_Template\n    sunday                         00:00-24:00\n    monday                         00:00-24:00\n    tuesday                        00:00-24:00\n    wednesday                      00:00-24:00\n    thursday                       00:00-24:00\n    friday                         00:00-24:00\n    saturday                       00:00-24:00\n}\ndefine timeperiod {\n    use                            parent_tp_template\n    timeperiod_name                child_tp\n    alias                          Child_TP\n}\n"""
-    Append To File    ${path}    ${content}
-
-Ctn Create Timeperiod With Template And Override
-    [Documentation]    Append a parent timeperiod template and a child that uses it but
-    ...    overrides the alias. The child defines no day ranges of its own.
-    [Arguments]    ${poller}
-    ${path}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${poller}    /timeperiods.cfg
-    ${content}    Evaluate
-    ...    """define timeperiod {\n    name                           parent_tp_template\n    timeperiod_name                parent_tp_template\n    alias                          Parent_TP_Template\n    sunday                         00:00-24:00\n    monday                         00:00-24:00\n    tuesday                        00:00-24:00\n    wednesday                      00:00-24:00\n    thursday                       00:00-24:00\n    friday                         00:00-24:00\n    saturday                       00:00-24:00\n}\ndefine timeperiod {\n    use                            parent_tp_template\n    timeperiod_name                child_tp_override\n    alias                          Child_TP_Custom_Alias\n}\n"""
-    Append To File    ${path}    ${content}
