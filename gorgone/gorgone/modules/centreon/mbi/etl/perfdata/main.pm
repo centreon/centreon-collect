@@ -122,14 +122,15 @@ sub purgeTables {
         $startAndEndSameMonth = 1;
     }
 
-    my $monthOnly = defined($etl->{run}->{options}->{month_only}) && $etl->{run}->{options}->{month_only} == 1;
-    my $centileOnly = defined($etl->{run}->{options}->{centile_only}) && $etl->{run}->{options}->{centile_only} == 1;
-    my $noCentile = defined($etl->{run}->{options}->{no_centile}) && $etl->{run}->{options}->{no_centile} == 1;
-    my $noPurge = defined($etl->{run}->{options}->{nopurge}) && $etl->{run}->{options}->{nopurge} == 1;
+    my $monthOnly = $etl->{run}->{options}->{month_only};
+    my $centileOnly = $etl->{run}->{options}->{centile_only};
+    my $noCentile = $etl->{run}->{options}->{no_centile};
+    my $noPurge = $etl->{run}->{options}->{nopurge};
+    my $centileMonth = $etl->{run}->{etlProperties}->{'centile.month'};
 
     # Special handling for --month-only AND --centile-only together: ensure mod_bi_metriccentilemonthlyvalue is properly purged
     if ($monthOnly && $centileOnly) {
-        if (defined($etl->{run}->{etlProperties}->{'centile.month'}) && $etl->{run}->{etlProperties}->{'centile.month'} eq '1') {
+        if ($centileMonth) {
             if ($noPurge) {
                 # With --no-purge: delete entries and create partitions if needed
                 deleteEntriesForRebuild($etl, name => 'mod_bi_metriccentilemonthlyvalue', start => $daily_start, end => $daily_end);
