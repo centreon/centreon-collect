@@ -127,7 +127,7 @@ sub purgeTables {
     $firstDayOfMonthEnd =~ s/([1-2][0-9]{3})\-([0-1][0-9])\-[0-3][0-9]/$1\-$2\-01/;
     my $startAndEndSameMonth = $firstDayOfMonth eq $firstDayOfMonthEnd;
 
-	my @tables = ();
+  	my @tables = ();
 
     if ($monthOnly && $centileOnly) {
         # Special handling for --month-only AND --centile-only together: ensure mod_bi_metriccentilemonthlyvalue is properly purged
@@ -139,49 +139,49 @@ sub purgeTables {
         };
     } else {
 	    @tables = (
-		{
-		    name => 'mod_bi_metricdailyvalue',
-		    active => $granularity ne 'hour' && !$monthOnly && !$centileOnly,
-		    start => $daily_start,
-			end => $daily_end
-		},
-		{
-		    name => 'mod_bi_metrichourlyvalue',
-		    active => $noPurge
-                          ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && $granularity ne 'day')
-                          : ($granularity ne 'day' && !$monthOnly && !$centileOnly),
-		    start => $hourly_start,
-			end => $hourly_end
-		},
-		{
-		    name => 'mod_bi_metricmonthcapacity',
-		    active => $noPurge
-                          ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && !$startAndEndSameMonth)
-                          : ($granularity ne 'hour' && !$monthOnly && !$centileOnly),
-		    start => $firstDayOfMonth,
-			end => $daily_end,
-		    full_empty_on_purge => 1
-		},
-		{
-		    name => 'mod_bi_metriccentiledailyvalue',
-		    active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.day'}),
-		    start => $daily_start,
-			end => $daily_end
-		},
-		{
-		    name => 'mod_bi_metriccentileweeklyvalue',
-		    active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.week'}),
-		    start => $daily_start,
-			end => $daily_end
-		},
-		{
-		    name => 'mod_bi_metriccentilemonthlyvalue',
-		    active => $noPurge
-                          ? ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.month'} && !$startAndEndSameMonth)
-                          : ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.month'}),
-		    start => ($noPurge ? $firstDayOfMonth : $daily_start),
-		    end => $daily_end
-		}
+        {
+            name => 'mod_bi_metricdailyvalue',
+            active => $granularity ne 'hour' && !$monthOnly && !$centileOnly,
+            start => $daily_start,
+          end => $daily_end
+        },
+        {
+            name => 'mod_bi_metrichourlyvalue',
+            active => $noPurge
+                              ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && $granularity ne 'day')
+                              : ($granularity ne 'day' && !$monthOnly && !$centileOnly),
+            start => $hourly_start,
+          end => $hourly_end
+        },
+        {
+            name => 'mod_bi_metricmonthcapacity',
+            active => $noPurge
+                              ? ($granularity ne 'hour' && !$monthOnly && !$centileOnly && !$startAndEndSameMonth)
+                              : ($granularity ne 'hour' && !$monthOnly && !$centileOnly),
+            start => $firstDayOfMonth,
+          end => $daily_end,
+            full_empty_on_purge => 1
+        },
+        {
+            name => 'mod_bi_metriccentiledailyvalue',
+            active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.day'}),
+            start => $daily_start,
+          end => $daily_end
+        },
+        {
+            name => 'mod_bi_metriccentileweeklyvalue',
+            active => ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.week'}),
+            start => $daily_start,
+          end => $daily_end
+        },
+        {
+            name => 'mod_bi_metriccentilemonthlyvalue',
+            active => $noPurge
+                              ? ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.month'} && !$startAndEndSameMonth)
+                              : ($granularity ne 'hour' && !$monthOnly && !$noCentile && $props->{'centile.month'}),
+            start => ($noPurge ? $firstDayOfMonth : $daily_start),
+            end => $daily_end
+        }
 	    );
     }
 
