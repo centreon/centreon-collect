@@ -441,7 +441,8 @@ subtest 'Focus: mod_bi_metriccentilemonthlyvalue' => sub {
     subtest 'No-Purge : same month' => sub {
         @calls = ();
         my $periods_same = {
-            'perfdata.daily' => { start => '2026-01-10', end => '2026-01-20' }
+            'perfdata.daily' => { start => '2026-01-10', end => '2026-01-20' },
+            'perfdata.hourly' => { start => '2026-01-10', end => '2026-01-20' }
         };
         my $etl = {
             run => {
