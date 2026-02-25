@@ -197,7 +197,7 @@ endif()
 
 # Configure files.
 if(WITH_DAEMONS)
-  if(WITH_STARTUP_SCRIPT STREQUAL "systemd")
+  if(WITH_STARTUP_SCRIPT STREQUAL "systemd"${PROJECT_SOURCE_DIR}/core)
     configure_file("${PROJECT_SOURCE_DIR}/script/systemd/cbd.service.in"
                    "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
     install(FILES "${PROJECT_SOURCE_DIR}/script/cbd.service"
@@ -325,9 +325,6 @@ set(LIBROKER_SOURCES
     # Sources.
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
-    ${SRC_DIR}/cache/global_cache.cc
-    ${SRC_DIR}/cache/global_cache_data.cc
-    ${SRC_DIR}/cache/protobuf.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -382,22 +379,14 @@ set(LIBROKER_SOURCES
   )
 
 
-add_custom_command(
-  OUTPUT ${SRC_DIR}/cache/protobuf.cc ${INC_DIR}/cache/protobuf.hh
-  COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
-  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMAND
-    python3 ARGS ${SRC_DIR}/cache/create_class_from_proto.py neb,storage,header Comment,AgentStats,AdaptiveService
-  VERBATIM)
-
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
 target_include_directories(rokerbase
-                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
+                           PRIVATE ${PROJECT_SOURCE_DIR}/core
+                           ${PROJECT_SOURCE_DIR}/bam/inc)
 target_link_libraries(
   rokerbase PRIVATE
   sql
@@ -470,6 +459,7 @@ else()
   # Generator module.
   add_broker_module(GENERATOR OFF)
   add_broker_module(STATS ON)
+  add_broker_module(CACHE ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
@@ -577,8 +567,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/bbdo/category.cc
     ${TEST_DIR}/bbdo/output.cc
     ${TEST_DIR}/bbdo/read.cc
-    ${TEST_DIR}/cache/global_cache_test.cc
-    ${TEST_DIR}/cache/protobuf_test.cc
     ${TEST_DIR}/compression/stream/memory_stream.hh
     ${TEST_DIR}/compression/stream/read.cc
     ${TEST_DIR}/compression/stream/write.cc

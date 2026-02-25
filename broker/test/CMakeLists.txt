@@ -39,6 +39,7 @@ include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
+include_directories("${PROJECT_SOURCE_DIR}/cache/inc")
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
 include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
@@ -103,6 +104,7 @@ add_executable(
   ${TESTS_SOURCES})
 
 set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
+
 
 target_link_libraries(
   ut_broker

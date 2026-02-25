@@ -16,55 +16,24 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CC_CORE_PRECOMP_HH
-#define CC_CORE_PRECOMP_HH
+#ifndef CC_CACHE_PRECOMP_HH
+#define CC_CACHE_PRECOMP_HH
 
-#include <algorithm>
-#include <array>
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
-#include <cstddef>
-#include <cstdint>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <deque>
 #include <exception>
-#include <fstream>
-#include <functional>
-#include <future>
-#include <iostream>
-#include <limits>
-#include <list>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <queue>
-#include <set>
-#include <shared_mutex>
-#include <sstream>
-#include <stack>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
-#include <utility>
-#include <vector>
 
-#include <absl/container/btree_map.h>
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
 #include <absl/hash/hash.h>
-#include <absl/strings/numbers.h>
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 #include <boost/multi_index/member.hpp>
@@ -75,11 +44,6 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/exception/diagnostic_information.hpp>
-
 namespace asio = boost::asio;
-#include <boost/container/flat_map.hpp>
-#include <boost/container/flat_set.hpp>
 
 #endif

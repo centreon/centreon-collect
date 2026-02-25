@@ -122,29 +122,33 @@ void request::add_status(const storage::pb_status& status) {
   ++_nb_status;
 }
 
+/**
+ * @brief append metric unit and severity
+ *
+ * @param metric
+ */
 void request::append_metric_info(const Metric& metric) {
+  absl::StrAppend(&body(), _sz_unit, string_filter(metric.unit()));
   cache::global_cache::lock l;
-  const cache::metric_info* metric_inf =
-      cache::global_cache::instance_ptr()->get_metric_info(metric.metric_id());
-  if (metric_inf) {
-    absl::StrAppend(&body(), _sz_unit, string_filter(metric_inf->unit));
-    const cache::resource_info* res_info =
-        cache::global_cache::instance_ptr()->get_service(metric.host_id(),
-                                                         metric.service_id());
-    if (res_info) {
-      absl::StrAppend(&body(), _sz_severity_id, res_info->severity_id);
-    }
+  int32_t sev = cache::global_cache::instance_ptr()->get_severity(
+      metric.host_id(), metric.service_id());
+  if (sev) {
+    absl::StrAppend(&body(), _sz_severity_id, sev);
   }
 }
 
+/**
+ * @brief append severity
+ *
+ * @param metric
+ */
 void request::append_status_info(const Status& status) {
   absl::StrAppend(&body(), _sz_host_id, status.host_id(), _sz_serv_id,
                   status.service_id());
   cache::global_cache::lock l;
-  const cache::resource_info* res_info =
-      cache::global_cache::instance_ptr()->get_service(status.host_id(),
-                                                       status.service_id());
-  if (res_info) {
-    absl::StrAppend(&body(), _sz_severity_id, res_info->severity_id);
+  int32_t sev = cache::global_cache::instance_ptr()->get_severity(
+      status.host_id(), status.service_id());
+  if (sev) {
+    absl::StrAppend(&body(), _sz_severity_id, sev);
   }
 }

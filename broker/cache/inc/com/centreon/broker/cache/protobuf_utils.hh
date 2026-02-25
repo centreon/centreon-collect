@@ -27,6 +27,11 @@
 namespace com::centreon::broker::cache {
 
 namespace interprocess = boost::interprocess;
+/**
+ * @brief as allocation is yet protected by _protect mutex, we don't need to
+ * protect allocation alogorithm (interprocess::null_mutex_family)
+ *
+ */
 using managed_mapped_file = interprocess::basic_managed_mapped_file<
     char,
     interprocess::rbtree_best_fit<interprocess::null_mutex_family>,

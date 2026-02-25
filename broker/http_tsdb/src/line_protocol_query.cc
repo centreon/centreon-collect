@@ -276,9 +276,6 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_service, escaper);
       else if (macro == "$SERVICEID$")
         _append_compiled_getter(&line_protocol_query::_get_service_id, nullptr);
-      else if (macro == "$RESOURCEID$")
-        _append_compiled_getter(&line_protocol_query::_get_resource_id,
-                                nullptr);
       else if (macro == "$SERVICE_GROUP$")
         _append_compiled_getter(&line_protocol_query::_get_service_group,
                                 escaper);
@@ -400,22 +397,22 @@ void line_protocol_query::_get_dollar_sign(io::data const& d,
  *  @return       The index id.
  */
 uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
-  const cache::metric_info* infos;
   switch (d.type()) {
     case storage::pb_status::static_type():
       return static_cast<storage::pb_status const&>(d).obj().index_id();
-    case storage::pb_metric::static_type():
-      infos = cache::global_cache::instance_ptr()->get_metric_info(
-          static_cast<storage::pb_metric const&>(d).obj().metric_id());
-      if (!infos) {
+    case storage::pb_metric::static_type(): {
+      uint64_t index_id =
+          cache::global_cache::instance_ptr()->get_index_id_from_metric_id(
+              static_cast<storage::pb_metric const&>(d).obj().metric_id());
+      if (!index_id) {
         SPDLOG_LOGGER_ERROR(
             _logger, "unknown metric {}",
             static_cast<storage::pb_metric const&>(d).obj().metric_id());
         return 0;
       } else {
-        return infos->index_id;
+        return index_id;
       }
-      break;
+    } break;
     default:
       SPDLOG_LOGGER_ERROR(_logger, "unknown type {}", d.type());
       return 0;
@@ -449,10 +446,10 @@ void line_protocol_query::_get_host(io::data const& d,
           ? static_cast<storage::pb_metric const&>(d).obj().host_id()
           : static_cast<storage::pb_status const&>(d).obj().host_id();
   cache::global_cache::lock l;
-  const cache::resource_info* host_info =
+  const cache::host* host_info =
       cache::global_cache::instance_ptr()->get_host(host_id);
   if (host_info) {
-    is << host_info->name;
+    is << host_info->name();
   }
 }
 
@@ -493,11 +490,11 @@ void line_protocol_query::_get_service(io::data const& d,
                                        std::ostream& is) const {
   cache::host_serv_pair host_serv = _get_service_id(d);
   cache::global_cache::lock l;
-  const cache::resource_info* serv_info =
+  const cache::service* serv_info =
       cache::global_cache::instance_ptr()->get_service(host_serv.first,
                                                        host_serv.second);
   if (serv_info) {
-    is << serv_info->name;
+    is << serv_info->description();
   }
 }
 
@@ -507,7 +504,7 @@ void line_protocol_query::_get_service(io::data const& d,
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-cache::host_serv_pair line_protocol_query::_get_service_id(
+std::pair<uint64_t, uint64_t> line_protocol_query::_get_service_id(
     io::data const& d) const {
   if (d.type() == storage::pb_metric::static_type()) {
     return {static_cast<storage::pb_metric const&>(d).obj().host_id(),
@@ -540,10 +537,10 @@ void line_protocol_query::_get_instance(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
   cache::global_cache::lock l;
-  const cache::string* instance_name =
-      cache::global_cache::instance_ptr()->get_instance_name(d.source_id);
-  if (instance_name) {
-    is << *instance_name;
+  const cache::instance* inst =
+      cache::global_cache::instance_ptr()->get_instance(d.source_id);
+  if (inst) {
+    is << inst->name();
   }
 }
 
@@ -589,10 +586,8 @@ void line_protocol_query::_get_service_group(io::data const& d,
 void line_protocol_query::_get_min(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
-  cache::global_cache::lock l;
-  const cache::metric_info* infos = _get_metric_info(d);
-  if (infos) {
-    is << infos->min;
+  if (d.type() == storage::pb_metric::static_type()) {
+    is << static_cast<const storage::pb_metric&>(d).obj().min();
   }
 }
 
@@ -606,56 +601,9 @@ void line_protocol_query::_get_min(io::data const& d,
 void line_protocol_query::_get_max(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
-  cache::global_cache::lock l;
-  const cache::metric_info* infos = _get_metric_info(d);
-  if (infos) {
-    is << infos->max;
+  if (d.type() == storage::pb_metric::static_type()) {
+    is << static_cast<const storage::pb_metric&>(d).obj().max();
   }
-}
-
-/**
- * @brief add ressource id of a serv to request
- *
- * @param d pb_status or pb_metric
- * @param tag_type
- * @param is
- */
-void line_protocol_query::_get_resource_id(io::data const& d,
-                                           unsigned& string_index
-                                           [[maybe_unused]],
-                                           std::ostream& is) const {
-  cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
-  const cache::resource_info* serv_info =
-      cache::global_cache::instance_ptr()->get_service(host_serv.first,
-                                                       host_serv.second);
-  if (serv_info) {
-    is << serv_info->resource_id;
-  }
-}
-
-/**
- * @brief find metric info fot a metric
- *     caution cache must be locked before usage
- *
- * @param d
- * @return const cache::metric_info*
- */
-const cache::metric_info* line_protocol_query::_get_metric_info(
-    io::data const& d) const {
-  const cache::metric_info* infos = nullptr;
-  if (storage::pb_metric::static_type()) {
-    infos = cache::global_cache::instance_ptr()->get_metric_info(
-        static_cast<storage::pb_metric const&>(d).obj().metric_id());
-    if (!infos) {
-      SPDLOG_LOGGER_ERROR(
-          _logger, "unknown metric {}",
-          static_cast<storage::pb_metric const&>(d).obj().metric_id());
-    }
-  } else {
-    SPDLOG_LOGGER_ERROR(_logger, "_get_metric_info unknown type {}", d.type());
-  }
-  return infos;
 }
 
 /**

@@ -349,8 +349,6 @@ class {snake_name} : public message {{
   friend bool update(const ::google::protobuf::Message& mess);
 
 """
-        class_declaration += "\n".join(modifiers)
-
         class_declaration += f'''
 
  public:
@@ -364,6 +362,8 @@ class {snake_name} : public message {{
   std::vector<variant> enumerate_fields() const;
 
 '''
+        class_declaration += "\n".join(modifiers)
+        class_declaration += "\n\n"
         class_declaration += "\n".join(accessors)
         class_declaration += '\n};\n\n\n'
 
@@ -430,7 +430,7 @@ class message {{
 
 #endif
 '''
-    with open('broker/core/inc/com/centreon/broker/cache/protobuf.hh', 'w') as hh_file:
+    with open('broker/cache/inc/com/centreon/broker/cache/protobuf.hh', 'w') as hh_file:
         hh_file.write(hh)
 
 
@@ -899,7 +899,7 @@ bool message::update(const ::google::protobuf::Message& mess,
     for class_impl in used_class.values():
         cc += class_impl
 
-    with open('broker/core/src/cache/protobuf.cc', 'w') as cc_file:
+    with open('broker/cache/src/protobuf.cc', 'w') as cc_file:
         cc_file.write(cc)
 
 

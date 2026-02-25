@@ -23,6 +23,7 @@
 set(SRC_DIR "src")
 set(TESTS_DIR "${PROJECT_SOURCE_DIR}/core/multiplexing/test")
 
+include_directories(${PROJECT_SOURCE_DIR}/cache/inc)
 # Sources.
 set(SOURCES ${SRC_DIR}/engine.cc ${SRC_DIR}/muxer.cc ${SRC_DIR}/publisher.cc)
 

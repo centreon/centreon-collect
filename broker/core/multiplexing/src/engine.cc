@@ -23,6 +23,7 @@
 
 #include <cassert>
 
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -33,6 +34,9 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
+
+std::shared_ptr<com::centreon::broker::cache::global_cache>
+    com::centreon::broker::cache::global_cache::_instance;
 
 // Class instance.
 std::shared_ptr<engine> engine::_instance{nullptr};
@@ -441,6 +445,18 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       }
     }
   }
+
+  auto cache_to_feed = cache::global_cache::instance_ptr();
+  if (cache_to_feed) {
+    asio::post([kiew, cache_to_feed]() {
+      if (cache_to_feed) {
+        for (const auto& evt : *kiew) {
+          cache_to_feed->write(evt);
+        }
+      }
+    });
+  }
+
   if (first_muxer) {
     _center->update(&EngineStats::set_processed_events, _stats,
                     static_cast<uint32_t>(kiew->size()));

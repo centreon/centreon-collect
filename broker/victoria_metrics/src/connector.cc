@@ -18,6 +18,8 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/connector.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
