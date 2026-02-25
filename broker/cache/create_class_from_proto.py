@@ -283,46 +283,43 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
             index = field['index']
             cpp_type = ''
             if label == 'optional':
-                match type:
-                    case "int32" | "uint32" | "int64" | "uint64":
-                        cpp_type = f'std::optional<{type}_t>'
-                    case "double" | "float" | "string" | "bool":
-                        cpp_type = f'std::optional<{type}>'
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            cpp_type = "std::optional<uint32_t>"
-                        if type in messages:
-                            ccp_type = "message::pointer"
-                            if not pb_class_name in class_dependencies:
-                                class_dependencies[pb_class_name] = []
-                            class_dependencies[pb_class_name].append(type)
+                if type in ["int32", "uint32", "int64", "uint64"]:
+                    cpp_type = f'std::optional<{type}_t>'
+                elif type in ["double", "float", "string", "bool"]:
+                    cpp_type = f'std::optional<{type}>'
+                else:
+                    if type in enums:  # convert all enums to int32
+                        cpp_type = "std::optional<int32_t>"
+                    if type in messages:
+                        ccp_type = "message::pointer"
+                        if not pb_class_name in class_dependencies:
+                            class_dependencies[pb_class_name] = []
+                        class_dependencies[pb_class_name].append(type)
 
             elif label == 'repeated':
-                match type:
-                    case "int32" | "uint32" | "int64" | "uint64" | "double" | "float" | "string" | "bool":
-                        cpp_type = f"{type}_vect"
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            cpp_type = "uint32_vect"
-                        elif type in messages:
-                            cpp_type = "mess_vect"
-                            if not pb_class_name in class_dependencies:
-                                class_dependencies[pb_class_name] = []
-                            class_dependencies[pb_class_name].append(type)
+                if type in ["int32", "uint32", "int64", "uint64", "double", "float", "string", "bool"]:
+                    cpp_type = f"{type}_vect"
+                else:
+                    if type in enums:  # convert all enums to int32
+                        cpp_type = "int32_vect"
+                    elif type in messages:
+                        cpp_type = "mess_vect"
+                        if not pb_class_name in class_dependencies:
+                            class_dependencies[pb_class_name] = []
+                        class_dependencies[pb_class_name].append(type)
             else:
-                match type:
-                    case "int32" | "uint32" | "int64" | "uint64":
-                        cpp_type = f'{type}_t'
-                    case "double" | "float" | "string" | "bool":
-                        cpp_type = type
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            cpp_type = "uint32_t"
-                        if type in messages:
-                            cpp_type = "message::pointer"
-                            if not pb_class_name in class_dependencies:
-                                class_dependencies[pb_class_name] = []
-                            class_dependencies[pb_class_name].append(type)
+                if type in ["int32", "uint32", "int64", "uint64"]:
+                    cpp_type = f'{type}_t'
+                elif type in ["double", "float", "string", "bool"]:
+                    cpp_type = type
+                else:
+                    if type in enums:  # convert all enums to int32
+                        cpp_type = "int32_t"
+                    if type in messages:
+                        cpp_type = "message::pointer"
+                        if not pb_class_name in class_dependencies:
+                            class_dependencies[pb_class_name] = []
+                        class_dependencies[pb_class_name].append(type)
 
             if cpp_type != '':
                 data_type_tuple_define.append(f"{cpp_type} /* {name} */")
@@ -484,108 +481,105 @@ def create_cc(messages, enums, classes):
             field_tuple_init = ''
 
             if label == 'optional':
-                match type:
-                    case "int32" | "uint32" | "int64" | "uint64":
-                        field_tuple_init = f"src.has_{name}()?std::optional<{type}_t>(src.{name}()):std::optional<{type}_t>()"
-                        update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
-                    case "double" | "float" | "bool":
-                        field_tuple_init = f"src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>()"
-                        update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
-                    case  "string":
-                        field_tuple_init = f"src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>()"
+                if type in ["int32", "uint32", "int64", "uint64"]:
+                    field_tuple_init = f"src.has_{name}()?std::optional<{type}_t>(src.{name}()):std::optional<{type}_t>()"
+                    update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                elif type in ["double", "float", "bool"]:
+                    field_tuple_init = f"src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>()"
+                    update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                elif type == "string":
+                    field_tuple_init = f"src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>()"
+                    update_fields.append(
+                        f"UPDATE_OPTIONAL_STRING_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_OPTIONAL_STRING_FIELD({tuple_index});")
+                else:
+                    if type in enums:  # convert all enums to int32
+                        field_tuple_init = f"src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>()"
                         update_fields.append(
-                            f"UPDATE_OPTIONAL_STRING_FIELD({name})")
+                            f"UPDATE_OPTIONAL_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_OPTIONAL_STRING_FIELD({tuple_index});")
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            field_tuple_init = f"src.has_{name}()?std::optional<uint32_t>(src.{name}()):std::optional<uint32_t>()"
-                            update_fields.append(
-                                f"UPDATE_OPTIONAL_FIELD({name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_FIELD({tuple_index});")
-                        if type in messages:
-                            field_tuple_init = f"src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr"
-                            update_fields.append(
-                                f"UPDATE_OPTIONAL_MESS_FIELD({camel_to_snake(type)}, {name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_OPTIONAL_MESS_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_FIELD({tuple_index});")
+                    if type in messages:
+                        field_tuple_init = f"src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr"
+                        update_fields.append(
+                            f"UPDATE_OPTIONAL_MESS_FIELD({camel_to_snake(type)}, {name})")
+                        enumerate_field.append(
+                            f"ADD_ENUMERATION_OPTIONAL_MESS_FIELD({tuple_index});")
 
             elif label == 'repeated':
-                match type:
-                    case "int32" | "uint32" | "int64", "uint64" | "double" | "float" | "bool":
-                        field_tuple_init = f"allocator.{type}_alloc"
-                        repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
+                    field_tuple_init = f"allocator.{type}_alloc"
+                    repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
         mutable_{name}().push_back(value);
     }}''')
-                        update_fields.append(f"UPDATE_REPEATED_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
-                    case "string":
-                        field_tuple_init = f"allocator.string_alloc"
-                        repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                    update_fields.append(f"UPDATE_REPEATED_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                elif type == "string":
+                    field_tuple_init = f"allocator.string_alloc"
+                    repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
         mutable_{name}().emplace_back(value.c_str(), value.length(), allocator.char_alloc);
     }}''')
+                    update_fields.append(
+                        f"UPDATE_REPEATED_STRING_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                else:
+                    if type in enums:  # convert all enums to int32
+                        field_tuple_init = "allocator.int32_alloc"
                         update_fields.append(
-                            f"UPDATE_REPEATED_STRING_FIELD({name})")
+                            f"UPDATE_REPEATED_FIELD({name})")
                         enumerate_field.append(
                             f"ADD_ENUMERATION_FIELD({tuple_index});")
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            field_tuple_init = "allocator.uint32_alloc"
-                            update_fields.append(
-                                f"UPDATE_REPEATED_FIELD({name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_FIELD({tuple_index});")
-                        elif type in messages:
-                            field_tuple_init = "allocator.message_alloc"
-                            if not pb_class_name in class_dependencies:
-                                class_dependencies[pb_class_name] = []
-                            class_dependencies[pb_class_name].append(type)
-                            repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                    elif type in messages:
+                        field_tuple_init = "allocator.message_alloc"
+                        if not pb_class_name in class_dependencies:
+                            class_dependencies[pb_class_name] = []
+                        class_dependencies[pb_class_name].append(type)
+                        repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
     for (const auto & mess: src.{name}()) {{
         mutable_{name}().push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
         interprocess::anonymous_instance)(mess, allocator));
     }}''')
-                            repeated_mess_deleter.append(
-                                f"  REPEATED_MESS_DELETE_ALL({camel_to_snake(type)}, {name});")
-                            update_fields.append(
-                                f"UPDATE_REPEATED_MESS_FIELD({camel_to_snake(type)}, {name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        repeated_mess_deleter.append(
+                            f"  REPEATED_MESS_DELETE_ALL({camel_to_snake(type)}, {name});")
+                        update_fields.append(
+                            f"UPDATE_REPEATED_MESS_FIELD({camel_to_snake(type)}, {name})")
+                        enumerate_field.append(
+                            f"ADD_ENUMERATION_FIELD({tuple_index});")
             else:
-                match type:
-                    case "int32" | "uint32" | "int64" | "uint64" | "double" | "float" | "bool":
+                if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
+                    field_tuple_init = f"src.{name}()"
+                    update_fields.append(f"UPDATE_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                elif type == "string":
+                    field_tuple_init = f"string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
+                    update_fields.append(f"UPDATE_STRING_FIELD({name})")
+                    enumerate_field.append(
+                        f"ADD_ENUMERATION_STRING_FIELD({tuple_index});")
+                else:
+                    if type in enums:  # convert all enums to int32
                         field_tuple_init = f"src.{name}()"
                         update_fields.append(f"UPDATE_FIELD({name})")
                         enumerate_field.append(
                             f"ADD_ENUMERATION_FIELD({tuple_index});")
-                    case  "string":
-                        field_tuple_init = f"string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
-                        update_fields.append(f"UPDATE_STRING_FIELD({name})")
+                    if type in messages:
+                        field_tuple_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator)"
+                        update_fields.append(
+                            f"UPDATE_MESS_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_STRING_FIELD({tuple_index});")
-                    case _:
-                        if type in enums:  # convert all enums to uint32
-                            field_tuple_init = f"src.{name}()"
-                            update_fields.append(f"UPDATE_FIELD({name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_FIELD({tuple_index});")
-                        if type in messages:
-                            field_tuple_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator)"
-                            update_fields.append(
-                                f"UPDATE_MESS_FIELD({name})")
-                            enumerate_field.append(
-                                f"ADD_ENUMERATION_MESS_FIELD({tuple_index});")
-                            if not pb_class_name in class_dependencies:
-                                class_dependencies[pb_class_name] = []
-                            class_dependencies[pb_class_name].append(type)
+                            f"ADD_ENUMERATION_MESS_FIELD({tuple_index});")
+                        if not pb_class_name in class_dependencies:
+                            class_dependencies[pb_class_name] = []
+                        class_dependencies[pb_class_name].append(type)
 
             if field_tuple_init != '':
                 tuple_init.append(field_tuple_init)
@@ -779,7 +773,7 @@ using namespace com::centreon::broker::cache;
 #define UPDATE_REPEATED_FIELD(field)                                           \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
-  if (mess.field().size() > mutable_##field().size()) {{                        \\
+  if (static_cast<unsigned>(mess.field().size()) > mutable_##field().size()) {{ \\
     mutable_##field().reserve(mess.field().size());                            \\
   }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\
@@ -803,7 +797,7 @@ using namespace com::centreon::broker::cache;
 #define UPDATE_REPEATED_STRING_FIELD(field)                                    \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
-  if (mess.field().size() > mutable_##field().size()) {{                        \\
+  if (static_cast<unsigned>(mess.field().size()) > mutable_##field().size()) {{ \\
     mutable_##field().reserve(mess.field().size());                            \\
   }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\
@@ -829,7 +823,7 @@ using namespace com::centreon::broker::cache;
 #define UPDATE_REPEATED_MESS_FIELD(mess_type, field)                           \\
   auto src_iter = mess.field().begin();                                        \\
   auto src_end = mess.field().end();                                           \\
-  if (mess.field().size() > mutable_##field().size()) {{                        \\
+  if (static_cast<unsigned>(mess.field().size()) > mutable_##field().size()) {{ \\
     mutable_##field().reserve(mess.field().size());                            \\
   }}                                                                            \\
   auto dst_iter = mutable_##field().begin();                                   \\

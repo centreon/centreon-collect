@@ -328,9 +328,14 @@ class global_cache_data : public global_cache {
       std::shared_ptr<io::data> const& data);
   void _process_pb_tag(std::shared_ptr<io::data> const& data);
 
+  void _write_conf(const std::shared_ptr<io::data>& data);
+  void _write_rt(const std::shared_ptr<io::data>& data);
+
  public:
   global_cache_data(const std::shared_ptr<asio::io_context> io_context,
                     const std::string& file_path,
+                    e_cache_type cache_type,
+                    const std::shared_ptr<global_cache>& conf_cache,
                     unsigned grow_step = 0x20000000,
                     unsigned nb_update_before_save = 1000,
                     std::chrono::system_clock::duration save_interval =

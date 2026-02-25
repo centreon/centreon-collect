@@ -197,7 +197,7 @@ endif()
 
 # Configure files.
 if(WITH_DAEMONS)
-  if(WITH_STARTUP_SCRIPT STREQUAL "systemd"${PROJECT_SOURCE_DIR}/core)
+  if(WITH_STARTUP_SCRIPT STREQUAL "systemd")
     configure_file("${PROJECT_SOURCE_DIR}/script/systemd/cbd.service.in"
                    "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
     install(FILES "${PROJECT_SOURCE_DIR}/script/cbd.service"

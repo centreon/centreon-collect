@@ -47,7 +47,8 @@ class global_cache_test : public testing::Test {
 
 TEST_F(global_cache_test, CanBeMoved) {
   global_cache::unload();
-  ::remove("/tmp/cache_test");
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 
@@ -194,7 +195,8 @@ TEST_F(global_cache_test, CanBeMoved) {
 
 TEST_F(global_cache_test, Group) {
   global_cache::unload();
-  ::remove("/tmp/cache_test");
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 
@@ -356,7 +358,8 @@ TEST_F(global_cache_test, Group) {
 
 TEST_F(global_cache_test, Tag) {
   global_cache::unload();
-  ::remove("/tmp/cache_test");
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 
@@ -508,7 +511,8 @@ TEST_F(global_cache_test, Tag) {
 
 TEST_F(global_cache_test, Huge) {
   global_cache::unload();
-  ::remove("/tmp/cache_test");
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 

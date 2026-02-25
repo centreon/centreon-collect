@@ -92,6 +92,8 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void _grow(size_t new_size, void* address = 0);
 
+ protected:
+  const std::string _file_path;
   /**
    * @brief in fact, we have two cache, one stable updated only by conf event
    * such as service, host, host_group..
@@ -100,11 +102,8 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
    * built from conf one each time we need data (like a service)
    */
   enum class e_cache_type { conf, real_time };
-
-  // const e_cache_type _cache_type;
-
- protected:
-  const std::string _file_path;
+  std::shared_ptr<global_cache> _conf_cache;
+  const e_cache_type _cache_type;
 
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -115,7 +114,8 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   global_cache(const std::shared_ptr<asio::io_context> io_context,
                const std::string& file_path,
                const std::shared_ptr<spdlog::logger>& logger,
-               /*e_cache_type cache_type,*/
+               e_cache_type cache_type,
+               const std::shared_ptr<global_cache>& conf_cache,
                unsigned grow_step = 0x20000000,
                unsigned nb_update_before_save = 1000,
                std::chrono::system_clock::duration save_interval =

@@ -58,7 +58,8 @@ class victoria_request_test : public ::testing::Test {
     io::protocols::load();
     io::events::load();
     io::events& e(io::events::instance());
-    ::remove("/tmp/cache_test.request_test");
+    ::remove("/tmp/cache_test.request_test.rt");
+    ::remove("/tmp/cache_test.request_test.cnf");
     cache::global_cache::load(g_io_context, "/tmp/cache_test.request_test");
 
     // Register events.

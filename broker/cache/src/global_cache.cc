@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "boost/system/detail/error_code.hpp"
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -40,6 +41,8 @@ inline std::string operator+(const std::string& left,
 global_cache::global_cache(const std::shared_ptr<asio::io_context> io_context,
                            const std::string& file_path,
                            const std::shared_ptr<spdlog::logger>& logger,
+                           e_cache_type cache_type,
+                           const std::shared_ptr<global_cache>& conf_cache,
                            unsigned grow_step,
                            unsigned nb_update_before_save,
                            std::chrono::system_clock::duration save_interval)
@@ -52,7 +55,10 @@ global_cache::global_cache(const std::shared_ptr<asio::io_context> io_context,
       _dirty(nullptr),
       _modif_counter(0),
       _last_save_time(0),
-      _file_path(file_path),
+      _file_path(file_path +
+                 (cache_type == e_cache_type::real_time ? ".rt" : ".cnf")),
+      _conf_cache(conf_cache),
+      _cache_type(cache_type),
       _logger{logger} {
   SPDLOG_LOGGER_DEBUG(_logger, "cache create global_cache {:p}",
                       static_cast<const void*>(this));
@@ -249,9 +255,19 @@ global_cache::pointer global_cache::load(
     unsigned nb_update_before_save,
     std::chrono::system_clock::duration save_interval) {
   if (!_instance) {
-    _instance =
-        pointer(new global_cache_data(io_context, file_path, grow_step,
-                                      nb_update_before_save, save_interval));
+    std::shared_ptr<global_cache> conf_cache(new global_cache_data(
+        io_context, file_path, e_cache_type::conf, nullptr, grow_step,
+        nb_update_before_save, save_interval));
+    conf_cache->_open(initial_size, address);
+    {
+      absl::WriterMutexLock l(
+          &conf_cache
+               ->_protect);  // mandatory only for _start_save_timer attribute
+      conf_cache->_start_save_timer();
+    }
+    _instance = pointer(new global_cache_data(
+        io_context, file_path, e_cache_type::real_time, conf_cache, grow_step,
+        nb_update_before_save, save_interval));
     _instance->_open(initial_size, address);
     absl::WriterMutexLock l(
         &_instance

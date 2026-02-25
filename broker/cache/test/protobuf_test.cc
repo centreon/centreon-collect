@@ -40,7 +40,11 @@ class simple_global_cache : public global_cache {
   }
 
   simple_global_cache(const std::string& file_path)
-      : global_cache(g_io_context, file_path, spdlog::default_logger()) {}
+      : global_cache(g_io_context,
+                     file_path,
+                     spdlog::default_logger(),
+                     e_cache_type::real_time,
+                     nullptr) {}
 
   static std::shared_ptr<simple_global_cache> load(
       const std::string& file_path) {
@@ -108,7 +112,7 @@ class protobuf_test : public testing::Test {
   static void SetUpTestSuite() {
     spdlog::default_logger()->set_level(spdlog::level::trace);
   }
-  void SetUp() override { ::remove(file_path.c_str()); }
+  void SetUp() override { ::remove((file_path + ".rt").c_str()); }
 };
 
 static std::string random_string() {
