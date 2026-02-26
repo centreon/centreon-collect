@@ -3212,3 +3212,34 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
+
+
+def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
+    """
+    Check lines as 1770991869 lua write error
+    We check that first field (timestamp) obey to the failover increase interval law
+
+    :param lua_log_lines: lines given by grep
+    :param max_retry_delay: max_retry_delay configured in broker output
+    """
+    last_timestamp = 0
+    last_interval = 1
+
+    timestamp_search = re.compile(r"(\d+).*")
+    for line in lua_log_lines:
+        extract = timestamp_search.search(line)
+        if extract is not None:
+            new_ts = int(extract.group(1))
+        if last_timestamp == 0:
+            last_timestamp = new_ts
+        else:
+            if new_ts != last_timestamp + last_interval:
+                logger.console.log(
+                    f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
+                return False
+            else:
+                last_timestamp = new_ts
+                last_interval = last_interval * 2
+                if last_interval > max_retry_delay:
+                    last_interval = max_retry_delay
+    return True
