@@ -25,7 +25,13 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::cache;
 
-global_cache::lock::lock() : _lock(&global_cache::_instance->_protect) {}
+global_cache::lock::lock() : _lock(global_cache::_instance->_protect) {}
+global_cache::lock::lock(global_cache* cache) : _lock(cache->_protect) {}
+
+global_cache::upgrade_lock::upgrade_lock()
+    : _lock(global_cache::_instance->_protect) {}
+global_cache::upgrade_lock::upgrade_lock(global_cache* cache)
+    : _lock(cache->_protect) {}
 
 inline std::string operator+(const std::string& left,
                              const std::string_view& to_append) {
@@ -60,13 +66,13 @@ global_cache::global_cache(const std::shared_ptr<asio::io_context> io_context,
       _conf_cache(conf_cache),
       _cache_type(cache_type),
       _logger{logger} {
-  SPDLOG_LOGGER_DEBUG(_logger, "cache create global_cache {:p}",
-                      static_cast<const void*>(this));
+  SPDLOG_LOGGER_DEBUG(_logger, "cache create global_cache {:p} {}",
+                      static_cast<const void*>(this), _file_path);
 }
 
 global_cache::~global_cache() {
-  SPDLOG_LOGGER_DEBUG(_logger, "cache destroy global_cache {:p}",
-                      static_cast<const void*>(this));
+  SPDLOG_LOGGER_DEBUG(_logger, "cache destroy global_cache {:p} {}",
+                      static_cast<const void*>(this), _file_path);
   stop();
 }
 
@@ -82,7 +88,7 @@ void global_cache::_save_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
   } else {
-    absl::WriterMutexLock l(&_protect);
+    boost::unique_lock l(_protect);
     _flush();
     _start_save_timer();
   }
@@ -232,7 +238,7 @@ void global_cache::_grow(size_t new_size, void* address) {
  */
 void global_cache::allocation_exception_handler() {
   {
-    absl::WriterMutexLock l(&_protect);
+    boost::unique_lock l(_protect);
     _grow(_file_size + _grow_step);
     this->managed_map(false);
   }
@@ -260,18 +266,17 @@ global_cache::pointer global_cache::load(
         nb_update_before_save, save_interval));
     conf_cache->_open(initial_size, address);
     {
-      absl::WriterMutexLock l(
-          &conf_cache
-               ->_protect);  // mandatory only for _start_save_timer attribute
+      boost::unique_lock l(
+          conf_cache
+              ->_protect);  // mandatory only for _start_save_timer attribute
       conf_cache->_start_save_timer();
     }
     _instance = pointer(new global_cache_data(
         io_context, file_path, e_cache_type::real_time, conf_cache, grow_step,
         nb_update_before_save, save_interval));
     _instance->_open(initial_size, address);
-    absl::WriterMutexLock l(
-        &_instance
-             ->_protect);  // mandatory only for _start_save_timer attribute
+    boost::unique_lock l(
+        _instance->_protect);  // mandatory only for _start_save_timer attribute
     _instance->_start_save_timer();
   }
   return _instance;
@@ -289,11 +294,14 @@ void global_cache::unload() {
 }
 
 void global_cache::stop() {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   _save_timer.cancel();
   _flush();
   _file.reset();
   _file_size = 0;
+  if (_cache_type == e_cache_type::real_time && _conf_cache) {
+    _conf_cache->stop();
+  }
 }
 
 /**

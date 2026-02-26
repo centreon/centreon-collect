@@ -544,6 +544,7 @@ target_link_libraries(
   Boost::url
   gRPC::grpc++
   Boost::program_options
+  Boost::thread
   -Wl,--no-whole-archive
   absl::any
   absl::log

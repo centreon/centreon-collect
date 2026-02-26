@@ -97,15 +97,15 @@ class global_cache_data : public global_cache {
    * @brief severity is also given by a custom variable "CRITICALITY_LEVEL"
    * So we store both in this pair
    */
-  using serv_custom_var_pair =
+  using service_custom_var_pair =
       std::pair<interprocess::offset_ptr<service>,
                 int32_t /* severity given by custom var*/>;
   using id_to_serv = interprocess::flat_map<
       host_serv_pair,
-      serv_custom_var_pair,
+      service_custom_var_pair,
       std::less<host_serv_pair>,
       managed_mapped_file::allocator<
-          std::pair<host_serv_pair, serv_custom_var_pair>>::type>;
+          std::pair<host_serv_pair, service_custom_var_pair>>::type>;
 
   using id_to_instance = interprocess::flat_map<
       uint64_t,
@@ -343,45 +343,46 @@ class global_cache_data : public global_cache {
 
   void write(const std::shared_ptr<io::data>& d) override;
 
-  const host* get_host(uint64_t host_id) const override
+  const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   const service* get_service(uint64_t host_id,
-                             uint64_t service_id) const override
+                             uint64_t service_id,
+                             upgrade_lock& read_lock) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  const host_serv_pair* get_host_serv_id(uint64_t index_id) const override
+  const host_serv_pair* get_host_serv_id(uint64_t index_id) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  const instance* get_instance(uint64_t instance_id) const override
+  const instance* get_instance(uint64_t instance_id,
+                               upgrade_lock& read_lock) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
   void append_service_group(uint64_t host,
                             uint64_t service,
-                            std::ostream& request_body) const override;
-  void append_host_group(uint64_t host,
-                         std::ostream& request_body) const override;
+                            std::ostream& request_body) override;
+  void append_host_group(uint64_t host, std::ostream& request_body) override;
   void append_host_tag_id(uint64_t host,
                           TagType tag_type,
-                          std::ostream& request_body) const override
+                          std::ostream& request_body) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void append_serv_tag_id(uint64_t host,
                           uint64_t serv,
                           TagType tag_type,
-                          std::ostream& request_body) const override
+                          std::ostream& request_body) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void append_host_tag_name(uint64_t host,
                             TagType tag_type,
-                            std::ostream& request_body) const override
+                            std::ostream& request_body) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void append_serv_tag_name(uint64_t host,
                             uint64_t serv,
                             TagType tag_type,
-                            std::ostream& request_body) const override
+                            std::ostream& request_body) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
-  uint64_t get_index_id_from_metric_id(uint64_t metric_id) const override
+  uint64_t get_index_id_from_metric_id(uint64_t metric_id) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   int32_t get_severity(const uint64_t host_id,
-                       const uint64_t service_id) const override
+                       const uint64_t service_id) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 };
 

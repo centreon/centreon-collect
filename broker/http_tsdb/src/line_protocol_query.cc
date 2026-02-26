@@ -445,9 +445,9 @@ void line_protocol_query::_get_host(io::data const& d,
       d.type() == storage::pb_metric::static_type()
           ? static_cast<storage::pb_metric const&>(d).obj().host_id()
           : static_cast<storage::pb_status const&>(d).obj().host_id();
-  cache::global_cache::lock l;
+  cache::global_cache::upgrade_lock l;
   const cache::host* host_info =
-      cache::global_cache::instance_ptr()->get_host(host_id);
+      cache::global_cache::instance_ptr()->get_host(host_id, l);
   if (host_info) {
     is << host_info->name();
   }
@@ -489,10 +489,10 @@ void line_protocol_query::_get_service(io::data const& d,
                                        unsigned& string_index [[maybe_unused]],
                                        std::ostream& is) const {
   cache::host_serv_pair host_serv = _get_service_id(d);
-  cache::global_cache::lock l;
+  cache::global_cache::upgrade_lock l;
   const cache::service* serv_info =
       cache::global_cache::instance_ptr()->get_service(host_serv.first,
-                                                       host_serv.second);
+                                                       host_serv.second, l);
   if (serv_info) {
     is << serv_info->description();
   }
@@ -536,9 +536,9 @@ void line_protocol_query::_get_service_id(io::data const& d,
 void line_protocol_query::_get_instance(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
-  cache::global_cache::lock l;
+  cache::global_cache::upgrade_lock l;
   const cache::instance* inst =
-      cache::global_cache::instance_ptr()->get_instance(d.source_id);
+      cache::global_cache::instance_ptr()->get_instance(d.source_id, l);
   if (inst) {
     is << inst->name();
   }

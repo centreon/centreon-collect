@@ -61,6 +61,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-url",
+      "platform": "thread"
+    },
+    {
       "name": "nlohmann-json",
       "platform": "linux"
     },

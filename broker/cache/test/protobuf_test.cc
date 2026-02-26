@@ -54,53 +54,53 @@ class simple_global_cache : public global_cache {
     return ret;
   }
 
-  const host_serv_pair* get_host_serv_id(uint64_t index_id) const override {
+  const host_serv_pair* get_host_serv_id(uint64_t index_id) override {
     return nullptr;
   }
 
   void write(const std::shared_ptr<io::data>& d) override {}
 
-  const host* get_host(uint64_t host_id) const override { return nullptr; }
+  const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override {
+    return nullptr;
+  }
   virtual const service* get_service(uint64_t host_id,
-                                     uint64_t service_id) const override {
+                                     uint64_t service_id,
+                                     upgrade_lock& read_lock) override {
     return nullptr;
   }
 
-  virtual const instance* get_instance(uint64_t instance_id) const override {
+  virtual const instance* get_instance(uint64_t instance_id,
+                                       upgrade_lock& read_lock) override {
     return nullptr;
   }
 
   using tag_id_enumerator = std::function<uint64_t()>;
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
-                                    std::ostream& request_body) const override {
-  }
+                                    std::ostream& request_body) override {}
   virtual void append_host_group(uint64_t host,
-                                 std::ostream& request_body) const override {}
+                                 std::ostream& request_body) override {}
   virtual void append_host_tag_id(uint64_t host,
                                   TagType tag_type,
-                                  std::ostream& request_body) const override {}
+                                  std::ostream& request_body) override {}
   virtual void append_serv_tag_id(uint64_t host,
                                   uint64_t serv,
                                   TagType tag_type,
-                                  std::ostream& request_body) const override {}
+                                  std::ostream& request_body) override {}
   virtual void append_host_tag_name(uint64_t host,
                                     TagType tag_type,
-                                    std::ostream& request_body) const override {
-  }
+                                    std::ostream& request_body) override {}
   virtual void append_serv_tag_name(uint64_t host,
                                     uint64_t serv,
                                     TagType tag_type,
-                                    std::ostream& request_body) const override {
-  }
+                                    std::ostream& request_body) override {}
 
-  virtual uint64_t get_index_id_from_metric_id(
-      uint64_t metric_id) const override {
+  virtual uint64_t get_index_id_from_metric_id(uint64_t metric_id) override {
     return 0;
   }
 
   virtual int32_t get_severity(const uint64_t host_id,
-                               const uint64_t service_id) const override {
+                               const uint64_t service_id) override {
     return 0;
   }
 };

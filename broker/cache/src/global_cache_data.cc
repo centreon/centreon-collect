@@ -17,7 +17,8 @@
  */
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
-#include <memory>
+#include <boost/thread/lock_types.hpp>
+#include <boost/thread/pthread/shared_mutex.hpp>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
@@ -182,7 +183,7 @@ void global_cache_data::managed_map(bool create) {
   }
 
   if (cont_created) {
-    absl::WriterMutexLock l(&_protect);
+    boost::unique_lock l(_protect);
     _set_dirty_and_increment_modif();
   }
 }
@@ -244,12 +245,6 @@ void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
       case neb::pb_host_group::static_type():
         _process_pb_host_group(data);
         break;
-      case neb::host_group_member::static_type():
-        _process_pb_host_group_member(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host_group_member::static_type():
-        _process_pb_host_group_member(data);
-        break;
       case neb::service::static_type():
         _process_pb_service(neb::bbdo2_to_bbdo3(data));
         break;
@@ -274,41 +269,11 @@ void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
       case neb::pb_service_group::static_type():
         _process_pb_service_group(data);
         break;
-      case neb::service_group_member::static_type():
-        _process_pb_service_group_member(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service_group_member::static_type():
-        _process_pb_service_group_member(data);
-        break;
-      case neb::custom_variable::static_type():
-        _process_pb_custom_variable(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_custom_variable::static_type():
-        _process_pb_custom_variable(data);
-        break;
-      case storage::pb_index_mapping::static_type():
-        _process_index_mapping(data);
-        break;
-      case storage::index_mapping::static_type():
-        _process_index_mapping(neb::bbdo2_to_bbdo3(data));
-        break;
-      case storage::pb_metric_mapping::static_type():
-        _process_metric_mapping(data);
-        break;
-      case storage::metric_mapping::static_type():
-        _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
-        break;
       case bam::dimension_ba_event::static_type():
         _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
         break;
       case bam::pb_dimension_ba_event::static_type():
         _process_dimension_ba_event(data);
-        break;
-      case bam::dimension_ba_bv_relation_event::static_type():
-        _process_dimension_ba_bv_relation_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_ba_bv_relation_event::static_type():
-        _process_dimension_ba_bv_relation_event(data);
         break;
       case bam::dimension_bv_event::static_type():
         _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
@@ -321,9 +286,6 @@ void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
         break;
       case bam::pb_dimension_truncate_table_signal::static_type():
         _process_pb_dimension_truncate_table_signal(data);
-        break;
-      case neb::pb_tag::static_type():
-        _process_pb_tag(data);
         break;
       default:
         break;
@@ -448,8 +410,8 @@ void global_cache_data::_write_conf(const std::shared_ptr<io::data>& data) {
  */
 void global_cache_data::_process_pb_instance(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_instance>(data);
+  boost::unique_lock l(_protect);
   auto exist = _id_to_instance->find(in->obj().instance_id());
   if (exist == _id_to_instance->end()) {
     if (in->obj().running()) {
@@ -478,9 +440,9 @@ void global_cache_data::_process_pb_instance(
  */
 void global_cache_data::_process_pb_host(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_host>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host {}", in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
   if (exist == _id_to_host->end()) {
     if (in.enabled()) {
@@ -517,10 +479,10 @@ void global_cache_data::_process_pb_host(
  */
 void global_cache_data::_process_pb_host_status(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_host_status>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host status {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
   if (exist == _id_to_host->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -570,11 +532,11 @@ void global_cache_data::_process_pb_host_status(
  */
 void global_cache_data::_process_pb_adaptive_host_status(
     const std::shared_ptr<io::data>& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_host_status>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive host status {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
   if (exist == _id_to_host->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -601,10 +563,10 @@ void global_cache_data::_process_pb_adaptive_host_status(
  */
 void global_cache_data::_process_pb_adaptive_host(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_adaptive_host>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive host {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
   if (exist == _id_to_host->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -643,12 +605,12 @@ void global_cache_data::_process_pb_adaptive_host(
  */
 void global_cache_data::_process_pb_host_group(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_host_group>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
       _logger,
       "cache: processing pb host group '{}' of id {} for poller {}, enabled {}",
       in.name(), in.hostgroup_id(), in.poller_id(), in.enabled());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_host_group->find(in.hostgroup_id());
 
   if (in.enabled()) {
@@ -687,7 +649,6 @@ void global_cache_data::_process_pb_host_group(
  */
 void global_cache_data::_process_pb_host_group_member(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
@@ -696,6 +657,7 @@ void global_cache_data::_process_pb_host_group_member(
       "host_id: {} poller_id: {}, enabled: {})",
       in.name(), in.hostgroup_id(), in.host_id(), in.poller_id(), in.enabled());
 
+  boost::unique_lock l(_protect);
   if (in.enabled()) {
     if (_host_group_members
             ->emplace(in.host_id(), in.hostgroup_id(), in.poller_id())
@@ -742,6 +704,7 @@ void global_cache_data::_process_pb_custom_variable(
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
                           in.host_id(), in.service_id(), value);
+      boost::unique_lock l(_protect);
       if (value) {
         if (in.service_id()) {
           auto exist = _id_to_service->find(
@@ -749,7 +712,7 @@ void global_cache_data::_process_pb_custom_variable(
           if (exist == _id_to_service->end()) {
             _id_to_service->emplace(
                 host_serv_pair{in.host_id(), in.service_id()},
-                serv_custom_var_pair{nullptr, value});
+                service_custom_var_pair{nullptr, value});
             _set_dirty_and_increment_modif();
           } else {
             if (exist->second.second != value) {
@@ -788,11 +751,11 @@ void global_cache_data::_process_pb_custom_variable(
  */
 void global_cache_data::_process_pb_service(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_service>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
       _logger, "cache: processing service ({}, {}) (description:{}) enabled {}",
       in.host_id(), in.service_id(), in.description(), in.enabled());
+  boost::unique_lock l(_protect);
   auto exist =
       _id_to_service->find(std::make_pair(in.host_id(), in.service_id()));
   if (exist == _id_to_service->end()) {
@@ -800,7 +763,7 @@ void global_cache_data::_process_pb_service(
       service* to_insert = _file->get_segment_manager()->construct<service>(
           interprocess::anonymous_instance)(in, *_allocators);
       _id_to_service->emplace(host_serv_pair{in.host_id(), in.service_id()},
-                              serv_custom_var_pair{to_insert, 0});
+                              service_custom_var_pair{to_insert, 0});
       _set_dirty_and_increment_modif();
     }
   } else {
@@ -829,11 +792,11 @@ void global_cache_data::_process_pb_service(
  */
 void global_cache_data::_process_pb_service_status(
     const std::shared_ptr<io::data>& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_service_status>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host status {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
   if (exist == _id_to_service->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -884,11 +847,11 @@ void global_cache_data::_process_pb_service_status(
  */
 void global_cache_data::_process_pb_adaptive_service_status(
     const std::shared_ptr<io::data>& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service_status>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive service status {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
   if (exist == _id_to_service->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -916,11 +879,11 @@ void global_cache_data::_process_pb_adaptive_service_status(
  */
 void global_cache_data::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive service status {}",
                       in.host_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
   if (exist == _id_to_service->end() || !exist->second.first) {
     SPDLOG_LOGGER_WARN(
@@ -968,6 +931,7 @@ void global_cache_data::_process_pb_service_group(
   SPDLOG_LOGGER_DEBUG(_logger,
                       "cache: processing pb service group '{}' of id {}",
                       in.name(), in.servicegroup_id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_serv_group->find(in.servicegroup_id());
 
   if (in.enabled()) {
@@ -1006,7 +970,6 @@ void global_cache_data::_process_pb_service_group(
  */
 void global_cache_data::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
@@ -1016,6 +979,7 @@ void global_cache_data::_process_pb_service_group_member(
       in.name(), in.servicegroup_id(), in.host_id(), in.service_id(),
       in.poller_id(), in.enabled());
 
+  boost::unique_lock l(_protect);
   if (in.enabled()) {
     if (_service_group_members
             ->emplace(in.host_id(), in.service_id(), in.servicegroup_id(),
@@ -1050,8 +1014,10 @@ void global_cache_data::_process_pb_service_group_member(
  *  @param in  The event.
  */
 void global_cache_data::_process_pb_tag(std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
   const auto& in = std::static_pointer_cast<neb::pb_tag>(data)->obj();
+  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing pb tag (name: '{}', id: {})",
+                      in.name(), in.id());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_tag->find(in.id());
   if (exist == _id_to_tag->end()) {
     if (in.action() != Tag::DELETE) {
@@ -1086,7 +1052,7 @@ void global_cache_data::_process_pb_tag(std::shared_ptr<io::data> const& data) {
  */
 void global_cache_data::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<storage::pb_index_mapping>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
@@ -1112,7 +1078,7 @@ void global_cache_data::_process_index_mapping(
  */
 void global_cache_data::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<storage::pb_metric_mapping>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
@@ -1137,7 +1103,7 @@ void global_cache_data::_process_metric_mapping(
  */
 void global_cache_data::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_event>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
@@ -1158,7 +1124,7 @@ void global_cache_data::_process_dimension_ba_event(
 
 void global_cache_data::_process_dimension_ba_bv_relation_event(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data)
           ->obj();
@@ -1184,7 +1150,7 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
  */
 void global_cache_data::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_bv_event>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
@@ -1210,7 +1176,7 @@ void global_cache_data::_process_dimension_bv_event(
  */
 void global_cache_data::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  absl::WriterMutexLock l(&_protect);
+  boost::unique_lock l(_protect);
   SPDLOG_LOGGER_DEBUG(_logger,
                       "lua: processing dimension truncate table signal");
 
@@ -1235,8 +1201,24 @@ void global_cache_data::_process_pb_dimension_truncate_table_signal(
  * @param host_id
  * @return const host* nullptr if not found
  */
-const host* global_cache_data::get_host(uint64_t host_id) const {
+const host* global_cache_data::get_host(uint64_t host_id,
+                                        upgrade_lock& read_lock) {
   auto search = _id_to_host->find(host_id);
+  if (search == _id_to_host->end() && _cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // not found in rt cache => search in conf cache
+    upgrade_lock l(_conf_cache.get());
+    const host* conf_host = _conf_cache->get_host(host_id, l);
+    if (conf_host) {
+      boost::upgrade_to_unique_lock unique_l(read_lock._lock);
+      host* to_insert = _file->get_segment_manager()->construct<host>(
+          interprocess::anonymous_instance)(*conf_host, *_allocators);
+      _id_to_host->emplace(
+          host_id, host_custom_var_pair(to_insert,
+                                        _conf_cache->get_severity(host_id, 0)));
+      _set_dirty_and_increment_modif();
+      return to_insert;
+    }
+  }
   return search != _id_to_host->end() ? search->second.first.get() : nullptr;
 }
 
@@ -1248,8 +1230,27 @@ const host* global_cache_data::get_host(uint64_t host_id) const {
  * @return const service* nullptr if not found
  */
 const service* global_cache_data::get_service(uint64_t host_id,
-                                              uint64_t service_id) const {
+                                              uint64_t service_id,
+                                              upgrade_lock& read_lock) {
   auto search = _id_to_service->find({host_id, service_id});
+  if (search == _id_to_service->end() &&
+      _cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // not found in rt cache => search in conf cache
+    upgrade_lock l(_conf_cache.get());
+    const service* conf_service =
+        _conf_cache->get_service(host_id, service_id, l);
+    if (conf_service) {
+      boost::upgrade_to_unique_lock unique_l(read_lock._lock);
+      service* to_insert = _file->get_segment_manager()->construct<service>(
+          interprocess::anonymous_instance)(*conf_service, *_allocators);
+      _id_to_service->emplace(
+          std::make_pair(host_id, service_id),
+          service_custom_var_pair(
+              to_insert, _conf_cache->get_severity(host_id, service_id)));
+      _set_dirty_and_increment_modif();
+      return to_insert;
+    }
+  }
   return search != _id_to_service->end() ? search->second.first.get() : nullptr;
 }
 
@@ -1259,8 +1260,12 @@ const service* global_cache_data::get_service(uint64_t host_id,
  * @param index_id
  * @return const host_serv_pair* nullptr if not found
  */
-const host_serv_pair* global_cache_data::get_host_serv_id(
-    uint64_t index_id) const {
+const host_serv_pair* global_cache_data::get_host_serv_id(uint64_t index_id) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_host_serv_id(index_id);
+  }
   auto search = _index_id_mapping->find(index_id);
   return search != _index_id_mapping->end() ? &search->second : nullptr;
 }
@@ -1271,8 +1276,22 @@ const host_serv_pair* global_cache_data::get_host_serv_id(
  * @param instance_id
  * @return const instance* nullptr if not found
  */
-const instance* global_cache_data::get_instance(uint64_t instance_id) const {
+const instance* global_cache_data::get_instance(uint64_t instance_id,
+                                                upgrade_lock& read_lock) {
   auto search = _id_to_instance->find(instance_id);
+  if (search == _id_to_instance->end() &&
+      _cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // not found in rt cache => search in conf cache
+    upgrade_lock l(_conf_cache.get());
+    const instance* conf_inst = _conf_cache->get_instance(instance_id, l);
+    if (conf_inst) {
+      boost::upgrade_to_unique_lock unique_l(read_lock._lock);
+      instance* to_insert = _file->get_segment_manager()->construct<instance>(
+          interprocess::anonymous_instance)(*conf_inst, *_allocators);
+      _id_to_instance->emplace(instance_id, to_insert);
+      return to_insert;
+    }
+  }
   return search != _id_to_instance->end() ? search->second.get() : nullptr;
 }
 
@@ -1285,7 +1304,14 @@ const instance* global_cache_data::get_instance(uint64_t instance_id) const {
  */
 void global_cache_data::append_service_group(uint64_t host,
                                              uint64_t service,
-                                             std::ostream& request_body) const {
+                                             std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_service_group(host, service, request_body);
+    return;
+  }
+
   std::set<uint64_t> sorted;
 
   auto range = _service_group_members->get<2>().equal_range(
@@ -1312,7 +1338,14 @@ void global_cache_data::append_service_group(uint64_t host,
  * @param request_body
  */
 void global_cache_data::append_host_group(uint64_t host,
-                                          std::ostream& request_body) const {
+                                          std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_host_group(host, request_body);
+    return;
+  }
+
   std::set<uint64_t> sorted;
   auto range = _host_group_members->get<2>().equal_range(host);
   if (range.first != range.second) {
@@ -1339,7 +1372,14 @@ void global_cache_data::append_host_group(uint64_t host,
  */
 void global_cache_data::append_host_tag_id(uint64_t host,
                                            TagType tag_type,
-                                           std::ostream& request_body) const {
+                                           std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_host_tag_id(host, tag_type, request_body);
+    return;
+  }
+
   auto search = _id_to_host->find(host);
 
   if (search != _id_to_host->end() && search->second.first) {
@@ -1369,7 +1409,13 @@ void global_cache_data::append_host_tag_id(uint64_t host,
 void global_cache_data::append_serv_tag_id(uint64_t host,
                                            uint64_t serv,
                                            TagType tag_type,
-                                           std::ostream& request_body) const {
+                                           std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_serv_tag_id(host, serv, tag_type, request_body);
+    return;
+  }
   auto search = _id_to_service->find({host, serv});
   if (search != _id_to_service->end() && search->second.first) {
     bool first = true;
@@ -1396,7 +1442,13 @@ void global_cache_data::append_serv_tag_id(uint64_t host,
  */
 void global_cache_data::append_host_tag_name(uint64_t host,
                                              TagType tag_type,
-                                             std::ostream& request_body) const {
+                                             std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_host_tag_name(host, tag_type, request_body);
+    return;
+  }
   auto search = _id_to_host->find(host);
 
   if (search != _id_to_host->end() && search->second.first) {
@@ -1429,7 +1481,13 @@ void global_cache_data::append_host_tag_name(uint64_t host,
 void global_cache_data::append_serv_tag_name(uint64_t host,
                                              uint64_t serv,
                                              TagType tag_type,
-                                             std::ostream& request_body) const {
+                                             std::ostream& request_body) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->append_serv_tag_name(host, serv, tag_type, request_body);
+    return;
+  }
   auto search = _id_to_service->find({host, serv});
   if (search != _id_to_service->end() && search->second.first) {
     bool first = true;
@@ -1456,8 +1514,12 @@ void global_cache_data::append_serv_tag_name(uint64_t host,
  * @param metric_id
  * @return uint64_t 0 if not found
  */
-uint64_t global_cache_data::get_index_id_from_metric_id(
-    uint64_t metric_id) const {
+uint64_t global_cache_data::get_index_id_from_metric_id(uint64_t metric_id) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_index_id_from_metric_id(metric_id);
+  }
   auto search = _metric_id_mapping->find(metric_id);
   return search != _metric_id_mapping->end() ? search->second : 0;
 }
@@ -1470,7 +1532,12 @@ uint64_t global_cache_data::get_index_id_from_metric_id(
  * @return int32_t 0 if not found
  */
 int32_t global_cache_data::get_severity(const uint64_t host_id,
-                                        const uint64_t service_id) const {
+                                        const uint64_t service_id) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_severity(host_id, service_id);
+  }
   if (service_id) {
     auto search = _id_to_service->find({host_id, service_id});
     return search != _id_to_service->end() ? search->second.second : 0;

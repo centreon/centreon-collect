@@ -40,7 +40,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 class global_cache_test : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
+    // log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
     srand(time(nullptr));
   }
 };
@@ -111,13 +111,13 @@ TEST_F(global_cache_test, CanBeMoved) {
   fill(0, 1000);
 
   auto check_data = [&](unsigned index_min, unsigned index_max) {
-    global_cache::lock l;
+    global_cache::upgrade_lock l;
     for (unsigned ii = index_min; ii < index_max; ++ii) {
-      auto inst = obj->get_instance(ii);
+      auto inst = obj->get_instance(ii, l);
       ASSERT_TRUE(inst);
       ASSERT_EQ(fmt::format("instance_{}", ii), to_string(inst->name()));
 
-      auto hst = obj->get_host(ii);
+      auto hst = obj->get_host(ii, l);
       ASSERT_TRUE(hst);
       ASSERT_EQ(fmt::format("host_{}", ii), to_string(hst->name()));
       ASSERT_EQ(fmt::format("host_check_command {}", ii),
@@ -125,7 +125,7 @@ TEST_F(global_cache_test, CanBeMoved) {
       ASSERT_EQ(fmt::format("host_check_command_output {}", ii),
                 to_string(hst->output()));
       ASSERT_EQ(obj->get_severity(ii, 0), 1);
-      auto serv = obj->get_service(ii, ii + 1);
+      auto serv = obj->get_service(ii, ii + 1, l);
       ASSERT_TRUE(serv);
       ASSERT_EQ(fmt::format("service_{}", ii + 1),
                 to_string(serv->description()));
@@ -176,7 +176,6 @@ TEST_F(global_cache_test, CanBeMoved) {
   std::cout << "second mapping at " << mapping_begin << std::endl;
 
   obj.reset();
-
   global_cache::unload();
 
   strcpy(temp_path, "/tmp/cache_test_XXXXXX");
@@ -190,6 +189,15 @@ TEST_F(global_cache_test, CanBeMoved) {
   obj = global_cache::load(g_io_context, "/tmp/cache_test");
   mapping_begin = obj->get_address();
   std::cout << "third mapping at " << mapping_begin << std::endl;
+  check_data(0, 2000);
+
+  // then we remove rt file and data from conf file must be used
+  std::cout << "rebuild rt file from conf one" << std::endl;
+  obj.reset();
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  obj = global_cache::load(g_io_context, "/tmp/cache_test");
+
   check_data(0, 2000);
 }
 
@@ -516,6 +524,8 @@ TEST_F(global_cache_test, Huge) {
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 
+  global_cache::upgrade_lock l(obj);
+
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "begin construct cache");
   // 10000 hosts with 30 services with 20 metrics
@@ -569,9 +579,9 @@ TEST_F(global_cache_test, Huge) {
     ASSERT_NE(index_id, 0);
     const host_serv_pair* hst_serv_id = obj->get_host_serv_id(index_id);
     ASSERT_TRUE(hst_serv_id);
-    auto hst = obj->get_host(hst_serv_id->first);
+    auto hst = obj->get_host(hst_serv_id->first, l);
     ASSERT_TRUE(hst);
-    auto srv = obj->get_service(hst_serv_id->first, hst_serv_id->second);
+    auto srv = obj->get_service(hst_serv_id->first, hst_serv_id->second, l);
   }
   obj.reset();
   cache::global_cache::unload();

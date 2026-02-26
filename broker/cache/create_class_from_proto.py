@@ -350,6 +350,7 @@ class {snake_name} : public message {{
 
  public:
   {snake_name}(const {pb_class_name}& src, const allocators& allocator);
+  {snake_name}(const {snake_name}& src, const allocators& allocator);
   {snake_name}(const {snake_name} &) = delete;
   {snake_name} & operator = (const {snake_name} &) = delete;
   ~{snake_name}();
@@ -460,8 +461,11 @@ def create_cc(messages, enums, classes):
 
     for pb_class_name, body in messages.items():
         snake_name = camel_to_snake(pb_class_name)
+        # there are tuple_init and tuple_copy_init, first is used by from protobuf constructors, second is used by copy constructors
         tuple_init = []
+        tuple_copy_init = []
         repeated_fillers = []
+        repeated_copy_fillers = []
         update_fields = []
         repeated_mess_deleter = []
         enumerate_field = []
@@ -479,20 +483,24 @@ def create_cc(messages, enums, classes):
             index = field['index']
 
             field_tuple_init = ''
+            field_tuple_copy_init = ''
 
             if label == 'optional':
                 if type in ["int32", "uint32", "int64", "uint64"]:
                     field_tuple_init = f"src.has_{name}()?std::optional<{type}_t>(src.{name}()):std::optional<{type}_t>()"
+                    field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
                     enumerate_field.append(
                         f"ADD_ENUMERATION_FIELD({tuple_index});")
                 elif type in ["double", "float", "bool"]:
                     field_tuple_init = f"src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>()"
+                    field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
                     enumerate_field.append(
                         f"ADD_ENUMERATION_FIELD({tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>()"
+                    field_tuple_copy_init = f"src.{name}()?std::optional<{type}>(string(*src.{name}(), allocator.char_alloc)):std::optional<{type}>()"
                     update_fields.append(
                         f"UPDATE_OPTIONAL_STRING_FIELD({name})")
                     enumerate_field.append(
@@ -500,12 +508,14 @@ def create_cc(messages, enums, classes):
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = f"src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>()"
+                        field_tuple_copy_init = f"src.{name}()"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_FIELD({name})")
                         enumerate_field.append(
                             f"ADD_ENUMERATION_FIELD({tuple_index});")
                     if type in messages:
                         field_tuple_init = f"src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr"
+                        field_tuple_copy_init = f"src.{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)} &>(*src.{name}()), allocator):nullptr"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_MESS_FIELD({camel_to_snake(type)}, {name})")
                         enumerate_field.append(
@@ -514,7 +524,12 @@ def create_cc(messages, enums, classes):
             elif label == 'repeated':
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
                     field_tuple_init = f"allocator.{type}_alloc"
+                    field_tuple_copy_init = f"allocator.{type}_alloc"
                     repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+    for (const auto & value: src.{name}()) {{
+        mutable_{name}().push_back(value);
+    }}''')
+                    repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
         mutable_{name}().push_back(value);
     }}''')
@@ -523,9 +538,14 @@ def create_cc(messages, enums, classes):
                         f"ADD_ENUMERATION_FIELD({tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"allocator.string_alloc"
+                    field_copy_init = f"allocator.string_alloc"
                     repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
         mutable_{name}().emplace_back(value.c_str(), value.length(), allocator.char_alloc);
+    }}''')
+                    repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+    for (const auto & value: src.{name}()) {{
+        mutable_{name}().emplace_back(value, allocator.char_alloc);
     }}''')
                     update_fields.append(
                         f"UPDATE_REPEATED_STRING_FIELD({name})")
@@ -534,12 +554,14 @@ def create_cc(messages, enums, classes):
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = "allocator.int32_alloc"
+                        field_tuple_copy_init = "allocator.int32_alloc"
                         update_fields.append(
                             f"UPDATE_REPEATED_FIELD({name})")
                         enumerate_field.append(
                             f"ADD_ENUMERATION_FIELD({tuple_index});")
                     elif type in messages:
                         field_tuple_init = "allocator.message_alloc"
+                        field_tuple_copy_init = "allocator.message_alloc"
                         if not pb_class_name in class_dependencies:
                             class_dependencies[pb_class_name] = []
                         class_dependencies[pb_class_name].append(type)
@@ -547,6 +569,11 @@ def create_cc(messages, enums, classes):
     for (const auto & mess: src.{name}()) {{
         mutable_{name}().push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
         interprocess::anonymous_instance)(mess, allocator));
+    }}''')
+                        repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+    for (const auto & mess: src.{name}()) {{
+        mutable_{name}().push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
+        interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*mess), allocator));
     }}''')
                         repeated_mess_deleter.append(
                             f"  REPEATED_MESS_DELETE_ALL({camel_to_snake(type)}, {name});")
@@ -557,22 +584,26 @@ def create_cc(messages, enums, classes):
             else:
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
                     field_tuple_init = f"src.{name}()"
+                    field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_FIELD({name})")
                     enumerate_field.append(
                         f"ADD_ENUMERATION_FIELD({tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
+                    field_tuple_copy_init = f"string(src.{name}(), allocator.char_alloc)"
                     update_fields.append(f"UPDATE_STRING_FIELD({name})")
                     enumerate_field.append(
                         f"ADD_ENUMERATION_STRING_FIELD({tuple_index});")
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = f"src.{name}()"
+                        field_tuple_copy_init = f"src.{name}()"
                         update_fields.append(f"UPDATE_FIELD({name})")
                         enumerate_field.append(
                             f"ADD_ENUMERATION_FIELD({tuple_index});")
                     if type in messages:
                         field_tuple_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator)"
+                        field_tuple_copy_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*src.{name}()), allocator)"
                         update_fields.append(
                             f"UPDATE_MESS_FIELD({name})")
                         enumerate_field.append(
@@ -583,10 +614,13 @@ def create_cc(messages, enums, classes):
 
             if field_tuple_init != '':
                 tuple_init.append(field_tuple_init)
+                tuple_copy_init.append(field_tuple_copy_init)
                 tuple_index += 1
 
         tuple_init_str = ",\n        ".join(tuple_init)
+        tuple_copy_init_str = ",\n        ".join(tuple_copy_init)
         repeated_fillers_str = "\n".join(repeated_fillers)
+        repeated_copy_fillers_str = "\n".join(repeated_copy_fillers)
         repeated_mess_deleter_str = "\n".join(repeated_mess_deleter)
         enumerate_field_str = "\n  ".join(enumerate_field)
         update_fields_str = ";\n  ".join(update_fields)
@@ -596,7 +630,7 @@ def create_cc(messages, enums, classes):
 /**
  * @brief Construct a new {snake_name} object
  *
- * @param src probuf objects
+ * @param src probuf object
  * @param allocator allocators
  */
 {snake_name}::{snake_name}(const {pb_class_name}& src, const allocators& allocator)
@@ -606,6 +640,21 @@ def create_cc(messages, enums, classes):
     }}
 {{
 {repeated_fillers_str}
+}}
+
+/**
+ * @brief Construct a new {snake_name} object from another one
+ * from another or same mapping
+ * @param src object to clone
+ * @param allocator allocators
+ */
+{snake_name}::{snake_name}(const {snake_name}& src, const allocators& allocator)
+    : message(e_type::e_{snake_name}, allocator.char_alloc),
+    _data{{
+        {tuple_copy_init_str}
+    }}
+{{
+{repeated_copy_fillers_str}
 }}
 
 /**

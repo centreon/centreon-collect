@@ -427,6 +427,7 @@ target_link_libraries(
   -Wl,--whole-archive
   gRPC::grpc++
   protobuf::libprotobuf
+  Boost::thread
   -Wl,--no-whole-archive
   spdlog::spdlog
   z

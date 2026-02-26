@@ -19,9 +19,7 @@
 #ifndef CCB_GLOBAL_CACHE_HH
 #define CCB_GLOBAL_CACHE_HH
 
-#include "boost/asio/io_context.hpp"
-#include "boost/asio/system_timer.hpp"
-#include "boost/system/detail/error_code.hpp"
+#include <boost/thread/shared_mutex.hpp>
 #include "com/centreon/broker/io/protobuf.hh"
 #include "protobuf.hh"
 
@@ -109,7 +107,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   std::unique_ptr<managed_mapped_file> _file;
 
-  mutable absl::Mutex _protect;
+  mutable boost::upgrade_mutex _protect;
 
   global_cache(const std::shared_ptr<asio::io_context> io_context,
                const std::string& file_path,
@@ -155,15 +153,35 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   virtual ~global_cache();
 
   /**
-   * @brief lock the object in read only
-   * mandatory before using a getter
+   * @brief lock the object in read only getter
+   * mandatory before using a getter to use except for get_host, get_service and
+   * get_instance
    *
    */
   class lock {
-    absl::ReaderMutexLock _lock;
+    boost::shared_lock<boost::upgrade_mutex> _lock;
 
    public:
     lock();
+    lock(global_cache* cache);
+    lock(global_cache::pointer cache) : lock(cache.get()) {}
+  };
+
+  /**
+   * @brief lock the object in read only getter
+   * mandatory before using get_host, get_service and get_instance
+   * When upgrade_lock is set, all other shared lock (lock object) can get
+   * ownership but not other upgrade_locks
+   * So use lock class for all other getters
+   */
+  class upgrade_lock {
+    boost::upgrade_lock<boost::upgrade_mutex> _lock;
+    friend class global_cache_data;
+
+   public:
+    upgrade_lock();
+    upgrade_lock(global_cache* cache);
+    upgrade_lock(global_cache::pointer cache) : upgrade_lock(cache.get()) {}
   };
 
   // use only for tests
@@ -171,38 +189,39 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual void write(const std::shared_ptr<io::data>& d) = 0;
 
-  virtual const host* get_host(uint64_t host_id) const = 0;
+  virtual const host* get_host(uint64_t host_id, upgrade_lock& l) = 0;
   virtual const service* get_service(uint64_t host_id,
-                                     uint64_t service_id) const = 0;
+                                     uint64_t service_id,
+                                     upgrade_lock& l) = 0;
 
-  virtual const host_serv_pair* get_host_serv_id(uint64_t index_id) const = 0;
+  virtual const host_serv_pair* get_host_serv_id(uint64_t index_id) = 0;
 
-  virtual const instance* get_instance(uint64_t instance_id) const = 0;
+  virtual const instance* get_instance(uint64_t instance_id,
+                                       upgrade_lock& l) = 0;
 
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
-                                    std::ostream& request_body) const = 0;
-  virtual void append_host_group(uint64_t host,
-                                 std::ostream& request_body) const = 0;
+                                    std::ostream& request_body) = 0;
+  virtual void append_host_group(uint64_t host, std::ostream& request_body) = 0;
   virtual void append_host_tag_id(uint64_t host,
                                   TagType tag_type,
-                                  std::ostream& request_body) const = 0;
+                                  std::ostream& request_body) = 0;
   virtual void append_serv_tag_id(uint64_t host,
                                   uint64_t serv,
                                   TagType tag_type,
-                                  std::ostream& request_body) const = 0;
+                                  std::ostream& request_body) = 0;
   virtual void append_host_tag_name(uint64_t host,
                                     TagType tag_type,
-                                    std::ostream& request_body) const = 0;
+                                    std::ostream& request_body) = 0;
   virtual void append_serv_tag_name(uint64_t host,
                                     uint64_t serv,
                                     TagType tag_type,
-                                    std::ostream& request_body) const = 0;
+                                    std::ostream& request_body) = 0;
 
-  virtual uint64_t get_index_id_from_metric_id(uint64_t metric_id) const = 0;
+  virtual uint64_t get_index_id_from_metric_id(uint64_t metric_id) = 0;
 
   virtual int32_t get_severity(const uint64_t host_id,
-                               const uint64_t service_id) const = 0;
+                               const uint64_t service_id) = 0;
 };
 
 };  // namespace cache
