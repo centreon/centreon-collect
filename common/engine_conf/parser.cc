@@ -548,6 +548,10 @@ void parser::_resolve_template(State* pb_config, error_cnt& err) {
     _resolve_template(_pb_helper[&sg],
                       _pb_templates[message_helper::servicegroup]);
 
+  for (Timeperiod& tp : *pb_config->mutable_timeperiods())
+    _resolve_template(_pb_helper[&tp],
+                      _pb_templates[message_helper::timeperiod]);
+
   for (const Command& c : pb_config->commands())
     _pb_helper.at(&c)->check_validity(err);
 
