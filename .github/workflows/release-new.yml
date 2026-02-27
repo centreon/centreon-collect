@@ -83,6 +83,7 @@ jobs:
         shell: bash
 
   release:
+    needs: [check-inputs]
     if: ${{ github.repository == 'centreon/centreon-collect' }}
     runs-on: ubuntu-24.04
     outputs:
