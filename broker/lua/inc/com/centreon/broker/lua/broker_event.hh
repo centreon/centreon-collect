@@ -27,6 +27,7 @@ extern "C" {
 #include "lualib.h"
 }
 
+#include "com/centreon/broker/cache/protobuf.hh"
 namespace com::centreon::broker::lua {
 
 /**
@@ -63,6 +64,8 @@ class broker_event {
   static void broker_event_reg(lua_State* L);
   static void create(lua_State* L, std::shared_ptr<io::data> e);
   static void create_as_table(lua_State* L, const io::data& e);
+  static void create(lua_State* L, const cache::message*);
+  static void create_as_table(lua_State* L, const cache::message*);
   static void lua_close(const lua_State* L);
 };
 

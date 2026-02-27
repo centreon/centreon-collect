@@ -344,10 +344,8 @@ class {snake_name} : public message {{
   data_type _data;
 
   friend bool update(const ::google::protobuf::Message& mess);
-
 """
         class_declaration += f'''
-
  public:
   {snake_name}(const {pb_class_name}& src, const allocators& allocator);
   {snake_name}(const {snake_name}& src, const allocators& allocator);
@@ -491,20 +489,20 @@ def create_cc(messages, enums, classes):
                     field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                 elif type in ["double", "float", "bool"]:
                     field_tuple_init = f"src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>()"
                     field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>()"
                     field_tuple_copy_init = f"src.{name}()?std::optional<{type}>(string(*src.{name}(), allocator.char_alloc)):std::optional<{type}>()"
                     update_fields.append(
                         f"UPDATE_OPTIONAL_STRING_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_OPTIONAL_STRING_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_OPTIONAL_STRING_FIELD(\"{name}\", {tuple_index});")
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = f"src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>()"
@@ -512,14 +510,14 @@ def create_cc(messages, enums, classes):
                         update_fields.append(
                             f"UPDATE_OPTIONAL_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                     if type in messages:
                         field_tuple_init = f"src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr"
                         field_tuple_copy_init = f"src.{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)} &>(*src.{name}()), allocator):nullptr"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_MESS_FIELD({camel_to_snake(type)}, {name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_OPTIONAL_MESS_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_OPTIONAL_MESS_FIELD(\"{name}\", {tuple_index});")
 
             elif label == 'repeated':
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
@@ -535,7 +533,7 @@ def create_cc(messages, enums, classes):
     }}''')
                     update_fields.append(f"UPDATE_REPEATED_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"allocator.string_alloc"
                     field_copy_init = f"allocator.string_alloc"
@@ -550,7 +548,7 @@ def create_cc(messages, enums, classes):
                     update_fields.append(
                         f"UPDATE_REPEATED_STRING_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = "allocator.int32_alloc"
@@ -558,7 +556,7 @@ def create_cc(messages, enums, classes):
                         update_fields.append(
                             f"UPDATE_REPEATED_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                     elif type in messages:
                         field_tuple_init = "allocator.message_alloc"
                         field_tuple_copy_init = "allocator.message_alloc"
@@ -580,34 +578,34 @@ def create_cc(messages, enums, classes):
                         update_fields.append(
                             f"UPDATE_REPEATED_MESS_FIELD({camel_to_snake(type)}, {name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
             else:
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
                     field_tuple_init = f"src.{name}()"
                     field_tuple_copy_init = f"src.{name}()"
                     update_fields.append(f"UPDATE_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                 elif type == "string":
                     field_tuple_init = f"string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
                     field_tuple_copy_init = f"string(src.{name}(), allocator.char_alloc)"
                     update_fields.append(f"UPDATE_STRING_FIELD({name})")
                     enumerate_field.append(
-                        f"ADD_ENUMERATION_STRING_FIELD({tuple_index});")
+                        f"ADD_ENUMERATION_STRING_FIELD(\"{name}\", {tuple_index});")
                 else:
                     if type in enums:  # convert all enums to int32
                         field_tuple_init = f"src.{name}()"
                         field_tuple_copy_init = f"src.{name}()"
                         update_fields.append(f"UPDATE_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
                     if type in messages:
                         field_tuple_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator)"
                         field_tuple_copy_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*src.{name}()), allocator)"
                         update_fields.append(
                             f"UPDATE_MESS_FIELD({name})")
                         enumerate_field.append(
-                            f"ADD_ENUMERATION_MESS_FIELD({tuple_index});")
+                            f"ADD_ENUMERATION_MESS_FIELD(\"{name}\", {tuple_index});")
                         if not pb_class_name in class_dependencies:
                             class_dependencies[pb_class_name] = []
                         class_dependencies[pb_class_name].append(type)
@@ -739,23 +737,23 @@ using namespace com::centreon::broker::cache;
  * @brief macros used by enumerate_fields
  *
  */
-#define ADD_ENUMERATION_FIELD(field_index) \\
-  ret.emplace_back(std::get<field_index>(_data));
+#define ADD_ENUMERATION_FIELD(field_name, field_index) \\
+  ret.emplace_back(field_name, std::get<field_index>(_data));
 
-#define ADD_ENUMERATION_STRING_FIELD(field_index) \\
-  ret.emplace_back(&std::get<field_index>(_data));
+#define ADD_ENUMERATION_STRING_FIELD(field_name, field_index) \\
+  ret.emplace_back(field_name, &std::get<field_index>(_data));
 
-#define ADD_ENUMERATION_MESS_FIELD(field_index) \\
-  ret.emplace_back(std::get<field_index>(_data).get());
+#define ADD_ENUMERATION_MESS_FIELD(field_name, field_index) \\
+  ret.emplace_back(field_name, std::get<field_index>(_data).get());
 
-#define ADD_ENUMERATION_OPTIONAL_STRING_FIELD(field_index) \\
-  ret.emplace_back(std::get<field_index>(_data)            \\
-                       ? &*std::get<field_index>(_data)    \\
+#define ADD_ENUMERATION_OPTIONAL_STRING_FIELD(field_name, field_index) \\
+  ret.emplace_back(field_name, std::get<field_index>(_data)            \\
+                       ? &*std::get<field_index>(_data)                \\
                        : nullptr);
 
-#define ADD_ENUMERATION_OPTIONAL_MESS_FIELD(field_index) \\
-  ret.emplace_back(std::get<field_index>(_data)          \\
-                       ? &*std::get<field_index>(_data)  \\
+#define ADD_ENUMERATION_OPTIONAL_MESS_FIELD(field_name, field_index) \\
+  ret.emplace_back(field_name, std::get<field_index>(_data)          \\
+                       ? &*std::get<field_index>(_data)              \\
                        : nullptr);
 
 /**

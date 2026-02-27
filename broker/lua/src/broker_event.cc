@@ -16,8 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/lua/broker_event.hh"
 #include <google/protobuf/message.h>
+
+#include "com/centreon/broker/lua/broker_event.hh"
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/protobuf.hh"

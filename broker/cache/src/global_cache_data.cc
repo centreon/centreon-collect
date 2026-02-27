@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include <boost/thread/lock_types.hpp>
-#include <boost/thread/pthread/shared_mutex.hpp>
+#include <optional>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
@@ -215,12 +215,6 @@ void global_cache_data::write(const std::shared_ptr<io::data>& data) {
 void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
   try {
     switch (data->type()) {
-      case neb::instance::static_type():
-        _process_pb_instance(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_instance::static_type():
-        _process_pb_instance(data);
-        break;
       case neb::host::static_type():
         _process_pb_host(neb::bbdo2_to_bbdo3(data));
         break;
@@ -239,12 +233,6 @@ void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
       case neb::pb_adaptive_host_status::static_type():
         _process_pb_adaptive_host_status(data);
         break;
-      case neb::host_group::static_type():
-        _process_pb_host_group(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host_group::static_type():
-        _process_pb_host_group(data);
-        break;
       case neb::service::static_type():
         _process_pb_service(neb::bbdo2_to_bbdo3(data));
         break;
@@ -262,12 +250,6 @@ void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
         break;
       case neb::pb_adaptive_service::static_type():
         _process_pb_adaptive_service(data);
-        break;
-      case neb::service_group::static_type():
-        _process_pb_service_group(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service_group::static_type():
-        _process_pb_service_group(data);
         break;
       case bam::dimension_ba_event::static_type():
         _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
@@ -1052,14 +1034,13 @@ void global_cache_data::_process_pb_tag(std::shared_ptr<io::data> const& data) {
  */
 void global_cache_data::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<storage::pb_index_mapping>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
                       "cache: processing pb index mapping (index_id: '{}', "
                       "host_id: {}, service_id: {})",
                       in.index_id(), in.host_id(), in.service_id());
-
+  boost::unique_lock l(_protect);
   auto exist = _index_id_mapping->find(in.index_id());
   host_serv_pair host_serv_id{in.host_id(), in.service_id()};
   if (exist == _index_id_mapping->end()) {
@@ -1078,7 +1059,6 @@ void global_cache_data::_process_index_mapping(
  */
 void global_cache_data::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<storage::pb_metric_mapping>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
@@ -1086,6 +1066,7 @@ void global_cache_data::_process_metric_mapping(
                       "metric_id: {})",
                       in.index_id(), in.metric_id());
 
+  boost::unique_lock l(_protect);
   auto exist = _metric_id_mapping->find(in.metric_id());
   if (exist == _metric_id_mapping->end()) {
     _metric_id_mapping->emplace(in.metric_id(), in.index_id());
@@ -1103,13 +1084,13 @@ void global_cache_data::_process_metric_mapping(
  */
 void global_cache_data::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_event>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
                       "cache: processing pb dimension ba event (ba_id: '{}', "
                       "name: {})",
                       in.ba_id(), in.ba_name());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_dimension_ba_event->find(in.ba_id());
   if (exist == _id_to_dimension_ba_event->end()) {
     auto* to_insert =
@@ -1124,7 +1105,6 @@ void global_cache_data::_process_dimension_ba_event(
 
 void global_cache_data::_process_dimension_ba_bv_relation_event(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data)
           ->obj();
@@ -1132,7 +1112,7 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
                       "cache: processing pb dimension ba bv relation event "
                       "(ba_id: {}, bv_id: {})",
                       in.ba_id(), in.bv_id());
-
+  boost::unique_lock l(_protect);
   auto exist = _id_to_dimension_ba_bv_relation->find(in.ba_id());
   if (exist == _id_to_dimension_ba_bv_relation->end()) {
     _id_to_dimension_ba_bv_relation->emplace(in.ba_id(), in.bv_id());
@@ -1150,13 +1130,13 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
  */
 void global_cache_data::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_bv_event>(data)->obj();
   SPDLOG_LOGGER_DEBUG(_logger,
                       "cache: processing pb dimension ba event (ba_id: '{}', "
                       "name: {})",
                       in.bv_id(), in.bv_name());
+  boost::unique_lock l(_protect);
   auto exist = _id_to_dimension_bv_event->find(in.bv_id());
   if (exist == _id_to_dimension_bv_event->end()) {
     auto* to_insert =
@@ -1176,20 +1156,20 @@ void global_cache_data::_process_dimension_bv_event(
  */
 void global_cache_data::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  boost::unique_lock l(_protect);
   SPDLOG_LOGGER_DEBUG(_logger,
                       "lua: processing dimension truncate table signal");
 
   if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
           ->obj()
           .update_started()) {
+    boost::unique_lock l(_protect);
     bool cleared = !_id_to_dimension_ba_event->empty() ||
                    !_id_to_dimension_bv_event->empty() ||
                    !_id_to_dimension_ba_bv_relation->empty();
-    _id_to_dimension_ba_event->clear();
-    _id_to_dimension_ba_bv_relation->clear();
-    _id_to_dimension_bv_event->clear();
     if (cleared) {
+      _id_to_dimension_ba_event->clear();
+      _id_to_dimension_ba_bv_relation->clear();
+      _id_to_dimension_bv_event->clear();
       _set_dirty_and_increment_modif();
     }
   }
@@ -1204,7 +1184,8 @@ void global_cache_data::_process_pb_dimension_truncate_table_signal(
 const host* global_cache_data::get_host(uint64_t host_id,
                                         upgrade_lock& read_lock) {
   auto search = _id_to_host->find(host_id);
-  if (search == _id_to_host->end() && _cache_type == e_cache_type::real_time &&
+  if ((search == _id_to_host->end() || !search->second.first) &&
+      _cache_type == e_cache_type::real_time &&
       _conf_cache) {  // not found in rt cache => search in conf cache
     upgrade_lock l(_conf_cache.get());
     const host* conf_host = _conf_cache->get_host(host_id, l);
@@ -1213,8 +1194,8 @@ const host* global_cache_data::get_host(uint64_t host_id,
       host* to_insert = _file->get_segment_manager()->construct<host>(
           interprocess::anonymous_instance)(*conf_host, *_allocators);
       _id_to_host->emplace(
-          host_id, host_custom_var_pair(to_insert,
-                                        _conf_cache->get_severity(host_id, 0)));
+          host_id, host_custom_var_pair(
+                       to_insert, *_conf_cache->get_severity(host_id, 0)));
       _set_dirty_and_increment_modif();
       return to_insert;
     }
@@ -1233,7 +1214,7 @@ const service* global_cache_data::get_service(uint64_t host_id,
                                               uint64_t service_id,
                                               upgrade_lock& read_lock) {
   auto search = _id_to_service->find({host_id, service_id});
-  if (search == _id_to_service->end() &&
+  if ((search == _id_to_service->end() || !search->second.first) &&
       _cache_type == e_cache_type::real_time &&
       _conf_cache) {  // not found in rt cache => search in conf cache
     upgrade_lock l(_conf_cache.get());
@@ -1246,7 +1227,7 @@ const service* global_cache_data::get_service(uint64_t host_id,
       _id_to_service->emplace(
           std::make_pair(host_id, service_id),
           service_custom_var_pair(
-              to_insert, _conf_cache->get_severity(host_id, service_id)));
+              to_insert, *_conf_cache->get_severity(host_id, service_id)));
       _set_dirty_and_increment_modif();
       return to_insert;
     }
@@ -1276,23 +1257,47 @@ const host_serv_pair* global_cache_data::get_host_serv_id(uint64_t index_id) {
  * @param instance_id
  * @return const instance* nullptr if not found
  */
-const instance* global_cache_data::get_instance(uint64_t instance_id,
-                                                upgrade_lock& read_lock) {
-  auto search = _id_to_instance->find(instance_id);
-  if (search == _id_to_instance->end() &&
-      _cache_type == e_cache_type::real_time &&
-      _conf_cache) {  // not found in rt cache => search in conf cache
-    upgrade_lock l(_conf_cache.get());
-    const instance* conf_inst = _conf_cache->get_instance(instance_id, l);
-    if (conf_inst) {
-      boost::upgrade_to_unique_lock unique_l(read_lock._lock);
-      instance* to_insert = _file->get_segment_manager()->construct<instance>(
-          interprocess::anonymous_instance)(*conf_inst, *_allocators);
-      _id_to_instance->emplace(instance_id, to_insert);
-      return to_insert;
-    }
+const instance* global_cache_data::get_instance(uint64_t instance_id) {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_instance(instance_id);
   }
+  auto search = _id_to_instance->find(instance_id);
   return search != _id_to_instance->end() ? search->second.get() : nullptr;
+}
+
+/**
+ * @brief get host_group from id
+ *
+ * @param group_id
+ * @return const host_group* null if not found
+ */
+const host_group* global_cache_data::get_host_group(uint64_t group_id) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_host_group(group_id);
+  }
+  auto search = _id_to_host_group->find(group_id);
+  return search != _id_to_host_group->end() ? search->second.get() : nullptr;
+}
+
+/**
+ * @brief get service_group from id
+ *
+ * @param group_id
+ * @return const service_group* null if not found
+ */
+const service_group* global_cache_data::get_service_group(
+    uint64_t group_id) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_service_group(group_id);
+  }
+  auto search = _id_to_serv_group->find(group_id);
+  return search != _id_to_serv_group->end() ? search->second.get() : nullptr;
 }
 
 /**
@@ -1304,7 +1309,7 @@ const instance* global_cache_data::get_instance(uint64_t instance_id,
  */
 void global_cache_data::append_service_group(uint64_t host,
                                              uint64_t service,
-                                             std::ostream& request_body) {
+                                             std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1338,7 +1343,7 @@ void global_cache_data::append_service_group(uint64_t host,
  * @param request_body
  */
 void global_cache_data::append_host_group(uint64_t host,
-                                          std::ostream& request_body) {
+                                          std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1372,7 +1377,7 @@ void global_cache_data::append_host_group(uint64_t host,
  */
 void global_cache_data::append_host_tag_id(uint64_t host,
                                            TagType tag_type,
-                                           std::ostream& request_body) {
+                                           std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1409,7 +1414,7 @@ void global_cache_data::append_host_tag_id(uint64_t host,
 void global_cache_data::append_serv_tag_id(uint64_t host,
                                            uint64_t serv,
                                            TagType tag_type,
-                                           std::ostream& request_body) {
+                                           std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1442,7 +1447,7 @@ void global_cache_data::append_serv_tag_id(uint64_t host,
  */
 void global_cache_data::append_host_tag_name(uint64_t host,
                                              TagType tag_type,
-                                             std::ostream& request_body) {
+                                             std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1481,7 +1486,7 @@ void global_cache_data::append_host_tag_name(uint64_t host,
 void global_cache_data::append_serv_tag_name(uint64_t host,
                                              uint64_t serv,
                                              TagType tag_type,
-                                             std::ostream& request_body) {
+                                             std::ostream& request_body) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1514,7 +1519,8 @@ void global_cache_data::append_serv_tag_name(uint64_t host,
  * @param metric_id
  * @return uint64_t 0 if not found
  */
-uint64_t global_cache_data::get_index_id_from_metric_id(uint64_t metric_id) {
+uint64_t global_cache_data::get_index_id_from_metric_id(
+    uint64_t metric_id) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1529,10 +1535,11 @@ uint64_t global_cache_data::get_index_id_from_metric_id(uint64_t metric_id) {
  *
  * @param host_id
  * @param service_id 0 for host
- * @return int32_t 0 if not found
+ * @return int32_t
  */
-int32_t global_cache_data::get_severity(const uint64_t host_id,
-                                        const uint64_t service_id) {
+std::optional<int32_t> global_cache_data::get_severity(
+    uint64_t host_id,
+    uint64_t service_id) const {
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
@@ -1540,9 +1547,127 @@ int32_t global_cache_data::get_severity(const uint64_t host_id,
   }
   if (service_id) {
     auto search = _id_to_service->find({host_id, service_id});
-    return search != _id_to_service->end() ? search->second.second : 0;
+    if (search != _id_to_service->end()) {
+      return search->second.second;
+    } else {
+      return {};
+    }
   } else {
     auto search = _id_to_host->find(host_id);
-    return search != _id_to_host->end() ? search->second.second : 0;
+    if (search != _id_to_host->end()) {
+      return search->second.second;
+    } else {
+      return {};
+    }
+  }
+}
+
+/**
+ *  Return a dimension_ba_event from its id.
+ *
+ * @param ba_id The id
+ *
+ * @return a pointer to the dimension_ba_event.
+ */
+const dimension_ba_event* global_cache_data::get_dimension_ba_event(
+    uint64_t ba_id) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_dimension_ba_event(ba_id);
+  }
+  auto search = _id_to_dimension_ba_event->find(ba_id);
+  return search != _id_to_dimension_ba_event->end() ? search->second.get()
+                                                    : nullptr;
+}
+
+/**
+ *  Return a dimension_bv_event from its id.
+ *
+ * @param ba_id The id
+ *
+ * @return a pointer to the dimension_bv_event.
+ */
+const dimension_bv_event* global_cache_data::get_dimension_bv_event(
+    uint64_t bv_id) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    return _conf_cache->get_dimension_bv_event(bv_id);
+  }
+  auto search = _id_to_dimension_bv_event->find(bv_id);
+  return search != _id_to_dimension_bv_event->end() ? search->second.get()
+                                                    : nullptr;
+}
+
+/**
+ * @brief call enumerator for each bv of ba
+ *
+ * @param ba_id id of the ba
+ * @param enumerator function called for each bv found
+ */
+void global_cache_data::enumerate_bvs(uint64_t ba_id,
+                                      bv_enumerator&& enumerator) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->enumerate_bvs(ba_id, std::move(enumerator));
+  }
+  auto bvs = _id_to_dimension_ba_bv_relation->equal_range(ba_id);
+  for (; bvs.first != bvs.second; ++bvs.first) {
+    enumerator(bvs.first->second);
+  }
+}
+
+/**
+ * @brief call enumerator for each host group of the host
+ *
+ * @param host_id
+ * @param enumerator function called
+ */
+void global_cache_data::enumerate_host_group(
+    uint64_t host_id,
+    group_enumerator&& enumerator) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->enumerate_host_group(host_id, std::move(enumerator));
+  }
+  auto group_member_search = _host_group_members->get<2>().equal_range(host_id);
+  for (; group_member_search.first != group_member_search.second;
+       ++group_member_search.first) {
+    auto grp_search =
+        _id_to_host_group->find(group_member_search.first->group_id);
+    if (grp_search != _id_to_host_group->end()) {
+      enumerator(grp_search->first, grp_search->second->name());
+    }
+  }
+}
+
+/**
+ * @brief call enumerator for each host group of the service
+ *
+ * @param host_id
+ * @param service_id
+ * @param enumerator
+ */
+void global_cache_data::enumerate_service_group(
+    uint64_t host_id,
+    uint64_t service_id,
+    group_enumerator&& enumerator) const {
+  if (_cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // pure conf => we search in conf cache
+    lock l(_conf_cache.get());
+    _conf_cache->enumerate_host_group(host_id, std::move(enumerator));
+  }
+  auto group_member_search = _service_group_members->get<2>().equal_range(
+      std::make_pair(host_id, service_id));
+  for (; group_member_search.first != group_member_search.second;
+       ++group_member_search.first) {
+    auto grp_search =
+        _id_to_host_group->find(group_member_search.first->group_id);
+    if (grp_search != _id_to_host_group->end()) {
+      enumerator(grp_search->first, grp_search->second->name());
+    }
   }
 }

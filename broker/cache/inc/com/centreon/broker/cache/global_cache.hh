@@ -196,32 +196,50 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual const host_serv_pair* get_host_serv_id(uint64_t index_id) = 0;
 
-  virtual const instance* get_instance(uint64_t instance_id,
-                                       upgrade_lock& l) = 0;
+  virtual const instance* get_instance(uint64_t instance_id) = 0;
 
+  virtual const host_group* get_host_group(uint64_t group_id) const = 0;
+  virtual const service_group* get_service_group(uint64_t group_id) const = 0;
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
-                                    std::ostream& request_body) = 0;
-  virtual void append_host_group(uint64_t host, std::ostream& request_body) = 0;
+                                    std::ostream& request_body) const = 0;
+  virtual void append_host_group(uint64_t host,
+                                 std::ostream& request_body) const = 0;
   virtual void append_host_tag_id(uint64_t host,
                                   TagType tag_type,
-                                  std::ostream& request_body) = 0;
+                                  std::ostream& request_body) const = 0;
   virtual void append_serv_tag_id(uint64_t host,
                                   uint64_t serv,
                                   TagType tag_type,
-                                  std::ostream& request_body) = 0;
+                                  std::ostream& request_body) const = 0;
   virtual void append_host_tag_name(uint64_t host,
                                     TagType tag_type,
-                                    std::ostream& request_body) = 0;
+                                    std::ostream& request_body) const = 0;
   virtual void append_serv_tag_name(uint64_t host,
                                     uint64_t serv,
                                     TagType tag_type,
-                                    std::ostream& request_body) = 0;
+                                    std::ostream& request_body) const = 0;
 
-  virtual uint64_t get_index_id_from_metric_id(uint64_t metric_id) = 0;
+  virtual uint64_t get_index_id_from_metric_id(uint64_t metric_id) const = 0;
 
-  virtual int32_t get_severity(const uint64_t host_id,
-                               const uint64_t service_id) = 0;
+  virtual std::optional<int32_t> get_severity(uint64_t host_id,
+                                              uint64_t service_id) const = 0;
+
+  virtual const dimension_ba_event* get_dimension_ba_event(
+      uint64_t ba_id) const = 0;
+  virtual const dimension_bv_event* get_dimension_bv_event(
+      uint64_t bv_id) const = 0;
+  using bv_enumerator = std::function<void(uint64_t)>;
+  virtual void enumerate_bvs(uint64_t ba_id,
+                             bv_enumerator&& enumerator) const = 0;
+
+  using group_enumerator = std::function<void(uint64_t /* group_id */,
+                                              const string& /* group_name */)>;
+  virtual void enumerate_host_group(uint64_t host_id,
+                                    group_enumerator&& enumerator) const = 0;
+  virtual void enumerate_service_group(uint64_t host_id,
+                                       uint64_t service_id,
+                                       group_enumerator&& enumerator) const = 0;
 };
 
 };  // namespace cache

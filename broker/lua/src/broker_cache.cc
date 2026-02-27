@@ -17,7 +17,12 @@
  */
 
 #include "com/centreon/broker/lua/broker_cache.hh"
+// #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+// #include "com/centreon/broker/lua/internal.hh"
+#include "com/centreon/broker/neb/internal.hh"
 
+#include "com/centreon/broker/cache/protobuf.hh"
 #include "com/centreon/broker/lua/broker_event.hh"
 
 using namespace com::centreon::broker;
@@ -44,38 +49,45 @@ static int l_broker_cache_destructor(lua_State* L) {
  * @return 1
  */
 static int l_broker_cache_get_ba_v1(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int ba_id(luaL_checkinteger(L, 2));
 
-  try {
-    const DimensionBaEvent& ba(cache->get_dimension_ba_event(ba_id)->obj());
-    lua_createtable(L, 0, 7);
-    lua_pushinteger(L, ba.ba_id());
-    lua_setfield(L, -2, "ba_id");
-
-    lua_pushstring(L, ba.ba_name().c_str());
-    lua_setfield(L, -2, "ba_name");
-
-    lua_pushstring(L, ba.ba_description().c_str());
-    lua_setfield(L, -2, "ba_description");
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    auto dim_ba_event = cache_instance->get_dimension_ba_event(ba_id);
+    if (!dim_ba_event) {
+      lua_pushnil(L);
+    } else {
+      lua_createtable(L, 0, 7);
+      lua_pushinteger(L, ba_id);
+      lua_setfield(L, -2, "ba_id");
+
+      lua_pushstring(L, dim_ba_event->ba_name().c_str());
+      lua_setfield(L, -2, "ba_name");
+
+      lua_pushstring(L, dim_ba_event->ba_description().c_str());
+      lua_setfield(L, -2, "ba_description");
+    }
   }
   return 1;
 }
 
 static int l_broker_cache_get_ba_v2(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int ba_id(luaL_checkinteger(L, 2));
 
-  try {
-    broker_event::create(L, cache->get_dimension_ba_event(ba_id));
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    auto dim_ba_event = cache_instance->get_dimension_ba_event(ba_id);
+    if (!dim_ba_event) {
+      lua_pushnil(L);
+    } else {
+      broker_event::create(L, dim_ba_event);
+    }
   }
   return 1;
 }
@@ -93,38 +105,45 @@ static inline void lua_pushstring(lua_State* state, const std::string& str) {
  * @return 1
  */
 static int l_broker_cache_get_bv_v1(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int bv_id(luaL_checkinteger(L, 2));
 
-  try {
-    const bam::pb_dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
-    lua_createtable(L, 0, 3);
-    lua_pushinteger(L, bv.obj().bv_id());
-    lua_setfield(L, -2, "bv_id");
-
-    lua_pushstring(L, bv.obj().bv_name());
-    lua_setfield(L, -2, "bv_name");
-
-    lua_pushstring(L, bv.obj().bv_description());
-    lua_setfield(L, -2, "bv_description");
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    auto dim_bv_event = cache_instance->get_dimension_bv_event(bv_id);
+    if (!dim_bv_event) {
+      lua_pushnil(L);
+    } else {
+      lua_createtable(L, 0, 3);
+      lua_pushinteger(L, dim_bv_event->bv_id());
+      lua_setfield(L, -2, "bv_id");
+
+      lua_pushstring(L, dim_bv_event->bv_name().c_str());
+      lua_setfield(L, -2, "bv_name");
+
+      lua_pushstring(L, dim_bv_event->bv_description().c_str());
+      lua_setfield(L, -2, "bv_description");
+    }
   }
   return 1;
 }
 
 static int l_broker_cache_get_bv_v2(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int bv_id(luaL_checkinteger(L, 2));
 
-  try {
-    broker_event::create(L, cache->get_dimension_bv_event(bv_id));
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    auto dim_bv_event = cache_instance->get_dimension_bv_event(bv_id);
+    if (!dim_bv_event) {
+      lua_pushnil(L);
+    } else {
+      broker_event::create(L, dim_bv_event);
+    }
   }
   return 1;
 }
@@ -138,21 +157,20 @@ static int l_broker_cache_get_bv_v2(lua_State* L) {
  * @return 1
  */
 static int l_broker_cache_get_bvs(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   uint32_t ba_id(luaL_checkinteger(L, 2));
 
-  auto const& relations(cache->get_dimension_ba_bv_relation_events());
-  auto it = relations.find(ba_id);
-
-  lua_newtable(L);
-
-  int i = 1;
-  while (it != relations.end() && it->first == ba_id) {
-    lua_pushinteger(L, it->second->obj().bv_id());
-    lua_rawseti(L, -2, i);
-    ++i;
-    ++it;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
+    lua_pushnil(L);
+  } else {
+    int i = 1;
+    lua_newtable(L);
+    cache::global_cache::lock l(cache_instance);
+    cache_instance->enumerate_bvs(ba_id, [&](uint64_t bv_id) {
+      lua_pushinteger(L, bv_id);
+      lua_rawseti(L, -2, i);
+      ++i;
+    });
   }
   return 1;
 }
@@ -166,16 +184,19 @@ static int l_broker_cache_get_bvs(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_hostgroup_name(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int id(luaL_checkinteger(L, 2));
 
-  try {
-    std::string const& hg{cache->get_host_group_name(id)};
-    lua_pushstring(L, hg.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    const cache::host_group* hg = cache_instance->get_host_group(id);
+    if (hg) {
+      lua_pushstring(L, hg->name().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -189,16 +210,19 @@ static int l_broker_cache_get_hostgroup_name(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_hostgroup_alias(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int id(luaL_checkinteger(L, 2));
 
-  try {
-    std::string const& hg{cache->get_host_group_alias(id)};
-    lua_pushstring(L, hg.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    const cache::host_group* hg = cache_instance->get_host_group(id);
+    if (hg) {
+      lua_pushstring(L, hg->alias().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -212,16 +236,19 @@ static int l_broker_cache_get_hostgroup_alias(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_hostname(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int id(luaL_checkinteger(L, 2));
 
-  try {
-    std::string const& hst{cache->get_host_name(id)};
-    lua_pushstring(L, hst.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::host* hst = cache_instance->get_host(id, l);
+    if (hst) {
+      lua_pushstring(L, hst->name().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -235,31 +262,39 @@ static int l_broker_cache_get_hostname(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_service_v1(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   uint32_t host_id(luaL_checkinteger(L, 2));
   uint32_t svc_id(luaL_checkinteger(L, 3));
-
-  try {
-    broker_event::create_as_table(L, *cache->get_service(host_id, svc_id));
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::service* serv =
+        cache_instance->get_service(host_id, svc_id, l);
+    if (serv) {
+      broker_event::create_as_table(L, serv);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
 
 static int l_broker_cache_get_service_v2(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   uint32_t host_id(luaL_checkinteger(L, 2));
   uint32_t svc_id(luaL_checkinteger(L, 3));
-
-  try {
-    broker_event::create(L, cache->get_service(host_id, svc_id));
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::service* serv =
+        cache_instance->get_service(host_id, svc_id, l);
+    if (serv) {
+      broker_event::create(L, serv);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -273,29 +308,35 @@ static int l_broker_cache_get_service_v2(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_host_v1(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
-  int id(luaL_checkinteger(L, 2));
-
-  try {
-    broker_event::create_as_table(L, *cache->get_host(id));
-  } catch (std::exception const& e) {
-    (void)e;
+  uint32_t host_id(luaL_checkinteger(L, 2));
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::host* hst = cache_instance->get_host(host_id, l);
+    if (hst) {
+      broker_event::create_as_table(L, hst);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
 
 static int l_broker_cache_get_host_v2(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
-  int id(luaL_checkinteger(L, 2));
-
-  try {
-    broker_event::create(L, cache->get_host(id));
-  } catch (std::exception const& e) {
-    (void)e;
+  uint32_t host_id(luaL_checkinteger(L, 2));
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::host* hst = cache_instance->get_host(host_id, l);
+    if (hst) {
+      broker_event::create(L, hst);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -309,27 +350,29 @@ static int l_broker_cache_get_host_v2(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_index_mapping(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int index_id(luaL_checkinteger(L, 2));
 
-  try {
-    const storage::pb_index_mapping& mapping{
-        cache->get_index_mapping(index_id)};
-    const auto& m_obj = mapping.obj();
-    lua_createtable(L, 0, 3);
-
-    lua_pushinteger(L, m_obj.index_id());
-    lua_setfield(L, -2, "index_id");
-
-    lua_pushinteger(L, m_obj.host_id());
-    lua_setfield(L, -2, "host_id");
-
-    lua_pushinteger(L, m_obj.service_id());
-    lua_setfield(L, -2, "service_id");
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    const cache::host_serv_pair* hst_serv =
+        cache_instance->get_host_serv_id(index_id);
+    if (hst_serv) {
+      lua_createtable(L, 0, 3);
+
+      lua_pushinteger(L, index_id);
+      lua_setfield(L, -2, "index_id");
+
+      lua_pushinteger(L, hst_serv->first);
+      lua_setfield(L, -2, "host_id");
+
+      lua_pushinteger(L, hst_serv->second);
+      lua_setfield(L, -2, "service_id");
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -343,16 +386,19 @@ static int l_broker_cache_get_index_mapping(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_instance_name(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int instance_id(luaL_checkinteger(L, 2));
 
-  try {
-    std::string const& instance{cache->get_instance(instance_id)};
-    lua_pushstring(L, instance.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    const cache::instance* inst = cache_instance->get_instance(instance_id);
+    if (inst) {
+      lua_pushstring(L, inst->name().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -366,40 +412,45 @@ static int l_broker_cache_get_instance_name(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_metric_mapping_v1(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int metric_id(luaL_checkinteger(L, 2));
 
-  try {
-    const storage::pb_metric_mapping& mapping(
-        *cache->get_metric_mapping(metric_id));
-    const auto& m_obj = mapping.obj();
-    lua_createtable(L, 0, 2);
-
-    lua_pushinteger(L, m_obj.metric_id());
-    lua_setfield(L, -2, "metric_id");
-
-    lua_pushinteger(L, m_obj.index_id());
-    lua_setfield(L, -2, "index_id");
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    uint64_t index_id = cache_instance->get_index_id_from_metric_id(metric_id);
+    if (index_id > 0) {
+      lua_createtable(L, 0, 2);
+
+      lua_pushinteger(L, metric_id);
+      lua_setfield(L, -2, "metric_id");
+
+      lua_pushinteger(L, index_id);
+      lua_setfield(L, -2, "index_id");
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
 
 static int l_broker_cache_get_metric_mapping_v2(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int metric_id(luaL_checkinteger(L, 2));
 
-  try {
-    const std::shared_ptr<storage::pb_metric_mapping>& mm{
-        cache->get_metric_mapping(metric_id)};
-    broker_event::create(L, mm);
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    uint64_t index_id = cache_instance->get_index_id_from_metric_id(metric_id);
+    if (index_id > 0) {
+      std::shared_ptr<storage::pb_metric_mapping> to_push =
+          std::make_shared<storage::pb_metric_mapping>();
+      to_push->mut_obj().set_metric_id(metric_id);
+      to_push->mut_obj().set_index_id(index_id);
+      broker_event::create(L, to_push);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -413,17 +464,20 @@ static int l_broker_cache_get_metric_mapping_v2(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_service_description(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id(luaL_checkinteger(L, 2));
   int service_id(luaL_checkinteger(L, 3));
-
-  try {
-    std::string const& svc{cache->get_service_description(host_id, service_id)};
-    lua_pushstring(L, svc.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    const cache::service* srv =
+        cache_instance->get_service(host_id, service_id, l);
+    if (srv) {
+      lua_pushstring(L, srv->description().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
@@ -437,56 +491,54 @@ static int l_broker_cache_get_service_description(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_servicegroup_name(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int id(luaL_checkinteger(L, 2));
-
-  try {
-    std::string const& sg{cache->get_service_group_name(id)};
-    lua_pushstring(L, sg.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    const cache::service_group* sg = cache_instance->get_service_group(id);
+    if (sg) {
+      lua_pushstring(L, sg->name().c_str());
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
 
 /**
  *  The get_servicegroups() method available in the Lua interpreter
- *  It returns an array of objects, each one containing group_id and group_name.
+ *  It returns an array of objects, each one containing group_id and
+ * group_name.
  *
  *  @param L The Lua interpreter
  *
  *  @return 1
  */
 static int l_broker_cache_get_servicegroups(lua_State* L) {
-  macro_cache const* cache{
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache"))};
   uint64_t host_id(luaL_checkinteger(L, 2));
   uint64_t service_id(luaL_checkinteger(L, 3));
 
-  auto const& members = cache->get_service_group_members();
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
+    lua_pushnil(L);
+  } else {
+    lua_newtable(L);
+    int i = 1;
+    cache::global_cache::lock l(cache_instance);
+    cache_instance->enumerate_service_group(
+        host_id, service_id,
+        [&](uint64_t group_id, const cache::string& group_name) {
+          lua_createtable(L, 0, 2);
+          lua_pushinteger(L, group_id);
+          lua_setfield(L, -2, "group_id");
 
-  auto found =
-      members.get<1>().lower_bound(std::make_tuple(host_id, service_id, 0));
-
-  lua_newtable(L);
-
-  int i = 1;
-  for (; found != members.get<1>().end() &&
-         (*found)->obj().host_id() == host_id &&
-         (*found)->obj().service_id() == service_id;
-       ++found) {
-    lua_createtable(L, 0, 2);
-    const ServiceGroupMember& sgm = (*found)->obj();
-
-    lua_pushinteger(L, sgm.servicegroup_id());
-    lua_setfield(L, -2, "group_id");
-
-    lua_pushstring(L, sgm.name().c_str());
-    lua_setfield(L, -2, "group_name");
-    lua_rawseti(L, -2, i);
-    ++i;
+          lua_pushstring(L, group_name.c_str());
+          lua_setfield(L, -2, "group_name");
+          lua_rawseti(L, -2, i);
+          ++i;
+        });
   }
   return 1;
 }
@@ -500,29 +552,27 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_hostgroups(lua_State* L) {
-  macro_cache const* cache{
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache"))};
-  uint64_t id{static_cast<uint64_t>(luaL_checkinteger(L, 2))};
+  uint64_t host_id{static_cast<uint64_t>(luaL_checkinteger(L, 2))};
 
-  const auto& members = cache->get_host_group_members();
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
+    lua_pushnil(L);
+  } else {
+    lua_newtable(L);
+    int i = 1;
+    cache::global_cache::lock l(cache_instance);
+    cache_instance->enumerate_host_group(
+        host_id, [&](uint64_t group_id, const cache::string& group_name) {
+          lua_createtable(L, 0, 2);
+          lua_pushinteger(L, group_id);
+          lua_setfield(L, -2, "group_id");
 
-  auto found = members.get<1>().lower_bound(std::make_pair(id, 0));
-
-  int i = 1;
-  lua_newtable(L);
-  for (; found != members.get<1>().end() && (*found)->obj().host_id() == id;
-       ++found) {
-    lua_createtable(L, 0, 2);
-    const HostGroupMember& hgm = (*found)->obj();
-    lua_pushinteger(L, hgm.hostgroup_id());
-    lua_setfield(L, -2, "group_id");
-
-    lua_pushstring(L, hgm.name().c_str());
-    lua_setfield(L, -2, "group_name");
-    lua_rawseti(L, -2, i);
-    ++i;
+          lua_pushstring(L, group_name.c_str());
+          lua_setfield(L, -2, "group_name");
+          lua_rawseti(L, -2, i);
+          ++i;
+        });
   }
-
   return 1;
 }
 
@@ -539,19 +589,31 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
  *  @return 1
  */
 static int l_broker_cache_get_action_url(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id = luaL_checkinteger(L, 2);
   int service_id = 0;
   if (lua_gettop(L) >= 3)
     service_id = luaL_checkinteger(L, 3);
 
-  try {
-    std::string const& action_url(cache->get_action_url(host_id, service_id));
-    lua_pushstring(L, action_url.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    if (service_id > 0) {
+      auto serv = cache_instance->get_service(host_id, service_id, l);
+      if (serv) {
+        lua_pushstring(L, serv->action_url().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    } else {
+      auto hst = cache_instance->get_host(host_id, l);
+      if (hst) {
+        lua_pushstring(L, hst->action_url().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    }
   }
   return 1;
 }
@@ -559,27 +621,39 @@ static int l_broker_cache_get_action_url(lua_State* L) {
 /**
  *  The get_notes() method available in the Lua interpreter
  *  This function works on hosts or services.
- *  It needs a host_id as parameter for a host and an additional service_id for
- *  a service. It returns a string with the notes.
+ *  It needs a host_id as parameter for a host and an additional service_id
+ * for a service. It returns a string with the notes.
  *
  *  @param L The Lua interpreter
  *
  *  @return 1
  */
 static int l_broker_cache_get_notes(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id = luaL_checkinteger(L, 2);
   int service_id = 0;
   if (lua_gettop(L) >= 3)
     service_id = luaL_checkinteger(L, 3);
 
-  try {
-    std::string const& notes(cache->get_notes(host_id, service_id));
-    lua_pushstring(L, notes.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    if (service_id > 0) {
+      auto serv = cache_instance->get_service(host_id, service_id, l);
+      if (serv) {
+        lua_pushstring(L, serv->notes().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    } else {
+      auto hst = cache_instance->get_host(host_id, l);
+      if (hst) {
+        lua_pushstring(L, hst->notes().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    }
   }
   return 1;
 }
@@ -587,27 +661,39 @@ static int l_broker_cache_get_notes(lua_State* L) {
 /**
  *  The get_notes_url() method available in the Lua interpreter
  *  This function works on hosts or services.
- *  It needs a host_id as parameter for a host and an additional service_id for
- *  a service. It returns a string with the notes url.
+ *  It needs a host_id as parameter for a host and an additional service_id
+ * for a service. It returns a string with the notes url.
  *
  *  @param L The Lua interpreter
  *
  *  @return 1
  */
 static int l_broker_cache_get_notes_url(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id = luaL_checkinteger(L, 2);
   int service_id = 0;
   if (lua_gettop(L) >= 3)
     service_id = luaL_checkinteger(L, 3);
 
-  try {
-    std::string const& notes_url(cache->get_notes_url(host_id, service_id));
-    lua_pushstring(L, notes_url.c_str());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    if (service_id > 0) {
+      auto serv = cache_instance->get_service(host_id, service_id, l);
+      if (serv) {
+        lua_pushstring(L, serv->notes_url().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    } else {
+      auto hst = cache_instance->get_host(host_id, l);
+      if (hst) {
+        lua_pushstring(L, hst->notes_url().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    }
   }
   return 1;
 }
@@ -615,46 +701,61 @@ static int l_broker_cache_get_notes_url(lua_State* L) {
 /**
  *  The get_severity() method available in the Lua interpreter
  *  This function works on hosts or services.
- *  It needs a host_id as parameter for a host and an additional service_id for
- *  a service. It returns a string with the severity value or nil if not found.
+ *  It needs a host_id as parameter for a host and an additional service_id
+ * for a service. It returns a string with the severity value or nil if not
+ * found.
  *
  *  @param L The Lua interpreter
  *
  *  @return 1
  */
 static int32_t l_broker_cache_get_severity(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id = luaL_checkinteger(L, 2);
   int service_id = 0;
   if (lua_gettop(L) >= 3)
     service_id = luaL_checkinteger(L, 3);
 
-  try {
-    int32_t severity = cache->get_severity(host_id, service_id);
-    lua_pushinteger(L, severity);
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l(cache_instance);
+    std::optional<int32_t> severity =
+        cache_instance->get_severity(host_id, service_id);
+    if (severity) {
+      lua_pushinteger(L, *severity);
+    } else {
+      lua_pushnil(L);
+    }
   }
   return 1;
 }
 
 static int32_t l_broker_cache_get_check_command(lua_State* L) {
-  macro_cache const* cache(
-      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
   int host_id = luaL_checkinteger(L, 2);
   int service_id = 0;
   if (lua_gettop(L) >= 3)
     service_id = luaL_checkinteger(L, 3);
-
-  try {
-    std::string_view check_command =
-        cache->get_check_command(host_id, service_id);
-    lua_pushlstring(L, check_command.data(), check_command.size());
-  } catch (std::exception const& e) {
-    (void)e;
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
     lua_pushnil(L);
+  } else {
+    cache::global_cache::upgrade_lock l(cache_instance);
+    if (service_id > 0) {
+      auto serv = cache_instance->get_service(host_id, service_id, l);
+      if (serv) {
+        lua_pushstring(L, serv->check_command().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    } else {
+      auto hst = cache_instance->get_host(host_id, l);
+      if (hst) {
+        lua_pushstring(L, hst->check_command().c_str());
+      } else {
+        lua_pushnil(L);
+      }
+    }
   }
   return 1;
 }
@@ -664,17 +765,10 @@ static int32_t l_broker_cache_get_check_command(lua_State* L) {
  *  and the broker lua sdk.
  *
  *  @param L The Lua interpreter
- *  @param cache The cache to share with the Lua interpreter
  *
  *  @return The Lua interpreter as a lua_State*
  */
-void broker_cache::broker_cache_reg(lua_State* L,
-                                    macro_cache const& cache,
-                                    uint32_t api_version) {
-  macro_cache const** udata(static_cast<macro_cache const**>(
-      lua_newuserdata(L, sizeof(macro_cache*))));
-  *udata = &cache;
-
+void broker_cache::broker_cache_reg(lua_State* L, uint32_t api_version) {
   luaL_Reg s_broker_cache_regs[] = {
       {"__gc", l_broker_cache_destructor},
       {"get_ba", l_broker_cache_get_ba_v1},

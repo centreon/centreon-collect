@@ -135,30 +135,43 @@ using variant_base = std::variant<int32_t,
                                   const mess_vect*>;
 
 struct variant : public variant_base {
+  const char* const field_name;
   template <typename field_type>
-  variant(const field_type& value) : variant_base(value) {}
+  variant(const char* fld_name, const field_type& value)
+      : variant_base(value), field_name(fld_name) {}
 
-  variant(const string& value) : variant_base(&value) {}
+  variant(const char* fld_name, const string& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const message& value) : variant_base(&value) {}
+  variant(const char* fld_name, const message& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const int32_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const int32_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const int64_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const int64_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const uint32_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const uint32_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const uint64_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const uint64_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const double_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const double_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const float_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const float_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const bool_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const bool_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const string_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const string_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 
-  variant(const mess_vect& value) : variant_base(&value) {}
+  variant(const char* fld_name, const mess_vect& value)
+      : variant_base(&value), field_name(fld_name) {}
 };
 
 }  // namespace com::centreon::broker::cache

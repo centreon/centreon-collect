@@ -23,6 +23,7 @@
 #include <boost/interprocess/containers/flat_map.hpp>
 #include <boost/interprocess/containers/flat_set.hpp>
 #include <boost/unordered/unordered_set.hpp>
+#include <optional>
 #include "boost/interprocess/allocators/private_node_allocator.hpp"
 #include "com/centreon/broker/cache/protobuf.hh"
 
@@ -260,7 +261,7 @@ class global_cache_data : public global_cache {
           std::pair<uint64_t,
                     interprocess::offset_ptr<dimension_bv_event>>>::type>;
 
-  using id_to_dimension_ba_bv_relation = interprocess::flat_map<
+  using id_to_dimension_ba_bv_relation = interprocess::flat_multimap<
       uint64_t /* ba_id */,
       uint64_t /* bv_id */,
       std::less<uint64_t>,
@@ -353,37 +354,56 @@ class global_cache_data : public global_cache {
   const host_serv_pair* get_host_serv_id(uint64_t index_id) override
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  const instance* get_instance(uint64_t instance_id,
-                               upgrade_lock& read_lock) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+  const instance* get_instance(uint64_t instance_id) override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
 
+  const host_group* get_host_group(uint64_t group_id) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const service_group* get_service_group(uint64_t group_id) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void append_service_group(uint64_t host,
                             uint64_t service,
-                            std::ostream& request_body) override;
-  void append_host_group(uint64_t host, std::ostream& request_body) override;
+                            std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  void append_host_group(uint64_t host,
+                         std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void append_host_tag_id(uint64_t host,
                           TagType tag_type,
-                          std::ostream& request_body) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                          std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void append_serv_tag_id(uint64_t host,
                           uint64_t serv,
                           TagType tag_type,
-                          std::ostream& request_body) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                          std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void append_host_tag_name(uint64_t host,
                             TagType tag_type,
-                            std::ostream& request_body) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                            std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void append_serv_tag_name(uint64_t host,
                             uint64_t serv,
                             TagType tag_type,
-                            std::ostream& request_body) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
-  uint64_t get_index_id_from_metric_id(uint64_t metric_id) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
-  int32_t get_severity(const uint64_t host_id,
-                       const uint64_t service_id) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+                            std::ostream& request_body) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  uint64_t get_index_id_from_metric_id(uint64_t metric_id) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  std::optional<int32_t> get_severity(uint64_t host_id,
+                                      uint64_t service_id) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const dimension_ba_event* get_dimension_ba_event(
+      uint64_t ba_id) const override ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const dimension_bv_event* get_dimension_bv_event(
+      uint64_t bv_id) const override ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  void enumerate_bvs(uint64_t ba_id, bv_enumerator&& enumerator) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  void enumerate_host_group(uint64_t host_id,
+                            group_enumerator&& enumerator) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  void enumerate_service_group(uint64_t host_id,
+                               uint64_t service_id,
+                               group_enumerator&& enumerator) const override
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
 };
 
 };  // namespace cache
