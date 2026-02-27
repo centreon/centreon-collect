@@ -238,6 +238,7 @@ else()
     fmt::fmt
     pdh
     taskschd
+    Crypt32
     Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

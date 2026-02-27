@@ -64,7 +64,7 @@ class bootstrap_grpc_client
  public:
   using com::centreon::common::grpc::grpc_client_base::grpc_client_base;
 
-  const std::shared_ptr<::grpc::Channel>& get_channel() const {
+  std::shared_ptr<::grpc::Channel> get_channel() const {
     return _channel;
   }
 };
@@ -74,7 +74,8 @@ class bootstrap_grpc_client
  * the initial TLS connection fails.
  *
  * Public behavior is intentionally stable: this function only mutates
- * `grpc_conf`/config files when bootstrap succeeds.
+ * `grpc_conf` and persisted configuration (JSON on Linux, registry on Windows)
+ * when bootstrap succeeds.
  */
 void bootstrap_ca_from_fingerprint_if_needed(
     const config& conf,
