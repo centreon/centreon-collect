@@ -91,9 +91,12 @@ std::shared_ptr<certificate_service> certificate_service::load(
                             "Invalid authentication token");
     }
 
-    SPDLOG_LOGGER_INFO(_logger, "CA provided to the peer {}", context->peer());
     // Set response
     response->set_certificate_pem(_ca_cert);
+    SPDLOG_LOGGER_CRITICAL(
+        _logger,
+        "[SECURITY] CA bootstrap certificate delivered to peer {}",
+        context->peer());
 
     return ::grpc::Status::OK;
 

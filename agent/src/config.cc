@@ -71,6 +71,10 @@ const std::string_view config::config_schema(R"(
             "description": "CA Common Name (CN). This is used to verify the server certificate. Don't use it if unsure.",
             "type": "string"
         },
+        "fingerprint": {
+            "description": "Expected SHA256 fingerprint of the CA certificate. If provided without ca_certificate, the agent will retrieve the CA from the server using insecure TLS.",
+            "type": "string"
+        },
         "reversed_grpc_streaming": {
             "description": "Set to true to make Engine connect to the agent. Requires the agent to be configured as a server. Default: false",
             "type": "boolean"
@@ -187,6 +191,7 @@ config::config(const std::string& path) {
   if (_ca_name.empty()) {
     _ca_name = json_config.get_string("ca_name", "");
   }
+  _ca_fingerprint = json_config.get_string("fingerprint", "");
   _host = json_config.get_string("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
