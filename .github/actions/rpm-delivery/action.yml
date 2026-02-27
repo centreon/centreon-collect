@@ -47,6 +47,12 @@ runs:
         JF_URL: https://packages.centreon.com
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
+    - name: Store list of restored RPM packages in text file
+      if: inputs.stability == 'testing'
+      shell: bash
+      run: |
+        ls ./*.rpm > rpm_packages.txt
+
     - if: inputs.delivery_type == 'feature'
       name: Create a rpm feature repository
       shell: bash
@@ -94,6 +100,7 @@ runs:
 
     - name: Publish RPMs
       shell: bash
+      id: publish-rpms
       env:
         JF_URL: https://packages.centreon.com
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
@@ -153,6 +160,7 @@ runs:
         else
           ROOT_REPO_PATH="rpm-standard"
         fi
+        echo "root_repo_path=$ROOT_REPO_PATH" >> $GITHUB_OUTPUT
 
         for ARCH in "noarch" "x86_64"; do
           if [[ "${{ inputs.release_type }}" == "hotfix" || "${{ inputs.release_type }}" == "release" ]]; then
@@ -167,4 +175,18 @@ runs:
           fi
 
           curl -H "Authorization: Bearer ${{ env.JF_ACCESS_TOKEN }}" -X POST "${{ env.JF_URL }}/artifactory/api/yum/$ROOT_REPO_PATH?path=/${{ inputs.version }}/${{ inputs.distrib }}/${REINDEX_STABILITY}/$ARCH&async=1"
+        done
+
+    - name: Compare list of files with delivered files
+      if: inputs.stability == 'testing'
+      shell: bash
+      run: |
+        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/repodata/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path' | cut -d'/' -f7-)
+        ORIGINAL_PACKAGES=$(cat rpm_packages.txt)
+
+        for PACKAGE in $DELIVERED_PACKAGES; do
+          if ! echo "$ORIGINAL_PACKAGES" | grep -q "$(basename "$PACKAGE")"; then
+            echo "::error::[${{ github.job }}] Package $PACKAGE was not successfully delivered or found in repository."
+            continue
+          fi
         done
