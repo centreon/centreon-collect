@@ -3374,6 +3374,28 @@ def ctn_add_template_to_contact(poller: int, tmpl: str, c_lst):
         ff.writelines(lines)
 
 
+def ctn_add_template_to_timeperiod(poller: int, tmpl: str, c_lst):
+    """
+    Add a contact template to timeperiod.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tmpl (str): The name of the template to add.
+        c_lst (list): A list of timeperiod name.
+    """
+    with open("{}/config{}/timeperiods.cfg".format(CONF_DIR, poller), "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*name\s*(\S+)$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None and m.group(1) in c_lst:
+            lines.insert(
+                i + 1, f"    use                     {tmpl}\n")
+
+    with open("{}/config{}/timeperiods.cfg".format(CONF_DIR, poller), "w") as ff:
+        ff.writelines(lines)
+
+
 def ctn_config_engine_remove_cfg_file(poller: int, fic: str):
     """
     Remove a config file reference from the centengine.cfg.
@@ -4078,6 +4100,7 @@ def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, min
         f.write(f"""
 define timeperiod {{
     timeperiod_name     {time_period_name}
+    name     {time_period_name}
     alias               {time_period_name}
     {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
 }}
