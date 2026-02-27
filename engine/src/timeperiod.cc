@@ -779,7 +779,7 @@ static bool _timerange_to_time_t(const timerange& trange,
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "check_time_against_period()";
-  functions_logger->trace("check_time_against_period()");
+  SPDLOG_LOGGER_TRACE(functions_logger, "check_time_against_period()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -789,8 +789,8 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   time_t next_valid_time{(time_t)-1};
   tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
                                               false);
-  functions_logger->trace("check_time_against_period {} ret={}",
-                          tperiod->get_name(), next_valid_time == test_time);
+  SPDLOG_LOGGER_TRACE(functions_logger, "check_time_against_period {} ret={}",
+                      tperiod->get_name(), next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
@@ -808,7 +808,8 @@ bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic)
       << "check_time_against_period_for_notif()";
-  functions_logger->trace("check_time_against_period_for_notif()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -834,7 +835,8 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       bool notif_timeperiod) {
   engine_logger(dbg_functions, basic)
       << "get_next_invalid_time_per_timeperiod()";
-  functions_logger->trace("get_next_invalid_time_per_timeperiod()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in invalid_time at the end of the loop.
@@ -1019,7 +1021,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time_per_timeperiod()";
-  functions_logger->trace("get_next_valid_time_per_timeperiod()");
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "{} get_next_valid_time_per_timeperiod()", _name);
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1130,8 +1133,9 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   // Else use the calculated time.
   else
     *valid_time = earliest_time;
-  functions_logger->trace("get_next_valid_time_per_timeperiod {} valid_time={}",
-                          _name, *valid_time);
+  SPDLOG_LOGGER_TRACE(functions_logger,
+                      "get_next_valid_time_per_timeperiod {} valid_time={}",
+                      _name, *valid_time);
 }
 
 /**
@@ -1146,7 +1150,7 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time()";
-  functions_logger->trace("get_next_valid_time()");
+  SPDLOG_LOGGER_TRACE(functions_logger, "get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time(std::max(pref_time, time(NULL)));

@@ -127,22 +127,22 @@ bool timeperiod_helper::_add_week_day(std::string_view key,
       d = obj->mutable_timeranges()->mutable_sunday();
       break;
     case 1:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_monday();
       break;
     case 2:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_tuesday();
       break;
     case 3:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_wednesday();
       break;
     case 4:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_thursday();
       break;
     case 5:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_friday();
       break;
     case 6:
-      d = obj->mutable_timeranges()->mutable_sunday();
+      d = obj->mutable_timeranges()->mutable_saturday();
       break;
   }
   if (!_build_timeranges(value, *d))
