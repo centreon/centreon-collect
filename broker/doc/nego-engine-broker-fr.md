@@ -451,6 +451,12 @@ une lecture sur le descripteur de fichier `inotify`. Ce timer est lancé
 en asynchrone et quand un fichier est détecté, `Broker` fait plusieurs
 tâches:
 
+En complément d’`inotify`, le timer effectue également un scan du répertoire à
+chaque déclenchement. Ce fallback permet de détecter les fichiers `.lck` qu’`inotify`
+aurait pu manquer (par exemple lorsque plusieurs `touch()` rapides saturent la file
+d’événements du noyau). Tout fichier `.lck` trouvé lors du scan mais non signalé par
+`inotify` est traité comme un événement de configuration manqué.
+
 1.  Il lit le répertoire de configuration pour en faire une structure
     `engine::State`.
 
@@ -627,9 +633,26 @@ qu’Engine soit en mesure de l’envoyer à Broker pour régler le souci.
 
 Ce cas est géré de la façon suivante : lors de la négociation BBDO, si Broker ne
 trouve ni fichier `<ID>.prot` ni fichier `<ID>.lck` pour un poller, il envoie un
-`DiffState{unknown=true}` à Engine. Engine détecte ce message et envoie sa
-configuration courante à Broker. Broker la reçoit, crée le fichier `<ID>.prot` et
-alimente son cache.
+`DiffState{unknown=true}` à Engine. Engine détecte ce message et tente d'envoyer sa
+configuration courante à Broker. Si `state.prot` existe, Engine l'envoie ; sinon
+(premier démarrage, aucune configuration encore appliquée), Engine journalise un
+avertissement et n'envoie rien — le flux normal de configuration (via les fichiers
+`.lck`) prendra le relais. Dans les deux cas, Engine remet immédiatement le flag
+`reloading` à `false` afin de pouvoir traiter les diffs suivants.
+
+Broker reçoit le `State` courant, puis appelle `create_prot_file()`. Avant d'écrire
+`<ID>.prot`, Broker vérifie qu'aucune configuration plus récente n'est déjà en cours
+de traitement :
+
+- si un fichier `<ID>.lck` existe dans le répertoire de cache PHP, c'est que PHP
+  vient d'envoyer une nouvelle configuration ; Broker laisse le flux normal
+  s'en charger ;
+- si un fichier `new-<ID>.prot` existe, le flux normal est déjà en train de
+  préparer la nouvelle configuration ;
+- si `<ID>.prot` existe déjà, le flux normal a déjà installé la configuration.
+
+Dans ces trois cas, Broker remet simplement `conf_unknown` à `false` sans écraser
+le fichier.
 
 ```mermaid
 sequenceDiagram
@@ -642,11 +665,16 @@ sequenceDiagram
     B ->> B: is_peer_conf_known() → false
     B ->> E: DiffState { unknown = true }
     note right of B: Broker demande à Engine<br/>de lui envoyer sa configuration.
-    E ->> E: Lecture de state.prot<br/>via get_current_state()
-    E ->> B: pb_diff_state contenant le State courant
-    note right of E: Engine envoie sa configuration<br/>dans le prochain write().
-    B ->> B: create_prot_file()
-    note right of B: Broker écrit <ID>.prot,<br/>remet conf_unknown à false<br/>et alimente le cache.
+    E ->> E: get_current_state() : lecture de state.prot
+    alt state.prot existe (poller_id != 0)
+        E ->> B: pb_diff_state contenant le State courant
+        note right of E: Engine envoie sa configuration<br/>dans le prochain write().
+        B ->> B: create_prot_file()
+        note right of B: Si aucun fichier plus récent (.lck,<br/>new-<ID>.prot ou <ID>.prot) n'existe,<br/>Broker écrit <ID>.prot, remet<br/>conf_unknown à false et alimente le cache.
+    else state.prot absent (premier démarrage)
+        note right of E: Engine n'envoie rien.<br/>Le flux .lck prendra le relais.
+    end
+    note right of E: Dans les deux cas, reloading = false<br/>pour traiter les diffs suivants.
 ```
 
 Si l’`Engine` est redémarré avant l’envoi de cet

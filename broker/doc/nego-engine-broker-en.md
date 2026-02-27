@@ -27,6 +27,7 @@
 * [Broker centralized cache](#broker-centralized-cache)
   * [Operating in centralized configuration](#operating-in-centralized-configuration)
   * [Operating in *legacy* mode](#operating-in-legacy-mode)
+  * [Possible evolutions](#possible-evolutions)
 * [Retention](#retention)
 * [Poller HA](#poller-ha)
   * [Poller configuration tree](#poller-configuration-tree)
@@ -312,6 +313,12 @@ But actually, there is a specific message for this, it's the `pb_diff_state_ack`
 
 `Broker` uses `inotify` to monitor the PHP cache directory. After PHP finishes writing the poller *X* configuration in this directory, it creates next to directory *X*, a file `X.lck`. `Broker` monitors the creation/modification of any `*.lck` file in this directory. For this, a timer set to 5 seconds does a read on the `inotify` file descriptor. This timer is launched asynchronously and when a file is detected, `Broker` performs several tasks:
 
+In addition to `inotify`, the timer also performs a directory scan on each trigger.
+This fallback detects `.lck` files that `inotify` may have missed (for example when
+multiple rapid `touch()` calls saturate the kernel event queue). Any `.lck` file
+found during the scan but not reported by `inotify` is treated as a missed
+configuration event.
+
 1. It reads the configuration directory to make an `engine::State` structure.
 
 2. It serializes in its `pollers-conf` directory this configuration in a file `new-X.prot`.
@@ -424,9 +431,25 @@ Engine to be able to send it to Broker to resolve the issue.
 
 This case is handled as follows: during BBDO negotiation, if Broker finds neither an
 `<ID>.prot` file nor an `<ID>.lck` file for a poller, it sends a
-`DiffState{unknown=true}` to Engine. Engine detects this message and sends its
-current configuration to Broker. Broker receives it, creates the `<ID>.prot` file
-and feeds its cache.
+`DiffState{unknown=true}` to Engine. Engine detects this message and attempts to send
+its current configuration to Broker. If `state.prot` exists, Engine sends it;
+otherwise (first start, no configuration has been applied yet), Engine logs a warning
+and sends nothing — the normal configuration flow (via `.lck` files) will take over.
+In both cases, Engine immediately resets the `reloading` flag to `false` so that
+subsequent diffs can be processed.
+
+Broker receives the current `State`, then calls `create_prot_file()`. Before writing
+`<ID>.prot`, Broker checks that no more recent configuration is already being
+processed:
+
+- if a `<ID>.lck` file exists in the PHP cache directory, PHP has just sent a new
+  configuration; Broker lets the normal flow handle it;
+- if a `new-<ID>.prot` file exists, the normal flow is already preparing the new
+  configuration;
+- if `<ID>.prot` already exists, the normal flow has already installed it.
+
+In all three cases, Broker simply resets `conf_unknown` to `false` without
+overwriting the file.
 
 ```mermaid
 sequenceDiagram
@@ -439,11 +462,16 @@ sequenceDiagram
     B ->> B: is_peer_conf_known() → false
     B ->> E: DiffState { unknown = true }
     note right of B: Broker asks Engine<br/>to send its configuration.
-    E ->> E: Reading state.prot<br/>via get_current_state()
-    E ->> B: pb_diff_state containing the current State
-    note right of E: Engine sends its configuration<br/>on the next write().
-    B ->> B: create_prot_file()
-    note right of B: Broker writes <ID>.prot,<br/>resets conf_unknown to false<br/>and feeds the cache.
+    E ->> E: get_current_state(): reading state.prot
+    alt state.prot exists (poller_id != 0)
+        E ->> B: pb_diff_state containing the current State
+        note right of E: Engine sends its configuration<br/>on the next write().
+        B ->> B: create_prot_file()
+        note right of B: If no more recent file (.lck,<br/>new-<ID>.prot or <ID>.prot) exists,<br/>Broker writes <ID>.prot, resets<br/>conf_unknown to false and feeds the cache.
+    else state.prot absent (first start)
+        note right of E: Engine sends nothing.<br/>The .lck flow will take over.
+    end
+    note right of E: In both cases, reloading = false<br/>to process subsequent diffs.
 ```
 
 If `Engine` is restarted before sending this *event*, it will connect with the new configuration but `Broker` will still have work remnants to perform which can be problematic. To avoid this, we go through a new BBDO *event* (therefore managed outside the event stack); as soon as `Engine` reads the configuration, it emits this new *event* to inform `Broker` as soon as possible that it is taken into account. To apply the configuration on the database, `Broker` waits to have received all these acknowledgements.
