@@ -26,7 +26,9 @@
 * [SQL/storage streams](#sqlstorage-streams)
 * [Broker centralized cache](#broker-centralized-cache)
   * [Operating in centralized configuration](#operating-in-centralized-configuration)
+  * [Host `poller_id` population in the cache](#host-poller_id-population-in-the-cache)
   * [Operating in *legacy* mode](#operating-in-legacy-mode)
+  * [Possible evolutions](#possible-evolutions)
 * [Retention](#retention)
 * [Poller HA](#poller-ha)
   * [Poller configuration tree](#poller-configuration-tree)
@@ -312,6 +314,12 @@ But actually, there is a specific message for this, it's the `pb_diff_state_ack`
 
 `Broker` uses `inotify` to monitor the PHP cache directory. After PHP finishes writing the poller *X* configuration in this directory, it creates next to directory *X*, a file `X.lck`. `Broker` monitors the creation/modification of any `*.lck` file in this directory. For this, a timer set to 5 seconds does a read on the `inotify` file descriptor. This timer is launched asynchronously and when a file is detected, `Broker` performs several tasks:
 
+In addition to `inotify`, the timer also performs a directory scan on each trigger.
+This fallback detects `.lck` files that `inotify` may have missed (for example when
+multiple rapid `touch()` calls saturate the kernel event queue). Any `.lck` file
+found during the scan but not reported by `inotify` is treated as a missed
+configuration event.
+
 1. It reads the configuration directory to make an `engine::State` structure.
 
 2. It serializes in its `pollers-conf` directory this configuration in a file `new-X.prot`.
@@ -424,9 +432,25 @@ Engine to be able to send it to Broker to resolve the issue.
 
 This case is handled as follows: during BBDO negotiation, if Broker finds neither an
 `<ID>.prot` file nor an `<ID>.lck` file for a poller, it sends a
-`DiffState{unknown=true}` to Engine. Engine detects this message and sends its
-current configuration to Broker. Broker receives it, creates the `<ID>.prot` file
-and feeds its cache.
+`DiffState{unknown=true}` to Engine. Engine detects this message and attempts to send
+its current configuration to Broker. If `state.prot` exists, Engine sends it;
+otherwise (first start, no configuration has been applied yet), Engine logs a warning
+and sends nothing — the normal configuration flow (via `.lck` files) will take over.
+In both cases, Engine immediately resets the `reloading` flag to `false` so that
+subsequent diffs can be processed.
+
+Broker receives the current `State`, then calls `create_prot_file()`. Before writing
+`<ID>.prot`, Broker checks that no more recent configuration is already being
+processed:
+
+- if a `<ID>.lck` file exists in the PHP cache directory, PHP has just sent a new
+  configuration; Broker lets the normal flow handle it;
+- if a `new-<ID>.prot` file exists, the normal flow is already preparing the new
+  configuration;
+- if `<ID>.prot` already exists, the normal flow has already installed it.
+
+In all three cases, Broker simply resets `conf_unknown` to `false` without
+overwriting the file.
 
 ```mermaid
 sequenceDiagram
@@ -439,11 +463,16 @@ sequenceDiagram
     B ->> B: is_peer_conf_known() → false
     B ->> E: DiffState { unknown = true }
     note right of B: Broker asks Engine<br/>to send its configuration.
-    E ->> E: Reading state.prot<br/>via get_current_state()
-    E ->> B: pb_diff_state containing the current State
-    note right of E: Engine sends its configuration<br/>on the next write().
-    B ->> B: create_prot_file()
-    note right of B: Broker writes <ID>.prot,<br/>resets conf_unknown to false<br/>and feeds the cache.
+    E ->> E: get_current_state(): reading state.prot
+    alt state.prot exists (poller_id != 0)
+        E ->> B: pb_diff_state containing the current State
+        note right of E: Engine sends its configuration<br/>on the next write().
+        B ->> B: create_prot_file()
+        note right of B: If no more recent file (.lck,<br/>new-<ID>.prot or <ID>.prot) exists,<br/>Broker writes <ID>.prot, resets<br/>conf_unknown to false and feeds the cache.
+    else state.prot absent (first start)
+        note right of E: Engine sends nothing.<br/>The .lck flow will take over.
+    end
+    note right of E: In both cases, reloading = false<br/>to process subsequent diffs.
 ```
 
 If `Engine` is restarted before sending this *event*, it will connect with the new configuration but `Broker` will still have work remnants to perform which can be problematic. To avoid this, we go through a new BBDO *event* (therefore managed outside the event stack); as soon as `Engine` reads the configuration, it emits this new *event* to inform `Broker` as soon as possible that it is taken into account. To apply the configuration on the database, `Broker` waits to have received all these acknowledgements.
@@ -967,6 +996,87 @@ sequenceDiagram
         deactivate USQL
     end        
 ```
+
+## Host `poller_id` population in the cache
+
+### The problem
+
+In the protobuf `State` message (sent by Engine as a `pb_engine_state` event),
+the `poller_id` field is set at the **message level** — i.e., `state.poller_id()`
+is non-zero and identifies the poller. However, the individual `Host` objects
+embedded in `state.hosts()` do **not** carry their own `poller_id` field: they
+only have `host_id`, `host_name`, and other host-specific attributes. The same
+applies to `DiffHost` objects inside `DiffState` messages.
+
+This matters because `broker_cache` stores hosts in a `_hosts` multi-index
+container, and the cached `Host` objects must have a valid `instance_id`
+(= `poller_id`) in order for the group-link removal logic in `apply()` to work
+correctly. When a servicegroup or hostgroup is removed from a poller, the code
+iterates over all service/host-group links and erases only those whose host
+belongs to the affected poller, using the comparison:
+
+```
+host->obj().instance_id() == sgp.poller_id()
+```
+
+If `instance_id` is 0 because the host was never given a valid `poller_id`,
+this comparison always fails and no links are ever removed.
+
+### The fix — two complementary changes
+
+**1. `_fill_host()` accepts a `poller_id_hint`**
+
+The private helper `broker_cache::_fill_host()` now takes an optional
+`poller_id_hint` parameter. When `cfg.poller_id() == 0` (which is always the
+case for hosts coming from a `pb_engine_state`), the hint is used instead:
+
+```cpp
+uint64_t pid = cfg.poller_id() != 0 ? cfg.poller_id() : poller_id_hint;
+```
+
+`merge()` passes `state.poller_id()` as the hint:
+
+```cpp
+_fill_host(&h->mut_obj(), host, state.poller_id());
+```
+
+**2. `indexed_diff_state::add_diff_state()` stamps hosts with `poller_id`**
+
+Before the global diff is published, `add_diff_state()` aggregates all
+per-poller diffs. In both the full-state path and the differential path, the
+key-builder lambda for hosts now explicitly calls `obj->set_poller_id(poller_id)`
+before returning the host key:
+
+```cpp
+// Full state path
+_add_message<Host, uint64_t>(
+    diff_state.mutable_state()->mutable_hosts(), ...,
+    [poller_id = diff_state.poller_id()](Host* obj) {
+      obj->set_poller_id(poller_id);   // stamp before key extraction
+      return obj->host_id();
+    });
+
+// Differential path
+_add_diff_message<DiffHost, Host, uint64_t>(
+    diff_state.mutable_hosts(), ...,
+    [poller_id = diff_state.poller_id()](Host* obj) {
+      obj->set_poller_id(poller_id);   // stamp before key extraction
+      return obj->host_id();
+    });
+```
+
+This ensures that the `Host` objects stored in the global diff already carry
+a valid `poller_id`, so `apply()` can call `_fill_host()` without a hint and
+still produce correctly-populated cache entries.
+
+### Why the global diff has no `poller_id`
+
+Note that the **global** `DiffState` (the one sent as `pb_global_diff_state`)
+intentionally has `poller_id == 0` at the message level, because it
+aggregates changes from multiple pollers. Each individual host object inside
+this global diff carries its own `poller_id` (set by the stamping above), so
+the per-host association is preserved even though the message-level id is
+absent.
 
 ## Operating in *legacy* mode
 
