@@ -183,4 +183,28 @@ void cbmod_state::set_diff_state_applied(bool done) {
   _diff_state_applied = done;
 }
 
+/**
+ * @brief Store the current Engine configuration to be sent to Broker.
+ * Called when Broker requests the Engine configuration via a
+ * DiffState{unknown=true} message.
+ *
+ * @param conf The current Engine configuration state to store.
+ */
+void cbmod_state::set_current_engine_conf(
+    std::unique_ptr<com::centreon::engine::configuration::State>& conf) {
+  _current_engine_state = std::move(conf);
+}
+
+/**
+ * @brief Get and consume the current Engine configuration.
+ * Returns the stored configuration and clears the internal pointer.
+ * Returns nullptr if no configuration was set.
+ *
+ * @return The current Engine configuration state, or nullptr.
+ */
+std::unique_ptr<com::centreon::engine::configuration::State>
+cbmod_state::current_engine_conf() {
+  return std::move(_current_engine_state);
+}
+
 }  // namespace com::centreon::broker::config::applier

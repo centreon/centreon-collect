@@ -178,10 +178,36 @@ void loop::_dispatching() {
           auto future [[maybe_unused]] =
               std::async(std::launch::async, apply_conf, &reloading);
         } else {
-          process_logger->info("New differential configuration to load.");
-          process_logger->info("Reloading from Broker...");
-          auto future [[maybe_unused]] = std::async(
-              std::launch::async, apply_diff, std::move(diff_conf), &reloading);
+          if (diff_conf->unknown()) {
+            /* Broker sends an empty diff state to ask Engine to send its
+             * current configuration. */
+            auto current_state = std::make_unique<configuration::State>();
+            configuration::applier::state::instance().get_current_state(
+                *current_state);
+            if (current_state->poller_id() == 0) {
+              /* state.prot does not exist yet (engine has not applied any
+               * configuration). We cannot respond to broker's request. The
+               * normal configuration flow (via .lck files) will eventually
+               * provide the configuration to broker. */
+              process_logger->warn(
+                  "Broker requested current configuration but no state.prot "
+                  "is available yet. Waiting for the normal flow.");
+            } else {
+              process_logger->info(
+                  "Sending current configuration to Broker...");
+              cbm->send_engine_conf(std::move(current_state));
+            }
+            /* Reset reloading: unlike apply_diff (which is async and resets
+             * it at the end), sending the current conf is synchronous and we
+             * must allow future diffs to be processed. */
+            reloading = false;
+          } else {
+            process_logger->info("New differential configuration to load.");
+            process_logger->info("Reloading from Broker...");
+            auto future [[maybe_unused]] =
+                std::async(std::launch::async, apply_diff, std::move(diff_conf),
+                           &reloading);
+          }
         }
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";

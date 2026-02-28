@@ -3241,8 +3241,58 @@ def ctn_get_host_ids(port: int, timeout=TIMEOUT):
                 res = stub.GetHostIds(empty_pb2.Empty())
                 retval = [id for id in res.ids]
                 return retval
-            except:
+            except Exception:
                 logger.console("gRPC server not ready")
+
+
+def ctn_get_service_ids(port: int, timeout=TIMEOUT):
+    """
+    Get the list of (host_id, service_id) pairs from the Broker cache.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetServiceIds(empty_pb2.Empty())
+                return [(pair.host_id, pair.service_id) for pair in res.pairs]
+            except Exception:
+                logger.console("gRPC server not ready")
+
+
+def ctn_get_service_descriptions(port: int, timeout=TIMEOUT):
+    """
+    Get a dict of {(host_id, service_id): description} for all services in the Broker cache.
+    Fetches the list of service ids first, then retrieves the description of each service.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds, 30s by default.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetServiceIds(empty_pb2.Empty())
+                pairs = [(pair.host_id, pair.service_id) for pair in res.pairs]
+                result = {}
+                for host_id, service_id in pairs:
+                    ref = broker_pb2.ServiceIdentifier()
+                    ref.host_id = host_id
+                    ref.service_id = service_id
+                    svc = stub.GetService(ref)
+                    result[(host_id, service_id)] = svc.description
+                return result
+            except Exception:
+                logger.console("gRPC server not ready")
+
 
 def ctn_get_host_poller_id(port: int, host_id: int, timeout=TIMEOUT):
     """

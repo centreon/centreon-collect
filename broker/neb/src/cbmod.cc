@@ -420,6 +420,18 @@ std::unique_ptr<engine::configuration::DiffState> cbmod::diff_state() {
   return retval;
 }
 
+/**
+ * @brief Send the current Engine configuration to the connected Broker.
+ * Stores the configuration in the cbmod state so it is sent on the next
+ * write cycle, in response to a DiffState{unknown=true} from Broker.
+ *
+ * @param conf The current Engine configuration state to send.
+ */
+void cbmod::send_engine_conf(
+    std::unique_ptr<com::centreon::engine::configuration::State>&& conf) {
+  _impl->state().set_current_engine_conf(conf);
+}
+
 void cbmod::set_diff_state_applied(const std::string& config_version) {
   _impl->state().set_engine_conf(config_version);
   _impl->state().set_diff_state_applied(true);

@@ -486,7 +486,7 @@ def ctn_stop_mysql():
                     try:
                         logger.console("Waiting for 30s mysqld to stop")
                         proc.wait(30)
-                    except:
+                    except psutil.TimeoutExpired:
                         logger.console("mysqld don't want to stop => kill")
                         proc.kill()
 
@@ -507,7 +507,7 @@ def ctn_stop_mysql():
                     try:
                         logger.console("Waiting for 30s mariadbd to stop")
                         proc.wait(30)
-                    except:
+                    except psutil.TimeoutExpired:
                         logger.console("mariadb don't want to stop => kill")
                         proc.kill()
 
@@ -610,7 +610,7 @@ def ctn_check_engine_logs_are_duplicated(log: str, date):
 def ctn_find_line_from(lines, date, agent_format: bool = False):
     try:
         my_date = parser.parse(date)
-    except:
+    except (parser.ParserError, TypeError):
         my_date = datetime.fromtimestamp(date)
 
     # Let's find my_date
@@ -1785,7 +1785,7 @@ def ctn_check_number_of_downtimes(expected: int, start, timeout: int):
     limit = time.time() + timeout
     try:
         d = parser.parse(start)
-    except:
+    except (parser.ParserError, TypeError):
         d = datetime.fromtimestamp(start)
     d = d.timestamp()
     while time.time() < limit:
@@ -2047,7 +2047,7 @@ def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """
     try:
         my_date = parser.parse(date).timestamp()
-    except:
+    except (parser.ParserError, TypeError):
         my_date = datetime.fromtimestamp(date).timestamp()
     limit = time.time() + timeout
     while time.time() < limit:
@@ -2056,7 +2056,7 @@ def ctn_wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
             if stat_result.st_mtime > my_date:
                 return True
             time.sleep(5)
-        except:
+        except OSError:
             time.sleep(5)
 
     logger.console(f"{path} not modified since {date}")
@@ -2476,7 +2476,7 @@ def ctn_get_process_limit(pid: int, limit: str):
                 if limit in line:
                     fields = line.split()
                     return int(fields[len(fields) - 3]), int(fields[len(fields) - 2])
-    except:
+    except (OSError, ValueError):
         return -1, -1
     return -1, -1
 
@@ -2783,11 +2783,15 @@ def ctn_check_tag_ids(logfile: str, start):
     return retval
 
 
-def ctn_clear_prot_files():
+def ctn_clear_prot_files(broker_only: bool = False):
     """
-    Remove all .prot files in /tmp directory.
+    Remove .prot files in /tmp directory.
+    If broker_only is True, only remove broker prot files (i.e. files named
+    <ID>.prot), leaving Engine's state.prot files untouched.
     """
     for file in Path('/tmp').rglob('*.prot'):
+        if broker_only and file.name == 'state.prot':
+            continue
         file.unlink()
 
 def ctn_check_resource_ids(typ: str, logfile: str):
