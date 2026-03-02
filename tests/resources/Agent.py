@@ -18,6 +18,9 @@
 #
 
 from os import makedirs, environ
+import base64
+import hashlib
+import ssl
 import time
 from robot.libraries.BuiltIn import BuiltIn, RobotNotRunningError
 from socket import gethostname
@@ -108,7 +111,22 @@ reversed_agent_encrypted_config = f"""
     "log_file":"{VAR_ROOT}/log/centreon-engine/centreon-agent.log" """
 
 
-def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None, ca_common_name: str = None, security_mode: str = "full", have_token: bool = True, nb_agent: int = 1):
+def ctn_get_cert_fingerprint(cert_path: str) -> str:
+    """ctn_get_cert_fingerprint
+    Compute the SHA256 fingerprint of a PEM certificate, base64-encoded.
+    This matches the C++ cert_tree::cert_sha() format used by the agent.
+    Args:
+        cert_path: path to the PEM certificate file
+    Returns:
+        base64-encoded SHA256 digest of the DER-encoded certificate
+    """
+    pem_data = open(cert_path).read()
+    der_data = ssl.PEM_cert_to_DER_cert(pem_data)
+    sha256_digest = hashlib.sha256(der_data).digest()
+    return base64.b64encode(sha256_digest).decode('ascii')
+
+
+def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_path: str = None, token: str = None, ca_common_name: str = None, security_mode: str = "full", have_token: bool = True, nb_agent: int = 1, fingerprint: str = None):
     """ctn_config_centreon_agent
     Creates a default centreon agent config listening on  0.0.0.0:4317 (no encryption) or 0.0.0.0:4318 (encryption)
     Args:
@@ -120,6 +138,9 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
         security_mode: full, no or insecure
         have_token: add token or empty token in config file
         nb_agent: nb conf agent (several agents config files)
+        fingerprint: base64-encoded SHA256 fingerprint of the CA cert; when set the
+                     agent will bootstrap the CA over insecure TLS and validate it
+                     using this fingerprint (implies encrypted endpoint, no ca_path needed)
     """
     # in case of wsl, agent is executed in windows host
     if environ.get("RUN_ENV", "") == "WSL":
@@ -134,13 +155,16 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
                  ctn_echo_command("$ARG2$ $ARG1$ from custom check") + "\n")
         ff.write("custom_check_2 = /path/to/custom_check_2 -c /arg=<value>\n")
 
+    use_encrypted_endpoint = cert_path is not None or ca_path is not None or fingerprint is not None
+    use_encryption = key_path is not None or cert_path is not None or ca_path is not None or fingerprint is not None
+
     for agent_index in range(nb_agent):
         with open(f"{CONF_DIR}/centagent{agent_index}.json", "w") as ff:
-            if cert_path is not None or ca_path is not None:
+            if use_encrypted_endpoint:
                 ff.write(agent_encrypted_config)
             else:
                 ff.write(agent_config)
-            if key_path is not None or cert_path is not None or ca_path is not None:
+            if use_encryption:
                 ff.write(f",\n  \"encryption\":\"{security_mode}\"")
             if key_path is not None:
                 ff.write(f",\n  \"private_key\":\"{key_path}\"")
@@ -150,6 +174,8 @@ def ctn_config_centreon_agent(key_path: str = None, cert_path: str = None, ca_pa
                 ff.write(f",\n  \"ca\":\"{ca_path}\"")
             if ca_common_name is not None:
                 ff.write(f",\n  \"ca_common_name\":\"{ca_common_name}\"")
+            if fingerprint is not None:
+                ff.write(f",\n  \"fingerprint\":\"{fingerprint}\"")
             if have_token:
                 if token is not None:
                     ff.write(f",\n  \"token\":\"{token}\"")
