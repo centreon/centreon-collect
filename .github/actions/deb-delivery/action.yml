@@ -147,7 +147,7 @@ runs:
       if: inputs.stability == 'testing'
       shell: bash
       run: |
-        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-debs.outputs.root_repo_path }}/pool/${{ inputs.version }}/${{ inputs.stability }}/${{ inputs.release_type }}/${{ inputs.module_name }}/*.deb" | jq -r '.[].path' | cut -d'/' -f7-)
+        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-debs.outputs.root_repo_path }}/pool/${{ inputs.version }}/${{ inputs.stability }}/${{ inputs.release_type }}/${{ inputs.module_name }}/*.deb" | jq -r '.[].path | split("/") | last')
         ORIGINAL_PACKAGES=$(cat deb_packagess.txt)
 
         for PACKAGE in $DELIVERED_PACKAGES; do

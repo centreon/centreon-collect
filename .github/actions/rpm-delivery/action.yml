@@ -181,7 +181,7 @@ runs:
       if: inputs.stability == 'testing'
       shell: bash
       run: |
-        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/repodata/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path' | cut -d'/' -f7-)
+        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/repodata/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path | split("/") | last'
         ORIGINAL_PACKAGES=$(cat rpm_packages.txt)
 
         for PACKAGE in $DELIVERED_PACKAGES; do
