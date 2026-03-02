@@ -71,7 +71,8 @@ my %human_severities = (
     4 => 'WARNING',
     5 => 'NOTICE',
     6 => 'INFO',
-    7 => 'DEBUG'
+    7 => 'DEBUG',
+    8 => 'TRACE'
 );
 
 sub new {
@@ -196,6 +197,8 @@ sub severity {
             $self->{severity} = 6;
         } elsif ($input_severity eq "debug") {
             $self->{severity} = 7;
+        }elsif ($input_severity eq "trace") {
+            $self->{severity} = 8;
         } else {
             $self->writeLogError("Wrong severity value set.");
             return -1;
@@ -256,6 +259,10 @@ sub writeLog($$$%) {
     } else {
         print STDERR "Unknown log mode '$self->{log_mode}' or log file unavailable for the following log :\n $datedmsg\n";
     }
+}
+
+sub writeLogTrace {
+    shift->writeLog(8, @_);
 }
 
 sub writeLogDebug {

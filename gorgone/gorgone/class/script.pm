@@ -73,6 +73,10 @@ sub init {
         $self->{logger}->file_mode($self->{log_file});
     }
     $self->{logger}->flush_output(enabled => $self->{flushoutput});
+    if ($self->{severity} =~ /debug/i && $ENV{ALLOW_PASSWORD_IN_LOG} ){
+        # debug logs should not show password, you can enable "trace" level with all logs by adding the env variable ALLOW_PASSWORD_IN_LOG=1
+        $self->{severity} = 8;
+    }
     $self->{logger}->severity($self->{severity});
     $self->{logger}->force_default_severity();
 
