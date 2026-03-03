@@ -190,10 +190,12 @@ runs:
       run: |
         DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/repodata/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path | split("/") | last')
         ORIGINAL_PACKAGES=$(cat rpm_packages.txt)
-
-        for PACKAGE in $DELIVERED_PACKAGES; do
-          if ! echo "$ORIGINAL_PACKAGES" | grep -q "$(basename "$PACKAGE")"; then
+        MISSING_PACKAGES=0
+        for PACKAGE in $ORIGINAL_PACKAGES; do
+          if ! echo "$DELIVERED_PACKAGES" | grep -q "$(basename "$PACKAGE")"; then
             echo "::error::[${{ github.job }}] Package $PACKAGE was not successfully delivered or found in repository."
+            MISSING_PACKAGES=1
             continue
           fi
         done
+        [[ $MISSING_PACKAGES -eq 0 ]] || exit 1
