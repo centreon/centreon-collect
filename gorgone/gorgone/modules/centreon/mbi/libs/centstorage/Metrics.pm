@@ -23,6 +23,8 @@ use warnings;
 
 package gorgone::modules::centreon::mbi::libs::centstorage::Metrics;
 
+use gorgone::modules::centreon::mbi::libs::TableUtils;
+
 # Constructor
 # parameters:
 # $logger: instance of class CentreonLogger
@@ -59,56 +61,6 @@ sub getTimeColumn() {
     return $self->{'timeColumn'};
 }
 
-# Safely drop and recreate a temporary table, handling cases where an orphaned
-# InnoDB tablespace (.ibd file) may exist after a database migration (e.g.
-# rsync of /var/lib/mysql). Without this, CREATE TABLE dies with errno 184
-# "Tablespace already exists" and the ETL crashes.
-sub _recreateTempTable {
-    my ($self, $tableName, $createTableQuery) = @_;
-    my $db = $self->{"centstorage"};
-
-    $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
-
-    eval {
-        $db->query({ query => $createTableQuery });
-    };
-    return unless $@;
-
-    my $createError = $@;
-    $self->{logger}->writeLog("WARNING",
-        "Failed to create temp table `$tableName`: $createError Attempting recovery.");
-
-    # The error handler disconnected the DB; the next query will auto-reconnect.
-    # Check if the table structure still exists (DROP may have only partially
-    # succeeded, or the table was left over from a previous crashed run).
-    my $tableExists = eval {
-        $db->query({ query => "SELECT 1 FROM `$tableName` LIMIT 0" });
-        1;
-    };
-
-    if ($tableExists) {
-        $self->{logger}->writeLog("INFO",
-            "Table `$tableName` still exists, truncating and reusing it.");
-        $db->query({ query => "TRUNCATE TABLE `$tableName`" });
-        return;
-    }
-
-    # Table not in data dictionary but tablespace file may remain (orphaned).
-    # Retry DROP + CREATE on the fresh connection.
-    eval {
-        $db->query({ query => "DROP TABLE IF EXISTS `$tableName`" });
-    };
-    eval {
-        $db->query({ query => $createTableQuery });
-    };
-    return unless $@;
-
-    die "Cannot create temp table `$tableName`. This may be caused by an orphaned "
-        . "InnoDB tablespace (.ibd file) after a database migration. Please remove "
-        . "the orphaned file from the MariaDB data directory and restart MariaDB. "
-        . "Original error: $createError";
-}
-
 sub createTempTableMetricMinMaxAvgValues {
     my ($self, $useMemory, $granularity) = @_;
     my $createTable = " CREATE TABLE `" . $self->{name_minmaxavg_tmp} . "` (";
@@ -124,7 +76,8 @@ sub createTempTableMetricMinMaxAvgValues {
     }else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $self->_recreateTempTable($self->{name_minmaxavg_tmp}, $createTable);
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_minmaxavg_tmp}, $createTable);
 }
 
 sub getMetricValueByHour {
@@ -195,7 +148,8 @@ sub createTempTableMetricDayFirstLastValues {
     } else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $self->_recreateTempTable($self->{name_firstlast_tmp}, $createTable);
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_firstlast_tmp}, $createTable);
 }
 
 sub addIndexTempTableMetricDayFirstLastValues {
@@ -227,7 +181,8 @@ sub createTempTableCtimeMinMaxValues {
     } else {
         $createTable .= ") ENGINE=INNODB CHARSET=utf8 COLLATE=utf8_general_ci;";
     }
-    $self->_recreateTempTable($self->{name_minmaxctime_tmp}, $createTable);
+    gorgone::modules::centreon::mbi::libs::TableUtils::recreate_table(
+        $self->{centstorage}, $self->{logger}, $self->{name_minmaxctime_tmp}, $createTable);
 }
 
 sub dropTempTableCtimeMinMaxValues {
