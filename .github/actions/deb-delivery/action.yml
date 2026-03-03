@@ -148,7 +148,7 @@ runs:
       shell: bash
       run: |
         DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-debs.outputs.root_repo_path }}/pool/${{ inputs.version }}/${{ inputs.stability }}/${{ inputs.release_type }}/${{ inputs.module_name }}/*.deb" | jq -r '.[].path | split("/") | last')
-        ORIGINAL_PACKAGES=$(cat deb_packagess.txt)
+        ORIGINAL_PACKAGES=$(cat deb_packages.txt)
 
         for PACKAGE in $DELIVERED_PACKAGES; do
           if ! echo "$ORIGINAL_PACKAGES" | grep -q "$(basename "$PACKAGE")"; then
