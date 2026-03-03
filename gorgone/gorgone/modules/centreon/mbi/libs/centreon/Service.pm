@@ -88,7 +88,7 @@ sub getServicesWithHostAndCategory {
 			}
     	}
    		if (!scalar(@categoriesTable)) {
-   			#ToDo push @categoriesTable, "0;NULL";
+   			push @categoriesTable, [0, "NoCategory"];
    		}	
     	if (defined($serviceHostTable)) {
 		foreach my $hostInfos (@$serviceHostTable) {
@@ -130,7 +130,7 @@ sub getServicesWithHostAndCategory {
 			}
     	}
    		if (!scalar(@categoriesTable)) {
-   			push @categoriesTable, "0;NULL";
+   			push @categoriesTable, [0, "NoCategory"];
    		}	
     	if (defined($serviceHostTable)) {
 		foreach my $hostInfos (@$serviceHostTable) {
