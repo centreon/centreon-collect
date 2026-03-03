@@ -189,7 +189,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
+        uses: azure/trusted-signing-action@87c2e83e6868da99d3380aa309851b32ed9a8346 # v1.1.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -216,7 +216,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled')
-        uses: azure/trusted-signing-action@fc390cf8ed0f14e248a542af1d838388a47c7a7c # v0.5.10
+        uses: azure/trusted-signing-action@87c2e83e6868da99d3380aa309851b32ed9a8346 # v1.1.0
         with:
           azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -240,7 +240,7 @@ jobs:
         shell: powershell
 
       - name: Cache monitoring agent
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -255,7 +255,7 @@ jobs:
           ! cancelled() &&
           ! contains(needs.*.result, 'failure') &&
           ! contains(needs.*.result, 'cancelled'))
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: packages-centreon-monitoring-agent-windows
           path: |
@@ -374,7 +374,7 @@ jobs:
 
       - name: Upload test results
         if: ${{ failure() }}
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: unit-test-${{ matrix.operating_system }}-reports
           path: "build/ut_*"
@@ -579,13 +579,13 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
+      - uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Restore cache monitoring agent
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -671,7 +671,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - uses: jfrog/setup-jfrog-cli@e5d3afdd1d75e4aa14a4f217cca93a2a9b5b846d # v4.8.0
+      - uses: jfrog/setup-jfrog-cli@279b1f629f43dd5bc658d8361ac4802a7ef8d2d5 # v4.9.1
         env:
           JF_URL: https://packages.centreon.com
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
