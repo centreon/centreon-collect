@@ -520,45 +520,45 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
-  # deliver-deb:
-  #   if: |
-  #     needs.changes.outputs.trigger_delivery == 'true' &&
-  #     needs.get-environment.outputs.skip_workflow == 'false' &&
-  #     contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-  #     ! cancelled() &&
-  #     ! contains(needs.*.result, 'failure') &&
-  #     ! contains(needs.*.result, 'cancelled') &&
-  #     github.repository == 'centreon/centreon-collect' &&
-  #     (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+  deliver-deb:
+    if: |
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect' &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
-  #   needs: [get-environment, changes, robot-test]
-  #   runs-on: centreon-common
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       include:
-  #         - distrib: bookworm
-  #           arch: amd64
-  #         - distrib: bookworm
-  #           arch: arm64
+    needs: [get-environment, changes, robot-test]
+    runs-on: centreon-common
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: bookworm
+            arch: amd64
+          - distrib: bookworm
+            arch: arm64
 
-  #   name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 v5.0.0
 
-  #     - name: Publish DEB packages
-  #       uses: ./.github/actions/deb-delivery
-  #       with:
-  #         module_name: collect
-  #         distrib: ${{ matrix.distrib }}
-  #         version: ${{ needs.get-environment.outputs.major_version }}
-  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-  #         cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-  #         stability: ${{ needs.get-environment.outputs.stability }}
-  #         release_type: ${{ needs.get-environment.outputs.release_type }}
-  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+      - name: Publish DEB packages
+        uses: ./.github/actions/deb-delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote:
     needs: [get-environment, deliver-rpm]
@@ -594,7 +594,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, promote]
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
@@ -604,7 +604,7 @@ jobs:
 
   clear-branch-cache:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     if: |
@@ -628,7 +628,7 @@ jobs:
 
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
       startsWith(github.ref_name, 'dev') &&
