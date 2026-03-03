@@ -606,7 +606,7 @@ sub execute_cmd {
         my $task_timeout;
         # need to send to clapi the timeout that gorgone is using from the action module
         foreach my $module (@{$self->{config_core}->{modules}}) {
-            if ($module->{package_name} == 'gorgone::modules::core::action::hooks') {
+            if ($module->{package_name} eq 'gorgone::modules::core::action::hooks') {
                 $task_timeout = $module->{command_timeout};
                 last;
             }
