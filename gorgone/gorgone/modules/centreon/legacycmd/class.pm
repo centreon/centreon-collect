@@ -602,10 +602,24 @@ sub execute_cmd {
         if (!defined($self->{clapi_password})) {
             return (-1, 'need centreon clapi password to execute STARTWORKER command');
         }
+
+        my $task_timeout;
+        # need to send to clapi the timeout that gorgone is using from the action module
+        foreach my $module (@{$self->{config_core}->{modules}}) {
+            if ($module->{package_name} == 'gorgone::modules::core::action::hooks') {
+                $task_timeout = $module->{command_timeout};
+                last;
+            }
+        }
+
+        # default value of 60 seconds for the timeout this is just a random value that i've picked
+        $task_timeout = $task_timeout ? $task_timeout : 60;
         my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
             $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+        
+        # $options{param} is supposed to only contain the task id. Maybe I should put a security on that
         my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue -v "'  . $options{param} . ';' . $task_timeout . '"';
         $self->send_internal_action({
             action => 'COMMAND',
             target => undef,
@@ -647,7 +661,7 @@ sub action_addimporttaskwithparent {
     my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time());
     my $datetime = sprintf('%04d-%02d-%02d %02d:%02d:%02d', $year+1900, $mon+1, $mday, $hour, $min, $sec);
 
-    my ($status, $datas) = $self->{class_object_centreon}->custom_execute(
+    my ($status, $data) = $self->{class_object_centreon}->custom_execute(
         request => "INSERT INTO task (`type`, `status`, `parent_id`, `created_at`) VALUES ('import', 'pending', '" . $options{data}->{content}->{parent_id} . "', '" . $datetime . "')"
     );
     if ($status == -1) {
@@ -662,10 +676,47 @@ sub action_addimporttaskwithparent {
         return -1;
     }
 
+    # parent id is the task id from the central. It should be unique enough but just in case I've added a second check
+    ($status, $data) = $self->{class_object_centreon}->custom_execute(
+            request => "SELECT id FROM task WHERE status = 'pending' AND parent_id = " . $options{data}->{content}->{parent_id} . " AND created_at = '" . $datetime . "' LIMIT 1",
+            mode => 2
+    );
+
+    if ($status == -1) {
+        $self->send_log(
+            code => GORGONE_ACTION_FINISH_KO,
+            token => $options{token},
+            logging => $options{data}->{logging},
+            data => {
+                message => "Cannot get import task id from Remote Server.",
+            }
+        );
+        return -1;
+    }
+
+    my $task_id;
+
+    foreach (@$data) {
+        $task_id = $_->[0];
+    }
+
+    my $task_timeout;
+    foreach my $module (@{$self->{config_core}->{modules}}) {
+        # need to send to clapi the timeout that gorgone is using from the action module
+        if ($module->{package} eq 'gorgone::modules::core::action::hooks') {
+            $task_timeout = $module->{command_timeout};
+            last;
+        }
+    }
+
+    # default value of 60 seconds for the timeout this is just a random value that i've picked
+    $task_timeout = $task_timeout ? $task_timeout : 60;
+
     my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
         $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+    # $options{param} is supposed to only contain the task id. Maybe I should put a security on that
     my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue -v "' . $task_id . ';' . $task_timeout . '"';
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},
