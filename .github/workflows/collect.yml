@@ -604,7 +604,7 @@ jobs:
 
   clear-branch-cache:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-deb, deliver-rpm]
     env:
       GH_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
     if: |
@@ -628,7 +628,7 @@ jobs:
 
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-deb, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
       startsWith(github.ref_name, 'dev') &&
