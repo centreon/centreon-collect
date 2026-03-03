@@ -164,7 +164,7 @@ runs:
         elif [[ "${{ inputs.is_cloud }}" == "true" ]]; then
           ROOT_REPO_PATH="rpm-standard-internal"
         else
-          ROOT_REPO_PATH="test-rpm-standard"
+          ROOT_REPO_PATH="rpm-standard"
         fi
         echo "root_repo_path=$ROOT_REPO_PATH" >> $GITHUB_OUTPUT
 
