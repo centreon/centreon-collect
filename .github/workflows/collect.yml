@@ -546,7 +546,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 v5.0.0
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Publish DEB packages
         uses: ./.github/actions/deb-delivery
@@ -561,7 +561,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote:
-    needs: [get-environment, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -628,7 +628,7 @@ jobs:
 
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-deb, deliver-rpm]
     if: |
       needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
       startsWith(github.ref_name, 'dev') &&
