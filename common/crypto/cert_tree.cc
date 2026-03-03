@@ -51,6 +51,37 @@ class ssl_exception : public std::runtime_error {
 
 using namespace com::centreon::common::crypto;
 
+namespace {
+static void copy_subject_alt_name_extensions(const X509* source, X509* target) {
+  if (!source || !target) {
+    return;
+  }
+
+  for (int ext_index = X509_get_ext_by_NID(source, NID_subject_alt_name, -1);
+       ext_index >= 0; ext_index = X509_get_ext_by_NID(
+                           source, NID_subject_alt_name, ext_index)) {
+    X509_EXTENSION* source_ext = X509_get_ext(source, ext_index);
+    if (!source_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to read source subjectAltName extension");
+    }
+
+    X509_EXTENSION* copied_ext = X509_EXTENSION_dup(source_ext);
+    if (!copied_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to duplicate source subjectAltName extension");
+    }
+
+    const int add_status = X509_add_ext(target, copied_ext, -1);
+    X509_EXTENSION_free(copied_ext);
+    if (add_status != 1) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to add subjectAltName extension to generated certificate");
+    }
+  }
+}
+}  // namespace
+
 /**
  * @brief load a certificate from pem format file
  *
@@ -268,7 +299,8 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                                unsigned minute_cert_ttl,
                                unsigned version,
                                const EVP_PKEY* ca_key,
-                               const X509* ca_cert) {
+                               const X509* ca_cert,
+                               const X509* san_source_cert) {
   X509* x509 = X509_new();
   X509_NAME* name;
 
@@ -296,6 +328,7 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
     X509_add_ext(x509, ext, -1);
     X509_EXTENSION_free(ext);
   }
+  copy_subject_alt_name_extensions(san_source_cert, x509);
 
   // Signature
   if (!X509_sign(x509, const_cast<EVP_PKEY*>(ca_key ? ca_key : pkey),
@@ -333,12 +366,13 @@ cert_tree::generate_self_signed_ca_key_pair(const name_entries& name_fields,
  */
 std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
 cert_tree::generate_cert_key_pair(const name_entries& name_fields,
-                                  unsigned minute_cert_ttl) {
+                                  unsigned minute_cert_ttl,
+                                  const X509* san_source_cert) {
   std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> priv_key(
       generate_ec_key(), EVP_PKEY_free);
 
   X509* cert = generate_cert(priv_key.get(), name_fields, minute_cert_ttl,
-                             1 /*v2*/, _ca_priv_key, _ca);
+                             1 /*v2*/, _ca_priv_key, _ca, san_source_cert);
   return std::make_pair(cert, priv_key.release());
 }
 

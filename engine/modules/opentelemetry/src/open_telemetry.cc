@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <openssl/x509v3.h>
 #include "centreon_agent/agent_service.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/common/http/https_connection.hh"
@@ -249,7 +249,8 @@ void open_telemetry::_create_otl_server(
           fmt::format("centengine otel certificate {}", time(nullptr))));
 
       std::pair<X509*, EVP_PKEY*> cert_key = _server_ca->generate_cert_key_pair(
-          entries, server_conf->get_minute_certificate_ttl());
+          entries, server_conf->get_minute_certificate_ttl(),
+          _server_ca->get_ca());
       low_ttl_conf = std::make_shared<grpc_config>(*server_conf);
       low_ttl_conf->set_cert(crypto::cert_tree::cert_to_string(cert_key.first));
       low_ttl_conf->set_key(crypto::cert_tree::key_to_string(cert_key.second));
