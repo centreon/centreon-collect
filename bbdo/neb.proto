@@ -718,6 +718,9 @@ message HostGroup {
   string name = 4;
   uint64 poller_id = 5;
   string alias = 6;
+  /* Not part of the BBDO protocol. Populated only by the gRPC GetHostGroup
+   * response to convey the cache member host IDs alongside the group info. */
+  repeated uint64 member_host_ids = 7;
 }
 
 /* io::neb, neb::de_pb_service_group, 24 */
@@ -729,6 +732,13 @@ message ServiceGroup {
   string name = 4;
   uint64 poller_id = 5;
   string alias = 6;
+  /* Not part of the BBDO protocol. Populated only by the gRPC GetServiceGroup
+   * response to convey the cache member (host_id, service_id) pairs. */
+  message ServiceMember {
+    uint64 host_id = 1;
+    uint64 service_id = 2;
+  }
+  repeated ServiceMember member_service_ids = 7;
 }
 
 /* io::neb, neb::de_pb_host_group_member, 25 */

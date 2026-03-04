@@ -145,6 +145,24 @@ class broker_impl final : public Broker::Service {
                           const ServiceIdentifier* request,
                           com::centreon::broker::Service* response) override;
 
+  grpc::Status GetHostGroupIds(grpc::ServerContext* context,
+                               const ::google::protobuf::Empty* request,
+                               IdsList* response) override;
+  grpc::Status GetHostGroup(grpc::ServerContext* context,
+                            const GenericNameOrIndex* request,
+                            HostGroup* response) override;
+
+  grpc::Status GetServiceGroupIds(grpc::ServerContext* context,
+                                  const ::google::protobuf::Empty* request,
+                                  IdsList* response) override;
+  grpc::Status GetServiceGroup(grpc::ServerContext* context,
+                               const GenericNameOrIndex* request,
+                               ServiceGroup* response) override;
+
+  grpc::Status GetSeverities(grpc::ServerContext* context,
+                             const ::google::protobuf::Empty* request,
+                             SeverityList* response) override;
+
  public:
   broker_impl();
 };
