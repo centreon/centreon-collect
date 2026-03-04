@@ -102,6 +102,50 @@ service Broker {
   rpc GetHost(GenericNameOrIndex) returns (Host) {}
   rpc GetServiceIds(google.protobuf.Empty) returns (IdsPairsList) {}
   rpc GetService(ServiceIdentifier) returns (Service) {}
+
+  /**
+   * @brief Return the IDs of all hostgroups currently in the broker cache.
+   *
+   * @return An IdsList with the hostgroup IDs.
+   */
+  rpc GetHostGroupIds(google.protobuf.Empty) returns (IdsList) {}
+
+  /**
+   * @brief Return the HostGroup object with its member host IDs for the given
+   * name or ID from the broker cache. The member_host_ids field of the
+   * returned HostGroup is populated with the IDs of all member hosts.
+   *
+   * @param GenericNameOrIndex Use str for name-based lookup, idx for ID-based.
+   *
+   * @return The HostGroup message with member_host_ids populated.
+   */
+  rpc GetHostGroup(GenericNameOrIndex) returns (HostGroup) {}
+
+  /**
+   * @brief Return the IDs of all servicegroups currently in the broker cache.
+   *
+   * @return An IdsList with the servicegroup IDs.
+   */
+  rpc GetServiceGroupIds(google.protobuf.Empty) returns (IdsList) {}
+
+  /**
+   * @brief Return the ServiceGroup object with its member (host_id, service_id)
+   * pairs for the given ID from the broker cache. The member_service_ids field
+   * of the returned ServiceGroup is populated with the member service pairs.
+   *
+   * @param GenericNameOrIndex Use idx for ID-based lookup.
+   *
+   * @return The ServiceGroup message with member_service_ids populated.
+   */
+  rpc GetServiceGroup(GenericNameOrIndex) returns (ServiceGroup) {}
+
+  /**
+   * @brief Return all severities currently held in the broker cache.
+   *
+   * @return A SeverityList message containing one SeverityEntry per cached
+   * severity, with its config ID, type, level and database ID.
+   */
+  rpc GetSeverities(google.protobuf.Empty) returns (SeverityList) {}
 }
 
 message PeerList {
@@ -334,4 +378,22 @@ message BaInfo {
 message ToRemove {
   repeated uint64 index_ids = 1;
   repeated uint64 metric_ids = 2;
+}
+
+/**
+ * @brief One entry in the broker cache for a severity.
+ *
+ * config_id and type together form the unique key in the cache.
+ * level is the numeric severity level from the Engine configuration.
+ * db_id is the MariaDB auto-increment primary key (0 if not yet persisted).
+ */
+message SeverityEntry {
+  uint64 config_id = 1;
+  Severity.Type type = 2;
+  uint32 level = 3;
+  uint64 db_id = 4;  // MariaDB row ID, 0 if not yet in database
+}
+
+message SeverityList {
+  repeated SeverityEntry entries = 1;
 }

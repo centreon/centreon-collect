@@ -56,6 +56,15 @@ grpc::Status broker_impl::GetVersion(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return the number of currently loaded modules.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A GenericSize to fill with the module count.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         const ::google::protobuf::Empty*,
@@ -68,6 +77,15 @@ grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return the number of currently active endpoints.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A GenericSize to fill with the endpoint count.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
                                          [[maybe_unused]],
                                          const ::google::protobuf::Empty*,
@@ -83,6 +101,19 @@ grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return statistics of loaded modules as a JSON-encoded string. If a
+ * name or index is specified, only that module's statistics are returned;
+ * otherwise all modules are included.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex to select a module by name or index.
+ * Leaving it unset returns stats for all modules.
+ * @param response A GenericString filled with the JSON-encoded statistics.
+ *
+ * @return grpc::Status::OK, or grpc::INVALID_ARGUMENT if the name or index
+ * is not found.
+ */
 grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
                                           [[maybe_unused]],
                                           const GenericNameOrIndex* request,
@@ -132,6 +163,20 @@ grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return statistics of active endpoints as a JSON-encoded string. If
+ * a name or index is specified, only that endpoint's statistics are returned;
+ * otherwise all endpoints are included.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex to select an endpoint by name or index.
+ * Leaving it unset returns stats for all endpoints.
+ * @param response A GenericString filled with the JSON-encoded statistics.
+ *
+ * @return grpc::Status::OK, grpc::UNAVAILABLE if the endpoint lock cannot be
+ * acquired, grpc::ABORTED if the endpoint throws an exception, or
+ * grpc::INVALID_ARGUMENT if the name or index is not found.
+ */
 grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
                                            [[maybe_unused]],
                                            const GenericNameOrIndex* request,
@@ -185,6 +230,15 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return generic Broker statistics as a JSON-encoded string.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A GenericString filled with the JSON-encoded statistics.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetGenericStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
@@ -196,6 +250,18 @@ grpc::Status broker_impl::GetGenericStats(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return SQL manager statistics. If a connection ID is specified, only
+ * that connection's statistics are returned; otherwise all connections are
+ * included.
+ *
+ * @param context gRPC context (unused).
+ * @param request A SqlConnection optionally specifying a connection ID.
+ * @param response A SqlManagerStats message to fill.
+ *
+ * @return grpc::Status::OK, or grpc::StatusCode::NOT_FOUND if the specified
+ * connection ID does not exist.
+ */
 grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
                                              [[maybe_unused]],
                                              const SqlConnection* request,
@@ -213,6 +279,17 @@ grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Set options controlling SQL manager statistics collection, namely
+ * the number of slowest statements and queries to track.
+ *
+ * @param context gRPC context (unused).
+ * @param request A SqlManagerStatsOptions message with optional fields
+ * slowest_statements_count and slowest_queries_count.
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::SetSqlManagerStats(
     grpc::ServerContext* context [[maybe_unused]],
     const SqlManagerStatsOptions* request,
@@ -227,6 +304,15 @@ grpc::Status broker_impl::SetSqlManagerStats(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return statistics of the conflict manager.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A ConflictManagerStats message to fill.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetConflictManagerStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
@@ -236,6 +322,16 @@ grpc::Status broker_impl::GetConflictManagerStats(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return statistics for the muxer with the given name.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericString whose str_arg field contains the muxer name.
+ * @param response A MuxerStats message to fill.
+ *
+ * @return grpc::Status::OK, or grpc::StatusCode::NOT_FOUND if no muxer with
+ * that name exists.
+ */
 grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         const GenericString* request,
@@ -270,6 +366,16 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Remove RRD files for the given index and metric IDs.
+ *
+ * @param context gRPC context (unused).
+ * @param request A ToRemove message containing vectors of index_ids and
+ * metric_ids identifying the RRD files to remove.
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const ToRemove* request,
@@ -281,6 +387,16 @@ grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Build a file with the BA content and its relations.
+ *
+ * @param context gRPC context (unused).
+ * @param request A BaInfo message containing the BA ID and the path to the
+ * output file (currently a *.dot file).
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetBa(grpc::ServerContext* context [[maybe_unused]],
                                 const BaInfo* request,
                                 ::google::protobuf::Empty* response
@@ -291,6 +407,16 @@ grpc::Status broker_impl::GetBa(grpc::ServerContext* context [[maybe_unused]],
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return processing statistics including engine state and per-muxer
+ * statistics.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A ProcessingStats message to fill.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetProcessingStats(
     grpc::ServerContext* context [[maybe_unused]],
     const ::google::protobuf::Empty* request [[maybe_unused]],
@@ -299,6 +425,16 @@ grpc::Status broker_impl::GetProcessingStats(
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Remove a poller configuration from Broker and the real-time
+ * database.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex containing the poller name or its ID.
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const GenericNameOrIndex* request,
@@ -310,6 +446,19 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Retrieve information about loggers. If a name is specified, only
+ * that logger's level is returned; otherwise all loggers are included.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericString whose str_arg contains a logger name, or
+ * empty to retrieve all loggers.
+ * @param response A LogInfo message with the log name, log file, flush
+ * period, and a map of logger names to their current levels.
+ *
+ * @return grpc::Status::OK, or grpc::StatusCode::INVALID_ARGUMENT if the
+ * given logger name does not exist.
+ */
 grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      [[maybe_unused]],
                                      const GenericString* request,
@@ -343,6 +492,17 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
   }
 }
 
+/**
+ * @brief Set the log level of a specific logger.
+ *
+ * @param context gRPC context (unused).
+ * @param request A LogLevel message containing the logger name and the
+ * desired level.
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK, or grpc::StatusCode::INVALID_ARGUMENT if the
+ * logger does not exist.
+ */
 grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
@@ -360,6 +520,16 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   }
 }
 
+/**
+ * @brief Set the flush period for all loggers.
+ *
+ * @param context gRPC context (unused).
+ * @param request A LogFlushPeriod message containing the period in seconds.
+ * A value of 0 means flush after every log entry.
+ * @param response Unused.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             [[maybe_unused]],
                                             const LogFlushPeriod* request,
@@ -394,6 +564,16 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Encrypt a string using AES-256.
+ *
+ * @param context gRPC context (unused).
+ * @param request An AesMessage containing the app_secret (key), salt, and
+ * content to encrypt.
+ * @param response A GenericString filled with the encrypted result.
+ *
+ * @return grpc::Status::OK, or grpc::INVALID_ARGUMENT if encryption fails.
+ */
 grpc::Status broker_impl::Aes256Encrypt(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         const AesMessage* request,
@@ -411,6 +591,16 @@ grpc::Status broker_impl::Aes256Encrypt(grpc::ServerContext* context
   }
 }
 
+/**
+ * @brief Decrypt a string using AES-256.
+ *
+ * @param context gRPC context (unused).
+ * @param request An AesMessage containing the app_secret (key), salt, and
+ * content to decrypt.
+ * @param response A GenericString filled with the decrypted result.
+ *
+ * @return grpc::Status::OK, or grpc::INVALID_ARGUMENT if decryption fails.
+ */
 grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         const AesMessage* request,
@@ -428,6 +618,16 @@ grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
   }
 }
 
+/**
+ * @brief Return the list of peers currently connected to this Broker instance.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A PeerList message populated with one Peer entry per
+ * connected peer.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
                                    [[maybe_unused]],
                                    const ::google::protobuf::Empty* request
@@ -455,6 +655,15 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return the IDs of all hosts currently in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response An IdsList populated with all host IDs.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetHostIds(grpc::ServerContext* context
                                      [[maybe_unused]],
                                      const ::google::protobuf::Empty* request
@@ -468,6 +677,18 @@ grpc::Status broker_impl::GetHostIds(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return a host from the broker cache, looked up by name or ID.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex: use str for name-based lookup, idx
+ * for ID-based lookup.
+ * @param response A Host message filled with the matching host's data.
+ *
+ * @return grpc::Status::OK, grpc::StatusCode::NOT_FOUND if the host is not
+ * in the cache, or grpc::StatusCode::INVALID_ARGUMENT if neither name nor
+ * index is set.
+ */
 grpc::Status broker_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
                                   const GenericNameOrIndex* request,
                                   Host* response) {
@@ -498,6 +719,17 @@ grpc::Status broker_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return the (host_id, service_id) pairs of all services currently in
+ * the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response An IdsPairsList populated with all (host_id, service_id)
+ * pairs.
+ *
+ * @return grpc::Status::OK
+ */
 grpc::Status broker_impl::GetServiceIds(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         const ::google::protobuf::Empty* request
@@ -513,6 +745,19 @@ grpc::Status broker_impl::GetServiceIds(grpc::ServerContext* context
   return grpc::Status::OK;
 }
 
+/**
+ * @brief Return a service from the broker cache, looked up by host_id and
+ * service_id.
+ *
+ * @param context gRPC context (unused).
+ * @param request A ServiceIdentifier with the host_id and service_id fields
+ * set.
+ * @param response A Service message filled with the matching service's data.
+ *
+ * @return grpc::Status::OK, grpc::StatusCode::NOT_FOUND if the service is
+ * not in the cache, or grpc::StatusCode::INVALID_ARGUMENT if the IDs are
+ * not provided.
+ */
 grpc::Status broker_impl::GetService(grpc::ServerContext* context
                                      [[maybe_unused]],
                                      const ServiceIdentifier* request,
@@ -547,5 +792,165 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
         fmt::format("Service with id '{}:{}' not found", host_id, service_id));
   else
     response->CopyFrom(service->obj());
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return the IDs of all hostgroups currently in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response An IdsList populated with all hostgroup IDs.
+ *
+ * @return grpc::Status::OK
+ */
+grpc::Status broker_impl::GetHostGroupIds(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
+    IdsList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  auto lst = cache.hostgroup_ids();
+  response->mutable_ids()->Reserve(lst.size());
+  for (uint64_t hg_id : lst)
+    response->add_ids(hg_id);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return a hostgroup from the broker cache with its member host IDs,
+ * looked up by name or ID.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex: use str for name-based lookup, idx
+ * for ID-based lookup.
+ * @param response A HostGroup message with the member_host_ids field
+ * populated.
+ *
+ * @return grpc::Status::OK, grpc::StatusCode::NOT_FOUND if the hostgroup is
+ * not in the cache, or grpc::StatusCode::INVALID_ARGUMENT if neither name
+ * nor index is set.
+ */
+grpc::Status broker_impl::GetHostGroup(grpc::ServerContext* context
+                                       [[maybe_unused]],
+                                       const GenericNameOrIndex* request,
+                                       HostGroup* response) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_host_group> hg;
+  switch (request->nameOrIndex_case()) {
+    case GenericNameOrIndex::kStr:
+      hg = cache.hostgroup(request->str());
+      if (!hg)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Hostgroup '{}' not found", request->str()));
+      break;
+    case GenericNameOrIndex::kIdx:
+      hg = cache.hostgroup(request->idx());
+      if (!hg)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Hostgroup with id '{}' not found", request->idx()));
+      break;
+    case GenericNameOrIndex::NAMEORINDEX_NOT_SET:
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Either name or index must be set");
+  }
+  response->CopyFrom(hg->obj());
+  auto members = cache.hostgroup_members(hg->obj().hostgroup_id());
+  response->mutable_member_host_ids()->Reserve(members.size());
+  for (uint64_t host_id : members)
+    response->add_member_host_ids(host_id);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return the IDs of all servicegroups currently in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response An IdsList populated with all servicegroup IDs.
+ *
+ * @return grpc::Status::OK
+ */
+grpc::Status broker_impl::GetServiceGroupIds(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
+    IdsList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  auto lst = cache.servicegroup_ids();
+  response->mutable_ids()->Reserve(lst.size());
+  for (uint64_t sg_id : lst)
+    response->add_ids(sg_id);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return a servicegroup from the broker cache with its member
+ * (host_id, service_id) pairs, looked up by ID.
+ *
+ * @param context gRPC context (unused).
+ * @param request A GenericNameOrIndex: use idx for ID-based lookup.
+ * @param response A ServiceGroup message with the member_service_ids field
+ * populated.
+ *
+ * @return grpc::Status::OK, or grpc::StatusCode::INVALID_ARGUMENT if the
+ * index is not set.
+ */
+grpc::Status broker_impl::GetServiceGroup(
+    grpc::ServerContext* context [[maybe_unused]],
+    const GenericNameOrIndex* request,
+    ServiceGroup* response) {
+  auto& cache = config::applier::state::instance().cache();
+  std::shared_ptr<neb::pb_service_group> sg;
+  switch (request->nameOrIndex_case()) {
+    case GenericNameOrIndex::kIdx:
+      sg = cache.servicegroup(request->idx());
+      if (!sg)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Servicegroup with id '{}' not found", request->idx()));
+      break;
+    case GenericNameOrIndex::kStr:
+    case GenericNameOrIndex::NAMEORINDEX_NOT_SET:
+    default:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Servicegroup index must be set");
+  }
+  response->CopyFrom(sg->obj());
+  auto members = cache.servicegroup_members(sg->obj().servicegroup_id());
+  response->mutable_member_service_ids()->Reserve(members.size());
+  for (const auto& [host_id, service_id] : members) {
+    auto* m = response->add_member_service_ids();
+    m->set_host_id(host_id);
+    m->set_service_id(service_id);
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return all severities currently held in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Empty request.
+ * @param response A SeverityList populated with one SeverityEntry per cached
+ * severity.
+ *
+ * @return grpc::Status::OK.
+ */
+grpc::Status broker_impl::GetSeverities(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
+    SeverityList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  auto sevs = cache.severities();
+  response->mutable_entries()->Reserve(sevs.size());
+  for (const auto& [key, sev] : sevs) {
+    auto* entry = response->add_entries();
+    entry->set_config_id(key.first);
+    entry->set_type(static_cast<Severity::Type>(key.second));
+    entry->set_level(sev.level);
+    entry->set_db_id(sev.db_id);
+  }
   return grpc::Status::OK;
 }
