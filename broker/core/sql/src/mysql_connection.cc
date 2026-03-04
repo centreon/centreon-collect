@@ -214,7 +214,8 @@ bool mysql_connection::_try_to_reconnect() {
       mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
     }
     SPDLOG_LOGGER_INFO(
-        _logger, "mysql_connection: configuring SSL/TLS for reconnection (verify={})",
+        _logger,
+        "mysql_connection: configuring SSL/TLS for reconnection (verify={})",
         _ssl_verify_cert);
   }
 
@@ -893,7 +894,8 @@ void mysql_connection::_run() {
         mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
       }
       SPDLOG_LOGGER_INFO(
-          _logger, "mysql_connection: configuring SSL/TLS connection (verify={})",
+          _logger,
+          "mysql_connection: configuring SSL/TLS connection (verify={})",
           _ssl_verify_cert);
     }
 
@@ -1300,7 +1302,9 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_category() == _category &&
          db_cfg.get_ssl_enabled() == _ssl_enabled &&
          db_cfg.get_ssl_ca() == _ssl_ca && db_cfg.get_ssl_cert() == _ssl_cert &&
-         db_cfg.get_ssl_key() == _ssl_key;
+         db_cfg.get_ssl_key() == _ssl_key &&
+         db_cfg.get_ssl_verify_cert() == _ssl_verify_cert &&
+         db_cfg.get_tls_version() == _tls_version;
 }
 
 int mysql_connection::get_tasks_count() const {
