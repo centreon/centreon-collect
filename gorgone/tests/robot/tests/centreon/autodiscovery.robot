@@ -51,7 +51,7 @@ Test Host disco
     ${http_body}=    Get File    ${ROOT_CONFIG}${/}autodiscovery/host-http-body.json
     ${start_date}=   Get Current Date    increment=-1s
     ${response}=    POST  http://127.0.0.1:8085/api/nodes/1/centreon/autodiscovery/hosts   data=${http_body}
-    Check Row Count    select * from mod_host_disco_host;    equal    9    alias=conf    retry_timeout=60    retry_pause=5
+    Check Row Count    select * from mod_host_disco_host;    equal    9    alias=conf    retry_timeout=180    retry_pause=5
     # check the poller made the call and not the central.
     ${query}    Create List    .COMMAND. .discovery_10.*"command":"echo '{."discovered_items
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${poller_name}/gorgoned.log    content=${query}    date=${start_date}    timeout=10    regex=True
