@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine start/stop tests
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -643,13 +643,13 @@ BESSCTO
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
+        ${start}    Ctn Get Round Current Date
+        Ctn Start Broker    ${True}
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    1
+        Sleep    60s
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker    ${True}
     END
 
 BESSCTOWC
@@ -667,11 +667,90 @@ BESSCTOWC
     Ctn Config Broker    rrd
     Ctn Config BBDO3    1    3.0.1
     FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      Sleep    60s
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
+        ${start}    Ctn Get Round Current Date
+        Ctn Start Broker    ${True}
+        Ctn Start Engine
+        Ctn Wait For Engine To Be Ready    ${start}    1
+        Sleep    60s
+        Ctn Stop Engine
+        Ctn Kindly Stop Broker    ${True}
     END
+
+BESS_RELOAD_OUTPUT_ADD
+    [Documentation]    Scenario: Adding an output to broker config during a reload is ignored
+    ...    Given Broker and Engine are started with their standard configuration
+    ...    When a new output is appended to the broker configuration file
+    ...    And broker is reloaded
+    ...    Then an error message is logged stating the output cannot be added at runtime
+    ...    And the new output does not appear in the broker stats
+
+    [Tags]    broker    engine    start-stop    reload
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.0.1
+    Ctn Broker Config Log    central    config    error
+    Ctn Broker Config Flush Log    central    0
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    Ctn Broker Config Add Output    central    { "name": "test-new-output", "type": "graphite", "db_host": "localhost", "db_port": "2004", "queries_per_transaction": "1" }
+    Ctn Broker Config Flush
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+
+    ${content}    Create List
+    ...    endpoint applier: output 'test-new-output' has been added to the configuration but cannot be added at runtime
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Expected error message about added output not found in broker log
+
+    ${result}    Ctn Get Broker Stats    central    .*    5    endpoint test-new-output    state
+    Should Not Be True    ${result}    The new output 'test-new-output' should not have been created during reload
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+BESS_RELOAD_OUTPUT_REMOVE
+    [Documentation]    Scenario: Removing an output from broker config during a reload is ignored
+    ...    Given Broker and Engine are started with their standard configuration
+    ...    When the RRD output is removed from the broker configuration file
+    ...    And broker is reloaded
+    ...    Then an error message is logged stating the output cannot be removed at runtime
+    ...    And the RRD output is still present in broker stats
+
+    [Tags]    broker    engine    start-stop    reload
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    1    3.0.1
+    Ctn Broker Config Log    central    config    error
+    Ctn Broker Config Flush Log    central    0
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    ${result}    Ctn Get Broker Stats    central    .*    10    endpoint centreon-broker-master-rrd    state
+    Should Be True    ${result}    The RRD output should be present in stats before reload
+
+    Ctn Broker Config Remove Output    central    centreon-broker-master-rrd
+    Ctn Broker Config Flush
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+
+    ${content}    Create List
+    ...    endpoint applier: output 'centreon-broker-master-rrd' has been removed from the configuration but cannot be removed at runtime
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Expected error message about removed output not found in broker log
+
+    ${result}    Ctn Get Broker Stats    central    .*    10    endpoint centreon-broker-master-rrd    state
+    Should Be True    ${result}    The RRD output should still be running after reload
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

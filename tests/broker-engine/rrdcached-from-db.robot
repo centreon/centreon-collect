@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion from the legacy query made by the php with rrdcached.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite With rrdcached
-Suite Teardown      Ctn Clean After Suite With rrdcached
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite With rrdcached
+Suite Teardown    Ctn Clean After Suite With rrdcached
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -121,15 +121,15 @@ BRRDCDRBDB1
     # We get 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
@@ -181,15 +181,15 @@ BRRDCDRBUDB1
     # We get 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Ctn Reload Broker

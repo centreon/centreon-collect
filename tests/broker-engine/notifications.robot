@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon notification
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -15,6 +15,7 @@ not1_reload
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${2}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -69,6 +70,7 @@ not1
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -109,6 +111,7 @@ not1_WL_OK
     ...    a notification is sent because it is allowed by the whitelist
     [Tags]    broker    engine    services    hosts    notification    whitelist    MON-75741
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -154,6 +157,7 @@ not1_WL_KO
     ...    a notification should be sent but it is not allowed by the whitelist
     [Tags]    broker    engine    services    hosts    notification    whitelist    MON-75741
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -199,6 +203,7 @@ not2
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -251,6 +256,7 @@ not3
     [Documentation]    This test case configures a single service and verifies the notification system's behavior during and after downtime
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
+    Ctn Clear Engine White List
     Ctn Config Engine    ${1}    ${1}    ${1}
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -314,6 +320,7 @@ not4
     [Tags]    broker    engine    services    acknowledgement    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -372,6 +379,7 @@ not5
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -438,6 +446,7 @@ not6
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -498,6 +507,7 @@ not7
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -531,6 +541,7 @@ not8
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -564,6 +575,7 @@ not9
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -579,7 +591,7 @@ not9
 
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-     ## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
     FOR    ${i}    IN RANGE    ${4}
         Ctn Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
@@ -612,6 +624,7 @@ not10
     [Tags]    broker    engine    host    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Host Command Status    ${0}    checkh1    2
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -679,6 +692,7 @@ not11
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -719,12 +733,12 @@ not11
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-
 not12
     [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -787,7 +801,7 @@ not12
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
-    ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
+    ${content}    Create List    SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The first notification of U2 is not sent
 
@@ -837,6 +851,7 @@ not13
     [Tags]    broker    engine    host
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
@@ -877,7 +892,7 @@ not13
     # Let's wait for the external command check start
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
-     ## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
 
     FOR    ${i}    IN RANGE    ${3}
         Ctn Schedule Forced Host Check    host_2    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
@@ -941,6 +956,7 @@ not14
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${2}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Config Engine Add Cfg File    ${0}    dependencies.cfg
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -989,7 +1005,7 @@ not14
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
-    ## Time to set the service2 to OK  hard
+    ## Time to set the service2 to OK    hard
     ${start}    Ctn Get Round Current Date
     Ctn Set Command Status    ${cmd_service_2}    ${0}
 
@@ -1002,7 +1018,7 @@ not14
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
-   ## Time to set the service1 to CRITICAL HARD.
+    ## Time to set the service1 to CRITICAL HARD.
     ${start}    Ctn Get Round Current Date
     Ctn Set Command Status    ${cmd_service_1}    ${2}
 
@@ -1026,9 +1042,9 @@ not14
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
-    Should Be True    ${result}     The dependency not working and the service_é has recieved a notification
+    Should Be True    ${result}    The dependency not working and the service_é has recieved a notification
 
-    ## Time to set the service1 to OK  hard
+    ## Time to set the service1 to OK    hard
     Ctn Set Command Status    ${cmd_service_1}    ${0}
 
     Ctn Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
@@ -1043,12 +1059,12 @@ not14
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-
 not15
     [Documentation]    several notification commands for the same user.
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Add Command
     ...    0
@@ -1097,6 +1113,7 @@ not16
     [Tags]    broker    engine    services    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${1}
+    Ctn Clear Engine White List
     Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
@@ -1162,7 +1179,6 @@ not16
     ${cmd_service_3}    Ctn Get Service Command Id    ${3}
     ${cmd_service_4}    Ctn Get Service Command Id    ${4}
 
-
     Ctn Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_3    service_3    ${0}    60    HARD
@@ -1223,7 +1239,6 @@ not16
     ${result}    Ctn Check Service Resource Status With Timeout    host_4    service_4    ${2}    60    HARD
     Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
 
-
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is sent for service4: dependency not working
@@ -1236,7 +1251,6 @@ not16
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
 
-
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is not sent for service1
@@ -1244,12 +1258,12 @@ not16
     Ctn Stop Engine
     Ctn Kindly Stop Broker
 
-
 not17
     [Documentation]    notification for a dependensies host group
     [Tags]    broker    engine    host    unified_sql
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${4}    ${0}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    10    True
     Ctn Add Host Group    ${0}    ${1}    ["host_1", "host_2"]
     Ctn Add Host Group    ${0}    ${2}    ["host_3", "host_4"]
@@ -1293,7 +1307,7 @@ not17
 
     # Time to set the host to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_3    1    host_3 DOWN
         Sleep    1s
     END
@@ -1303,7 +1317,7 @@ not17
     Should Be True    ${result}    The down notification of host_3 is not sent
 
     ${start}    Ctn Get Round Current Date
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_3    0    host_3 UP
         Sleep    1s
     END
@@ -1313,11 +1327,11 @@ not17
     Should Be True    ${result}    The recovery notification of host_3 is not sent
 
     ${start}    Ctn Get Round Current Date
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    1    host_1 DOWN
         Sleep    1s
     END
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_3    1    host_3 DOWN
         Sleep    1s
     END
@@ -1332,7 +1346,7 @@ not17
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    90
     Should Be True    ${result}    The down notification of host_3 is sent dependency not working
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_4    1    host_4 DOWN
         Sleep    1s
     END
@@ -1341,7 +1355,7 @@ not17
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${new_date}    ${content}    60
     Should Be True    ${result}    The down notification of host_4 is sent dependency not working
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    0    host_1 UP
         Sleep    1s
     END
@@ -1358,6 +1372,7 @@ not18
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -1397,10 +1412,11 @@ not18
     Ctn Kindly Stop Broker
 
 not19
-    [Documentation]    notification delay where first notification delay greater than retry check 
+    [Documentation]    notification delay where first notification delay greater than retry check
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -1443,6 +1459,7 @@ not20
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -1489,9 +1506,10 @@ not_in_timeperiod_without_send_recovery_notifications_anyways
     ...    And no OK notification should be sent outside the time period
     ...    When the setting "send_recovery_notifications_anyways" is not set
 
-    [Tags]    MON-33121  broker    engine    services    hosts    notification
+    [Tags]    MON-33121    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -1544,9 +1562,10 @@ not_in_timeperiod_with_send_recovery_notifications_anyways
     ...    Then a notification should be sent
     ...    And an OK notification should be sent outside the time period
     ...    When the setting "_send_recovery_notifications_anyways" is set
-    [Tags]    MON-33121   broker    engine    services    hosts    notification    mon-33121
+    [Tags]    MON-33121    broker    engine    services    hosts    notification    mon-33121
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Clear Engine White List
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Ctn Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -1631,22 +1650,22 @@ Ctn Config Escalations
     Ctn Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
     Ctn Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
-    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    max_check_attempts    1
+    Ctn Engine Config Replace Value In Services    0    service_1    retry_interval    1
     Ctn Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Ctn Engine Config Replace Value In Services    0    service_1    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_1    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_1    check_command    command_4
     Ctn Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
+    Ctn Engine Config Replace Value In Services    0    service_2    max_check_attempts    1
     Ctn Engine Config Set Value In Services    0    service_2    notification_options    c
     Ctn Engine Config Set Value In Services    0    service_2    notifications_enabled    1
     Ctn Engine Config Set Value In Services    0    service_2    first_notification_delay    0
     Ctn Engine Config Set Value In Services    0    service_2    notification_period    24x7
     Ctn Engine Config Set Value In Services    0    service_2    notification_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Ctn Engine Config Replace Value In Services    0    service_2    check_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    check_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval     1
+    Ctn Engine Config Replace Value In Services    0    service_2    retry_interval    1
     Ctn Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Ctn Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Ctn Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif

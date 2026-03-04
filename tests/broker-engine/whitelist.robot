@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine benchmark
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean Whitelist
-Test Setup          Ctn Whitelist Setup
-Test Teardown       Ctn Stop Engine Broker And Save Logs    only_central=${True}
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean Whitelist
+Test Setup    Ctn Whitelist Setup
+Test Teardown    Ctn Stop Engine Broker And Save Logs    only_central=${True}
 
 
 *** Test Cases ***
@@ -299,7 +299,6 @@ Whitelist_NotReadable
     Empty Directory    /etc/centreon-engine-whitelist
     Ctn Config Broker    module    ${1}
 
-
     ${whitelist_content}    Catenate
     ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl --id [1-9] 1.0.0.0"]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
@@ -339,7 +338,6 @@ Whitelist_Directory_NotReadable
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    module    ${1}
 
-
     Run    chmod 700 -R /etc/centreon-engine-whitelist
     Run    chmod 700 -R /usr/share/centreon-engine/whitelist.conf.d
 
@@ -365,12 +363,13 @@ Whitelist_Directory_NotReadable
     Should Be True    ${result}    No error read message for /usr/share/centreon-engine/whitelist.conf.d
 
 
-
 *** Keywords ***
 Ctn Whitelist Setup
+    [Documentation]    Create the whitelist directory and stop all processes before the suite.
     Create Directory    /etc/centreon-engine-whitelist
     Ctn Stop Processes
 
 Ctn Clean Whitelist
+    [Documentation]    Run suite teardown and remove the whitelist test file.
     Ctn Clean After Suite
     Remove File    /etc/centreon-engine-whitelist/test

@@ -36,5 +36,5 @@ EVOCWNV
 *** Keywords ***
 Ctn Start Engine With Args
     [Arguments]    @{options}
-    Log To Console    @{options}
+    Log To Console    ${options}
     Run Process    /usr/sbin/centengine    @{options}    stdout=/tmp/output.txt    stderr=/tmp/error.txt

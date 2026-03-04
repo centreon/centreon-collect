@@ -87,7 +87,7 @@ Test6Hosts
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    _PASSWORD    passwd
-    IF    "${run_env}" == "docker"
+    IF    "${run_env}" == "docker" or "${run_env}" == "podman"
         Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    127.0.0.1
     ELSE
         Ctn Engine Config Replace Value In Hosts    ${0}    host_1    address    ::1
@@ -108,7 +108,7 @@ Test6Hosts
         Ctn Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
 
-    IF    "${run_env}" == "docker"
+    IF    "${run_env}" == "docker" or "${run_env}" == "podman"
         ${content}    Create List    output='foo=127.0.0.1'
         ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message output='foo=127.0.0.1' should be available.

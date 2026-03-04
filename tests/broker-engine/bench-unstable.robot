@@ -1,18 +1,20 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine benchmark
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Variables ***
-@{CONFIG_NAME}      sql    core    processing    tcp    perfdata    victoria_metrics    bam    lua
+@{CONFIG_NAME}    sql    core    processing    tcp    perfdata    victoria_metrics    bam    lua
 
 #s of Cases had been removed in order to disable all bench.robot
+
+
 *** Test Cases ***
 BENCH_${nb_checks}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
@@ -185,7 +187,7 @@ BENCH_1000STATUS_100${suffixe}
     Ctn Start Engine
     ${connected}    Ctn Wait For Connections    5669    100
     Should Be True    ${connected}    100 engines should be connected to broker
-    ${result}    Ctn Wait For Listen On Range    50001    50100    centengine    60
+    Ctn Wait For Listen On Range    50001    50100    centengine    60
     Ctn Wait For Engine To Be Ready    ${start}    ${100}
 
     ${broker_stat_before}    Ctn Get Broker Process Stat    51001
@@ -575,4 +577,3 @@ BENCH_${nb_checks}_REVERSE_SERVICE_STATUS_TRACES_WITHOUT_SQL
     Examples:    nb_checks    --
     ...    100000
     ...    300000
-

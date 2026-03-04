@@ -220,7 +220,7 @@ Ctn Stop Processes
     Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False
     ${count}    Ctn Get Engines Count
     IF    ${newGeneration}
         Ctn Config BBDO3    ${count}    3.1.0    ${central_only}
@@ -242,9 +242,17 @@ Ctn Start Engine
             Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
         IF    ${newGeneration}
-            Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    IF    ${with_extended_conf}
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    --extended-config\=/tmp/centengine_extend.json    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    ELSE
+                Start Process    /usr/sbin/centengine    -p    ${VarRoot}/lib/centreon-engine/config${idx}    -l    ${VarRoot}/log/centreon-engine/config${idx}/centengine.log    -b    ${EtcRoot}/centreon-broker/central-module${idx}.json    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    END
         ELSE
-            Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    IF    ${with_extended_conf}
+                Start Process    /usr/sbin/centengine    --extended-config\=/tmp/centengine_extend.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    ELSE
+                Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    END
         END
     END
 
@@ -521,6 +529,20 @@ Ctn Wait For Engine To Be Ready
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
     END
 
+Ctn Wait For Engine Configuration To Be Applied
+    [Arguments]    ${start}    ${idx_start}    ${idx_end}=0    ${timeout}=60
+    ${content}    Create List
+    IF    ${idx_end} == 0
+        ${idx_end}    Evaluate    ${idx_start} + 1
+    END
+    FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
+	${poller_id}    Evaluate	${idx} + 1
+	Ctn Notify Broker Of Engine Config Change    ${idx}
+	Append To List    ${content}
+	...    received diff state ack from poller ${poller_id}|Poller .* with id ${poller_id} already has the latest configuration
+    END
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result[0]}    The broker must receive a diff state ack from pollers in range [${idx_start}, ${idx_end}].
 
 Ctn Start Agent
     ${run_env}    Ctn Run Env
@@ -657,4 +679,5 @@ Ctn Clear Downtimes
     Execute SQL String    UPDATE services SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE hosts SET scheduled_downtime_depth=0
     Execute SQL String    UPDATE resources SET in_downtime=0
+    Execute SQL String    DELETE FROM downtimes
     Disconnect From Database

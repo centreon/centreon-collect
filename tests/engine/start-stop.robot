@@ -50,8 +50,9 @@ E_FD_LIMIT
 
     ${pid}    Get Process Id    e0
     ${limits}    Ctn Get Process Limit    ${pid}    Max open files
+    ${expected_fds}    Evaluate    min(1048576, ${limits[1]})
 
-    Should Be Equal As Numbers    ${limits[0]}    1048576    Engine should have 1048576 file descriptors
+    Should Be Equal As Numbers    ${limits[0]}    ${expected_fds}    Engine should have ${expected_fds} file descriptors
 
     Ctn Stop Engine
 

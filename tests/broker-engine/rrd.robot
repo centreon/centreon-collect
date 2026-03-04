@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -301,15 +301,15 @@ BRRDRM1
     # We get 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
@@ -371,15 +371,15 @@ BRRDRMU1
     # We get 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs    51001    ${index}    1
     Log To Console    Indexes to rebuild: ${index}
@@ -503,7 +503,6 @@ BRRDSTATUS
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    1
     Should Be Equal    ${result}    ${False}    We shouldn't have any error about empty value in RRD
 
-
 BRRDSTATUSRETENTION
     [Documentation]    We are working with BBDO3. This test checks status are not sent twice after Engine reload.
     [Tags]    rrd    status    bbdo3    MON-139747
@@ -547,6 +546,7 @@ BRRDSTATUSRETENTION
 
 *** Keywords ***
 Ctn Test Clean
+    [Documentation]    Stop engine and broker, then save logs if the test failed.
     Ctn Stop Engine
     Ctn Kindly Stop Broker
     Ctn Save Logs If Failed

@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Creation of 4 pollers and then deletion of Poller3.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -60,6 +60,7 @@ EBDP1
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP2
@@ -127,6 +128,7 @@ EBDP2
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP_GRPC2
@@ -200,6 +202,7 @@ EBDP_GRPC2
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP3
@@ -260,6 +263,7 @@ EBDP3
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP4
@@ -335,6 +339,7 @@ EBDP4
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
     Ctn Start Engine
@@ -406,6 +411,7 @@ EBDP5
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP6
@@ -471,6 +477,7 @@ EBDP6
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
     Ctn Stop Engine
@@ -535,6 +542,7 @@ EBDP7
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()
 
 EBDP8
@@ -605,6 +613,7 @@ EBDP8
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
+    Disconnect From Database
     Should Be Equal As Strings    ${output}    ()    The Poller3 should be removed from the DB.
 
     Ctn Start Engine

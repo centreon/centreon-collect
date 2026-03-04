@@ -21,6 +21,8 @@ BFC1
     Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    central    core    error
+    Ctn Config BBDO3    ${0}    3.1.0    ${True}
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Ctn Broker Config Output Set Json
     ...    central
     ...    central-broker-unified-sql
@@ -48,6 +50,8 @@ BFC2
     Ctn Broker Config Log    central    config    info
     Ctn Broker Config Log    central    sql    error
     Ctn Broker Config Log    central    core    error
+    Ctn Config BBDO3    ${0}    3.1.0    ${True}
+    Ctn Broker Config Add Item    central    cache_config_directory    ${VarRoot}/lib/centreon/config
     Ctn Broker Config Output Set Json
     ...    central
     ...    central-broker-unified-sql

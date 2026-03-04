@@ -1,13 +1,13 @@
 *** Settings ***
 Documentation       Engine/Broker tests on opentelemetry engine server
 
-Resource            ../resources/import.resource
-Library             ../resources/Agent.py
+Resource    ../resources/import.resource
+Library    ../resources/Agent.py
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -87,7 +87,7 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ...    OTEL connector
     ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
-    Ctn Set Hosts Passive  ${0}  host_1
+    Ctn Set Hosts Passive    ${0}    host_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -118,9 +118,8 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    0  HARD  OK
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    0    HARD    OK
     Should Be True    ${result}    hosts table not updated
-
 
     Log To Console    export metrics
     Ctn Send Otl To Engine    4317    ${resources_list}
@@ -133,17 +132,16 @@ BEOTEL_TELEGRAF_CHECK_HOST
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1   SOFT  CRITICAL
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1    SOFT    CRITICAL
     Should Be True    ${result}    hosts table not updated
 
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
-
     Sleep    2
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1   HARD  CRITICAL
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    30    ${start}    1    HARD    CRITICAL
     Should Be True    ${result}    hosts table not updated
 
 BEOTEL_TELEGRAF_CHECK_SERVICE
@@ -151,13 +149,10 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    Given the OpenTelemetry server is ready
     ...    When I send a Telegraf-formatted check result with status "OK" to the Engine
     ...    Then the result should be stored in the Centreon Broker storage database with status "OK"
-
     ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
     ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "SOFT"
-
     ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
     ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "SOFT"
-
     ...    When I send a Telegraf-formatted check result with status "CRITICAL" to the Engine
     ...    Then the result should be stored in the Centreon Broker storage database with status "CRITICAL" and state type "HARD"
     [Tags]    broker    engine    opentelemetry    mon-34004
@@ -170,7 +165,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ...    OTEL connector
     ...    opentelemetry --processor=nagios_telegraf --extractor=attributes --host_path=resource_metrics.scope_metrics.data.data_points.attributes.host --service_path=resource_metrics.scope_metrics.data.data_points.attributes.service
     Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check_icmp
-    Ctn Set Services Passive       ${0}    service_1
+    Ctn Set Services Passive    ${0}    service_1
     Ctn Engine Config Add Command
     ...    ${0}
     ...    otel_check_icmp
@@ -200,7 +195,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ${resources_list}    Ctn Create Otl Request    ${0}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
-    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    0  HARD   OK
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    0    HARD    OK
     Should Be True    ${result}    services table not updated
 
     # check then feed, three times to modify hard state
@@ -208,7 +203,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
 
-    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  SOFT  CRITICAL
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2    SOFT    CRITICAL
     Should Be True    ${result}    Service 1 should be Critical in soft state
 
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
@@ -217,7 +212,7 @@ BEOTEL_TELEGRAF_CHECK_SERVICE
     Sleep    2
     ${resources_list}    Ctn Create Otl Request    ${2}    host_1    service_1
     Ctn Send Otl To Engine    4317    ${resources_list}
-    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2  HARD  CRITICAL
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    30    ${start}    2    HARD    CRITICAL
     Should Be True    ${result}    Service 1 should be Critical in hard state
 
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_CRYPTED
@@ -300,7 +295,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
 
     Create Directory    /etc/centreon-engine-whitelist
     Empty Directory    /etc/centreon-engine-whitelist
-    ${whitelist_content}    Catenate   {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}}
+    ${whitelist_content}    Catenate    {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]}}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
     Ctn Config Engine    ${1}    ${3}    ${3}
@@ -384,7 +379,6 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10
     Should Be True    ${result}    "service 3 blacklisted unavailable."
 
-
 BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1
     [Documentation]    Scenario: Serve telegraf configuration with a complex whitelist
     ...    Given the engine is configured with a telegraf conf server and a complex whitelist
@@ -398,7 +392,7 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1
 
     Create Directory    /etc/centreon-engine-whitelist
     Empty Directory    /etc/centreon-engine-whitelist
-    ${whitelist_content}    Catenate   {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]},"hosts":[{"hostname":"host_2","wildcard":["/usr/lib/nagios2/plugins/check_icmp *"]}]}}
+    ${whitelist_content}    Catenate    {"cma-whitelist":{"default":{"wildcard":["/usr/lib/nagios/plugins/check_icmp *"]},"hosts":[{"hostname":"host_2","wildcard":["/usr/lib/nagios2/plugins/check_icmp *"]}]}}
     Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
 
     Ctn Config Engine    ${1}    ${3}    ${3}
@@ -484,18 +478,17 @@ BEOTEL_SERVE_TELEGRAF_CONFIGURATION_NO_CRYPTED_1
 
     ${telegraf_conf_response}    GET
     ...    url=http://localhost:1443/engine?host=host_2
-    
+
     Should Be Equal As Strings    ${telegraf_conf_response.reason}    OK    no response received or error response
 
     # only host_2 is allowed and service_5 is not allowed
     ${content_compare_result}    Ctn Compare String With File
     ...    ${telegraf_conf_response.text}
     ...    resources/opentelemetry/telegraf_1.conf
-    
+
     Should Be True
     ...    ${content_compare_result}
     ...    unexpected telegraf server response: ${telegraf_conf_response.text}
-    
 
     ${content}    Create List    service_5: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    10

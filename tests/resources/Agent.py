@@ -60,7 +60,7 @@ def ctn_host_hostname():
 
     Get HOST_HOSTNAME env variable content
     """
-    return environ.get('HOST_HOSTNAME', Common.ctn_get_hostname())
+    return environ.get('HOST_HOSTNAME', Common.ctn_get_fqdn_hostname())
 
 
 agent_config = """

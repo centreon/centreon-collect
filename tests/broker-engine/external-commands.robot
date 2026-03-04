@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -45,7 +45,7 @@ BEEXTCMD1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -83,7 +83,7 @@ BEEXTCMD2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -118,7 +118,7 @@ BEEXTCMD3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -155,7 +155,7 @@ BEEXTCMD4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -195,7 +195,7 @@ BEEXTCMD5
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -233,7 +233,7 @@ BEEXTCMD6
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -273,7 +273,7 @@ BEEXTCMD7
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -310,7 +310,7 @@ BEEXTCMD8
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -330,7 +330,7 @@ BEEXTCMD9
         ${start}    Ctn Get Round Current Date
         Ctn Start Broker
         Ctn Start Engine
-	Ctn Wait For Engine To Be Ready    ${start}
+        Ctn Wait For Engine To Be Ready    ${start}
         Ctn Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -355,7 +355,7 @@ BEEXTCMD9
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -393,7 +393,7 @@ BEEXTCMD10
             IF    "${output}" == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -442,7 +442,7 @@ BEEXTCMD11
             IF    "${output}" == "((15,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15,),)
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -479,7 +479,7 @@ BEEXTCMD12
             IF    "${output}" == "((10,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -520,7 +520,7 @@ BEEXTCMD13
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -558,7 +558,7 @@ BEEXTCMD14
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -599,7 +599,7 @@ BEEXTCMD15
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -637,7 +637,7 @@ BEEXTCMD16
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -680,7 +680,7 @@ BEEXTCMD17
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -720,7 +720,7 @@ BEEXTCMD18
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -763,7 +763,7 @@ BEEXTCMD19
             IF    "${output}" == "(('24x7',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x7',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -803,7 +803,7 @@ BEEXTCMD20
             IF    "${output}" == "(('24x6',),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    (('24x6',),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -874,7 +874,7 @@ BEEXTCMD21
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -924,7 +924,7 @@ BEEXTCMD22
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -955,8 +955,8 @@ BEEXTCMD23
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-	Log To Console    We check that active checks are really disabled on host_1 in the hosts table
-	Log To Console    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
+        Log To Console    We check that active checks are really disabled on host_1 in the hosts table
+        Log To Console    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
         FOR    ${index}    IN RANGE    30
             ${output}    Query    SELECT active_checks,should_be_scheduled FROM hosts WHERE name='host_1'
             Log To Console    ${output}
@@ -965,7 +965,7 @@ BEEXTCMD23
         END
         Should Be Equal As Strings    ${output}    ((0, 0),)
 
-	Log To Console    We check that active checks are really disabled on host_1 in the resources table
+        Log To Console    We check that active checks are really disabled on host_1 in the resources table
         Log To Console    SELECT active_checks_enabled FROM resources WHERE name='host_1'
         FOR    ${index}    IN RANGE    30
             ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='host_1'
@@ -995,7 +995,7 @@ BEEXTCMD23
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-	Disconnect From Database
+        Disconnect From Database
         Ctn Stop Engine
         Ctn Kindly Stop Broker
     END
@@ -1060,7 +1060,7 @@ BEEXTCMD24
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -1111,7 +1111,7 @@ BEEXTCMD25
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -1159,7 +1159,7 @@ BEEXTCMD26
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -1210,7 +1210,7 @@ BEEXTCMD27
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -1258,7 +1258,7 @@ BEEXTCMD28
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
@@ -1329,7 +1329,7 @@ BEEXTCMD29
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-	Disconnect From Database
+        Disconnect From Database
 
         Ctn Stop Engine
         Ctn Kindly Stop Broker
