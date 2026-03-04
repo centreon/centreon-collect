@@ -58,7 +58,15 @@ broker_cache::~broker_cache() noexcept {
 
 /**
  * @brief Merge a configuration state into the cache. Used when a poller
- * established a connection to Broker.
+ * established a connection to Broker (i.e. when a `pb_engine_state` event is
+ * received).
+ *
+ * In centralized configuration mode the protobuf `State` message carries a
+ * top-level `poller_id` field, but the individual `Host` objects embedded
+ * inside `state.hosts()` do NOT have their own `poller_id` set. To ensure
+ * that the cached hosts end up with a correct `instance_id` (needed by the
+ * group-link removal code in `apply()`), `state.poller_id()` is forwarded to
+ * `_fill_host()` as the `poller_id_hint`.
  *
  * @param state Configuration state to merge
  */
@@ -78,7 +86,7 @@ void broker_cache::merge(
   auto& index = _hosts.get<by_id>();
   for (const engine::configuration::Host& host : state.hosts()) {
     auto h = std::make_shared<neb::pb_host>();
-    _fill_host(&h->mut_obj(), host);
+    _fill_host(&h->mut_obj(), host, state.poller_id());
     auto [it, inserted] = index.insert(h);
     if (!inserted)
       index.replace(it, h);
@@ -98,13 +106,18 @@ void broker_cache::merge(
   };
 
   for (const auto& hg : state.hostgroups()) {
+    /* In Engine's State proto, individual Hostgroup objects do not carry their
+     * own poller_id. Use the top-level state.poller_id() as fallback, exactly
+     * as _fill_host() uses its poller_id_hint for hosts. */
+    const uint64_t hg_poller_id =
+        hg.poller_id() != 0 ? hg.poller_id() : state.poller_id();
     auto found = hg_index.find(hg.hostgroup_id());
     bool inserted = false;
     if (found == hg_index.end()) {
       auto hostgroup = std::make_shared<neb::pb_host_group>();
       fill_hostgroup(hostgroup->mut_obj(), hg);
       std::tie(found, inserted) = hg_index.emplace(
-          hostgroup, absl::flat_hash_set<uint64_t>{hg.poller_id()});
+          hostgroup, absl::flat_hash_set<uint64_t>{hg_poller_id});
     } else {
       /* We can const_cast because keys of the multiindex are in found->first,
        * we don't change found->first here even if the hostgroup changed. */
@@ -121,7 +134,7 @@ void broker_cache::merge(
       auto& obj = const_cast<HostGroup&>(found->first->mut_obj());
       obj.set_enabled(true);
       obj.set_alias(hg.alias());
-      set.insert(hg.poller_id());
+      set.insert(hg_poller_id);
     }
     for (const auto& member : hg.members().data()) {
       auto& index = _hosts.get<by_name>();
@@ -166,13 +179,19 @@ void broker_cache::merge(
   };
 
   for (const auto& sg : state.servicegroups()) {
+    /* In Engine's State proto, individual Servicegroup objects do not carry
+     * their own poller_id (Engine has no concept of per-object poller
+     * ownership). Use the top-level state.poller_id() as the authoritative
+     * source, exactly as _fill_host() uses its poller_id_hint for hosts. */
+    const uint64_t sg_poller_id =
+        sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
     auto found = _servicegroups.find(sg.servicegroup_id());
     bool inserted = false;
     if (found == sg_index.end()) {
       auto servicegroup = std::make_shared<neb::pb_service_group>();
       fill_servicegroup(servicegroup->mut_obj(), sg);
       std::tie(found, inserted) = sg_index.emplace(
-          servicegroup, absl::flat_hash_set<uint64_t>{sg.poller_id()});
+          servicegroup, absl::flat_hash_set<uint64_t>{sg_poller_id});
     } else {
       /* We can const_cast because keys of the multiindex are in found->first,
        * we don't change found->first here even if the servicegroup changed.
@@ -190,7 +209,7 @@ void broker_cache::merge(
       auto& obj = const_cast<ServiceGroup&>(found->first->mut_obj());
       obj.set_enabled(true);
       obj.set_alias(sg.alias());
-      set.insert(sg.poller_id());
+      set.insert(sg_poller_id);
     }
     for (const auto& member : sg.members().data()) {
       auto& index = _services.get<by_name>();
@@ -208,7 +227,19 @@ void broker_cache::merge(
 
 /**
  * @brief Apply a configuration state difference into the cache. Used when some
- * new Engine configurations are pushed by a user.
+ * new Engine configurations are pushed by a user (i.e. when a
+ * `pb_global_diff_state` event is received).
+ *
+ * Unlike `merge()`, the Host objects in the diff already carry their own
+ * `poller_id` field, set by `indexed_diff_state::add_diff_state()` before the
+ * global diff is published. Therefore `_fill_host()` is called without a
+ * `poller_id_hint` here — `cfg.poller_id()` is non-zero and is used directly.
+ *
+ * The group-link removal logic relies on `instance_id` (= poller_id) being
+ * correctly set on the cached host objects: when a servicegroup or hostgroup
+ * is removed from a poller, only the links whose host belongs to that poller
+ * (identified via `_hosts.find(host_id)->obj().instance_id() ==
+ * sgp/hgp.poller_id()`) are erased.
  *
  * @param diff Configuration state difference
  */
@@ -216,6 +247,8 @@ void broker_cache::apply(
     const com::centreon::engine::configuration::DiffState& diff) {
   absl::WriterMutexLock lck{&_mutex};
 
+  _logger->debug("Applying configuration diff for poller id {} and name '{}'",
+                 diff.poller_id(), diff.poller_name());
   // /* The easy case: when the diff is not really a diff */
   // if (diff.has_state()) {
   //   merge(diff.state());
@@ -544,9 +577,8 @@ void broker_cache::apply(
         if (it->host_id != old_host_id) {
           old_host_id = it->host_id;
           auto host_it = _hosts.find(it->host_id);
-          service_poller_id = (host_it != _hosts.end())
-                                  ? (*host_it)->obj().instance_id()
-                                  : 0;
+          service_poller_id =
+              (host_it != _hosts.end()) ? (*host_it)->obj().instance_id() : 0;
         }
         if (service_poller_id == sg.poller_id())
           it = indexed_by_servicegroup.erase(it);
@@ -631,12 +663,28 @@ void broker_cache::apply(
 /**
  * @brief Fill a Host protobuf object from a configuration Host object.
  *
- * @param obj The protobuf Host object to fill
- * @param cfg The configuration Host object to use as source
+ * In centralized configuration mode, individual Host objects inside a protobuf
+ * State message do not carry their own `poller_id` field — only the enclosing
+ * State message has its `poller_id` set. The `poller_id_hint` parameter is
+ * therefore used as a fallback when `cfg.poller_id()` is zero (which is always
+ * the case in the `merge()` path). The resulting `instance_id` field on the
+ * cached Host object is critical: it is used by the group-link removal logic in
+ * `apply()` to identify which service/host-group associations belong to a given
+ * poller and should be cleaned up when that poller removes a group.
+ *
+ * @param obj             The protobuf Host object to fill
+ * @param cfg             The configuration Host object to use as source
+ * @param poller_id_hint  Fallback poller id used when cfg.poller_id() == 0.
+ *                        Pass state.poller_id() from the enclosing State when
+ *                        calling from merge(), or leave at 0 when the host
+ *                        object already carries its own poller_id (apply() path
+ *                        after indexed_diff_state sets it).
  */
 void broker_cache::_fill_host(Host* obj,
-                              const engine::configuration::Host& cfg) {
-  if (cfg.poller_id() == 0) {
+                              const engine::configuration::Host& cfg,
+                              uint64_t poller_id_hint) {
+  uint64_t pid = cfg.poller_id() != 0 ? cfg.poller_id() : poller_id_hint;
+  if (pid == 0) {
     SPDLOG_LOGGER_WARN(_logger,
                        "Host '{}' (id {}) has poller_id 0, which is not valid",
                        cfg.host_name(), cfg.host_id());
@@ -678,7 +726,7 @@ void broker_cache::_fill_host(Host* obj,
   obj->set_stalk_on_unreachable(
       cfg.stalking_options() &
       engine::configuration::ActionHostOn::action_hst_unreachable);
-  obj->set_instance_id(cfg.poller_id());
+  obj->set_instance_id(pid);
 }
 
 template <typename ConfigType>

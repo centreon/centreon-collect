@@ -26,6 +26,7 @@
 * [SQL/storage streams](#sqlstorage-streams)
 * [Broker centralized cache](#broker-centralized-cache)
   * [Operating in centralized configuration](#operating-in-centralized-configuration)
+  * [Host `poller_id` population in the cache](#host-poller_id-population-in-the-cache)
   * [Operating in *legacy* mode](#operating-in-legacy-mode)
   * [Possible evolutions](#possible-evolutions)
 * [Retention](#retention)
@@ -995,6 +996,87 @@ sequenceDiagram
         deactivate USQL
     end        
 ```
+
+## Host `poller_id` population in the cache
+
+### The problem
+
+In the protobuf `State` message (sent by Engine as a `pb_engine_state` event),
+the `poller_id` field is set at the **message level** — i.e., `state.poller_id()`
+is non-zero and identifies the poller. However, the individual `Host` objects
+embedded in `state.hosts()` do **not** carry their own `poller_id` field: they
+only have `host_id`, `host_name`, and other host-specific attributes. The same
+applies to `DiffHost` objects inside `DiffState` messages.
+
+This matters because `broker_cache` stores hosts in a `_hosts` multi-index
+container, and the cached `Host` objects must have a valid `instance_id`
+(= `poller_id`) in order for the group-link removal logic in `apply()` to work
+correctly. When a servicegroup or hostgroup is removed from a poller, the code
+iterates over all service/host-group links and erases only those whose host
+belongs to the affected poller, using the comparison:
+
+```
+host->obj().instance_id() == sgp.poller_id()
+```
+
+If `instance_id` is 0 because the host was never given a valid `poller_id`,
+this comparison always fails and no links are ever removed.
+
+### The fix — two complementary changes
+
+**1. `_fill_host()` accepts a `poller_id_hint`**
+
+The private helper `broker_cache::_fill_host()` now takes an optional
+`poller_id_hint` parameter. When `cfg.poller_id() == 0` (which is always the
+case for hosts coming from a `pb_engine_state`), the hint is used instead:
+
+```cpp
+uint64_t pid = cfg.poller_id() != 0 ? cfg.poller_id() : poller_id_hint;
+```
+
+`merge()` passes `state.poller_id()` as the hint:
+
+```cpp
+_fill_host(&h->mut_obj(), host, state.poller_id());
+```
+
+**2. `indexed_diff_state::add_diff_state()` stamps hosts with `poller_id`**
+
+Before the global diff is published, `add_diff_state()` aggregates all
+per-poller diffs. In both the full-state path and the differential path, the
+key-builder lambda for hosts now explicitly calls `obj->set_poller_id(poller_id)`
+before returning the host key:
+
+```cpp
+// Full state path
+_add_message<Host, uint64_t>(
+    diff_state.mutable_state()->mutable_hosts(), ...,
+    [poller_id = diff_state.poller_id()](Host* obj) {
+      obj->set_poller_id(poller_id);   // stamp before key extraction
+      return obj->host_id();
+    });
+
+// Differential path
+_add_diff_message<DiffHost, Host, uint64_t>(
+    diff_state.mutable_hosts(), ...,
+    [poller_id = diff_state.poller_id()](Host* obj) {
+      obj->set_poller_id(poller_id);   // stamp before key extraction
+      return obj->host_id();
+    });
+```
+
+This ensures that the `Host` objects stored in the global diff already carry
+a valid `poller_id`, so `apply()` can call `_fill_host()` without a hint and
+still produce correctly-populated cache entries.
+
+### Why the global diff has no `poller_id`
+
+Note that the **global** `DiffState` (the one sent as `pb_global_diff_state`)
+intentionally has `poller_id == 0` at the message level, because it
+aggregates changes from multiple pollers. Each individual host object inside
+this global diff carries its own `poller_id` (set by the stamping above), so
+the per-host association is preserved even though the message-level id is
+absent.
 
 ## Operating in *legacy* mode
 

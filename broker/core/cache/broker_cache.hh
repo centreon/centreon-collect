@@ -340,7 +340,8 @@ class broker_cache {
       _dimension_bas ABSL_GUARDED_BY(_mutex);
 
   void _fill_host(Host* host,
-                  const com::centreon::engine::configuration::Host& cfg)
+                  const com::centreon::engine::configuration::Host& cfg,
+                  uint64_t poller_id_hint = 0)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_mutex);
   template <typename ConfigType>
   void _fill_service_common(Service* obj, const ConfigType& cfg);
