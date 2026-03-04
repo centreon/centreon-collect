@@ -1,12 +1,13 @@
+# robocop: off=misaligned-continuation-row
 *** Settings ***
 Documentation       Centreon Broker and Engine progressively add services
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs 
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -31,7 +32,7 @@ LCDNU
     ...        broker_log:set_parameters(2, '/tmp/test-LUA.log')
     ...        broker_log:info(0, 'lua start test')
     ...    end
-    ...    
+    ...
     ...    function write(e)
     ...        if e._type == 65563 then --Service id
     ...            broker_log:info(0, 'configuration of ('.. e.host_id.. ','.. e.service_id.. ')')
@@ -70,10 +71,10 @@ LCDNU
     FOR    ${i}    IN RANGE    60
         ${result}    Grep File    /tmp/test-LUA.log    configuration of (1,1)    regexp=False
         IF    len("""${result}""") > 0
-	    Log To Console    ${result}
-	    BREAK
-	END
-	Sleep    1s
+            Log To Console    ${result}
+            BREAK
+        END
+        Sleep    1s
     END
     Should Not Be Empty    ${result}    Configuration error
 
@@ -85,17 +86,16 @@ LCDNU
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Status of
         IF    len("""${grep_res}""") > 0    BREAK
-	Sleep    1s
+        Sleep    1s
     END
     Should Not Be Empty    ${result}    No message about the service (1,1) status
 
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Service cache OK    regexp=False
         IF    len("""${grep_res}""") > 0    BREAK
-	Sleep    1s
+        Sleep    1s
     END
     Should Not Be Empty    ${grep_res}    Some checks failed
-
 
 LCDNUH
     [Documentation]    the lua cache updates correctly host cache
@@ -156,27 +156,27 @@ LCDNUH
     FOR    ${i}    IN RANGE    60
         ${result}    Grep File    /tmp/test-LUA.log    configuration of (1)    regexp=False
         IF    len("""${result}""") > 0    BREAK
-	Sleep    1s
+        Sleep    1s
     END
     Should Not Be Empty    ${result}    Configuration error
 
     ## Time to set the host to UP hard
 
-    FOR   ${i}    IN RANGE    ${3}
+    FOR    ${i}    IN RANGE    ${3}
         Ctn Process Host Check Result    host_1    0    host_1 UP
     END
 
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Status of
         IF    len("""${grep_res}""") > 0    BREAK
-	Sleep    1s
+        Sleep    1s
     END
     Should Not Be Empty    ${result}    No message about the host (1) status
 
     FOR    ${i}    IN RANGE    60
         ${grep_res}    Grep File    /tmp/test-LUA.log    Host cache OK    regexp=False
         IF    len("""${grep_res}""") > 0    BREAK
-	Sleep    1s
+        Sleep    1s
     END
     Should Not Be Empty    ${grep_res}    Some checks failed
 
@@ -219,7 +219,7 @@ LUA_CACHE_SAVE_BBDO3
     ...            if ko == 0 then
     ...              broker_log:info(0, "Host cache OK")
     ...            else
-    ...              broker_log:info(0, "Host cache KO for host ".. e.host_id) 
+    ...              broker_log:info(0, "Host cache KO for host " .. e.host_id)
     ...            end
     ...        end
     ...        if e._type == 65559 then --Service ID
@@ -261,10 +261,8 @@ LUA_CACHE_SAVE_BBDO3
     END
     Should Not Be Empty    ${result}    Host cache OK not found in lua output
     FOR    ${i}    IN RANGE    60
-        ${result}    Grep File    /tmp/test-LUA.log   Service cache OK    regexp=False
+        ${result}    Grep File    /tmp/test-LUA.log    Service cache OK    regexp=False
         IF    len("""${result}""") > 0    BREAK
         Sleep    1s
     END
     Should Not Be Empty    ${result}    Service cache OK not found in lua output
-
-

@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion from the legacy query made by the php.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -118,15 +118,15 @@ BRRDRBDB1
     # We need 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
@@ -177,15 +177,15 @@ BRRDRBUDB1
     # We need 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     Ctn Rebuild Rrd Graphs From Db    ${index}
     Ctn Reload Broker
@@ -235,15 +235,15 @@ BRRDUPLICATE
     # We need 3 indexes to rebuild
     FOR    ${idx}    IN RANGE    60
         ${index}    Ctn Get Indexes To Rebuild    3
-	IF    len(${index}) == 3
+        IF    len(${index}) == 3
             BREAK
-	ELSE
-	    # If not available, we force checks to have them.
+        ELSE
+            # If not available, we force checks to have them.
             Ctn Schedule Forced Service Check    host_1    service_1
             Ctn Schedule Forced Service Check    host_1    service_2
             Ctn Schedule Forced Service Check    host_1    service_3
         END
-	Sleep    1s
+        Sleep    1s
     END
     ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
     ${duplicates}    Ctn Add Duplicate Metrics    ${metrics}

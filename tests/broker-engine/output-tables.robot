@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -199,7 +199,7 @@ BE_NOTIF_OVERFLOW
 
     Ctn Set Svc Notification Number    host_16    service_314    40000
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
-    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30  HARD
+    ${result}    Ctn Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -303,7 +303,7 @@ BE_FLAPPING_SERVICE_RESOURCE
     Ctn Clear Retention
     Ctn Clear Logs
 
-    ${start}	Get Current Date
+    ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
 
@@ -317,11 +317,10 @@ BE_FLAPPING_SERVICE_RESOURCE
         Sleep    1s
     END
 
-    ${result}    Ctn Check Service Flapping   host_1    service_1    30    5    50
-    Should Be True    ${result}   The service or resource (host_1,service_1) is not flapping as expected
+    ${result}    Ctn Check Service Flapping    host_1    service_1    30    5    50
+    Should Be True    ${result}    The service or resource (host_1,service_1) is not flapping as expected
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs
-
 
 BE_FLAPPING_HOST_RESOURCE
     [Documentation]    With BBDO 3, flapping detection must be set in hosts and resources tables.
@@ -361,7 +360,7 @@ BE_FLAPPING_HOST_RESOURCE
         Sleep    1s
     END
 
-    ${result}    Ctn Check Host Flapping   host_1    30    5    50
-    Should Be True    ${result}   The host or resource host_1 is not flapping as expected
+    ${result}    Ctn Check Host Flapping    host_1    30    5    50
+    Should Be True    ${result}    The host or resource host_1 is not flapping as expected
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs

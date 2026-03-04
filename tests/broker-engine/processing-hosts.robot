@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine Creation of hosts. The goal is to compare the database content and the broker cache.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
-Test Teardown       Ctn Save Logs If Failed
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Stop Processes
+Test Teardown    Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -34,16 +34,16 @@ BEPH1
         ${nb_hosts}    Evaluate    ${50} + 5 * ${i}
         Log To Console    Engine works with ${nb_hosts} hosts
         ${start}    Ctn Get Round Current Date
-        Ctn Config Engine    ${1}    ${nb_hosts}          ${20}
+        Ctn Config Engine    ${1}    ${nb_hosts}    ${20}
         Ctn Reload Engine
         Ctn Wait For Engine To Be Ready    ${start}
 
         TRY
             Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
-            Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0   ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
-            ${host_ids1}   Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_ids2}   Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
+            Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
+            ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
             ${host_ids_cache}    Ctn Get Host Ids    ${51001}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
@@ -89,8 +89,8 @@ BEPH2
             Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
-            ${host_ids1}   Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_ids2}   Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
+            ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
             ${host_ids_cache}    Ctn Get Host Ids    ${51001}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
@@ -140,8 +140,8 @@ BEPH3
             Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
-            ${host_ids1}   Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_ids2}   Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
+            ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
             ${host_ids_cache}    Ctn Get Host Ids    ${51001}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
@@ -154,17 +154,16 @@ BEPH3
             Lists Should Be Equal    ${ids1_flat}    ${host_ids_cache}
 
             # Let's check the poller ID is consistent between the database and the cache for each host.
-            ${host_pollers_db}   Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_pollers_db_dict}   Evaluate    {row[0]: row[1] for row in $host_pollers_db}
-            ${host_names_db}   Query    SELECT host_id, name FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_names_db_dict}   Evaluate    {row[0]: row[1] for row in $host_names_db}
+            ${host_pollers_db}    Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_pollers_db_dict}    Evaluate    {row[0]: row[1] for row in $host_pollers_db}
+            ${host_names_db}    Query    SELECT host_id, name FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_names_db_dict}    Evaluate    {row[0]: row[1] for row in $host_names_db}
             FOR    ${host_id}    IN    @{host_ids_cache}
                 ${poller_id}    Ctn Get Host Poller Id    ${51001}    ${host_id}
                 Should Be Equal    ${poller_id}    ${host_pollers_db_dict}[${host_id}]
                 ${host_name}    Broker.Ctn Get Host Name    ${51001}    ${host_id}
                 Should Be Equal    ${host_name}    ${host_names_db_dict}[${host_id}]
             END
-
         FINALLY
             Disconnect From Database
         END
@@ -204,8 +203,8 @@ BEPH3R
             Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
             Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
-            ${host_ids1}   Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_ids2}   Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
+            ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
             ${host_ids_cache}    Ctn Get Host Ids    ${51001}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
@@ -218,17 +217,16 @@ BEPH3R
             Lists Should Be Equal    ${ids1_flat}    ${host_ids_cache}
 
             # Let's check the poller ID is consistent between the database and the cache for each host.
-            ${host_pollers_db}   Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_pollers_db_dict}   Evaluate    {row[0]: row[1] for row in $host_pollers_db}
-            ${host_names_db}   Query    SELECT host_id, name FROM hosts WHERE enabled = 1 ORDER BY host_id
-            ${host_names_db_dict}   Evaluate    {row[0]: row[1] for row in $host_names_db}
+            ${host_pollers_db}    Query    SELECT host_id, instance_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_pollers_db_dict}    Evaluate    {row[0]: row[1] for row in $host_pollers_db}
+            ${host_names_db}    Query    SELECT host_id, name FROM hosts WHERE enabled = 1 ORDER BY host_id
+            ${host_names_db_dict}    Evaluate    {row[0]: row[1] for row in $host_names_db}
             FOR    ${host_id}    IN    @{host_ids_cache}
                 ${poller_id}    Ctn Get Host Poller Id    ${51001}    ${host_id}
                 Should Be Equal    ${poller_id}    ${host_pollers_db_dict}[${host_id}]
                 ${host_name}    Broker.Ctn Get Host Name    ${51001}    ${host_id}
                 Should Be Equal    ${host_name}    ${host_names_db_dict}[${host_id}]
             END
-
         FINALLY
             Disconnect From Database
         END
@@ -296,8 +294,8 @@ BEPH4
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         Check Query Result    SELECT COUNT(*) FROM hosts WHERE enabled = 1    ==    ${50}    retry_timeout=30s    retry_pause=1s
         Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${50}    retry_timeout=30s    retry_pause=1s
-        ${host_ids1}   Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
-        ${host_ids2}   Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
+        ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
+        ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
         ${host_ids_cache}    Ctn Get Host Ids    ${51001}
 
         # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.

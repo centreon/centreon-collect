@@ -59,8 +59,7 @@ def import_robot_resources():
         VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
         ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
     except RobotNotRunningError:
-        # Handle this case if Robot Framework is not running
-        print("Robot Framework is not running. Skipping resource import.")
+        pass  # Robot Framework is not running, skip resource import.
 
 
 DB_NAME_STORAGE = ""
@@ -359,7 +358,7 @@ def ctn_find_in_log(log: str, date, content, **kwargs):
         return False, content[0]
 
 
-def ctn_get_hostname():
+def ctn_get_fqdn_hostname():
     """Return the fqdn host name of the computer.
 
     Returns:
@@ -393,8 +392,17 @@ def ctn_run_env():
 
     Get RUN_ENV env variable content
     """
-    return os.environ.get('RUN_ENV', '')
-
+    with open('/proc/1/environ', 'r') as f:
+        d = f.read()
+        logger.console(d)
+        arr = d.split("\x00")
+        logger.console(arr)
+        arr = [l for l in arr if 'container' in l]
+        if len(arr) == 0:
+            return os.environ.get('RUN_ENV', '')
+        else:
+            ctn = arr[0].split('=')[1]
+            return ctn
 
 def ctn_get_workspace_win():
     """
@@ -1239,7 +1247,7 @@ def ctn_check_service_downtime_with_timeout(hostname: str, service_desc: str, en
                     cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
                         service_desc, hostname))
                     result = cursor.fetchall()
-                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is not None or result[0]['deletion_time'] is not None):
+                    if len(result) > 0 and result[0]['scheduled_downtime_depth'] is not None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or result[0]['deletion_time'] is not None):
                         return True
         time.sleep(2)
     return False

@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Engine/Broker tests on tags.
 
-Resource            ../resources/import.resource
+Resource    ../resources/import.resource
 
-Suite Setup         Ctn Clean Before Suite
-Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Init Test
-Test Teardown       Ctn Stop Engine Broker And Save Logs
+Suite Setup    Ctn Clean Before Suite
+Suite Teardown    Ctn Clean After Suite
+Test Setup    Ctn Init Test
+Test Teardown    Ctn Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -184,14 +184,14 @@ BEUTAG4
     IF    not ${result}
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
         ${output}    Query    SELECT * FROM tags
-	Log To Console    tags content: ${output}
+        Log To Console    tags content: ${output}
         ${output}    Query    SELECT * FROM resources_tags
-	Log To Console    resources_tags content: ${output}
+        Log To Console    resources_tags content: ${output}
         ${output}    Query    SELECT * FROM resources
-	Log To Console    resources content: ${output}
+        Log To Console    resources content: ${output}
         ${output}    Query    SELECT * FROM servicegroups
-	Log To Console    servicegroups content: ${output}
-	Disconnect From Database
+        Log To Console    servicegroups content: ${output}
+        Disconnect From Database
     END
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag ids 4 and 5
     ${result}    Ctn Check Resources Tags With Timeout    1    3    servicegroup    [4, 5]    60
@@ -223,7 +223,7 @@ BEUTAG5
     Ctn Start Engine
     Ctn Start Broker
 
-    Ctn Wait For Engine To Be Ready    ${start}	  ${1}
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
 
     ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [2,3]    60
     Should Be True    ${result}    Host 1 should have hostgroup tags 2 and 3
@@ -701,7 +701,6 @@ BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
     ${result}    Ctn Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
     Should Be True    ${result}    Host 3 should have hostgroup tags 2
 
-
 MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     [Documentation]    Scenario: Moving hosts between pollers without losing hostgroup tag
     ...    Given two pollers each with two hosts
@@ -732,7 +731,6 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Ctn Clear Retention
 
     Sleep    1s
-    ${start}    Get Current Date
     Ctn Start engine
     Ctn Start Broker
 
@@ -771,7 +769,7 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Check Row Count     SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_time_out=30s    retry_pause=2s
+    Check Row Count    SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_time_out=30s    retry_pause=2s
 
     #host_5 and host_6 will be now on poller 0
     Log To Console    host_5 and host_6 on poller 0
@@ -797,8 +795,8 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Check Query Result    SELECT name FROM tags WHERE id = 1    equals    tag0    retry_timeout=5s    retry_pause=1s
 
 
-
 *** Keywords ***
 Ctn Init Test
+    [Documentation]    Stop all processes and truncate resource, host and service tables.
     Ctn Stop Processes
     Ctn Truncate Resource Host Service
