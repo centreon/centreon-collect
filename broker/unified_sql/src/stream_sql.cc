@@ -150,8 +150,8 @@ void stream::clean_tables(uint32_t instance_id) {
       _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
       instance_id);
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1, actual_end_time={} WHERE cancelled=0 "
-      "AND instance_id={}",
+      "UPDATE downtimes SET cancelled=1, actual_end_time={0}, "
+      "deletion_time={0} WHERE cancelled=0 AND instance_id={1}",
       time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
@@ -1920,7 +1920,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h) {
                                                        h.max_check_attempts());
     _resources_host_insert_or_update.bind_value_as_u64(9, h.instance_id());
     if (h.severity_id()) {
-      sid = _severities_cache[{h.severity_id(), 1}];
+      sid = config::applier::state::instance().cache().get_db_id_for_severity(
+          h.severity_id(), 1);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "host {} with severity_id {} => uid = {}",
                           h.host_id(), h.severity_id(), sid);
@@ -3536,7 +3537,8 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s) {
     _resources_service_insert_or_update.bind_value_as_u64(
         12, hh->obj().instance_id());
     if (s.severity_id() > 0) {
-      sid = _severities_cache[{s.severity_id(), 0}];
+      sid = config::applier::state::instance().cache().get_db_id_for_severity(
+          s.severity_id(), 0);
       SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "service ({}, {}) with severity_id {} => uid = {}",
                           s.host_id(), s.service_id(), s.severity_id(), sid);
@@ -4268,7 +4270,9 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
       "unified_sql: severity event with id={}, type={}, name={}, "
       "level={}, icon_id={}",
       sv.id(), sv.type(), sv.name(), sv.level(), sv.icon_id());
-  uint64_t severity_id = _severities_cache[{sv.id(), sv.type()}];
+  uint64_t severity_id =
+      config::applier::state::instance().cache().get_db_id_for_severity(
+          sv.id(), sv.type());
   switch (sv.action()) {
     case Severity_Action_ADD:
       if (severity_id) {
@@ -4298,7 +4302,8 @@ void stream::_process_severity(const std::shared_ptr<io::data>& d) {
             database::mysql_task::LAST_INSERT_ID, 0);
         try {
           severity_id = future.get();
-          _severities_cache[{sv.id(), sv.type()}] = severity_id;
+          config::applier::state::instance().cache().set_db_id_for_severity(
+              sv.id(), sv.type(), severity_id);
         } catch (const std::exception& e) {
           SPDLOG_LOGGER_ERROR(
               _logger_sql,

@@ -1,5 +1,5 @@
 /**
- * Copyright 2025 Centreon
+ * Copyright 2025-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,8 +72,8 @@ void database_configurator::process_diff(const DiffState& diff) {
     _add_anomalydetection_resources_mariadb(
         diff.anomalydetections().modified());
 
-    _add_hostgroups_mariadb(diff.hostgroups().modified());
-    _add_servicegroups_mariadb(diff.servicegroups().modified());
+    _add_hostgroups_mariadb(diff.hostgroups().modified(), true);
+    _add_servicegroups_mariadb(diff.servicegroups().modified(), true);
     _add_host_parents_mariadb(diff.hosts().modified(), action::MODIFIED);
 
     /* Disabling removed objects */
@@ -111,8 +111,8 @@ void database_configurator::process_diff(const DiffState& diff) {
     _add_service_resources_mysql(diff.services().modified());
     _add_anomalydetections_mysql(diff.anomalydetections().modified());
     _add_anomalydetection_resources_mysql(diff.anomalydetections().modified());
-    _add_hostgroups_mysql(diff.hostgroups().modified());
-    _add_servicegroups_mysql(diff.servicegroups().modified());
+    _add_hostgroups_mysql(diff.hostgroups().modified(), true);
+    _add_servicegroups_mysql(diff.servicegroups().modified(), true);
     _add_host_parents_mysql(diff.hosts().modified(), action::MODIFIED);
 
     /* Disabling removed objects */
@@ -364,8 +364,6 @@ void database_configurator::_disable_resources_for_pollers_with_full_conf(
 void database_configurator::_del_severities_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         com::centreon::engine::configuration::KeyType>& keys) {
-  auto& cache = _stream->severities_cache();
-
   if (keys.empty())
     return;
 
@@ -381,12 +379,13 @@ void database_configurator::_del_severities_mariadb(
   auto bind = stmt->create_bind();
   bind->reserve(keys.size());
 
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : keys) {
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     bind->set_value_as_u64(0, msg.id());
     bind->set_value_as_u32(1, msg.type());
     bind->next_row();
-    cache.erase(std::make_pair(msg.id(), msg.type()));
+    bc.erase_severity(msg.id(), msg.type());
   }
 
   stmt->set_bind(std::move(bind));
@@ -401,8 +400,6 @@ void database_configurator::_del_severities_mariadb(
 void database_configurator::_del_severities_mysql(
     const ::google::protobuf::RepeatedPtrField<
         com::centreon::engine::configuration::KeyType>& keys) {
-  auto& cache = _stream->severities_cache();
-
   if (keys.empty())
     return;
 
@@ -414,12 +411,13 @@ void database_configurator::_del_severities_mysql(
     mysql.prepare_statement(*_del_severities_stmt);
   }
 
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : keys) {
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     _del_severities_stmt->bind_value_as_u64(0, msg.id());
     _del_severities_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_severities_stmt);
-    cache.erase(std::make_pair(msg.id(), msg.type()));
+    bc.erase_severity(msg.id(), msg.type());
   }
 }
 
@@ -539,7 +537,6 @@ void database_configurator::_add_severities_mariadb(
         lst) {
   if (lst.empty())
     return;
-  auto& cache = _stream->severities_cache();
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_severities_stmt) {
@@ -580,15 +577,17 @@ void database_configurator::_add_severities_mariadb(
         *_add_severities_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
+    auto& bc = config::applier::state::instance().cache();
     for (auto& k : keys) {
-      auto inserted = cache.emplace(k, first_id);
-      if (inserted.second) {
+      uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
+      if (!existing_id) {
+        bc.set_db_id_for_severity(k.first, k.second, first_id);
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
         first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, inserted.first->second);
+                       k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
@@ -606,7 +605,6 @@ void database_configurator::_add_severities_mysql(
         lst) {
   if (lst.empty())
     return;
-  auto& cache = _stream->severities_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint16_t>> keys;
 
@@ -641,15 +639,17 @@ void database_configurator::_add_severities_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
+    auto& bc = config::applier::state::instance().cache();
     for (auto& k : keys) {
-      auto inserted = cache.emplace(k, first_id);
-      if (inserted.second) {
+      uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
+      if (!existing_id) {
+        bc.set_db_id_for_severity(k.first, k.second, first_id);
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
         first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, inserted.first->second);
+                       k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
@@ -1239,6 +1239,7 @@ void database_configurator::_add_host_resources_mariadb(
   auto bind = _add_host_resources_stmt->create_bind();
 
   auto& hosts_cache = _stream->host_name_id_cache();
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
@@ -1253,10 +1254,19 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_u32(3, 1);
     bind->set_value_as_u32(4, msg.max_check_attempts());
     bind->set_value_as_u64(5, msg.poller_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
+      _logger->trace(
+          "host {} has severity_id config={} => db_sid={}", msg.host_id(),
+          msg.severity_id(), db_sid);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else {
+      _logger->trace("host {} has no severity_id", msg.host_id());
       bind->set_null_u64(6);
+    }
     bind->set_value_as_str(
         7, common::truncate_utf8(msg.host_name(),
                                  get_centreon_storage_resources_col_size(
@@ -1342,15 +1352,19 @@ void database_configurator::_add_host_resources_mysql(
 
   std::vector<std::string> values;
   auto& hosts_cache = _stream->host_name_id_cache();
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
 
+    uint64_t sid = 0;
+    if (msg.has_severity_id())
+      sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}','{}','{}',NULL,{},'{}','{}','{}',{}"
         ",{},{},1)",
         msg.host_id(), 0, 1, msg.max_check_attempts(), msg.poller_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
+        sid ? fmt::to_string(sid) : "NULL",
         misc::string::escape(msg.host_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -1768,6 +1782,9 @@ void database_configurator::_add_services_mysql(
 void database_configurator::_disable_services_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
+  if (lst.empty())
+    return;
+
   mysql& mysql = _stream->get_mysql();
   if (!_disable_services_stmt) {
     _disable_services_stmt = std::make_unique<mysql_bulk_stmt>(
@@ -1794,6 +1811,9 @@ void database_configurator::_disable_services_mariadb(
 void database_configurator::_disable_services_mysql(
     const ::google::protobuf::RepeatedPtrField<
         engine::configuration::HostServiceId>& lst) {
+  if (lst.empty())
+    return;
+
   mysql& mysql = _stream->get_mysql();
   if (!_disable_services_stmt) {
     _disable_services_stmt = std::make_unique<mysql_stmt>(
@@ -2245,12 +2265,16 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_u32(4, msg.max_check_attempts());
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else
       bind->set_null_u64(6);
     bind->set_value_as_str(
-        7, common::truncate_utf8(msg.service_description(),
+        7, common::truncate_utf8(msg.display_name(),
                                  get_centreon_storage_resources_col_size(
                                      centreon_storage_resources_name)));
     bind->set_null_str(8);
@@ -2325,20 +2349,23 @@ void database_configurator::_add_service_resources_mysql(
   std::vector<std::string> values;
   values.reserve(lst.size());
   auto& services_cache = _stream->service_description_id_cache();
+  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), msg.service_id());
     keys.push_back(key);
 
-    auto& global_cache = config::applier::state::instance().cache();
     auto h = global_cache.host(msg.host_id());
+    uint64_t svc_sid = 0;
+    if (msg.has_severity_id())
+      svc_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
     std::string value(fmt::format(
         "({},{},NULL,{},4, 1, "
         "1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
         msg.max_check_attempts(), h->obj().instance_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
-        misc::string::escape(msg.service_description(),
+        svc_sid ? fmt::to_string(svc_sid) : "NULL",
+        misc::string::escape(msg.display_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
         misc::string::escape(msg.host_name(),
@@ -2455,9 +2482,13 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_value_as_u32(4, msg.max_check_attempts());
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else
       bind->set_null_u64(6);
     bind->set_value_as_str(
         7, common::truncate_utf8(msg.service_description(),
@@ -2539,12 +2570,15 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     keys.push_back(key);
 
     auto h = global_cache.host(msg.host_id());
+    uint64_t ad_sid = 0;
+    if (msg.has_severity_id())
+      ad_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
         h->obj().instance_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
+        ad_sid ? fmt::to_string(ad_sid) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2713,7 +2747,8 @@ void database_configurator::_add_customvariables_mysql(
  */
 void database_configurator::_add_hostgroups_mariadb(
     const ::google::protobuf::RepeatedPtrField<
-        engine::configuration::Hostgroup>& lst) {
+        engine::configuration::Hostgroup>& lst,
+    bool is_modification) {
   if (lst.empty()) {
     _logger->debug("No need to add/update host groups, list empty");
     return;
@@ -2722,8 +2757,7 @@ void database_configurator::_add_hostgroups_mariadb(
   mysql& mysql = _stream->get_mysql();
   if (!_add_hostgroups_stmt) {
     std::string query(
-        "INSERT INTO hostgroups (hostgroup_id,name) VALUES (?,?) ON "
-        "DUPLICATE "
+        "INSERT INTO hostgroups (hostgroup_id,name) VALUES (?,?) ON DUPLICATE "
         "KEY UPDATE name=VALUES(name)");
     _add_hostgroups_stmt = std::make_unique<mysql_bulk_stmt>(query);
     mysql.prepare_statement(*_add_hostgroups_stmt);
@@ -2740,12 +2774,32 @@ void database_configurator::_add_hostgroups_mariadb(
         1, common::truncate_utf8(msg.hostgroup_name(),
                                  get_centreon_storage_hostgroups_col_size(
                                      centreon_storage_hostgroups_name)));
+    bind->next_row();
     count++;
   }
   _logger->debug("Adding/updating {} host groups", count);
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
+
+  // For modified hostgroups, delete existing members scoped to the poller
+  // before inserting the new complete member list to avoid duplicates and
+  // stale entries.
+  if (is_modification) {
+    for (const auto& msg_hg : lst) {
+      if (msg_hg.poller_id() == 0)
+        continue;
+      std::string del_query(fmt::format(
+          "DELETE FROM hosts_hostgroups WHERE hostgroup_id = {} "
+          "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
+          msg_hg.hostgroup_id(), msg_hg.poller_id()));
+      _logger->debug(
+          "Removing existing members of hostgroup {} for poller {} before "
+          "re-inserting",
+          msg_hg.hostgroup_id(), msg_hg.poller_id());
+      mysql.run_query(del_query);
+    }
+  }
 
   if (!_add_hostgroup_members_stmt) {
     std::string query(
@@ -2792,7 +2846,8 @@ void database_configurator::_add_hostgroups_mariadb(
  */
 void database_configurator::_add_hostgroups_mysql(
     const ::google::protobuf::RepeatedPtrField<
-        engine::configuration::Hostgroup>& lst) {
+        engine::configuration::Hostgroup>& lst,
+    bool is_modification) {
   if (lst.empty()) {
     _logger->debug("No need to add/update host groups, list empty");
     return;
@@ -2818,6 +2873,25 @@ void database_configurator::_add_hostgroups_mysql(
                   fmt::join(values, ",")));
   _logger->debug("Adding/updating {} host groups", count);
   mysql.run_query(query);
+
+  // For modified hostgroups, delete existing members scoped to the poller
+  // before inserting the new complete member list to avoid duplicates and
+  // stale entries.
+  if (is_modification) {
+    for (const auto& msg_hg : lst) {
+      if (msg_hg.poller_id() == 0)
+        continue;
+      std::string del_query(fmt::format(
+          "DELETE FROM hosts_hostgroups WHERE hostgroup_id = {} "
+          "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
+          msg_hg.hostgroup_id(), msg_hg.poller_id()));
+      _logger->debug(
+          "Removing existing members of hostgroup {} for poller {} before "
+          "re-inserting",
+          msg_hg.hostgroup_id(), msg_hg.poller_id());
+      mysql.run_query(del_query);
+    }
+  }
 
   auto& hosts_cache = _stream->host_name_id_cache();
   values.clear();
@@ -2858,7 +2932,8 @@ void database_configurator::_add_hostgroups_mysql(
  */
 void database_configurator::_add_servicegroups_mariadb(
     const ::google::protobuf::RepeatedPtrField<
-        engine::configuration::Servicegroup>& lst) {
+        engine::configuration::Servicegroup>& lst,
+    bool is_modification) {
   if (lst.empty()) {
     _logger->debug("No need to add/update service groups, list empty");
     return;
@@ -2884,12 +2959,32 @@ void database_configurator::_add_servicegroups_mariadb(
         1, common::truncate_utf8(msg.servicegroup_name(),
                                  get_centreon_storage_servicegroups_col_size(
                                      centreon_storage_servicegroups_name)));
+    bind->next_row();
     count++;
   }
   _logger->debug("Adding/updating {} service groups", count);
 
   stmt->set_bind(std::move(bind));
   mysql.run_statement(*stmt);
+
+  // For modified servicegroups, delete existing members scoped to the poller
+  // before inserting the new complete member list to avoid duplicates and
+  // stale entries.
+  if (is_modification) {
+    for (const auto& msg_sg : lst) {
+      if (msg_sg.poller_id() == 0)
+        continue;
+      std::string del_query(fmt::format(
+          "DELETE FROM services_servicegroups WHERE servicegroup_id = {} "
+          "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
+          msg_sg.servicegroup_id(), msg_sg.poller_id()));
+      _logger->debug(
+          "Removing existing members of servicegroup {} for poller {} before "
+          "re-inserting",
+          msg_sg.servicegroup_id(), msg_sg.poller_id());
+      mysql.run_query(del_query);
+    }
+  }
 
   if (!_add_servicegroup_members_stmt) {
     std::string query(
@@ -2951,7 +3046,8 @@ void database_configurator::_add_servicegroups_mariadb(
  */
 void database_configurator::_add_servicegroups_mysql(
     const ::google::protobuf::RepeatedPtrField<
-        engine::configuration::Servicegroup>& lst) {
+        engine::configuration::Servicegroup>& lst,
+    bool is_modification) {
   if (lst.empty()) {
     _logger->debug("No need to add/update service groups, list empty");
     return;
@@ -2972,6 +3068,25 @@ void database_configurator::_add_servicegroups_mysql(
                   "name=VALUES(name)",
                   fmt::join(values, ",")));
   mysql.run_query(query);
+
+  // For modified servicegroups, delete existing members scoped to the poller
+  // before inserting the new complete member list to avoid duplicates and
+  // stale entries.
+  if (is_modification) {
+    for (const auto& msg_sg : lst) {
+      if (msg_sg.poller_id() == 0)
+        continue;
+      std::string del_query(fmt::format(
+          "DELETE FROM services_servicegroups WHERE servicegroup_id = {} "
+          "AND host_id IN (SELECT host_id FROM hosts WHERE instance_id = {})",
+          msg_sg.servicegroup_id(), msg_sg.poller_id()));
+      _logger->debug(
+          "Removing existing members of servicegroup {} for poller {} before "
+          "re-inserting",
+          msg_sg.servicegroup_id(), msg_sg.poller_id());
+      mysql.run_query(del_query);
+    }
+  }
 
   auto& hosts_cache = _stream->host_name_id_cache();
   auto& services_cache = _stream->service_description_id_cache();
@@ -3179,9 +3294,13 @@ void database_configurator::_del_hostgroups(
     std::string query(fmt::format(
         "DELETE FROM hosts_hostgroups "
         "WHERE hostgroup_id = (SELECT hostgroup_id FROM hostgroups WHERE name"
-        "={} LIMIT 1) AND host_id IN (SELECT host_id FROM hosts WHERE "
+        " = \'{}\' LIMIT 1) AND host_id IN (SELECT host_id FROM hosts WHERE "
         "instance_id={})",
-        msg.group_name(), msg.poller_id()));
+        misc::string::escape(msg.group_name(),
+                             get_centreon_storage_hostgroups_col_size(
+                                 centreon_storage_hostgroups_name)),
+        msg.poller_id()));
+    _logger->debug("Executing query: {}", query);
     mysql.run_query(query);
   }
   // Little cleanup in hostgroups
@@ -3214,7 +3333,8 @@ void database_configurator::_del_servicegroups(
         "servicegroup_id FROM servicegroups WHERE name = \'{}\') AND host_id "
         "IN (SELECT host_id FROM hosts WHERE instance_id = {})",
         misc::string::escape(msg.group_name(),
-                             centreon_storage_servicegroups_name),
+                             get_centreon_storage_servicegroups_col_size(
+                                 centreon_storage_servicegroups_name)),
         msg.poller_id()));
     mysql.run_query(query);
   }
