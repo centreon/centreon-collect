@@ -42,9 +42,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-centreon-collect-alma8
-            distrib: el8
-            arch: amd64
           - image: packaging-centreon-collect-alma9
             distrib: el9
             arch: amd64
@@ -94,9 +91,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: packaging-alma8
-            distrib: el8
-            arch: amd64
           - image: packaging-alma9
             distrib: el9
             arch: amd64
@@ -217,8 +211,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: el8
-            arch: amd64
           - distrib: el9
             arch: amd64
 
@@ -288,7 +280,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el9, bookworm]
 
     steps:
       - name: Checkout sources

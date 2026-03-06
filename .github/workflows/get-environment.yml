@@ -737,8 +737,8 @@ jobs:
               "database": "mariadb:10.11",
               "arch": "amd64"
             };
-            const alma8_mysql_8_0 = {
-              "operating_system": "alma8",
+            const alma9_mysql_8_0 = {
+              "operating_system": "alma9",
               "database": "mysql:8.0",
               "arch": "amd64"
             };
@@ -823,10 +823,14 @@ jobs:
               return configs[configIndex];
             };
 
-            const configs = [alma9_mariadb_10_11, alma8_mysql_8_0, bookworm_mysql_8_4];
+            const configs = [
+              alma9_mariadb_10_11,
+              alma9_mysql_8_0,
+              bookworm_mysql_8_4
+            ];
             const collectConfigs = [
               alma9_mariadb_10_11,
-              alma8_mysql_8_0,
+              alma9_mysql_8_0,
               bookworm_mysql_8_4
             ];
             const cmaConfigs = [
@@ -840,7 +844,7 @@ jobs:
               noble_mariadb_10_11
             ];
 
-            const cloud = alma8_mysql_8_0;
+            const cloud = alma9_mysql_8_0;
 
             let main = alma9_mariadb_10_11;
             if ('${{ steps.detect_cloud_version.outputs.isCloud }}' == 'true') {
