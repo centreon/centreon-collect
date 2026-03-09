@@ -266,7 +266,7 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
     for pb_class_name, body in messages.items():
         snake_name = camel_to_snake(pb_class_name)
 
-        data_type_tuple_define = []
+        data_member_declare = []
         modifiers = []
         accessors = []
         data_initializer = ''
@@ -275,7 +275,6 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
         if not fields:
             continue
 
-        tuple_index = 0
         for field in fields:
             name = field['name']
             type = field['type']
@@ -322,12 +321,11 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
                         class_dependencies[pb_class_name].append(type)
 
             if cpp_type != '':
-                data_type_tuple_define.append(f"{cpp_type} /* {name} */")
+                data_member_declare.append(f"{cpp_type} _{name}")
                 modifiers.append(
-                    f"  {cpp_type}& mutable_{name}() {{ return std::get<{tuple_index}>(_data); }}")
+                    f"  {cpp_type}& mutable_{name}() {{ return _{name}; }}")
                 accessors.append(
-                    f"  const {cpp_type}& {name}() const {{ return std::get<{tuple_index}>(_data); }}")
-                tuple_index += 1
+                    f"  const {cpp_type}& {name}() const {{ return _{name}; }}")
 
         # build class declaration that may be not used
         class_declaration = f'''/**
@@ -335,14 +333,9 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
  *
  */
 class {snake_name} : public message {{
-'''
-        class_declaration += "  using data_type = std::tuple<\n"
-        class_declaration += "                               "
-        class_declaration += ",\n                               ".join(
-            data_type_tuple_define)
-        class_declaration += """\n                               >;\n
-  data_type _data;
-
+  '''
+        class_declaration += ";\n  ".join(data_member_declare)
+        class_declaration += """;\n
   friend bool update(const ::google::protobuf::Message& mess);
 """
         class_declaration += f'''
@@ -353,9 +346,9 @@ class {snake_name} : public message {{
   {snake_name} & operator = (const {snake_name} &) = delete;
   ~{snake_name}();
 
-  bool update(const {pb_class_name}& mess, const allocators& allocator);
+  {pb_class_name} to_protobuf() const;
 
-  std::vector<variant> enumerate_fields() const;
+  bool update(const {pb_class_name}& mess, const allocators& allocator);
 
 '''
         class_declaration += "\n".join(modifiers)
@@ -414,7 +407,6 @@ class message {{
   bool update(const ::google::protobuf::Message& mess,
               const allocators& allocator);
 
-  std::vector<variant> enumerate_fields() const;
 }};
 
 '''
@@ -459,169 +451,159 @@ def create_cc(messages, enums, classes):
 
     for pb_class_name, body in messages.items():
         snake_name = camel_to_snake(pb_class_name)
-        # there are tuple_init and tuple_copy_init, first is used by from protobuf constructors, second is used by copy constructors
-        tuple_init = []
-        tuple_copy_init = []
+        # there are member_init and member_copy_init, first is used by from protobuf constructors, second is used by copy constructors
+        member_init = []
+        member_copy_init = []
+        to_protobuf_init = []
         repeated_fillers = []
         repeated_copy_fillers = []
         update_fields = []
         repeated_mess_deleter = []
-        enumerate_field = []
 
         fields = extract_fields(body)
 
         if not fields:
             continue
 
-        tuple_index = 0
         for field in fields:
             name = field['name']
             type = field['type']
             label = field['label']
             index = field['index']
 
-            field_tuple_init = ''
-            field_tuple_copy_init = ''
+            field_member_init = ''
+            field_member_copy_init = ''
+            field_to_protobuf_init = ''
 
             if label == 'optional':
                 if type in ["int32", "uint32", "int64", "uint64"]:
-                    field_tuple_init = f"src.has_{name}()?std::optional<{type}_t>(src.{name}()):std::optional<{type}_t>()"
-                    field_tuple_copy_init = f"src.{name}()"
+                    field_member_init = f"_{name}(src.has_{name}()?std::optional<{type}_t>(src.{name}()):std::optional<{type}_t>())"
+                    field_member_copy_init = f"_{name}(src._{name})"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(*_{name}); }}"
                 elif type in ["double", "float", "bool"]:
-                    field_tuple_init = f"src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>()"
-                    field_tuple_copy_init = f"src.{name}()"
+                    field_member_init = f"_{name}(src.has_{name}()?std::optional<{type}>(src.{name}()):std::optional<{type}>())"
+                    field_member_copy_init = f"_{name}(src._{name})"
                     update_fields.append(f"UPDATE_OPTIONAL_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(*_{name}); }}"
                 elif type == "string":
-                    field_tuple_init = f"src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>()"
-                    field_tuple_copy_init = f"src.{name}()?std::optional<{type}>(string(*src.{name}(), allocator.char_alloc)):std::optional<{type}>()"
+                    field_member_init = f"_{name}(src.has_{name}()?std::optional<{type}>(string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)):std::optional<{type}>())"
+                    field_member_copy_init = f"_{name}(src.{name}()?std::optional<{type}>(string(*src.{name}(), allocator.char_alloc)):std::optional<{type}>())"
                     update_fields.append(
                         f"UPDATE_OPTIONAL_STRING_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_OPTIONAL_STRING_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(std::string(_{name}->c_str(), _{name}->length())); }}"
                 else:
                     if type in enums:  # convert all enums to int32
-                        field_tuple_init = f"src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>()"
-                        field_tuple_copy_init = f"src.{name}()"
+                        field_member_init = f"_{name}(src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>())"
+                        field_member_copy_init = f"_{name}(src.{name}())"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(static_cast<{type}>(*_{name})); }}"
                     if type in messages:
-                        field_tuple_init = f"src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr"
-                        field_tuple_copy_init = f"src.{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)} &>(*src.{name}()), allocator):nullptr"
+                        field_member_init = f"_{name}(src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr)"
+                        field_member_copy_init = f"_{name}(src.{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)} &>(*src.{name}()), allocator):nullptr)"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_MESS_FIELD({camel_to_snake(type)}, {name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_OPTIONAL_MESS_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"if (_{name}) {{ *pb.mutable_{name}() = static_cast<const {camel_to_snake(type)} &>(*_{name}).to_protobuf();"
 
             elif label == 'repeated':
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
-                    field_tuple_init = f"allocator.{type}_alloc"
-                    field_tuple_copy_init = f"allocator.{type}_alloc"
-                    repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                    field_member_init = f"_{name}(allocator.{type}_alloc)"
+                    field_member_copy_init = f"_{name}(allocator.{type}_alloc)"
+                    repeated_fillers.append(f'''    _{name}.reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
-        mutable_{name}().push_back(value);
+        _{name}.push_back(value);
     }}''')
-                    repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
-    for (const auto & value: src.{name}()) {{
-        mutable_{name}().push_back(value);
+                    repeated_copy_fillers.append(f'''    _{name}.reserve(src._{name}.size());
+    for (const auto & value: src._{name}) {{
+        _{name}.push_back(value);
     }}''')
                     update_fields.append(f"UPDATE_REPEATED_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"pb.add_{name}(_{name});"
                 elif type == "string":
-                    field_tuple_init = f"allocator.string_alloc"
-                    field_copy_init = f"allocator.string_alloc"
-                    repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                    field_member_init = f"_{name}(allocator.string_alloc)"
+                    field_member_copy_init = f"_{name}(allocator.string_alloc)"
+                    repeated_fillers.append(f'''    _{name}.reserve(src.{name}().size());
     for (const auto & value: src.{name}()) {{
-        mutable_{name}().emplace_back(value.c_str(), value.length(), allocator.char_alloc);
+        _{name}.emplace_back(value.c_str(), value.length(), allocator.char_alloc);
     }}''')
-                    repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
-    for (const auto & value: src.{name}()) {{
-        mutable_{name}().emplace_back(value, allocator.char_alloc);
+                    repeated_copy_fillers.append(f'''    _{name}.reserve(src._{name}.size());
+    for (const auto & value: src._{name}) {{
+        _{name}.emplace_back(value, allocator.char_alloc);
     }}''')
                     update_fields.append(
                         f"UPDATE_REPEATED_STRING_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"pb.add_{name}(std::string(_{name}->c_str(), _{name}->length()));"
                 else:
                     if type in enums:  # convert all enums to int32
-                        field_tuple_init = "allocator.int32_alloc"
-                        field_tuple_copy_init = "allocator.int32_alloc"
+                        field_member_init = f"_{name}(allocator.int32_alloc)"
+                        field_member_copy_init = f"_{name}(allocator.int32_alloc)"
                         update_fields.append(
                             f"UPDATE_REPEATED_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"pb.add_{name}(static_cast<{type}>(_{name}));"
                     elif type in messages:
-                        field_tuple_init = "allocator.message_alloc"
-                        field_tuple_copy_init = "allocator.message_alloc"
+                        field_member_init = f"_{name}(allocator.message_alloc)"
+                        field_member_copy_init = f"_{name}(allocator.message_alloc)"
                         if not pb_class_name in class_dependencies:
                             class_dependencies[pb_class_name] = []
                         class_dependencies[pb_class_name].append(type)
-                        repeated_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
+                        repeated_fillers.append(f'''    _{name}.reserve(src.{name}().size());
     for (const auto & mess: src.{name}()) {{
-        mutable_{name}().push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
+        _{name}.push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
         interprocess::anonymous_instance)(mess, allocator));
     }}''')
-                        repeated_copy_fillers.append(f'''    mutable_{name}().reserve(src.{name}().size());
-    for (const auto & mess: src.{name}()) {{
-        mutable_{name}().push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
+                        repeated_copy_fillers.append(f'''    _{name}.reserve(src._{name}.size());
+    for (const auto & mess: src._{name}) {{
+        _{name}.push_back(allocator.segm_manager->construct<{camel_to_snake(type)}>(
         interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*mess), allocator));
     }}''')
                         repeated_mess_deleter.append(
                             f"  REPEATED_MESS_DELETE_ALL({camel_to_snake(type)}, {name});")
                         update_fields.append(
                             f"UPDATE_REPEATED_MESS_FIELD({camel_to_snake(type)}, {name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"""for (const auto & mess : _{name}) {{
+    *pb.add_{name}() = static_cast<const {camel_to_snake(type)}&>(*mess).to_protobuf();
+}}
+"""
             else:
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
-                    field_tuple_init = f"src.{name}()"
-                    field_tuple_copy_init = f"src.{name}()"
+                    field_member_init = f"_{name}(src.{name}())"
+                    field_member_copy_init = f"_{name}(src.{name}())"
                     update_fields.append(f"UPDATE_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"pb.set_{name}(_{name});"
                 elif type == "string":
-                    field_tuple_init = f"string(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
-                    field_tuple_copy_init = f"string(src.{name}(), allocator.char_alloc)"
+                    field_member_init = f"_{name}(src.{name}().c_str(), src.{name}().length(), allocator.char_alloc)"
+                    field_member_copy_init = f"_{name}(src.{name}(), allocator.char_alloc)"
                     update_fields.append(f"UPDATE_STRING_FIELD({name})")
-                    enumerate_field.append(
-                        f"ADD_ENUMERATION_STRING_FIELD(\"{name}\", {tuple_index});")
+                    field_to_protobuf_init = f"pb.set_{name}(std::string(_{name}.c_str(), _{name}.length()));"
                 else:
                     if type in enums:  # convert all enums to int32
-                        field_tuple_init = f"src.{name}()"
-                        field_tuple_copy_init = f"src.{name}()"
+                        field_member_init = f"_{name}(src.{name}())"
+                        field_member_copy_init = f"_{name}(src.{name}())"
                         update_fields.append(f"UPDATE_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"pb.set_{name}(static_cast<{type}>(_{name}));"
                     if type in messages:
-                        field_tuple_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator)"
-                        field_tuple_copy_init = f"allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*src.{name}()), allocator)"
+                        field_member_init = f"_{name}(allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator))"
+                        field_member_copy_init = f"_{name}(allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*src.{name}()), allocator))"
                         update_fields.append(
                             f"UPDATE_MESS_FIELD({name})")
-                        enumerate_field.append(
-                            f"ADD_ENUMERATION_MESS_FIELD(\"{name}\", {tuple_index});")
+                        field_to_protobuf_init = f"*pb.mutable_{name}() = static_cast<const {camel_to_snake(type)}&>(*_{name}).to_protobuf();"
                         if not pb_class_name in class_dependencies:
                             class_dependencies[pb_class_name] = []
                         class_dependencies[pb_class_name].append(type)
 
-            if field_tuple_init != '':
-                tuple_init.append(field_tuple_init)
-                tuple_copy_init.append(field_tuple_copy_init)
-                tuple_index += 1
+            if field_member_init != '':
+                member_init.append(field_member_init)
+                member_copy_init.append(field_member_copy_init)
+                to_protobuf_init.append(field_to_protobuf_init)
 
-        tuple_init_str = ",\n        ".join(tuple_init)
-        tuple_copy_init_str = ",\n        ".join(tuple_copy_init)
+        member_init_str = ",\n    ".join(member_init)
+        member_copy_init_str = ",\n    ".join(member_copy_init)
         repeated_fillers_str = "\n".join(repeated_fillers)
         repeated_copy_fillers_str = "\n".join(repeated_copy_fillers)
         repeated_mess_deleter_str = "\n".join(repeated_mess_deleter)
-        enumerate_field_str = "\n  ".join(enumerate_field)
-        update_fields_str = ";\n  ".join(update_fields)
+        update_fields_str = ";\n    ".join(update_fields)
+        to_protobuf_str = "\n    ".join(to_protobuf_init)
 
         class_implementations[pb_class_name] = f'''
 
@@ -633,9 +615,7 @@ def create_cc(messages, enums, classes):
  */
 {snake_name}::{snake_name}(const {pb_class_name}& src, const allocators& allocator)
     : message(e_type::e_{snake_name}, allocator.char_alloc),
-    _data{{
-        {tuple_init_str}
-    }}
+    {member_init_str}
 {{
 {repeated_fillers_str}
 }}
@@ -648,9 +628,7 @@ def create_cc(messages, enums, classes):
  */
 {snake_name}::{snake_name}(const {snake_name}& src, const allocators& allocator)
     : message(e_type::e_{snake_name}, allocator.char_alloc),
-    _data{{
-        {tuple_copy_init_str}
-    }}
+    {member_copy_init_str}
 {{
 {repeated_copy_fillers_str}
 }}
@@ -664,16 +642,15 @@ def create_cc(messages, enums, classes):
 }}
 
 /**
- * @brief enumerate all fields in the same order as protobuf indexes
- *
- * @return std::vector<variant>
+ * @brief convert object to the {pb_class_name} object
+ * 
  */
-std::vector<variant> {snake_name}::enumerate_fields() const {{
-  std::vector<variant> ret;
-  ret.reserve(std::tuple_size<data_type>::value);
-  {enumerate_field_str}
-  return ret;
+{pb_class_name} {snake_name}::to_protobuf() const {{
+    {pb_class_name} pb;
+    {to_protobuf_str}
+    return pb;
 }}
+
 
 /**
  * @brief update object with a protobuf object
@@ -698,17 +675,13 @@ bool {snake_name}::update(const {pb_class_name}& mess, const allocators& allocat
         used_class = add_class_and_dependencies(
             class_implementations, class_dependencies, classes)
 
-    enumerate_field_impl = []
     update_field_impl = []
     for pb_class_name in used_class:
         snake_name = camel_to_snake(pb_class_name)
-        enumerate_field_impl.append(f'''    case e_type::e_{snake_name}:
-      return static_cast<const {snake_name}&>(*this).enumerate_fields();''')
         update_field_impl.append(f'''    case e_type::e_{snake_name}:
       return static_cast<{snake_name}&>(*this).update(
           static_cast<const {pb_class_name}&>(mess), allocator);''')
 
-    enumerate_field_impl_str = "\n".join(enumerate_field_impl)
     update_field_impl_str = "\n".join(update_field_impl)
 
     cc = f'''/**
@@ -732,62 +705,40 @@ bool {snake_name}::update(const {pb_class_name}& mess, const allocators& allocat
 #include "com/centreon/broker/cache/protobuf.hh"
 
 using namespace com::centreon::broker::cache;
-
-/**
- * @brief macros used by enumerate_fields
- *
- */
-#define ADD_ENUMERATION_FIELD(field_name, field_index) \\
-  ret.emplace_back(field_name, std::get<field_index>(_data));
-
-#define ADD_ENUMERATION_STRING_FIELD(field_name, field_index) \\
-  ret.emplace_back(field_name, &std::get<field_index>(_data));
-
-#define ADD_ENUMERATION_MESS_FIELD(field_name, field_index) \\
-  ret.emplace_back(field_name, std::get<field_index>(_data).get());
-
-#define ADD_ENUMERATION_OPTIONAL_STRING_FIELD(field_name, field_index) \\
-  ret.emplace_back(field_name, std::get<field_index>(_data)            \\
-                       ? &*std::get<field_index>(_data)                \\
-                       : nullptr);
-
-#define ADD_ENUMERATION_OPTIONAL_MESS_FIELD(field_name, field_index) \\
-  ret.emplace_back(field_name, std::get<field_index>(_data)          \\
-                       ? &*std::get<field_index>(_data)              \\
-                       : nullptr);
+using namespace com::centreon::broker;
 
 /**
  * @brief following macros are used to update mapped object from protobuf ones
  *
  */
 #define UPDATE_FIELD(field)                \\
-  if (mutable_##field() != mess.field()) {{ \\
-    mutable_##field() = mess.field();      \\
+  if (_##field != mess.field()) {{          \\
+    _##field = mess.field();               \\
     updated = true;                        \\
   }}
 
-#define UPDATE_STRING_FIELD(field)                                         \\
-  if (mess.field().compare(mutable_##field().c_str())) {{                   \\
-    mutable_##field().resize(mess.field().length());                       \\
-    mutable_##field().assign(mess.field().c_str(), mess.field().length()); \\
-    updated = true;                                                        \\
+#define UPDATE_STRING_FIELD(field)                                \\
+  if (mess.field().compare(_##field.c_str())) {{                   \\
+    _##field.resize(mess.field().length());                       \\
+    _##field.assign(mess.field().c_str(), mess.field().length()); \\
+    updated = true;                                               \\
   }}
 
-#define UPDATE_MESS_FIELD(field)                            \\
-  if (mutable_##field()->update(mess.field(), allocator)) {{ \\
-    updated = true;                                         \\
+#define UPDATE_MESS_FIELD(field)                   \\
+  if (_##field->update(mess.field(), allocator)) {{ \\
+    updated = true;                                \\
   }}
 
-#define UPDATE_OPTIONAL_FIELD(field)                                   \\
-  if (mess.has_##field() && !mutable_##field()) {{                     \\
-    mutable_##field() = mess.field();                                  \\
-    updated = true;                                                    \\
-  }} else if (!mess.has_##field() && mutable_##field()) {{             \\
-    mutable_##field().reset();                                         \\
-    updated = true;                                                    \\
-  }} else if (mutable_##field() && mutable_##field() != mess.field()) {{ \\
-    mutable_##field() = mess.field();                                  \\
-    updated = true;                                                    \\
+#define UPDATE_OPTIONAL_FIELD(field)                      \\
+  if (mess.has_##field() && !_##field) {{                   \\
+    _##field = mess.field();                              \\
+    updated = true;                                       \\
+  }} else if (!mess.has_##field() && _##field) {{          \\
+    _##field.reset();                                     \\
+    updated = true;                                       \\
+  }} else if (_##field && _##field != mess.field()) {{      \\
+    _##field = mess.field();                              \\
+    updated = true;                                       \\
   }}
 
 #define UPDATE_OPTIONAL_STRING_FIELD(field)                                 \\
@@ -901,21 +852,6 @@ using namespace com::centreon::broker::cache;
     _char_alloc.get_segment_manager()->destroy_ptr( \\
         static_cast<mess_type*>(to_delete.get()));  \\
   }}
-
-/**
- * @brief enumerate all fields of object
- * As virtual methods are not allowed in mapped segment, we cast message to its
- * real type
- *
- * @return std::vector<variant> list of fields
- */
-std::vector<variant> message::enumerate_fields() const {{
-  switch (_type) {{
-{enumerate_field_impl_str}
-    default:
-      return {{}};
-  }}
-}}
 
 /**
  * @brief update a protobuf message from protobuf

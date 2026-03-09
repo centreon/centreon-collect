@@ -42,8 +42,19 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
     python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam 
-      Comment,AgentStats,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent 
+      Comment,AgentStats,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent,UnknownHost 
   VERBATIM)
+
+# add_custom_command(
+#   OUTPUT ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh
+#   COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
+#   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
+#   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+#   COMMAND
+#     python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam 
+#       Instance
+#   VERBATIM)
+
 
 set_target_properties("${CACHE_MOD}" PROPERTIES PREFIX ""
   POSITION_INDEPENDENT_CODE ON
