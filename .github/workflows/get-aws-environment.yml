@@ -1,0 +1,23 @@
+on:
+  workflow_call:
+    outputs:
+      aws_role_arn:
+        description: "the ARN of the IAM role used by the self-hosted runner"
+        value: ${{ jobs.get-environment.outputs.aws_role_arn }}
+      aws_web_identity_token_file:
+        description: "the location of the web identity token file used to assume the IAM role"
+        value: ${{ jobs.get-environment.outputs.aws_web_identity_token_file }}
+
+jobs:
+  get-environment:
+    runs-on: centreon-collect
+    outputs:
+      aws_role_arn: ${{ steps.get_aws_env.outputs.aws_role_arn }}
+      aws_web_identity_token_file: ${{ steps.get_aws_env.outputs.aws_web_identity_token_file }}
+
+    steps:
+      - name: Get runner's AWS environment variables
+        id: get_aws_env
+        run: |
+          echo "aws_role_arn=$AWS_ROLE_ARN" >> $GITHUB_OUTPUT
+          echo "aws_web_identity_token_file=$AWS_WEB_IDENTITY_TOKEN_FILE" >> $GITHUB_OUTPUT

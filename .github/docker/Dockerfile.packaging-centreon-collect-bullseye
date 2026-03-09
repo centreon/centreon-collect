@@ -19,7 +19,6 @@ apt-get update
 apt-get install -y ca-certificates
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
-echo 'deb http://deb.debian.org/debian bullseye-backports main contrib' | tee -a /etc/apt/sources.list
 
 apt-get update
 
@@ -34,9 +33,14 @@ apt-get install -y \
     unzip \
     wget \
     zip \
-    zstd
+    zstd \
+    libjsoncpp24 \
+    librhash0 \
+    libuv1
 
-apt-get install -y -t bullseye-backports cmake
+wget https://cmake.org/files/v3.25/cmake-3.25.3-linux-\$(arch).sh
+bash cmake-3.25.3-linux-\$(arch).sh --skip-license
+rm -f cmake-3.25.3-linux-\$(arch).sh
 
 apt-get clean
 
@@ -49,7 +53,6 @@ RUN bash -e <<EOF
 apt-get update
 
 apt-get install -y \
-    cmake \
     g++ \
     gcc \
     gdb \
@@ -91,6 +94,10 @@ if [ "${TRIPLET}" = "arm64-linux" ] ; then
 fi
 
 git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+
+#jobs have to share all cpus of the host but see all cpus
+#so, if we not limit concurrency, each job will start ntotal_cpu+1 gcc
+export VCPKG_MAX_CONCURRENCY=8
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg

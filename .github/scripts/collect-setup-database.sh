@@ -3,7 +3,6 @@ set -e
 set -x
 
 
-# mysql or mariadb
 database_type=$1
 
 . /etc/os-release
@@ -14,9 +13,14 @@ distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 if [ $database_type == 'mysql' ]; then
     echo "########################### Start MySQL ######################################"
     #workaround of forbidden execution of mysqld
-    cp /usr/libexec/mysqld /usr/libexec/mysqldtoto
-    /usr/libexec/mysqldtoto --user=root --initialize-insecure
-    /usr/libexec/mysqldtoto --user=root &
+    if [ -f /usr/libexec/mysqld ]; then
+      cp /usr/libexec/mysqld /usr/sbin/mysqldtoto
+    else
+      cp /usr/sbin/mysqld /usr/sbin/mysqldtoto
+    fi
+
+    /usr/sbin/mysqldtoto --user=root --initialize-insecure
+    /usr/sbin/mysqldtoto --user=root &
 
     while [ ! -S /var/lib/mysql/mysql.sock ] && [ ! -S /var/run/mysqld/mysqld.sock ]; do
         sleep 10

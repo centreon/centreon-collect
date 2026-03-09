@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Deliver asset to github release
-      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         FILE_PATTERN: ${{ inputs.file_pattern }}
         GITHUB_RELEASE: ${{ inputs.github_release }}
@@ -76,12 +76,17 @@ runs:
             core.info(`Asset ${fileName} uploaded to release ${githubRelease}`);
 
             if (process.env.TOKEN_DOWNLOAD_CENTREON_COM) {
-              const matches = fileName.match(/^([\w-]+)-(\d+\.\d+)\.(\d+).*\.(\w+)$/);
+              const matches = fileName.match(/^([\w-]+)(?:-|_)(\d+\.\d+)\.(\d+).*\.(\w+)$/);
               if (matches) {
                 const product = matches[1];
                 const majorVersion = matches[2];
                 const minorVersion = matches[3];
                 const extension = matches[4];
+
+                console.log("Product:", product);
+                console.log("Major Version:", majorVersion);
+                console.log("Minor Version:", minorVersion);
+                console.log("Extension:", extension);
 
                 const fileHash = require('crypto').createHash('md5').update(fs.readFileSync(file)).digest('hex');
                 const fileSize = fs.statSync(file).size;
@@ -105,12 +110,19 @@ runs:
                   }
                 }
 
+                let archSuffix = '';
+                if (fileName.includes('amd64') || fileName.includes('x86_64')) {
+                  archSuffix = '-amd64';
+                } else if (fileName.includes('arm64') || fileName.includes('aarch64')) {
+                  archSuffix = '-arm64';
+                }
+
                 const downloadUrl = new URL('https://download.centreon.com/api/');
                 const downloadParams = {
                   token: process.env.TOKEN_DOWNLOAD_CENTREON_COM,
                   product: product,
                   release: majorVersion,
-                  version: `${majorVersion}.${minorVersion}-${distribSuffix}`,
+                  version: `${majorVersion}.${minorVersion}${distribSuffix}${archSuffix}`,
                   extension: extension,
                   md5: fileHash,
                   size: fileSize,
