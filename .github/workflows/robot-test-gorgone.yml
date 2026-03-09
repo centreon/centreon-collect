@@ -1,0 +1,124 @@
+name: robot-test-gorgone
+
+on:
+  workflow_call:
+    inputs:
+      distrib:
+        required: true
+        type: string
+    secrets:
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+
+jobs:
+  robot-test-list:
+    runs-on: ubuntu-24.04
+    outputs:
+      features: ${{ steps.list-features.outputs.features }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: List features
+        id: list-features
+        run: |
+          cd gorgone/tests/robot/tests
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  robot-test-run:
+    needs: [robot-test-list]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
+
+    runs-on: ubuntu-24.04
+    name: ${{ matrix.feature }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ inputs.distrib }}
+
+      - name: Restore gorgone image from cache
+        id: cache-docker
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        continue-on-error: true
+        timeout-minutes: 6
+        with:
+          path: ./docker-image
+          key: docker-image-gorgone-testing-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+        env:
+          SEGMENT_DOWNLOAD_TIMEOUT_MINS: 5
+
+      - name: Load gorgone image
+        if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
+        run: |
+          docker load --input ./docker-image/gorgone-testing-${{ inputs.distrib }}.tar
+          docker tag gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+        shell: bash
+
+      - name: Replace / with - in the feature path
+        id: feature-path
+        if: always()
+        run: |
+          feature_name="${{ matrix.feature }}"
+          feature_name_with_dash="${feature_name//\//-}"
+          echo "Modified Feature Name: $feature_name_with_dash"
+          echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
+
+      - name: ${{ format('Test {0}', matrix.feature) }}
+        env:
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+          FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
+        run: |
+          docker compose -f ./.github/docker/docker-compose.yml up --exit-code-from gorgone
+        timeout-minutes: 30
+        shell: bash
+
+      - name: Get gorgone container logs
+        if: failure()
+        env:
+          GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+          FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
+        run: |
+          mkdir -p /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
+
+      - name: Upload gorgone and robot debug artifacts
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: gorgone-debug-${{ inputs.distrib }}-${{ steps.feature-path.outputs.feature_name_with_dash }}
+          path: |
+            /tmp/gorgone-debug
+          retention-days: 1
+
+  robot-test-report:
+    needs: [robot-test-run]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        if: ${{ contains(needs.robot-test-run.result, 'failure') }}
+        with:
+          name: gorgone-debug-${{ inputs.distrib }}
+          pattern: gorgone-debug-${{ inputs.distrib }}-*
+          retention-days: 1
+
+      - name: Delete merged artifacts
+        uses: geekyeggo/delete-artifact@f275313e70c08f6120db482d7a6b98377786765b # v5.1.0
+        with:
+          name: gorgone-debug-${{ inputs.distrib }}-*
+          failOnError: false

@@ -88,6 +88,9 @@ if [ "${TRIPLET}" = "arm64-linux" ] ; then
 fi
 
 git clone --depth 1 -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+#jobs have to share all cpus of the host but see all cpus
+#so, if we not limit concurrency, each job will start ntotal_cpu+1 gcc
+export VCPKG_MAX_CONCURRENCY=8
 ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
 
 export VCPKG_ROOT=/vcpkg

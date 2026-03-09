@@ -12,6 +12,7 @@ apt-get install -y --no-install-recommends tzdata
 
 apt-get -y install \
     curl \
+    dsniff \
     g++ \
     gcc \
     gdb \

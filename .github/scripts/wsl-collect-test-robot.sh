@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 test_file=$1
 
@@ -18,6 +17,15 @@ echo "${USED_ADDRESS}      ${HOST_NAME}" >> /etc/hosts
 echo "##### /etc/hosts: ######"
 cat /etc/hosts
 
+echo "########################### activate python virtual env ###########################"
+python3 -m venv /.venv
+source /.venv/bin/activate
+# Install Robotframework
+apt-get install -y python3 python3-dev python3-pip
+
+/.venv/bin/pip3 install -U robotframework robotframework-databaselibrary robotframework-examples robotframework-httpctrl robotframework-requests
+/.venv/bin/pip3 install pymysql python-dateutil grpcio grpcio_tools psutil PyJWT
+
 echo "##### Starting tests ##### with params: $JSON_TEST_PARAMS"
 cd tests
 ./init-proto.sh
@@ -25,12 +33,25 @@ cd tests
 echo "####################### Run Centreon Collect Robot Tests #######################"
 
 robot -e unstable $test_file
-
+result=$?
 echo "####################### End of Centreon Collect Robot Tests #######################"
 
-if [ -d failed ] ; then
-    echo "failure save logs in ${PWD}/../reports"
-    cp -rp failed ../reports/windows-cma-failed
-    cp log.html ../reports/windows-cma-log.html
-    cp output.xml ../reports/windows-cma-output.xml
+if [ $result -ne 0 ]; then
+    echo "Robot tests failed with exit code: $result"
+    mkdir -p failed
+    echo "Failure detected, saving logs in ${PWD}/../reports"
+    
+    # Create reports directory if it doesn't exist
+    mkdir -p ../reports
+    
+    # Copy logs if they exist
+    [ -d failed ] && cp -rp failed ../reports/windows-cma-failed
+    [ -f log.html ] && cp log.html ../reports/windows-cma-log.html
+    [ -f output.xml ] && cp output.xml ../reports/windows-cma-output.xml
+    [ -f report.html ] && cp report.html ../reports/windows-cma-report.html
+    
+    echo "Logs saved to ../reports/"
+    exit 1
+else
+    echo "All robot tests passed successfully"
 fi

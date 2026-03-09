@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-param($compile_ut="On")
+param($compile_ut="On",$compile_installer="Off")
 
 <#
 .SYNOPSIS
@@ -77,7 +77,7 @@ $writer.write($files_content -join " ")
 $writer.Flush()
 $stringAsStream.Position = 0
 $vcpkg_hash = Get-FileHash -InputStream $stringAsStream -Algorithm SHA256 | Select-Object Hash
-$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash + "-" + $vcpkg_release
+$file_name = "windows-agent-vcpkg-dependencies-cache-" + $vcpkg_hash.Hash
 $file_name_extension = "${file_name}.7z"
 
 #try to get compiled dependenciesfrom s3
@@ -113,9 +113,9 @@ else {
     Write-Host "Create cmake files from binary-cache downloaded without use vcpkg"
 }
 
-Write-Host "create CMake files with cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=$compile_ut -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -Bbuild_windows"
+Write-Host "create CMake files with cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=$compile_ut -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=$compile_installer -Bbuild_windows"
 
-cmake -DCMAKE_BUILD_TYPE=Release "-DWITH_TESTING=$compile_ut" -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF -Bbuild_windows
+cmake -DCMAKE_BUILD_TYPE=Release "-DWITH_TESTING=$compile_ut" -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=static -DVCPKG_LIBRARY_LINKAGE=static -DVCPKG_BUILD_TYPE=release -DBUILD_SHARED_LIBS=OFF "-DWITH_BUILD_AGENT_INSTALLER=$compile_installer" -Bbuild_windows
 
 #Write-Host "------------- vcpkg used compiler ---------------"
 #Get-Content "build_windows\vcpkg_installed\vcpkg\compiler-file-hash-cache.json"

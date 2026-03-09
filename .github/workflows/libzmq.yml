@@ -25,7 +25,11 @@ on:
       - "release-*"
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
 
   package-rpm:
@@ -68,7 +72,7 @@ jobs:
           mkdir -p /github/home/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
           cp libzmq-4.3.5/packaging/redhat/zeromq.spec /github/home/rpmbuild/SPECS/
           wget https://github.com/zeromq/libzmq/releases/download/v4.3.5/zeromq-4.3.5.tar.gz -O  /github/home/rpmbuild/SOURCES/zeromq-4.3.5.tar.gz
-          rpmbuild -bb /github/home/rpmbuild/SPECS/zeromq.spec
+          rpmbuild -bb --nocheck /github/home/rpmbuild/SPECS/zeromq.spec
           cd -
 
           mv /github/home/rpmbuild/RPMS/x86_64/*.rpm ./
@@ -76,10 +80,61 @@ jobs:
         shell: bash
 
       - name: cache rpm
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ./*.rpm
+          key: unsigned-${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
+
+  sign-rpm:
+    needs: [get-environment, package-rpm]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable'
+    runs-on: centreon-common
+    strategy:
+      matrix:
+        include:
+          - image: packaging-alma8
+            distrib: el8
+            arch: amd64
+          - image: packaging-alma9
+            distrib: el9
+            arch: amd64
+    name: sign rpm ${{ matrix.distrib }}
+    container:
+      image: docker.centreon.com/centreon-private/rpm-signing:latest
+      options: -t
+      credentials:
+        username: ${{ secrets.HARBOR_CENTREON_PRIVATE_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PRIVATE_TOKEN }}
+
+    steps:
+      - run: apt-get install -y zstd
+        shell: bash
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ./*.rpm
+          key: unsigned-${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
+
+      - run: echo "HOME=/root" >> $GITHUB_ENV
+        shell: bash
+
+      - run: rpmsign --addsign ./*.rpm
+        shell: bash
+
+      - uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: packages-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
 
   package-deb:
     needs: [get-environment]
@@ -112,7 +167,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Parse distrib name
         id: parse-distrib
@@ -137,23 +192,24 @@ jobs:
           ln -s packaging/debian
           sed -Ei 's/([0-9]+.[0-9]+.[0-9]+-[0-9]+.[0-9]+)/\1${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}/' debian/changelog
           sed -Ei 's/UNRELEASED/${{ matrix.distrib }}/' debian/changelog
-          dpkg-buildpackage -us -uc -nc
+          DEB_BUILD_OPTIONS=nocheck dpkg-buildpackage -us -uc -nc
           cd ..
 
           rm -f libzmq5-dbg_*.deb
         shell: bash
 
       - name: cache deb
-        uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ./*.deb
           key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
 
   deliver-rpm:
-    needs: [get-environment, package-rpm]
+    needs: [get-environment, sign-rpm]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
+      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -170,19 +226,21 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Publish RPM packages
-        uses: ./.github/actions/delivery
+        uses: ./.github/actions/rpm-delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
+          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb:
     needs: [get-environment, package-deb]
@@ -204,14 +262,14 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Publish DEB packages
-        uses: ./.github/actions/delivery
+        uses: ./.github/actions/deb-delivery
         with:
           module_name: libzmq
           distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
+          version: ${{ needs.get-environment.outputs.major_version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-libzmq-${{ matrix.distrib }}-${{ matrix.arch }}
           stability: ${{ needs.get-environment.outputs.stability }}
@@ -234,7 +292,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
