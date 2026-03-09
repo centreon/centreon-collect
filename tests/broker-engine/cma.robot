@@ -1181,6 +1181,68 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_MANY_AGENT
 
     [teardown]    Run Keywords     Ctn Kindly Stop Agent    ${2}     AND     Ctn Stop Engine Broker And Save Logs
 
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_SAN_IP
+    [Documentation]    Given an engine with an encrypted otel server using a self-signed cert
+    ...    whose CN does not match the hostname but has IP:127.0.0.1 and DNS:<hostname> in SAN,
+    ...    with minute_certificate_ttl triggering cert regeneration,
+    ...    the agent should connect successfully because SANs are copied to the generated cert.
+    [Tags]    broker    engine    opentelemetry    MON-195905    Only_linux
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    # Create a self-signed cert with CN=san-test (wrong) but SAN=DNS:<hostname>,IP:127.0.0.1
+    # Without the SAN copy fix, the generated cert would only have CN=san-test => peer verification fails
+    ${host_name}    Ctn Host Hostname
+    Run    openssl ecparam -genkey -name prime256v1 -noout -out /tmp/server_san.key
+    Run    openssl req -new -x509 -key /tmp/server_san.key -out /tmp/server_san.crt -days 1 -subj '/CN=xxxxx' -addext 'subjectAltName=DNS:${host_name},IP:127.0.0.1'
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_san.crt", "private_key": "/tmp/server_san.key"}, "centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+
+    ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${3600}
+    Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_san.crt    ${token}
+    Ctn Add Token Otl Server Module    0    ${token}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+    Sleep    1
+
+    # Agent must connect: the generated cert has SANs (DNS:<hostname>,IP:127.0.0.1) copied from the CA
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated - SAN was not copied to generated cert
+
 BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT
     [Documentation]    Given an engine with an encrypted otel server with one minute ttl, we expect that otel server
     ...    will restart after on minute, then we recreate certificates and otel server must restart also
