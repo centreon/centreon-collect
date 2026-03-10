@@ -61,6 +61,9 @@ on:
       collect_matrix:
         description: "matrix to use for collect jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.collect_matrix }}
+      package_matrix:
+        description: "matrix to use for package jobs (deduplicated by os+arch, no database dimension)"
+        value: ${{ jobs.get-environment.outputs.package_matrix }}
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
         value: ${{ jobs.get-environment.outputs.collect_robot_matrix }}
@@ -109,6 +112,7 @@ jobs:
       release_type: ${{ steps.get_release_type.outputs.release_type }}
       os_and_database_matrix: ${{ steps.get_os_database_matrix.outputs.result }}
       collect_matrix: ${{ steps.get_os_database_matrix.outputs.collect_matrix }}
+      package_matrix: ${{ steps.get_os_database_matrix.outputs.package_matrix }}
       collect_robot_matrix: ${{ steps.get_os_database_matrix.outputs.collect_robot_matrix }}
       cma_matrix: ${{ steps.get_os_database_matrix.outputs.cma_matrix }}
       cma_robot_matrix: ${{ steps.get_os_database_matrix.outputs.cma_robot_matrix }}
@@ -908,6 +912,10 @@ jobs:
 
             console.log('collectMatrix', collectMatrix);
             core.setOutput('collect_matrix', collectMatrix);
+
+            const packageMatrix = [...new Map(collectMatrix.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+            console.log('packageMatrix', packageMatrix);
+            core.setOutput('package_matrix', packageMatrix);
 
             console.log('cmaMatrix', cmaMatrix);
             core.setOutput('cma_matrix', cmaMatrix);

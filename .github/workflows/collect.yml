@@ -204,7 +204,8 @@ jobs:
     if: |
       needs.changes.outputs.trigger_unit_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable'
+      needs.get-environment.outputs.stability != 'stable' &&
+      ! github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
@@ -328,7 +329,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.collect_matrix) }}
+        include: ${{ fromJson(needs.get-environment.outputs.package_matrix) }}
 
     name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
