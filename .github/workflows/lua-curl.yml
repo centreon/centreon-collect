@@ -61,12 +61,25 @@ jobs:
             lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
+          - package_extension: rpm
+            image: packaging-centreon-collect-alma10
+            distrib: el10
+            lua_version: 5.4
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: deb
             image: packaging-centreon-collect-bookworm
             distrib: bookworm
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
+          - package_extension: deb
+            image: packaging-centreon-collect-trixie
+            distrib: trixie
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+
           # - package_extension: deb
           #   image: packaging-centreon-collect-ubuntu-jammy
           #   distrib: jammy
@@ -155,6 +168,8 @@ jobs:
         include:
           - distrib: el9
             arch: amd64
+          - distrib: el10
+            arch: amd64
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
@@ -190,6 +205,8 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: trixie
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -221,7 +238,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, bookworm]
+        distrib: [el9, el10, bookworm, trixie]
 
     steps:
       - name: Checkout sources
