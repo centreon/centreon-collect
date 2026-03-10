@@ -299,8 +299,7 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
                                unsigned minute_cert_ttl,
                                unsigned version,
                                const EVP_PKEY* ca_key,
-                               const X509* ca_cert,
-                               const X509* san_source_cert) {
+                               const X509* ca_cert) {
   X509* x509 = X509_new();
   X509_NAME* name;
 
@@ -318,6 +317,7 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
   // Issuer
   if (ca_cert) {
     X509_set_issuer_name(x509, X509_get_subject_name(ca_cert));
+    copy_subject_alt_name_extensions(ca_cert, x509);
   } else {
     X509_set_issuer_name(x509, name);  // auto-signé
     // Extension : Basic Constraints = CA:TRUE
@@ -328,7 +328,6 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
     X509_add_ext(x509, ext, -1);
     X509_EXTENSION_free(ext);
   }
-  copy_subject_alt_name_extensions(san_source_cert, x509);
 
   // Signature
   if (!X509_sign(x509, const_cast<EVP_PKEY*>(ca_key ? ca_key : pkey),
@@ -366,13 +365,12 @@ cert_tree::generate_self_signed_ca_key_pair(const name_entries& name_fields,
  */
 std::pair<X509* /*cert*/, EVP_PKEY* /*priv_key*/>
 cert_tree::generate_cert_key_pair(const name_entries& name_fields,
-                                  unsigned minute_cert_ttl,
-                                  const X509* san_source_cert) {
+                                  unsigned minute_cert_ttl) {
   std::unique_ptr<EVP_PKEY, decltype(&EVP_PKEY_free)> priv_key(
       generate_ec_key(), EVP_PKEY_free);
 
   X509* cert = generate_cert(priv_key.get(), name_fields, minute_cert_ttl,
-                             1 /*v2*/, _ca_priv_key, _ca, san_source_cert);
+                             1 /*v2*/, _ca_priv_key, _ca);
   return std::make_pair(cert, priv_key.release());
 }
 
