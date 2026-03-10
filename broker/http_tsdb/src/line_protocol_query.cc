@@ -536,9 +536,8 @@ void line_protocol_query::_get_service_id(io::data const& d,
 void line_protocol_query::_get_instance(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
-  cache::global_cache::upgrade_lock l;
   const cache::instance* inst =
-      cache::global_cache::instance_ptr()->get_instance(d.source_id, l);
+      cache::global_cache::instance_ptr()->get_instance(d.source_id);
   if (inst) {
     is << inst->name();
   }

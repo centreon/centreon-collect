@@ -17,7 +17,7 @@
  */
 
 #include "com/centreon/broker/lua/broker_cache.hh"
-// #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 // #include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -86,7 +86,10 @@ static int l_broker_cache_get_ba_v2(lua_State* L) {
     if (!dim_ba_event) {
       lua_pushnil(L);
     } else {
-      broker_event::create(L, dim_ba_event);
+      std::shared_ptr<bam::pb_dimension_ba_event> pb_dim_ba_event =
+          std::make_shared<bam::pb_dimension_ba_event>(
+              dim_ba_event->to_protobuf());
+      broker_event::create(L, pb_dim_ba_event);
     }
   }
   return 1;
@@ -142,7 +145,10 @@ static int l_broker_cache_get_bv_v2(lua_State* L) {
     if (!dim_bv_event) {
       lua_pushnil(L);
     } else {
-      broker_event::create(L, dim_bv_event);
+      std::shared_ptr<bam::pb_dimension_bv_event> pb_dim_bv_event =
+          std::make_shared<bam::pb_dimension_bv_event>(
+              dim_bv_event->to_protobuf());
+      broker_event::create(L, pb_dim_bv_event);
     }
   }
   return 1;
@@ -272,7 +278,8 @@ static int l_broker_cache_get_service_v1(lua_State* L) {
     const cache::service* serv =
         cache_instance->get_service(host_id, svc_id, l);
     if (serv) {
-      broker_event::create_as_table(L, serv);
+      broker_event::create_as_table(
+          L, neb::pb_service(std::move(serv->to_protobuf())));
     } else {
       lua_pushnil(L);
     }
@@ -291,7 +298,9 @@ static int l_broker_cache_get_service_v2(lua_State* L) {
     const cache::service* serv =
         cache_instance->get_service(host_id, svc_id, l);
     if (serv) {
-      broker_event::create(L, serv);
+      std::shared_ptr<neb::pb_service> pb_serv =
+          std::make_shared<neb::pb_service>(std::move(serv->to_protobuf()));
+      broker_event::create(L, pb_serv);
     } else {
       lua_pushnil(L);
     }
@@ -316,7 +325,9 @@ static int l_broker_cache_get_host_v1(lua_State* L) {
     cache::global_cache::upgrade_lock l(cache_instance);
     const cache::host* hst = cache_instance->get_host(host_id, l);
     if (hst) {
-      broker_event::create_as_table(L, hst);
+      neb::pb_host pb_hst(std::move(hst->to_protobuf()));
+      broker_event::create_as_table(
+          L, neb::pb_host(std::move(hst->to_protobuf())));
     } else {
       lua_pushnil(L);
     }
@@ -333,7 +344,9 @@ static int l_broker_cache_get_host_v2(lua_State* L) {
     cache::global_cache::upgrade_lock l(cache_instance);
     const cache::host* hst = cache_instance->get_host(host_id, l);
     if (hst) {
-      broker_event::create(L, hst);
+      std::shared_ptr<neb::pb_host> pb_hst =
+          std::make_shared<neb::pb_host>(std::move(hst->to_protobuf()));
+      broker_event::create(L, pb_hst);
     } else {
       lua_pushnil(L);
     }
@@ -769,6 +782,13 @@ static int32_t l_broker_cache_get_check_command(lua_State* L) {
  *  @return The Lua interpreter as a lua_State*
  */
 void broker_cache::broker_cache_reg(lua_State* L, uint32_t api_version) {
+  // only for backward compatibility in order to use broker_cache:get_... syntax
+  struct dummy {};
+  static dummy _dummy;
+  dummy const** udata(
+      static_cast<dummy const**>(lua_newuserdata(L, sizeof(dummy*))));
+  *udata = &_dummy;
+
   luaL_Reg s_broker_cache_regs[] = {
       {"__gc", l_broker_cache_destructor},
       {"get_ba", l_broker_cache_get_ba_v1},

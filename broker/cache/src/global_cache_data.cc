@@ -41,6 +41,7 @@
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "common/log_v2/log_v2.hh"
+#include "neb.pb.h"
 
 #define UPDATE_FIELD(field)                   \
   if (to_update.field() != in.field()) {      \
@@ -641,9 +642,26 @@ void global_cache_data::_process_pb_host_group_member(
 
   boost::unique_lock l(_protect);
   if (in.enabled()) {
-    if (_host_group_members
-            ->emplace(in.host_id(), in.hostgroup_id(), in.poller_id())
-            .second) {
+    bool dirty = false;
+    HostGroup hg;
+    hg.set_enabled(true);
+    hg.set_hostgroup_id(in.hostgroup_id());
+    hg.set_name(in.name());
+    hg.set_poller_id(in.poller_id());
+    auto hg_exist = _id_to_host_group->find(in.hostgroup_id());
+    if (hg_exist == _id_to_host_group->end()) {
+      host_group* to_insert =
+          _file->get_segment_manager()->construct<host_group>(
+              interprocess::anonymous_instance)(hg, *_allocators);
+      _id_to_host_group->emplace(in.hostgroup_id(), to_insert);
+      dirty = true;
+    } else {
+      dirty = hg_exist->second->update(hg, *_allocators);
+    }
+    dirty |= _host_group_members
+                 ->emplace(in.host_id(), in.hostgroup_id(), in.poller_id())
+                 .second;
+    if (dirty) {
       _set_dirty_and_increment_modif();
     }
   } else {
@@ -954,19 +972,36 @@ void global_cache_data::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(
-      _logger,
-      "cache: processing pb host group member (group_name: '{}', group_id: {}, "
-      "host_id: {}, service_id: {} poller_id: {}, enabled: {})",
-      in.name(), in.servicegroup_id(), in.host_id(), in.service_id(),
-      in.poller_id(), in.enabled());
+  SPDLOG_LOGGER_DEBUG(_logger,
+                      "cache: processing pb service group member (group_name: "
+                      "'{}', group_id: {}, "
+                      "host_id: {}, service_id: {} poller_id: {}, enabled: {})",
+                      in.name(), in.servicegroup_id(), in.host_id(),
+                      in.service_id(), in.poller_id(), in.enabled());
 
   boost::unique_lock l(_protect);
   if (in.enabled()) {
-    if (_service_group_members
-            ->emplace(in.host_id(), in.service_id(), in.servicegroup_id(),
-                      in.poller_id())
-            .second) {
+    bool dirty = false;
+    ServiceGroup sg;
+    sg.set_enabled(true);
+    sg.set_servicegroup_id(in.servicegroup_id());
+    sg.set_name(in.name());
+    sg.set_poller_id(in.poller_id());
+    auto sg_exist = _id_to_serv_group->find(in.servicegroup_id());
+    if (sg_exist == _id_to_serv_group->end()) {
+      service_group* to_insert =
+          _file->get_segment_manager()->construct<service_group>(
+              interprocess::anonymous_instance)(sg, *_allocators);
+      _id_to_serv_group->emplace(in.servicegroup_id(), to_insert);
+      dirty = true;
+    } else {
+      dirty = sg_exist->second->update(sg, *_allocators);
+    }
+    dirty |= _service_group_members
+                 ->emplace(in.host_id(), in.service_id(), in.servicegroup_id(),
+                           in.poller_id())
+                 .second;
+    if (dirty) {
       _set_dirty_and_increment_modif();
     }
   } else {
@@ -1114,11 +1149,9 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
                       in.ba_id(), in.bv_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_dimension_ba_bv_relation->find(in.ba_id());
-  if (exist == _id_to_dimension_ba_bv_relation->end()) {
+  if (exist == _id_to_dimension_ba_bv_relation->end() ||
+      exist->second != in.bv_id()) {
     _id_to_dimension_ba_bv_relation->emplace(in.ba_id(), in.bv_id());
-    _set_dirty_and_increment_modif();
-  } else if (exist->second != in.bv_id()) {
-    exist->second = in.bv_id();
     _set_dirty_and_increment_modif();
   }
 }
@@ -1632,6 +1665,7 @@ void global_cache_data::enumerate_host_group(
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
     _conf_cache->enumerate_host_group(host_id, std::move(enumerator));
+    return;
   }
   auto group_member_search = _host_group_members->get<2>().equal_range(host_id);
   for (; group_member_search.first != group_member_search.second;
@@ -1658,15 +1692,18 @@ void global_cache_data::enumerate_service_group(
   if (_cache_type == e_cache_type::real_time &&
       _conf_cache) {  // pure conf => we search in conf cache
     lock l(_conf_cache.get());
-    _conf_cache->enumerate_host_group(host_id, std::move(enumerator));
+    _conf_cache->enumerate_service_group(host_id, service_id,
+                                         std::move(enumerator));
+    return;
   }
+
   auto group_member_search = _service_group_members->get<2>().equal_range(
       std::make_pair(host_id, service_id));
   for (; group_member_search.first != group_member_search.second;
        ++group_member_search.first) {
     auto grp_search =
-        _id_to_host_group->find(group_member_search.first->group_id);
-    if (grp_search != _id_to_host_group->end()) {
+        _id_to_serv_group->find(group_member_search.first->group_id);
+    if (grp_search != _id_to_serv_group->end()) {
       enumerator(grp_search->first, grp_search->second->name());
     }
   }

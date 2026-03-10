@@ -146,6 +146,8 @@ def parse_proto_file(filepath):
     Parse a complete .proto file.
 
     Reads the file, removes comments, and extracts all message and enum definitions.
+    Enums defined inside a message are prefixed with the message name followed by an
+    underscore (e.g. an enum ``Status`` inside message ``Host`` becomes ``Host_Status``).
 
     Args:
         filepath (str): Path to the .proto file
@@ -158,7 +160,33 @@ def parse_proto_file(filepath):
 
     messages = extract_blocks(text, "message")
 
-    enums = extract_blocks(text, "enum")
+    # Build a masked copy of the text where every message block is replaced with
+    # spaces so that only top-level enums remain visible.
+    masked = list(text)
+    msg_pattern = re.compile(r'\bmessage\s+\w+\s*\{', re.MULTILINE)
+    for match in msg_pattern.finditer(text):
+        start = match.end()
+        brace_count = 1
+        i = start
+        while i < len(text) and brace_count > 0:
+            if text[i] == '{':
+                brace_count += 1
+            elif text[i] == '}':
+                brace_count -= 1
+            i += 1
+        # Blank out the full message block (header + body) so that enum
+        # patterns inside it are invisible when scanning for top-level enums.
+        for j in range(match.start(), i):
+            masked[j] = ' '
+    masked_text = ''.join(masked)
+
+    # Top-level enums (outside any message)
+    enums = extract_blocks(masked_text, "enum")
+
+    # Enums nested inside messages: prefix with "<MessageName>_"
+    for msg_name, msg_body in messages:
+        for enum_name, enum_body in extract_blocks(msg_body, "enum"):
+            enums.append((f"{msg_name}_{enum_name}", enum_body))
 
     return enums, messages
 
@@ -287,7 +315,8 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
                 elif type in ["double", "float", "string", "bool"]:
                     cpp_type = f'std::optional<{type}>'
                 else:
-                    if type in enums:  # convert all enums to int32
+                    # convert all enums to int32
+                    if type in enums or f"{pb_class_name}_{type}" in enums:
                         cpp_type = "std::optional<int32_t>"
                     if type in messages:
                         ccp_type = "message::pointer"
@@ -299,7 +328,8 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "string", "bool"]:
                     cpp_type = f"{type}_vect"
                 else:
-                    if type in enums:  # convert all enums to int32
+                    # convert all enums to int32
+                    if type in enums or f"{pb_class_name}_{type}" in enums:
                         cpp_type = "int32_vect"
                     elif type in messages:
                         cpp_type = "mess_vect"
@@ -312,7 +342,8 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
                 elif type in ["double", "float", "string", "bool"]:
                     cpp_type = type
                 else:
-                    if type in enums:  # convert all enums to int32
+                    # convert all enums to int32
+                    if type in enums or f"{pb_class_name}_{type}" in enums:
                         cpp_type = "int32_t"
                     if type in messages:
                         cpp_type = "message::pointer"
@@ -493,12 +524,17 @@ def create_cc(messages, enums, classes):
                         f"UPDATE_OPTIONAL_STRING_FIELD({name})")
                     field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(std::string(_{name}->c_str(), _{name}->length())); }}"
                 else:
-                    if type in enums:  # convert all enums to int32
+                    enum_type = ""
+                    if f"{pb_class_name}_{type}" in enums:
+                        enum_type = f"{pb_class_name}_{type}"
+                    elif (type in enums):
+                        enum_type = type
+                    if len(enum_type) > 0:  # convert all enums to int32
                         field_member_init = f"_{name}(src.has_{name}()?std::optional<int32_t>(src.{name}()):std::optional<int32_t>())"
                         field_member_copy_init = f"_{name}(src.{name}())"
                         update_fields.append(
                             f"UPDATE_OPTIONAL_FIELD({name})")
-                        field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(static_cast<{type}>(*_{name})); }}"
+                        field_to_protobuf_init = f"if (_{name}) {{ pb.set_{name}(static_cast<{enum_type}>(*_{name})); }}"
                     if type in messages:
                         field_member_init = f"_{name}(src.has_{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator):nullptr)"
                         field_member_copy_init = f"_{name}(src.{name}()?allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)} &>(*src.{name}()), allocator):nullptr)"
@@ -519,7 +555,9 @@ def create_cc(messages, enums, classes):
         _{name}.push_back(value);
     }}''')
                     update_fields.append(f"UPDATE_REPEATED_FIELD({name})")
-                    field_to_protobuf_init = f"pb.add_{name}(_{name});"
+                    field_to_protobuf_init = f"""for (const auto & value: _{name}) {{
+    pb.add_{name}(value);
+}}"""
                 elif type == "string":
                     field_member_init = f"_{name}(allocator.string_alloc)"
                     field_member_copy_init = f"_{name}(allocator.string_alloc)"
@@ -533,14 +571,23 @@ def create_cc(messages, enums, classes):
     }}''')
                     update_fields.append(
                         f"UPDATE_REPEATED_STRING_FIELD({name})")
-                    field_to_protobuf_init = f"pb.add_{name}(std::string(_{name}->c_str(), _{name}->length()));"
+                    field_to_protobuf_init = f"""for (const auto & value: _{name}) {{
+        pb.add_{name}(std::string(value.c_str(), value.length()));
+    }}"""
                 else:
-                    if type in enums:  # convert all enums to int32
+                    enum_type = ""
+                    if f"{pb_class_name}_{type}" in enums:
+                        enum_type = f"{pb_class_name}_{type}"
+                    elif (type in enums):
+                        enum_type = type
+                    if len(enum_type) > 0:  # convert all enums to int32
                         field_member_init = f"_{name}(allocator.int32_alloc)"
                         field_member_copy_init = f"_{name}(allocator.int32_alloc)"
                         update_fields.append(
                             f"UPDATE_REPEATED_FIELD({name})")
-                        field_to_protobuf_init = f"pb.add_{name}(static_cast<{type}>(_{name}));"
+                        field_to_protobuf_init = f"""for (const auto & value: _{name}) {{
+        pb.add_{name}(static_cast<{enum_type}>(value));
+    }}"""
                     elif type in messages:
                         field_member_init = f"_{name}(allocator.message_alloc)"
                         field_member_copy_init = f"_{name}(allocator.message_alloc)"
@@ -562,8 +609,8 @@ def create_cc(messages, enums, classes):
                         update_fields.append(
                             f"UPDATE_REPEATED_MESS_FIELD({camel_to_snake(type)}, {name})")
                         field_to_protobuf_init = f"""for (const auto & mess : _{name}) {{
-    *pb.add_{name}() = static_cast<const {camel_to_snake(type)}&>(*mess).to_protobuf();
-}}
+        *pb.add_{name}() = static_cast<const {camel_to_snake(type)}&>(*mess).to_protobuf();
+    }}
 """
             else:
                 if type in ["int32", "uint32", "int64", "uint64", "double", "float", "bool"]:
@@ -577,11 +624,16 @@ def create_cc(messages, enums, classes):
                     update_fields.append(f"UPDATE_STRING_FIELD({name})")
                     field_to_protobuf_init = f"pb.set_{name}(std::string(_{name}.c_str(), _{name}.length()));"
                 else:
-                    if type in enums:  # convert all enums to int32
+                    enum_type = ""
+                    if f"{pb_class_name}_{type}" in enums:
+                        enum_type = f"{pb_class_name}_{type}"
+                    elif (type in enums):
+                        enum_type = type
+                    if len(enum_type) > 0:  # convert all enums to int32
                         field_member_init = f"_{name}(src.{name}())"
                         field_member_copy_init = f"_{name}(src.{name}())"
                         update_fields.append(f"UPDATE_FIELD({name})")
-                        field_to_protobuf_init = f"pb.set_{name}(static_cast<{type}>(_{name}));"
+                        field_to_protobuf_init = f"pb.set_{name}(static_cast<{enum_type}>(_{name}));"
                     if type in messages:
                         field_member_init = f"_{name}(allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(src.{name}(), allocator))"
                         field_member_copy_init = f"_{name}(allocator.segm_manager->construct<{camel_to_snake(type)}>(interprocess::anonymous_instance)(static_cast<const {camel_to_snake(type)}&>(*src.{name}()), allocator))"

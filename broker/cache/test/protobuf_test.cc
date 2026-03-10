@@ -142,7 +142,7 @@ AgentInfo create_random_agent_info() {
   }                                \
   EXPECT_EQ(val1, val2);
 
-std::string to_string(const string& src) {
+static std::string to_string(const com::centreon::broker::cache::string& src) {
   return std::string(src.c_str(), src.length());
 }
 

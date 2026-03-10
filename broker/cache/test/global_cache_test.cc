@@ -30,7 +30,9 @@
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-extern std::string to_string(const com::centreon::broker::cache::string& src);
+static std::string to_string(const com::centreon::broker::cache::string& src) {
+  return std::string(src.c_str(), src.length());
+}
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::cache;
@@ -111,32 +113,36 @@ TEST_F(global_cache_test, CanBeMoved) {
   fill(0, 1000);
 
   auto check_data = [&](unsigned index_min, unsigned index_max) {
-    global_cache::upgrade_lock l;
     for (unsigned ii = index_min; ii < index_max; ++ii) {
-      auto inst = obj->get_instance(ii, l);
+      auto inst = obj->get_instance(ii);
       ASSERT_TRUE(inst);
       ASSERT_EQ(fmt::format("instance_{}", ii), to_string(inst->name()));
-
-      auto hst = obj->get_host(ii, l);
-      ASSERT_TRUE(hst);
-      ASSERT_EQ(fmt::format("host_{}", ii), to_string(hst->name()));
-      ASSERT_EQ(fmt::format("host_check_command {}", ii),
-                to_string(hst->check_command()));
-      ASSERT_EQ(fmt::format("host_check_command_output {}", ii),
-                to_string(hst->output()));
-      ASSERT_EQ(obj->get_severity(ii, 0), 1);
-      auto serv = obj->get_service(ii, ii + 1, l);
-      ASSERT_TRUE(serv);
-      ASSERT_EQ(fmt::format("service_{}", ii + 1),
-                to_string(serv->description()));
-      ASSERT_EQ(fmt::format("service_check_command {}", ii + 1),
-                to_string(serv->check_command()));
-      ASSERT_EQ(fmt::format("service_check_command_output {}", ii + 1),
-                to_string(serv->output()));
-      ASSERT_EQ(obj->get_severity(ii, ii + 1), 2);
-      auto host_serv_id = obj->get_host_serv_id(ii + 2);
-      ASSERT_TRUE(host_serv_id);
-      ASSERT_EQ(obj->get_index_id_from_metric_id(ii), ii + 1);
+      {
+        global_cache::upgrade_lock l;
+        auto hst = obj->get_host(ii, l);
+        ASSERT_TRUE(hst);
+        ASSERT_EQ(fmt::format("host_{}", ii), to_string(hst->name()));
+        ASSERT_EQ(fmt::format("host_check_command {}", ii),
+                  to_string(hst->check_command()));
+        ASSERT_EQ(fmt::format("host_check_command_output {}", ii),
+                  to_string(hst->output()));
+        ASSERT_EQ(obj->get_severity(ii, 0), 1);
+      }
+      {
+        global_cache::upgrade_lock l;
+        auto serv = obj->get_service(ii, ii + 1, l);
+        ASSERT_TRUE(serv);
+        ASSERT_EQ(fmt::format("service_{}", ii + 1),
+                  to_string(serv->description()));
+        ASSERT_EQ(fmt::format("service_check_command {}", ii + 1),
+                  to_string(serv->check_command()));
+        ASSERT_EQ(fmt::format("service_check_command_output {}", ii + 1),
+                  to_string(serv->output()));
+        ASSERT_EQ(obj->get_severity(ii, ii + 1), 2);
+        auto host_serv_id = obj->get_host_serv_id(ii + 2);
+        ASSERT_TRUE(host_serv_id);
+        ASSERT_EQ(obj->get_index_id_from_metric_id(ii), ii + 1);
+      }
     }
   };
 
@@ -524,8 +530,6 @@ TEST_F(global_cache_test, Huge) {
   global_cache::pointer obj =
       global_cache::load(g_io_context, "/tmp/cache_test");
 
-  global_cache::upgrade_lock l(obj);
-
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "begin construct cache");
   // 10000 hosts with 30 services with 20 metrics
@@ -579,6 +583,7 @@ TEST_F(global_cache_test, Huge) {
     ASSERT_NE(index_id, 0);
     const host_serv_pair* hst_serv_id = obj->get_host_serv_id(index_id);
     ASSERT_TRUE(hst_serv_id);
+    global_cache::upgrade_lock l(obj);
     auto hst = obj->get_host(hst_serv_id->first, l);
     ASSERT_TRUE(hst);
     auto srv = obj->get_service(hst_serv_id->first, hst_serv_id->second, l);

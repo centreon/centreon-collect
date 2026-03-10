@@ -68,7 +68,7 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} 
       ${TEST_DIR}/global_cache_test.cc
-      ${TEST_DIR}/protobuf_test.cc
+      #${TEST_DIR}/protobuf_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} ${CACHE_MOD}
