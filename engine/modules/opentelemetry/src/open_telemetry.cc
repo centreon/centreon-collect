@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include <openssl/x509v3.h>
 #include "centreon_agent/agent_service.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/common/http/https_connection.hh"
