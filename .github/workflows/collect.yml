@@ -530,6 +530,8 @@ jobs:
         include:
           - distrib: el9
             arch: amd64
+          - distrib: el10
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -572,6 +574,10 @@ jobs:
             arch: amd64
           - distrib: bookworm
             arch: arm64
+          - distrib: trixie
+            arch: amd64
+          - distrib: trixie
+            arch: arm64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -605,7 +611,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9, bookworm]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
