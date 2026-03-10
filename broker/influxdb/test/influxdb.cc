@@ -49,8 +49,8 @@ class InfluxDB12 : public testing::Test {
 TEST_F(InfluxDB12, BadConnection) {
   std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   ASSERT_THROW(
       influxdb::influxdb idb("centreon", "pass", "localhost", 4243, "centreon",
@@ -62,8 +62,8 @@ TEST_F(InfluxDB12, BadConnection) {
 TEST_F(InfluxDB12, Empty) {
   std::shared_ptr<persistent_cache> cache;
   influxdb::macro_cache mcache{cache};
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
@@ -78,25 +78,25 @@ TEST_F(InfluxDB12, Simple) {
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
-  std::vector<influxdb::column> mcolumns;
+  std::vector<http_tsdb::column> mcolumns;
   mcolumns.push_back(
-      influxdb::column{"mhost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"mhost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"mhost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"mhost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"most2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"most2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"most3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"most3", "43.0", true, http_tsdb::column::number});
 
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> scolumns;
   mcolumns.push_back(
-      influxdb::column{"shost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"shost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"shost3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"shost3", "43.0", true, http_tsdb::column::number});
 
   influxdb::influxdb idb("centreon", "pass", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
@@ -143,8 +143,8 @@ TEST_F(InfluxDB12, BadServerResponse1) {
   influxdb::macro_cache mcache{cache};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   influxdb::influxdb idb("centreon", "fail1", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,
@@ -193,25 +193,25 @@ TEST_F(InfluxDB12, BadServerResponse2) {
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
-  std::vector<influxdb::column> mcolumns;
+  std::vector<http_tsdb::column> mcolumns;
   mcolumns.push_back(
-      influxdb::column{"mhost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"mhost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"mhost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"mhost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"most2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"most2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"most3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"most3", "43.0", true, http_tsdb::column::number});
 
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> scolumns;
   mcolumns.push_back(
-      influxdb::column{"shost1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"shost1", "42.0", true, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::number});
   mcolumns.push_back(
-      influxdb::column{"shost2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"shost2", "42.0", false, http_tsdb::column::string});
   mcolumns.push_back(
-      influxdb::column{"shost3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"shost3", "43.0", true, http_tsdb::column::number});
 
   influxdb::influxdb idb("centreon", "fail2", "localhost", 4242, "centreon",
                          "host_status", scolumns, "host_metrics", mcolumns,

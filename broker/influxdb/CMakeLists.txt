@@ -23,7 +23,8 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/influxdb/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
   ${CMAKE_BINARY_DIR}/common/process_stat
-  ${PROJECT_SOURCE_DIR}/storage/inc)
+  ${PROJECT_SOURCE_DIR}/storage/inc
+  ${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/influxdb")
 
 # INFLUXDB module.
@@ -34,7 +35,6 @@ set(INFLUXDB
 add_library(
   "${INFLUXDB}" SHARED
   # Sources.
-  "${SRC_DIR}/column.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/influxdb.cc"
@@ -43,7 +43,6 @@ add_library(
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
-  "${INC_DIR}/column.hh"
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/influxdb.hh"
@@ -62,8 +61,10 @@ add_dependencies("${INFLUXDB}" nebbase process_stat)
 # Testing.
 if(WITH_TESTING)
   set(TESTS_SOURCES
-      ${TESTS_SOURCES} ${TEST_DIR}/column.cc ${TEST_DIR}/factory.cc
-      ${TEST_DIR}/influxdb.cc ${TEST_DIR}/line_protocol_query.cc
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/factory.cc
+      ${TEST_DIR}/influxdb.cc 
+      ${TEST_DIR}/line_protocol_query.cc
       ${TEST_DIR}/stream.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES

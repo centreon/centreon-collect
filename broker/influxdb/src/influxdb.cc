@@ -38,9 +38,9 @@ influxdb::influxdb(std::string const& user,
                    unsigned short port,
                    std::string const& db,
                    std::string const& status_ts,
-                   std::vector<column> const& status_cols,
+                   std::vector<http_tsdb::column> const& status_cols,
                    std::string const& metric_ts,
-                   std::vector<column> const& metric_cols,
+                   std::vector<http_tsdb::column> const& metric_cols,
                    macro_cache const& cache,
                    const std::shared_ptr<spdlog::logger>& logger)
     : _socket{_io_context},
@@ -248,13 +248,14 @@ bool influxdb::_check_answer_string(std::string const& ans,
  *  @param[in] metric_ts    Name of the timeseries metric.
  *  @param[in] metric_cols  Column for the metrics.
  */
-void influxdb::_create_queries(std::string const& user,
-                               std::string const& passwd,
-                               std::string const& db,
-                               std::string const& status_ts,
-                               std::vector<column> const& status_cols,
-                               std::string const& metric_ts,
-                               std::vector<column> const& metric_cols) {
+void influxdb::_create_queries(
+    std::string const& user,
+    std::string const& passwd,
+    std::string const& db,
+    std::string const& status_ts,
+    std::vector<http_tsdb::column> const& status_cols,
+    std::string const& metric_ts,
+    std::vector<http_tsdb::column> const& metric_cols) {
   // Create POST HTTP header.
   std::string base_url;
   base_url.append("/write?u=")

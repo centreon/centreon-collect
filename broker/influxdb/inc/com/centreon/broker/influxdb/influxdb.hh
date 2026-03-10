@@ -38,9 +38,9 @@ class influxdb {
            uint16_t port,
            std::string const& db,
            std::string const& status_ts,
-           std::vector<column> const& status_cols,
+           std::vector<http_tsdb::column> const& status_cols,
            std::string const& metric_ts,
-           std::vector<column> const& metric_cols,
+           std::vector<http_tsdb::column> const& metric_cols,
            macro_cache const& cache,
            const std::shared_ptr<spdlog::logger>& logger);
 
@@ -84,9 +84,9 @@ class influxdb {
                        std::string const& passwd,
                        std::string const& db,
                        std::string const& status_ts,
-                       std::vector<column> const& status_cols,
+                       std::vector<http_tsdb::column> const& status_cols,
                        std::string const& metric_ts,
-                       std::vector<column> const& metric_cols);
+                       std::vector<http_tsdb::column> const& metric_cols);
 };
 }  // namespace com::centreon::broker::influxdb
 

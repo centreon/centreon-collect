@@ -55,7 +55,7 @@ TEST(InfluxDBLineProtoQuery, EscapeValue) {
 
 TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
   influxdb::line_protocol_query lpq1;
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   influxdb::line_protocol_query lpq2(
@@ -70,7 +70,7 @@ TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
 }
 
 TEST(InfluxDBLineProtoQuery, GenerateMetric) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_metric pb_m1, pb_m2, pb_m3;
@@ -106,13 +106,13 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   m3.set_value_type(Metric::GAUGE);
 
   columns.push_back(
-      influxdb::column{"host1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"host1", "42.0", true, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::string});
   columns.push_back(
-      influxdb::column{"host3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"host3", "43.0", true, http_tsdb::column::number});
 
   influxdb::line_protocol_query lpq(
       "test", columns, influxdb::line_protocol_query::metric, cache);
@@ -126,7 +126,7 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
 }
 
 TEST(InfluxDBLineProtoQuery, ComplexMetric) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
@@ -149,13 +149,13 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   auto index_map{std::make_shared<storage::pb_index_mapping>()};
 
   columns.push_back(
-      influxdb::column{"host1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"host1", "42.0", true, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::string});
   columns.push_back(
-      influxdb::column{"host3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"host3", "43.0", true, http_tsdb::column::number});
 
   m.source_id = 3;
 
@@ -194,7 +194,7 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
 }
 
 TEST(InfluxDBLineProtoQuery, ComplexStatus) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_status s;
@@ -215,13 +215,13 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
       std::make_shared<storage::index_mapping>()};
 
   columns.push_back(
-      influxdb::column{"host1", "42.0", true, influxdb::column::number});
+      http_tsdb::column{"host1", "42.0", true, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::number});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::number});
   columns.push_back(
-      influxdb::column{"host2", "42.0", false, influxdb::column::string});
+      http_tsdb::column{"host2", "42.0", false, http_tsdb::column::string});
   columns.push_back(
-      influxdb::column{"host3", "43.0", true, influxdb::column::number});
+      http_tsdb::column{"host3", "43.0", true, http_tsdb::column::number});
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -258,7 +258,7 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
 }
 
 TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
@@ -278,10 +278,10 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   auto metric_map{std::make_shared<storage::metric_mapping>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
-  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
-  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
-  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
+  columns.emplace_back("host1", "42.0", true, http_tsdb::column::number);
+  columns.emplace_back("host2", "42.0", false, http_tsdb::column::number);
+  columns.emplace_back("host2", "42.0", false, http_tsdb::column::string);
+  columns.emplace_back("host3", "43.0", true, http_tsdb::column::number);
 
   m.source_id = 3;
 
@@ -318,7 +318,7 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
 }
 
 TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_status s;
@@ -336,10 +336,10 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   auto instance{std::make_shared<neb::pb_instance>()};
   auto index_map{std::make_shared<storage::index_mapping>()};
 
-  columns.emplace_back("host1", "42.0", true, influxdb::column::number);
-  columns.emplace_back("host2", "42.0", false, influxdb::column::number);
-  columns.emplace_back("host2", "42.0", false, influxdb::column::string);
-  columns.emplace_back("host3", "43.0", true, influxdb::column::number);
+  columns.emplace_back("host1", "42.0", true, http_tsdb::column::number);
+  columns.emplace_back("host2", "42.0", false, http_tsdb::column::number);
+  columns.emplace_back("host2", "42.0", false, http_tsdb::column::string);
+  columns.emplace_back("host3", "43.0", true, http_tsdb::column::number);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
@@ -376,7 +376,7 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
 }
 
 TEST(InfluxDBLineProtoQuery, Except) {
-  std::vector<influxdb::column> columns;
+  std::vector<http_tsdb::column> columns;
   std::shared_ptr<persistent_cache> pcache;
   influxdb::macro_cache cache(pcache);
   storage::pb_metric m;

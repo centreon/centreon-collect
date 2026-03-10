@@ -45,8 +45,8 @@ class InfluxDBStream : public testing::Test {
 
 TEST_F(InfluxDBStream, BadPort) {
   std::shared_ptr<persistent_cache> cache;
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
 
   ASSERT_THROW(influxdb::stream st("centreon", "pass", "localhost", 4243,
                                    "centreon", 3, "host_status", scolumns,
@@ -56,8 +56,8 @@ TEST_F(InfluxDBStream, BadPort) {
 
 TEST_F(InfluxDBStream, Read) {
   std::shared_ptr<persistent_cache> cache;
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 3,
                       "host_status", scolumns, "host_metrics", mcolumns, cache);
@@ -72,8 +72,8 @@ TEST_F(InfluxDBStream, Write) {
       pb_m2 = std::make_shared<storage::pb_metric>(),
       pb_m3 = std::make_shared<storage::pb_metric>();
   Metric &m1 = pb_m1->mut_obj(), &m2 = pb_m2->mut_obj(), &m3 = pb_m3->mut_obj();
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 3,
                       "host_status", scolumns, "host_metrics", mcolumns, cache);
@@ -119,8 +119,8 @@ TEST_F(InfluxDBStream, Flush) {
       pb_m2 = std::make_shared<storage::pb_metric>(),
       pb_m3 = std::make_shared<storage::pb_metric>();
   Metric &m1 = pb_m1->mut_obj(), &m2 = pb_m2->mut_obj(), &m3 = pb_m3->mut_obj();
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
                       "host_status", scolumns, "host_metrics", mcolumns, cache);
@@ -164,8 +164,8 @@ TEST_F(InfluxDBStream, Flush) {
 
 TEST_F(InfluxDBStream, NullData) {
   std::shared_ptr<persistent_cache> cache;
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
                       "host_status", scolumns, "host_metrics", mcolumns, cache);
@@ -180,8 +180,8 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
       d1 = std::make_shared<storage::pb_status>(),
       d2 = std::make_shared<storage::pb_status>(),
       d3 = std::make_shared<storage::pb_status>();
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::stream st("centreon", "pass", "localhost", 4242, "centreon", 9,
                       "host_status", scolumns, "host_metrics", mcolumns, cache);
@@ -224,8 +224,8 @@ TEST_F(InfluxDBStream, FlushStatusOK) {
 
 TEST_F(InfluxDBStream, StatsAndConnector) {
   std::shared_ptr<persistent_cache> cache;
-  std::vector<influxdb::column> mcolumns;
-  std::vector<influxdb::column> scolumns;
+  std::vector<http_tsdb::column> mcolumns;
+  std::vector<http_tsdb::column> scolumns;
   std::shared_ptr<io::data> data;
   influxdb::connector con;
   con.connect_to("centreon", "pass", "localhost", 4242, "centreon", 3,

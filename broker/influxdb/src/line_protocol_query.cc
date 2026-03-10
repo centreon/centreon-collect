@@ -40,10 +40,11 @@ line_protocol_query::line_protocol_query()
  *  @param[in] type        Query type (metric or status).
  *  @param[in] cache       Macro cache.
  */
-line_protocol_query::line_protocol_query(std::string const& timeseries,
-                                         std::vector<column> const& columns,
-                                         data_type type,
-                                         macro_cache const& cache)
+line_protocol_query::line_protocol_query(
+    std::string const& timeseries,
+    std::vector<http_tsdb::column> const& columns,
+    data_type type,
+    macro_cache const& cache)
     : _string_index{0}, _type{type}, _cache{&cache} {
   // Following implementation is based on
   // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/
@@ -57,10 +58,10 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
   _compile_scheme(timeseries, &line_protocol_query::escape_measurement);
 
   // tag_set
-  for (std::vector<column>::const_iterator it(columns.begin()),
+  for (std::vector<http_tsdb::column>::const_iterator it(columns.begin()),
        end(columns.end());
        it != end; ++it)
-    if (it->is_flag()) {
+    if (it->is_tag()) {
       // comma
       _append_compiled_string(",");
       // tag_name
@@ -76,10 +77,10 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
 
   // field_set
   bool first(true);
-  for (std::vector<column>::const_iterator it(columns.begin()),
+  for (std::vector<http_tsdb::column>::const_iterator it(columns.begin()),
        end(columns.end());
        it != end; ++it)
-    if (!it->is_flag()) {
+    if (!it->is_tag()) {
       if (first)
         first = false;
       else
@@ -90,9 +91,9 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
       // equal sign
       _append_compiled_string("=");
       // field value
-      if (it->get_type() == column::number)
+      if (it->get_type() == http_tsdb::column::number)
         _compile_scheme(it->get_value(), nullptr);
-      else if (it->get_type() == column::string)
+      else if (it->get_type() == http_tsdb::column::string)
         _compile_scheme(it->get_value(), &line_protocol_query::escape_value);
     }
   if (!first)

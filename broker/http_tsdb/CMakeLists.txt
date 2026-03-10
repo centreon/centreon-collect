@@ -63,5 +63,6 @@ if(WITH_TESTING)
         ${TESTS_SOURCES}
         ${TEST_DIR}/factory_test.cc
         ${TEST_DIR}/stream_test.cc
+        ${TEST_DIR}/column_test.cc
         PARENT_SCOPE)
 endif(WITH_TESTING)

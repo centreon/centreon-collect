@@ -21,7 +21,7 @@
 
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/influxdb/column.hh"
+#include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 
 namespace com::centreon::broker::influxdb {
@@ -43,7 +43,7 @@ class line_protocol_query {
 
   line_protocol_query();
   line_protocol_query(std::string const& timeseries,
-                      std::vector<column> const& columns,
+                      std::vector<http_tsdb::column> const& columns,
                       data_type type,
                       macro_cache const& cache);
   line_protocol_query(line_protocol_query const& other) = delete;

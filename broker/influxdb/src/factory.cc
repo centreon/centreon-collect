@@ -132,35 +132,35 @@ io::endpoint* factory::new_endpoint(
 
   // Get status query.
   std::string status_timeseries{find_param(cfg, "status_timeseries")};
-  std::vector<column> status_column_list;
+  std::vector<http_tsdb::column> status_column_list;
   json const& status_columns = cfg.cfg["status_column"];
   if (status_columns.is_object())
-    status_column_list.push_back(column(
+    status_column_list.emplace_back(
         chk_str(status_columns["name"]), chk_str(status_columns["value"]),
         chk_bool(chk_str(status_columns["is_tag"])),
-        column::parse_type(chk_str(status_columns["type"]))));
+        http_tsdb::column::parse_type(chk_str(status_columns["type"])));
   else if (status_columns.is_array())
     for (json const& object : status_columns)
-      status_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+      status_column_list.emplace_back(
+          chk_str(object["name"]), chk_str(object["value"]),
+          chk_bool(chk_str(object["is_tag"])),
+          http_tsdb::column::parse_type(chk_str(object["type"])));
 
   // Get metric query.*/
   std::string metric_timeseries(find_param(cfg, "metrics_timeseries"));
-  std::vector<column> metric_column_list;
+  std::vector<http_tsdb::column> metric_column_list;
   json const& metric_columns = cfg.cfg["metrics_column"];
   if (metric_columns.is_object())
-    metric_column_list.push_back(column(
+    metric_column_list.emplace_back(
         chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
         chk_bool(chk_str(metric_columns["is_tag"])),
-        column::parse_type(chk_str(metric_columns["type"]))));
+        http_tsdb::column::parse_type(chk_str(metric_columns["type"])));
   else if (metric_columns.is_array())
     for (json const& object : metric_columns)
-      metric_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+      metric_column_list.emplace_back(
+          chk_str(object["name"]), chk_str(object["value"]),
+          chk_bool(chk_str(object["is_tag"])),
+          http_tsdb::column::parse_type(chk_str(object["type"])));
 
   // Connector.
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);

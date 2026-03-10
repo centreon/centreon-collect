@@ -61,9 +61,9 @@ void connector::connect_to(std::string const& user,
                            std::string const& db,
                            uint32_t queries_per_transaction,
                            std::string const& status_ts,
-                           std::vector<column> const& status_cols,
+                           std::vector<http_tsdb::column> const& status_cols,
                            std::string const& metric_ts,
-                           std::vector<column> const& metric_cols,
+                           std::vector<http_tsdb::column> const& metric_cols,
                            std::shared_ptr<persistent_cache> const& cache) {
   _user = user;
   _password = passwd;
