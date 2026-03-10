@@ -1,7 +1,7 @@
 ARG REGISTRY_URL=docker.centreon.com/centreon
 ARG FROM_IMAGE_VERSION=develop
 
-FROM ${REGISTRY_URL}/gorgone-testing-dependencies-bookworm:${FROM_IMAGE_VERSION}
+FROM ${REGISTRY_URL}/gorgone-testing-dependencies-trixie:${FROM_IMAGE_VERSION}
 
 COPY centreon/centreon/www/install /usr/local/src/centreon/centreon/www/install
 
