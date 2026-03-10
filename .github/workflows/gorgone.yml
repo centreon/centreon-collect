@@ -436,7 +436,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9]
+        distrib: [el9, el10]
 
     steps:
       - name: Checkout sources
@@ -471,7 +471,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [bookworm, trixie]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources
@@ -503,7 +503,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9, bookworm]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
