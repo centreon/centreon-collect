@@ -122,6 +122,15 @@ jobs:
           fi
           ${SCCACHE_PATH} --start-server
 
+      - name: Install mold linker
+        run: |
+          if [ "${{ steps.parse-distrib.outputs.package_extension }}" = "rpm" ]; then
+            dnf install -y mold || true
+          else
+            apt-get install -y mold || true
+          fi
+        shell: bash
+
       - name: Generate selinux binaries
         if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
         run: |
@@ -298,6 +307,21 @@ jobs:
           rpm_gpg_signing_passphrase: ${{ secrets.rpm_gpg_signing_passphrase }}
           stability: ${{ inputs.stability }}
           upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
+
+      - name: Display package sizes
+        run: |
+          EXT="${{ steps.parse-distrib.outputs.package_extension }}"
+          echo "## Package sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Package | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------|" >> $GITHUB_STEP_SUMMARY
+          TOTAL=0
+          for pkg in $(ls -S ./*.$EXT 2>/dev/null); do
+            SIZE=$(stat -c%s "$pkg")
+            TOTAL=$((TOTAL + SIZE))
+            echo "| $(basename $pkg) | $(numfmt --to=iec-i --suffix=B $SIZE) |" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "| **Total** | **$(numfmt --to=iec-i --suffix=B $TOTAL)** |" >> $GITHUB_STEP_SUMMARY
+        shell: bash
 
       - name: Cleaning not needed packages
         run: rm -rf *-debuginfo*.${{ steps.parse-distrib.outputs.package_extension }}

@@ -40,6 +40,7 @@ static uint32_t instances = 0;
 
 std::unique_ptr<stats_exporter::exporter> expt;
 
+#pragma GCC visibility push(default)
 extern "C" {
 /**
  *  Module version symbol. Used to check for version mismatch.
@@ -98,3 +99,4 @@ bool broker_module_deinit() {
   return true;  // ok to be unloaded
 }
 }
+#pragma GCC visibility pop

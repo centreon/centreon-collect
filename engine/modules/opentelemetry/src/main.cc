@@ -55,6 +55,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
  *
  *  @return 0 on success, any other value on failure.
  */
+#pragma GCC visibility push(default)
 extern "C" int nebmodule_deinit(int /*flags*/, int /*reason*/) {
   open_telemetry::unload(log_v2::instance().get(log_v2::OTL));
   return 0;
@@ -121,3 +122,4 @@ extern "C" int nebmodule_reload() {
   open_telemetry::reload(log_v2::instance().get(log_v2::OTL));
   return 0;
 }
+#pragma GCC visibility pop

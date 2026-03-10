@@ -87,6 +87,7 @@ int callback_external_command(int callback_type, void* data) {
  *
  *  @return 0 on success, any other value on failure.
  */
+#pragma GCC visibility push(default)
 extern "C" int nebmodule_deinit(int flags, int reason) {
   (void)flags;
   (void)reason;
@@ -186,3 +187,4 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
 extern "C" int nebmodule_reload() {
   return (0);
 }
+#pragma GCC visibility pop
