@@ -15,6 +15,7 @@ on:
   pull_request:
     paths:
       - ".version"
+      - ".version.centreon-common"
       - "packaging/centreon-common/**"
       - "selinux/centreon-common/**"
   push:
@@ -27,6 +28,7 @@ on:
       - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
     paths:
       - ".version"
+      - ".version.centreon-common"
       - "packaging/centreon-common/**"
       - "selinux/centreon-common/**"
     tags:
