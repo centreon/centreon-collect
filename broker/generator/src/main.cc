@@ -33,7 +33,6 @@ uint32_t instances(0);
 char const* generator_module("generator");
 }  // namespace
 
-#pragma GCC visibility push(default)
 extern "C" {
 /**
  *  Module version symbol. Used to check for version mismatch.
@@ -81,4 +80,3 @@ void broker_module_init(void const* arg) {
   }
 }
 }
-#pragma GCC visibility pop

@@ -64,12 +64,10 @@ if(WITH_ASAN)
   endif()
 endif()
 
-# Dead code elimination and symbol visibility for non-Debug builds
+# Dead code elimination for non-Debug builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-ffunction-sections -fdata-sections)
   add_link_options(-Wl,--gc-sections)
-  set(CMAKE_CXX_VISIBILITY_PRESET hidden)
-  set(CMAKE_VISIBILITY_INLINES_HIDDEN TRUE)
 endif()
 
 # Use mold linker if available and supported by the compiler (GCC >= 12)

@@ -30,7 +30,6 @@ static uint32_t instances(0);
 
 stats::worker_pool wpool;
 
-#pragma GCC visibility push(default)
 extern "C" {
 /**
  *  Module version symbol. Used to check for version mismatch.
@@ -95,4 +94,3 @@ void broker_module_init(void const* arg) {
   }
 }
 }
-#pragma GCC visibility pop

@@ -35,7 +35,6 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 // Load count.
 static uint32_t instances(0);
 
-#pragma GCC visibility push(default)
 extern "C" {
 /**
  *  Module version symbol. Used to check for version mismatch.
@@ -125,4 +124,3 @@ void broker_module_init(void const* arg) {
   }
 }
 }
-#pragma GCC visibility pop

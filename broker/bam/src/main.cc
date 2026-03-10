@@ -55,7 +55,6 @@ void register_bam_event(io::events& e, bam::data_element de, const char* name) {
   e.register_event(make_type(io::bam, de), name, &T::operations, T::entries);
 }
 
-#pragma GCC visibility push(default)
 extern "C" {
 /**
  *  Module version symbol. Used to check for version mismatch.
@@ -185,4 +184,3 @@ void broker_module_init(void const* arg) {
   }
 }
 }
-#pragma GCC visibility pop
