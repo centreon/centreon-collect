@@ -20,6 +20,8 @@
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"

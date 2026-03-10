@@ -237,7 +237,7 @@ def add_class_and_dependencies(class_definitions: dict, class_dependencies: dict
     return ret
 
 
-def create_header(protos: list, messages: dict, enums: dict, classes: list):
+def create_header(header_path: str, protos: list, messages: dict, enums: dict, classes: list):
     """
     Generate C++ header file from protobuf messages.
 
@@ -253,9 +253,8 @@ def create_header(protos: list, messages: dict, enums: dict, classes: list):
         - Update methods
     - Field enumeration support
 
-    Writes output to: broker/core/inc/com/centreon/broker/cache/protobuf.hh
-
     Args:
+        header_path (str): path of header file
         protos (list): List of proto file basenames
         messages (dict): Dictionary of message_name -> message_body
         enums (dict): Dictionary of enum_name -> enum_body
@@ -402,7 +401,7 @@ class {snake_name} : public message {{
     message_enum_str = ",\n    ".join(hh_class_enum_list)
 
     hh += f'''
-#include "protobuf_utils.hh"
+#include "com/centreon/broker/cache/protobuf_utils.hh"
 
 namespace com::centreon::broker::cache {{
 
@@ -449,11 +448,11 @@ class message {{
 
 #endif
 '''
-    with open('broker/cache/inc/com/centreon/broker/cache/protobuf.hh', 'w') as hh_file:
+    with open(header_path, 'w') as hh_file:
         hh_file.write(hh)
 
 
-def create_cc(messages, enums, classes):
+def create_cc(cc_path: str, hh_path: str, messages: dict, enums: dict, classes: dict):
     """
     Generate C++ source file with message implementations.
 
@@ -469,9 +468,11 @@ def create_cc(messages, enums, classes):
         - update(): syncs fields from protobuf, returns whether changed
     - Virtual dispatch in base class for polymorphic operations
 
-    Writes output to: broker/core/src/cache/protobuf.cc
+    Writes output to: cc_path
 
     Args:
+        cc_path (str): path of generated cc file
+        cc_path (str): path of generated header file
         messages (dict): Dictionary of message_name -> message_body
         enums (dict): Dictionary of enum_name -> enum_body
         classes (list): List of specific classes to generate (empty = all)
@@ -754,7 +755,7 @@ bool {snake_name}::update(const {pb_class_name}& mess, const allocators& allocat
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "{hh_path}"
 
 using namespace com::centreon::broker::cache;
 using namespace com::centreon::broker;
@@ -928,7 +929,7 @@ bool message::update(const ::google::protobuf::Message& mess,
     for class_impl in used_class.values():
         cc += class_impl
 
-    with open('broker/cache/src/protobuf.cc', 'w') as cc_file:
+    with open(cc_path, 'w') as cc_file:
         cc_file.write(cc)
 
 
@@ -952,14 +953,14 @@ def camel_to_snake(name: str) -> str:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: from root project folder python create_class_from_proto.py <protos basename without extension separated by a comma (no space) ex: neb,storage> <list of protobuf class separated by a comma (no space) ex: Host,Service")
+    if len(sys.argv) < 4:
+        print("Usage: from root project folder python create_class_from_proto.py <protos basename without extension separated by a comma (no space) ex: neb,storage> <header_path> <cc_path> <list of protobuf class separated by a comma (no space) ex: Host,Service")
         sys.exit(1)
 
     protos = sys.argv[1].split(',')
     classes = []
-    if len(sys.argv) >= 3:
-        classes = {value: i for i, value in enumerate(sys.argv[2].split(','))}
+    if len(sys.argv) >= 5:
+        classes = {value: i for i, value in enumerate(sys.argv[4].split(','))}
 
     enums = {}
     messages = {}
@@ -970,5 +971,5 @@ if __name__ == "__main__":
         enums.update(file_enums)
         messages.update(file_messages)
 
-    create_header(protos, messages, enums, classes)
-    create_cc(messages, enums, classes)
+    create_header(sys.argv[2], protos, messages, enums, classes)
+    create_cc(sys.argv[3], sys.argv[2], messages, enums, classes)

@@ -38,22 +38,21 @@ add_library(
 add_custom_command(
   OUTPUT ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh
   COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
-  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
+  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
-    python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam 
-      Comment,AgentStats,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent,UnknownHost 
+    python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam ${INC_DIR}/protobuf.hh ${SRC_DIR}/protobuf.cc
+      Comment,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent 
   VERBATIM)
 
-# add_custom_command(
-#   OUTPUT ${SRC_DIR}/protobuf.cc ${INC_DIR}/protobuf.hh
-#   COMMENT "Generating protobuf.hh and protobuf.cc from protobuf files"
-#   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/storage.proto
-#   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-#   COMMAND
-#     python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam 
-#       Instance
-#   VERBATIM)
+add_custom_command(
+  OUTPUT ${TEST_DIR}/protobuf_test_classes.cc ${TEST_DIR}/protobuf_test_classes.hh
+  COMMENT "Generating protobuf_test_classes.hh and protobuf_test_classes.cc from protobuf files"
+  DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMAND
+    python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam ${TEST_DIR}/protobuf_test_classes.hh ${TEST_DIR}/protobuf_test_classes.cc
+  VERBATIM)
 
 
 set_target_properties("${CACHE_MOD}" PROPERTIES PREFIX ""
@@ -65,13 +64,18 @@ add_dependencies(${CACHE_MOD}  pb_common_lib process_stat)
 
 # Testing.
 if(WITH_TESTING)
+  add_library(ut_cache STATIC
+    ${TEST_DIR}/protobuf_test_classes.cc
+  )
+
+  target_precompile_headers(ut_cache REUSE_FROM  ${CACHE_MOD} )
   set(TESTS_SOURCES
       ${TESTS_SOURCES} 
       ${TEST_DIR}/global_cache_test.cc
-      #${TEST_DIR}/protobuf_test.cc
+      ${TEST_DIR}/protobuf_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} ${CACHE_MOD}
+      ${TESTS_LIBRARIES} ut_cache ${CACHE_MOD}
       PARENT_SCOPE)
 endif(WITH_TESTING)
 

@@ -16,8 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "boost/system/detail/error_code.hpp"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

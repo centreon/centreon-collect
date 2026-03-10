@@ -21,7 +21,6 @@
 
 #include <boost/thread/shared_mutex.hpp>
 #include "com/centreon/broker/io/protobuf.hh"
-#include "protobuf.hh"
 
 namespace com::centreon::broker {
 

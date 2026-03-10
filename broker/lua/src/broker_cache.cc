@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/lua/broker_cache.hh"
 #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "com/centreon/broker/cache/global_cache.hh"
 // #include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/internal.hh"

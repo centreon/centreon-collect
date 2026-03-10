@@ -17,9 +17,11 @@
  *
  */
 
-#include "com/centreon/broker/cache/global_cache.hh"
 #include <gtest/gtest.h>
 
+#include "com/centreon/broker/cache/protobuf.hh"
+
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"

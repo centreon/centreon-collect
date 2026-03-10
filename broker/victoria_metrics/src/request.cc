@@ -17,9 +17,10 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/request.hh"
-#include <optional>
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "com/centreon/broker/cache/global_cache.hh"
 
 using namespace com::centreon::broker;

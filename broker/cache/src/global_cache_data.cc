@@ -16,9 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/cache/global_cache_data.hh"
-#include <boost/thread/lock_types.hpp>
-#include <optional>
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
@@ -28,6 +27,7 @@
 #include "boost/interprocess/detail/segment_manager_helper.hpp"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/broker/cache/protobuf.hh"
 #include "com/centreon/broker/cache/protobuf_utils.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"

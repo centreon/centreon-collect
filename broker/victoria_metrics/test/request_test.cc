@@ -28,6 +28,8 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
+#include "com/centreon/broker/cache/protobuf.hh"
+
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
