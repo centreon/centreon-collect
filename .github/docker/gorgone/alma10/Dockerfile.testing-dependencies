@@ -28,8 +28,8 @@ fi
 dnf config-manager --set-enabled 'centreon*'
 
 dnf install -y python3.12 python3.12-pip
-pip3.11 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
-pip3.11 cache purge
+pip3.12 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
+pip3.12 cache purge
 
 dnf module enable -y nodejs:${NODE_VERSION}
 dnf install -y nodejs
