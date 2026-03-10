@@ -45,6 +45,9 @@ jobs:
           - image: packaging-centreon-collect-alma9
             distrib: el9
             arch: amd64
+          - image: packaging-centreon-collect-alma10
+            distrib: el10
+            arch: amd64
 
     runs-on: ubuntu-24.04
 
@@ -93,6 +96,9 @@ jobs:
         include:
           - image: packaging-alma9
             distrib: el9
+            arch: amd64
+          - image: packaging-alma10
+            distrib: el10
             arch: amd64
     name: sign rpm ${{ matrix.distrib }}
     container:
@@ -213,6 +219,8 @@ jobs:
         include:
           - distrib: el9
             arch: amd64
+          - distrib: el10
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }}
 
@@ -249,6 +257,8 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
+          - distrib: trixie
+            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -280,7 +290,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, bookworm]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
