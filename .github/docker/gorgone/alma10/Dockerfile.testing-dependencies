@@ -1,4 +1,4 @@
-FROM almalinux:9
+FROM almalinux:10
 
 ARG VERSION=25.10
 ARG IS_CLOUD=0
