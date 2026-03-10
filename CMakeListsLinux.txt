@@ -64,10 +64,19 @@ if(WITH_ASAN)
   endif()
 endif()
 
-# Dead code elimination for non-Debug builds
+# Dead code elimination and LTO for non-Debug builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-ffunction-sections -fdata-sections)
   add_link_options(-Wl,--gc-sections)
+
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT _ipo_supported OUTPUT _ipo_output)
+  if(_ipo_supported)
+    message(STATUS "LTO enabled")
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
+  else()
+    message(STATUS "LTO not supported: ${_ipo_output}")
+  endif()
 endif()
 
 # Use mold linker if available and supported by the compiler (GCC >= 12)
