@@ -753,8 +753,41 @@ jobs:
             const jammy_mariadb_10_11   = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
-            // --- Config sets ---
-            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0, bookworm_mysql_8_4];
+              // Reference date: January 1, 2025
+              const referenceDate = new Date('2025-01-01');
+
+              // Calculate the number of working days since January 1
+              let workingDays = 0;
+              const currentDate = new Date(referenceDate);
+
+              while (currentDate < today) {
+                const dayOfWeek = currentDate.getDay();
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday to Friday
+                  workingDays++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+              }
+
+              // Alternating balanced on 3 configurations
+              const configIndex = workingDays % configs.length;
+
+              return configs[configIndex];
+            };
+
+            const configs = [
+              alma9_mariadb_10_11,
+              alma9_mysql_8_0,
+              alma10_mariadb_10_11,
+              alma10_mysql_8_0,
+              bookworm_mysql_8_4
+            ];
+            const collectConfigs = [
+              alma9_mariadb_10_11,
+              alma9_mysql_8_0,
+              alma10_mariadb_10_11,
+              alma10_mysql_8_0,
+              bookworm_mysql_8_4
+            ];
             const cmaConfigs = [
               alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
               bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
