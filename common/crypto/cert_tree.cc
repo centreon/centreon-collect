@@ -51,6 +51,37 @@ class ssl_exception : public std::runtime_error {
 
 using namespace com::centreon::common::crypto;
 
+namespace {
+static void copy_subject_alt_name_extensions(const X509* source, X509* target) {
+  if (!source || !target) {
+    return;
+  }
+
+  for (int ext_index = X509_get_ext_by_NID(source, NID_subject_alt_name, -1);
+       ext_index >= 0; ext_index = X509_get_ext_by_NID(
+                           source, NID_subject_alt_name, ext_index)) {
+    X509_EXTENSION* source_ext = X509_get_ext(source, ext_index);
+    if (!source_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to read source subjectAltName extension");
+    }
+
+    X509_EXTENSION* copied_ext = X509_EXTENSION_dup(source_ext);
+    if (!copied_ext) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to duplicate source subjectAltName extension");
+    }
+
+    const int add_status = X509_add_ext(target, copied_ext, -1);
+    X509_EXTENSION_free(copied_ext);
+    if (add_status != 1) {
+      throw com::centreon::exceptions::msg_fmt(
+          "unable to add subjectAltName extension to generated certificate");
+    }
+  }
+}
+}  // namespace
+
 /**
  * @brief load a certificate from pem format file
  *
@@ -286,6 +317,7 @@ X509* cert_tree::generate_cert(const EVP_PKEY* pkey,
   // Issuer
   if (ca_cert) {
     X509_set_issuer_name(x509, X509_get_subject_name(ca_cert));
+    copy_subject_alt_name_extensions(ca_cert, x509);
   } else {
     X509_set_issuer_name(x509, name);  // auto-signé
     // Extension : Basic Constraints = CA:TRUE
