@@ -32,6 +32,7 @@ include_directories(inc
 set(SOURCES
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/line_protocol_query.cc
   ${SRC_DIR}/request.cc
   ${SRC_DIR}/stream.cc
   ${SRC_DIR}/main.cc

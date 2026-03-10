@@ -41,103 +41,11 @@ line_protocol_query::line_protocol_query() : _type(data_type::unknown) {}
  *  @param[in] type        Query type (metric or status).
  */
 line_protocol_query::line_protocol_query(
-    const std::string allowed_macros,
-    std::vector<column> const& columns,
     data_type type,
     const std::shared_ptr<spdlog::logger>& logger)
     : _type{type}, _logger(logger) {
-  // measurement
   _compiled_getters.clear();
   _compiled_strings.clear();
-
-  bool have_field = false;
-  // tag_set
-  for (std::vector<column>::const_iterator it(columns.begin()),
-       end(columns.end());
-       it != end; ++it) {
-    if (it->is_tag()) {
-      // comma
-      _append_compiled_string(",");
-      // tag_name
-      _compile_scheme(allowed_macros, it->get_name(),
-                      &line_protocol_query::escape_key);
-      // equal sign
-      _append_compiled_string("=");
-      // tag_value
-      _compile_scheme(allowed_macros, it->get_value(),
-                      &line_protocol_query::escape_value);
-    } else {
-      have_field = true;
-    }
-  }
-
-  if (have_field) {
-    // space
-    _append_compiled_string(" ");
-
-    // field_set
-    bool first(true);
-    for (std::vector<column>::const_iterator it(columns.begin()),
-         end(columns.end());
-         it != end; ++it)
-      if (!it->is_tag()) {
-        if (first)
-          first = false;
-        else
-          _append_compiled_string(",");
-
-        // field_key
-        _compile_scheme(allowed_macros, it->get_name(),
-                        &line_protocol_query::escape_key);
-        // equal sign
-        _append_compiled_string("=");
-        // field value
-        if (it->get_type() == column::type::number)
-          _compile_scheme(allowed_macros, it->get_value(), nullptr);
-        else if (it->get_type() == column::type::string)
-          _compile_scheme(allowed_macros, it->get_value(),
-                          &line_protocol_query::escape_value);
-      }
-  }
-}
-
-/**
- *  Escape a key.
- *
- *  @param[in] str  String to escape.
- *
- */
-void line_protocol_query::escape_key(std::string const& str,
-                                     std::ostream& is) const {
-  std::string ret(str);
-  ::com::centreon::broker::misc::string::replace(ret, ",", "\\,");
-  ::com::centreon::broker::misc::string::replace(ret, "=", "\\=");
-  ::com::centreon::broker::misc::string::replace(ret, " ", "\\ ");
-  is << ret;
-}
-
-/**
- *  Escape a value.
- *
- *  @param[in] str  String to escape.
- *
- *  @return Escaped string.
- */
-void line_protocol_query::escape_value(std::string const& str,
-                                       std::ostream& is) const {
-  for (const char c : str) {
-    if (c == ',') {
-      is << "\\,";
-    } else if (c == '"') {
-      is << "\\\"";
-    } else if (c == ' ') {
-      is << "\\ ";
-    } else if (c == '\\') {
-      is << "\\\\";
-    } else {
-      is << c;
-    }
-  }
 }
 
 /**
@@ -160,7 +68,7 @@ void line_protocol_query::append_metric(storage::pb_metric const& me,
       else {
         std::ostringstream escaped;
         (this->*(it->first))(me, string_index, escaped);
-        (this->*(it->second))(escaped.str(), iss);
+        (*(it->second))(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {
@@ -191,7 +99,7 @@ void line_protocol_query::append_status(storage::pb_status const& st,
       else {
         std::ostringstream escaped;
         (this->*(it->first))(st, string_index, escaped);
-        (this->*(it->second))(escaped.str(), iss);
+        (*(it->second))(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {

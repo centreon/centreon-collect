@@ -43,7 +43,7 @@ using duration = system_clock::duration;
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using namespace com::centreon::broker::http_tsdb;
+using namespace com::centreon::broker::victoria_metrics;
 ;
 using namespace nlohmann;
 using log_v2 = com::centreon::common::log_v2::log_v2;
@@ -307,13 +307,13 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   sgm->mut_obj().set_enabled(true);
   obj->write(sgm);
 
-  http_tsdb::line_protocol_query metric_columns(
+  line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_metric_column),
       http_tsdb::line_protocol_query::data_type::status, _logger);
 
-  http_tsdb::line_protocol_query status_columns(
+  line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_status_column),
@@ -504,12 +504,12 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
     {"name" : "serv_tag_cat", "is_tag" : "true", "value" : "$SERV_TAG_CAT_NAME$", "type":"string"},
     {"name" : "serv_tag_grp", "is_tag" : "true", "value" : "$SERV_TAG_GROUP_NAME$", "type":"string"}])"_json;
 
-  http_tsdb::line_protocol_query metric_columns(
+  line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
       http_tsdb::line_protocol_query::data_type::status, _logger);
 
-  http_tsdb::line_protocol_query status_columns(
+  line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
       http_tsdb::line_protocol_query::data_type::status, _logger);

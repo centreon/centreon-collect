@@ -23,9 +23,7 @@
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "neb.pb.h"
 
-namespace com::centreon::broker {
-
-namespace http_tsdb {
+namespace com::centreon::broker::http_tsdb {
 /**
  *  @class line_protocol_query line_protocol_query.hh
  * "com/centreon/broker/graphite/line_protocol_query.hh"
@@ -40,25 +38,20 @@ class line_protocol_query {
   typedef void (line_protocol_query::*data_getter)(io::data const&,
                                                    unsigned&,
                                                    std::ostream&) const;
-  typedef void (line_protocol_query::*data_escaper)(std::string const&,
-                                                    std::ostream&) const;
+  typedef void (*data_escaper)(std::string const&, std::ostream&);
 
   line_protocol_query();
-  line_protocol_query(const std::string allowed_macros,
-                      std::vector<column> const& columns,
-                      data_type type,
+  line_protocol_query(data_type type,
                       const std::shared_ptr<spdlog::logger>& logger);
   line_protocol_query(line_protocol_query const& other) = delete;
   ~line_protocol_query() = default;
-  void escape_key(std::string const& str, std::ostream& is) const;
-  void escape_value(std::string const& str, std::ostream& is) const;
 
   void append_metric(storage::pb_metric const& me,
                      std::string& request_body) const;
   void append_status(storage::pb_status const& st,
                      std::string& request_body) const;
 
- private:
+ protected:
   void _append_compiled_getter(data_getter getter, data_escaper escaper);
   void _append_compiled_string(std::string const& str,
                                data_escaper escaper = NULL);
@@ -67,6 +60,7 @@ class line_protocol_query {
                        data_escaper escaper);
   void _throw_on_invalid(data_type macro_type);
 
+ private:
   template <typename T, typename U, T(U::*member)>
   void _get_member(io::data const& d,
                    unsigned& string_index,
@@ -202,8 +196,6 @@ class line_protocol_query {
 
   std::shared_ptr<spdlog::logger> _logger;
 };
-}  // namespace http_tsdb
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::http_tsdb
 
 #endif  // !CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH
