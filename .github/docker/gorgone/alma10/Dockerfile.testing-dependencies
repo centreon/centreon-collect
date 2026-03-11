@@ -31,8 +31,10 @@ dnf install -y python3.12 python3.12-pip
 pip3.12 install robotframework robotframework-examples robotframework-databaselibrary pymysql robotframework-requests robotframework-jsonlibrary
 pip3.12 cache purge
 
-dnf module enable -y nodejs:${NODE_VERSION}
-dnf install -y nodejs
+curl -fsSL https://rpm.nodesource.com/setup_24.x | bash - && \
+  dnf install -y nodejs && \
+  dnf clean all
+
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
 source ~/.bashrc
 cd /usr/local/src
