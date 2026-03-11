@@ -515,7 +515,10 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
   }
   if (!received.empty()) {
     _stdout_handler(received);
-    _stdout_read();
+    {
+      detail::lock<use_mutex> l(&_protect);
+      _stdout_read();
+    }
   }
 
   if (eof) {
@@ -587,7 +590,10 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
 
   if (!received.empty()) {
     _stderr_handler(received);
-    _stderr_read();
+    {
+      detail::lock<use_mutex> l(&_protect);
+      _stderr_read();
+    }
   }
 
   if (eof) {
