@@ -59,7 +59,7 @@ on:
         description: "matrix to use for dockerize and test jobs"
         value: ${{ jobs.get-environment.outputs.os_and_database_matrix }}
       collect_matrix:
-        description: "matrix to use for collect jobs (contains arch)"
+        description: "matrix to use for collect jobs (deduplicated by os+arch)"
         value: ${{ jobs.get-environment.outputs.collect_matrix }}
       collect_robot_matrix:
         description: "matrix to use for collect jobs (contains arch)"
@@ -727,236 +727,121 @@ jobs:
         id: get_os_database_matrix
         with:
           script: |
-            const alma10_mariadb_10_11 = {
-              "operating_system": "alma10",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const alma9_mariadb_10_11 = {
-              "operating_system": "alma9",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const alma9_mysql_8_0 = {
-              "operating_system": "alma9",
-              "database": "mysql:8.0",
-              "arch": "amd64"
-            };
-            const alma8_mariadb_10_11 = {
-              "operating_system": "alma8",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const bullseye_mysql_8_4 = {
-              "operating_system": "bullseye",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const bullseye_mariadb_10_11 = {
-              "operating_system": "bullseye",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const bookworm_mysql_8_4 = {
-              "operating_system": "bookworm",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const bookworm_mariadb_10_11 = {
-              "operating_system": "bookworm",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const trixie_mariadb_11_8 = {
-              "operating_system": "trixie",
-              "database": "mariadb:11.8",
-              "arch": "amd64"
-            };
-            const jammy_mysql_8_4 = {
-              "operating_system": "jammy",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const jammy_mariadb_10_11 = {
-              "operating_system": "jammy",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
-            const noble_mysql_8_4 = {
-              "operating_system": "noble",
-              "database": "mysql:8.4",
-              "arch": "amd64"
-            };
-            const noble_mariadb_10_11 = {
-              "operating_system": "noble",
-              "database": "mariadb:10.11",
-              "arch": "amd64"
-            };
+            // --- Conditions (evaluated once from GHA context) ---
+            const isCloud     = '${{ steps.detect_cloud_version.outputs.isCloud }}' === 'true';
+            const isNightly   = '${{ steps.get_nightly_status.outputs.is_nightly }}' === 'true';
+            const stability   = '${{ steps.get_stability.outputs.stability }}';
+            const isFullRun   = ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
+                             || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+                             || ['unstable', 'testing', 'stable'].includes(stability);
+            const isSystemRun = ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+                             || ['unstable', 'testing', 'stable'].includes(stability);
+            const isDbRun     = ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
+                             || ['unstable', 'testing', 'stable'].includes(stability);
 
-            const getDailyConfig = (configs) => {
-              const today = new Date();
-              const dayOfWeek = today.getDay(); // 0=sunday, 1=monday, ..., 6=saturday
+            // --- OS/database combinations ---
+            const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
 
-              // If it's weekend, use the default configuration
-              if (dayOfWeek === 0 || dayOfWeek === 6) {
-                return configs[0];
-              }
+            const alma10_mariadb_10_11  = cfg('alma10',   'mariadb:10.11');
+            const alma9_mariadb_10_11   = cfg('alma9',    'mariadb:10.11');
+            const alma9_mysql_8_0       = cfg('alma9',    'mysql:8.0');
+            const alma8_mariadb_10_11   = cfg('alma8',    'mariadb:10.11');
+            const bullseye_mariadb_10_11 = cfg('bullseye', 'mariadb:10.11');
+            const bookworm_mysql_8_4    = cfg('bookworm', 'mysql:8.4');
+            const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
+            const trixie_mariadb_11_8   = cfg('trixie',   'mariadb:11.8');
+            const jammy_mariadb_10_11   = cfg('jammy',    'mariadb:10.11');
+            const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
-              // Reference date: January 1, 2025
-              const referenceDate = new Date('2025-01-01');
-
-              // Calculate the number of working days since January 1
-              let workingDays = 0;
-              const currentDate = new Date(referenceDate);
-
-              while (currentDate < today) {
-                const dayOfWeek = currentDate.getDay();
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday to Friday
-                  workingDays++;
-                }
-                currentDate.setDate(currentDate.getDate() + 1);
-              }
-
-              // Alternating balanced on 3 configurations
-              const configIndex = workingDays % configs.length;
-
-              return configs[configIndex];
-            };
-
-            const configs = [
-              alma9_mariadb_10_11,
-              alma9_mysql_8_0,
-              bookworm_mysql_8_4
-            ];
-            const collectConfigs = [
-              alma9_mariadb_10_11,
-              alma9_mysql_8_0,
-              bookworm_mysql_8_4
-            ];
+            // --- Config sets ---
+            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0, bookworm_mysql_8_4];
             const cmaConfigs = [
-              alma10_mariadb_10_11,
-              alma9_mariadb_10_11,
-              alma8_mariadb_10_11,
-              bullseye_mariadb_10_11,
-              bookworm_mariadb_10_11,
-              trixie_mariadb_11_8,
-              jammy_mariadb_10_11,
-              noble_mariadb_10_11
+              alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
+              bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
+              jammy_mariadb_10_11, noble_mariadb_10_11
             ];
-
             const cloud = alma9_mysql_8_0;
 
-            let main = alma9_mariadb_10_11;
-            if ('${{ steps.detect_cloud_version.outputs.isCloud }}' == 'true') {
-              main = cloud;
-            }
-
-            let matrix = {
-              "cloud": [cloud],
-              "main": [main],
-              "operating_systems": [main]
+            // --- Nightly rotation (cycles through configs on working days) ---
+            const getDailyConfig = (configs) => {
+              const today = new Date();
+              const dayOfWeek = today.getDay();
+              if (dayOfWeek === 0 || dayOfWeek === 6) return configs[0]; // weekend → default
+              let workingDays = 0;
+              const d = new Date('2025-01-01');
+              while (d < today) {
+                if (d.getDay() >= 1 && d.getDay() <= 5) workingDays++;
+                d.setDate(d.getDate() + 1);
+              }
+              return configs[workingDays % configs.length];
             };
 
-            if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
-              const dailyConfig = getDailyConfig(configs);
+            // --- Build base matrix ---
+            const main = isCloud ? cloud : alma9_mariadb_10_11;
+            const activeConfig = isNightly ? getDailyConfig(configs) : main;
 
-              matrix = {
-                "cloud": [cloud],
-                "main": [dailyConfig],
-                "operating_systems": [dailyConfig]
-              };
-            }
+            let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };
+            let collectMatrix = [activeConfig];
+            let cmaMatrix = [activeConfig];
 
-            let collectMatrix = [...matrix.operating_systems];
-            let cmaMatrix = [...matrix.operating_systems];
-
-            if (
-              ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
-              || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
-            ) {
-              matrix = {
-                ...matrix,
-                "operating_systems": configs,
-              };
-              collectMatrix = collectConfigs;
+            if (isFullRun) {
+              matrix = { ...matrix, operating_systems: configs };
+              collectMatrix = configs;
               cmaMatrix = cmaConfigs;
             }
 
             console.log('matrix', matrix);
 
-            const setArchConfigs = (configs) => {
-              const archConfigs = [];
+            // --- Expand arm64 for Debian-based distros ---
+            const ARM64_DISTROS = ['bullseye', 'bookworm', 'trixie', 'jammy', 'noble'];
+            const withArch = (configs) => configs.flatMap(c =>
+              ARM64_DISTROS.includes(c.operating_system)
+                ? [{...c, arch: 'amd64'}, {...c, arch: 'arm64'}]
+                : [{...c, arch: 'amd64'}]
+            );
 
-              for (const config of configs) {
-                archConfigs.push({...config, "arch": "amd64"});
-                if (["bullseye", "bookworm", "trixie", "jammy", "noble"].includes(config.operating_system)) {
-                  archConfigs.push({...config, "arch": "arm64"});
-                }
-              }
-
-              return archConfigs;
-            };
-
-            if (
-              ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
-              || ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}')
-            ) {
-              collectMatrix = setArchConfigs([...collectMatrix]);
-              cmaMatrix = setArchConfigs([...cmaMatrix]);
+            if (isSystemRun) {
+              collectMatrix = withArch(collectMatrix);
+              cmaMatrix = withArch(cmaMatrix);
             }
 
-            console.log('collectMatrix', collectMatrix);
+            // deduplicate by os+arch (no database dimension needed for build/packaging)
+            collectMatrix = [...new Map(collectMatrix.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+
             core.setOutput('collect_matrix', collectMatrix);
+            console.log('collectMatrix', collectMatrix);
 
-            console.log('cmaMatrix', cmaMatrix);
             core.setOutput('cma_matrix', cmaMatrix);
+            console.log('cmaMatrix', cmaMatrix);
 
+            // --- Robot test matrices ---
             const setTestConfigs = (configs) => {
               let hasGrpcConfig = false;
               let hasMysqlConfig = false;
-              const testConfigs = [];
-
-              for (const config of configs) {
-                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
-                if (config.arch === "amd64" && hasGrpcConfig === false) {
-                  testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{\"default_transport\":\"grpc\",\"default_bbdo_version\":\"3.1.0\"}"});
+              return configs.flatMap(c => {
+                const entries = [{...c, database_type: 'mariadb', tests_params: '{}'}];
+                if (c.arch === 'amd64' && !hasGrpcConfig) {
+                  entries.push({...c, database_type: 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
                   hasGrpcConfig = true;
                 }
-                if (
-                  ['alma8', 'alma9'].includes(config.operating_system) &&
-                  hasMysqlConfig === false &&
-                  config.arch === "amd64" &&
-                  (
-                    ['unstable', 'testing', 'stable'].includes('${{ steps.get_stability.outputs.stability }}') ||
-                    ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
-                  )
-                ) {
-                  testConfigs.push({...config, "database_type": "mysql", "tests_params": "{}"});
+                if (['alma8', 'alma9'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
+                  entries.push({...c, database_type: 'mysql', tests_params: '{}'});
                   hasMysqlConfig = true;
                 }
-              }
-
-              return testConfigs;
+                return entries;
+              });
             };
 
-            //No grpc no mysql for CMA robot tests
-            const setTestConfigsCMA = (configs) => {
-              const testConfigs = [];
+            // No grpc, no mysql for CMA robot tests
+            const setCmaTestConfigs = (configs) => configs.map(c => ({...c, database_type: 'mariadb', tests_params: '{}'}));
 
-              for (const config of configs) {
-                testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
-              }
-              return testConfigs;
-            };
-
-            let collectRobotMatrix = setTestConfigs([...collectMatrix]);
-            console.log('collectRobotMatrix', collectRobotMatrix);
+            const collectRobotMatrix = setTestConfigs(collectMatrix);
             core.setOutput('collect_robot_matrix', collectRobotMatrix);
+            console.log('collectRobotMatrix', collectRobotMatrix);
 
-            let cmaRobotMatrix = setTestConfigsCMA([...cmaMatrix]);
-            console.log('cmaRobotMatrix', cmaRobotMatrix);
+            const cmaRobotMatrix = setCmaTestConfigs(cmaMatrix);
             core.setOutput('cma_robot_matrix', cmaRobotMatrix);
+            console.log('cmaRobotMatrix', cmaRobotMatrix);
 
             return matrix;
 
