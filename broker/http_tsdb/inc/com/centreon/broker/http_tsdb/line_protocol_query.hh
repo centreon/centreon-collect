@@ -38,20 +38,20 @@ class line_protocol_query {
   typedef bool (line_protocol_query::*data_getter)(io::data const&,
                                                    unsigned&,
                                                    std::ostream&) const;
-  typedef void (*data_escaper)(std::string const&, std::ostream&);
+  using data_escaper = std::function<void(std::string const&, std::ostream&)>;
 
   line_protocol_query();
   line_protocol_query(data_type type,
                       const std::shared_ptr<spdlog::logger>& logger);
   line_protocol_query(line_protocol_query const& other) = delete;
-  ~line_protocol_query() = default;
+  virtual ~line_protocol_query() = default;
 
-  void append_metric(storage::pb_metric const& me,
+  bool append_metric(storage::pb_metric const& me,
                      std::string& request_body) const;
-  void append_status(storage::pb_status const& st,
+  bool append_status(storage::pb_status const& st,
                      std::string& request_body) const;
-  std::string append_metric(storage::pb_metric const& me) const;
-  std::string append_status(storage::pb_status const& st) const;
+  virtual std::string append_metric(storage::pb_metric const& me) const;
+  virtual std::string append_status(storage::pb_status const& st) const;
 
  protected:
   void _append_compiled_getter(data_getter getter, data_escaper escaper);
@@ -59,7 +59,8 @@ class line_protocol_query {
                                data_escaper escaper = NULL);
   void _compile_scheme(const std::string allowed_macros,
                        const std::string& scheme,
-                       data_escaper escaper);
+                       data_escaper escaper,
+                       bool escape_fixed_string);
   void _throw_on_invalid(data_type macro_type);
 
  private:

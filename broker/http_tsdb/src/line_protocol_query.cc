@@ -55,7 +55,7 @@ line_protocol_query::line_protocol_query(
  *  @param[in] me  The metric.
  *
  */
-void line_protocol_query::append_metric(storage::pb_metric const& me,
+bool line_protocol_query::append_metric(storage::pb_metric const& me,
                                         std::string& request_body) const {
   if (_type != data_type::metric)
     throw msg_fmt(
@@ -75,17 +75,18 @@ void line_protocol_query::append_metric(storage::pb_metric const& me,
         if (!(this->*(it->first))(
                 me, string_index,
                 escaped)) {  // error => nothing in request body
-          return;
+          return false;
         }
-        (*(it->second))(escaped.str(), iss);
+        (it->second)(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(_logger, "could not generate query for metric {}: {}",
                         me.obj().metric_id(), e.what());
-    return;
+    return false;
   }
   request_body += iss.str();
+  return true;
 }
 
 /**
@@ -94,7 +95,7 @@ void line_protocol_query::append_metric(storage::pb_metric const& me,
  *  @param[in] st  The status.
  *
  */
-void line_protocol_query::append_status(storage::pb_status const& st,
+bool line_protocol_query::append_status(storage::pb_status const& st,
                                         std::string& request_body) const {
   if (_type != data_type::status)
     throw msg_fmt(
@@ -114,18 +115,19 @@ void line_protocol_query::append_status(storage::pb_status const& st,
         if (!(this->*(it->first))(
                 st, string_index,
                 escaped)) {  // error => nothing in request body
-          return;
+          return false;
         }
-        (*(it->second))(escaped.str(), iss);
+        (it->second)(escaped.str(), iss);
       }
     }
   } catch (std::exception const& e) {
     SPDLOG_LOGGER_ERROR(_logger, "could not generate query for status {}: {}",
                         st.obj().index_id(), e.what());
-    return;
+    return false;
   }
 
   request_body += iss.str();
+  return true;
 }
 
 /**
@@ -185,11 +187,14 @@ void line_protocol_query::_append_compiled_string(
  *
  *  @param[in] scheme   The scheme to compile.
  *  @param[in] escaper  Escaper for the scheme.
+ *  @param[in] escape_fixed_string  true if escaper has to be applied on fixed
+ * strings.
  */
 void line_protocol_query::_compile_scheme(
     const std::string allowed_macros,
     const std::string& scheme,
-    line_protocol_query::data_escaper escaper) {
+    line_protocol_query::data_escaper escaper,
+    bool escape_fixed_string) {
   size_t found_macro(0);
   size_t end_macro(0);
 
@@ -197,7 +202,7 @@ void line_protocol_query::_compile_scheme(
          std::string::npos) {
     std::string substr(scheme.substr(end_macro, found_macro - end_macro));
     if (!substr.empty())
-      _append_compiled_string(substr, escaper);
+      _append_compiled_string(substr, escape_fixed_string ? escaper : nullptr);
 
     if ((end_macro = scheme.find_first_of('$', found_macro + 1)) ==
         std::string::npos)
@@ -291,7 +296,7 @@ void line_protocol_query::_compile_scheme(
   }
   std::string substr(scheme.substr(end_macro, found_macro - end_macro));
   if (!substr.empty())
-    _append_compiled_string(substr, escaper);
+    _append_compiled_string(substr, escape_fixed_string ? escaper : nullptr);
 }
 
 /**

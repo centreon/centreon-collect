@@ -48,12 +48,12 @@ line_protocol_query::line_protocol_query(
       _append_compiled_string(",");
       // tag_name
       _compile_scheme(allowed_macros, it->get_name(),
-                      &line_protocol_query::escape_key);
+                      &line_protocol_query::escape_key, true);
       // equal sign
       _append_compiled_string("=");
       // tag_value
       _compile_scheme(allowed_macros, it->get_value(),
-                      &line_protocol_query::escape_value);
+                      &line_protocol_query::escape_value, true);
     } else {
       have_field = true;
     }
@@ -76,15 +76,15 @@ line_protocol_query::line_protocol_query(
 
         // field_key
         _compile_scheme(allowed_macros, it->get_name(),
-                        &line_protocol_query::escape_key);
+                        &line_protocol_query::escape_key, true);
         // equal sign
         _append_compiled_string("=");
         // field value
         if (it->get_type() == http_tsdb::column::type::number)
-          _compile_scheme(allowed_macros, it->get_value(), nullptr);
+          _compile_scheme(allowed_macros, it->get_value(), nullptr, true);
         else if (it->get_type() == http_tsdb::column::type::string)
           _compile_scheme(allowed_macros, it->get_value(),
-                          &line_protocol_query::escape_value);
+                          &line_protocol_query::escape_value, true);
       }
   }
 }

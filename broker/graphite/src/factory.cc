@@ -139,7 +139,7 @@ io::endpoint* factory::new_endpoint(
   // Connector.
   std::unique_ptr<graphite::connector> c(new graphite::connector);
   c->connect_to(metric_naming, status_naming, escape_string, db_user,
-                db_password, db_host, db_port, queries_per_transaction, cache);
+                db_password, db_host, db_port, queries_per_transaction);
   is_acceptor = false;
   return (c.release());
 }

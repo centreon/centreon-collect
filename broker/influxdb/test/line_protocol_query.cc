@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
@@ -43,7 +42,11 @@ class InfluxDBLineProtoQuery : public testing::Test {
     cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
   }
 
-  static void TearDownTestSuite() { cache::global_cache::unload(); }
+  static void TearDownTestSuite() {
+    cache::global_cache::unload();
+    ::remove("/tmp/test_influxdb.cnf");
+    ::remove("/tmp/test_influxdb.rt");
+  }
 };
 
 TEST_F(InfluxDBLineProtoQuery, EscapeKey) {

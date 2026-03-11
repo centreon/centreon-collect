@@ -49,7 +49,7 @@ line_protocol_query::line_protocol_query(
   // scheme.
 
   // measurement
-  _compile_scheme(allowed_macros, timeseries, &escape_measurement);
+  _compile_scheme(allowed_macros, timeseries, &escape_measurement, true);
 
   // tag_set
   for (std::vector<http_tsdb::column>::const_iterator it(columns.begin()),
@@ -59,11 +59,11 @@ line_protocol_query::line_protocol_query(
       // comma
       _append_compiled_string(",");
       // tag_name
-      _compile_scheme(allowed_macros, it->get_name(), &escape_key);
+      _compile_scheme(allowed_macros, it->get_name(), &escape_key, true);
       // equal sign
       _append_compiled_string("=");
       // tag_value
-      _compile_scheme(allowed_macros, it->get_value(), &escape_key);
+      _compile_scheme(allowed_macros, it->get_value(), &escape_key, true);
     }
 
   // space
@@ -81,20 +81,20 @@ line_protocol_query::line_protocol_query(
         _append_compiled_string(",");
 
       // field_key
-      _compile_scheme(allowed_macros, it->get_name(), &escape_key);
+      _compile_scheme(allowed_macros, it->get_name(), &escape_key, true);
       // equal sign
       _append_compiled_string("=");
       // field value
       if (it->get_type() == http_tsdb::column::number)
-        _compile_scheme(allowed_macros, it->get_value(), nullptr);
+        _compile_scheme(allowed_macros, it->get_value(), nullptr, false);
       else if (it->get_type() == http_tsdb::column::string)
-        _compile_scheme(allowed_macros, it->get_value(), &escape_value);
+        _compile_scheme(allowed_macros, it->get_value(), &escape_value, true);
     }
   if (!first)
     _append_compiled_string(" ");
 
   // timestamp
-  _compile_scheme(allowed_macros, "$TIME$", nullptr);
+  _compile_scheme(allowed_macros, "$TIME$", nullptr, false);
   _append_compiled_string("\n");
 }
 

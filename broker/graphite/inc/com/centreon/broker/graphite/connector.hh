@@ -37,7 +37,6 @@ class connector : public io::endpoint {
   std::string _addr;
   unsigned short _port;
   uint32_t _queries_per_transaction;
-  std::shared_ptr<persistent_cache> _persistent_cache;
 
  public:
   connector();
@@ -51,8 +50,7 @@ class connector : public io::endpoint {
                   std::string const& db_passwd,
                   std::string const& db_host,
                   unsigned short db_port,
-                  uint32_t queries_per_transaction,
-                  std::shared_ptr<persistent_cache> const& cache);
+                  uint32_t queries_per_transaction);
   std::shared_ptr<io::stream> open() override;
 };
 }  // namespace com::centreon::broker::graphite
