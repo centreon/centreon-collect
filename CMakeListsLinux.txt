@@ -64,11 +64,14 @@ if(WITH_ASAN)
   endif()
 endif()
 
-# Dead code elimination and LTO for non-Debug builds
+# Dead code elimination for non-Debug builds
 if(NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
   add_compile_options(-ffunction-sections -fdata-sections)
   add_link_options(-Wl,--gc-sections)
+endif()
 
+# LTO only for Release builds (not RelWithDebInfo: LTO + mold breaks gtest symbol resolution)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
   include(CheckIPOSupported)
   check_ipo_supported(RESULT _ipo_supported OUTPUT _ipo_output)
   if(_ipo_supported)
