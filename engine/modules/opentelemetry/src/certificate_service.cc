@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,9 @@ certificate_service::certificate_service(
     const std::string& ca_cert)
     : _logger(logger), _ca_cert(ca_cert) {
   // calculate fingerprint
-  X509* cert = common::crypto::cert_tree::load_cert_from_string(ca_cert);
-  _fingerprint = common::crypto::cert_tree::cert_sha(cert);
-  X509_free(cert);
+  std::unique_ptr<X509, decltype(&X509_free)> cert(
+      common::crypto::cert_tree::load_cert_from_string(ca_cert), X509_free);
+  _fingerprint = common::crypto::cert_tree::cert_sha(cert.get());
 }
 
 /**
@@ -85,8 +85,8 @@ std::shared_ptr<certificate_service> certificate_service::load(
     if (client_token != _fingerprint) {
       SPDLOG_LOGGER_WARN(
           _logger,
-          "CA certificate request denied: invalid token '{}' for the peer {}",
-          client_token, context->peer());
+          "CA certificate request denied: invalid token for the peer {}",
+          context->peer());
       return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED,
                             "Invalid authentication token");
     }

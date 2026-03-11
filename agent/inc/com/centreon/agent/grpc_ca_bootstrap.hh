@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,9 +64,7 @@ class bootstrap_grpc_client
  public:
   using com::centreon::common::grpc::grpc_client_base::grpc_client_base;
 
-  std::shared_ptr<::grpc::Channel> get_channel() const {
-    return _channel;
-  }
+  std::shared_ptr<::grpc::Channel> get_channel() const { return _channel; }
 };
 
 /**
