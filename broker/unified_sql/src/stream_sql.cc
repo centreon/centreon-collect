@@ -150,9 +150,9 @@ void stream::clean_tables(uint32_t instance_id) {
       _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
       instance_id);
   query = fmt::format(
-      "UPDATE downtimes SET cancelled=1 WHERE actual_end_time IS NULL AND "
-      "cancelled=0 AND instance_id={}",
-      instance_id);
+      "UPDATE downtimes SET cancelled=1, actual_end_time={} WHERE cancelled=0 "
+      "AND instance_id={}",
+      time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
 

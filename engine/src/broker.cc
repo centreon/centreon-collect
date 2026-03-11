@@ -4160,7 +4160,9 @@ static void send_initial_configuration() {
     send_service_group_list<proto>();
   } else {
     SPDLOG_LOGGER_INFO(neb_logger,
-                       "init: No need to send poller configuration");
+                       "init: No need to send poller configuration, but we "
+                       "send downtimes list");
+    send_downtimes_list<proto>();
   }
   send_instance_configuration<proto>();
 }

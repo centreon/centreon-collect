@@ -31,6 +31,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
+#include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
@@ -609,6 +610,19 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
             now, config::applier::state::instance().poller_id(),
             dwn.obj().ba_id());
       _write_external_command(cmd);
+    } break;
+    case neb::pb_instance::static_type(): {
+      auto inst = std::static_pointer_cast<neb::pb_instance>(data);
+      if (!inst->obj().running()) {
+        uint64_t instance_id = inst->obj().instance_id();
+        _logger->debug(
+            "BAM: poller instance {} stopped, resetting downtime state",
+            instance_id);
+        multiplexing::publisher pblshr;
+        event_cache_visitor ev_cache;
+        _applier.book_service().reset_downtime_state(instance_id, &ev_cache);
+        ev_cache.commit_to(pblshr);
+      }
     } break;
     case extcmd::pb_ba_info::static_type(): {
       _logger->info("BAM: dump BA");

@@ -80,6 +80,8 @@ class service_book {
               io::stream* visitor = nullptr);
   void update(const std::shared_ptr<neb::pb_adaptive_service_status>& t,
               io::stream* visitor = nullptr);
+  void reset_downtime_state(uint64_t instance_id,
+                            io::stream* visitor = nullptr);
   void save_to_cache(ServicesBookState* cache) const;
   void apply(const ServicesBookState& state);
 };
