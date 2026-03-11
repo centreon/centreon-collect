@@ -67,12 +67,12 @@ jobs:
             lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
-          - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
-            lua_version: 5.3
-            runner: ubuntu-24.04
-            arch: amd64
+          # - package_extension: deb
+          #   image: packaging-centreon-collect-bookworm
+          #   distrib: bookworm
+          #   lua_version: 5.3
+          #   runner: ubuntu-24.04
+          #   arch: amd64
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
@@ -86,9 +86,15 @@ jobs:
           #   lua_version: 5.3
           #   runner: ubuntu-24.04
           #   arch: amd64
+          # - package_extension: deb
+          #   image: packaging-centreon-collect-bookworm-arm64
+          #   distrib: bookworm
+          #   lua_version: 5.3
+          #   runner: ubuntu-24.04-arm
+          #   arch: arm64
           - package_extension: deb
-            image: packaging-centreon-collect-bookworm-arm64
-            distrib: bookworm
+            image: packaging-centreon-collect-trixie-arm64
+            distrib: trixie
             lua_version: 5.3
             runner: ubuntu-24.04-arm
             arch: arm64
@@ -203,8 +209,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bookworm
-            arch: amd64
+          # - distrib: bookworm
+          #   arch: amd64
           - distrib: trixie
             arch: amd64
 

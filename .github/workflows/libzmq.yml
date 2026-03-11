@@ -146,10 +146,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-centreon-collect-bookworm
-            distrib: bookworm
+          # - image: packaging-centreon-collect-bookworm
+          #   distrib: bookworm
+          #   runner: ubuntu-24.04
+          #   arch: amd64
+          - image: packaging-centreon-collect-trixie
+            distrib: trixie
             runner: ubuntu-24.04
             arch: amd64
+
           # - image: packaging-nfpm-jammy
           #   distrib: jammy
           #   runner: ubuntu-24.04
@@ -255,8 +260,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: bookworm
-            arch: amd64
+          # - distrib: bookworm
+          #   arch: amd64
           - distrib: trixie
             arch: amd64
 

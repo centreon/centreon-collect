@@ -570,10 +570,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: bookworm
-            arch: amd64
-          - distrib: bookworm
-            arch: arm64
+          # - distrib: bookworm
+          #   arch: amd64
+          # - distrib: bookworm
+          #   arch: arm64
           - distrib: trixie
             arch: amd64
           - distrib: trixie

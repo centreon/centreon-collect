@@ -471,7 +471,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [bookworm, trixie]  # No ubuntu in 24.10, 24.11 or later for now
+        distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
 
     steps:
       - name: Checkout sources

@@ -61,10 +61,9 @@ jobs:
           - package_extension: rpm
             image: packaging-centreon-collect-alma10
             distrib: el10
-          - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
-
+          # - package_extension: deb
+          #   image: packaging-centreon-collect-bookworm
+          #   distrib: bookworm
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
@@ -161,7 +160,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm]
+        distrib: [trixie]
 
     steps:
       - name: Checkout sources
