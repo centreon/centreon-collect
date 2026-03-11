@@ -572,7 +572,7 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_WITHOUT_CERT
     [Tags]    broker    engine    opentelemetry    MON-192054
     
     ${run_env}    Ctn Run Env
-    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
 
     Ctn Config Engine    ${1}    ${2}    ${2}
 
