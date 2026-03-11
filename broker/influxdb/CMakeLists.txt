@@ -49,7 +49,11 @@ add_library(
   "${INC_DIR}/line_protocol_query.hh"
   "${INC_DIR}/stream.hh")
 target_link_libraries(
-  "${INFLUXDB}" PRIVATE bbdo_storage pb_storage_lib fmt::fmt)
+  "${INFLUXDB}" PRIVATE 
+  http_tsdb
+  bbdo_storage 
+  pb_storage_lib 
+  fmt::fmt)
 
 target_precompile_headers(${INFLUXDB} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${INFLUXDB}" PROPERTIES PREFIX ""
