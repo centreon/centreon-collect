@@ -33,8 +33,8 @@ certificate_service::certificate_service(
     : _logger(logger), _ca_cert(ca_cert) {
   // calculate fingerprint
   X509* cert = common::crypto::cert_tree::load_cert_from_string(ca_cert);
-
-  _fingerprint_prefix = common::crypto::cert_tree::cert_sha(cert).substr(0, 6);
+  _fingerprint = common::crypto::cert_tree::cert_sha(cert);
+  X509_free(cert);
 }
 
 /**
@@ -46,7 +46,7 @@ certificate_service::certificate_service(
 std::shared_ptr<certificate_service> certificate_service::load(
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& ca_cert) {
-  SPDLOG_LOGGER_INFO(logger, "Certificate_service loaded");
+  SPDLOG_LOGGER_INFO(logger, "certificate service loaded");
 
   return std::make_shared<certificate_service>(logger, ca_cert);
 }
@@ -82,7 +82,7 @@ std::shared_ptr<certificate_service> certificate_service::load(
     std::string client_token(token_iter->second.data(),
                              token_iter->second.size());
 
-    if (client_token != _fingerprint_prefix) {
+    if (client_token != _fingerprint) {
       SPDLOG_LOGGER_WARN(
           _logger,
           "CA certificate request denied: invalid token '{}' for the peer {}",
@@ -94,8 +94,7 @@ std::shared_ptr<certificate_service> certificate_service::load(
     // Set response
     response->set_certificate_pem(_ca_cert);
     SPDLOG_LOGGER_CRITICAL(
-        _logger,
-        "[SECURITY] CA bootstrap certificate delivered to peer {}",
+        _logger, "[SECURITY] CA bootstrap certificate delivered to peer {}",
         context->peer());
 
     return ::grpc::Status::OK;
