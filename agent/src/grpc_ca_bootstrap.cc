@@ -17,6 +17,7 @@
  */
 
 #include "grpc_ca_bootstrap.hh"
+#include "spdlog/spdlog.h"
 
 #if defined(__linux__)
 #include <pwd.h>
@@ -35,6 +36,8 @@
 #include "agent.grpc.pb.h"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "common/crypto/cert_tree.hh"
+
+#include <filesystem>
 
 namespace com::centreon::agent {
 
@@ -105,6 +108,7 @@ static bool persist_ca_path_in_registry(
  */
 static bool add_ca_to_windows_store(
     const std::string& ca_pem,
+    const std::string& service_name,
     const std::shared_ptr<spdlog::logger>& logger) {
   DWORD der_size = 0;
   if (!::CryptStringToBinaryA(ca_pem.c_str(), static_cast<DWORD>(ca_pem.size()),
@@ -136,28 +140,31 @@ static bool add_ca_to_windows_store(
     return false;
   }
 
+  const std::wstring service_root_store =
+      std::wstring(service_name.begin(), service_name.end()) + L"\\ROOT";
   HCERTSTORE cert_store = ::CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0,
-                                          CERT_SYSTEM_STORE_LOCAL_MACHINE |
+                                          CERT_SYSTEM_STORE_SERVICES |
                                               CERT_STORE_OPEN_EXISTING_FLAG |
-                                              CERT_STORE_MAXIMUM_ALLOWED,
-                                          L"ROOT");
+                                              CERT_STORE_MAXIMUM_ALLOWED_FLAG,
+                                          service_root_store.c_str());
   if (!cert_store) {
     const DWORD error_code = ::GetLastError();
     SPDLOG_LOGGER_WARN(
         logger,
-        "Unable to open LocalMachine ROOT store ({}), trying CurrentUser ROOT",
-        win_error_message(error_code));
+        "Unable to open service ROOT store '{}' ({}), trying CurrentService "
+        "ROOT",
+        service_name, win_error_message(error_code));
     cert_store = ::CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0,
-                                 CERT_SYSTEM_STORE_CURRENT_USER |
+                                 CERT_SYSTEM_STORE_CURRENT_SERVICE |
                                      CERT_STORE_OPEN_EXISTING_FLAG |
-                                     CERT_STORE_MAXIMUM_ALLOWED,
+                                     CERT_STORE_MAXIMUM_ALLOWED_FLAG,
                                  L"ROOT");
   }
 
   if (!cert_store) {
     const DWORD error_code = ::GetLastError();
     SPDLOG_LOGGER_ERROR(logger,
-                        "Unable to open Windows ROOT certificate store: {}",
+                        "Unable to open Windows service-scoped ROOT store: {}",
                         win_error_message(error_code));
     ::CertFreeCertificateContext(cert_context);
     return false;
@@ -173,12 +180,29 @@ static bool add_ca_to_windows_store(
                         win_error_message(error_code));
   } else {
     SPDLOG_LOGGER_INFO(
-        logger, "CA certificate added to Windows ROOT certificate store");
+        logger,
+        "CA certificate added to Windows service-scoped ROOT certificate "
+        "store");
   }
 
   ::CertCloseStore(cert_store, 0);
   ::CertFreeCertificateContext(cert_context);
   return add_status == TRUE;
+}
+
+/**
+ * @brief Extract service name from registry path.
+ *
+ * Expected format: SOFTWARE\\Centreon\\<ServiceName>
+ */
+static std::string extract_service_name_from_registry_key(
+    const std::string& registry_key) {
+  static const std::string k_prefix = "SOFTWARE\\Centreon\\";
+  if (registry_key.size() > k_prefix.size() &&
+      registry_key.compare(0, k_prefix.size(), k_prefix) == 0) {
+    return registry_key.substr(k_prefix.size());
+  }
+  return "CentreonMonitoringAgent";
 }
 #endif
 
@@ -191,30 +215,30 @@ static bool add_ca_to_windows_store(
 static bool set_owner_to_agent_user(
     const std::filesystem::path& file_path,
     const std::shared_ptr<spdlog::logger>& logger) {
-  auto k_agent_user = "centreon-monitoring-agent";
-  // struct passwd* user = ::getpwnam(k_agent_user);
-  // if (!user) {
-  //   SPDLOG_LOGGER_ERROR(logger, "Unable to resolve user {}", k_agent_user);
-  //   return false;
-  // }
+  const auto k_agent_user = "centreon-monitoring-agent";
+  struct passwd* user = ::getpwnam(k_agent_user);
+  if (!user) {
+    SPDLOG_LOGGER_ERROR(logger, "Unable to resolve user {}", k_agent_user);
+    return false;
+  }
 
-  // struct stat st {};
-  // if (::stat(file_path.c_str(), &st) != 0) {
-  //   SPDLOG_LOGGER_ERROR(logger,
-  //                       "Unable to stat CA file {} before ownership update",
-  //                       file_path.string());
-  //   return false;
-  // }
+  struct stat st {};
+  if (::stat(file_path.c_str(), &st) != 0) {
+    SPDLOG_LOGGER_ERROR(logger,
+                        "Unable to stat CA file {} before ownership update",
+                        file_path.string());
+    return false;
+  }
 
-  // if (st.st_uid == user->pw_uid && st.st_gid == user->pw_gid) {
-  //   return true;
-  // }
+  if (st.st_uid == user->pw_uid && st.st_gid == user->pw_gid) {
+    return true;
+  }
 
-  // if (::chown(file_path.c_str(), user->pw_uid, user->pw_gid) != 0) {
-  //   SPDLOG_LOGGER_ERROR(logger, "Unable to set CA file owner to {} for {}",
-  //                       k_agent_user, file_path.string());
-  //   return false;
-  // }
+  if (::chown(file_path.c_str(), user->pw_uid, user->pw_gid) != 0) {
+    SPDLOG_LOGGER_ERROR(logger, "Unable to set CA file owner to {} for {}",
+                        k_agent_user, file_path.string());
+    return false;
+  }
 
   SPDLOG_LOGGER_INFO(logger, "Set CA file owner to {}", k_agent_user);
   return true;
@@ -293,7 +317,7 @@ static std::filesystem::path get_default_bootstrap_ca_path(
   char module_path[MAX_PATH] = {};
   DWORD module_path_len = ::GetModuleFileNameA(nullptr, module_path, MAX_PATH);
   if (module_path_len > 0 && module_path_len < MAX_PATH) {
-    return std::filesystem::path(module_path).parent_path() / "otel-ca.pem";
+    return std::filesystem::path(module_path).parent_path() / "cma-ca.pem";
   }
 
   const DWORD error_code = ::GetLastError();
@@ -303,9 +327,9 @@ static std::filesystem::path get_default_bootstrap_ca_path(
       win_error_message(error_code));
   return std::filesystem::path(
              "C:\\Program Files\\Centreon\\CentreonMonitoringAgent") /
-         "otel-ca.pem";
+         "cma-ca.pem";
 #else
-  return std::filesystem::path("/etc/centreon-monitoring-agent/otel-ca.crt");
+  return std::filesystem::path("/etc/centreon-monitoring-agent/cma-ca.crt");
 #endif
 }
 
@@ -317,15 +341,18 @@ static std::filesystem::path get_default_bootstrap_ca_path(
  */
 static bool try_platform_direct_ca_persist(
     const std::string& ca_pem [[maybe_unused]],
+    const std::string& config_reference [[maybe_unused]],
     bool& done_without_file,
     const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {
 #if defined(_WIN32)
-  done_without_file = add_ca_to_windows_store(ca_pem, logger);
+  const std::string service_name =
+      extract_service_name_from_registry_key(config_reference);
+  done_without_file = add_ca_to_windows_store(ca_pem, service_name, logger);
   if (!done_without_file) {
     SPDLOG_LOGGER_WARN(
         logger,
-        "Unable to persist CA in Windows certificate store; fallback to file "
-        "and registry persistence");
+        "Unable to persist CA in Windows service-scoped certificate store; "
+        "fallback to file and registry persistence");
   }
   return true;
 #else
@@ -433,7 +460,13 @@ void ca_bootstrap_workflow::run() {
       _logger,
       "[SECURITY] CA bootstrap succeeded from fingerprint for endpoint {}",
       _conf.get_endpoint());
-  persist_ca_to_file_and_config(*ca_pem);
+  if (!persist_ca_to_file_and_config(*ca_pem)) {
+    SPDLOG_LOGGER_WARN(
+        _logger,
+        "CA bootstrap succeeded but persistence failed for endpoint {}; "
+        "TLS will work this session only",
+        _conf.get_endpoint());
+  }
 }
 
 /**
@@ -494,7 +527,7 @@ ca_bootstrap_workflow::fetch_ca_with_tls_skip_verify() const {
 
   const std::string& fingerprint = _conf.get_ca_fingerprint();
   if (!fingerprint.empty()) {
-    context.AddMetadata("x-token", fingerprint.substr(0, 6));
+    context.AddMetadata("x-token", fingerprint);
   }
 
   const ::grpc::Status status =
@@ -550,7 +583,8 @@ bool ca_bootstrap_workflow::persist_ca_to_file_and_config(
     const std::string& ca_pem) const {
   try {
     bool done_without_file = false;
-    try_platform_direct_ca_persist(ca_pem, done_without_file, _logger);
+    try_platform_direct_ca_persist(ca_pem, _config_path, done_without_file,
+                                   _logger);
     if (done_without_file) {
       SPDLOG_LOGGER_INFO(
           _logger,
@@ -578,7 +612,7 @@ bool ca_bootstrap_workflow::persist_ca_to_file_and_config(
     }
 
     if (!apply_platform_ca_post_file_persist(ca_path, _logger)) {
-      return false;
+      SPDLOG_LOGGER_WARN(_logger, "unable to set the owner for the cert");
     }
 
     const std::string ca_path_string = ca_path.string();

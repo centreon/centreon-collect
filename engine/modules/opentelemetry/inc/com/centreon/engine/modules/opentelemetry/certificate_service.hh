@@ -32,7 +32,7 @@ namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
 class certificate_service final : public agent::CACertificateService::Service {
   std::shared_ptr<spdlog::logger> _logger;
   const std::string _ca_cert;
-  std::string _fingerprint_prefix;
+  std::string _fingerprint;
 
  public:
   certificate_service(const std::shared_ptr<spdlog::logger>& logger,

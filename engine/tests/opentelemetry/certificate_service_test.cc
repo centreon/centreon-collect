@@ -60,15 +60,14 @@ class certificate_service_test : public ::testing::Test {
   std::shared_ptr<grpc::Channel> _channel;
   std::unique_ptr<com::centreon::agent::CACertificateService::Stub> _stub;
 
-  std::string _fingerprint_prefix;
+  std::string _fingerprint;
 
   void SetUp() override {
     _logger = spdlog::default_logger();
 
     X509* cert = common::crypto::cert_tree::load_cert_from_string(TEST_CA_CERT);
-
-    _fingerprint_prefix =
-        common::crypto::cert_tree::cert_sha(cert).substr(0, 6);
+    _fingerprint = common::crypto::cert_tree::cert_sha(cert);
+    X509_free(cert);
 
     _service_impl = certificate_service::load(_logger, TEST_CA_CERT);
 
@@ -89,7 +88,7 @@ class certificate_service_test : public ::testing::Test {
 
 TEST_F(certificate_service_test, GetCACertificateWithValidToken) {
   grpc::ClientContext context;
-  context.AddMetadata("x-token", _fingerprint_prefix);
+  context.AddMetadata("x-token", _fingerprint);
 
   com::centreon::agent::CACertificateRequest request;
   com::centreon::agent::CACertificateResponse response;
