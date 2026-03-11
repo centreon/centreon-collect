@@ -122,7 +122,9 @@ class grpc_config {
         _second_keepalive_interval(30),
         _second_max_reconnect_backoff(0),
         _max_message_length(0),
-        _trusted_tokens(std::move(trusted_tokens)) {}
+        _trusted_tokens(trusted_tokens
+                            ? std::move(trusted_tokens)
+                            : std::make_shared<const absl::flat_hash_set<std::string>>()) {}
 
   grpc_config(const std::string& hostp,
               bool crypted,
@@ -171,7 +173,9 @@ class grpc_config {
         _second_max_reconnect_backoff(second_max_reconnect_backoff),
         _max_message_length(max_message_length),
         _token(token),
-        _trusted_tokens(std::move(trusted_tokens)) {}
+        _trusted_tokens(trusted_tokens
+                            ? std::move(trusted_tokens)
+                            : std::make_shared<const absl::flat_hash_set<std::string>>()) {}
 
   const std::string& get_hostport() const { return _hostport; }
   bool is_crypted() const { return _crypted; }
