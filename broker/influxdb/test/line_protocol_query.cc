@@ -18,9 +18,12 @@
  */
 
 #include <gtest/gtest.h>
+#include <sstream>
 
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -32,47 +35,57 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 
-TEST(InfluxDBLineProtoQuery, EscapeKey) {
-  influxdb::line_protocol_query lpq;
+extern std::shared_ptr<asio::io_context> g_io_context;
 
-  ASSERT_EQ(lpq.escape_key("The test = valid, I hope"),
-            "The\\ test\\ \\=\\ valid\\,\\ I\\ hope");
+class InfluxDBLineProtoQuery : public testing::Test {
+ public:
+  static void SetUpTestSuite() {
+    cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
+  }
+
+  static void TearDownTestSuite() { cache::global_cache::unload(); }
+};
+
+TEST_F(InfluxDBLineProtoQuery, EscapeKey) {
+  influxdb::line_protocol_query lpq;
+  std::ostringstream is;
+  lpq.escape_key("The test = valid, I hope", is);
+  ASSERT_EQ(is.str(), "The\\ test\\ \\=\\ valid\\,\\ I\\ hope");
 }
 
-TEST(InfluxDBLineProtoQuery, EscapeMeasurement) {
+TEST_F(InfluxDBLineProtoQuery, EscapeMeasurement) {
   influxdb::line_protocol_query lpq;
-
-  ASSERT_EQ(lpq.escape_measurement("The test = valid, I hope"),
-            "The\\ test\\ =\\ valid\\,\\ I\\ hope");
+  std::ostringstream is;
+  lpq.escape_measurement("The test = valid, I hope", is);
+  ASSERT_EQ(is.str(), "The\\ test\\ =\\ valid\\,\\ I\\ hope");
 }
 
-TEST(InfluxDBLineProtoQuery, EscapeValue) {
+TEST_F(InfluxDBLineProtoQuery, EscapeValue) {
   influxdb::line_protocol_query lpq;
 
-  ASSERT_EQ(lpq.escape_value("The \"test\" = valid, I hope"),
-            "\"The \\\"test\\\" = valid, I hope\"");
+  std::ostringstream is;
+  lpq.escape_value("The \"test\" = valid, I hope", is);
+  ASSERT_EQ(is.str(), "\"The \\\"test\\\" = valid, I hope\"");
 }
 
-TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
+TEST_F(InfluxDBLineProtoQuery, GenerateMetricExcept) {
   influxdb::line_protocol_query lpq1;
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   influxdb::line_protocol_query lpq2(
-      "test", columns, influxdb::line_protocol_query::status, cache);
+      "test", "", columns, influxdb::line_protocol_query::data_type::status,
+      log_v2::instance().get(log_v2::INFLUXDB));
   influxdb::line_protocol_query lpq3(
-      "test", columns, influxdb::line_protocol_query::metric, cache);
+      "test", "", columns, influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB));
   storage::pb_metric m1;
 
-  ASSERT_THROW(lpq1.generate_metric(m1), msg_fmt);
-  ASSERT_THROW(lpq2.generate_metric(m1), msg_fmt);
-  ASSERT_NO_THROW(lpq3.generate_metric(m1));
+  ASSERT_THROW(lpq1.append_metric(m1), msg_fmt);
+  ASSERT_THROW(lpq2.append_metric(m1), msg_fmt);
+  ASSERT_NO_THROW(lpq3.append_metric(m1));
 }
 
-TEST(InfluxDBLineProtoQuery, GenerateMetric) {
+TEST_F(InfluxDBLineProtoQuery, GenerateMetric) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
   m1.set_host_id(1);
@@ -115,20 +128,19 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
       http_tsdb::column{"host3", "43.0", true, http_tsdb::column::number});
 
   influxdb::line_protocol_query lpq(
-      "test", columns, influxdb::line_protocol_query::metric, cache);
+      "test", "", columns, influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB));
 
-  ASSERT_EQ(lpq.generate_metric(pb_m1),
+  ASSERT_EQ(lpq.append_metric(pb_m1),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
-  ASSERT_EQ(lpq.generate_metric(pb_m2),
+  ASSERT_EQ(lpq.append_metric(pb_m2),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 4000\n");
-  ASSERT_EQ(lpq.generate_metric(pb_m3),
+  ASSERT_EQ(lpq.append_metric(pb_m3),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
-TEST(InfluxDBLineProtoQuery, ComplexMetric) {
+TEST_F(InfluxDBLineProtoQuery, ComplexMetric) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   Metric& m_obj = m.mut_obj();
   m_obj.set_host_id(1);
@@ -167,6 +179,7 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   host->host_id = 1;
 
   instance->mut_obj().set_instance_id(3);
+  instance->mut_obj().set_running(true);
   instance->mut_obj().set_name("poller test");
 
   metric_map->metric_id = 40;
@@ -176,27 +189,26 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   index_map->mut_obj().set_host_id(1);
   index_map->mut_obj().set_service_id(1);
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(metric_map);
-  cache.write(index_map);
+  cache::global_cache::instance_ptr()->write(host);
+  cache::global_cache::instance_ptr()->write(svc);
+  cache::global_cache::instance_ptr()->write(instance);
+  cache::global_cache::instance_ptr()->write(metric_map);
+  cache::global_cache::instance_ptr()->write(index_map);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$ $VALUE$",
-      columns, influxdb::line_protocol_query::metric, cache};
+      "", columns, influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
   ASSERT_EQ(
-      q.generate_metric(m),
+      q.append_metric(m),
       "test\\ .\\ host1\\ 1\\ svc.1\\ 1\\ poller\\ test\\ 3\\ 41\\ \\ TEST\\ $"
       "\\ 42,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
-TEST(InfluxDBLineProtoQuery, ComplexStatus) {
+TEST_F(InfluxDBLineProtoQuery, ComplexStatus) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_status s;
   Status& obj_s = s.mut_obj();
   obj_s.set_time(2000);
@@ -226,7 +238,8 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$ $VALUE$",
-      columns, influxdb::line_protocol_query::status, cache};
+      "", columns, influxdb::line_protocol_query::data_type::status,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
   svc->service_description = "svc1";
   svc->service_id = 1;
@@ -236,6 +249,7 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   host->host_id = 1;
 
   instance->mut_obj().set_instance_id(3);
+  instance->mut_obj().set_running(true);
   instance->mut_obj().set_name("poller test");
 
   index_map->index_id = 3;
@@ -246,21 +260,19 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   s.destination_id = 4;
   s.broker_id = 1;
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(index_map);
+  cache::global_cache::instance_ptr()->write(host);
+  cache::global_cache::instance_ptr()->write(svc);
+  cache::global_cache::instance_ptr()->write(instance);
+  cache::global_cache::instance_ptr()->write(index_map);
 
   ASSERT_EQ(
-      q.generate_status(s),
+      q.append_status(s),
       "test\\ .\\ host1\\ 1\\ svc1\\ 1\\ poller\\ test\\ 3\\ 3\\ \\ "
       "TEST\\ $\\ 2,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
-TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
+TEST_F(InfluxDBLineProtoQuery, ComplexPbMetric) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   Metric& m_obj = m.mut_obj();
   m_obj.set_host_id(1);
@@ -288,11 +300,14 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   svc->mut_obj().set_description("svc.1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
 
   host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
+  host->mut_obj().set_enabled(true);
 
   instance->mut_obj().set_instance_id(3);
+  instance->mut_obj().set_running(true);
   instance->mut_obj().set_name("poller test");
 
   metric_map->metric_id = 40;
@@ -300,27 +315,26 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
 
   index_map->index_id = 41;
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(metric_map);
-  cache.write(index_map);
+  cache::global_cache::instance_ptr()->write(host);
+  cache::global_cache::instance_ptr()->write(svc);
+  cache::global_cache::instance_ptr()->write(instance);
+  cache::global_cache::instance_ptr()->write(metric_map);
+  cache::global_cache::instance_ptr()->write(index_map);
 
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$ $VALUE$",
-      columns, influxdb::line_protocol_query::metric, cache};
+      "", columns, influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
   ASSERT_EQ(
-      q.generate_metric(m),
+      q.append_metric(m),
       "test\\ .\\ host1\\ 1\\ svc.1\\ 1\\ poller\\ test\\ 3\\ 41\\ \\ TEST\\ $"
       "\\ 42,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
-TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
+TEST_F(InfluxDBLineProtoQuery, ComplexPBStatus) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_status s;
   Status& obj_s = s.mut_obj();
   obj_s.set_time(2000);
@@ -344,16 +358,20 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   influxdb::line_protocol_query q{
       "test . $HOST$ $HOSTID$ $SERVICE$ $SERVICEID$ $INSTANCE$ $INSTANCEID$ "
       "$INDEXID$ $TEST$ TEST $$ $VALUE$",
-      columns, influxdb::line_protocol_query::status, cache};
+      "", columns, influxdb::line_protocol_query::data_type::status,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
   svc->mut_obj().set_description("svc1");
   svc->mut_obj().set_service_id(1);
   svc->mut_obj().set_host_id(1);
+  svc->mut_obj().set_enabled(true);
 
   host->mut_obj().set_name("host1");
   host->mut_obj().set_host_id(1);
+  host->mut_obj().set_enabled(true);
 
   instance->mut_obj().set_instance_id(3);
+  instance->mut_obj().set_running(true);
   instance->mut_obj().set_name("poller test");
 
   index_map->index_id = 3;
@@ -364,51 +382,54 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   s.destination_id = 4;
   s.broker_id = 1;
 
-  cache.write(host);
-  cache.write(svc);
-  cache.write(instance);
-  cache.write(index_map);
+  cache::global_cache::instance_ptr()->write(host);
+  cache::global_cache::instance_ptr()->write(svc);
+  cache::global_cache::instance_ptr()->write(instance);
+  cache::global_cache::instance_ptr()->write(index_map);
 
   ASSERT_EQ(
-      q.generate_status(s),
+      q.append_status(s),
       "test\\ .\\ host1\\ 1\\ svc1\\ 1\\ poller\\ test\\ 3\\ 3\\ \\ "
       "TEST\\ $\\ 2,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
-TEST(InfluxDBLineProtoQuery, Except) {
+TEST_F(InfluxDBLineProtoQuery, Except) {
   std::vector<http_tsdb::column> columns;
-  std::shared_ptr<persistent_cache> pcache;
-  influxdb::macro_cache cache(pcache);
   storage::pb_metric m;
   storage::pb_status s;
 
-  influxdb::line_protocol_query q{"test .", columns,
-                                  influxdb::line_protocol_query::metric, cache};
+  influxdb::line_protocol_query q{
+      "test .", "", columns, influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB)};
   influxdb::line_protocol_query q2{
-      "test .", columns, influxdb::line_protocol_query::status, cache};
+      "test .", "", columns, influxdb::line_protocol_query::data_type::status,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRICID$", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRICID$", "", columns,
+        influxdb::line_protocol_query::data_type::status,
+        log_v2::instance().get(log_v2::INFLUXDB)};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRIC$", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRIC$", "", columns,
+        influxdb::line_protocol_query::data_type::status,
+        log_v2::instance().get(log_v2::INFLUXDB)};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
   }
 
   try {
-    influxdb::line_protocol_query q3{"test . $METRIC", columns,
-                                     influxdb::line_protocol_query::status,
-                                     cache};
+    influxdb::line_protocol_query q3{
+        "test . $METRIC", "", columns,
+        influxdb::line_protocol_query::data_type::status,
+        log_v2::instance().get(log_v2::INFLUXDB)};
     ASSERT_TRUE(false);
   } catch (msg_fmt const& ex) {
     ASSERT_TRUE(true);
@@ -417,21 +438,24 @@ TEST(InfluxDBLineProtoQuery, Except) {
   m.mut_obj().set_metric_id(3);
   m.mut_obj().set_name("A");
 
-  influxdb::line_protocol_query q4{"test . $METRICID$ $METRIC$", columns,
-                                   influxdb::line_protocol_query::metric,
-                                   cache};
+  influxdb::line_protocol_query q4{
+      "test . $METRICID$ $METRIC$", "", columns,
+      influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB)};
 
-  ASSERT_THROW(q.generate_status(s), msg_fmt);
-  ASSERT_THROW(q2.generate_metric(m), msg_fmt);
-  ASSERT_EQ(q4.generate_metric(m), "test\\ .\\ 3\\ A 0\n");
+  ASSERT_THROW(q.append_status(s), msg_fmt);
+  ASSERT_THROW(q2.append_metric(m), msg_fmt);
+  ASSERT_EQ(q4.append_metric(m), "test\\ .\\ 3\\ A 0\n");
 
-  influxdb::line_protocol_query q5{"test . $INSTANCE$", columns,
-                                   influxdb::line_protocol_query::metric,
-                                   cache};
-  ASSERT_EQ(q5.generate_metric(m), "");
+  influxdb::line_protocol_query q5{
+      "test . $INSTANCE$", "", columns,
+      influxdb::line_protocol_query::data_type::metric,
+      log_v2::instance().get(log_v2::INFLUXDB)};
+  ASSERT_EQ(q5.append_metric(m), "");
 
-  influxdb::line_protocol_query q6{"test . $INSTANCE$", columns,
-                                   influxdb::line_protocol_query::status,
-                                   cache};
-  ASSERT_EQ(q6.generate_status(s), "");
+  influxdb::line_protocol_query q6{
+      "test . $INSTANCE$", "", columns,
+      influxdb::line_protocol_query::data_type::status,
+      log_v2::instance().get(log_v2::INFLUXDB)};
+  ASSERT_EQ(q6.append_status(s), "");
 }

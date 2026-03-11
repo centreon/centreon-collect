@@ -166,7 +166,7 @@ io::endpoint* factory::new_endpoint(
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);
   c->connect_to(user, passwd, addr, port, db, queries_per_transaction,
                 status_timeseries, status_column_list, metric_timeseries,
-                metric_column_list, cache);
+                metric_column_list);
   is_acceptor = false;
   return c.release();
 }

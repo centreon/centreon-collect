@@ -17,9 +17,9 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/request.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/protobuf.hh"
 
 #include "com/centreon/broker/cache/global_cache.hh"
 

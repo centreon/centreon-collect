@@ -20,11 +20,21 @@
 #define CCB_GLOBAL_CACHE_HH
 
 #include <boost/thread/shared_mutex.hpp>
+#include "com/centreon/broker/cache/protobuf.hh"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "protobuf_utils.hh"
 
 namespace com::centreon::broker {
 
 namespace cache {
+
+class host;
+class service;
+class instance;
+class host_group;
+class service_group;
+class dimension_ba_event;
+class dimension_bv_event;
 
 using host_serv_pair = std::pair<uint64_t /*host_id*/, uint64_t /*serv_id*/>;
 

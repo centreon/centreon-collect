@@ -24,7 +24,7 @@
 #include <boost/circular_buffer.hpp>
 #include <nlohmann/json_fwd.hpp>
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "bbdo/neb.pb.h"
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"

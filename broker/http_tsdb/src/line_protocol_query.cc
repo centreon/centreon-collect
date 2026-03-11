@@ -16,8 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "bbdo/neb.pb.h"
 
+#include <cstdint>
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
@@ -49,13 +50,17 @@ line_protocol_query::line_protocol_query(
 }
 
 /**
- *  Generate the query for a metric.
+ *  append metric to a query.
  *
  *  @param[in] me  The metric.
  *
  */
 void line_protocol_query::append_metric(storage::pb_metric const& me,
                                         std::string& request_body) const {
+  if (_type != data_type::metric)
+    throw msg_fmt(
+        "attempt to generate metric"
+        " with a query of the bad type");
   unsigned string_index = 0;
   std::ostringstream iss;
   try {
@@ -67,7 +72,11 @@ void line_protocol_query::append_metric(storage::pb_metric const& me,
         (this->*(it->first))(me, string_index, iss);
       else {
         std::ostringstream escaped;
-        (this->*(it->first))(me, string_index, escaped);
+        if (!(this->*(it->first))(
+                me, string_index,
+                escaped)) {  // error => nothing in request body
+          return;
+        }
         (*(it->second))(escaped.str(), iss);
       }
     }
@@ -80,13 +89,17 @@ void line_protocol_query::append_metric(storage::pb_metric const& me,
 }
 
 /**
- *  Generate the query for a status.
+ *  append status to a query.
  *
  *  @param[in] st  The status.
  *
  */
 void line_protocol_query::append_status(storage::pb_status const& st,
                                         std::string& request_body) const {
+  if (_type != data_type::status)
+    throw msg_fmt(
+        "attempt to generate status"
+        " with a query of the bad type");
   unsigned string_index = 0;
   std::ostringstream iss;
   try {
@@ -98,7 +111,11 @@ void line_protocol_query::append_status(storage::pb_status const& st,
         (this->*(it->first))(st, string_index, iss);
       else {
         std::ostringstream escaped;
-        (this->*(it->first))(st, string_index, escaped);
+        if (!(this->*(it->first))(
+                st, string_index,
+                escaped)) {  // error => nothing in request body
+          return;
+        }
         (*(it->second))(escaped.str(), iss);
       }
     }
@@ -109,6 +126,32 @@ void line_protocol_query::append_status(storage::pb_status const& st,
   }
 
   request_body += iss.str();
+}
+
+/**
+ * @brief generate query body for a metric
+ *
+ * @param me
+ * @return std::string
+ */
+std::string line_protocol_query::append_metric(
+    storage::pb_metric const& me) const {
+  std::string ret;
+  append_metric(me, ret);
+  return ret;
+}
+
+/**
+ * @brief generate query body for a ssatus
+ *
+ * @param me
+ * @return std::string
+ */
+std::string line_protocol_query::append_status(
+    storage::pb_status const& me) const {
+  std::string ret;
+  append_status(me, ret);
+  return ret;
 }
 
 /**
@@ -162,7 +205,8 @@ void line_protocol_query::_compile_scheme(
                     scheme.substr(found_macro));
 
     std::string macro(scheme.substr(found_macro, end_macro + 1 - found_macro));
-    if (allowed_macros.find(macro) != std::string::npos) {
+    if (allowed_macros.empty() ||
+        allowed_macros.find(macro) != std::string::npos) {
       if (macro == "$$")
         _append_compiled_getter(&line_protocol_query::_get_dollar_sign,
                                 escaper);
@@ -267,10 +311,11 @@ void line_protocol_query::_throw_on_invalid(data_type macro_type) {
  *  @param[out] is  The stream.
  */
 template <typename T, typename U, T(U::*member)>
-void line_protocol_query::_get_member(io::data const& d,
+bool line_protocol_query::_get_member(io::data const& d,
                                       unsigned& string_index [[maybe_unused]],
                                       std::ostream& is) const {
   is << static_cast<U const&>(d).*member;
+  return true;
 }
 
 /**
@@ -279,11 +324,12 @@ void line_protocol_query::_get_member(io::data const& d,
  *  @param[in] d     The data, unused.
  *  @param[out] is   The stream.
  */
-void line_protocol_query::_get_string(io::data const& d,
+bool line_protocol_query::_get_string(io::data const& d,
                                       unsigned& string_index,
                                       std::ostream& is) const {
   (void)d;
   is << _compiled_strings[string_index++];
+  return true;
 }
 
 /**
@@ -292,12 +338,13 @@ void line_protocol_query::_get_string(io::data const& d,
  *  @param[in] d   Unused.
  *  @param[in] is  The stream.
  */
-void line_protocol_query::_get_dollar_sign(io::data const& d,
+bool line_protocol_query::_get_dollar_sign(io::data const& d,
                                            unsigned& string_index
                                            [[maybe_unused]],
                                            std::ostream& is) const {
   (void)d;
   is << "$";
+  return true;
 }
 /**
  *  Get the status index id of a data, be it either metric or status.
@@ -335,11 +382,18 @@ uint64_t line_protocol_query::_get_index_id(io::data const& d) const {
  *  @param[in] d    The data.
  *  @param[out] is  The stream.
  */
-void line_protocol_query::_get_index_id(io::data const& d,
+bool line_protocol_query::_get_index_id(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
   cache::global_cache::lock l;
-  is << _get_index_id(d);
+  uint64_t index_id = _get_index_id(d);
+  if (index_id) {
+    is << index_id;
+    return true;
+  } else {
+    return false;
+    ;
+  }
 }
 
 /**
@@ -348,7 +402,7 @@ void line_protocol_query::_get_index_id(io::data const& d,
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_host(io::data const& d,
+bool line_protocol_query::_get_host(io::data const& d,
                                     unsigned& string_index [[maybe_unused]],
                                     std::ostream& is) const {
   uint64_t host_id =
@@ -360,6 +414,9 @@ void line_protocol_query::_get_host(io::data const& d,
       cache::global_cache::instance_ptr()->get_host(host_id, l);
   if (host_info) {
     is << host_info->name();
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -383,10 +440,11 @@ uint64_t line_protocol_query::_get_host_id(io::data const& d) const {
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_host_id(io::data const& d,
+bool line_protocol_query::_get_host_id(io::data const& d,
                                        unsigned& string_index [[maybe_unused]],
                                        std::ostream& is) const {
   is << _get_host_id(d);
+  return true;
 }
 
 /**
@@ -395,7 +453,7 @@ void line_protocol_query::_get_host_id(io::data const& d,
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_service(io::data const& d,
+bool line_protocol_query::_get_service(io::data const& d,
                                        unsigned& string_index [[maybe_unused]],
                                        std::ostream& is) const {
   cache::host_serv_pair host_serv = _get_service_id(d);
@@ -405,6 +463,9 @@ void line_protocol_query::_get_service(io::data const& d,
                                                        host_serv.second, l);
   if (serv_info) {
     is << serv_info->description();
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -430,11 +491,12 @@ std::pair<uint64_t, uint64_t> line_protocol_query::_get_service_id(
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_service_id(io::data const& d,
+bool line_protocol_query::_get_service_id(io::data const& d,
                                           unsigned& string_index
                                           [[maybe_unused]],
                                           std::ostream& is) const {
   is << _get_service_id(d).second;
+  return true;
 }
 
 /**
@@ -443,13 +505,16 @@ void line_protocol_query::_get_service_id(io::data const& d,
  *  @param[in] d  The data.
  *  @param is     The stream.
  */
-void line_protocol_query::_get_instance(io::data const& d,
+bool line_protocol_query::_get_instance(io::data const& d,
                                         unsigned& string_index [[maybe_unused]],
                                         std::ostream& is) const {
   const cache::instance* inst =
       cache::global_cache::instance_ptr()->get_instance(d.source_id);
   if (inst) {
     is << inst->name();
+    return true;
+  } else {
+    return false;
   }
 }
 
@@ -460,12 +525,13 @@ void line_protocol_query::_get_instance(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_host_group(io::data const& d,
+bool line_protocol_query::_get_host_group(io::data const& d,
                                           unsigned& string_index
                                           [[maybe_unused]],
                                           std::ostream& is) const {
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_host_group(_get_host_id(d), is);
+  return true;
 }
 
 /**
@@ -475,7 +541,7 @@ void line_protocol_query::_get_host_group(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_service_group(io::data const& d,
+bool line_protocol_query::_get_service_group(io::data const& d,
                                              unsigned& string_index
                                              [[maybe_unused]],
                                              std::ostream& is) const {
@@ -483,6 +549,7 @@ void line_protocol_query::_get_service_group(io::data const& d,
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_service_group(
       host_serv.first, host_serv.second, is);
+  return true;
 }
 
 /**
@@ -492,12 +559,13 @@ void line_protocol_query::_get_service_group(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_min(io::data const& d,
+bool line_protocol_query::_get_min(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
   if (d.type() == storage::pb_metric::static_type()) {
     is << static_cast<const storage::pb_metric&>(d).obj().min();
   }
+  return true;
 }
 
 /**
@@ -507,12 +575,13 @@ void line_protocol_query::_get_min(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_max(io::data const& d,
+bool line_protocol_query::_get_max(io::data const& d,
                                    unsigned& string_index [[maybe_unused]],
                                    std::ostream& is) const {
   if (d.type() == storage::pb_metric::static_type()) {
     is << static_cast<const storage::pb_metric&>(d).obj().max();
   }
+  return true;
 }
 
 /**
@@ -522,12 +591,13 @@ void line_protocol_query::_get_max(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_tag_host_id(io::data const& d,
+bool line_protocol_query::_get_tag_host_id(io::data const& d,
                                            TagType tag_type,
                                            std::ostream& is) const {
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_host_tag_id(_get_host_id(d),
                                                           tag_type, is);
+  return true;
 }
 
 /**
@@ -537,12 +607,13 @@ void line_protocol_query::_get_tag_host_id(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_tag_host_name(io::data const& d,
+bool line_protocol_query::_get_tag_host_name(io::data const& d,
                                              TagType tag_type,
                                              std::ostream& is) const {
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_host_tag_name(_get_host_id(d),
                                                             tag_type, is);
+  return true;
 }
 
 /**
@@ -552,13 +623,14 @@ void line_protocol_query::_get_tag_host_name(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_tag_serv_id(io::data const& d,
+bool line_protocol_query::_get_tag_serv_id(io::data const& d,
                                            TagType tag_type,
                                            std::ostream& is) const {
   cache::host_serv_pair host_serv = _get_service_id(d);
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_serv_tag_id(
       host_serv.first, host_serv.second, tag_type, is);
+  return true;
 }
 
 /**
@@ -568,13 +640,14 @@ void line_protocol_query::_get_tag_serv_id(io::data const& d,
  * @param tag_type
  * @param is
  */
-void line_protocol_query::_get_tag_serv_name(io::data const& d,
+bool line_protocol_query::_get_tag_serv_name(io::data const& d,
                                              TagType tag_type,
                                              std::ostream& is) const {
   cache::host_serv_pair host_serv = _get_service_id(d);
   cache::global_cache::lock l;
   cache::global_cache::instance_ptr()->append_serv_tag_name(
       host_serv.first, host_serv.second, tag_type, is);
+  return true;
 }
 
 /**
@@ -583,11 +656,12 @@ void line_protocol_query::_get_tag_serv_name(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_metric_name(io::data const& d,
+bool line_protocol_query::_get_metric_name(io::data const& d,
                                            unsigned& string_index
                                            [[maybe_unused]],
                                            std::ostream& is) const {
   is << static_cast<storage::pb_metric const&>(d).obj().name();
+  return true;
 }
 
 /**
@@ -596,11 +670,12 @@ void line_protocol_query::_get_metric_name(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_metric_id(io::data const& d,
+bool line_protocol_query::_get_metric_id(io::data const& d,
                                          unsigned& string_index
                                          [[maybe_unused]],
                                          std::ostream& is) const {
   is << static_cast<storage::pb_metric const&>(d).obj().metric_id();
+  return true;
 }
 
 /**
@@ -609,11 +684,12 @@ void line_protocol_query::_get_metric_id(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_metric_value(io::data const& d,
+bool line_protocol_query::_get_metric_value(io::data const& d,
                                             unsigned& string_index
                                             [[maybe_unused]],
                                             std::ostream& is) const {
   is << static_cast<storage::pb_metric const&>(d).obj().value();
+  return true;
 }
 
 /**
@@ -622,11 +698,12 @@ void line_protocol_query::_get_metric_value(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_metric_time(io::data const& d,
+bool line_protocol_query::_get_metric_time(io::data const& d,
                                            unsigned& string_index
                                            [[maybe_unused]],
                                            std::ostream& is) const {
   is << static_cast<storage::pb_metric const&>(d).obj().time();
+  return true;
 }
 
 /**
@@ -635,11 +712,12 @@ void line_protocol_query::_get_metric_time(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_status_state(io::data const& d,
+bool line_protocol_query::_get_status_state(io::data const& d,
                                             unsigned& string_index
                                             [[maybe_unused]],
                                             std::ostream& is) const {
   is << static_cast<storage::pb_status const&>(d).obj().state();
+  return true;
 }
 
 /**
@@ -648,9 +726,10 @@ void line_protocol_query::_get_status_state(io::data const& d,
  * @param d
  * @param is
  */
-void line_protocol_query::_get_status_time(io::data const& d,
+bool line_protocol_query::_get_status_time(io::data const& d,
                                            unsigned& string_index
                                            [[maybe_unused]],
                                            std::ostream& is) const {
   is << static_cast<storage::pb_status const&>(d).obj().time();
+  return true;
 }

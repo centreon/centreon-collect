@@ -39,8 +39,7 @@ stream::stream(std::string const& user,
                std::string const& status_ts,
                std::vector<http_tsdb::column> const& status_cols,
                std::string const& metric_ts,
-               std::vector<http_tsdb::column> const& metric_cols,
-               std::shared_ptr<persistent_cache> const& cache)
+               std::vector<http_tsdb::column> const& metric_cols)
     : io::stream("influxdb"),
       _user(user),
       _password(passwd),
@@ -51,9 +50,7 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _cache(cache),
-      _logger{cache ? cache->logger()
-                    : log_v2::instance().get(log_v2::INFLUXDB)},
+      _logger{log_v2::instance().get(log_v2::INFLUXDB)},
       _influx_db{std::make_unique<influxdb>(user,
                                             passwd,
                                             addr,
@@ -63,7 +60,6 @@ stream::stream(std::string const& user,
                                             status_cols,
                                             metric_ts,
                                             metric_cols,
-                                            _cache,
                                             _logger)} {
   _logger->trace("influxdb::stream constructor {}", static_cast<void*>(this));
 }
@@ -133,9 +129,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   ++_pending_queries;
   if (!validate(data, get_name()))
     return 0;
-
-  // Give data to cache.
-  _cache.write(data);
 
   // Process metric events.
   switch (data->type()) {

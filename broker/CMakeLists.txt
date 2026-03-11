@@ -450,6 +450,7 @@ add_subdirectory(core/sql)
 
 if (ONLY_ROBOT_CMA)
   add_broker_module(STATS ON)
+  add_broker_module(CACHE ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)

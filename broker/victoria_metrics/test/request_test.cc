@@ -28,7 +28,7 @@ using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "bbdo/neb.pb.h"
 
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
@@ -143,9 +143,13 @@ TEST_F(victoria_request_test, request_body_test) {
   metric_index->mut_obj().set_metric_id(145);
   obj->write(metric_index);
 
-  http_tsdb::line_protocol_query dummy;
+  http_tsdb::line_protocol_query dummy_metric(
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
+  http_tsdb::line_protocol_query dummy_status(
+      http_tsdb::line_protocol_query::data_type::status, _logger);
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
-                                "/", _logger, 0, dummy, dummy, "toto");
+                                "/", _logger, 0, dummy_metric, dummy_status,
+                                "toto");
 
   Metric metric;
   metric.set_metric_id(123);
@@ -311,7 +315,7 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_metric_column),
-      http_tsdb::line_protocol_query::data_type::status, _logger);
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
 
   line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
@@ -507,7 +511,7 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
   line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
-      http_tsdb::line_protocol_query::data_type::status, _logger);
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
 
   line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,

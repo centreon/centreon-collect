@@ -20,6 +20,7 @@
 #define CCB_INFLUXDB_STREAM_HH
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
+#include "com/centreon/broker/io/stream.hh"
 
 namespace com::centreon::broker {
 
@@ -50,9 +51,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
-  // Cache
-  macro_cache _cache;
-
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -68,8 +66,7 @@ class stream : public io::stream {
          std::string const& status_ts,
          std::vector<http_tsdb::column> const& status_cols,
          std::string const& metric_ts,
-         std::vector<http_tsdb::column> const& metric_cols,
-         std::shared_ptr<persistent_cache> const& cache);
+         std::vector<http_tsdb::column> const& metric_cols);
 
   /**
    *  Destructor.

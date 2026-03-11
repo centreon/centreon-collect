@@ -19,6 +19,7 @@
 #include "com/centreon/broker/influxdb/connector.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -63,8 +64,7 @@ void connector::connect_to(std::string const& user,
                            std::string const& status_ts,
                            std::vector<http_tsdb::column> const& status_cols,
                            std::string const& metric_ts,
-                           std::vector<http_tsdb::column> const& metric_cols,
-                           std::shared_ptr<persistent_cache> const& cache) {
+                           std::vector<http_tsdb::column> const& metric_cols) {
   _user = user;
   _password = passwd;
   _addr = addr;
@@ -74,7 +74,6 @@ void connector::connect_to(std::string const& user,
   _status_cols = status_cols;
   _metric_ts = metric_ts;
   _metric_cols = metric_cols;
-  _cache = cache;
 }
 
 /**
@@ -85,5 +84,5 @@ void connector::connect_to(std::string const& user,
 std::shared_ptr<io::stream> connector::open() {
   return std::unique_ptr<stream>(
       new stream(_user, _password, _addr, _port, _db, _queries_per_transaction,
-                 _status_ts, _status_cols, _metric_ts, _metric_cols, _cache));
+                 _status_ts, _status_cols, _metric_ts, _metric_cols));
 }

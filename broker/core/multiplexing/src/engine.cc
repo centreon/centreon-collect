@@ -18,11 +18,7 @@
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 
-#include <unistd.h>
-
-#include <cassert>
-
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "bbdo/neb.pb.h"
 
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"

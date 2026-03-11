@@ -43,8 +43,7 @@ class connector : public io::endpoint {
                   std::string const& status_ts,
                   std::vector<http_tsdb::column> const& status_cols,
                   std::string const& metric_ts,
-                  std::vector<http_tsdb::column> const& metric_cols,
-                  std::shared_ptr<persistent_cache> const& cache);
+                  std::vector<http_tsdb::column> const& metric_cols);
   std::shared_ptr<io::stream> open() override;
 
  private:
@@ -58,7 +57,6 @@ class connector : public io::endpoint {
   std::vector<http_tsdb::column> _status_cols;
   std::string _metric_ts;
   std::vector<http_tsdb::column> _metric_cols;
-  std::shared_ptr<persistent_cache> _cache;
 };
 
 }  // namespace com::centreon::broker::influxdb

@@ -41,13 +41,8 @@ influxdb::influxdb(std::string const& user,
                    std::vector<http_tsdb::column> const& status_cols,
                    std::string const& metric_ts,
                    std::vector<http_tsdb::column> const& metric_cols,
-                   macro_cache const& cache,
                    const std::shared_ptr<spdlog::logger>& logger)
-    : _socket{_io_context},
-      _host(addr),
-      _port(port),
-      _cache(cache),
-      _logger{logger} {
+    : _socket{_io_context}, _host(addr), _port(port), _logger{logger} {
   // Try to connect to the server.
   _logger->debug("influxdb: connecting using 1.2 Line Protocol");
   _connect_socket();
@@ -70,7 +65,7 @@ void influxdb::clear() {
 void influxdb::write(storage::metric const& m) {
   storage::pb_metric converted;
   m.convert_to_pb(converted.mut_obj());
-  _query.append(_metric_query.generate_metric(converted));
+  _query.append(_metric_query.append_metric(converted));
 }
 
 /**
@@ -81,7 +76,7 @@ void influxdb::write(storage::metric const& m) {
 void influxdb::write(storage::status const& s) {
   storage::pb_status converted;
   s.convert_to_pb(converted.mut_obj());
-  _query.append(_status_query.generate_status(converted));
+  _query.append(_status_query.append_status(converted));
 }
 
 /**
@@ -90,7 +85,7 @@ void influxdb::write(storage::status const& s) {
  *  @param[in] m  The metric to write.
  */
 void influxdb::write(const storage::pb_metric& m) {
-  _query.append(_metric_query.generate_metric(m));
+  _query.append(_metric_query.append_metric(m));
 }
 
 /**
@@ -99,7 +94,7 @@ void influxdb::write(const storage::pb_metric& m) {
  *  @param[in] s  The status to write.
  */
 void influxdb::write(const storage::pb_status& s) {
-  _query.append(_status_query.generate_status(s));
+  _query.append(_status_query.append_status(s));
 }
 
 /**
@@ -268,8 +263,10 @@ void influxdb::_create_queries(
   _post_header.append("POST ").append(base_url).append(" HTTP/1.0\n");
 
   // Create protocol objects.
-  _status_query = line_protocol_query(status_ts, status_cols,
-                                      line_protocol_query::status, _cache);
-  _metric_query = line_protocol_query(metric_ts, metric_cols,
-                                      line_protocol_query::metric, _cache);
+  _status_query = line_protocol_query(
+      status_ts, "", status_cols,
+      http_tsdb::line_protocol_query::data_type::status, _logger);
+  _metric_query = line_protocol_query(
+      metric_ts, "", metric_cols,
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
 }

@@ -19,7 +19,7 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/broker/cache/protobuf.hh"
+#include "bbdo/neb.pb.h"
 
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"

@@ -19,7 +19,6 @@
 #ifndef CCB_INFLUXDB_INFLUXDB_HH
 #define CCB_INFLUXDB_INFLUXDB_HH
 
-#include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 
 namespace com::centreon::broker::influxdb {
@@ -41,7 +40,6 @@ class influxdb {
            std::vector<http_tsdb::column> const& status_cols,
            std::string const& metric_ts,
            std::vector<http_tsdb::column> const& metric_cols,
-           macro_cache const& cache,
            const std::shared_ptr<spdlog::logger>& logger);
 
   /**
@@ -70,8 +68,6 @@ class influxdb {
 
   std::string _host;
   uint16_t _port;
-
-  macro_cache const& _cache;
 
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
