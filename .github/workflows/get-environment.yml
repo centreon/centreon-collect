@@ -750,6 +750,7 @@ jobs:
             const bookworm_mysql_8_4    = cfg('bookworm', 'mysql:8.4');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
             const trixie_mariadb_11_8   = cfg('trixie',   'mariadb:11.8');
+            const trixie_mysql_8_4      = cfg('trixie',   'mysql:8.4');
             const jammy_mariadb_10_11   = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
