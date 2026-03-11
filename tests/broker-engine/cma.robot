@@ -570,6 +570,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_WITHOUT_CERT
     ...    And the CMA stores the CA certificate and reconnects using full TLS with the JWT token,
     ...    Then the host check result is reported successfully in the resources table.
     [Tags]    broker    engine    opentelemetry    MON-192054
+    
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
     Ctn Config Engine    ${1}    ${2}    ${2}
 
     Ctn Add Otl ServerModule
