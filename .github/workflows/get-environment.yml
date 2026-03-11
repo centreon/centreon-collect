@@ -742,7 +742,8 @@ jobs:
             // --- OS/database combinations ---
             const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
 
-            const alma10_mariadb_10_11  = cfg('alma10',   'mariadb:10.11');
+            const alma10_mariadb_11_8  = cfg('alma10',   'mariadb:11.8');
+            const alma10_mysql_8_4      = cfg('alma10',   'mysql:8.4');
             const alma9_mariadb_10_11   = cfg('alma9',    'mariadb:10.11');
             const alma9_mysql_8_0       = cfg('alma9',    'mysql:8.0');
             const alma8_mariadb_10_11   = cfg('alma8',    'mariadb:10.11');
@@ -755,7 +756,7 @@ jobs:
             const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
             // --- Config sets ---
-            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0, trixie_mysql_8_4];
+            const configs = [alma10_mariadb_11.8, alma10_mysql_8_4, alma9_mariadb_10_11, alma9_mysql_8_0, trixie_mariadb_11.8, trixie_mysql_8_4];
             const cmaConfigs = [
               alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
               bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
