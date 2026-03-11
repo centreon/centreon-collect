@@ -108,3 +108,6 @@ void service_listener::service_update(const std::shared_ptr<neb::downtime>& dt
 void service_listener::service_update(
     const std::shared_ptr<neb::pb_downtime>& dt [[maybe_unused]],
     io::stream* visitor [[maybe_unused]]) {}
+
+void service_listener::reset_downtime_state(
+    io::stream* visitor [[maybe_unused]]) {}

@@ -91,6 +91,7 @@ class kpi_service : public service_listener, public kpi {
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                       io::stream* visitor = nullptr) override;
+  void reset_downtime_state(io::stream* visitor = nullptr) override;
   void set_acknowledged(bool acknowledged);
   void set_downtimed(bool downtimed);
   void set_impact_critical(double impact);
