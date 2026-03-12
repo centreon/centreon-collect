@@ -15,7 +15,7 @@ runs:
   using: "composite"
   steps:
     - name: Deliver asset to github release
-      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
       env:
         FILE_PATTERN: ${{ inputs.file_pattern }}
         GITHUB_RELEASE: ${{ inputs.github_release }}
@@ -110,12 +110,19 @@ runs:
                   }
                 }
 
+                let archSuffix = '';
+                if (fileName.includes('amd64') || fileName.includes('x86_64')) {
+                  archSuffix = '-amd64';
+                } else if (fileName.includes('arm64') || fileName.includes('aarch64')) {
+                  archSuffix = '-arm64';
+                }
+
                 const downloadUrl = new URL('https://download.centreon.com/api/');
                 const downloadParams = {
                   token: process.env.TOKEN_DOWNLOAD_CENTREON_COM,
                   product: product,
                   release: majorVersion,
-                  version: `${majorVersion}.${minorVersion}-${distribSuffix}`,
+                  version: `${majorVersion}.${minorVersion}${distribSuffix}${archSuffix}`,
                   extension: extension,
                   md5: fileHash,
                   size: fileSize,

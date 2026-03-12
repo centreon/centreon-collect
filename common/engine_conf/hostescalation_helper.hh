@@ -47,6 +47,16 @@ class hostescalation_helper : public message_helper {
       absl::flat_hash_map<std::string, configuration::Hostgroup*>&
           m_hostgroups);
 };
+
+template <typename hash_type>
+hash_type AbslHashValue(hash_type previous_value,
+                        const Hostescalation& to_hash) {
+  return hash_type::combine(std::move(previous_value),
+                            hostescalation_key(to_hash));
+}
+
+bool operator==(const Hostescalation& left, const Hostescalation& right);
+
 }  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_HOSTESCALATION */

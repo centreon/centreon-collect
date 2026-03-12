@@ -32,6 +32,10 @@ namespace com::centreon::engine::modules::opentelemetry::centreon_agent {
  */
 class agent_service : public agent::AgentService::Service,
                       public std::enable_shared_from_this<agent_service> {
+  using validator =
+      std::function<::grpc::Status(::grpc::CallbackServerContext*,
+                                   std::chrono::system_clock::time_point&)>;
+
   std::shared_ptr<boost::asio::io_context> _io_context;
   agent_config::pointer _conf;
   absl::Mutex _conf_m;
@@ -42,17 +46,16 @@ class agent_service : public agent::AgentService::Service,
   agent_stat::pointer _stats;
 
   bool _is_crypted;
-  std::shared_ptr<absl::flat_hash_set<std::string>> _trusted_tokens;
+  validator _is_token_valid;
 
  public:
-  agent_service(
-      const std::shared_ptr<boost::asio::io_context>& io_context,
-      const agent_config::pointer& conf,
-      const metric_handler& handler,
-      const std::shared_ptr<spdlog::logger>& logger,
-      const agent_stat::pointer& stats,
-      const bool& is_crypted,
-      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
+  agent_service(const std::shared_ptr<boost::asio::io_context>& io_context,
+                const agent_config::pointer& conf,
+                const metric_handler& handler,
+                const std::shared_ptr<spdlog::logger>& logger,
+                const agent_stat::pointer& stats,
+                const bool& _is_crypted,
+                validator&& is_token_valid);
 
   void init();
 
@@ -62,8 +65,8 @@ class agent_service : public agent::AgentService::Service,
       const metric_handler& handler,
       const std::shared_ptr<spdlog::logger>& logger,
       const agent_stat::pointer& stats,
-      const bool& is_crypted,
-      const std::shared_ptr<absl::flat_hash_set<std::string>>& trusted_tokens);
+      const bool& _is_crypted,
+      validator&& is_token_valid);
 
   // disable synchronous version of this method
   ::grpc::Status Export(

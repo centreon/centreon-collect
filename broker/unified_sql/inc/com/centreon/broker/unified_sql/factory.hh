@@ -36,7 +36,7 @@ class factory : public io::factory {
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const&) = delete;
-  bool has_endpoint(config::endpoint& cfg, io::extension* ext);
+  bool has_endpoint(const config::endpoint& cfg, io::extension* ext) const;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

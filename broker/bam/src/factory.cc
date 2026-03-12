@@ -33,18 +33,29 @@ using namespace com::centreon::broker::bam;
  *
  *  @return True if the configuration matches the BAM layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("BAM", false, false);
   bool is_bam{absl::EqualsIgnoreCase("bam", cfg.type)};
   bool is_bam_bi{absl::EqualsIgnoreCase("bam_bi", cfg.type)};
-  if (is_bam || is_bam_bi)
-    cfg.read_timeout = 1;
+  return (is_bam || is_bam_bi);
+}
 
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  bool is_bam{absl::EqualsIgnoreCase("bam", cfg.type)};
+  cfg.read_timeout = 1;
   if (is_bam)
     cfg.cache_enabled = true;
-
-  return is_bam || is_bam_bi;
+  // As main bam config is in database, we reload bam on each broker reload
+  // So we add a timestamp in endpoint config
+  cfg.params["timestamp"] = std::to_string(
+      std::chrono::system_clock::now().time_since_epoch().count());
 }
 
 /**

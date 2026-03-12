@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/commands/processing.hh"
+#include <absl/strings/numbers.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -791,41 +792,70 @@ bool processing::execute(const std::string& cmdstr) {
   engine_logger(dbg_functions, basic) << "processing external command";
   functions_logger->trace("processing external command {}", cmdstr);
 
-  char const* cmd{cmdstr.c_str()};
-  size_t len{cmdstr.size()};
+  std::string_view cmd_sv = cmdstr;
 
-  // Left trim command
-  while (*cmd && isspace(*cmd))
-    ++cmd;
-  if (*cmd != '[')
+  // ----------- Lambdas for trimming ----------------
+  // remove leading and trailing spaces
+  auto trimming = [](std::string_view& s) {
+    s = absl::StripLeadingAsciiWhitespace(s);
+    s = absl::StripTrailingAsciiWhitespace(s);
+  };
+
+  // --------------------------------------------------
+
+  trimming(cmd_sv);
+
+  if (cmd_sv.empty() || cmd_sv.front() != '[')
     return false;
 
-  // Right trim just by recomputing the optimal length value.
-  char const* end{cmd + len - 1};
-  while (end != cmd && isspace(*end))
-    --end;
-
-  cmd++;
-  char* tmp;
-  time_t entry_time{static_cast<time_t>(strtoul(cmd, &tmp, 10))};
-
-  while (*tmp && isspace(*tmp))
-    ++tmp;
-
-  if (*tmp != ']' || tmp[1] != ' ')
+  // Find closing ']'
+  std::size_t closing = cmd_sv.find(']');
+  if (closing == std::string_view::npos)
     return false;
 
-  cmd = tmp + 2;
-  char const* a;
-  for (a = cmd; *a && *a != ';'; ++a)
-    ;
+  // Extract timestamp between [ ... ]
+  std::string_view time_part = cmd_sv.substr(1, closing - 1);
+  trimming(time_part);
 
-  std::string command_name(cmd, a - cmd);
-  std::string args;
-  if (*a == ';') {
-    a++;
-    args = std::string(a, end - a + 1);
+  if (time_part.empty())
+    return false;
+
+  // Convert timestamp safely
+  long long tmp_time = 0;
+  if (!absl::SimpleAtoi(time_part, &tmp_time))
+    return false;
+  time_t entry_time = static_cast<time_t>(tmp_time);
+
+  // After ] must be a space
+  if (closing + 1 >= cmd_sv.size() || cmd_sv[closing + 1] != ' ')
+    return false;
+
+  // Command part begins after "] "
+  std::string_view rest = cmd_sv.substr(closing + 2);
+  trimming(rest);
+
+  if (rest.empty())
+    return false;
+
+  // Split on semicolon: "CMD;args"
+  std::string_view cmd_name_sv, args_sv;
+
+  std::size_t semi = rest.find(';');
+  if (semi == std::string_view::npos) {
+    cmd_name_sv = rest;
+  } else {
+    cmd_name_sv = rest.substr(0, semi);
+    args_sv = rest.substr(semi + 1);
   }
+
+  trimming(cmd_name_sv);
+  trimming(args_sv);
+
+  if (cmd_name_sv.empty())
+    return false;
+
+  std::string command_name(cmd_name_sv);
+  std::string args(args_sv);
 
   int command_id(CMD_CUSTOM_COMMAND);
 

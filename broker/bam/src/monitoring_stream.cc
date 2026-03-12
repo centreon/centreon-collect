@@ -23,6 +23,7 @@
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
+#include "com/centreon/broker/bam/configuration/reader_exception.hh"
 #include "com/centreon/broker/bam/configuration/reader_v2.hh"
 #include "com/centreon/broker/bam/event_cache_visitor.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -176,26 +177,6 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   d.reset();
   throw exceptions::shutdown("cannot read from BAM monitoring stream");
   return true;
-}
-
-/**
- *  Rebuild index and metrics cache.
- */
-void monitoring_stream::update() {
-  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
-  try {
-    configuration::state s{_logger};
-    configuration::reader_v2 r(_mysql, _storage_db_cfg);
-    r.read(s);
-    _applier.apply(s);
-    _ba_mapping = s.get_ba_svc_mapping();
-    _rebuild();
-    initialize();
-    // Read cache.
-    _read_cache();
-  } catch (std::exception const& e) {
-    throw msg_fmt("BAM: could not process configuration update: {}", e.what());
-  }
 }
 
 // When bulk statements are available.
@@ -353,6 +334,44 @@ struct kpi_binder {
     }
   }
 };
+
+/**
+ *  Rebuild index and metrics cache.
+ */
+void monitoring_stream::update() {
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
+  try {
+    configuration::state s{_logger};
+    configuration::reader_v2 r(_mysql, _storage_db_cfg);
+    r.read(s);
+    _applier.apply(s);
+    _ba_mapping = s.get_ba_svc_mapping();
+    _rebuild();
+    initialize();
+    // Read cache.
+    _read_cache();
+  } catch (const configuration::reader_exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, e.what());
+    if (e.ba_id()) {  // we create a fake pb_ba_status to fill comment field of
+                      // mod_bam table
+      auto fake_event = std::make_shared<pb_ba_status>();
+      BaStatus& fake_event_data = fake_event->mut_obj();
+      fake_event_data.set_ba_id(e.ba_id());
+      fake_event_data.set_state(com::centreon::broker::State::UNKNOWN);
+      fake_event_data.set_output(e.what());
+      if (_ba_query->is_bulk())
+        _ba_query->add_bulk_row(bulk_ba_binder{fake_event});
+      else
+        _ba_query->add_multi_row(ba_binder{fake_event});
+      flush();
+    }
+    throw;
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "BAM: could not process configuration update: {}", e.what());
+    throw;
+  }
+}
 
 /**
  *  Write an event.
@@ -572,9 +591,10 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       timestamp now = timestamp::now();
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
-      SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}, in downtime {})",
-          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "BAM: processing pb inherited downtime (ba id {}, "
+                          "now {}, in downtime {})",
+                          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
       if (dwn.obj().in_downtime())
         cmd = fmt::format(
             "[{}] "
@@ -757,11 +777,10 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
               std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
                         this, std::placeholders::_1));
           break;
+        } else {
+          _logger->trace("BAM: forced service check sent");
+          it = _timer_forced_svc_checks.erase(it);
         }
-	else {
-	  _logger->trace("BAM: forced service check sent");
-	  it = _timer_forced_svc_checks.erase(it);
-	}
       }
     }
   }

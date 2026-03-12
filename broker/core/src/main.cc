@@ -124,6 +124,9 @@ static void reload_engine_context(
 static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
                            const boost::system::error_code& err,
                            int signal_number) {
+  if (err) {
+    return;
+  }
   if (signal_number == SIGTERM) {
     SPDLOG_LOGGER_INFO(core_logger, "main: SIGTERM received by process {}",
                        getpid());
@@ -136,7 +139,7 @@ static void signal_handler(const std::shared_ptr<spdlog::logger>& core_logger,
     try {
       // Parse configuration file.
       config::parser parsr;
-      config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+      config::state conf{parsr.parse(gl_mainconfigfiles.front(), false)};
       auto& log_conf = conf.mut_log_conf();
       log_conf.allow_only_atomic_changes(true);
       try {
@@ -314,7 +317,7 @@ int main(int argc, char* argv[]) {
       {
         // Parse configuration file.
         config::parser parsr;
-        config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+        config::state conf{parsr.parse(gl_mainconfigfiles.front(), false)};
         auto& log_conf = conf.log_conf();
         /* It is important to apply the log conf before broker threads start.
          * Otherwise we will have issues with concurrent accesses. */
@@ -346,6 +349,9 @@ int main(int argc, char* argv[]) {
         default_port += gl_state.broker_id();
       else
         default_port = gl_state.rpc_port();
+
+      SPDLOG_LOGGER_INFO(core_logger, "Start of grpc server on {}:{}",
+                         default_listen_address, default_port);
       std::unique_ptr<brokerrpc, std::function<void(brokerrpc*)> > rpc(
           new brokerrpc(default_listen_address, default_port, broker_name),
           [](brokerrpc* rpc) {

@@ -116,15 +116,22 @@ config::config(const std::string& registry_key) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length = get_unsigned("max_message_length", 4) * 1024 * 1024;
 
   if (_reverse_connection)
-    _trusted_tokens.insert(get_sz_reg_or_default("token", ""));
+    _trusted_tokens = std::make_shared<const absl::flat_hash_set<std::string>>(
+        absl::flat_hash_set<std::string>{get_sz_reg_or_default("token", "")});
   else
     _token = get_sz_reg_or_default("token", "");
+
+  _path_to_custom_checks = get_sz_reg_or_default("custom_check_file", "");
 
   RegCloseKey(h_key);
 }

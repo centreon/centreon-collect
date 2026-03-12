@@ -264,3 +264,59 @@ BETUSEV1
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+
+BETUSEV2
+    [Documentation]    A service and a host have severities. Then we remove severities from both of them and check they no longer have severities.
+    [Tags]    broker    engine    protobuf    bbdo    severities
+    Ctn Clear Db    severities
+    Ctn Config Engine    ${1}    ${5}    ${1}
+    Ctn Create Severities File    ${0}    ${20}
+    Ctn Config Engine Add Cfg File    ${0}    severities.cfg
+    Ctn Add Severity To Services    0    11    [1]
+    Ctn Add Severity To Hosts    0    2    [1]
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module
+
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config BBDO3    1
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Clear Retention
+    ${start}    Get Current Date
+
+    Ctn Start Engine
+    Ctn Start Broker
+
+    ${result}    Ctn Check Service Severity With Timeout    1    1    11    60
+    Should Be True    ${result}    Service (1, 1) should have severity_id=11
+
+    ${result}    Ctn Check Host Severity With Timeout    1    2    60
+    Should Be True    ${result}    Host (1) should have severity_id=2
+
+    Ctn Remove Severities From Services    ${0}
+    Ctn Remove Severities From Hosts    ${0}
+    Ctn Reload Engine
+
+    Log To Console    reload check if severities are removed
+    
+    ${result}    Ctn Check Service Severity With Timeout    1    1    None    60
+    Should Be True    ${result}    Service (1, 1) should have no severity
+
+        ${result}    Ctn Check Host Severity With Timeout    1    None    60
+    Should Be True    ${result}    Host (1) should have no severity
+
+    Ctn Add Severity To Services    0    11    [1]
+    Ctn Add Severity To Hosts    0    2    [1]
+
+    Ctn Reload Engine
+
+    ${result}    Ctn Check Service Severity With Timeout    1    1    11    60
+    Should Be True    ${result}    Service (1, 1) should have severity_id=11
+
+    ${result}    Ctn Check Host Severity With Timeout    1    2    60
+    Should Be True    ${result}    Host (1) should have severity_id=2
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

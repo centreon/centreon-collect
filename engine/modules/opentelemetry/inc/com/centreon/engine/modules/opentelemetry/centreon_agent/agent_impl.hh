@@ -51,7 +51,7 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
   using instance_container = boost::multi_index::multi_index_container<
       instance_element,
       boost::multi_index::indexed_by<
-          boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_MEMBER(
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
               instance_element,
               instance_element::host_serv_pair,
               host_serv)>,
@@ -78,7 +78,9 @@ class agent_impl_base : public std::enable_shared_from_this<agent_impl_base> {
 
  public:
   using pointer = std::shared_ptr<agent_impl_base>;
-  // virtual void force_check() = 0;
+
+  virtual ~agent_impl_base() = default;
+
   virtual void shutdown() = 0;
 
   static void force_check(uint64_t host_id, uint64_t serv_id);

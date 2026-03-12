@@ -39,7 +39,8 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return True if the configuration has this protocol.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   /* Legacy case: 'protocol' is set in the object and should be equal to "bbdo"
    */
   bool bbdo_protocol_found = false;

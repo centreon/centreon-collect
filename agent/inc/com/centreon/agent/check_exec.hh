@@ -121,6 +121,25 @@ class check_dummy : public check {
 
   std::string get_output() { return _output; }
 };
+
+/**
+ * @brief A custom check that extends the check_exec class.
+ * This check is designed to execute a custom command line
+ * built from provided arguments.
+ */
+class check_custom : public check_exec {
+ public:
+  check_custom(
+      const std::shared_ptr<asio::io_context>& io_context,
+      const std::shared_ptr<spdlog::logger>& logger,
+      time_point first_start_expected,
+      const Service& serv,
+      const rapidjson::Value& args,
+      const engine_to_agent_request_ptr& cnf,
+      check::completion_handler&& handler,
+      const checks_statistics::pointer& stat,
+      const std::shared_ptr<common::crypto::aes256>& credentials_decrypt);
+};
 }  // namespace com::centreon::agent
 
 #endif

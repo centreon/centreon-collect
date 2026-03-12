@@ -46,6 +46,9 @@ CREATE TABLE `instances` (
   `deleted` tinyint(1) NOT NULL DEFAULT '0',
   `outdated` tinyint(1) NOT NULL DEFAULT '0',
   `is_encryption_ready` tinyint(1) NOT NULL DEFAULT '0',
+  `cma_certificate_sha` varchar(255) DEFAULT NULL,
+  `cma_certificate_cn` varchar(255) DEFAULT NULL,
+  `cma_certificate_peremption` int(11) DEFAULT '0',
   PRIMARY KEY (`instance_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
@@ -629,7 +632,6 @@ CREATE TABLE `index_data` (
   `must_be_rebuild` enum('0','1','2') DEFAULT '0',
   `storage_type` enum('0','1','2') DEFAULT '2',
   `to_delete` int(1) DEFAULT '0',
-  `rrd_retention` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `host_service_unique_id` (`host_id`,`service_id`),
   KEY `host_name` (`host_name`),

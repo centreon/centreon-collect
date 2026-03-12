@@ -192,7 +192,6 @@ class stream : public io::stream {
     uint64_t index_id;
     std::string host_name;
     std::string service_description;
-    uint32_t rrd_retention;
     uint32_t interval;
     bool special;
     bool locked;

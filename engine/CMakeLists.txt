@@ -536,13 +536,15 @@ target_link_libraries(
   enginerpc
   -Wl,--whole-archive
   centreon_grpc
-  -Wl,--no-whole-archive
   centreon_http
-  centreon_common
-  Boost::url
   cce_core
+  centreon_common
   centreon_process
+  ctncrypto
+  Boost::url
+  gRPC::grpc++
   Boost::program_options
+  -Wl,--no-whole-archive
   absl::any
   absl::log
   absl::base

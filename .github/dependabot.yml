@@ -9,6 +9,18 @@ updates:
       - 'dependencies'
       - 'gha'
 
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 0
+    labels:
+      - 'dependencies'
+      - 'javascript'
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "production"
+
   - package-ecosystem: pip
     directory: '/'
     schedule:

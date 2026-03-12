@@ -55,15 +55,21 @@ std::string factory::find_param(config::endpoint const& cfg,
  *
  *  @return True if the configuration matches the storage layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
-  bool is_ifdb{absl::EqualsIgnoreCase(cfg.type, _name)};
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension(boost::algorithm::to_upper_copy(_name), false, false);
-  if (is_ifdb) {
-    cfg.params["cache"] = "yes";
-    cfg.cache_enabled = true;
-  }
-  return is_ifdb;
+  return absl::EqualsIgnoreCase(cfg.type, _name);
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "yes";
+  cfg.cache_enabled = true;
 }
 
 /**

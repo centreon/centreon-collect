@@ -39,7 +39,7 @@ import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToJson, MessageToDict
-from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
+from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS, DB_SSL_ENABLED, DB_SSL_CA, DB_SSL_CERT, DB_SSL_KEY, DB_TLS_VERSION
 
 TIMEOUT = 30
 
@@ -459,7 +459,7 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             makedirs(f"{VAR_ROOT}/lib/centreon/status/")
         if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:300:51841")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
@@ -909,8 +909,23 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
             output_dict.pop(i)
     str_queries_per_transaction = str(queries_per_transaction)
+
+    # Add TLS configuration if enabled
+    tls_config = {}
+    if DB_SSL_ENABLED and DB_SSL_ENABLED.lower() in ['true', 'yes', '1']:
+        tls_config["db_ssl_enabled"] = "true"
+        tls_config["db_ssl_verify"] = "true"
+        if DB_SSL_CA:
+            tls_config["db_ssl_ca"] = DB_SSL_CA
+        if DB_SSL_CERT:
+            tls_config["db_ssl_cert"] = DB_SSL_CERT
+        if DB_SSL_KEY:
+            tls_config["db_ssl_key"] = DB_SSL_KEY
+        if DB_TLS_VERSION:
+            tls_config["db_tls_version"] = DB_TLS_VERSION
+
     if output == 'unified_sql':
-        output_dict.append({
+        unified_sql_output = {
             "name": "central-broker-unified-sql",
             "db_type": "mysql",
             "db_host": DB_HOST,
@@ -929,9 +944,11 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "type": "unified_sql",
             "store_in_data_bin": "yes",
             "insert_in_index_data": "1"
-        })
+        }
+        unified_sql_output.update(tls_config)
+        output_dict.append(unified_sql_output)
     elif output == 'sql/perfdata':
-        output_dict.append({
+        sql_output = {
             "name": "central-broker-master-sql",
             "db_type": "mysql",
             "retry_interval": "5",
@@ -945,8 +962,11 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "connections_count": "3",
             "read_timeout": "1",
             "type": "sql"
-        })
-        output_dict.append({
+        }
+        sql_output.update(tls_config)
+        output_dict.append(sql_output)
+
+        storage_output = {
             "name": "central-broker-master-perfdata",
             "interval": "60",
             "retry_interval": "5",
@@ -965,7 +985,9 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
             "connections_count": "3",
             "insert_in_index_data": "1",
             "type": "storage"
-        })
+        }
+        storage_output.update(tls_config)
+        output_dict.append(storage_output)
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -1028,6 +1050,40 @@ def ctn_config_broker_victoria_output():
         "db_user": "toto",
         "db_password": "titi",
         "queries_per_transaction": "1",
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
+    """
+    Configure broker to add an event_script output. If some old event_script
+    outputs exist, they are removed.
+    Args:
+        allowed_event (str): event added in filter
+
+    """
+    import os
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "event_script":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "event_script",
+        "type": "event_script",
+        "script_path": script_path,
+        "timeout": "30",
+        "managed_event_ttl": "3600",
+        "filters": {
+            "event": [
+                allowed_event
+            ]
+        }
     })
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
@@ -1674,7 +1730,7 @@ def ctn_check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
             f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
         escaped_key = key.replace("[", "\\[").replace("]", "\\]")
         line_search = re.compile(
-            f"{escaped_key}\s*=\s*{value}")
+            rf"{escaped_key}\s*=\s*{value}")
         for line in res.splitlines():
             if (line_search.match(line)):
                 return True
@@ -2471,34 +2527,6 @@ def ctn_compare_rrd_status_average_value(index_id, value: int):
         return True
 
 
-def ctn_compare_rrd_average_value_with_grpc(metric, key, value: float):
-    """
-    Compare the average value for an RRD metric with a given value.
-
-    Args:
-        metric: The metric id
-        key: The key to search in the rrd info
-        value: The value to compare with.
-
-    Returns:
-        True if value pointed by key is equal to value param.
-    """
-    res = getoutput(
-        f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
-    )
-    lst = res.split('\n')
-    if len(lst) >= 2:
-        for line in lst:
-            if key in line:
-                last_update = int(line.split('=')[1])
-                logger.console(f"{key}: {last_update}")
-                return last_update == value * 60
-    else:
-        logger.console(
-            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
-        return False
-
-
 def ctn_check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
     """
     Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
@@ -3283,3 +3311,34 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
                     return True
         time.sleep(2)
     return False
+
+
+def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
+    """
+    Check lines as 1770991869 lua write error
+    We check that first field (timestamp) obey to the failover increase interval law
+
+    :param lua_log_lines: lines given by grep
+    :param max_retry_delay: max_retry_delay configured in broker output
+    """
+    last_timestamp = 0
+    last_interval = 1
+
+    timestamp_search = re.compile(r"(\d+).*")
+    for line in lua_log_lines:
+        extract = timestamp_search.search(line)
+        if extract is not None:
+            new_ts = int(extract.group(1))
+        if last_timestamp == 0:
+            last_timestamp = new_ts
+        else:
+            if new_ts != last_timestamp + last_interval:
+                logger.console.log(
+                    f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
+                return False
+            else:
+                last_timestamp = new_ts
+                last_interval = last_interval * 2
+                if last_interval > max_retry_delay:
+                    last_interval = max_retry_delay
+    return True

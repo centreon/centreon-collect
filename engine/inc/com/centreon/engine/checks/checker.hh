@@ -33,12 +33,17 @@ namespace com::centreon::engine::checks {
  *  result.
  */
 class checker : public commands::command_listener {
-  static checker* _instance;
+  static std::shared_ptr<checker> _instance;
 
  public:
   static checker& instance();
+  static std::shared_ptr<checker> ptr_instance() { return _instance; }
+
   static void init(bool used_by_test = false);
   static void deinit();
+
+  checker(bool used_by_test);
+  ~checker() override;
 
   void clear() noexcept;
   void reap();
@@ -60,9 +65,7 @@ class checker : public commands::command_listener {
   void inspect_reap_partial(queue_handler&& handler) const;
 
  private:
-  checker(bool used_by_test);
   checker(checker const& right);
-  ~checker() noexcept override;
   checker& operator=(checker const& right);
   void finished(commands::result const& res) noexcept override;
   host::host_state _execute_sync(host* hst);

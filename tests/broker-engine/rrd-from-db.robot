@@ -266,3 +266,81 @@ BRRDUPLICATE
 
     ${result}    Ctn Check For Nan Metric    ${duplicates}
     Should Be True    ${result}    at least one metric contains NaN value
+
+
+BRRD_RRDLEN
+    [Documentation]    Given an RRD with default length 15552000s, 180 days,
+    ...     We change length to 86400s, 1 day, we rebuild metrics and we expect to find 289 rows in metrics
+
+    [Tags]    rrd    metric    rebuild    unified_sql   MON-12266
+    Ctn Config Engine    ${1}
+    Ctn Clear Metrics
+    Ctn Clear Retention
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Config Broker    module
+    Ctn Broker Config Log    rrd    rrd    trace
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Config BBDO3    1
+
+    Ctn Create Metrics    3
+
+    ${start}    Get Current Date    exclude_millis=True
+    Ctn Start Broker
+    Ctn Start Engine
+    ${result}    Ctn Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    # We need 3 indexes to rebuild
+    FOR    ${idx}    IN RANGE    60
+        ${index}    Ctn Get Indexes To Rebuild    3
+	IF    len(${index}) == 3
+            BREAK
+	ELSE
+	    # If not available, we force checks to have them.
+            Ctn Schedule Forced Service Check    host_1    service_1
+            Ctn Schedule Forced Service Check    host_1    service_2
+            Ctn Schedule Forced Service Check    host_1    service_3
+        END
+	Sleep    1s
+    END
+
+    #rrd len must be 15552000,  51841 (rows) * 300 (5 minutes) = 15552300
+    Log To Console    Indexes to rebuild: ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
+
+    FOR    ${m}    IN    @{metrics}
+        ${result}     Ctn Check Rrd Info     ${m}     rra[0].rows     51841
+        Should Be True     ${result}     rra[0].rows must be equal to 51841 for metric ${m}
+    END
+
+    #update rrdlen
+    Ctn Broker Config Output Set    central    central-broker-unified-sql    length    86400    # 1 day
+    Ctn Reload Broker
+
+    Ctn Rebuild Rrd Graphs From Db    ${index}
+    Ctn Reload Broker
+    Log To Console    Indexes to rebuild: ${index}
+    ${metrics}    Ctn Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
+
+    ${content1}    Create List    RRD: Starting to rebuild metrics
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
+
+    ${content1}    Create List    RRD: Rebuilding metric
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    30
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
+
+    ${content1}    Create List    RRD: Finishing to rebuild metrics
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
+    FOR    ${m}    IN    @{metrics}
+        ${result}     Ctn Check Rrd Info     ${m}     rra[0].rows     289
+        Should Be True     ${result}     rra[0].rows must be equal to 289 for metric ${m}
+    END
+

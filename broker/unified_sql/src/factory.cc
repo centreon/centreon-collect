@@ -53,11 +53,11 @@ static const std::string& find_param(const config::endpoint& cfg,
  *
  *  @return true if the configuration matches the unified_sql layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("STORAGE", false, false);
-  bool is_unified_sql{absl::EqualsIgnoreCase(cfg.type, "unified_sql")};
-  return is_unified_sql;
+  return absl::EqualsIgnoreCase(cfg.type, "unified_sql");
 }
 
 /**

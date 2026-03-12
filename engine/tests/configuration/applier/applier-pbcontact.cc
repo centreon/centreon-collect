@@ -32,8 +32,10 @@
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/engine_conf/parser.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "helper.hh"
+#include "state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -112,9 +114,9 @@ TEST_F(ApplierPbContact, PbRemoveContactFromConfig) {
   configuration::Contact ctct;
   configuration::contact_helper c_helper(&ctct);
   ctct.set_contact_name("test");
-  ctct.add_address("coucou");
-  ctct.add_address("foo");
-  ctct.add_address("bar");
+  c_helper.hook("address1", "coucou");
+  c_helper.hook("address2", "foo");
+  c_helper.hook("address3", "bar");
   fill_string_group(ctct.mutable_contactgroups(), "test_group");
   fill_string_group(ctct.mutable_host_notification_commands(), "cmd1");
   fill_string_group(ctct.mutable_host_notification_commands(), "cmd2");
@@ -127,7 +129,14 @@ TEST_F(ApplierPbContact, PbRemoveContactFromConfig) {
   aply.add_object(ctct);
   aply.expand_objects(pb_config);
   engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
-  ASSERT_EQ(my_contact->get_addresses().size(), 3u);
+  ASSERT_EQ(my_contact->get_addresses().size(), 6u);
+  ASSERT_EQ(my_contact->get_address(0), "coucou");
+  ASSERT_EQ(my_contact->get_address(1), "foo");
+  ASSERT_EQ(my_contact->get_address(2), "bar");
+  ASSERT_EQ(my_contact->get_address(3), "");
+  ASSERT_EQ(my_contact->get_address(4), "");
+  ASSERT_EQ(my_contact->get_address(5), "");
+
   int idx;
   bool found = false;
   for (idx = 0; idx < pb_config.contacts().size(); idx++) {
@@ -184,9 +193,9 @@ TEST_F(ApplierPbContact, PbModifyContactFromConfig) {
   ASSERT_TRUE(ct_it != engine::contact::contacts.end());
   ASSERT_EQ(ct_it->second->get_custom_variables().size(), 2u);
   ASSERT_EQ(ct_it->second->get_custom_variables()["superVar"].value(),
-              std::string_view("Super"));
+            std::string_view("Super"));
   ASSERT_EQ(ct_it->second->get_custom_variables()["superVar1"].value(),
-              std::string_view("Super1"));
+            std::string_view("Super1"));
   ASSERT_EQ(ct_it->second->get_alias(), std::string_view("newAlias"));
   ASSERT_FALSE(ct_it->second->notify_on(notifier::service_notification,
                                         notifier::unknown));
@@ -449,4 +458,120 @@ TEST_F(ApplierPbContact, PbContactWithOnlyServiceRecoveryNotification) {
   aply.resolve_object(ctct, err);
   ASSERT_EQ(err.config_warnings, 1);
   ASSERT_EQ(err.config_errors, 0);
+}
+
+TEST_F(ApplierPbContact, PbaddContact) {
+  // create centengine.cfg
+  std::ofstream cfg_file("/tmp/centengine.cfg");
+  cfg_file << "cfg_file=/tmp/contacts.cfg";
+  cfg_file.close();
+
+  // create contacts.cfg
+  std::ofstream contacts_file("/tmp/contacts.cfg");
+  contacts_file << R"(define contact {
+    contact_name John_Doe
+    alias admin
+    email admin@admin.tld
+    host_notification_period 24x7
+    service_notification_period 24x7
+    host_notification_options d,u,r
+    service_notification_options w,u,c
+  })";
+  contacts_file.close();
+
+  configuration::error_cnt err;
+  configuration::State parsed_config;
+
+  configuration::parser p;
+  p.parse("/tmp/centengine.cfg", &parsed_config, err);
+  ASSERT_EQ(err.config_errors, 0);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(parsed_config.contacts_size(), 1);
+  ASSERT_EQ(parsed_config.contacts(0).address(0), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(1), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(2), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(3), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(4), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(5), "");
+
+  configuration::applier::contact aply;
+  aply.add_object(parsed_config.contacts(0));
+
+  engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
+  ASSERT_EQ(my_contact->get_addresses().size(), 6u);
+  ASSERT_EQ(my_contact->get_address(0), "");
+  ASSERT_EQ(my_contact->get_address(1), "");
+  ASSERT_EQ(my_contact->get_address(2), "");
+  ASSERT_EQ(my_contact->get_address(3), "");
+  ASSERT_EQ(my_contact->get_address(4), "");
+  ASSERT_EQ(my_contact->get_address(5), "");
+
+  // Clean up temporary files
+  try {
+    if (std::filesystem::exists("/tmp/centengine.cfg"))
+      std::filesystem::remove("/tmp/centengine.cfg");
+    if (std::filesystem::exists("/tmp/contacts.cfg"))
+      std::filesystem::remove("/tmp/contacts.cfg");
+  } catch (...) {
+    std::cout << "Error cleaning up temporary files" << std::endl;
+  }
+}
+
+TEST_F(ApplierPbContact, ParseContact) {
+  // create centengine.cfg
+  std::ofstream cfg_file("/tmp/centengine.cfg");
+  cfg_file << "cfg_file=/tmp/contacts.cfg";
+  cfg_file.close();
+
+  // create contacts.cfg
+  std::ofstream contacts_file("/tmp/contacts.cfg");
+  contacts_file << R"(define contact {
+    contact_name John_Doe
+    alias admin
+    email admin@admin.tld
+    host_notification_period 24x7
+    service_notification_period 24x7
+    host_notification_options d,u,r
+    service_notification_options w,u,c
+    address1 toto
+    address3 fofo
+  })";
+  contacts_file.close();
+
+  configuration::error_cnt err;
+  configuration::State parsed_config;
+
+  configuration::parser p;
+  p.parse("/tmp/centengine.cfg", &parsed_config, err);
+  ASSERT_EQ(err.config_errors, 0);
+  ASSERT_EQ(err.config_warnings, 0);
+  ASSERT_EQ(parsed_config.contacts_size(), 1);
+  ASSERT_EQ(parsed_config.contacts(0).address(0), "toto");
+  ASSERT_EQ(parsed_config.contacts(0).address(1), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(2), "fofo");
+  ASSERT_EQ(parsed_config.contacts(0).address(3), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(4), "");
+  ASSERT_EQ(parsed_config.contacts(0).address(5), "");
+
+  configuration::applier::contact aply;
+  aply.add_object(parsed_config.contacts(0));
+
+  engine::contact* my_contact = engine::contact::contacts.begin()->second.get();
+  ASSERT_EQ(my_contact->get_addresses().size(), 6u);
+  ASSERT_EQ(my_contact->get_address(0), "toto");
+  ASSERT_EQ(my_contact->get_address(1), "");
+  ASSERT_EQ(my_contact->get_address(2), "fofo");
+  ASSERT_EQ(my_contact->get_address(3), "");
+  ASSERT_EQ(my_contact->get_address(4), "");
+  ASSERT_EQ(my_contact->get_address(5), "");
+
+  // Clean up temporary files
+  try {
+    if (std::filesystem::exists("/tmp/centengine.cfg"))
+      std::filesystem::remove("/tmp/centengine.cfg");
+    if (std::filesystem::exists("/tmp/contacts.cfg"))
+      std::filesystem::remove("/tmp/contacts.cfg");
+  } catch (...) {
+    std::cout << "Error cleaning up temporary files" << std::endl;
+  }
 }

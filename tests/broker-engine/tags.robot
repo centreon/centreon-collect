@@ -782,7 +782,7 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-    Check Row Count     SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_time_out=30s    retry_pause=2s
+    Check Row Count     SELECT * FROM resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t WHERE r.id = 5 AND r.parent_id = 0 AND r.enabled = 1    ==    0    retry_timeout=30s    retry_pause=2s
 
     #host_5 and host_6 will be now on poller 0
     Log To Console    host_5 and host_6 on poller 0

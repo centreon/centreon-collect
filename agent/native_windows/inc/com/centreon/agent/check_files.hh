@@ -168,8 +168,8 @@ class check_files : public check {
   std::string _ok_syntax;
   std::string _warning_status;
   std::string _critical_status;
-  unsigned _warning_threshold_count{0};
-  unsigned _critical_threshold_count{0};
+  common::threshold _warning_threshold;
+  common::threshold _critical_threshold;
   bool _verbose{false};
 
   int _max_depth;
@@ -186,6 +186,10 @@ class check_files : public check {
   std::shared_ptr<filters::filter_combinator> _file_filter;
   std::unique_ptr<filters::filter_combinator> _warning_rules_filter;
   std::unique_ptr<filters::filter_combinator> _critical_rules_filter;
+
+  // these two following filters are applied on filtering result only
+  std::unique_ptr<filters::filter_combinator> _warning_result_filter;
+  std::unique_ptr<filters::filter_combinator> _critical_result_filter;
 
   void _build_checker();
   void _calc_output_format();

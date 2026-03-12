@@ -122,11 +122,11 @@ TEST_F(Connector, RunWithTimeout) {
 }
 
 TEST_F(Connector, RunConnectorAsync) {
-  auto lstnr{std::make_unique<connector_listener>()};
+  auto lstnr = std::make_shared<connector_listener>();
   nagios_macros macros = nagios_macros();
   cmd_connector = commands::connector::load(
       "RunConnectorAsync", "tests/bin_connector_test_run", g_io_context);
-  cmd_connector->set_listener(lstnr.get());
+  cmd_connector->set_listener(lstnr);
   cmd_connector->run("commande", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
@@ -152,10 +152,9 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
       commands::connector::load("RunWithConnectorSwitchedOff",
                                 "tests/bin_connector_test_run", g_io_context);
 
-  std::unique_ptr<connector_listener> lstnr(
-      std::make_unique<connector_listener>());
+  auto lstnr = std::make_shared<connector_listener>();
   nagios_macros macros = nagios_macros();
-  cmd_connector->set_listener(lstnr.get());
+  cmd_connector->set_listener(lstnr);
   cmd_connector->run("beforekill", macros, 60,
                      std::make_shared<check_result>());
   cmd_connector->run("commande --kill=1", macros, 1,
@@ -181,36 +180,36 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
 }
 
 TEST_F(Connector, RunConnectorSetCommandLine) {
-  connector_listener lstnr;
+  auto lstnr = std::make_shared<connector_listener>();
   nagios_macros macros = nagios_macros();
   cmd_connector = commands::connector::load(
       "SetCommandLine", "tests/bin_connector_test_run", g_io_context);
-  cmd_connector->set_listener(&lstnr);
+  cmd_connector->set_listener(lstnr);
   cmd_connector->run("commande1", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
   int max_timeout{15};
-  while (timeout < max_timeout && lstnr.get_result().output == "") {
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     set_time(std::time(nullptr) + 1);
     ++timeout;
   }
-  result res{lstnr.get_result()};
+  result res{lstnr->get_result()};
   ASSERT_NE(res.command_id, 0u);
   ASSERT_EQ(res.output, "commande1");
 
-  lstnr.clear();
+  lstnr->clear();
   cmd_connector->set_command_line("tests/bin_connector_test_run");
   cmd_connector->run("commande2", macros, 1, std::make_shared<check_result>());
 
   timeout = 0;
   max_timeout = 15;
-  while (timeout < max_timeout && lstnr.get_result().output == "") {
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     set_time(std::time(nullptr) + 1);
     ++timeout;
   }
-  res = lstnr.get_result();
+  res = lstnr->get_result();
   ASSERT_NE(res.command_id, 0u);
   ASSERT_EQ(res.output, "commande2");
 }

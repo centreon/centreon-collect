@@ -283,6 +283,111 @@ TEST_F(process_test, stdout_to_file) {
 
 #endif
 
+#ifndef _WIN32
+
+/**
+ * @brief Helper: run a process with streaming stdout/stderr handlers and wait
+ * for completion. Returns the accumulated output.
+ *
+ */
+static void run_with_streaming_handler(const std::string& cmd,
+                                       bool use_stdout_handler,
+                                       std::string& accumulated_out,
+                                       bool& order_ok_out,
+                                       int& chunk_count_out) {
+  absl::Mutex mutex;
+  bool completed = false;
+  accumulated_out.clear();
+  order_ok_out = true;
+  chunk_count_out = 0;
+  size_t expected_pos = 0;
+
+  using reader_type = std::function<void(const std::string_view&)>;
+
+  reader_type chunk_handler = [&](const std::string_view& data) {
+    absl::MutexLock l(&mutex);
+    ++chunk_count_out;
+    for (unsigned char c : data) {
+      if (c != static_cast<unsigned char>('0' + expected_pos % 10)) {
+        order_ok_out = false;
+      }
+      ++expected_pos;
+    }
+    accumulated_out.append(data);
+  };
+
+  reader_type noop_handler = [](const std::string_view&) {};
+
+  auto proc = std::make_shared<process<true>>(g_io_context, _logger, cmd, true,
+                                              false, nullptr);
+  proc->start_process(
+      [&](const process<true>&, int, e_exit_status, const std::string&,
+          const std::string&) {
+        absl::MutexLock l(&mutex);
+        completed = true;
+      },
+      std::move(use_stdout_handler ? chunk_handler : noop_handler),
+      std::move(use_stdout_handler ? noop_handler : chunk_handler),
+      std::chrono::seconds(10));
+
+  absl::MutexLock l(&mutex);
+  mutex.Await(absl::Condition(&completed));
+}
+
+// Outputs 20000 bytes of cycling digits "0123456789..."
+static constexpr const char* kLargeStdoutCmd =
+    "/bin/sh -c 'i=0; while [ $i -lt 2000 ]; do "
+    "printf \"0123456789\"; i=$((i+1)); done'";
+
+// Same but to stderr.
+static constexpr const char* kLargeStderrCmd =
+    "/bin/sh -c 'i=0; while [ $i -lt 2000 ]; do "
+    "printf \"0123456789\" >&2; i=$((i+1)); done'";
+
+static constexpr size_t kLargeOutputSize = 20000;  // 10 chars × 2000
+
+/**
+ * @brief Verifies that when stdout output exceeds the 4096-byte read buffer,
+ * all chunks are delivered to the stdout_handler in order and no data is lost.
+ *
+ */
+TEST_F(process_test, stdout_handler_ordering_large_output) {
+  std::string accumulated;
+  bool order_ok;
+  int chunk_count;
+
+  run_with_streaming_handler(kLargeStdoutCmd, /*stdout=*/true, accumulated,
+                             order_ok, chunk_count);
+
+  EXPECT_EQ(accumulated.size(), kLargeOutputSize)
+      << "incomplete stdout: received " << accumulated.size() << " of "
+      << kLargeOutputSize << " bytes";
+  EXPECT_TRUE(order_ok) << "stdout chunks received out of order";
+  // Must have been split into multiple 4096-byte reads
+  EXPECT_GT(chunk_count, 1) << "expected multiple chunks for a "
+                            << kLargeOutputSize << "-byte output";
+}
+
+/**
+ * @brief Same ordering guarantee for the stderr_handler path.
+ */
+TEST_F(process_test, stderr_handler_ordering_large_output) {
+  std::string accumulated;
+  bool order_ok;
+  int chunk_count;
+
+  run_with_streaming_handler(kLargeStderrCmd, /*stdout=*/false, accumulated,
+                             order_ok, chunk_count);
+
+  EXPECT_EQ(accumulated.size(), kLargeOutputSize)
+      << "incomplete stderr: received " << accumulated.size() << " of "
+      << kLargeOutputSize << " bytes";
+  EXPECT_TRUE(order_ok) << "stderr chunks received out of order";
+  EXPECT_GT(chunk_count, 1);
+}
+
+#endif  // !_WIN32
+
 static bool check(std::string const& cmdline,
                   std::vector<std::string_view> const& res) {
   try {

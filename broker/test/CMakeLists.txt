@@ -42,10 +42,12 @@ include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
 include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/process/inc)
 include_directories(${CMAKE_SOURCE_DIR}/common/grpc/inc)
 include_directories(${CMAKE_SOURCE_DIR}/common/log_v2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
+include_directories(${PROJECT_SOURCE_DIR}/event_script/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
@@ -108,11 +110,11 @@ target_link_libraries(
           roker
 	  -Wl,--whole-archive
           rokerbase
+          centreon_process
 	  -Wl,--no-whole-archive
           conflictmgr
           centreon_common
           centreon_grpc
-          stdc++fs
           nlohmann_json::nlohmann_json
           multiplexing
           ${TESTS_LIBRARIES}
@@ -123,7 +125,8 @@ target_link_libraries(
           log_v2
           test_util
           fmt::fmt
-          gRPC::grpc++)
+          gRPC::grpc++
+          stdc++fs)
 
 add_dependencies(
   ut_broker

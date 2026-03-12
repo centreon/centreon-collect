@@ -63,6 +63,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_common
             centreon_process
             ctncrypto
+            pb_open_telemetry_lib
             GTest::gtest
             GTest::gtest_main
             GTest::gmock
@@ -102,5 +103,6 @@ target_include_directories(ut_agent PRIVATE "${PROJECT_SOURCE_DIR}/src")
 target_precompile_headers(ut_agent PRIVATE
                           ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
-file(COPY ${PROJECT_SOURCE_DIR}/test/scripts/sleep.bat
+file(COPY ${PROJECT_SOURCE_DIR}/test/scripts/sleep.bat ${PROJECT_SOURCE_DIR}/conf/custom_check.ini
      DESTINATION ${CMAKE_BINARY_DIR}/tests)
+

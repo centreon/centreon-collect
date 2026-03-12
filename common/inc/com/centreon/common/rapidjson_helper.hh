@@ -268,6 +268,7 @@ class rapidjson_helper {
   uint64_t get_uint64_t(const char* field_name) const;
   uint64_t get_uint64_t(const char* field_name, uint64_t default_value) const;
   int64_t get_int64_t(const char* field_name) const;
+  int64_t get_int64_t(const char* field_name, int64_t default_value) const;
 
   uint32_t get_uint32_t(const char* field_name) const;
   int32_t get_int32_t(const char* field_name) const;
@@ -285,6 +286,9 @@ class rapidjson_helper {
   bool get_bool(const char* field_name) const;
 
   bool get_bool(const char* field_name, bool default_value) const;
+
+  std::string get_string_or_int_as_string(const char* field_name,
+                                          const char* default_string) const;
 
   // as overriding can't be done with returned type, we use a templated method
   template <typename value_type>

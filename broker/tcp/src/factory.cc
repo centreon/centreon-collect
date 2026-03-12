@@ -42,8 +42,8 @@ using com::centreon::common::log_v2::log_v2;
  *
  *  @return True if the configuration has this protocol.
  */
-bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
-                           io::extension* ext) {
+bool factory::has_endpoint(const com::centreon::broker::config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("TCP", false, false);
   /* Legacy case: we create a tcp endpoint */
@@ -53,11 +53,11 @@ bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
 
   /* New case: we create a bbdo_server or a bbdo_client with transport protocol
    * set to 'grpc' */
-  if ((cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
-      absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "tcp"))
-    return true;
+  auto protocol = cfg.params.find("transport_protocol");
 
-  return false;
+  return (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") &&
+         protocol != cfg.params.end() &&
+         absl::EqualsIgnoreCase(protocol->second, "tcp");
 }
 
 /**

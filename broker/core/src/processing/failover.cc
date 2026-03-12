@@ -18,8 +18,7 @@
 
 #include "com/centreon/broker/processing/failover.hh"
 
-#include <unistd.h>
-
+#include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -40,11 +39,12 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  */
 failover::failover(std::shared_ptr<io::endpoint> endp,
                    std::shared_ptr<multiplexing::muxer> mux,
-                   const std::string& name)
-    : endpoint(false, name),
+                   const config::endpoint& cfg)
+    : endpoint(false, cfg.name),
       _should_exit(false),
       _state(not_started),
       _logger{log_v2::instance().get(log_v2::PROCESSING)},
+      _max_retry_delay(30),
       _buffering_timeout(0),
       _endpoint(endp),
       _failover_launched(false),
@@ -53,6 +53,14 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _muxer(mux),
       _update(false) {
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' construction.", _name);
+
+  auto search = cfg.params.find("max_retry_delay");
+  if (search != cfg.params.end()) {
+    if (!absl::SimpleAtoi(search->second, &_max_retry_delay)) {
+      throw msg_fmt("max_retry_delay needs a numerical value and not {}",
+                    search->second);
+    }
+  }
 }
 
 /**
@@ -159,6 +167,27 @@ void failover::_run() {
     return;
   }
 
+  unsigned error_retry_delay = 0;
+
+  auto increase_retry_delay_and_wait = [&]() {
+    // in order to avoid a write infinite loop, we increase delay between two
+    // failures
+    if (!error_retry_delay) {
+      error_retry_delay = 1;
+    } else {
+      error_retry_delay *= 2;
+    }
+    if (error_retry_delay > _max_retry_delay) {
+      error_retry_delay = _max_retry_delay;
+    }
+    SPDLOG_LOGGER_ERROR(
+        _logger, " {} Failed to send event to stream, we wait {s} before retry",
+        _name, error_retry_delay);
+    for (ssize_t i = 0; !should_exit() && i < error_retry_delay * 10; i++) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  };
+
   auto on_exception_handler = [&]() {
     if (_stream) {
       int32_t ack_events;
@@ -174,6 +203,7 @@ void failover::_run() {
     }
     set_state("connecting");
     if (!should_exit()) {
+      increase_retry_delay_and_wait();
       _launch_failover();
       _initialized = true;
     }
@@ -356,8 +386,16 @@ void failover::_run() {
             int we(0);
 
             try {
-              std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
-              we = _stream->write(d);
+              {
+                std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
+                we = _stream->write(d);
+              }
+              if (we < 0) {  // stream write failure
+                increase_retry_delay_and_wait();
+              } else {
+                // no exception, no error => reset error_retry_delay
+                error_retry_delay = 0;
+              }
             } catch (exceptions::shutdown const& e) {
               SPDLOG_LOGGER_DEBUG(
                   _logger,
@@ -411,7 +449,11 @@ void failover::_run() {
       }
     }
     // Some real error occured.
-    catch (const exceptions::connection_closed&) {
+    catch (const exceptions::config& e) {
+      SPDLOG_LOGGER_CRITICAL(_logger, "failover: configuration error: {}",
+                             e.what());
+      break;
+    } catch (const exceptions::connection_closed&) {
       SPDLOG_LOGGER_INFO(_logger, "failover {}: connection closed", _name);
       on_exception_handler();
     } catch (const std::exception& e) {
@@ -622,7 +664,8 @@ bool failover::should_exit() const {
 }
 
 bool failover::wait_for_all_events_written(unsigned ms_timeout) {
-  _logger->info("processing::failover::wait_for_all_events_written");
+  SPDLOG_LOGGER_INFO(
+      _logger, "{} processing::failover::wait_for_all_events_written", _name);
   std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
   if (_stream) {
     return _stream->wait_for_all_events_written(ms_timeout);

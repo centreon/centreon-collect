@@ -210,6 +210,8 @@ When the tree is built, it is important to know that each node knows:
 * its parents
 * its children.
 
+At any time, kpi has a current event (_event) member. It's loaded at startup. On new event (a service becomes critical hard), the end_time of current event is set to new event start_time, and saved in db. Then the new event is created with a zero end_time and stored in db. Then it goes upper in tree.
+
 ### Impact BA
 
 This is the first implemented BA.

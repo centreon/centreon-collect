@@ -275,7 +275,8 @@ sub routing {
 
             # We put the good time to get
             my $ctime = $synctime_nodes->{$target}->{ctime};
-            $options{frame}->setData({ ctime => $ctime });
+            my $last_id = $synctime_nodes->{$target}->{last_id};
+            $options{frame}->setData({ ctime => $ctime, last_id => $last_id });
             $options{frame}->setRawData();
             # if total_msg is -1 it mean the query was already sent but no response was received yet.
             # if total_msg is > 0 it mean we received the first part of the response and waiting for the rest of it.
@@ -662,9 +663,17 @@ sub setlogs {
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
             last;
         }
-        $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
+        if ($node_status->{ctime}  < $_->{ctime}) {
+            $node_status->{ctime}  = $_->{ctime};
+            $node_status->{last_id} = $_->{id}
+        }
     }
-    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $node_status->{ctime} ) == 0) {
+    if ($status == 0 &&
+        update_sync_time(
+            dbh => $options{dbh},
+            id => $options{data}->{data}->{id},
+            ctime => $node_status->{ctime},
+            last_id => $node_status->{last_id} ) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
@@ -763,8 +772,8 @@ sub update_sync_time {
     return 0 if ($options{ctime} == 0);
 
     my ($status) = $options{dbh}->query({
-            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`) VALUES (?, ?)",
-            bind_values => [$options{id}, $options{ctime}]
+            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`, `last_id`) VALUES (?, ?, ?)",
+            bind_values => [$options{id}, $options{ctime}, $options{last_id} // '']
         }
     );
     return $status;
@@ -781,6 +790,7 @@ sub get_sync_time {
     $synctime_nodes->{$options{node_id}}->{synctime_error} = 0;
     if (my $row = $sth->fetchrow_hashref()) {
         $synctime_nodes->{ $row->{id} }->{ctime} = $row->{ctime};
+        $synctime_nodes->{ $row->{id} }->{last_id} = $row->{last_id};
         delete($synctime_nodes->{ $row->{id} }->{total_msg});
         $synctime_nodes->{ $row->{id} }->{in_progress_time} = -1;
     }

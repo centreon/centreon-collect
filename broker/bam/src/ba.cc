@@ -263,10 +263,11 @@ void ba::visit(io::stream* visitor) {
       SPDLOG_LOGGER_TRACE(
           _logger,
           "BAM: ba current event needs update? downtime?: {}, state?: {} ; "
-          "dt:{}, state:{} ",
+          "dt:{}, state:{} from {}",
           _in_downtime != _event->obj().in_downtime(),
           com::centreon::broker::State(hard_state) != _event->obj().status(),
-          _in_downtime, static_cast<uint32_t>(hard_state));
+          _in_downtime, static_cast<uint32_t>(hard_state),
+          _event->obj().start_time());
       state_changed = true;
       _event->mut_obj().set_end_time(_last_kpi_update);
       visitor->write(std::static_pointer_cast<io::data>(_event));
@@ -402,8 +403,11 @@ void ba::set_inherited_downtime(const inherited_downtime& dwn) {
  */
 void ba::_open_new_event(io::stream* visitor,
                          com::centreon::broker::bam::state service_hard_state) {
-  SPDLOG_LOGGER_TRACE(_logger, "new pb_ba_event on ba {} with downtime = {}",
-                      _id, _in_downtime);
+  SPDLOG_LOGGER_TRACE(
+      _logger,
+      "new pb_ba_event on ba {}  with status {}, downtime = {} from {}", _id,
+      com::centreon::broker::bam::state_str[service_hard_state], _in_downtime,
+      _last_kpi_update.get_time_t());
   _event = std::make_shared<pb_ba_event>();
   BaEvent& data = _event->mut_obj();
   data.set_ba_id(_id);

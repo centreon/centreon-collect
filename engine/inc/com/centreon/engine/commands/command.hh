@@ -53,7 +53,7 @@ class command : public std::enable_shared_from_this<command> {
 
   std::mutex _lock;
   std::string _command_line;
-  command_listener* _listener;
+  std::shared_ptr<command_listener> _listener;
   std::string _name;
 
   /**
@@ -92,7 +92,7 @@ class command : public std::enable_shared_from_this<command> {
 
   command(const std::string& name,
           const std::string& command_line,
-          command_listener* listener = nullptr,
+          const std::shared_ptr<command_listener>& listener = nullptr,
           e_type cmd_type = e_type::exec);
   virtual ~command() noexcept;
   command(const command&) = delete;
@@ -143,7 +143,7 @@ class command : public std::enable_shared_from_this<command> {
   void remove_caller(void* caller);
 
   virtual void set_command_line(const std::string& command_line);
-  void set_listener(command_listener* listener) noexcept;
+  void set_listener(const std::shared_ptr<command_listener>& listener) noexcept;
 
   static command_map commands;
 };

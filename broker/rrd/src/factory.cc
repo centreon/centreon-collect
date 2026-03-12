@@ -59,7 +59,8 @@ static std::string find_param(config::endpoint const& cfg,
  *
  *  @return True if the configuration matches the RRD layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("RRD", false, false);
   return cfg.type == "rrd";
@@ -76,8 +77,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params
-    [[maybe_unused]],
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   auto logger = log_v2::instance().get(log_v2::RRD);

@@ -49,7 +49,7 @@ cbmod::cbmod(const std::string& config_file)
     : _neb_logger{log_v2::instance().get(log_v2::NEB)}, _impl{new cbmodimpl} {
   // Try configuration parsing.
   com::centreon::broker::config::parser p;
-  com::centreon::broker::config::state s{p.parse(config_file)};
+  com::centreon::broker::config::state s{p.parse(config_file, true)};
 
   // Initialization.
   /* This is a little hack to avoid to replace the log file set by

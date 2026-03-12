@@ -34,6 +34,10 @@ const std::string_view config::config_schema(R"(
             "type": "string",
             "minLength": 5
         },
+        "host_template": {
+            "description": "type of host such as linux_web_server ...",
+            "type": "string"
+        },
         "endpoint": {
             "description": "Endpoint where agent has to connect to on the poller side or listening endpoint on the agent side in case of reverse_connection",
             "type": "string",
@@ -72,9 +76,9 @@ const std::string_view config::config_schema(R"(
             "type": "boolean"
         },
         "log_level": {
-            "description": "Minimal severity level to log, may be critical, error, info, debug, trace",
+            "description": "Minimal severity level to log, may be critical, error, warning, info, debug, trace",
             "type": "string",
-            "pattern": "critical|error|info|debug|trace"
+            "pattern": "critical|error|warning|info|debug|trace"
         },
         "log_type": {
             "description": "Define whether logs must be sent to the standard output (stdout) or to a log file (file). A path will be required in log_file field if 'file' is chosen. Default: stdout",
@@ -108,6 +112,9 @@ const std::string_view config::config_schema(R"(
         },"token":{
             "description": "key for token",
             "type": "string"
+        },"custom_check_file":{
+          "description": "path to custom checks",
+          "type": "string"
         }
     },
     "required": [
@@ -184,19 +191,28 @@ config::config(const std::string& path) {
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = json_config.get_string(
+      "host_template", "OS-Linux-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = json_config.get_bool("reversed_grpc_streaming", false);
   _second_max_reconnect_backoff =
       json_config.get_unsigned("second_max_reconnect_backoff", 60);
   _max_message_length =
       json_config.get_unsigned("max_message_length", 4) * 1024 * 1024;
 
-  if (_reverse_connection) {
-    if (json_config.has_member("token")) {
-      _trusted_tokens.insert(json_config.get_string("token"));
+  if (json_config.has_member("token")) {
+    std::string token = json_config.get_string("token");
+    if (_reverse_connection) {
+      _trusted_tokens =
+          std::make_shared<const absl::flat_hash_set<std::string>>(
+              absl::flat_hash_set<std::string>{token});
+    } else {
+      _token = token;
     }
-  } else {
-    if (json_config.has_member("token")) {
-      _token = json_config.get_string("token");
-    }
+  }
+
+  if (json_config.has_member("custom_check_file")) {
+    _path_to_custom_checks = json_config.get_string("custom_check_file");
   }
 }

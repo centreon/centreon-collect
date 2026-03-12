@@ -93,15 +93,21 @@ static uint32_t get_uint_param(config::endpoint const& cfg,
  *
  *  @return true if the configuration matches the storage layer.
  */
-bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
+bool factory::has_endpoint(const config::endpoint& cfg,
+                           io::extension* ext) const {
   if (ext)
     *ext = io::extension("GRAPHITE", false, false);
-  bool is_gpdb{absl::EqualsIgnoreCase(cfg.type, "graphite")};
-  if (is_gpdb) {
-    cfg.params["cache"] = "yes";
-    cfg.cache_enabled = true;
-  }
-  return is_gpdb;
+  return absl::EqualsIgnoreCase(cfg.type, "graphite");
+}
+
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "yes";
+  cfg.cache_enabled = true;
 }
 
 /**

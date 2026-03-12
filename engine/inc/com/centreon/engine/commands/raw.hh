@@ -61,7 +61,7 @@ class raw : public command, public process_listener {
  public:
   raw(const std::string& name,
       const std::string& command_line,
-      command_listener* listener = nullptr);
+      const std::shared_ptr<command_listener>& listener = nullptr);
   ~raw() noexcept override;
   raw(const raw&) = delete;
   raw& operator=(const raw&) = delete;

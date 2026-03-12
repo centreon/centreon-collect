@@ -655,6 +655,9 @@ message Instance {
   string version = 9;
   string engine_config_version = 10;
   bool is_encryption_ready = 11;
+  string cma_cert_sha = 12;
+  string cma_cert_cn = 13;
+  uint64 cma_cert_peremption = 14; 
 }
 
 /* io::neb, neb::de_pb_responsive_instance, 19 */
@@ -683,34 +686,6 @@ message Acknowledgement {
   uint64 deletion_time = 10;
   bool persistent_comment = 11;
   uint32 state = 12;
-}
-
-/* io::neb, neb::de_pb_host_dependency, 21 */
-message HostDependency {
-  BBDOHeader header = 1;
-
-  string dependency_period = 2;
-  uint64 dependent_host_id = 3;
-  bool enabled = 4;
-  string execution_failure_options = 5;
-  uint64 host_id = 6;
-  bool inherits_parent = 7;
-  string notification_failure_options = 8;
-}
-
-/* io::neb, neb::de_pb_service_dependency, 22 */
-message ServiceDependency {
-  BBDOHeader header = 1;
-
-  string dependency_period = 2;
-  uint64 dependent_host_id = 3;
-  bool enabled = 4;
-  string execution_failure_options = 5;
-  uint64 host_id = 6;
-  bool inherits_parent = 7;
-  string notification_failure_options = 8;
-  uint64 dependent_service_id = 9;
-  uint64 service_id = 10;
 }
 
 /* io::neb, neb::de_pb_host_group, 23 */
@@ -864,4 +839,16 @@ message AgentInfo {
 message AgentStats {
   int64 poller_id = 1;
   repeated AgentInfo stats = 2;
+}
+
+/* This message is sent to broker when a cma connect to engine with an unknown hostname */
+/* io::neb, neb::de_pb_unknown_host, 58 */
+message UnknownHost {
+  int64 poller_id = 1;
+  string host_name = 2;
+  string host_template = 3;
+  string os = 4;
+  string os_version = 5;
+  repeated string ips = 6; /*ips of host interfaces*/
+  string incoming_ip = 7; /*ip of cma host seen from engine */
 }

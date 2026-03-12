@@ -40,10 +40,12 @@ using namespace com::centreon::engine::commands;
 raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
                std::string const& name,
                std::string const& command_line,
-               command_listener* listener)
+               const std::shared_ptr<command_listener>& listener)
     : command(name, command_line, listener, e_type::raw),
       _io_context(io_context),
       _commands_logger(commands_logger) {
+  SPDLOG_LOGGER_TRACE(commands_logger, "create raw_v2 {:p}",
+                      static_cast<const void*>(this));
   if (_command_line.empty()) {
     throw exceptions::msg_fmt(
         "Could not create {}'' command: command line is empty", _name);
@@ -55,6 +57,8 @@ raw_v2::raw_v2(const std::shared_ptr<asio::io_context> io_context,
  *
  */
 raw_v2::~raw_v2() {
+  SPDLOG_LOGGER_TRACE(commands_logger, "delete raw_v2 {:p}",
+                      static_cast<const void*>(this));
   for (std::shared_ptr<com::centreon::common::process<true>> to_kill :
        _running) {
     _commands_logger->debug("raw_v2::~raw_v2: killing process for command '{}'",

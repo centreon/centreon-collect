@@ -17,6 +17,7 @@
  *
  */
 #include "common/engine_conf/contact_helper.hh"
+#include <charconv>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -38,6 +39,10 @@ contact_helper::contact_helper(Contact* obj)
                      },
                      Contact::descriptor()->field_count()) {
   obj->mutable_obj()->set_register_(true);
+  // add default addresses
+  for (int i = 0; i < 6; ++i) {
+    obj->add_address("");
+  }
 }
 
 /**
@@ -81,8 +86,20 @@ bool contact_helper::hook(std::string_view key, std::string_view value) {
     fill_string_group(obj->mutable_service_notification_commands(), value);
     return true;
   } else if (key.compare(0, 7, "address") == 0) {
-    obj->add_address(value.data(), value.size());
-    return true;
+    // key is "address" + N, Replace corresponding entry.
+    int idx = 0;
+    auto suffix = key.substr(7);
+    auto err_code =
+        std::from_chars(suffix.data(), suffix.data() + suffix.size(), idx);
+    if (err_code.ec != std::errc{} ||
+        err_code.ptr != suffix.data() + suffix.size())
+      return false;
+
+    if (idx >= 1 && idx <= 6) {
+      obj->set_address(idx - 1, std::string(value));
+      return true;
+    }
+    return false;
   }
   return false;
 }

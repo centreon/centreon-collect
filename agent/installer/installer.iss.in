@@ -47,6 +47,7 @@ DisableDirPage=yes
 LicenseFile={#LicenseFile}
 SetupIconFile ={#CentreonIcon}
 PrivilegesRequired=admin
+PrivilegesRequiredOverridesAllowed=commandline
 UsePreviousAppDir=no
 AlwaysUsePersonalGroup=false
 SetupLogging=yes
@@ -55,6 +56,7 @@ DisableStartupPrompt=yes
 WizardImageFile={#CentreonLogoLarge}
 WizardSmallImageFile={#CentreonLogo}
 WizardImageStretch=yes
+@INNO_SIGNING_SETUP@
 
 
 [Languages]
@@ -69,7 +71,7 @@ Name: "agent";   Description: "Centreon Monitoring Agent"; Types: custom
 Name: "plugins"; Description: "Plugins";  Types: custom 
 
 [Files]
-Source: "{#AppExePath}"; DestDir: "{app}\CentreonMonitoringAgent"; Flags: ignoreversion; Components: agent
+Source: "{#AppExePath}"; DestDir: "{app}\CentreonMonitoringAgent"; Components: agent
 Source: "{#ModifierPathexe}"; DestDir: "{app}"; Flags: ignoreversion; Components: agent
 Source: "{#PluginExePath}"; DestDir: "{app}\Plugins";Components: plugins; Flags: ignoreversion; Check: ShouldInstallEmbeddedPlugin
 Source: "{tmp}\centreon_plugins.exe"; DestDir: "{app}\Plugins";ExternalSize:{#PluginSize}; Flags: external ignoreversion ;Components: plugins;Check: not(ShouldInstallEmbeddedPlugin)
@@ -77,19 +79,9 @@ Source: {#InfoIcon}; Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
 [Run]
-Filename: "sc.exe"; Parameters: "create CentreonMonitoringAgent binPath= ""{app}\CentreonMonitoringAgent\{#AppExeName}"" start= auto DisplayName= ""Centreon Monitoring Agent""";Flags : runhidden; Components: agent
-Filename: "sc.exe"; Parameters: "description CentreonMonitoringAgent ""Centreon agent used for monitoring and metric collection""";Flags: runhidden; Components: agent
-Filename: "sc.exe"; Parameters: "start CentreonMonitoringAgent"; Flags: runhidden ; Components: agent
-
-[UninstallRun]
-Filename: "sc.exe"; Parameters: "stop CentreonMonitoringAgent"; Flags: runhidden waituntilterminated; RunOnceId: "StopAgent";Components: agent
-Filename: "sc.exe"; Parameters: "delete CentreonMonitoringAgent"; Flags: runhidden waituntilterminated; RunOnceId: "DeleteAgent";Components: agent
-Filename: "{sys}\taskkill.exe"; Parameters: "/F /T /IM {#AppExeName}";Flags: runhidden waituntilterminated; Components: agent; RunOnceId: "KillAgent"
-Filename: "reg.exe"; Parameters: "delete HKLM\SOFTWARE\Centreon\CentreonMonitoringAgent /f"; Flags: runhidden; RunOnceId: "DeleteRegistry";Components: agent
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{app}\CentreonMonitoringAgent";Components: agent
-Type: filesandordirs; Name: "{app}\Plugins";Components: plugins;
+Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}"; Flags: runhidden; Components: agent
+Filename: "sc.exe"; Parameters: "{code:GetScDescriptionParams}"; Flags: runhidden; Components: agent
+Filename: "sc.exe"; Parameters: "start {code:GetInstanceArgs}"; Flags: runhidden; Components: agent
 
 
 [Code]
@@ -107,7 +99,7 @@ procedure ExitProcess(uExitCode: UINT);
   external 'ExitProcess@kernel32.dll stdcall';
 
 { ────────────────────────────────────────────────────────────────────── }
-{ ───────────────────── Global Variables and Wizard ─────────────────── }
+{ ───────────────────── Global Variables and Wizard ──────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
 var
 // ─────────────────────────────────────────────
@@ -119,17 +111,22 @@ var
 // ─────────────────────────────────────────────
 // Widget for config pages
 // ─────────────────────────────────────────────
-  HostLabel, PollerLabel: TNewStaticText;
-  HostNameEdit, PollerEndpointEdit: TNewEdit;
+
+  InstanceArgsLabel: TNewStaticText;
+  InstanceArgsEdit: TNewEdit;
+  InstanceInfoBitmapImage, InstanceWarningBitmapImage:TBitmapImage;
+
+  HostLabel, HostTemplateLabel, PollerLabel: TNewStaticText;
+  HostNameEdit, HostTemplateEdit, PollerEndpointEdit: TNewEdit;
   PollerInitiatedCheckBox: TNewCheckBox;
-  HostInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
+  HostInfoBitmapImage, HostTemplateInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
   HostWarningBitmapImage, PollerWarningBitmapImage:TBitmapImage;
   
-  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel: TNewStaticText;
-  LogFileEdit, MaxFileEdit, MaxNumberEdit: TNewEdit;
+  LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel, CustomCheckLabel: TNewStaticText;
+  LogFileEdit, MaxFileEdit, MaxNumberEdit, CustomCheckEdit: TNewEdit;
   MaxFileInfoBitmapImage, MaxNumberInfoBitmapImage:TBitmapImage;
   LogTypeComboBox, LogLeveLComboBox:TNewComboBox;
-  LogFileBrowseButton : TButton;
+  LogFileBrowseButton, CustomCheckBrowseButton : TButton;
   LogFileWarningBitmapImage:TBitmapImage;
 // ─────────────────────────────────────────────
 // Widget for Encryption
@@ -145,6 +142,15 @@ var
   PluginURL : String;
   PluginVer : String;
   PluginSrc : String;
+  Fingerprint : String;
+
+  // --- Selective uninstall ---
+  AgentsCheckList: TNewCheckListBox;
+  AgentNames: array of string;
+  SelectedAgents: array of string;
+  UninstallPluginsSelected: Boolean;
+  FullUninstall: Boolean;
+  HavePluginsInInstall: Boolean;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────── Event Handlers ─────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -154,6 +160,8 @@ procedure BitmapImageOnClick(Sender: TObject);
 begin
   if Sender = HostInfoBitmapImage then
     MsgBox('The name of the host as defined in the Centreon interface.', mbInformation, MB_OK)
+  else if Sender = HostTemplateInfoBitmapImage then
+    MsgBox('The host template applied to the host in Centreon.', mbInformation, MB_OK)
   else if Sender = PollerInfoBitmapImage then begin
     if PollerInitiatedCheckBox.Checked then
       MsgBox('Interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.', mbInformation, MB_OK)
@@ -176,6 +184,8 @@ begin
     MsgBox('Expected TLS certificate common name (CN) - leave blank if unsure.', mbInformation, MB_OK)
   else if Sender = TokenInfoBitmapImage then
     MsgBox('Expected JWT(Json Web Token)', mbInformation, MB_OK)
+  else if Sender = InstanceInfoBitmapImage then
+    MsgBox('The service name under which the agent will be installed.', mbInformation, MB_OK)
   else
     MsgBox('Unknown image clicked!', mbInformation, MB_OK);
 end;
@@ -241,6 +251,18 @@ begin
   end;
 end;
 
+
+// Opens a file picker for selecting 
+procedure CheckFileBrowseFile(Sender: TObject);
+var
+  Path : String;
+begin
+  if(GetOpenFileName('Select custom check file', Path, '','All Files (*.*)|*.*|INI Files (*.ini)|*.ini|TXT Files (*.txt)|*.txt', 'txt')) then
+  begin
+     CustomCheckEdit.Text:= Path;
+  end;
+end;
+
 //Allows only digits and backspace in the input; shows an error message for invalid characters and cancels the keystroke.
 procedure NumbersOnlyKeyPress(Sender: TObject; var Key: Char);
 begin
@@ -279,8 +301,6 @@ begin
   CommonNameEdit.Hide;
   CommonNameInfoBitmapImage.Hide;
 
-  TokenLabel.Hide;
-  TokenEdit.Hide;
   TokenInfoBitmapImage.Hide;
   TokenWarningBitmapImage.Hide;
 
@@ -299,8 +319,6 @@ begin
       PrivateKeyBrowseButton.Show;
       PrivateKeyInfoBitmapImage.Show;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end
     else
@@ -317,8 +335,6 @@ begin
           CommonNameInfoBitmapImage.Show;
         end;
 
-      TokenLabel.Show;
-      TokenEdit.Show;
       TokenInfoBitmapImage.Show;
     end;
   end
@@ -363,23 +379,10 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ─────────────────────────── Utilities ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
-
-// Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
-procedure LogToStdOutFile(Msg: String);
-var
-  LogFile: String;
-  LogLine: String;
-begin
-  LogFile := AddBackslash(ExtractFileDir(ExpandConstant('{srcexe}'))) +
-             'installer_output.log';
-  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
-  // Append log line to file, fail silently if error
-  SaveStringToFile(LogFile, LogLine, True);
-end;
-
 // Checks if a specific command line parameter exists.
 // Param: The parameter string to search for.
 // Returns: True if the parameter is found among the command line arguments; otherwise, False.
+
 function CmdLineParamExists(Param: string): Boolean;
 var
   I: Integer;
@@ -392,6 +395,108 @@ begin
     end;
   Result := False;
 end;
+
+function IsSilentMode: Boolean;
+begin
+  Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
+end;
+
+// Returns instance entered by user or a defaut value.
+function GetInstanceArgs(Param: string): string;
+begin
+  if (InstanceArgsEdit = nil) or (Trim(InstanceArgsEdit.Text) = '') then
+    Result := 'CentreonMonitoringAgent'
+  else
+    Result := Trim(InstanceArgsEdit.Text);
+end;
+
+
+// --- Enumerate Centreon agent registry subkeys ---
+procedure LoadAgentRegistryKeys;
+begin
+  SetArrayLength(AgentNames, 0);
+  RegGetSubkeyNames(HKEY_LOCAL_MACHINE, 'SOFTWARE\Centreon', AgentNames);
+end;
+
+function ServiceAlreadyExist(SvcName: string):Boolean;
+var 
+  Agent: Integer;
+begin
+  LoadAgentRegistryKeys;
+  Result := False;
+  if GetArrayLength(AgentNames) = 0 then
+    Exit;
+
+  for Agent := 0 to GetArrayLength(AgentNames) - 1 do
+  begin
+    if CompareText(AgentNames[Agent], SvcName) = 0 then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function ProposeServiceName(BaseName: string): string;
+var
+  Candidate: string;
+  Index: Integer;
+begin
+  // Start with the plain base name
+  Candidate := BaseName;
+
+  Index := 0;
+  while ServiceAlreadyExist(Candidate) do
+  begin
+    Index := Index + 1;
+    Candidate := BaseName + IntToStr(Index);
+  end;
+
+  Result := Candidate;
+end;
+
+// Build full 'sc create' parameter string with correct quoting.
+// Result example:
+// create CentreonMonitoringAgent binPath= "\"C:\Program Files\Centreon\CentreonMonitoringAgent\centagent.exe\" --service-name CentreonMonitoringAgent" start= auto DisplayName= "CentreonMonitoringAgent"
+function GetScCreateParams(Param: string): string;
+var
+  svc: string;
+begin
+  svc := GetInstanceArgs('');
+  Result :=
+    'create ' + svc +
+    ' binPath= "\"' + ExpandConstant('{app}\CentreonMonitoringAgent\{#AppExeName}') +
+    '\" --service-name ' + svc + '" start= auto DisplayName= "' + svc + '"';
+end;
+
+// build the 'sc description' parameters
+function GetScDescriptionParams(Param: string): string;
+begin
+  Result :=
+    'description ' + GetInstanceArgs('') +
+    ' "Centreon agent used for monitoring and metric collection"';
+end;
+
+
+// Logs a message with a timestamp to 'installer_output.log' in the source executable's directory.
+procedure LogToStdOutFile(Msg: String);
+var
+  LogFile: String;
+  LogLine: String;
+  ExePath: String;
+begin
+  // Use uninstallexe during uninstall, srcexe during install
+  try
+    ExePath := ExpandConstant('{srcexe}');
+  except
+    ExePath := ExpandConstant('{uninstallexe}');
+  end;
+  LogFile := AddBackslash(ExtractFileDir(ExePath)) + 'installer_output.log';
+  LogLine := GetDateTimeString('yyyy-mm-dd hh:nn:ss', #0, #0) + ' - ' + Msg + #13#10;
+  // Append log line to file, fail silently if error
+  SaveStringToFile(LogFile, LogLine, True);
+end;
+
 
 // Checks if the given path string is a valid Windows absolute path.
 // Returns True if the path matches the expected format and contains only allowed characters.
@@ -446,6 +551,11 @@ begin
             (c >= 'A') and (c <= 'Z') or
             (c >= '0') and (c <= '9') or
             (c = '.') or (c = '-') or (c = '_')) then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Host contains invalid characters.');
+        ExitProcess(1);
+      end;
       PollerWarningBitmapImage.Hint := 'Host contains invalid characters.';
       PollerWarningBitmapImage.Show;
       MsgBox('Host contains invalid characters.', mbError, MB_OK);
@@ -455,6 +565,11 @@ begin
 
     // Validate port (must be all digits)
     if Length(Port) = 0 then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Missing port number after ":".');
+        ExitProcess(1);
+      end;
       PollerWarningBitmapImage.Hint := 'Missing port number after ":". Please provide a valid port.';
       PollerWarningBitmapImage.Show;
       MsgBox('Missing port number after ":". Please provide a valid port.', mbError, MB_OK);
@@ -463,6 +578,11 @@ begin
     for i := 1 to Length(Port) do
     begin
       if Pos(Port[i], '0123456789') = 0 then begin
+        if IsSilentMode then
+        begin
+          LogToStdOutFile('Invalid port format: must contain only digits (0-9).');
+          ExitProcess(1);
+        end;
         PollerWarningBitmapImage.Hint := 'Invalid port: it must contain only digits (0-9).';
         PollerWarningBitmapImage.Show;
         MsgBox('Invalid port: it must contain only digits (0-9).', mbError, MB_OK);
@@ -472,6 +592,11 @@ begin
 
     Result := True;
   end else begin
+    if IsSilentMode then
+    begin
+      LogToStdOutFile('Invalid endpoint format. Expected "host:port".');
+      ExitProcess(1);
+    end;
     PollerWarningBitmapImage.Hint := 'Invalid format. Please enter in the format "host:port", e.g. "localhost:8080".';
     PollerWarningBitmapImage.Show;
     MsgBox('Invalid format. Please enter in the format "host:port", e.g. "localhost:8080".', mbError, MB_OK);
@@ -514,6 +639,11 @@ begin
   else
     HostNameEdit.Text := GetWindowsHostName;
 
+  if RegQueryStringValue(RootKey, BaseKey, 'host_template', StrValue) then
+    HostTemplateEdit.Text := StrValue
+  else
+    HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
   if RegQueryStringValue(RootKey, BaseKey, 'endpoint', StrValue) then
     PollerEndpointEdit.Text := StrValue;
 
@@ -522,6 +652,9 @@ begin
 
   if RegQueryStringValue(RootKey, BaseKey, 'log_level', StrValue) then
     LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf(StrValue);
+
+  if RegQueryStringValue(RootKey, BaseKey, 'custom_check_file', StrValue) then
+    CustomCheckEdit.Text := StrValue;
 
   if RegQueryStringValue(RootKey, BaseKey, 'log_type', StrValue) then
     LogTypeComboBox.ItemIndex := LogTypeComboBox.Items.IndexOf(StrValue);
@@ -562,7 +695,7 @@ begin
 end;
 
 // Writes Centreon Monitoring Agent configuration values to the Windows registry.
-// This procedure sets string and DWORD values under the key 'SOFTWARE\Centreon\CentreonMonitoringAgent' in HKEY_LOCAL_MACHINE.
+// This procedure sets string and DWORD values under the key 'SOFTWARE\Centreon\GetInstanceArgs()' in HKEY_LOCAL_MACHINE.
 // The values are retrieved from various UI controls, including host, endpoint, log settings, certificates, and agent options.
 procedure WriteAgentRegistryValues;
 var
@@ -570,12 +703,15 @@ var
   BaseKey: String;
 begin
   RootKey := HKEY_LOCAL_MACHINE;
-  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+  // Use the selected service name so the agent (which builds the path with the service name) reads the same location.
+  BaseKey := 'SOFTWARE\Centreon\' + GetInstanceArgs('');
 
   // Strings
   RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'host_template', HostTemplateEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'endpoint', PollerEndpointEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_file', LogFileEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'custom_check_file', CustomCheckEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_level', LowerCase(LogLeveLComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'log_type', LowerCase(LogTypeComboBox.Text));
   RegWriteStringValue(RootKey, BaseKey, 'public_cert', PublicCertEdit.Text);
@@ -595,6 +731,10 @@ begin
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_file_size', StrToIntDef(MaxFileEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'log_max_files', StrToIntDef(MaxNumberEdit.Text, 10));
   RegWriteDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', Integer(PollerInitiatedCheckBox.Checked));
+  
+  // Write fingerprint if provided
+  if Fingerprint <> '' then
+    RegWriteStringValue(RootKey, BaseKey, 'fingerprint', Fingerprint);
 end;
 
 
@@ -728,10 +868,6 @@ end;
 { ────────────────────────────────────────────────────────────────────── }
 { ───────────────────────── Silent Mode ──────────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
-function IsSilentMode: Boolean;
-begin
-  Result := CmdLineParamExists('/silent') or CmdLineParamExists('/verysilent');
-end;
 
 // Loads installer parameters in silent mode from command-line arguments.
 // Populates UI fields with provided or default values.
@@ -740,8 +876,16 @@ end;
 procedure LoadSilentParameters;
 begin
   if not IsSilentMode then Exit;
+  InstanceArgsEdit.Text := ExpandConstant('{param:agentinstance|}');
+  if InstanceArgsEdit.Text = '' then
+    InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
 
   HostNameEdit.Text := ExpandConstant('{param:host|}');
+  HostTemplateEdit.Text := ExpandConstant('{param:hosttemplate|}');
+  if Trim(HostTemplateEdit.Text) = '' then
+    HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+  if HostNameEdit.Text = '' then
+    HostNameEdit.Text := GetWindowsHostName;
   PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
 
   if LowerCase(ExpandConstant('{param:logtype|event-log}')) = 'file' then
@@ -761,12 +905,13 @@ begin
     else        LogLeveLComboBox.ItemIndex := LogLeveLComboBox.Items.IndexOf('Error');
   end;
   LogFileEdit.Text := ExpandConstant('{param:logfile|}');
+  CustomCheckEdit.Text := ExpandConstant('{param:customcheckfile|}');
   MaxFileEdit.Text := ExpandConstant('{param:maxfilesize|}');
   MaxNumberEdit.Text := ExpandConstant('{param:maxnumber|}');
   PollerInitiatedCheckBox.Checked := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
 
   // Set encryption combo box based on parameter value
-  case LowerCase(ExpandConstant('{param:encryption|no}')) of
+  case LowerCase(ExpandConstant('{param:encryption|full}')) of
     'full':     EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('TLS');
     'insecure': EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('Insecure TLS');
     else        EncryptionComboBox.ItemIndex := EncryptionComboBox.Items.IndexOf('No TLS');
@@ -778,6 +923,7 @@ begin
   TokenEdit.Text := ExpandConstant('{param:token|}');
 
   PluginSrc := LowerCase(ExpandConstant('{param:pluginsrc|auto}'));
+  Fingerprint := ExpandConstant('{param:fingerprint|}');
 end;
 
 // Checks validity of silent installation parameters.
@@ -786,6 +932,7 @@ end;
 // Returns True if all parameters are valid.
 function CheckSilentParameterValidity: Boolean;
 var
+  AgentInstance: string;
   HostParam, EndpointParam, LogTypeParam, LogFileParam,Loglvl: string;
   Pluginsrc_p: string;
   EncryptionEnabled,PollerInitiatedEnabled: Boolean;
@@ -796,13 +943,24 @@ begin
     Exit;
   end;
 
+  AgentInstance := ExpandConstant('{param:agentinstance|}');
   HostParam := ExpandConstant('{param:host|}');
+  if HostParam = '' then
+    HostParam := GetWindowsHostName;
   EndpointParam := ExpandConstant('{param:endpoint|}');
   LogTypeParam := LowerCase(ExpandConstant('{param:logtype|event-log}'));
   LogFileParam := ExpandConstant('{param:logfile|}');
-  EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|no}')) = 'full') or
-                       (LowerCase(ExpandConstant('{param:encryption|no}')) = 'insecure');
+  EncryptionEnabled := (LowerCase(ExpandConstant('{param:encryption|full}')) = 'full') or
+                       (LowerCase(ExpandConstant('{param:encryption|full}')) = 'insecure');
   PollerInitiatedEnabled := (LowerCase(ExpandConstant('{param:reverse|false}')) = 'true');
+
+  // Service name
+  if (AgentInstance <> '') and ServiceAlreadyExist(AgentInstance) then
+  begin
+    LogToStdOutFile('Agent instance already exists: ' + AgentInstance);
+    Result := False;
+    Exit;
+  end;
 
   // HOST
   if HostParam = '' then
@@ -915,8 +1073,8 @@ WarningBmp: String;
 begin
 
 // ── Wizard config
-  WizardForm.ClientWidth := 460;
-  WizardForm.ClientHeight := 400;
+  WizardForm.ClientWidth := 630;
+  WizardForm.ClientHeight := 570;
   PluginURL := GetBrowserDownloadURL(
          'https://api.github.com/repos/centreon/centreon-nsclient-build/releases/latest',
          'centreon_plugins.exe');
@@ -927,14 +1085,51 @@ begin
   Infobmp := ExpandConstant('{tmp}\info_icon.bmp');
   ExtractTemporaryFile('warning_icon.bmp');
   WarningBmp := ExpandConstant('{tmp}\warning_icon.bmp');
-// ── Config page 
+  // ── Config page 
   ConfigPage := CreateCustomPage(wpSelectComponents, 'Centreon Agent Configuration', 'Please provide the required information to connect agent.');
 
+  // ──── Service Name
+
+  InstanceArgsLabel := TNewStaticText.Create(ConfigPage);
+  InstanceArgsLabel.Parent := ConfigPage.Surface;
+  InstanceArgsLabel.Top := ScaleY(3);
+  InstanceArgsLabel.Caption := 'Agent instance:';
+
+  InstanceArgsEdit := TNewEdit.Create(ConfigPage);
+  InstanceArgsEdit.Parent := ConfigPage.Surface;
+  InstanceArgsEdit.Top := InstanceArgsLabel.Top - ScaleY(3);
+  
+  InstanceArgsEdit.Width := ConfigPage.SurfaceWidth div 2;
+  InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
+
+  InstanceInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  InstanceInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  InstanceInfoBitmapImage.Parent := ConfigPage.Surface;
+  InstanceInfoBitmapImage.Top := InstanceArgsLabel.Top- ScaleY(3);
+  InstanceInfoBitmapImage.Center := True;
+  InstanceInfoBitmapImage.Width := 24;
+  InstanceInfoBitmapImage.Height := 24;
+  InstanceInfoBitmapImage.Stretch := True;
+  InstanceInfoBitmapImage.Cursor := crHand;
+  InstanceInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
+  InstanceWarningBitmapImage := TBitmapImage.Create(ConfigPage);
+  InstanceWarningBitmapImage.Bitmap.LoadFromFile(Warningbmp);
+  InstanceWarningBitmapImage.Parent := ConfigPage.Surface;
+  InstanceWarningBitmapImage.Top := InstanceArgsLabel.Top- ScaleY(3);
+  InstanceWarningBitmapImage.Center := True;
+  InstanceWarningBitmapImage.Width := 24;
+  InstanceWarningBitmapImage.Height := 24;
+  InstanceWarningBitmapImage.Stretch := True;
+  InstanceWarningBitmapImage.Cursor := crHand;
+  InstanceWarningBitmapImage.ShowHint := True;
+  InstanceWarningBitmapImage.Hide;
+  
   // ──── Host Name
 
   HostLabel := TNewStaticText.Create(ConfigPage);
   HostLabel.Parent := ConfigPage.Surface;
-  HostLabel.Top := ScaleY(3);
+  HostLabel.Top := InstanceArgsLabel.Top + ScaleY(30);
   HostLabel.Caption := 'Host name in Centreon:';
 
   HostNameEdit := TNewEdit.Create(ConfigPage);
@@ -943,6 +1138,11 @@ begin
   HostNameEdit.Left := HostLabel.Width + ScaleX(20);
   HostNameEdit.Width := ConfigPage.SurfaceWidth div 2;
   HostNameEdit.Text := 'my-centreon-host';
+
+  InstanceArgsEdit.Left := HostNameEdit.Left;
+  InstanceInfoBitmapImage.Left := InstanceArgsEdit.Left + InstanceArgsEdit.Width + ScaleX(4);
+  InstanceWarningBitmapImage.Left := InstanceInfoBitmapImage.Left + InstanceInfoBitmapImage.Width + ScaleX(4);
+
 
   HostInfoBitmapImage := TBitmapImage.Create(ConfigPage);
   HostInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -969,11 +1169,37 @@ begin
   HostWarningBitmapImage.ShowHint := True;
   HostWarningBitmapImage.Hide;
 
+  // ──── Host Template
+
+  HostTemplateLabel := TNewStaticText.Create(ConfigPage);
+  HostTemplateLabel.Parent := ConfigPage.Surface;
+  HostTemplateLabel.Top := HostLabel.Top + ScaleY(30);
+  HostTemplateLabel.Caption := 'Host template:';
+
+  HostTemplateEdit := TNewEdit.Create(ConfigPage);
+  HostTemplateEdit.Parent := ConfigPage.Surface;
+  HostTemplateEdit.Top := HostTemplateLabel.Top - ScaleY(3);
+  HostTemplateEdit.Left := HostNameEdit.Left;
+  HostTemplateEdit.Width := ConfigPage.SurfaceWidth div 2;
+  HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
+  HostTemplateInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  HostTemplateInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  HostTemplateInfoBitmapImage.Parent := ConfigPage.Surface;
+  HostTemplateInfoBitmapImage.Top := HostTemplateLabel.Top- ScaleY(3);
+  HostTemplateInfoBitmapImage.Left := HostTemplateEdit.Left + HostTemplateEdit.Width + ScaleX(4);
+  HostTemplateInfoBitmapImage.Center := True;
+  HostTemplateInfoBitmapImage.Width := 24;
+  HostTemplateInfoBitmapImage.Height := 24;
+  HostTemplateInfoBitmapImage.Stretch := True;
+  HostTemplateInfoBitmapImage.Cursor := crHand;
+  HostTemplateInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
   // ──── Poller Endpoint
 
   PollerLabel := TNewStaticText.Create(ConfigPage);
   PollerLabel.Parent := ConfigPage.Surface;
-  PollerLabel.Top := HostLabel.Top + ScaleY(30);
+  PollerLabel.Top := HostTemplateLabel.Top + ScaleY(30);
   PollerLabel.Caption := 'Poller endpoint:';
 
   PollerEndpointEdit := TNewEdit.Create(ConfigPage);
@@ -1030,16 +1256,40 @@ begin
   PollerInitiatedInfoBitmapImage.Cursor := crHand;
   PollerInitiatedInfoBitmapImage.OnClick := @BitmapImageOnClick;
 
+  // ──── CustomCheck
+  
+  CustomCheckLabel := TNewStaticText.Create(ConfigPage);
+  CustomCheckLabel.Parent := ConfigPage.Surface;
+  CustomCheckLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  CustomCheckLabel.Caption := 'Custom check file:';
+
+  CustomCheckEdit := TNewEdit.Create(ConfigPage);
+  CustomCheckEdit.Parent := ConfigPage.Surface;
+  CustomCheckEdit.Top := CustomCheckLabel.Top - ScaleY(3);
+  CustomCheckEdit.Left := HostNameEdit.Left;
+  CustomCheckEdit.Width := ConfigPage.SurfaceWidth div 2;
+  CustomCheckEdit.Text := '';
+
+  CustomCheckBrowseButton := TButton.Create(ConfigPage);
+  CustomCheckBrowseButton.Parent := ConfigPage.Surface;
+  CustomCheckBrowseButton.Caption := '...';
+  CustomCheckBrowseButton.Left := CustomCheckEdit.Left + CustomCheckEdit.Width + ScaleX(4) ;
+  CustomCheckBrowseButton.Top := CustomCheckEdit.Top - ScaleY(1);
+  CustomCheckBrowseButton.Width := 35;
+  CustomCheckBrowseButton.Height := CustomCheckEdit.Height + ScaleY(2);
+  CustomCheckBrowseButton.OnClick := @CheckFileBrowseFile;
+
+
   // ──── Log type
 
   LogTypeLabel := TNewStaticText.Create(ConfigPage);
   LogTypeLabel.Parent := ConfigPage.Surface;
-  LogTypeLabel.Top := PollerInitiatedCheckBox.Top + ScaleY(30);
+  LogTypeLabel.Top := CustomCheckLabel.Top + ScaleY(30);
   LogTypeLabel.Caption := 'Log type:';
 
   LogTypeComboBox := TNewComboBox.Create(ConfigPage);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth;
-  LogTypeComboBox.top := PollerInitiatedCheckBox.Top + ScaleY(27);
+  LogTypeComboBox.top := CustomCheckLabel.Top + ScaleY(27);
   LogTypeComboBox.Width := ConfigPage.SurfaceWidth div 2;
   LogTypeComboBox.Left := HostNameEdit.Left;
   LogTypeComboBox.Parent := ConfigPage.Surface;
@@ -1180,7 +1430,7 @@ begin
 
   EncryptionLabel := TNewStaticText.Create(EncryptionPage);
   EncryptionLabel.Parent := EncryptionPage.Surface;
-  EncryptionLabel.Top := HostNameEdit.Top + ScaleY(2);
+  EncryptionLabel.Top := InstanceArgsLabel.Top + ScaleY(2);
   EncryptionLabel.Caption := 'Encryption:';
 
   EncryptionComboBox := TNewComboBox.Create(EncryptionPage);
@@ -1201,7 +1451,6 @@ begin
   TokenLabel.Parent := EncryptionPage.Surface;
   TokenLabel.Top := EncryptionLabel.Top + ScaleY(40);
   TokenLabel.Caption := 'Token:';
-  TokenLabel.Hide;
 
   TokenEdit := TNewEdit.Create(EncryptionPage);
   TokenEdit.Parent := EncryptionPage.Surface;
@@ -1209,7 +1458,6 @@ begin
   TokenEdit.Left := HostNameEdit.Left;
   TokenEdit.Width := ConfigPage.SurfaceWidth div 2;
   TokenEdit.Text := '';
-  TokenEdit.Hide;
 
   TokenInfoBitmapImage := TBitmapImage.Create(EncryptionPage);
   TokenInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
@@ -1443,6 +1691,16 @@ begin
   else
     Result := False;
 end;
+
+// Keep a taller height only while the ConfigPage is active.
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = ConfigPage.ID then
+    WizardForm.ClientHeight := 600
+  else
+    WizardForm.ClientHeight := 570;
+end;
+
 { ────────────────────────────────────────────────────────────────────── }
 { ──────────────────────────── Handler Wizard ────────────────────────── }
 { ────────────────────────────────────────────────────────────────────── }
@@ -1478,7 +1736,13 @@ begin
             Log('Aborted by user.')
           else begin
             Error := Format('%s: %s', [DownloadPage.Name, GetExceptionMessage]);
-            SuppressibleMsgBox(AddPeriod(Error), mbCriticalError, MB_OK, IDOK);
+            if IsSilentMode then
+            begin
+              LogToStdOutFile('Plugin download failed: ' + GetExceptionMessage);
+              ExitProcess(1);
+            end
+            else
+              SuppressibleMsgBox(AddPeriod(Error), mbCriticalError, MB_OK, IDOK);
           end;
           Result := False;
           exit;
@@ -1490,7 +1754,13 @@ begin
       Result := True;
   end else if CurPageID = wpSelectComponents then begin
     if not WizardIsComponentSelected('agent') and not WizardIsComponentSelected('plugins') then begin
-      MsgBox('Please select at least one component before continuing.', mbError, MB_OK);
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('No component selected. Please specify components.');
+        ExitProcess(1);
+      end
+      else
+        MsgBox('Please select at least one component before continuing.', mbError, MB_OK);
       Result := False;
       exit;
     end;
@@ -1502,8 +1772,14 @@ begin
     HostWarningBitmapImage.Hide;
     PollerWarningBitmapImage.Hide;
     LogFileWarningBitmapImage.Hide;
+    InstanceWarningBitmapImage.Hide;
     
     if HostNameEdit.Text = '' then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Host name is empty. This field is required.');
+        ExitProcess(1);
+      end;
       HostWarningBitmapImage.Hint := 'Please select at least one component before continuing.';
       HostWarningBitmapImage.Show;
       MsgBox('Please enter the host name. This field cannot be left empty.', mbError, MB_OK);
@@ -1517,6 +1793,11 @@ begin
     end;
 
     if (LogTypeComboBox.Text = 'File') and (LogFileEdit.Text = '') then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Log file path is empty when log type is File.');
+        ExitProcess(1);
+      end;
       LogFileWarningBitmapImage.Hint := 'Please select a log file before continuing.';
       LogFileWarningBitmapImage.Show;
       MsgBox('Please enter the log file path. This field cannot be left empty.', mbError, MB_OK);
@@ -1526,6 +1807,11 @@ begin
 
     if (LogTypeComboBox.Text = 'File') and not(IsPathValid(LogFileEdit.Text)) then 
       begin
+        if IsSilentMode then
+        begin
+          LogToStdOutFile('Invalid log file path: ' + LogFileEdit.Text);
+          ExitProcess(1);
+        end;
         LogFileWarningBitmapImage.Hint := 'Invalid log file path. Please enter a valid absolute path (e.g. C:\logs\agent.log).';
         LogFileWarningBitmapImage.Show;
         MsgBox('Invalid log file path. Please enter a valid absolute path (e.g. C:\logs\agent.log).', mbError, MB_OK);
@@ -1544,6 +1830,31 @@ begin
         EncryptionComboBox.Items.Insert(1, 'Insecure TLS');
     end;
 
+    if (InstanceArgsEdit.Text = '') then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Agent instance name is empty. This field is required.');
+        ExitProcess(1);
+      end;
+      MsgBox('Please enter the Agent instance name. This field cannot be left empty.', mbError, MB_OK);
+      InstanceWarningBitmapImage.Hint := 'Please enter the Agent instance name. This field cannot be left empty.';
+      InstanceWarningBitmapImage.Show;
+      Result := False;
+      exit;
+    end
+    else if ServiceAlreadyExist(InstanceArgsEdit.Text) then begin
+      if IsSilentMode then
+      begin
+        LogToStdOutFile('Agent instance already exists: ' + InstanceArgsEdit.Text);
+        ExitProcess(1);
+      end;
+      MsgBox('Invalid Agent instance. Already used', mbError, MB_OK);
+      InstanceWarningBitmapImage.Hint := 'Invalid Agent instance. Already used';
+      InstanceWarningBitmapImage.Show;
+      Result := False;
+      exit;
+    end;
+
     // apply the change to ui
     OnEncryptionChange(EncryptionComboBox);
 
@@ -1557,6 +1868,11 @@ begin
     if EncryptionComboBox.Text <> 'No TLS' then begin
       if PollerInitiatedCheckBox.Checked then begin
         if not(IsPathValid(PublicCertEdit.Text)) then begin
+          if IsSilentMode then
+          begin
+            LogToStdOutFile('Invalid public certificate path: ' + PublicCertEdit.Text);
+            ExitProcess(1);
+          end;
           PublicCertWarningBitmapImage.Hint := 'Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).';
           PublicCertWarningBitmapImage.Show;
           MsgBox('Invalid public certificate file path. Please enter a valid absolute path (e.g. C:\certs\public.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1565,6 +1881,11 @@ begin
         end;
 
         if not(IsPathValid(PrivateKeyEdit.Text)) then begin
+          if IsSilentMode then
+          begin
+            LogToStdOutFile('Invalid private key path: ' + PrivateKeyEdit.Text);
+            ExitProcess(1);
+          end;
           PrivateKeyWarningBitmapImage.Hint := 'Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).';
           PrivateKeyWarningBitmapImage.Show;
           MsgBox('Invalid private key file path. Please enter a valid absolute path (e.g. C:\certs\private.key).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1574,6 +1895,11 @@ begin
       end
       else begin
         if not(IsPathValid(CaEdit.Text)) and (CaEdit.Text <> '') then begin
+          if IsSilentMode then
+          begin
+            LogToStdOutFile('Invalid CA certificate path: ' + CaEdit.Text);
+            ExitProcess(1);
+          end;
           CaWarningBitmapImage.Hint := 'Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).';
           CaWarningBitmapImage.Show;
           MsgBox('Invalid CA certificate file path. Please enter a valid absolute path (e.g. C:\certs\ca.crt).Allowed char 0..9 , A..Z , \ , . , - , ( , ) ', mbError, MB_OK);
@@ -1581,14 +1907,19 @@ begin
           exit;
         end;
       end;
-      if TokenEdit.Text = '' then begin
+    end;
+     if TokenEdit.Text = '' then begin
+        if IsSilentMode then
+        begin
+          LogToStdOutFile('Token (JWT) is empty. This field is required.');
+          ExitProcess(1);
+        end;
         TokenWarningBitmapImage.Hint := 'Please enter Token (JWT). This field cannot be left empty.';
         TokenWarningBitmapImage.Show;
         MsgBox('Please enter Token (JWT). This field cannot be left empty.', mbError, MB_OK);
         Result := False;
         exit;
       end;
-    end;
     Result := True;
   end
   else
@@ -1616,5 +1947,241 @@ begin
 
     // (optional) keep Repair hidden
     RegWriteDWordValue(HKEY_LOCAL_MACHINE, Key, 'NoRepair', 1);
+  end;
+end;
+
+{ ───────────────────────────────────────────────────────────────────────────────── }
+{ ──────────────────────────── Customize uninstaller ────────────────────────────── }
+{ ───────────────────────────────────────────────────────────────────────────────── }
+
+
+// Manual partial removal (no uninstall of core binaries/uninstaller)
+procedure PerformPartialRemoval;
+var
+  i, rc: Integer;
+  Svc, Key: String;
+begin
+  // stop/delete selected services
+  for i := 0 to GetArrayLength(SelectedAgents) - 1 do begin
+    Svc := SelectedAgents[i];
+    Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+    Exec(ExpandConstant('{sys}\sc.exe'), ' delete "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+  end;
+  // delete their registry configuration
+  for i := 0 to GetArrayLength(SelectedAgents) - 1 do begin
+    Key := 'SOFTWARE\Centreon\' + SelectedAgents[i];
+    if RegKeyExists(HKEY_LOCAL_MACHINE, Key) then
+      RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, Key);
+  end;
+  // optionally remove plugins (does not affect uninstaller)
+  if UninstallPluginsSelected and DirExists(ExpandConstant('{app}\Plugins')) then
+    DelTree(ExpandConstant('{app}\Plugins'), True, True, True);
+end;
+
+// --- Parse a comma/semicolon separated list into SelectedAgents (only keep existing ones) ---
+procedure ParseParam(const S: string);
+var
+  Names: TArrayOfString;
+  i: Integer;
+begin
+  Names := StringSplit(S, [',', ';'],stExcludeEmpty);
+  SetArrayLength(SelectedAgents, 0);
+  for i := 0 to GetArrayLength(Names) - 1 do
+    if ServiceAlreadyExist(Trim(Names[i])) then
+    begin
+      SetArrayLength(SelectedAgents, GetArrayLength(SelectedAgents) + 1);
+      SelectedAgents[GetArrayLength(SelectedAgents) - 1] := Trim(Names[i]);
+    end;
+
+end;
+
+// --- Build uninstall selection dialog (checklist) ---
+function InitializeUninstall(): Boolean;
+var
+  Frm: TSetupForm;
+  Lbl: TLabel;
+  BtnOK, BtnCancel: TNewButton;
+  i: Integer;
+  TotalAgents, SelectedCount: Integer;
+  Agentinstance: String;
+begin
+  Result := True;
+  LoadAgentRegistryKeys;
+
+  HavePluginsInInstall := DirExists(ExpandConstant('{app}\Plugins'));
+
+  // --- Silent targeted uninstall shortcut ---
+  if IsSilentMode then
+  begin
+    Agentinstance := ExpandConstant('{param:agentinstance|}');
+    UninstallPluginsSelected := CmdLineParamExists('/plugins');
+    FullUninstall := CmdLineParamExists('/full');
+
+    // Full uninstall shortcut: remove all agents + plugins if present
+    if FullUninstall then
+      begin 
+        // Full uninstall: select all agents + plugins if present
+        SetArrayLength(SelectedAgents, GetArrayLength(AgentNames));
+        for i := 0 to GetArrayLength(AgentNames) - 1 do
+          SelectedAgents[i] := AgentNames[i];
+        UninstallPluginsSelected := True;
+        Result := True;
+        Exit;
+    end;
+
+    // Targeted uninstall shortcut: parse agentinstance param (if any) + plugins if /plugins
+    if Agentinstance <> '' then
+      ParseParam(Agentinstance)
+    else if GetArrayLength(AgentNames) > 0 then
+    begin
+      SetArrayLength(SelectedAgents, 1);
+      SelectedAgents[0] := AgentNames[0];
+    end;
+    
+    if (GetArrayLength(SelectedAgents) = 0) and (not HavePluginsInInstall) then begin
+      LogToStdOutFile('Nothing to uninstall: no Centreon agents or plugins. Check your parameters.');
+      Result := False;
+      Exit;
+    end;
+    
+  end
+  else
+  begin
+
+    // --- Normal (interactive) flow continues below ---
+    if (GetArrayLength(AgentNames) = 0) and (not HavePluginsInInstall) then begin
+      MsgBox('Nothing to uninstall: no Centreon agents or plugins detected.', mbInformation, MB_OK);
+      Result := False;
+      Exit;
+    end;
+
+    Frm := CreateCustomForm(ScaleX(280), ScaleY(240), True, False);
+    Frm.Caption := 'Centreon Uninstall';
+
+    Lbl := TLabel.Create(Frm);
+    Lbl.Parent := Frm;
+    Lbl.Caption := 'Select the Centreon components / agent instances to remove:';
+    Lbl.Left := ScaleX(12);
+    Lbl.Top := ScaleY(12);
+    Lbl.AutoSize := True;
+
+    AgentsCheckList := TNewCheckListBox.Create(Frm);
+    AgentsCheckList.Parent := Frm;
+    AgentsCheckList.Left := Lbl.Left;
+    AgentsCheckList.Top := Lbl.Top + ScaleY(22);
+    AgentsCheckList.Width := Frm.ClientWidth - ScaleX(24);
+    AgentsCheckList.Height := Frm.ClientHeight - ScaleY(100);
+    AgentsCheckList.BorderStyle := bsSingle;
+
+    if HavePluginsInInstall then
+      AgentsCheckList.AddCheckBox('Plugins','',0, False, True, False,False, nil);
+
+    for i := 0 to GetArrayLength(AgentNames) - 1 do
+      AgentsCheckList.AddCheckBox(AgentNames[i],'',0, False, True, False,False, nil);
+
+    BtnOK := TNewButton.Create(Frm);
+    BtnOK.Parent := Frm;
+    BtnOK.Caption := SetupMessage(msgButtonOK);
+    BtnOK.ModalResult := mrOk;
+    BtnOK.Top := Frm.ClientHeight - BtnOK.Height - ScaleY(16);
+    BtnOK.Left := Frm.ClientWidth - BtnOK.Width * 2 - ScaleX(32);
+
+    BtnCancel := TNewButton.Create(Frm);
+    BtnCancel.Parent := Frm;
+    BtnCancel.Caption := SetupMessage(msgButtonCancel);
+    BtnCancel.ModalResult := mrCancel;
+    BtnCancel.Top := BtnOK.Top;
+    BtnCancel.Left := BtnOK.Left + BtnOK.Width + ScaleX(10);
+
+    while True do
+    begin
+      case Frm.ShowModal of
+        mrOk:
+          begin
+            SetArrayLength(SelectedAgents, 0);
+            UninstallPluginsSelected := False;
+            for i := 0 to AgentsCheckList.Items.Count - 1 do
+              if AgentsCheckList.State[i] = cbChecked then
+              begin
+                if AgentsCheckList.ItemCaption[i] = 'Plugins' then
+                  UninstallPluginsSelected := True
+                else
+                begin
+                  SetArrayLength(SelectedAgents, GetArrayLength(SelectedAgents) + 1);
+                  SelectedAgents[GetArrayLength(SelectedAgents) - 1] := AgentsCheckList.ItemCaption[i];
+                end;
+              end;
+
+            if (GetArrayLength(SelectedAgents) = 0) and (not UninstallPluginsSelected) then
+            begin
+              MsgBox('Select at least one item to uninstall.', mbError, MB_OK);
+              Continue;
+            end;
+            Break;
+          end;
+        mrCancel:
+          begin
+            Result := False;  // abort uninstall
+            Break;
+          end;
+      end;
+    end;
+
+    Frm.Free;
+  end;
+
+if not Result then Exit;
+
+TotalAgents := GetArrayLength(AgentNames);
+SelectedCount := GetArrayLength(SelectedAgents);
+
+  // Full uninstall only if all agents selected AND (no plugins present OR plugins selected)
+FullUninstall :=(SelectedCount = TotalAgents) and
+  ( (not HavePluginsInInstall) or (UninstallPluginsSelected) );
+
+if not FullUninstall then begin
+    // Perform partial manual removal & keep uninstaller
+    PerformPartialRemoval;
+    if not(IsSilentMode) then
+      MsgBox('Selected items removed. Remaining agents kept; uninstaller retained for future removal.', mbInformation, MB_OK);
+    ExitProcess(0);// the uninstall is done,we not to abort uninstaller to be deleted
+  end;
+end;
+
+// --- Perform selective removal after files removed by default uninstaller ---
+procedure CurUninstallStepChanged(CurStep: TUninstallStep);
+var
+  i, rc: Integer;
+  Svc: String;
+  Key: String;
+begin
+  if CurStep = usUninstall then
+  begin
+    // Stop & delete selected services first
+    for i := 0 to GetArrayLength(SelectedAgents) - 1 do
+    begin
+      Svc := SelectedAgents[i];
+      Exec(ExpandConstant('{sys}\sc.exe'), ' stop "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+      Exec(ExpandConstant('{sys}\sc.exe'), ' delete "' + Svc + '"', '', SW_HIDE, ewWaitUntilTerminated, rc);
+    end;
+  // add a sleep here to ensure services are fully stopped before deleting registry keys & files
+  Sleep(2000);
+  end
+  else if CurStep = usPostUninstall then
+  begin
+    // Remove registry keys for selected agents
+    for i := 0 to GetArrayLength(SelectedAgents) - 1 do
+    begin
+      Key := 'SOFTWARE\Centreon\' + SelectedAgents[i];
+      if RegKeyExists(HKEY_LOCAL_MACHINE, Key) then
+        RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, Key);
+    end;
+
+    // Delete plugins if chosen
+    if UninstallPluginsSelected and DirExists(ExpandConstant('{app}\Plugins')) then
+      DelTree(ExpandConstant('{app}\Plugins'), True, True, True);
+
+    if DirExists(ExpandConstant('{app}\CentreonMonitoringAgent')) then
+      DelTree(ExpandConstant('{app}\CentreonMonitoringAgent'), True, True, True);
   end;
 end;

@@ -16,8 +16,7 @@
  * For more information : contact@centreon.com
  */
 #include "com/centreon/engine/broker.hh"
-#include <absl/strings/str_split.h>
-#include <unistd.h>
+#include <openssl/x509.h>
 #include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
@@ -39,6 +38,7 @@
 #include "com/centreon/common/time.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/anomalydetection.hh"
+#include "com/centreon/engine/commands/otel_interface.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -48,6 +48,7 @@
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/string.hh"
 #include "common.h"
+#include "common/crypto/cert_tree.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::engine;
@@ -654,6 +655,7 @@ static void forward_pb_host(int type,
     host.set_timezone(eh->get_timezone());
     host.set_severity_id(eh->get_severity() ? eh->get_severity()->id() : 0);
     host.set_icon_id(eh->get_icon_id());
+
     for (auto& tg : eh->tags()) {
       com::centreon::broker::TagInfo* ti = host.mutable_tags()->Add();
       ti->set_id(tg->id());
@@ -2448,7 +2450,7 @@ static void forward_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -2488,7 +2490,7 @@ static void forward_pb_host_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the host status. */
-  if (type != NEBTYPE_HOSTCHECK_INITIATE)
+  if (type != NEBTYPE_HOSTCHECK_INITIATE && type != NEBTYPE_HOSTCHECK_PROCESSED)
     return;
 
   // Log message.
@@ -3777,8 +3779,10 @@ static void send_host_list() {
        end{com::centreon::engine::host::hosts.end()};
        it != end; ++it) {
     // Callback.
-    if constexpr (proto)
+    if constexpr (proto) {
       forward_pb_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
+    }
+
     else
       forward_host(NEBTYPE_HOST_ADD, 0, MODATTR_ALL, it->second.get());
   }
@@ -3798,9 +3802,9 @@ static void send_service_list() {
        end{com::centreon::engine::service::services.end()};
        it != end; ++it) {
     // Callback.
-    if constexpr (proto)
+    if constexpr (proto) {
       forward_pb_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
-    else
+    } else
       forward_service(NEBTYPE_SERVICE_ADD, 0, MODATTR_ALL, it->second.get());
   }
 
@@ -4158,6 +4162,23 @@ void broker_program_state(int type, int flags [[maybe_unused]]) {
     inst.set_name(cbm->poller_name());
     inst.set_is_encryption_ready(credentials_decrypt.get() != nullptr);
 
+    std::shared_ptr<commands::otel::open_telemetry_base> otel_instance =
+        commands::otel::open_telemetry_base::instance();
+    if (otel_instance) {
+      try {
+        commands::otel::open_telemetry_base::certificate_info cert_info =
+            otel_instance->get_otel_service_certificate_info();
+        if (!cert_info.sha.empty()) {
+          inst.set_cma_cert_sha(cert_info.sha);
+          inst.set_cma_cert_cn(cert_info.cn);
+          inst.set_cma_cert_peremption(cert_info.peremption);
+        }
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(
+            neb_logger, "fail to get certificate informations: {}", e.what());
+      }
+    }
+
     switch (type) {
       case NEBTYPE_PROCESS_EVENTLOOPSTART: {
         neb_logger->debug("callbacks: generating process start event");
@@ -4383,7 +4404,8 @@ static void forward_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
@@ -4426,7 +4448,8 @@ static void forward_pb_service_check(int type,
   /* For each check, this event is received three times one precheck, one
    * initiate and one processed. We just keep the initiate one. At the
    * processed one we also received the service status. */
-  if (type != NEBTYPE_SERVICECHECK_INITIATE)
+  if (type != NEBTYPE_SERVICECHECK_INITIATE &&
+      type != NEBTYPE_SERVICECHECK_PROCESSED)
     return;
 
   // Log message.
@@ -4487,7 +4510,7 @@ int broker_service_check(int type,
   else
     forward_service_check(type, svc, check_type, cmdline);
 
-  return 0;
+  return OK;
 }
 
 static void forward_service_status(const engine::service* svc,
@@ -4829,5 +4852,18 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats) {
     to_fill->set_nb_agent(cumul_data.nb_agent);
   }
 
+  cbm->write(to_send);
+}
+
+/**
+ * @brief called by opentelemetry module when an unknown agent connects to
+ * engine
+ *
+ * @param event
+ */
+void broker_agent_unknown_host(
+    const com::centreon::broker::UnknownHost& event) {
+  auto to_send = std::make_shared<neb::pb_unknown_host>(event);
+  to_send->mut_obj().set_poller_id(cbm->poller_id());
   cbm->write(to_send);
 }

@@ -81,7 +81,7 @@ class parser {
   ~parser() noexcept = default;
   parser(const parser&) = delete;
   parser& operator=(const parser&) = delete;
-  state parse(const std::string& file);
+  state parse(const std::string& file, bool neb_module);
 };
 
 template <>

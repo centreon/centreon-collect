@@ -398,11 +398,7 @@ target_link_libraries(
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
-  process_stat
-  z
-  spdlog::spdlog
-  pthread
-  dl)
+  process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker PRIVATE rokerbase crypto ssl pthread dl)
@@ -424,13 +420,17 @@ target_link_libraries(
   roker
   multiplexing
   centreon_common
+  centreon_process
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
-  fmt::fmt
   -Wl,--whole-archive
   gRPC::grpc++
   protobuf::libprotobuf
   -Wl,--no-whole-archive
+  spdlog::spdlog
+  z
+  pthread
+  dl
   stdc++fs)
 
 # Centreon Broker Watchdog
@@ -451,7 +451,9 @@ if (ONLY_ROBOT_CMA)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
+  add_broker_module(TLS ON)
   add_broker_module(TCP ON)
+  add_broker_module(EVENT_SCRIPT ON)
 else()
   # Generator module.
   add_broker_module(GENERATOR OFF)
@@ -470,6 +472,7 @@ else()
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
+  add_broker_module(EVENT_SCRIPT ON)
   add_subdirectory(http_tsdb)
 endif()
 

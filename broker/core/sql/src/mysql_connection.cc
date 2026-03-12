@@ -197,6 +197,28 @@ bool mysql_connection::_try_to_reconnect() {
   mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
                  (const void*)_extension_directory.c_str());
 
+  // Configure SSL/TLS if enabled
+  if (_ssl_enabled) {
+    mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
+                  _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
+                  _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
+                  nullptr);
+
+    if (!_tls_version.empty()) {
+      mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
+    }
+
+    // Configure certificate verification based on configuration
+    if (_ssl_verify_cert) {
+      bool verify = true;
+      mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+    }
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "mysql_connection: configuring SSL/TLS for reconnection (verify={})",
+        _ssl_verify_cert);
+  }
+
   if (!mysql_real_connect(_conn, _host.c_str(), _user.c_str(), _pwd.c_str(),
                           _name.c_str(), _port,
                           (_socket == "" ? nullptr : _socket.c_str()),
@@ -855,6 +877,28 @@ void mysql_connection::_run() {
     mysql_optionsv(_conn, MYSQL_PLUGIN_DIR,
                    (const void*)_extension_directory.c_str());
 
+    // Configure SSL/TLS if enabled
+    if (_ssl_enabled) {
+      mysql_ssl_set(_conn, _ssl_key.empty() ? nullptr : _ssl_key.c_str(),
+                    _ssl_cert.empty() ? nullptr : _ssl_cert.c_str(),
+                    _ssl_ca.empty() ? nullptr : _ssl_ca.c_str(), nullptr,
+                    nullptr);
+
+      if (!_tls_version.empty()) {
+        mysql_options(_conn, MYSQL_OPT_TLS_VERSION, _tls_version.c_str());
+      }
+
+      // Configure certificate verification based on configuration
+      if (_ssl_verify_cert) {
+        bool verify = true;
+        mysql_options(_conn, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify);
+      }
+      SPDLOG_LOGGER_INFO(
+          _logger,
+          "mysql_connection: configuring SSL/TLS connection (verify={})",
+          _ssl_verify_cert);
+    }
+
     while (config::applier::mode != config::applier::finished &&
            !mysql_real_connect(_conn, _host.c_str(), _user.c_str(),
                                _pwd.c_str(), _name.c_str(), _port,
@@ -1105,6 +1149,12 @@ mysql_connection::mysql_connection(
       _port(db_cfg.get_port()),
       _extension_directory(db_cfg.get_extension_directory()),
       _max_second_commit_delay(db_cfg.get_max_commit_delay()),
+      _ssl_enabled(db_cfg.get_ssl_enabled()),
+      _ssl_ca(db_cfg.get_ssl_ca()),
+      _ssl_cert(db_cfg.get_ssl_cert()),
+      _ssl_key(db_cfg.get_ssl_key()),
+      _tls_version(db_cfg.get_tls_version()),
+      _ssl_verify_cert(db_cfg.get_ssl_verify_cert()),
       _last_commit(db_cfg.get_queries_per_transaction() > 1
                        ? 0
                        : std::numeric_limits<time_t>::max()),
@@ -1249,8 +1299,12 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
          db_cfg.get_user() == _user && db_cfg.get_password() == _pwd &&
          db_cfg.get_name() == _name && db_cfg.get_port() == _port &&
          db_cfg.get_queries_per_transaction() == _qps &&
-         db_cfg.get_category() == _category;
-  ;
+         db_cfg.get_category() == _category &&
+         db_cfg.get_ssl_enabled() == _ssl_enabled &&
+         db_cfg.get_ssl_ca() == _ssl_ca && db_cfg.get_ssl_cert() == _ssl_cert &&
+         db_cfg.get_ssl_key() == _ssl_key &&
+         db_cfg.get_ssl_verify_cert() == _ssl_verify_cert &&
+         db_cfg.get_tls_version() == _tls_version;
 }
 
 int mysql_connection::get_tasks_count() const {

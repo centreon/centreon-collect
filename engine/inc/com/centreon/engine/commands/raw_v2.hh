@@ -97,7 +97,7 @@ class raw_v2 : public command {
   raw_v2(const std::shared_ptr<asio::io_context> io_context,
          const std::string& name,
          const std::string& command_line,
-         command_listener* listener = nullptr);
+         const std::shared_ptr<command_listener>& listener = nullptr);
   raw_v2(const raw_v2&) = delete;
   ~raw_v2() override;
   raw_v2& operator=(const raw_v2&) = delete;

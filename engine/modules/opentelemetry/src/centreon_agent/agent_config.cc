@@ -85,7 +85,7 @@ agent_config::agent_config(const rapidjson::Value& json_config_v) {
     for (auto conf_iter = reverse_array.Begin();
          conf_iter != reverse_array.End(); ++conf_iter) {
       _agent_grpc_reverse_conf.insert(
-          std::make_shared<grpc_config>(*conf_iter));
+          std::make_shared<grpc_config>(*conf_iter, "", ""));
     }
   }
 }

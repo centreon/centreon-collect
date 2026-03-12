@@ -266,7 +266,7 @@ void conflict_manager::_load_caches() {
   std::future<database::mysql_result> future_ind = promise_ind.get_future();
   _mysql.run_query_and_get_result(
       "SELECT "
-      "id,host_id,service_id,host_name,rrd_retention,service_description,"
+      "id,host_id,service_id,host_name,service_description,"
       "special,locked FROM index_data",
       std::move(promise_ind));
 
@@ -349,18 +349,15 @@ void conflict_manager::_load_caches() {
 
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
-      index_info info{
-          .host_name = res.value_as_str(3),
-          .index_id = res.value_as_u64(0),
-          .locked = res.value_as_bool(7),
-          .rrd_retention = res.value_as_u32(4) ? res.value_as_u32(4) : _rrd_len,
-          .service_description = res.value_as_str(5),
-          .special = res.value_as_u32(6) == 2};
+      index_info info{.host_name = res.value_as_str(3),
+                      .index_id = res.value_as_u64(0),
+                      .locked = res.value_as_bool(6),
+                      .service_description = res.value_as_str(4),
+                      .special = res.value_as_u32(5) == 2};
       uint32_t host_id(res.value_as_u32(1));
       uint32_t service_id(res.value_as_u32(2));
-      _logger_storage->debug(
-          "storage: loaded index {} of ({}, {}) with rrd_len={}", info.index_id,
-          host_id, service_id, info.rrd_retention);
+      _logger_storage->debug("storage: loaded index {} of ({}, {})",
+                             info.index_id, host_id, service_id);
       _index_cache[{host_id, service_id}] = std::move(info);
 
       // Create the metric mapping.

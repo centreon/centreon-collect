@@ -360,6 +360,10 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
     SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
+    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                       "set log level of {} to {}", logger_name,
+                       spdlog::level::to_string_view(
+                           spdlog::level::level_enum(request->level())));
     logger->set_level(spdlog::level::level_enum(request->level()));
     return grpc::Status::OK;
   }

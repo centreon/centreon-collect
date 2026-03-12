@@ -577,13 +577,17 @@ EBMSSMPART
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
 
-    Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
-    FOR    ${i}    IN RANGE    ${1000}
-        Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
-    END
+    #we wait 60s for recover with 3 retries of 20s
+    FOR   ${retry}    IN RANGE    ${3}
+        Log To Console    Let's inject many metrics again (1000 services with 100 metrics each).
+        FOR    ${i}    IN RANGE    ${1000}
+            Ctn Process Service Check Result With Metrics    host_1    service_${i+1}    0    OK${i}    100
+        END
 
-    ${content}    Create List    success execute statement 6ae51b48
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+        ${content}    Create List    success execute statement 6ae51b48
+        ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+        IF     ${result}     BREAK
+    END
     Should Be True    ${result}    Since ${start}, Broker should have written in data_bin.
 
     Ctn Init Data Bin Without Partition

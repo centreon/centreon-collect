@@ -7,6 +7,7 @@
   olddir @ENGINE_VAR_LOG_ARCHIVE_DIR@
   createolddir 755 @USER@ @GROUP@
   rotate 365
+  su @USER@ @GROUP@
   postrotate
     kill -HUP `cat @PID_FILE@`
   endscript
@@ -21,6 +22,7 @@
   createolddir 755 @USER@ @GROUP@
   rotate 5
   size   1G
+  su @USER@ @GROUP@
   postrotate
     kill -HUP `cat @PID_FILE@`
   endscript

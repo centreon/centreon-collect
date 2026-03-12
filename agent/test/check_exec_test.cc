@@ -18,6 +18,7 @@
 
 #include <gtest/gtest.h>
 #include <memory>
+#include "agent.pb.h"
 #include "check.hh"
 
 #include "check_exec.hh"
@@ -28,10 +29,12 @@ using namespace com::centreon::agent;
 #define ECHO_PATH "tests\\echo.bat"
 #define SLEEP_PATH "tests\\sleep.bat"
 #define END_OF_LINE "\r\n"
+#define ECHO_MULTILINES "tests\\echo_multilines.bat"
 #else
 #define ECHO_PATH "/bin/echo"
 #define SLEEP_PATH "/bin/sleep"
 #define END_OF_LINE "\n"
+#define ECHO_MULTILINES "tests/echo_multilines.sh"
 #endif
 
 extern std::shared_ptr<asio::io_context> g_io_context;
@@ -189,4 +192,54 @@ TEST_F(check_exec_test, recurse_not_lock) {
   std::mutex mut;
   std::unique_lock l(mut);
   cond.wait(l);
+}
+// test if the output with multiple lines is correctly displayed
+TEST_F(check_exec_test, echo_perfdata) {
+  Service serv;
+  serv.set_command_line(ECHO_MULTILINES);
+
+  int status = -1;
+  std::list<std::string> outputs;
+  std::list<com::centreon::common::perfdata> perfs;
+  std::mutex mut;
+  std::condition_variable cond;
+
+  std::shared_ptr<check_exec> check = check_exec::load(
+      g_io_context, spdlog::default_logger(), {}, serv, serv.command_line(),
+      engine_to_agent_request_ptr(),
+      [&]([[maybe_unused]] const std::shared_ptr<com::centreon::agent::check>&
+              caller,
+          int statuss,
+          const std::list<com::centreon::common::perfdata>& perfdata,
+          const std::list<std::string>& output) {
+        {
+          std::lock_guard l(mut);
+          status = statuss;
+          outputs = output;
+          perfs = perfdata;
+        }
+        cond.notify_one();
+      },
+      std::make_shared<checks_statistics>(), nullptr);
+  check->start_check(std::chrono::seconds(1));
+
+  std::unique_lock l(mut);
+  cond.wait(l);
+
+  ASSERT_EQ(status, 0);
+  ASSERT_EQ(outputs.size(), 1);
+
+  // Normalize Windows output (strip quotes, convert CRLF → LF)
+  std::string out = *outputs.begin();
+#ifdef _WIN32
+  out.erase(std::remove(out.begin(), out.end(), '\r'), out.end());
+  if (!out.empty() && out.front() == '"')
+    out.erase(out.begin());
+  if (!out.empty() && out.back() == '"')
+    out.pop_back();
+#endif
+
+  ASSERT_EQ(out.substr(0, 58),
+            "OK - load average: 0.00\nOK - load1\nOK - load5\nOK - load15\n");
+  ASSERT_EQ(perfs.size(), 3);
 }

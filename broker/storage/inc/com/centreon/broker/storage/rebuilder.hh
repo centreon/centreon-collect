@@ -54,7 +54,6 @@ class rebuilder {
   struct metric_info {
     std::string metric_name;
     int32_t data_source_type;
-    int32_t rrd_retention;
     uint32_t check_interval;
   };
 

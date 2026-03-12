@@ -52,7 +52,7 @@ class otel_connector : public command {
   static std::shared_ptr<otel_connector> create(
       const std::string& connector_name,
       const std::string& cmd_line,
-      commands::command_listener* listener);
+      const std::shared_ptr<commands::command_listener>& listener);
 
   static bool remove(const std::string& connector_name);
 
@@ -76,7 +76,7 @@ class otel_connector : public command {
 
   otel_connector(const std::string& connector_name,
                  const std::string& cmd_line,
-                 commands::command_listener* listener);
+                 const std::shared_ptr<commands::command_listener>& listener);
 
   void update(const std::string& cmd_line);
 

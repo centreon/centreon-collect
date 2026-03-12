@@ -37,7 +37,8 @@ class factory : public io::factory {
   ~factory() = default;
   factory(factory const& other) = delete;
   factory& operator=(factory const& other) = delete;
-  bool has_endpoint(config::endpoint& cfg, io::extension* ext);
+  bool has_endpoint(const config::endpoint& cfg,
+                    io::extension* ext) const override;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

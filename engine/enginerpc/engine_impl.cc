@@ -421,6 +421,17 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
           cv.second.value(), cv.second.is_sent(),
           cv.second.has_been_modified()));
 
+    auto dependencies =
+        hostdependency::hostdependencies.equal_range(selectedhost->name());
+
+    for (; dependencies.first != dependencies.second; ++dependencies.first) {
+      ::com::centreon::engine::HostDependency* depend =
+          host->add_dependencies();
+      depend->set_dependency_type(
+          dependencies.first->second->get_dependency_type());
+      depend->set_hostname(dependencies.first->second->get_hostname());
+    }
+
     return 0;
   });
   std::future<int32_t> result = fn.get_future();
@@ -791,6 +802,20 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
       service->set_sensitivity(selectedanomaly->get_sensitivity());
       service->set_dependent_service_id(
           selectedanomaly->get_dependent_service()->service_id());
+    }
+
+    auto dependencies =
+        servicedependency::servicedependencies.equal_range(std::make_pair(
+            selectedservice->get_hostname(), selectedservice->description()));
+
+    for (; dependencies.first != dependencies.second; ++dependencies.first) {
+      ::com::centreon::engine::ServiceDependency* depend =
+          service->add_dependencies();
+      depend->set_dependency_type(
+          dependencies.first->second->get_dependency_type());
+      depend->set_hostname(dependencies.first->second->get_hostname());
+      depend->set_description(
+          dependencies.first->second->get_service_description());
     }
 
     return 0;
@@ -4187,6 +4212,10 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
     SPDLOG_LOGGER_ERROR(external_command_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
+    SPDLOG_LOGGER_INFO(external_command_logger, "set log level of {} to {}",
+                       logger_name,
+                       spdlog::level::to_string_view(
+                           spdlog::level::level_enum(request->level())));
     logger->set_level(spdlog::level::level_enum(request->level()));
     return grpc::Status::OK;
   }

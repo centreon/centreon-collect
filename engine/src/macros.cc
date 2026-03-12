@@ -577,6 +577,9 @@ int grab_contact_address_macro(unsigned int macro_num,
   if (temp_contact == nullptr)
     return ERROR;
 
+  if (temp_contact->get_addresses().size() <= macro_num)
+    return ERROR;
+
   /* get the macro */
   if (!temp_contact->get_address(macro_num).empty())
     output = temp_contact->get_address(macro_num);

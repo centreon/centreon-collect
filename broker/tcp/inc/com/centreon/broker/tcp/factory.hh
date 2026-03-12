@@ -40,8 +40,8 @@ class factory : public io::factory {
   factory(factory const& other) = delete;
   ~factory() noexcept = default;
   factory& operator=(factory const& other) = delete;
-  bool has_endpoint(com::centreon::broker::config::endpoint& cfg,
-                    io::extension* ext) override;
+  bool has_endpoint(const com::centreon::broker::config::endpoint& cfg,
+                    io::extension* ext) const override;
   io::endpoint* new_endpoint(
       com::centreon::broker::config::endpoint& cfg,
       const std::map<std::string, std::string>& global_params,

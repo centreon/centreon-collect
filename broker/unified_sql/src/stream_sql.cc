@@ -624,13 +624,11 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
-          0, misc::string::escape(cmmnt.author,
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_author)));
+          0, cmmnt.author.substr(0, get_centreon_storage_comments_col_size(
+                                        centreon_storage_comments_author)));
       b.set_value_as_i32(1, cmmnt.comment_type);
       b.set_value_as_str(
-          2, misc::string::escape(cmmnt.data,
-                                  get_centreon_storage_comments_col_size(
+          2, cmmnt.data.substr(0, get_centreon_storage_comments_col_size(
                                       centreon_storage_comments_data)));
       if (cmmnt.deletion_time.is_null())
         b.set_null_i64(3);
@@ -749,14 +747,12 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
-          0, misc::string::escape(cmmnt.author(),
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_author)));
+          0, cmmnt.author().substr(0, get_centreon_storage_comments_col_size(
+                                          centreon_storage_comments_author)));
       b.set_value_as_i32(1, int(cmmnt.type()));
       b.set_value_as_str(
-          2, misc::string::escape(cmmnt.data(),
-                                  get_centreon_storage_comments_col_size(
-                                      centreon_storage_comments_data)));
+          2, cmmnt.data().substr(0, get_centreon_storage_comments_col_size(
+                                        centreon_storage_comments_data)));
       b.set_value_as_i64(3, cmmnt.deletion_time(),
                          mapping::entry::invalid_on_minus_one |
                              mapping::entry::invalid_on_zero);
@@ -947,9 +943,8 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         else
           b.set_value_as_i64(1, dd.actual_start_time);
         b.set_value_as_str(
-            2, misc::string::escape(dd.author,
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
+            2, dd.author.substr(0, get_centreon_storage_downtimes_col_size(
+                                       centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, dd.downtime_type);
         if (dd.deletion_time.is_null())
           b.set_null_i64(4);
@@ -980,9 +975,9 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
         b.set_value_as_tiny(15, int(dd.was_cancelled));
         b.set_value_as_tiny(16, int(dd.was_started));
         b.set_value_as_str(
-            17, misc::string::escape(
-                    dd.comment, get_centreon_storage_downtimes_col_size(
-                                    centreon_storage_downtimes_comment_data)));
+            17,
+            dd.comment.substr(0, get_centreon_storage_downtimes_col_size(
+                                     centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -1041,10 +1036,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
                            mapping::entry::invalid_on_minus_one);
         b.set_value_as_i64(1, dt_obj.actual_start_time(),
                            mapping::entry::invalid_on_minus_one);
-        b.set_value_as_str(
-            2, misc::string::escape(dt_obj.author(),
-                                    get_centreon_storage_downtimes_col_size(
-                                        centreon_storage_downtimes_author)));
+        b.set_value_as_str(2, dt_obj.author().substr(
+                                  0, get_centreon_storage_downtimes_col_size(
+                                         centreon_storage_downtimes_author)));
         b.set_value_as_i32(3, int(dt_obj.type()));
         b.set_value_as_i64(4, dt_obj.deletion_time(),
                            mapping::entry::invalid_on_minus_one);
@@ -1067,10 +1061,9 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
         b.set_value_as_tiny(15, int(dt_obj.cancelled()));
         b.set_value_as_tiny(16, int(dt_obj.started()));
         b.set_value_as_str(
-            17,
-            misc::string::escape(dt_obj.comment_data(),
-                                 get_centreon_storage_downtimes_col_size(
-                                     centreon_storage_downtimes_comment_data)));
+            17, dt_obj.comment_data().substr(
+                    0, get_centreon_storage_downtimes_col_size(
+                           centreon_storage_downtimes_comment_data)));
         b.next_row();
       };
       _downtimes->add_bulk_row(binder);
@@ -2152,126 +2145,121 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
         query_preparator qp(neb::pb_host::static_type(), unique);
         _pb_host_insupdate = qp.prepare_insert_or_update_table(
             _mysql, "hosts",
-            {
-                {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-                {2, "acknowledged", 0, 0},
-                {3, "acknowledgement_type", 0, 0},
-                {4, "active_checks", 0, 0},
-                {5, "enabled", 0, 0},
-                {6, "scheduled_downtime_depth", 0, 0},
-                {7, "check_command", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_check_command)},
-                {8, "check_interval", 0, 0},
-                {9, "check_period", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_check_period)},
-                {10, "check_type", 0, 0},
-                {11, "check_attempt", 0, 0},
-                {12, "state", 0, 0},
-                {13, "event_handler_enabled", 0, 0},
-                {14, "event_handler", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_event_handler)},
-                {15, "execution_time", 0, 0},
-                {16, "flap_detection", 0, 0},
-                {17, "checked", 0, 0},
-                {18, "flapping", 0, 0},
-                {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
-                {20, "last_hard_state", 0, 0},
-                {21, "last_hard_state_change",
-                 io::protobuf_base::invalid_on_zero, 0},
-                {22, "last_notification", io::protobuf_base::invalid_on_zero,
-                 0},
-                {23, "notification_number", 0, 0},
-                {24, "last_state_change", io::protobuf_base::invalid_on_zero,
-                 0},
-                {25, "last_time_down", io::protobuf_base::invalid_on_zero, 0},
-                {26, "last_time_unreachable",
-                 io::protobuf_base::invalid_on_zero, 0},
-                {27, "last_time_up", io::protobuf_base::invalid_on_zero, 0},
-                {28, "last_update", io::protobuf_base::invalid_on_zero, 0},
-                {29, "latency", 0, 0},
-                {30, "max_check_attempts", 0, 0},
-                {31, "next_check", io::protobuf_base::invalid_on_zero, 0},
-                {32, "next_host_notification",
-                 io::protobuf_base::invalid_on_zero, 0},
-                {33, "no_more_notifications", 0, 0},
-                {34, "notify", 0, 0},
-                {35, "output", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_output)},
-                {36, "passive_checks", 0, 0},
-                {37, "percent_state_change", 0, 0},
-                {38, "perfdata", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_perfdata)},
-                {39, "retry_interval", 0, 0},
-                {40, "should_be_scheduled", 0, 0},
-                {41, "obsess_over_host", 0, 0},
-                {42, "state_type", 0, 0},
-                {43, "action_url", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_action_url)},
-                {44, "address", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_address)},
-                {45, "alias", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_alias)},
-                {46, "check_freshness", 0, 0},
-                {47, "default_active_checks", 0, 0},
-                {48, "default_event_handler_enabled", 0, 0},
-                {49, "default_flap_detection", 0, 0},
-                {50, "default_notify", 0, 0},
-                {51, "default_passive_checks", 0, 0},
-                {52, "display_name", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_display_name)},
-                {53, "first_notification_delay", 0, 0},
-                {54, "flap_detection_on_down", 0, 0},
-                {55, "flap_detection_on_unreachable", 0, 0},
-                {56, "flap_detection_on_up", 0, 0},
-                {57, "freshness_threshold", 0, 0},
-                {58, "high_flap_threshold", 0, 0},
-                {59, "name", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_name)},
-                {60, "icon_image", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_icon_image)},
-                {61, "icon_image_alt", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_icon_image_alt)},
-                {62, "instance_id", mapping::entry::invalid_on_zero, 0},
-                {63, "low_flap_threshold", 0, 0},
-                {64, "notes", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_notes)},
-                {65, "notes_url", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_notes_url)},
-                {66, "notification_interval", 0, 0},
-                {67, "notification_period", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_notification_period)},
-                {68, "notify_on_down", 0, 0},
-                {69, "notify_on_downtime", 0, 0},
-                {70, "notify_on_flapping", 0, 0},
-                {71, "notify_on_recovery", 0, 0},
-                {72, "notify_on_unreachable", 0, 0},
-                {73, "stalk_on_down", 0, 0},
-                {74, "stalk_on_unreachable", 0, 0},
-                {75, "stalk_on_up", 0, 0},
-                {76, "statusmap_image", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_statusmap_image)},
-                {77, "retain_nonstatus_information", 0, 0},
-                {78, "retain_status_information", 0, 0},
-                {79, "timezone", 0,
-                 get_centreon_storage_hosts_col_size(
-                     centreon_storage_hosts_timezone)},
-            });
+            {{1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+             {2, "acknowledged", 0, 0},
+             {3, "acknowledgement_type", 0, 0},
+             {4, "active_checks", 0, 0},
+             {5, "enabled", 0, 0},
+             {6, "scheduled_downtime_depth", 0, 0},
+             {7, "check_command", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_check_command)},
+             {8, "check_interval", 0, 0},
+             {9, "check_period", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_check_period)},
+             {10, "check_type", 0, 0},
+             {11, "check_attempt", 0, 0},
+             {12, "state", 0, 0},
+             {13, "event_handler_enabled", 0, 0},
+             {14, "event_handler", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_event_handler)},
+             {15, "execution_time", 0, 0},
+             {16, "flap_detection", 0, 0},
+             {17, "checked", 0, 0},
+             {18, "flapping", 0, 0},
+             {19, "last_check", io::protobuf_base::invalid_on_zero, 0},
+             {20, "last_hard_state", 0, 0},
+             {21, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
+              0},
+             {22, "last_notification", io::protobuf_base::invalid_on_zero, 0},
+             {23, "notification_number", 0, 0},
+             {24, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+             {25, "last_time_down", io::protobuf_base::invalid_on_zero, 0},
+             {26, "last_time_unreachable", io::protobuf_base::invalid_on_zero,
+              0},
+             {27, "last_time_up", io::protobuf_base::invalid_on_zero, 0},
+             {28, "last_update", io::protobuf_base::invalid_on_zero, 0},
+             {29, "latency", 0, 0},
+             {30, "max_check_attempts", 0, 0},
+             {31, "next_check", io::protobuf_base::invalid_on_zero, 0},
+             {32, "next_host_notification", io::protobuf_base::invalid_on_zero,
+              0},
+             {33, "no_more_notifications", 0, 0},
+             {34, "notify", 0, 0},
+             {35, "output", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_output)},
+             {36, "passive_checks", 0, 0},
+             {37, "percent_state_change", 0, 0},
+             {38, "perfdata", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_perfdata)},
+             {39, "retry_interval", 0, 0},
+             {40, "should_be_scheduled", 0, 0},
+             {41, "obsess_over_host", 0, 0},
+             {42, "state_type", 0, 0},
+             {43, "action_url", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_action_url)},
+             {44, "address", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_address)},
+             {45, "alias", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_alias)},
+             {46, "check_freshness", 0, 0},
+             {47, "default_active_checks", 0, 0},
+             {48, "default_event_handler_enabled", 0, 0},
+             {49, "default_flap_detection", 0, 0},
+             {50, "default_notify", 0, 0},
+             {51, "default_passive_checks", 0, 0},
+             {52, "display_name", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_display_name)},
+             {53, "first_notification_delay", 0, 0},
+             {54, "flap_detection_on_down", 0, 0},
+             {55, "flap_detection_on_unreachable", 0, 0},
+             {56, "flap_detection_on_up", 0, 0},
+             {57, "freshness_threshold", 0, 0},
+             {58, "high_flap_threshold", 0, 0},
+             {59, "name", 0,
+              get_centreon_storage_hosts_col_size(centreon_storage_hosts_name)},
+             {60, "icon_image", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_icon_image)},
+             {61, "icon_image_alt", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_icon_image_alt)},
+             {62, "instance_id", mapping::entry::invalid_on_zero, 0},
+             {63, "low_flap_threshold", 0, 0},
+             {64, "notes", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_notes)},
+             {65, "notes_url", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_notes_url)},
+             {66, "notification_interval", 0, 0},
+             {67, "notification_period", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_notification_period)},
+             {68, "notify_on_down", 0, 0},
+             {69, "notify_on_downtime", 0, 0},
+             {70, "notify_on_flapping", 0, 0},
+             {71, "notify_on_recovery", 0, 0},
+             {72, "notify_on_unreachable", 0, 0},
+             {73, "stalk_on_down", 0, 0},
+             {74, "stalk_on_unreachable", 0, 0},
+             {75, "stalk_on_up", 0, 0},
+             {76, "statusmap_image", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_statusmap_image)},
+             {77, "retain_nonstatus_information", 0, 0},
+             {78, "retain_status_information", 0, 0},
+             {79, "timezone", 0,
+              get_centreon_storage_hosts_col_size(
+                  centreon_storage_hosts_timezone)}});
         if (_store_in_resources) {
           _resources_host_insert_or_update = _mysql.prepare_query(
               "INSERT INTO resources "
@@ -2985,7 +2973,14 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
            {9, "version", 0,
             get_centreon_storage_instances_col_size(
                 centreon_storage_instances_version)},
-           {11, "is_encryption_ready", 0, 0}});
+           {11, "is_encryption_ready", 0, 0},
+           {12, "cma_certificate_sha", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_sha)},
+           {13, "cma_certificate_cn", 0,
+            get_centreon_storage_instances_col_size(
+                centreon_storage_instances_cma_certificate_cn)},
+           {14, "cma_certificate_peremption", 0, 0}});
     }
 
     // Process object.
@@ -3126,34 +3121,30 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(1, le.host_id);
       b.set_value_as_i64(2, le.service_id);
       b.set_value_as_str(
-          3, misc::string::escape(le.host_name,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_host_name)));
-      b.set_value_as_str(
-          4, misc::string::escape(le.poller_name,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_instance_name)));
+          3, le.host_name.substr(0, get_centreon_storage_logs_col_size(
+                                        centreon_storage_logs_host_name)));
+      b.set_value_as_str(4, le.poller_name.substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le.log_type);
       b.set_value_as_i32(6, le.msg_type);
+      b.set_value_as_str(7,
+                         le.notification_cmd.substr(
+                             0, get_centreon_storage_logs_col_size(
+                                    centreon_storage_logs_notification_cmd)));
       b.set_value_as_str(
-          7, misc::string::escape(le.notification_cmd,
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_notification_cmd)));
-      b.set_value_as_str(8,
-                         misc::string::escape(
-                             le.notification_contact,
-                             get_centreon_storage_logs_col_size(
-                                 centreon_storage_logs_notification_contact)));
+          8, le.notification_contact.substr(
+                 0, get_centreon_storage_logs_col_size(
+                        centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le.retry);
       b.set_value_as_str(
-          10,
-          misc::string::escape(le.service_description,
-                               get_centreon_storage_logs_col_size(
-                                   centreon_storage_logs_service_description)));
+          10, le.service_description.substr(
+                  0, get_centreon_storage_logs_col_size(
+                         centreon_storage_logs_service_description)));
       b.set_value_as_tiny(11, le.status);
-      b.set_value_as_str(12, misc::string::escape(
-                                 le.output, get_centreon_storage_logs_col_size(
-                                                centreon_storage_logs_output)));
+      b.set_value_as_str(
+          12, le.output.substr(0, get_centreon_storage_logs_col_size(
+                                      centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
@@ -3207,36 +3198,31 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(0, le_obj.ctime());
       b.set_value_as_i64(1, le_obj.host_id());
       b.set_value_as_i64(2, le_obj.service_id());
-      b.set_value_as_str(
-          3, misc::string::escape(le_obj.host_name(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_host_name)));
-      b.set_value_as_str(
-          4, misc::string::escape(le_obj.instance_name(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_instance_name)));
+      b.set_value_as_str(3, le_obj.host_name().substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_host_name)));
+      b.set_value_as_str(4, le_obj.instance_name().substr(
+                                0, get_centreon_storage_logs_col_size(
+                                       centreon_storage_logs_instance_name)));
       b.set_value_as_i32(5, le_obj.type());
       b.set_value_as_i32(6, le_obj.msg_type());
+      b.set_value_as_str(7,
+                         le_obj.notification_cmd().substr(
+                             0, get_centreon_storage_logs_col_size(
+                                    centreon_storage_logs_notification_cmd)));
       b.set_value_as_str(
-          7, misc::string::escape(le_obj.notification_cmd(),
-                                  get_centreon_storage_logs_col_size(
-                                      centreon_storage_logs_notification_cmd)));
-      b.set_value_as_str(8,
-                         misc::string::escape(
-                             le_obj.notification_contact(),
-                             get_centreon_storage_logs_col_size(
-                                 centreon_storage_logs_notification_contact)));
+          8, le_obj.notification_contact().substr(
+                 0, get_centreon_storage_logs_col_size(
+                        centreon_storage_logs_notification_contact)));
       b.set_value_as_i32(9, le_obj.retry());
       b.set_value_as_str(
-          10,
-          misc::string::escape(le_obj.service_description(),
-                               get_centreon_storage_logs_col_size(
-                                   centreon_storage_logs_service_description)));
+          10, le_obj.service_description().substr(
+                  0, get_centreon_storage_logs_col_size(
+                         centreon_storage_logs_service_description)));
       b.set_value_as_tiny(11, le_obj.status());
       b.set_value_as_str(
-          12, misc::string::escape(le_obj.output(),
-                                   get_centreon_storage_logs_col_size(
-                                       centreon_storage_logs_output)));
+          12, le_obj.output().substr(0, get_centreon_storage_logs_col_size(
+                                            centreon_storage_logs_output)));
       b.next_row();
     };
     _logs->add_bulk_row(binder);
@@ -3738,7 +3724,7 @@ void stream::_process_pb_service_group_member(
       _pb_service_group_member_delete =
           qp.prepare_delete_table(_mysql, "services_servicegroups ");
     }
-    _service_group_member_delete << sgmp;
+    _pb_service_group_member_delete << sgmp;
     _mysql.run_statement(_pb_service_group_member_delete,
                          database::mysql_error::delete_service_group_member,
                          conn);
@@ -3856,117 +3842,115 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
       _pb_service_insupdate = qp.prepare_insert_or_update_table(
           _mysql, "services",
-          {
-              {1, "host_id", io::protobuf_base::invalid_on_zero, 0},
-              {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
-              {3, "acknowledged", 0, 0},
-              {4, "acknowledgement_type", 0, 0},
-              {5, "active_checks", 0, 0},
-              {6, "enabled", 0, 0},
-              {7, "scheduled_downtime_depth", 0, 0},
-              {8, "check_command", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_check_command)},
-              {9, "check_interval", 0, 0},
-              {10, "check_period", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_check_period)},
-              {11, "check_type", 0, 0},
-              {12, "check_attempt", 0, 0},
-              {13, "state", 0, 0},
-              {14, "event_handler_enabled", 0, 0},
-              {15, "event_handler", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_event_handler)},
-              {16, "execution_time", 0, 0},
-              {17, "flap_detection", 0, 0},
-              {18, "checked", 0, 0},
-              {19, "flapping", 0, 0},
-              {20, "last_check", io::protobuf_base::invalid_on_zero, 0},
-              {21, "last_hard_state", 0, 0},
-              {22, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
-               0},
-              {23, "last_notification", io::protobuf_base::invalid_on_zero, 0},
-              {24, "notification_number", 0, 0},
-              {25, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
-              {26, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
-              {27, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
-              {28, "last_time_critical", io::protobuf_base::invalid_on_zero, 0},
-              {29, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
-              {30, "last_update", io::protobuf_base::invalid_on_zero, 0},
-              {31, "latency", 0, 0},
-              {32, "max_check_attempts", 0, 0},
-              {33, "next_check", io::protobuf_base::invalid_on_zero, 0},
-              {34, "next_notification", io::protobuf_base::invalid_on_zero, 0},
-              {35, "no_more_notifications", 0, 0},
-              {36, "notify", 0, 0},
-              {37, "output", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_output)},
+          {{1, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {2, "service_id", io::protobuf_base::invalid_on_zero, 0},
+           {3, "acknowledged", 0, 0},
+           {4, "acknowledgement_type", 0, 0},
+           {5, "active_checks", 0, 0},
+           {6, "enabled", 0, 0},
+           {7, "scheduled_downtime_depth", 0, 0},
+           {8, "check_command", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_check_command)},
+           {9, "check_interval", 0, 0},
+           {10, "check_period", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_check_period)},
+           {11, "check_type", 0, 0},
+           {12, "check_attempt", 0, 0},
+           {13, "state", 0, 0},
+           {14, "event_handler_enabled", 0, 0},
+           {15, "event_handler", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_event_handler)},
+           {16, "execution_time", 0, 0},
+           {17, "flap_detection", 0, 0},
+           {18, "checked", 0, 0},
+           {19, "flapping", 0, 0},
+           {20, "last_check", io::protobuf_base::invalid_on_zero, 0},
+           {21, "last_hard_state", 0, 0},
+           {22, "last_hard_state_change", io::protobuf_base::invalid_on_zero,
+            0},
+           {23, "last_notification", io::protobuf_base::invalid_on_zero, 0},
+           {24, "notification_number", 0, 0},
+           {25, "last_state_change", io::protobuf_base::invalid_on_zero, 0},
+           {26, "last_time_ok", io::protobuf_base::invalid_on_zero, 0},
+           {27, "last_time_warning", io::protobuf_base::invalid_on_zero, 0},
+           {28, "last_time_critical", io::protobuf_base::invalid_on_zero, 0},
+           {29, "last_time_unknown", io::protobuf_base::invalid_on_zero, 0},
+           {30, "last_update", io::protobuf_base::invalid_on_zero, 0},
+           {31, "latency", 0, 0},
+           {32, "max_check_attempts", 0, 0},
+           {33, "next_check", io::protobuf_base::invalid_on_zero, 0},
+           {34, "next_notification", io::protobuf_base::invalid_on_zero, 0},
+           {35, "no_more_notifications", 0, 0},
+           {36, "notify", 0, 0},
+           {37, "output", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_output)},
 
-              {39, "passive_checks", 0, 0},
-              {40, "percent_state_change", 0, 0},
-              {41, "perfdata", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_perfdata)},
-              {42, "retry_interval", 0, 0},
+           {39, "passive_checks", 0, 0},
+           {40, "percent_state_change", 0, 0},
+           {41, "perfdata", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_perfdata)},
+           {42, "retry_interval", 0, 0},
 
-              {44, "description", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_description)},
-              {45, "should_be_scheduled", 0, 0},
-              {46, "obsess_over_service", 0, 0},
-              {47, "state_type", 0, 0},
-              {48, "action_url", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_action_url)},
-              {49, "check_freshness", 0, 0},
-              {50, "default_active_checks", 0, 0},
-              {51, "default_event_handler_enabled", 0, 0},
-              {52, "default_flap_detection", 0, 0},
-              {53, "default_notify", 0, 0},
-              {54, "default_passive_checks", 0, 0},
-              {55, "display_name", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_display_name)},
-              {56, "first_notification_delay", 0, 0},
-              {57, "flap_detection_on_critical", 0, 0},
-              {58, "flap_detection_on_ok", 0, 0},
-              {59, "flap_detection_on_unknown", 0, 0},
-              {60, "flap_detection_on_warning", 0, 0},
-              {61, "freshness_threshold", 0, 0},
-              {62, "high_flap_threshold", 0, 0},
-              {63, "icon_image", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_icon_image)},
-              {64, "icon_image_alt", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_icon_image_alt)},
-              {65, "volatile", 0, 0},
-              {66, "low_flap_threshold", 0, 0},
-              {67, "notes", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_notes)},
-              {68, "notes_url", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_notes_url)},
-              {69, "notification_interval", 0, 0},
-              {70, "notification_period", 0,
-               get_centreon_storage_services_col_size(
-                   centreon_storage_services_notification_period)},
-              {71, "notify_on_critical", 0, 0},
-              {72, "notify_on_downtime", 0, 0},
-              {73, "notify_on_flapping", 0, 0},
-              {74, "notify_on_recovery", 0, 0},
-              {75, "notify_on_unknown", 0, 0},
-              {76, "notify_on_warning", 0, 0},
-              {77, "stalk_on_critical", 0, 0},
-              {78, "stalk_on_ok", 0, 0},
-              {79, "stalk_on_unknown", 0, 0},
-              {80, "stalk_on_warning", 0, 0},
-              {81, "retain_nonstatus_information", 0, 0},
-              {82, "retain_status_information", 0, 0},
-          });
+           {44, "description", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_description)},
+           {45, "should_be_scheduled", 0, 0},
+           {46, "obsess_over_service", 0, 0},
+           {47, "state_type", 0, 0},
+           {48, "action_url", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_action_url)},
+           {49, "check_freshness", 0, 0},
+           {50, "default_active_checks", 0, 0},
+           {51, "default_event_handler_enabled", 0, 0},
+           {52, "default_flap_detection", 0, 0},
+           {53, "default_notify", 0, 0},
+           {54, "default_passive_checks", 0, 0},
+           {55, "display_name", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_display_name)},
+           {56, "first_notification_delay", 0, 0},
+           {57, "flap_detection_on_critical", 0, 0},
+           {58, "flap_detection_on_ok", 0, 0},
+           {59, "flap_detection_on_unknown", 0, 0},
+           {60, "flap_detection_on_warning", 0, 0},
+           {61, "freshness_threshold", 0, 0},
+           {62, "high_flap_threshold", 0, 0},
+           {63, "icon_image", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_icon_image)},
+           {64, "icon_image_alt", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_icon_image_alt)},
+           {65, "volatile", 0, 0},
+           {66, "low_flap_threshold", 0, 0},
+           {67, "notes", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_notes)},
+           {68, "notes_url", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_notes_url)},
+           {69, "notification_interval", 0, 0},
+           {70, "notification_period", 0,
+            get_centreon_storage_services_col_size(
+                centreon_storage_services_notification_period)},
+           {71, "notify_on_critical", 0, 0},
+           {72, "notify_on_downtime", 0, 0},
+           {73, "notify_on_flapping", 0, 0},
+           {74, "notify_on_recovery", 0, 0},
+           {75, "notify_on_unknown", 0, 0},
+           {76, "notify_on_warning", 0, 0},
+           {77, "stalk_on_critical", 0, 0},
+           {78, "stalk_on_ok", 0, 0},
+           {79, "stalk_on_unknown", 0, 0},
+           {80, "stalk_on_warning", 0, 0},
+           {81, "retain_nonstatus_information", 0, 0},
+           {82, "retain_status_information", 0, 0}});
       if (_store_in_resources) {
         _resources_service_insert_or_update = _mysql.prepare_query(
             "INSERT INTO resources "
@@ -4330,16 +4314,13 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         .index_id = index_id,
         .host_name = ss.host_name(),
         .service_description = ss.description(),
-        .rrd_retention = _rrd_len,
         .interval = ss.check_interval(),
         .special = special,
         .locked = false,
     };
-    SPDLOG_LOGGER_DEBUG(
-        _logger_sql,
-        "sql: loaded index {} of ({}, {}) with rrd_len={} and interval={}",
-        index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
-        info.interval);
+    SPDLOG_LOGGER_DEBUG(_logger_sql,
+                        "sql: loaded index {} of ({}, {}) with interval={}",
+                        index_id, ss.host_id(), ss.service_id(), info.interval);
     _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
 
     if (cache_ptr) {

@@ -80,16 +80,15 @@ void conflict_manager::_storage_process_service_status(
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
   uint64_t index_id;
-  uint32_t rrd_len;
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[ss.host_id]);
   bool index_locked{false};
   bool special{!strncmp(ss.host_name.c_str(), BAM_NAME, sizeof(BAM_NAME) - 1)};
 
-  auto add_metric_in_cache =
-      [this](uint64_t index_id, uint64_t host_id, uint64_t service_id,
-             neb::service_status const& ss, bool index_locked, bool special,
-             uint32_t& rrd_len) -> void {
+  auto add_metric_in_cache = [this](uint64_t index_id, uint64_t host_id,
+                                    uint64_t service_id,
+                                    neb::service_status const& ss,
+                                    bool index_locked, bool special) -> void {
     if (index_id == 0) {
       throw msg_fmt(
           "storage: could not fetch index_id of newly inserted index ({}"
@@ -105,16 +104,13 @@ void conflict_manager::_storage_process_service_status(
     index_info info{.host_name = ss.host_name,
                     .index_id = index_id,
                     .locked = index_locked,
-                    .rrd_retention = _rrd_len,
                     .service_description = ss.service_description,
                     .special = special};
 
     _index_cache[{host_id, service_id}] = std::move(info);
-    rrd_len = _rrd_len;
     _logger_storage->debug(
-        "add metric in cache: (host: {}, service: {}, index: {}, returned "
-        "rrd_len {}",
-        ss.host_name, ss.service_description, index_id, rrd_len);
+        "add metric in cache: (host: {}, service: {}, index: {}, returned",
+        ss.host_name, ss.service_description, index_id);
 
     /* Create the metric mapping. */
     std::shared_ptr<storage::index_mapping> im{
@@ -159,7 +155,7 @@ void conflict_manager::_storage_process_service_status(
     try {
       index_id = future.get();
       add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
-                          special, rrd_len);
+                          special);
     } catch (std::exception const& e) {
       try {
         if (!_index_data_query.prepared())
@@ -214,7 +210,7 @@ void conflict_manager::_storage_process_service_status(
         }
 
         add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
-                            special, rrd_len);
+                            special);
         _logger_sql->debug(
             "Index {} stored in cache for host_id={} and service_id={}",
             index_id, host_id, service_id);
@@ -227,25 +223,24 @@ void conflict_manager::_storage_process_service_status(
     }
   } else {
     index_id = it_index_cache->second.index_id;
-    rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
     _logger_storage->debug(
         "conflict_manager: host_id:{}, service_id:{} - index already in cache "
-        "- index_id {}, rrd_len {}",
-        host_id, service_id, index_id, rrd_len);
+        "- index_id {}",
+        host_id, service_id, index_id);
   }
 
   if (index_id) {
     /* Generate status event */
     _logger_storage->debug(
         "conflict_manager: host_id:{}, service_id:{} - generating status event "
-        "with index_id {}, rrd_len: {}",
-        host_id, service_id, index_id, rrd_len);
+        "with index_id {}",
+        host_id, service_id, index_id);
     if (ss.has_been_checked) {
       auto status(std::make_shared<storage::status>(
           ss.last_check, index_id,
           static_cast<uint32_t>(ss.check_interval * _interval_length), false,
-          rrd_len, ss.last_hard_state));
+          _rrd_len, ss.last_hard_state));
       multiplexing::publisher().write(status);
     }
 
@@ -418,12 +413,12 @@ void conflict_manager::_storage_process_service_status(
           auto perf{std::make_shared<storage::metric>(
               ss.host_id, ss.service_id, pd.name(), ss.last_check,
               static_cast<uint32_t>(ss.check_interval * _interval_length),
-              false, metric_id, rrd_len, pd.value(),
+              false, metric_id, _rrd_len, pd.value(),
               static_cast<common::perfdata::data_type>(pd.value_type()))};
           _logger_storage->debug(
               "conflict_manager: generating perfdata event for metric {} "
-              "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
+              "(name '{}', time {}, value {}, data_type {})",
+              perf->metric_id, perf->name, perf->time, perf->value,
               perf->value_type);
           to_publish.emplace_back(perf);
         }

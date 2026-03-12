@@ -28,7 +28,11 @@ on:
       - broker/**
 
 jobs:
+  dependency-scan:
+    uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
+
   get-environment:
+    needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
     with:
@@ -46,10 +50,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - run: |
-          NIGHTLY_TARGETS=("dev-23.10.x" "dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
+          NIGHTLY_TARGETS=("dev-24.04.x" "dev-24.10.x" "dev-25.10.x")
           for target in "${NIGHTLY_TARGETS[@]}"; do
             echo "[INFO] - Dispatching nightly run to $target branch."
             gh workflow run broker-analysis.yml -r "$target" -f nightly_manual_trigger=true

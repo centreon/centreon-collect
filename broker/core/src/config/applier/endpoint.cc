@@ -110,6 +110,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
   // Copy endpoint configurations and apply eventual modifications.
   std::list<config::endpoint> tmp_endpoints(endpoints);
 
+  // we apply default fields value to each endpoint
+  for (config::endpoint& endp : tmp_endpoints) {
+    for (const auto& protocol : io::protocols::instance()) {
+      if (protocol.second.endpntfactry->has_endpoint(endp, nullptr))
+        protocol.second.endpntfactry->set_default_values(endp);
+    }
+  }
+
   // Remove old inputs and generate inputs to create.
   std::list<config::endpoint> endp_to_create;
   {
@@ -161,17 +169,15 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
       std::unique_ptr<processing::endpoint> endp;
       /* Input or output? */
       /* This is tricky, one day we will make better... I hope.
-       * In case of an Engine making connection to Broker, usually Broker is an
-       * acceptor and Engine not.
-       * In case of one peer retention, each one keeps its role but the
-       * connection is reversed. To keep this behavior, Engine is still
-       * considered as the connector and Broker the acceptor, is_acceptor is
-       * then set to false.
-       * In case of Broker connected to Map, Broker is a TCP acceptor, and
-       * this flag is returned as true. And then we create an acceptor even
-       * if broker sends data to map. This is needed because a failover needs
-       * its peer to ack events to release them (and a failover is also able
-       * to write data). */
+       * In case of an Engine making connection to Broker, usually Broker is
+       * an acceptor and Engine not. In case of one peer retention, each one
+       * keeps its role but the connection is reversed. To keep this behavior,
+       * Engine is still considered as the connector and Broker the acceptor,
+       * is_acceptor is then set to false. In case of Broker connected to Map,
+       * Broker is a TCP acceptor, and this flag is returned as true. And then
+       * we create an acceptor even if broker sends data to map. This is
+       * needed because a failover needs its peer to ack events to release
+       * them (and a failover is also able to write data). */
       multiplexing::muxer_filter r_filter =
           parse_filters(ep.read_filters, e->get_stream_forbidden_filter());
       multiplexing::muxer_filter w_filter =
@@ -182,33 +188,42 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name, r_filter,
                                                    w_filter));
-        SPDLOG_LOGGER_DEBUG(
-            _logger,
-            "endpoint applier: acceptor '{}' configured with write filters: {} "
-            "and read filters: {}",
-            ep.name, w_filter.get_allowed_categories(),
-            r_filter.get_allowed_categories());
+        SPDLOG_LOGGER_DEBUG(_logger,
+                            "endpoint applier: acceptor '{}' configured with "
+                            "write filters: {} "
+                            "and read filters: {}",
+                            ep.name, w_filter.get_allowed_categories(),
+                            r_filter.get_allowed_categories());
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
 
-        /* Are there missing events in the w_filter ? */
-        if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
-          w_filter |= e->get_stream_mandatory_filter();
-          SPDLOG_LOGGER_DEBUG(
-              _logger,
-              "endpoint applier: The configured write filters for the endpoint "
-              "'{}' are too restrictive. Mandatory categories added to them",
-              ep.name);
-        }
-        /* Are there events in w_filter that are forbidden ? */
-        if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
-          w_filter -= e->get_stream_forbidden_filter();
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "endpoint applier: The configured write filters for the endpoint "
-              "'{}' contain forbidden filters. These ones are removed",
-              ep.name);
+        if (multiplexing::muxer_filter(e->get_stream_forbidden_filter())
+                .reverse() == e->get_stream_mandatory_filter()) {
+          // forbidden_filter = ~ mandatory_filter => filter must be
+          // e->get_stream_mandatory_filter(), we don't care about filter config
+          w_filter = e->get_stream_mandatory_filter();
+        } else {
+          /* Are there missing events in the w_filter ? */
+          if (!e->get_stream_mandatory_filter().is_in(w_filter)) {
+            w_filter |= e->get_stream_mandatory_filter();
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "endpoint applier: The configured write filters for the "
+                "endpoint "
+                "'{}' are too restrictive. Mandatory categories added to them",
+                ep.name);
+          }
+          /* Are there events in w_filter that are forbidden ? */
+          if (w_filter.contains_some_of(e->get_stream_forbidden_filter())) {
+            w_filter -= e->get_stream_forbidden_filter();
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "endpoint applier: The configured write filters for the "
+                "endpoint "
+                "'{}' contain forbidden filters. These ones are removed",
+                ep.name);
+          }
         }
 
         /* Are there events in r_filter that are forbidden ? */
@@ -216,7 +231,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
           r_filter -= e->get_stream_forbidden_filter();
           SPDLOG_LOGGER_ERROR(
               _logger,
-              "endpoint applier: The configured read filters for the endpoint "
+              "endpoint applier: The configured read filters for the "
+              "endpoint "
               "'{}' contain forbidden filters. These ones are removed",
               ep.name);
         }
@@ -439,7 +455,7 @@ processing::failover* endpoint::_create_failover(
   }
 
   // Return failover thread.
-  auto fo{std::make_unique<processing::failover>(endp, mux, cfg.name)};
+  auto fo{std::make_unique<processing::failover>(endp, mux, cfg)};
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);

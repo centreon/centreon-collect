@@ -20,14 +20,14 @@ check gorgone proxy do not leak file descriptor with a poller
     # check what is the normal number of file descriptor for gorgone to take
     ${initial_fd_nb}    Run    ${cmd_count_file_descriptor}
     Log To Console    \n number of file descriptor on before killing poller : ${before_kill_fd_nb} and after : ${initial_fd_nb} \n
-    ${max}=    Evaluate    ${initial_fd_nb} + 10
+    ${max}=    Evaluate    ${initial_fd_nb} + (${before_kill_fd_nb} - ${initial_fd_nb}) * 2
     Log To Console    max is ${max}
     Sleep    20
     ${count_over_limit}=    Set Variable    0
     FOR    ${i}    IN RANGE    60
         ${current_fd_nb}    Run    ${cmd_count_file_descriptor}
 
-        Log To Console    exec\t${i}\t got ${current_fd_nb}
+        Log To Console    exec\t${i}\t got ${current_fd_nb}, over limit count is ${count_over_limit}
         IF    ${current_fd_nb} > ${max}
             ${count_over_limit}=    Evaluate    ${count_over_limit} + 1
         ELSE

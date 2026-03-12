@@ -65,6 +65,11 @@ DB_USER = ""
 DB_PASS = ""
 DB_HOST = ""
 DB_PORT = ""
+DB_SSL_ENABLED = os.environ.get("DB_SSL_ENABLED", "")
+DB_SSL_CA = os.environ.get("DB_SSL_CA", "")
+DB_SSL_CERT = os.environ.get("DB_SSL_CERT", "")
+DB_SSL_KEY = os.environ.get("DB_SSL_KEY", "")
+DB_TLS_VERSION = os.environ.get("DB_TLS_VERSION", "")
 VAR_ROOT = ""
 ETC_ROOT = ""
 
@@ -883,6 +888,84 @@ def ctn_check_service_status_with_timeout_rt(hostname: str, service_desc: str, s
                         return True, result[0]['output']
         time.sleep(1)
     return False, ""
+
+
+def ctn_check_commandline_service_with_timeout_rt(hostname: str, service_desc: str, timeout: int, cmd: str):
+    """
+    ctn_check_commandline_service_with_timeout_rt
+    Check if a service command line matches the expected command line within a timeout period.
+
+    Args:
+        hostname: The name of the host.
+        service_desc: The description of the service.
+        timeout: The timeout period in seconds.
+        cmd: The expected command line.
+
+    Returns:
+        True if the command line matches, False otherwise.
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.description,s.command_line FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['command_line']:
+                    logger.console(
+                        f"service : {service_desc} with the command {result[0]['command_line']}")
+                    if result[0]['command_line'] == cmd:
+                        return True
+
+        time.sleep(1)
+    return False
+
+
+def ctn_check_commandline_host_with_timeout_rt(hostname: str, timeout: int, cmd: str):
+    """
+    ctn_check_commandline_host_with_timeout_rt
+    Check if a host command line matches the expected command line within a timeout period.
+    Args:
+        hostname: The name of the host.
+        timeout: The timeout period in seconds.
+        cmd: The expected command line.
+
+    Returns:
+        True if the command line matches, False otherwise.
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT h.name, h.command_line FROM hosts h WHERE h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['command_line']:
+                    logger.console(
+                        f"host : {hostname} with the command {result[0]['command_line']}")
+                    if result[0]['command_line'] == cmd:
+                        return True
+
+        time.sleep(1)
+    return False
 
 
 def ctn_check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
@@ -2508,3 +2591,59 @@ def ctn_randint(lower: int, higher: int):
     just call ranom.randint and retruns result
     """
     return random.randint(lower, higher)
+
+
+def update_json_field(filepath, path, value):
+    """
+    Update a nested JSON field using dot notation.
+    Supports dict keys and list indexes.
+    Example: centreon_agent.reverse_connections.0.encryption
+    """
+    keys = path.split(".")
+
+    # Load JSON
+    with open(filepath, "r", encoding="utf8") as f:
+        data = json.load(f)
+
+    current = data
+
+    for i, key in enumerate(keys[:-1]):
+        # Determine if this key is a list index
+        if isinstance(current, list):
+            try:
+                key = int(key)
+            except ValueError:
+                raise ValueError(
+                    f"Expected list index at '{key}', got non-number")
+
+            # Auto-expand list if needed
+            while key >= len(current):
+                current.append({})
+            current = current[key]
+
+        # Dictionary path
+        else:
+            if key not in current or not isinstance(current[key], (dict, list)):
+                current[key] = {}    # auto-create dict by default
+            current = current[key]
+
+    # Final key
+    final_key = keys[-1]
+
+    # Last hop: list or dict?
+    if isinstance(current, list):
+        try:
+            final_key = int(final_key)
+        except ValueError:
+            raise ValueError(f"Expected list index at '{final_key}'")
+        while final_key >= len(current):
+            current.append(None)
+        current[final_key] = value
+    else:
+        current[final_key] = value
+
+    # Save
+    with open(filepath, "w", encoding="utf8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    return data

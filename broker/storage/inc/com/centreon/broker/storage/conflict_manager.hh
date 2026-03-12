@@ -110,7 +110,6 @@ class conflict_manager {
     std::string host_name;
     uint64_t index_id;
     bool locked;
-    uint32_t rrd_retention;
     std::string service_description;
     bool special;
   };

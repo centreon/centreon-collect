@@ -18,6 +18,7 @@ BAWORST_ACK
     ...    Then the Business Activity is acknowledged
     ...    When the acknowledgement is removed from the service
     ...    Then the Business Activity is no longer acknowledged
+    ...    We also check that we have no bam filter error
 
     [Tags]    broker    downtime    engine    bam    MON-160249
     Ctn BAM Init
@@ -64,6 +65,10 @@ BAWORST_ACK
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Check Query Result    SELECT acknowledged FROM mod_bam_kpi WHERE host_id=16 AND service_id=303    <    ${0.01}    retry_timeout=30s    retry_pause=1s
     Disconnect From Database
+
+    #we must not have filter error
+    ${error_found}     Grep File     ${centralLog}      The configured write filters for the endpoint 'centreon-bam-reporting' contain forbidden filters
+    Should Be Empty    ${error_found}    filter errors found in ${centralLog}
 
 BAWORST
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. We also check stats output
@@ -1214,6 +1219,8 @@ BA_CHANGED
 
     Ctn Reload Broker
     Remove File    /tmp/ba.dot
+    #let time to broker to reload
+    Sleep     1s
     Ctn Broker Get Ba    51001    ${ba[0]}    /tmp/ba.dot
     Wait Until Created    /tmp/ba.dot
     ${result}    Grep File    /tmp/ba.dot    BOOL Service (16, 303)
@@ -1377,6 +1384,109 @@ BA_SERVICE_PNAME_AFTER_RELOAD
     ${output}    Query
     ...    SELECT name, parent_name FROM resources WHERE id=${ba[1]}
     Should Be Equal As Strings    ${output}    (('test', '_Module_BAM_1'),)    name or parent name of ba ${ba[1]} is not as expected
+
+BAM_RELOAD_ON_CBD_RELOAD
+    [Documentation]    Given broker with bam configured
+    ...    we should find bam restart after broker reload
+
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Reload Broker
+    
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd reload.
+
+BAM_CIRCULAR
+    [Documentation]    Given a bad bam configuration with circular ba dependency.
+    ...     Circular Ba comment must be updated with an error message
+    [Tags]    broker    engine    bam    MON-24862
+    Ctn Bam Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+
+    ${child1_ba}    Ctn Create Ba    child1    impact    20    99
+    Ctn Add Ba Kpi    ${child1_ba[0]}    ${ba__svc[0]}    90    2    3
+    
+    #parent ba is a child of child1
+    Ctn Add Ba Kpi    ${ba__svc[0]}    ${child1_ba[0]}    90    2    3
+
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker     only_central=${True}
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    ${content}    Create List    error: Circular definition detected. BA test includes itself as a KPI.
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    10
+    Should Be True    ${result}    A message telling 'error: Circular definition detected. BA test includes itself as a KPI.' should be available after cbd start.
+
+    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    Check Query Result    SELECT COUNT(ba_id) FROM mod_bam WHERE name='test' AND comment='Circular definition detected. BA test includes itself as a KPI.'    ==    ${1}    retry_timeout=20s    retry_pause=3s
+    Disconnect From Database
+
+    #we shoudl not have a second message
+    Sleep     1s
+    ${start}    Ctn Get Round Current Date
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    20
+    Should Not Be True    ${result}    We must have only one bam error message 
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    ${True}
+BAM_CORRUPTED_REPORTING_BA_EVENTS
+    [Documentation]    Given broker with bam configured
+    ...    we inject a bad mod_bam_reporting_ba_events record.
+    ...    A ba status changed should set end_time of bad record
+
+    [Tags]    broker    downtime    engine    bam    MON-191611
+    Ctn BAM Init
+
+    @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
+    ${ba__svc}    Ctn Create Ba With Services    test    worst    ${svc}
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+
+    # Let's wait for the external command check start
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${content}    Create List    create endpoint bam for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling 'create endpoint bam for endpoint' should be available after cbd start.
+
+    Sleep     2s
+
+    #inject bad record
+    ${start}    Ctn Get Round Current Date
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String     INSERT INTO mod_bam_reporting_ba_events (ba_id, start_time, status) VALUES (1,${start}, 2)
+
+    #set service_314 to critical
+    Ctn Process Service Result Hard
+    ...    host_16
+    ...    service_314
+    ...    1
+    ...    warning for service 314
+
+    Check Row Count     SELECT ba_id FROM mod_bam_reporting_ba_events WHERE ba_id=1 AND end_time is NULL    ==    1    retry_timeout=30s    retry_pause=2s
+    
 
 *** Keywords ***
 Ctn BAM Setup
