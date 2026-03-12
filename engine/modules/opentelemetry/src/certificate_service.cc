@@ -34,7 +34,9 @@ certificate_service::certificate_service(
   // calculate fingerprint
   std::unique_ptr<X509, decltype(&X509_free)> cert(
       common::crypto::cert_tree::load_cert_from_string(ca_cert), X509_free);
-  _fingerprint = common::crypto::cert_tree::cert_sha(cert.get());
+  if (cert) {
+    _fingerprint = common::crypto::cert_tree::cert_sha(cert.get());
+  }
 }
 
 /**

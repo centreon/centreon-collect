@@ -19,7 +19,6 @@
 #ifndef CENTREON_AGENT_GRPC_CA_BOOTSTRAP_HH
 #define CENTREON_AGENT_GRPC_CA_BOOTSTRAP_HH
 
-#include <memory>
 #include <optional>
 #include <string>
 
