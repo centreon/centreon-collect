@@ -42,7 +42,11 @@ sub builder {
         ' FROM ' . join(', ', @{$options{tables}}) . $where . $extra_suffix;
     return $request;
 }
-
+# hash parameters :
+# request: sql request
+# bind_values: arrayref of bind values
+# keys: to document, for hashref mode only
+# mode: 0 = statement handle, 1 = hashref, 2 = arrayref
 sub do {
     my ($self, %options) = @_;
     my $mode = defined($options{mode}) ? $options{mode} : 0;
