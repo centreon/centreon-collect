@@ -328,7 +328,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/string.cc
     ${SRC_DIR}/misc/time.cc
     ${SRC_DIR}/misc/uuid.cc
-    ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc

@@ -19,8 +19,8 @@
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
+#include <variant>
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -29,6 +29,15 @@ extern "C" {
 }
 
 namespace com::centreon::broker::lua {
+
+using variant = std::variant<std::monostate,
+                             bool,
+                             int32_t,
+                             uint32_t,
+                             int64_t,
+                             uint64_t,
+                             double,
+                             std::string>;
 /**
  *  @class luabinding luabinding.hh
  * "com/centreon/broker/luabinding/luabinding.hh"
@@ -101,12 +110,12 @@ class luabinding {
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
-  void _init_script(std::map<std::string, misc::variant> const& conf_params);
+  void _init_script(std::map<std::string, variant> const& conf_params);
   void _update_lua_path(std::string const& path);
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, misc::variant> const& conf_params);
+             std::map<std::string, variant> const& conf_params);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;

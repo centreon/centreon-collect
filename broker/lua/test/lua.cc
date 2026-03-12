@@ -112,14 +112,14 @@ class LuaAsioTest : public LuaTest {
 // When a lua script that does not exist is loaded
 // Then an exception is thrown
 TEST_F(LuaTest, MissingScript) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   ASSERT_THROW(new luabinding(FILE1, conf), msg_fmt);
 }
 
 // When a lua script with error such as number divided by nil is loaded
 // Then an exception is thrown
 TEST_F(LuaTest, FaultyScript) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/faulty.lua");
   CreateScript(filename,
                "local a = { 1, 2, 3 }\n"
@@ -131,7 +131,7 @@ TEST_F(LuaTest, FaultyScript) {
 // When a lua script that does not contain an init() function is loaded
 // Then an exception is thrown
 TEST_F(LuaTest, WithoutInit) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/without_init.lua");
   CreateScript(filename, "local a = { 1, 2, 3 }\n");
   ASSERT_THROW(new luabinding(filename, conf), msg_fmt);
@@ -141,7 +141,7 @@ TEST_F(LuaTest, WithoutInit) {
 // When a lua script that does not contain a filter() function is loaded
 // Then has_filter() method returns false
 TEST_F(LuaTest, WithoutFilter) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/without_filter.lua");
   CreateScript(filename,
                "function init()\n"
@@ -157,7 +157,7 @@ TEST_F(LuaTest, WithoutFilter) {
 // When a json parameters file exists but the lua script is incomplete
 // Then an exception is thrown
 TEST_F(LuaTest, IncompleteScript) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   ASSERT_THROW(new luabinding(FILE2, conf), msg_fmt);
 }
 
@@ -166,7 +166,7 @@ TEST_F(LuaTest, IncompleteScript) {
 // function.
 TEST_F(LuaTest, SimpleScript) {
   std::filesystem::remove("/tmp/test.log");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   conf.insert({"address", "127.0.0.1"});
   conf.insert({"port", 8857});
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
@@ -227,7 +227,7 @@ TEST_F(LuaTest, SimpleScript) {
 // function.
 TEST_F(LuaTest, WriteAcknowledgement) {
   std::filesystem::remove("/tmp/test.log");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   conf.insert({"address", "127.0.0.1"});
   conf.insert({"double", 3.14159265358979323846});
   conf.insert({"port", 8857});
@@ -265,7 +265,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
 // When a script is loaded and a new socket is created
 // Then it is created.
 TEST_F(LuaTest, SocketCreation) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -283,7 +283,7 @@ TEST_F(LuaTest, SocketCreation) {
 // And a call to connect is made without argument
 // Then it fails.
 TEST_F(LuaTest, SocketConnectionWithoutArg) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -300,7 +300,7 @@ TEST_F(LuaTest, SocketConnectionWithoutArg) {
 // And a call to connect is made without argument
 // Then it fails.
 TEST_F(LuaTest, SocketConnectionWithNoPort) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -317,7 +317,7 @@ TEST_F(LuaTest, SocketConnectionWithNoPort) {
 // And a call to connect is made with a good adress/port
 // Then it succeeds.
 TEST_F(LuaAsioTest, SocketConnectionOk) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
 
   ASSERT_TRUE(_server.get_bind_ok());
@@ -338,7 +338,7 @@ TEST_F(LuaAsioTest, SocketConnectionOk) {
 // And a call to get_state is made
 // Then it succeeds, and the return value is Unconnected.
 TEST_F(LuaAsioTest, SocketUnconnectedState) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
 
   ASSERT_TRUE(_server.get_bind_ok());
@@ -365,7 +365,7 @@ TEST_F(LuaAsioTest, SocketUnconnectedState) {
 // And a call to get_state is made
 // Then it succeeds, and the return value is Unconnected.
 TEST_F(LuaAsioTest, SocketConnectedState) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/socket.lua");
 
   ASSERT_TRUE(_server.get_bind_ok());
@@ -392,7 +392,7 @@ TEST_F(LuaAsioTest, SocketConnectedState) {
 // And a call to connect is made with a good adress/port
 // Then it succeeds.
 TEST_F(LuaAsioTest, SocketWrite) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename(FILE4);
 
   ASSERT_TRUE(_server.get_bind_ok());
@@ -408,7 +408,7 @@ TEST_F(LuaAsioTest, SocketWrite) {
 // And a call to connect is made with a good adress/port
 // Then it succeeds.
 TEST_F(LuaTest, JsonEncode) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_encode.lua");
   CreateScript(
       filename,
@@ -439,7 +439,7 @@ TEST_F(LuaTest, JsonEncode) {
 // Given an empty array,
 // Then json_encode() works well on it.
 TEST_F(LuaTest, EmptyJsonEncode) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_encode.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -462,7 +462,7 @@ TEST_F(LuaTest, EmptyJsonEncode) {
 // And a call to connect is made with a good adress/port
 // Then it succeeds.
 TEST_F(LuaTest, JsonEncodeEscape) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_encode.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -497,7 +497,7 @@ TEST_F(LuaTest, JsonEncodeEscape) {
 // And a call to json_encode is made on that table
 // Then it succeeds.
 TEST_F(LuaTest, JsonEncodeEvent) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_encode.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -525,7 +525,7 @@ TEST_F(LuaTest, JsonEncodeEvent) {
 // And the cache does not know about it
 // Then nil is returned from the lua method.
 TEST_F(LuaTest, CacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -551,7 +551,7 @@ TEST_F(LuaTest, CacheTest) {
 TEST_F(LuaTest, HostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -596,7 +596,7 @@ TEST_F(LuaTest, HostCacheTest) {
 TEST_F(LuaTest, HostCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -635,7 +635,7 @@ TEST_F(LuaTest, HostCacheTestAdaptive) {
 TEST_F(LuaTest, HostCacheV2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -675,7 +675,7 @@ TEST_F(LuaTest, HostCacheV2TestAdaptive) {
 TEST_F(LuaTest, PbHostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -714,7 +714,7 @@ TEST_F(LuaTest, PbHostCacheTest) {
 TEST_F(LuaTest, PbHostCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -755,7 +755,7 @@ TEST_F(LuaTest, PbHostCacheTestAdaptive) {
 TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -795,7 +795,7 @@ TEST_F(LuaTest, PbHostCacheV2TestAdaptive) {
 // And the cache knows about it
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, ServiceCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -833,7 +833,7 @@ TEST_F(LuaTest, ServiceCacheTest) {
 TEST_F(LuaTest, ServiceCacheTestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -872,7 +872,7 @@ TEST_F(LuaTest, ServiceCacheTestAdaptive) {
 TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::pb_service>();
   svc->mut_obj().set_host_id(1);
@@ -927,7 +927,7 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
 TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -967,7 +967,7 @@ TEST_F(LuaTest, ServiceCacheApi2TestAdaptive) {
 TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::pb_service>();
   svc->mut_obj().set_host_id(1);
@@ -1017,7 +1017,7 @@ TEST_F(LuaTest, ServiceCacheApi2TestPbAndAdaptive) {
 // And the cache knows about it
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbServiceCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::pb_service>()};
   svc->mut_obj().set_description("description");
@@ -1048,7 +1048,7 @@ TEST_F(LuaTest, PbServiceCacheTest) {
 // And the cache knows about it
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, IndexMetricCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -1091,7 +1091,7 @@ TEST_F(LuaTest, IndexMetricCacheTest) {
 // And the cache knows about it
 // Then the hostname is returned from the lua method.
 TEST_F(LuaTest, PbIndexMetricCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::pb_service>()};
   svc->mut_obj().set_description("MyDescription");
@@ -1139,7 +1139,7 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
 // And the cache knows about it
 // Then the instance is returned from the lua method.
 TEST_F(LuaTest, InstanceNameCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto inst{std::make_shared<neb::instance>()};
   inst->broker_id = 42;
@@ -1181,7 +1181,7 @@ TEST_F(LuaTest, InstanceNameCacheTest) {
 // And the cache knows about it
 // Then the metric mapping is returned from the lua method.
 TEST_F(LuaTest, MetricMappingCacheTestV1) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
@@ -1212,7 +1212,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV1) {
 TEST_F(LuaTest, MetricMappingCacheTestV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-unified_sql.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto mm{std::make_shared<storage::metric_mapping>()};
   mm->index_id = 19;
@@ -1245,7 +1245,7 @@ TEST_F(LuaTest, MetricMappingCacheTestV2) {
 // And the cache does not know about it
 // Then nil is returned by the lua method.
 TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(filename,
@@ -1268,7 +1268,7 @@ TEST_F(LuaTest, HostGroupCacheTestNameNotAvailable) {
 // And the cache does know about it
 // Then the name is returned by the lua method.
 TEST_F(LuaTest, HostGroupCacheTestName) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 28;
@@ -1297,7 +1297,7 @@ TEST_F(LuaTest, HostGroupCacheTestName) {
 // And the cache does know about it
 // Then the name is returned by the lua method.
 TEST_F(LuaTest, HostGroupCacheTestAlias) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hg{std::make_shared<neb::pb_host_group>()};
   auto& obj = hg->mut_obj();
@@ -1329,7 +1329,7 @@ TEST_F(LuaTest, HostGroupCacheTestAlias) {
 // And the host is attached to no group
 // Then an empty array is returned.
 TEST_F(LuaTest, HostGroupCacheTestEmpty) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(
@@ -1353,7 +1353,7 @@ TEST_F(LuaTest, HostGroupCacheTestEmpty) {
 // And the cache does know about them
 // Then an array is returned by the lua method.
 TEST_F(LuaTest, HostGroupCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
@@ -1409,7 +1409,7 @@ TEST_F(LuaTest, HostGroupCacheTest) {
 // And the cache does know about them
 // Then an array is returned by the lua method.
 TEST_F(LuaTest, PbHostGroupCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hg{std::make_shared<neb::host_group>()};
   hg->id = 16;
@@ -1465,7 +1465,7 @@ TEST_F(LuaTest, PbHostGroupCacheTest) {
 // And the cache does not know about it
 // Then nil is returned by the lua method.
 TEST_F(LuaTest, ServiceGroupCacheTestNameNotAvailable) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(filename,
@@ -1488,7 +1488,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestNameNotAvailable) {
 // And the cache does know about it
 // Then the name is returned by the lua method.
 TEST_F(LuaTest, ServiceGroupCacheTestName) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 28;
@@ -1518,7 +1518,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestName) {
 // And the service is attached to no group
 // Then an empty array is returned.
 TEST_F(LuaTest, ServiceGroupCacheTestEmpty) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(
@@ -1542,7 +1542,7 @@ TEST_F(LuaTest, ServiceGroupCacheTestEmpty) {
 // And the cache does know about them
 // Then an array is returned by the lua method.
 TEST_F(LuaTest, ServiceGroupCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
@@ -1605,7 +1605,7 @@ TEST_F(LuaTest, ServiceGroupCacheTest) {
 // And the cache does know about them
 // Then an array is returned by the lua method.
 TEST_F(LuaTest, PbServiceGroupCacheTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto sg{std::make_shared<neb::service_group>()};
   sg->id = 16;
@@ -1668,7 +1668,7 @@ TEST_F(LuaTest, PbServiceGroupCacheTest) {
 // And the cache does know about them
 // Then an array with bvs id is returned by the lua method.
 TEST_F(LuaTest, BamCacheTestBvBaRelation) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto rel = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
   rel->mut_obj().set_ba_id(10);
@@ -1705,7 +1705,7 @@ TEST_F(LuaTest, BamCacheTestBvBaRelation) {
 // When the Lua get_ba() function is called with it,
 // Then a table corresponding to this ba is returned.
 TEST_F(LuaTest, BamCacheTestBaV1) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_ba_event> ba(
       new bam::pb_dimension_ba_event);
@@ -1743,7 +1743,7 @@ TEST_F(LuaTest, BamCacheTestBaV1) {
 TEST_F(LuaTest, BamCacheTestBaV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-bam.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_ba_event> ba(
       new bam::pb_dimension_ba_event);
@@ -1784,7 +1784,7 @@ TEST_F(LuaTest, BamCacheTestBaV2) {
 // And the cache does not know about it,
 // Then nil is returned.
 TEST_F(LuaTest, BamCacheTestBaNil) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
 
   CreateScript(filename,
@@ -1808,7 +1808,7 @@ TEST_F(LuaTest, BamCacheTestBaNil) {
 // When the Lua get_bv() function is called with it,
 // Then a table corresponding to this bv is returned.
 TEST_F(LuaTest, BamCacheTestBvV1) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_bv_event> bv(
       new bam::pb_dimension_bv_event);
@@ -1844,7 +1844,7 @@ TEST_F(LuaTest, BamCacheTestBvV1) {
 TEST_F(LuaTest, BamCacheTestBvV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-bam.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   std::shared_ptr<bam::pb_dimension_bv_event> bv(
       new bam::pb_dimension_bv_event);
@@ -1884,7 +1884,7 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
 //  // And the cache does not know about it,
 //  // Then nil is returned.
 //  TEST_F(LuaTest, BamCacheTestBvNil) {
-//    std::map<std::string, misc::variant> conf;
+//    std::map<std::string, lua::variant> conf;
 //    std::string filename("/tmp/cache_test.lua");
 //
 //    CreateScript(filename, "function init(conf)\n"
@@ -1903,7 +1903,7 @@ TEST_F(LuaTest, BamCacheTestBvV2) {
 //  }
 //
 TEST_F(LuaTest, ParsePerfdata) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
 
   CreateScript(
@@ -1974,7 +1974,7 @@ TEST_F(LuaTest, ParsePerfdata) {
 }
 
 TEST_F(LuaTest, ParsePerfdata2) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
   CreateScript(filename,
                "local function test_perf(value, full)\n"
@@ -2039,7 +2039,7 @@ TEST_F(LuaTest, ParsePerfdata2) {
 }
 
 TEST_F(LuaTest, ParsePerfdata3) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
   CreateScript(filename,
                "local function test_perf(value, full)\n"
@@ -2105,7 +2105,7 @@ TEST_F(LuaTest, ParsePerfdata3) {
 }
 
 TEST_F(LuaTest, ParsePerfdata4) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
   CreateScript(filename,
                "local function test_perf(value, full)\n"
@@ -2170,7 +2170,7 @@ TEST_F(LuaTest, ParsePerfdata4) {
 }
 
 TEST_F(LuaTest, ParsePerfdata5) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/parse_perfdata.lua");
   CreateScript(filename,
                "local function test_perf(value, full)\n"
@@ -2210,7 +2210,7 @@ TEST_F(LuaTest, ParsePerfdata5) {
 // When the first script call a function defined in the second one
 // Then the call works.
 TEST_F(LuaTest, UpdatePath) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/test.lua");
   std::string module("/tmp/module.lua");
 
@@ -2240,7 +2240,7 @@ TEST_F(LuaTest, UpdatePath) {
 }
 
 TEST_F(LuaTest, CheckPath) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/test.lua");
 
   CreateScript(filename,
@@ -2265,7 +2265,7 @@ TEST_F(LuaTest, CheckPath) {
 // Given a string
 // Then a call to broker.url_encode with this string URL encodes it.
 TEST_F(LuaTest, UrlEncode) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/url_encode.lua");
   CreateScript(
       filename,
@@ -2299,7 +2299,7 @@ TEST_F(LuaTest, UrlEncode) {
 }
 
 TEST_F(LuaTest, JsonDecodeArray) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_decode_array.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -2323,7 +2323,7 @@ TEST_F(LuaTest, JsonDecodeArray) {
 }
 
 TEST_F(LuaTest, JsonDecodeObject) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_decode_object.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -2345,7 +2345,7 @@ TEST_F(LuaTest, JsonDecodeObject) {
 }
 
 TEST_F(LuaTest, JsonDecodeFull) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_decode_full.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -2410,7 +2410,7 @@ TEST_F(LuaTest, JsonDecodeFull) {
 }
 
 TEST_F(LuaTest, JsonDecodeError) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_decode_error.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -2449,7 +2449,7 @@ TEST_F(LuaTest, JsonDecodeError) {
 // an array containing desired information, otherwise, this table is nil but
 // a second value is returned: a string with the error message.
 TEST_F(LuaTest, Stat) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/stat.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -2474,7 +2474,7 @@ TEST_F(LuaTest, Stat) {
 }
 
 TEST_F(LuaTest, StatError) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/stat.lua");
   CreateScript(
       filename,
@@ -2500,7 +2500,7 @@ TEST_F(LuaTest, StatError) {
 // And the cache does not know about it
 // Then nil is returned from the lua method.
 TEST_F(LuaTest, CacheGetNotesUrlTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -2537,7 +2537,7 @@ TEST_F(LuaTest, CacheGetNotesUrlTest) {
 // And the cache does not know about it
 // Then nil is returned from the lua method.
 TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
@@ -2575,7 +2575,7 @@ TEST_F(LuaTest, PbCacheGetNotesUrlTest) {
 // And the cache does not know about it
 // Then nil is returned from the lua method.
 TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -2609,7 +2609,7 @@ TEST_F(LuaTest, CacheSvcGetNotesUrlTest) {
 }
 
 TEST_F(LuaTest, CacheSeverity) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto& cache = config::applier::state::instance().cache();
   auto severity = std::make_shared<neb::pb_severity>();
@@ -2647,7 +2647,7 @@ TEST_F(LuaTest, CacheSeverity) {
 TEST_F(LuaTest, BrokerEventIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
@@ -2689,7 +2689,7 @@ TEST_F(LuaTest, BrokerEventIndex) {
 TEST_F(LuaTest, BrokerEventPairs) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
   svc->service_id = 2;
@@ -2724,7 +2724,7 @@ TEST_F(LuaTest, BrokerEventPairs) {
 // And the cache does not know about it
 // Then nil is returned from the lua method.
 TEST_F(LuaTest, PbCacheSvcGetNotesUrlTest) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
@@ -2759,7 +2759,7 @@ TEST_F(LuaTest, PbCacheSvcGetNotesUrlTest) {
 }
 
 TEST_F(LuaTest, PbCacheSeverity) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto& cache = config::applier::state::instance().cache();
   auto severity = std::make_shared<neb::pb_severity>();
@@ -2795,7 +2795,7 @@ TEST_F(LuaTest, PbCacheSeverity) {
 TEST_F(LuaTest, PbBrokerEventIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -2842,7 +2842,7 @@ TEST_F(LuaTest, PbBrokerEventIndex) {
 TEST_F(LuaTest, PbBrokerEventPairs) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -2879,7 +2879,7 @@ TEST_F(LuaTest, PbBrokerEventPairs) {
 TEST_F(LuaTest, BrokerEventJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
   svc->service_id = 2;
@@ -2945,7 +2945,7 @@ TEST_F(LuaTest, BrokerEventJsonEncode) {
 TEST_F(LuaTest, TestHostApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "foo bar host cache";
@@ -2974,7 +2974,7 @@ TEST_F(LuaTest, TestHostApiV1) {
 TEST_F(LuaTest, TestHostApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "foo bar host cache";
@@ -3003,7 +3003,7 @@ TEST_F(LuaTest, TestHostApiV2) {
 TEST_F(LuaTest, PbTestHostApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
   hst->mut_obj().set_name("foo bar host cache");
@@ -3035,7 +3035,7 @@ TEST_F(LuaTest, PbTestHostApiV1) {
 TEST_F(LuaTest, PbTestHostApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
   hst->mut_obj().set_name("foo bar host cache");
@@ -3067,7 +3067,7 @@ TEST_F(LuaTest, PbTestHostApiV2) {
 TEST_F(LuaTest, PbTestCommentApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_comment>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
   hst->mut_obj().set_author("toto");
@@ -3138,7 +3138,7 @@ TEST_F(LuaTest, PbTestCommentApiV1) {
 TEST_F(LuaTest, PbTestCommentApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_comment>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
   hst->mut_obj().set_author("toto");
@@ -3208,7 +3208,7 @@ TEST_F(LuaTest, PbTestCommentApiV2) {
 TEST_F(LuaTest, TestSvcApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
   svc->service_id = 2;
@@ -3241,7 +3241,7 @@ TEST_F(LuaTest, TestSvcApiV2) {
 TEST_F(LuaTest, TestSvcApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
   svc->service_id = 2;
@@ -3274,7 +3274,7 @@ TEST_F(LuaTest, TestSvcApiV1) {
 TEST_F(LuaTest, BrokerEventCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
   svc->service_id = 2;
@@ -3304,7 +3304,7 @@ TEST_F(LuaTest, BrokerEventCache) {
 TEST_F(LuaTest, PbTestSvcApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -3340,7 +3340,7 @@ TEST_F(LuaTest, PbTestSvcApiV2) {
 TEST_F(LuaTest, PbTestSvcApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -3376,7 +3376,7 @@ TEST_F(LuaTest, PbTestSvcApiV1) {
 TEST_F(LuaTest, PbTestCustomVariableApiV1) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
   hst->mut_obj().set_host_id(1);
@@ -3439,7 +3439,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV1) {
 TEST_F(LuaTest, PbTestCustomVariableApiV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto hst{std::make_shared<neb::pb_custom_variable>()};
   hst->mut_obj().mutable_header()->set_conf_version(5);
   hst->mut_obj().set_host_id(1);
@@ -3496,7 +3496,7 @@ TEST_F(LuaTest, PbTestCustomVariableApiV2) {
 TEST_F(LuaTest, PbBrokerEventCache) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc{std::make_shared<neb::pb_service>()};
   auto& obj = svc->mut_obj();
   obj.set_host_id(1);
@@ -3530,7 +3530,7 @@ TEST_F(LuaTest, PbBrokerEventCache) {
 // When the user needs the md5 sum of a string, he can use the md5 function
 // that returns it as a string with hexadecimal number.
 TEST_F(LuaTest, md5) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/md5.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -3552,7 +3552,7 @@ TEST_F(LuaTest, md5) {
 // When the user needs the md5 sum of a string, he can use the md5 function
 // that returns it as a string with hexadecimal number.
 TEST_F(LuaTest, emptyMd5) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/md5.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -3574,7 +3574,7 @@ TEST_F(LuaTest, emptyMd5) {
 TEST_F(LuaTest, BrokerPbServiceStatus) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3623,7 +3623,7 @@ TEST_F(LuaTest, BrokerPbServiceStatus) {
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3673,7 +3673,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithIndex) {
 TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3729,7 +3729,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusWithNext) {
 TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3785,7 +3785,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceStatusJsonEncode) {
 TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3840,7 +3840,7 @@ TEST_F(LuaTest, BrokerPbServiceStatusJsonEncode) {
 TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3882,7 +3882,7 @@ TEST_F(LuaTest, BrokerApi2PbServiceJsonEncode) {
 TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto svc = std::make_shared<neb::pb_service>();
   auto& obj = svc->mut_obj();
   obj.set_host_id(1899);
@@ -3923,7 +3923,7 @@ TEST_F(LuaTest, BrokerPbServiceJsonEncode) {
 TEST_F(LuaTest, BrokerPbHostStatus) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -3966,7 +3966,7 @@ TEST_F(LuaTest, BrokerPbHostStatus) {
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4010,7 +4010,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithIndex) {
 TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4049,7 +4049,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusWithNext) {
 TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4084,7 +4084,7 @@ TEST_F(LuaTest, BrokerApi2PbHostJsonEncode) {
 TEST_F(LuaTest, BrokerPbHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4119,7 +4119,7 @@ TEST_F(LuaTest, BrokerPbHostJsonEncode) {
 }
 
 TEST_F(LuaTest, BrokerBbdoVersion) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   CreateScript(
       filename,
@@ -4140,7 +4140,7 @@ TEST_F(LuaTest, BrokerBbdoVersion) {
 TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4175,7 +4175,7 @@ TEST_F(LuaTest, BrokerApi2PbHostStatusJsonEncode) {
 TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_host_status>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1899);
@@ -4209,7 +4209,7 @@ TEST_F(LuaTest, BrokerPbHostStatusJsonEncode) {
 TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_adaptive_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1492);
@@ -4242,7 +4242,7 @@ TEST_F(LuaTest, BrokerPbAdaptiveHostJsonEncode) {
 TEST_F(LuaTest, BrokerApi2PbAdaptiveHostJsonEncode) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   auto host = std::make_shared<neb::pb_adaptive_host>();
   auto& obj = host->mut_obj();
   obj.set_host_id(1492);
@@ -4280,7 +4280,7 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   char tmp[256];
   getcwd(tmp, 256);
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service>();
   svc->host_id = 1;
@@ -4365,7 +4365,7 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
   char tmp[256];
   getcwd(tmp, 256);
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst = std::make_shared<neb::host>();
   hst->host_id = 1;
@@ -4445,7 +4445,7 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
   char tmp[256];
   getcwd(tmp, 256);
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc = std::make_shared<neb::service_status>();
   svc->host_id = 1;
@@ -4524,7 +4524,7 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
   char tmp[256];
   getcwd(tmp, 256);
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst = std::make_shared<neb::host_status>();
   hst->host_id = 1;
@@ -4601,7 +4601,7 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
 TEST_F(LuaTest, PbDowntime) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto dt{std::make_shared<neb::pb_downtime>()};
 
@@ -4636,7 +4636,7 @@ TEST_F(LuaTest, PbDowntime) {
 TEST_F(LuaTest, PbDowntimeV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto dt{std::make_shared<neb::pb_downtime>()};
 
@@ -4674,7 +4674,7 @@ TEST_F(LuaTest, PbRemoveGraphMessage) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-unified_sql.so");
 
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
   auto rm{std::make_shared<pb_remove_graph_message>()};
   rm->mut_obj().add_index_ids(2);
@@ -4707,7 +4707,7 @@ TEST_F(LuaTest, PbRemoveGraphMessageV2) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-unified_sql.so");
 
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/test_remove_graph.lua");
   auto rm{std::make_shared<pb_remove_graph_message>()};
   rm->mut_obj().add_index_ids(2);
@@ -4739,7 +4739,7 @@ TEST_F(LuaTest, PbRemoveGraphMessageV2) {
 TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/20-unified_sql.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/test_remove_graph_with_next.lua");
   auto rm{std::make_shared<pb_remove_graph_message>()};
   rm->mut_obj().add_index_ids(2);
@@ -4782,7 +4782,7 @@ TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
 // And a call to connect is made with a good adress/port
 // Then it succeeds.
 TEST_F(LuaTest, JsonDecodeNull) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/json_encode.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -4808,7 +4808,7 @@ TEST_F(LuaTest, JsonDecodeNull) {
 TEST_F(LuaTest, BadLua) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/bad.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -4833,7 +4833,7 @@ TEST_F(LuaTest, BadLua) {
 // Then has_filter() returns false and there is no leak on the stack.
 // (the leak is seen when compiled with -g).
 TEST_F(LuaTest, WithBadFilter1) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/with_bad_filter.lua");
   CreateScript(filename,
                "function init()\n"
@@ -4854,7 +4854,7 @@ TEST_F(LuaTest, WithBadFilter1) {
 // Then has_filter() returns false and there is no leak on the stack.
 // (the leak is seen when compiled with -g).
 TEST_F(LuaTest, WithBadFilter2) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/with_bad_filter.lua");
   CreateScript(filename,
                "function init()\n"
@@ -4876,7 +4876,7 @@ TEST_F(LuaTest, WithBadFilter2) {
 TEST_F(LuaTest, AdaptiveHostCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -4919,7 +4919,7 @@ TEST_F(LuaTest, AdaptiveHostCacheTest) {
 TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
@@ -4984,7 +4984,7 @@ TEST_F(LuaTest, AdaptiveHostCacheFieldTest) {
 TEST_F(LuaTest, AdaptiveServiceCacheTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -5031,7 +5031,7 @@ TEST_F(LuaTest, AdaptiveServiceCacheTest) {
 TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
   config::applier::modules modules(log_v2::instance().get(log_v2::LUA));
   modules.load_file("./broker/lib/10-neb.so");
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/cache_test.lua");
   auto svc{std::make_shared<neb::service>()};
   svc->host_id = 1;
@@ -5103,7 +5103,7 @@ TEST_F(LuaTest, AdaptiveServiceCacheFieldTest) {
 // base 64 encoded. And when broker.base64_decode() is applied on a string, the
 // string is correctly base 64 decoded.
 TEST_F(LuaTest, Base64) {
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/base64_encode.lua");
   CreateScript(filename,
                "function init(conf)\n"
@@ -5184,7 +5184,7 @@ TEST_F(LuaTest, GlobalConf) {
   auto& cache = config::applier::state::instance().cache();
   cache.merge(state);
 
-  std::map<std::string, misc::variant> conf;
+  std::map<std::string, lua::variant> conf;
   std::string filename("/tmp/global_diff.lua");
   CreateScript(
       filename,

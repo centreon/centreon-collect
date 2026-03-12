@@ -74,7 +74,7 @@ io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
     const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor) const {
-  std::map<std::string, misc::variant> conf_map;
+  std::map<std::string, lua::variant> conf_map;
   std::string err;
 
   std::string filename(find_param(cfg, "path"));
@@ -96,7 +96,7 @@ io::endpoint* factory::new_endpoint(
                                                     : type.get<std::string>());
     if (t == "string" || t == "password")
       conf_map.insert(
-          {name.get<std::string>(), misc::variant(value.get<std::string>())});
+          {name.get<std::string>(), lua::variant(value.get<std::string>())});
     else if (t == "number") {
       bool ko = false;
       std::string const& v(value.get<std::string>());
@@ -104,13 +104,13 @@ io::endpoint* factory::new_endpoint(
       if (!absl::SimpleAtoi(v, &val))
         ko = true;
       else
-        conf_map.insert({name.get<std::string>(), misc::variant(val)});
+        conf_map.insert({name.get<std::string>(), lua::variant(val)});
 
       // Second attempt using floating point numbers
       if (ko) {
         double val;
         if (absl::SimpleAtod(v, &val)) {
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+          conf_map.insert({name.get<std::string>(), lua::variant(val)});
           ko = false;
         } else
           ko = true;
@@ -134,11 +134,11 @@ io::endpoint* factory::new_endpoint(
                         : type.get<std::string>());
       if (t == "string" || t == "password")
         conf_map.insert(
-            {name.get<std::string>(), misc::variant(value.get<std::string>())});
+            {name.get<std::string>(), lua::variant(value.get<std::string>())});
       else if (t == "number") {
         int32_t val;
         if (absl::SimpleAtoi(value.get<std::string>(), &val))
-          conf_map.insert({name.get<std::string>(), misc::variant(val)});
+          conf_map.insert({name.get<std::string>(), lua::variant(val)});
         else
           throw msg_fmt("lua: unable to read '{}' content ({}) as a number",
                         name.get<std::string>(), value.get<std::string>());

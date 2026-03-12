@@ -23,7 +23,6 @@
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 namespace com::centreon::broker::lua {
 
@@ -56,7 +55,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, misc::variant> const& conf_params);
+         std::map<std::string, variant> const& conf_params);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
