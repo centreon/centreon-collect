@@ -285,6 +285,7 @@ database_config::database_config(
 
   // SSL/TLS configuration
   _ssl_enabled = false;
+  _ssl_verify_cert = true;
   found = cfg.params.find("db_ssl_enabled");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtob(found->second, &_ssl_enabled)) {
@@ -330,9 +331,7 @@ database_config::database_config(
         _config_logger->info("TLS version: {}", _tls_version);
       }
     }
-
     // SSL certificate verification (default to true for security)
-    _ssl_verify_cert = true;
     found = cfg.params.find("db_ssl_verify_cert");
     if (found != cfg.params.end()) {
       if (!absl::SimpleAtob(found->second, &_ssl_verify_cert)) {
