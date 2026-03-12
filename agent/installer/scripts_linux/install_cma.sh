@@ -931,7 +931,7 @@ install_cma_agent() {
 
 install_centreon_plugins() {
     # Check if "plugin" is in the COMPONENTS list
-    if [[ ! "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
+    if [[ ! "${COMPONENTS}" =~ (^|,)plugins(,|$) ]]; then
         return 0
     fi
 
