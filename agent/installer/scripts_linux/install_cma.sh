@@ -768,7 +768,12 @@ download_package_from_artifact() {
     esac
 
     local found_pkg
-    found_pkg=$(find "${extract_dir}" -name "*.${pkg_ext}" | head -1)
+    # Match the main agent package, excluding selinux/debuginfo/devel variants
+    found_pkg=$(find "${extract_dir}" -name "centreon-monitoring-agent-[0-9]*.${pkg_ext}" | head -1)
+    # Fallback: any package that doesn't contain selinux/debug/devel in the name
+    if [[ -z "${found_pkg}" ]]; then
+        found_pkg=$(find "${extract_dir}" -name "*.${pkg_ext}" | grep -v -E '\-(selinux|debuginfo|devel)\-' | head -1)
+    fi
 
     if [[ -z "${found_pkg}" ]]; then
         rm -rf "${extract_dir}"
