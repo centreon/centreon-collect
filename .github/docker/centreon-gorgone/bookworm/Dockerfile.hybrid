@@ -69,6 +69,21 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-perl-${USE_SOURCE_GORGONE} AS gorgone-perl-selected
 
 #############################################
+# Stage 2d/2e: Gorgone config selector
+#############################################
+FROM scratch AS gorgone-config-false
+COPY --from=extractor /extracted/etc/centreon-gorgone/ /gorgone-config/
+
+FROM scratch AS gorgone-config-true
+COPY gorgone/packaging/configuration/config.yaml /gorgone-config/config.yaml
+COPY gorgone/packaging/configuration/action.yaml /gorgone-config/config.d/39-action.yaml
+COPY gorgone/packaging/configuration/whitelist.conf.d/ /gorgone-config/config.d/whitelist.conf.d/
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgone-config-${USE_SOURCE_GORGONE} AS gorgone-config-selected
+
+#############################################
 # Stage 3: Runtime - Minimal Alpine image
 #############################################
 FROM alpine:3.22 AS gorgone
@@ -176,8 +191,8 @@ COPY --from=builder-alpine /usr/local/lib/perl5 /usr/local/lib/perl5
 COPY --from=builder-alpine /usr/local/share/perl5 /usr/local/share/perl5
 
 # Configuration files
-COPY --from=extractor --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
-     /extracted/etc/centreon-gorgone/ /etc/centreon-gorgone/
+COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
+     /gorgone-config/ /etc/centreon-gorgone/
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
