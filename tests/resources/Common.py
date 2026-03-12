@@ -65,6 +65,11 @@ DB_USER = ""
 DB_PASS = ""
 DB_HOST = ""
 DB_PORT = ""
+DB_SSL_ENABLED = os.environ.get("DB_SSL_ENABLED", "")
+DB_SSL_CA = os.environ.get("DB_SSL_CA", "")
+DB_SSL_CERT = os.environ.get("DB_SSL_CERT", "")
+DB_SSL_KEY = os.environ.get("DB_SSL_KEY", "")
+DB_TLS_VERSION = os.environ.get("DB_TLS_VERSION", "")
 VAR_ROOT = ""
 ETC_ROOT = ""
 
