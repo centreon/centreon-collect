@@ -126,6 +126,7 @@ COMPONENTS="agent,plugin"
 DRY_RUN=false
 OUTPUT_CONFIG=false
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"  # Optional GitHub token for API authentication
+ARTIFACT_ID=""  # Optional GitHub Actions artifact ID to install from
 
 # Detected OS information
 OS_ID=""
@@ -187,6 +188,9 @@ OPTIONAL OPTIONS:
     -x, --custom-check <PATH>     Path to custom check configuration file
     -p, --components <LIST>       Comma-separated list of components to install: agent,plugin (default: agent,plugin)
     -H, --host-template <STRING>    Host template to use in Centreon (optional)
+    --artifact-id <ID>            GitHub Actions artifact ID to install from (requires GITHUB_TOKEN)
+                                  Overrides --version for agent package download
+                                  e.g., from URL: .../actions/runs/<run>/artifacts/<ID>
     -d, --dry-run                 Show what would be done without making changes
     -h, --help                    Display this help message
 
@@ -544,6 +548,7 @@ ensure_installed_tools() {
     # Check which tools are missing
     command -v curl &> /dev/null || missing_packages+=("curl")
     command -v hostname &> /dev/null || missing_packages+=("hostname")
+    [[ -n "${ARTIFACT_ID}" ]] && { command -v unzip &> /dev/null || missing_packages+=("unzip"); }
     
     # For Debian/Ubuntu, also check for gpg (provided by gnupg package)
     if [[ "${PKG_MANAGER}" == "apt" ]]; then
@@ -728,6 +733,53 @@ build_download_url() {
     esac
 }
 
+# Download a CMA package from a GitHub Actions artifact (zip containing rpm/deb)
+# Usage: download_package_from_artifact <destination_package_file>
+download_package_from_artifact() {
+    local package_file="$1"
+    local zip_file="/tmp/cma-artifact-${ARTIFACT_ID}.zip"
+    local extract_dir="/tmp/cma-artifact-${ARTIFACT_ID}"
+
+    if [[ -z "${GITHUB_TOKEN}" ]]; then
+        die "GITHUB_TOKEN environment variable is required to download GitHub Actions artifacts. Set it with: export GITHUB_TOKEN=\"your_token\""
+    fi
+
+    local artifact_url="https://api.github.com/repos/centreon/centreon-collect/actions/artifacts/${ARTIFACT_ID}/zip"
+    log_info "Downloading artifact ${ARTIFACT_ID} from GitHub Actions..."
+
+    if ! curl -fSL -H "Authorization: token ${GITHUB_TOKEN}" "${artifact_url}" -o "${zip_file}"; then
+        die "Failed to download artifact ${ARTIFACT_ID} from GitHub Actions"
+    fi
+
+    log_info "Extracting artifact..."
+    mkdir -p "${extract_dir}"
+
+    if ! unzip -q "${zip_file}" -d "${extract_dir}"; then
+        rm -f "${zip_file}"
+        die "Failed to extract artifact zip"
+    fi
+    rm -f "${zip_file}"
+
+    # Find the package file matching the current OS type
+    local pkg_ext
+    case "${PKG_MANAGER}" in
+        dnf|yum) pkg_ext="rpm" ;;
+        apt)     pkg_ext="deb" ;;
+    esac
+
+    local found_pkg
+    found_pkg=$(find "${extract_dir}" -name "*.${pkg_ext}" | head -1)
+
+    if [[ -z "${found_pkg}" ]]; then
+        rm -rf "${extract_dir}"
+        die "No .${pkg_ext} package found in artifact ${ARTIFACT_ID}"
+    fi
+
+    log_info "Found package: $(basename "${found_pkg}")"
+    cp "${found_pkg}" "${package_file}"
+    rm -rf "${extract_dir}"
+}
+
 # Base URL for all Centreon packages
 readonly CENTREON_PACKAGES_BASE_URL="https://packages.centreon.com"
 readonly CENTREON_GPG_KEY_URL="https://apt-key.centreon.com"
@@ -875,35 +927,33 @@ install_cma_agent() {
         return 0
     fi
 
-    # Get the latest CMA version from GitHub
-    local cma_version
-    cma_version=$(get_latest_cma_version "${CENTREON_VERSION}")
-    
-    # Build download URL based on OS type
-    local download_url
+    # Determine package file path based on OS type
     local package_file
-    local os_type
-    
     case "${PKG_MANAGER}" in
-        dnf|yum)
-            os_type="rpm"
-            download_url=$(build_download_url "${cma_version}" "rpm")
-            package_file="/tmp/centreon-monitoring-agent.rpm"
-            ;;
-        apt)
-            os_type="deb"
-            download_url=$(build_download_url "${cma_version}" "deb")
-            package_file="/tmp/centreon-monitoring-agent.deb"
-            ;;
+        dnf|yum) package_file="/tmp/centreon-monitoring-agent.rpm" ;;
+        apt)     package_file="/tmp/centreon-monitoring-agent.deb" ;;
     esac
-    
-    log_info "Downloading from: ${download_url}"
-    
-    # Download the package
-    if ! curl -fSL "${download_url}" -o "${package_file}"; then
-        die "Failed to download CMA package from ${download_url}"
+
+    if [[ -n "${ARTIFACT_ID}" ]]; then
+        # Download from GitHub Actions artifact
+        download_package_from_artifact "${package_file}"
+    else
+        # Get the latest CMA version from GitHub releases
+        local cma_version
+        cma_version=$(get_latest_cma_version "${CENTREON_VERSION}")
+
+        local download_url
+        case "${PKG_MANAGER}" in
+            dnf|yum) download_url=$(build_download_url "${cma_version}" "rpm") ;;
+            apt)     download_url=$(build_download_url "${cma_version}" "deb") ;;
+        esac
+
+        log_info "Downloading from: ${download_url}"
+        if ! curl -fSL "${download_url}" -o "${package_file}"; then
+            die "Failed to download CMA package from ${download_url}"
+        fi
     fi
-    
+
     log_info "Package downloaded successfully"
     
     # Install the package
@@ -1189,6 +1239,10 @@ parse_arguments() {
                 HOST_TEMPLATE="$2"
                 shift 2
                 ;;
+            --artifact-id)
+                ARTIFACT_ID="$2"
+                shift 2
+                ;;
             --output-config)
                 OUTPUT_CONFIG=true
                 shift
@@ -1226,6 +1280,7 @@ print_summary() {
     [[ -n "${FINGERPRINT}" ]] && echo "Fingerprint:     ${FINGERPRINT}"
     [[ -n "${CUSTOM_CHECK_FILE}" ]] && echo "Custom Check:    ${CUSTOM_CHECK_FILE}"
     echo "Components:      ${COMPONENTS}"
+    [[ -n "${ARTIFACT_ID}" ]] && echo "Artifact ID:     ${ARTIFACT_ID} (GitHub Actions)"
     echo "Config File:     ${CONFIG_FILE}"
     echo "========================================"
     echo ""
