@@ -69,7 +69,20 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-perl-${USE_SOURCE_GORGONE} AS gorgone-perl-selected
 
 #############################################
-# Stage 2d/2e: Gorgone config selector
+# Stage 2d/2e: Centreon Perl libs selector
+#############################################
+FROM scratch AS centreon-perl-false
+COPY --from=extractor /extracted/usr/share/perl5/centreon /centreon-modules/
+
+FROM scratch AS centreon-perl-true
+COPY perl-libs/lib/centreon/ /centreon-modules/
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM centreon-perl-${USE_SOURCE_GORGONE} AS centreon-perl-selected
+
+#############################################
+# Stage 2f/2g: Gorgone config selector
 #############################################
 FROM scratch AS gorgone-config-false
 COPY --from=extractor /extracted/etc/centreon-gorgone/ /gorgone-config/
@@ -184,7 +197,7 @@ COPY --from=extractor --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
 # Perl modules (centreon-gorgone and centreon-perl) - use Alpine's vendor_perl path
 # gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
 COPY --from=gorgone-perl-selected /gorgone-modules/ /usr/share/perl5/vendor_perl/gorgone/
-COPY --from=extractor /extracted/usr/share/perl5/centreon /usr/share/perl5/vendor_perl/centreon
+COPY --from=centreon-perl-selected /centreon-modules/ /usr/share/perl5/vendor_perl/centreon/
 
 # Copy compiled Perl XS modules from Alpine builder (musl libc compatible)
 COPY --from=builder-alpine /usr/local/lib/perl5 /usr/local/lib/perl5
