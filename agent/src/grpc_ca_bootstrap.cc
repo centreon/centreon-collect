@@ -557,6 +557,11 @@ bool ca_bootstrap_workflow::validate_ca_fingerprint(
     std::unique_ptr<X509, decltype(&X509_free)> cert(
         com::centreon::common::crypto::cert_tree::load_cert_from_string(ca_pem),
         &X509_free);
+    if (!cert) {
+      SPDLOG_LOGGER_ERROR(
+          _logger, "Unable to validate retrieved CA fingerprint: {}", e.what());
+      return false;
+    }
     const std::string fingerprint =
         com::centreon::common::crypto::cert_tree::cert_sha(cert.get());
 
