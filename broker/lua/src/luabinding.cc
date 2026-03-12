@@ -282,37 +282,32 @@ void luabinding::_init_script(
     std::map<std::string, misc::variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
-  for (std::map<std::string, misc::variant>::const_iterator
-           it(conf_params.begin()),
-       end(conf_params.end());
-       it != end; ++it) {
-    switch (it->second.user_type()) {
-      case misc::variant::type_int:
-      case misc::variant::type_uint:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushinteger(_L, it->second.as_int());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_long:
-      case misc::variant::type_ulong:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushinteger(_L, it->second.as_long());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_double:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushnumber(_L, it->second.as_double());
-        lua_rawset(_L, -3);
-        break;
-      case misc::variant::type_string:
-        lua_pushstring(_L, it->first.c_str());
-        lua_pushstring(_L, it->second.as_string().c_str());
-        lua_rawset(_L, -3);
-        break;
-      default:
-        /* Should not arrive */
-        assert(1 == 0);
-    }
+  for (const auto& [name, val] : conf_params) {
+    std::visit(
+        [this, &name](auto&& v) {
+          using T = std::decay_t<decltype(v)>;
+          if constexpr (std::is_same_v<T, int32_t> ||
+                        std::is_same_v<T, uint32_t>) {
+            lua_pushstring(_L, name.c_str());
+            lua_pushinteger(_L, static_cast<lua_Integer>(v));
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, int64_t> ||
+                               std::is_same_v<T, uint64_t>) {
+            lua_pushstring(_L, name.c_str());
+            lua_pushinteger(_L, static_cast<lua_Integer>(v));
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, double>) {
+            lua_pushstring(_L, name.c_str());
+            lua_pushnumber(_L, v);
+            lua_rawset(_L, -3);
+          } else if constexpr (std::is_same_v<T, std::string>) {
+            lua_pushstring(_L, name.c_str());
+            lua_pushstring(_L, v.c_str());
+            lua_rawset(_L, -3);
+          }
+          // bool and std::monostate are not pushed to Lua
+        },
+        val);
   }
   if (lua_pcall(_L, 1, 0, 0) != 0) {
     const char* ret = lua_tostring(_L, -1);

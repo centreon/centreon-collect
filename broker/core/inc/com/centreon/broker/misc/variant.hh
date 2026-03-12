@@ -19,63 +19,28 @@
 #ifndef CCB_MISC_VARIANT_HH_
 #define CCB_MISC_VARIANT_HH_
 
+#include <cstdint>
+#include <string>
+#include <variant>
+
 namespace com::centreon::broker::misc {
+
 /**
- *  @class variant variant.hh "com/centreon/misc/variant.hh"
- *  @brief Provide a type safe union.
+ * @brief Type-safe union replacing the old hand-rolled variant class.
  *
- *  Variant is a simple way to store any kind of value among string, int or
- * double.
+ * Holds one of: monostate (empty), bool, int32_t, uint32_t, int64_t,
+ * uint64_t, double, or std::string. Constructors are provided implicitly
+ * by std::variant's converting constructor.
  */
-class variant {
- public:
-  enum meta_type {
-    type_none,
-    type_bool,
-    type_int,
-    type_uint,
-    type_long,
-    type_ulong,
-    type_double,
-    type_string,
-  };
-  variant();
-  variant(bool value);
-  variant(int32_t value);
-  variant(uint32_t value);
-  variant(int64_t value);
-  variant(uint64_t value);
-  variant(double value);
-  variant(char const* value);
-  variant(const std::string& value);
-  variant(const std::string_view& value);
-  variant(variant const& variant);
-  ~variant();
-  variant& operator=(variant const& other);
+using variant = std::variant<std::monostate,
+                             bool,
+                             int32_t,
+                             uint32_t,
+                             int64_t,
+                             uint64_t,
+                             double,
+                             std::string>;
 
-  meta_type user_type() const;
-  bool as_bool() const;
-  int32_t as_int() const;
-  uint32_t as_uint() const;
-  int64_t as_long() const;
-  uint64_t as_ulong() const;
-  double as_double() const;
-  std::string const& as_string() const;
-  std::string to_string() const;
-  bool is_string() const;
-
- private:
-  meta_type _type;
-  union {
-    bool _bool_value;
-    int32_t _int_value;
-    uint32_t _uint_value;
-    int64_t _long_value;
-    uint64_t _ulong_value;
-    double _dbl_value;
-    std::string _str_value;
-  };
-};
 }  // namespace com::centreon::broker::misc
 
 #endif /* !CCB_MISC_VARIANT_HH */
