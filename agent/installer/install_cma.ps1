@@ -115,8 +115,14 @@ param(
     [string]$CustomCheck = "",
     
     [Parameter(Mandatory=$false)]
-    [string]$PluginSrc = ""
-    
+    [string]$PluginSrc = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$DirectUrl = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$GithubToken = ""
+
 )
 
 # GitHub repository information
@@ -219,6 +225,66 @@ function Get-CMAVersion {
     }
     catch {
         Write-Log "Error getting CMA version: $_" -Level "ERROR"
+        throw
+    }
+}
+
+# Function to download installer from a direct URL (release .exe or Actions artifact ZIP)
+function Download-InstallerFromUrl {
+    param(
+        [string]$Url,
+        [string]$GithubToken = ""
+    )
+
+    try {
+        # Resolve GitHub Actions artifact page URLs to the API download endpoint
+        # e.g. https://github.com/centreon/centreon-collect/actions/runs/<run>/artifacts/<id>
+        #   -> https://api.github.com/repos/centreon/centreon-collect/actions/artifacts/<id>/zip
+        if ($Url -match "https://github\.com/([^/]+)/([^/]+)/actions/runs/\d+/artifacts/(\d+)") {
+            $owner   = $Matches[1]
+            $repo    = $Matches[2]
+            $artifactId = $Matches[3]
+            $Url = "https://api.github.com/repos/$owner/$repo/actions/artifacts/$artifactId/zip"
+            Write-Log "Resolved artifact download URL: $Url"
+        }
+
+        if (-not (Test-Path $TempDir)) {
+            New-Item -ItemType Directory -Path $TempDir | Out-Null
+        }
+
+        $headers = @{
+            "Accept"     = "application/vnd.github.v3+json"
+            "User-Agent" = "PowerShell-CentreonInstaller"
+        }
+        if ($GithubToken) {
+            $headers["Authorization"] = "token $GithubToken"
+        }
+
+        $isZip = $Url -match "\.zip$" -or $Url -match "/zip$"
+        $downloadPath = Join-Path $TempDir $(if ($isZip) { "artifact.zip" } else { "centreon-monitoring-agent.exe" })
+
+        Write-Log "Downloading from: $Url"
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $Url -OutFile $downloadPath -Headers $headers -UseBasicParsing -TimeoutSec 300
+        $ProgressPreference = 'Continue'
+
+        if ($isZip) {
+            Write-Log "Extracting artifact ZIP..."
+            $extractDir = Join-Path $TempDir "artifact"
+            Expand-Archive -Path $downloadPath -DestinationPath $extractDir -Force
+            $exeFile = Get-ChildItem -Path $extractDir -Filter "*.exe" -Recurse | Select-Object -First 1
+            if ($null -eq $exeFile) {
+                throw "No .exe file found inside the artifact ZIP"
+            }
+            Write-Log "Found installer: $($exeFile.FullName)" -Level "SUCCESS"
+            return $exeFile.FullName
+        }
+
+        Write-Log "Installer downloaded successfully" -Level "SUCCESS"
+        return $downloadPath
+    }
+    catch {
+        Write-Log "Error downloading from direct URL: $_" -Level "ERROR"
         throw
     }
 }
@@ -379,11 +445,15 @@ try {
         }
     }
     
-    # Get CMA version from GitHub
-    $cmaVersion = Get-CMAVersion -TagName $Version
-    
-    # Download installer
-    $installerPath = Download-Installer -CMAVersion $cmaVersion
+    if ($DirectUrl) {
+        Write-Log "DirectUrl provided - skipping release lookup"
+        $installerPath = Download-InstallerFromUrl -Url $DirectUrl -GithubToken $GithubToken
+    } else {
+        # Get CMA version from GitHub
+        $cmaVersion = Get-CMAVersion -TagName $Version
+        # Download installer
+        $installerPath = Download-Installer -CMAVersion $cmaVersion
+    }
     
     # Set hostname to machine name if not provided
     if ([string]::IsNullOrWhiteSpace($HostName)) {
