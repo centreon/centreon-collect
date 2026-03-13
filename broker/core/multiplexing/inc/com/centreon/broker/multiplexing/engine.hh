@@ -84,6 +84,7 @@ class engine {
   std::shared_ptr<stats::center> _center;
   EngineStats* _stats;
 
+  std::shared_ptr<asio::io_context> _io_context;
   std::atomic_bool _sending_to_subscribers;
 
   std::shared_ptr<spdlog::logger> _logger;
