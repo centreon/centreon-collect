@@ -62,9 +62,10 @@ add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
 target_link_libraries(nebbase PRIVATE pb_neb_lib pb_common_lib
-                                      pb_open_telemetry_lib)
+                                      pb_open_telemetry_lib spdlog::spdlog)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(nebbase PRIVATE SPDLOG_COMPILED_LIB)
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
 
 # Centreon Broker module.

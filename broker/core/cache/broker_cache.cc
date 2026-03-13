@@ -1049,14 +1049,14 @@ void broker_cache::update_hostgroup_member(
     assert(it->hostgroup->obj().hostgroup_id() == hgm_obj.hostgroup_id());
     if (it->hostgroup->obj().name() != hgm_obj.name()) {
       auto extracted = _hostgroups.extract(found);
-      std::string old_name = std::move(extracted.value().first->obj().name());
+      std::string old_name = std::move(extracted.value().first->mut_obj().name());
       extracted.value().first->mut_obj().set_name(hgm_obj.name());
       auto result = _hostgroups.get<by_id>().insert(std::move(extracted));
       if (!result.inserted) {
         SPDLOG_LOGGER_ERROR(
             _logger, "Failed to update the name of the host group {} to '{}'",
             hgm_obj.hostgroup_id(), hgm_obj.name());
-        extracted.value().first->mut_obj().set_name(old_name);
+        extracted.value().first->mut_obj().set_name(std::move(old_name));
         _hostgroups.get<by_id>().insert(std::move(extracted));
       }
     }
@@ -1107,7 +1107,7 @@ void broker_cache::update_servicegroup_member(
            sgm_obj.servicegroup_id());
     if (it->servicegroup->obj().name() != sgm_obj.name()) {
       auto extracted = _servicegroups.extract(found);
-      std::string old_name = std::move(extracted.value().first->obj().name());
+      std::string old_name = std::move(extracted.value().first->mut_obj().name());
       extracted.value().first->mut_obj().set_name(sgm_obj.name());
       auto result = _servicegroups.get<by_id>().insert(std::move(extracted));
       if (!result.inserted) {
@@ -1115,7 +1115,7 @@ void broker_cache::update_servicegroup_member(
             _logger,
             "Failed to update the name of the service group {} to '{}'",
             sgm_obj.servicegroup_id(), sgm_obj.name());
-        extracted.value().first->mut_obj().set_name(old_name);
+        extracted.value().first->mut_obj().set_name(std::move(old_name));
         _servicegroups.get<by_id>().insert(std::move(extracted));
       }
     }

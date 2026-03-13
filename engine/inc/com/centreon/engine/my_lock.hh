@@ -6,7 +6,7 @@ class my_lock_guard : public std::lock_guard<M> {
   M* _m;
 
  public:
-  my_lock_guard<M>(M& m, const char* file, int line)
+  my_lock_guard(M& m, const char* file, int line)
       : std::lock_guard<M>(m), _file{file}, _line{line}, _m(&m) {
     std::cout << "Lock(G): " << _file << ": " << _m << ":" << _line
               << std::endl;
@@ -25,7 +25,7 @@ class my_unique_lock : public std::unique_lock<M> {
   M* _m;
 
  public:
-  my_unique_lock<M>(M& m, const char* file, int line)
+  my_unique_lock(M& m, const char* file, int line)
       : std::unique_lock<M>(m), _file{file}, _line{line}, _m{&m} {
     std::cout << "Lock(U): " << _file << ": " << _m << ":" << _line
               << std::endl;
