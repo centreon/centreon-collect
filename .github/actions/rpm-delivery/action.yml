@@ -183,12 +183,11 @@ runs:
           curl -H "Authorization: Bearer ${{ env.JF_ACCESS_TOKEN }}" -X POST "${{ env.JF_URL }}/artifactory/api/yum/$ROOT_REPO_PATH?path=/${{ inputs.version }}/${{ inputs.distrib }}/${REINDEX_STABILITY}/$ARCH&async=1"
         done
 
-
     - name: Compare list of files with delivered files
       if: inputs.stability == 'testing'
       shell: bash
       run: |
-        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/repodata/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path | split("/") | last')
+        DELIVERED_PACKAGES=$(jf rt search "${{ steps.publish-rpms.outputs.root_repo_path }}/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}-${{ inputs.release_type }}/${{ inputs.module_name }}/*.rpm" | jq -r '.[].path | split("/") | last')
         ORIGINAL_PACKAGES=$(cat rpm_packages.txt)
         MISSING_PACKAGES=0
         for PACKAGE in $ORIGINAL_PACKAGES; do

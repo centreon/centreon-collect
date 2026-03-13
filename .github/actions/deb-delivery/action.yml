@@ -93,7 +93,7 @@ runs:
           ROOT_REPO_PATH_SUFFIX="-internal"
         fi
 
-        ROOT_REPO_PATH="${ROOT_REPO_PATH_PREFIX}standard${ROOT_REPO_PATH_SUFFIX}"
+        ROOT_REPO_PATH="${ROOT_REPO_PATH_PREFIX}kdu${ROOT_REPO_PATH_SUFFIX}"
         echo "root_repo_path=$ROOT_REPO_PATH" >> $GITHUB_OUTPUT
 
         # Cleanup (equivalent to --sync-deletes done with RPMs)
