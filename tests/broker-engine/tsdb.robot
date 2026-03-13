@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       Centreon Broker victoria metrics tests
+Documentation       Centreon Broker tsdb tests
 
 Resource            ../resources/import.resource
 
@@ -260,3 +260,29 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Should Be True    ${now} < ${timeout}
 
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
+
+GRAPHITE_FORMAT_TEST
+    [Documentation]    Given a central broker
+    [Tags]    broker    engine    graphite    MON=195013
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    victoria_metrics    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    # wait all is started
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+    ${start}    Ctn Get Round Current Date
