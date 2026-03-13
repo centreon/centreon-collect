@@ -456,10 +456,10 @@ void stream::_unified_sql_process_service_status(
     if (!_index_data_insert.prepared())
       _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
-    fmt::string_view hv(common::truncate_utf8(
+    std::string_view hv(common::truncate_utf8(
         ss.host_name, get_centreon_storage_index_data_col_size(
                           centreon_storage_index_data_host_name)));
-    fmt::string_view sv(common::truncate_utf8(
+    std::string_view sv(common::truncate_utf8(
         ss.service_description,
         get_centreon_storage_index_data_col_size(
             centreon_storage_index_data_service_description)));

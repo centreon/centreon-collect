@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2012,2015,2017-2022 Centreon
+ * Copyright 2011-2012,2015,2017-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -591,7 +591,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
     const multiplexing::muxer_filter& forbidden_filter) {
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   multiplexing::muxer_filter elements({});
-  std::forward_list<fmt::string_view> applied_filters;
+  std::forward_list<std::string_view> applied_filters;
   auto fill_elements = [&elements, logger](const std::string& str) -> bool {
     bool retval = false;
     io::events::events_container const& tmp_elements(

@@ -160,16 +160,16 @@ void mysql_stmt::operator<<(io::data const& d) {
             case mapping::source::STRING: {
               size_t max_len = 0;
               const std::string& v(current_entry->get_string(d, &max_len));
-              fmt::string_view sv;
+              std::string_view sv;
               if (max_len > 0 && v.size() > max_len) {
                 _logger->trace(
                     "column '{}' should admit a longer string, it is cut to {} "
                     "characters to be stored anyway.",
                     current_entry->get_name_v2(), max_len);
                 max_len = common::adjust_size_utf8(v, max_len);
-                sv = fmt::string_view(v.data(), max_len);
+                sv = std::string_view(v.data(), max_len);
               } else
-                sv = fmt::string_view(v);
+                sv = std::string_view(v);
               uint32_t attr = current_entry->get_attribute();
 
               if ((attr & mapping::entry::invalid_on_zero) && sv.size() == 0)
@@ -277,16 +277,16 @@ void mysql_stmt::operator<<(io::data const& d) {
           case google::protobuf::FieldDescriptor::TYPE_STRING: {
             size_t max_len = std::get<1>(pr);
             std::string v(refl->GetString(*p, f));
-            fmt::string_view sv;
+            std::string_view sv;
             if (max_len > 0 && v.size() > max_len) {
               _logger->trace(
                   "column '{}' should admit a longer string, it is cut to {} "
                   "characters to be stored anyway.",
                   field, max_len);
               max_len = common::adjust_size_utf8(v, max_len);
-              sv = fmt::string_view(v.data(), max_len);
+              sv = std::string_view(v.data(), max_len);
             } else
-              sv = fmt::string_view(v);
+              sv = std::string_view(v);
             uint32_t attr = std::get<2>(pr);
             if (attr & io::protobuf_base::invalid_on_zero && sv.size() == 0)
               bind_null_str_k(field);
@@ -361,6 +361,6 @@ BIND_VALUE(i64, int64_t)
 BIND_VALUE(u64, uint64_t)
 BIND_VALUE(tiny, char)
 BIND_VALUE(bool, bool)
-BIND_VALUE(str, const fmt::string_view&)
+BIND_VALUE(str, const std::string_view&)
 
 #undef BIND_VALUE
