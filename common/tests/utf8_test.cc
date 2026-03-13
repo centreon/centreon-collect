@@ -191,35 +191,34 @@ TEST(truncate, nominal3) {
 TEST(truncate, utf8_1) {
   std::string str("告警数量");
   for (size_t i = 0; i <= str.size(); i++) {
-    fmt::string_view tmp(str);
-    fmt::string_view res(truncate_utf8(tmp, i));
-    std::string tmp1(check_string_utf8(std::string(res.data(), res.size())));
+    std::string_view tmp(str);
+    std::string_view res(truncate_utf8(tmp, i));
+    std::string tmp1(check_string_utf8(res));
     ASSERT_EQ(res, tmp1);
   }
 }
 
 TEST(adjust_size_utf8, nominal1) {
   std::string str("foobar");
-  ASSERT_EQ(fmt::string_view(str.data(), adjust_size_utf8(str, 3)),
-            fmt::string_view("foo"));
+  ASSERT_EQ(std::string_view(str.data(), adjust_size_utf8(str, 3)),
+            std::string_view("foo"));
 }
 
 TEST(adjust_size_utf8, nominal2) {
   std::string str("foobar");
-  ASSERT_EQ(fmt::string_view(str.data(), adjust_size_utf8(str, 0)), "");
+  ASSERT_EQ(std::string_view(str.data(), adjust_size_utf8(str, 0)), "");
 }
 
 TEST(adjust_size_utf8, nominal3) {
   std::string str("foobar 超级杀手死亡检查");
-  ASSERT_EQ(fmt::string_view(str.data(), adjust_size_utf8(str, 1000)), str);
+  ASSERT_EQ(std::string_view(str.data(), adjust_size_utf8(str, 1000)), str);
 }
 
 TEST(adjust_size_utf8, utf8_1) {
   std::string str("告警数量");
   for (size_t i = 0; i <= str.size(); i++) {
-    fmt::string_view sv(str.data(), adjust_size_utf8(str, i));
-    std::string tmp(
-        check_string_utf8(std::string(sv.data(), sv.data() + sv.size())));
+    std::string_view sv(str.data(), adjust_size_utf8(str, i));
+    std::string tmp(check_string_utf8(sv));
     ASSERT_EQ(sv.size(), tmp.size());
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018-2024 Centreon
+ * Copyright 2018-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ class mysql_column {
   void _push_null_tiny();
   void _push_value_bool(bool value);
   void _push_null_bool();
-  void _push_value_str(const fmt::string_view& str);
+  void _push_value_str(const std::string_view& str);
   void _push_null_str();
 
  public:
@@ -226,7 +226,7 @@ class mysql_column {
   void set_value_bool(size_t row, bool value);
   void set_null_bool(size_t row);
 
-  void set_value_str(size_t row, const fmt::string_view& str);
+  void set_value_str(size_t row, const std::string_view& str);
   void set_null_str(size_t row);
 
   char* indicator_buffer();
