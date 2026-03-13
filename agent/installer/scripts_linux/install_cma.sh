@@ -32,7 +32,7 @@
 #   ./install_cma.sh [OPTIONS]
 #
 # Options:
-#   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED]
+#   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED when installing agent]
 #   -t, --token          Authentication token (can be entered interactively if not provided)
 #   -n, --hostname       Host name as defined in Centreon (default: system hostname)
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
@@ -166,7 +166,7 @@ Centreon Monitoring Agent (CMA) Automated Installation Script v${SCRIPT_VERSION}
 USAGE:
     ${SCRIPT_NAME} [OPTIONS]
 
-REQUIRED OPTIONS:
+REQUIRED OPTIONS (when installing the agent):
     -e, --endpoint <IP:PORT>      Poller endpoint (e.g., 192.168.1.100:4317)
 
 OPTIONAL OPTIONS:
@@ -195,8 +195,11 @@ OPTIONAL OPTIONS:
     -h, --help                    Display this help message
 
 EXAMPLES:
-    # Basic installation
+    # Basic installation (agent + plugins)
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-auth-token"
+
+    # Install plugins only (no endpoint or token required)
+    ${SCRIPT_NAME} -p "plugin"
 
     # Installation with plugins and custom hostname
     ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
@@ -238,81 +241,84 @@ validate_root() {
 validate_required_params() {
     local errors=0
 
-    # Validate endpoint is provided
-    if [[ -z "${ENDPOINT}" ]]; then
-        log_error "Missing required parameter: --endpoint"
-        errors=$((errors + 1))
-    else
-        # Validate endpoint format (host:port)
-        validate_endpoint_format "${ENDPOINT}" || errors=$((errors + 1))
-    fi
-
-    # Check if token is missing before generating config
-    if [[ -z "${TOKEN}" ]]; then
-        log_warn "Authentication token is missing"
-        log_info "Retrieve an authentication token from “Administration > Authentication Tokens” and paste it here"
-        echo -n "Please enter the authentication token: "
-        read -r TOKEN
-        
-        # Validate token after user input
-        if [[ -z "${TOKEN}" ]]; then
-            die "Installation stopped: Authentication token is required"
-        fi
-        log_info "Token provided successfully"
-    fi
-
-    # Validate encryption-related parameters based on mode
-    if [[ "${ENCRYPTION}" == "full" || "${ENCRYPTION}" == "insecure" ]]; then
-        if [[ "${REVERSE_MODE}" == "true" ]]; then
-            # Reverse (poller-initiated) mode requires cert and key
-            if [[ -z "${PUBLIC_CERT}" ]]; then
-                log_error "Public certificate path (--cert) is required when encryption is '${ENCRYPTION}' in reverse mode"
-                errors=$((errors + 1))
-            elif [[ ! -f "${PUBLIC_CERT}" ]]; then
-                log_error "Public certificate file not found: ${PUBLIC_CERT}"
-                errors=$((errors + 1))
-            fi
-
-            if [[ -z "${PRIVATE_KEY}" ]]; then
-                log_error "Private key path (--key) is required when encryption is '${ENCRYPTION}' in reverse mode"
-                errors=$((errors + 1))
-            elif [[ ! -f "${PRIVATE_KEY}" ]]; then
-                log_error "Private key file not found: ${PRIVATE_KEY}"
-                errors=$((errors + 1))
-            fi
-        else
-            # Non-reverse (agent-initiated) mode - CA is optional but validate if provided
-            if [[ -n "${CA_CERT}" && ! -f "${CA_CERT}" ]]; then
-                log_error "CA certificate file not found: ${CA_CERT}"
-                errors=$((errors + 1))
-            fi
-        fi
-    fi
-
-    # Validate log type and related parameters
-    if [[ "${LOG_TYPE}" == "file" ]]; then
-        if [[ -z "${LOG_FILE}" ]]; then
-            log_error "Log file path (--log-file) is required when log-type is 'file'"
+    # Endpoint, token, encryption, and config params are only needed when installing the agent
+    if [[ "${COMPONENTS}" =~ (^|,)agent(,|$) ]]; then
+        # Validate endpoint is provided
+        if [[ -z "${ENDPOINT}" ]]; then
+            log_error "Missing required parameter: --endpoint"
             errors=$((errors + 1))
         else
-            validate_path_format "${LOG_FILE}" "log file" || errors=$((errors + 1))
+            # Validate endpoint format (host:port)
+            validate_endpoint_format "${ENDPOINT}" || errors=$((errors + 1))
         fi
-    fi
 
-    # Validate max-file-size is a positive integer if provided
-    if [[ -n "${MAX_FILE_SIZE}" ]]; then
-        validate_positive_integer "${MAX_FILE_SIZE}" "max-file-size" || errors=$((errors + 1))
-    fi
+        # Check if token is missing before generating config
+        if [[ -z "${TOKEN}" ]]; then
+            log_warn "Authentication token is missing"
+            log_info "Retrieve an authentication token from "Administration > Authentication Tokens" and paste it here"
+            echo -n "Please enter the authentication token: "
+            read -r TOKEN
 
-    # Validate max-number is a positive integer if provided
-    if [[ -n "${MAX_NUMBER}" ]]; then
-        validate_positive_integer "${MAX_NUMBER}" "max-number" || errors=$((errors + 1))
-    fi
+            # Validate token after user input
+            if [[ -z "${TOKEN}" ]]; then
+                die "Installation stopped: Authentication token is required"
+            fi
+            log_info "Token provided successfully"
+        fi
 
-    # Validate custom check file exists if provided
-    if [[ -n "${CUSTOM_CHECK_FILE}" && ! -f "${CUSTOM_CHECK_FILE}" ]]; then
-        log_error "Custom check file not found: ${CUSTOM_CHECK_FILE}"
-        errors=$((errors + 1))
+        # Validate encryption-related parameters based on mode
+        if [[ "${ENCRYPTION}" == "full" || "${ENCRYPTION}" == "insecure" ]]; then
+            if [[ "${REVERSE_MODE}" == "true" ]]; then
+                # Reverse (poller-initiated) mode requires cert and key
+                if [[ -z "${PUBLIC_CERT}" ]]; then
+                    log_error "Public certificate path (--cert) is required when encryption is '${ENCRYPTION}' in reverse mode"
+                    errors=$((errors + 1))
+                elif [[ ! -f "${PUBLIC_CERT}" ]]; then
+                    log_error "Public certificate file not found: ${PUBLIC_CERT}"
+                    errors=$((errors + 1))
+                fi
+
+                if [[ -z "${PRIVATE_KEY}" ]]; then
+                    log_error "Private key path (--key) is required when encryption is '${ENCRYPTION}' in reverse mode"
+                    errors=$((errors + 1))
+                elif [[ ! -f "${PRIVATE_KEY}" ]]; then
+                    log_error "Private key file not found: ${PRIVATE_KEY}"
+                    errors=$((errors + 1))
+                fi
+            else
+                # Non-reverse (agent-initiated) mode - CA is optional but validate if provided
+                if [[ -n "${CA_CERT}" && ! -f "${CA_CERT}" ]]; then
+                    log_error "CA certificate file not found: ${CA_CERT}"
+                    errors=$((errors + 1))
+                fi
+            fi
+        fi
+
+        # Validate log type and related parameters
+        if [[ "${LOG_TYPE}" == "file" ]]; then
+            if [[ -z "${LOG_FILE}" ]]; then
+                log_error "Log file path (--log-file) is required when log-type is 'file'"
+                errors=$((errors + 1))
+            else
+                validate_path_format "${LOG_FILE}" "log file" || errors=$((errors + 1))
+            fi
+        fi
+
+        # Validate max-file-size is a positive integer if provided
+        if [[ -n "${MAX_FILE_SIZE}" ]]; then
+            validate_positive_integer "${MAX_FILE_SIZE}" "max-file-size" || errors=$((errors + 1))
+        fi
+
+        # Validate max-number is a positive integer if provided
+        if [[ -n "${MAX_NUMBER}" ]]; then
+            validate_positive_integer "${MAX_NUMBER}" "max-number" || errors=$((errors + 1))
+        fi
+
+        # Validate custom check file exists if provided
+        if [[ -n "${CUSTOM_CHECK_FILE}" && ! -f "${CUSTOM_CHECK_FILE}" ]]; then
+            log_error "Custom check file not found: ${CUSTOM_CHECK_FILE}"
+            errors=$((errors + 1))
+        fi
     fi
 
     if [[ ${errors} -gt 0 ]]; then
@@ -1268,25 +1274,27 @@ print_summary() {
     echo "========================================"
     echo "Installation Summary"
     echo "========================================"
-    echo "Endpoint:        ${ENDPOINT}"
-    echo "Hostname:        ${HOSTNAME_CENTREON:-$(hostname)}"
-    echo "Centreon Ver:    ${CENTREON_VERSION}"
-    echo "Encryption:      ${ENCRYPTION}"
-    echo "Reverse Mode:    ${REVERSE_MODE}"
-    echo "Log Type:        ${LOG_TYPE}"
-    echo "Log File:        ${LOG_FILE}"
-    echo "Log Level:       ${LOG_LEVEL}"
-    [[ -n "${MAX_FILE_SIZE}" ]] && echo "Max File Size:   ${MAX_FILE_SIZE}"
-    [[ -n "${MAX_NUMBER}" ]] && echo "Max Log Files:   ${MAX_NUMBER}"
-    [[ -n "${CA_CERT}" ]] && echo "CA Certificate:  ${CA_CERT}"
-    [[ -n "${CA_COMMON_NAME}" ]] && echo "CA Common Name:  ${CA_COMMON_NAME}"
-    [[ -n "${PUBLIC_CERT}" ]] && echo "Public Cert:     ${PUBLIC_CERT}"
-    [[ -n "${PRIVATE_KEY}" ]] && echo "Private Key:     ${PRIVATE_KEY}"
-    [[ -n "${FINGERPRINT}" ]] && echo "Fingerprint:     ${FINGERPRINT}"
-    [[ -n "${CUSTOM_CHECK_FILE}" ]] && echo "Custom Check:    ${CUSTOM_CHECK_FILE}"
     echo "Components:      ${COMPONENTS}"
+    echo "Centreon Ver:    ${CENTREON_VERSION}"
+    if [[ "${COMPONENTS}" =~ (^|,)agent(,|$) ]]; then
+        echo "Endpoint:        ${ENDPOINT}"
+        echo "Hostname:        ${HOSTNAME_CENTREON:-$(hostname)}"
+        echo "Encryption:      ${ENCRYPTION}"
+        echo "Reverse Mode:    ${REVERSE_MODE}"
+        echo "Log Type:        ${LOG_TYPE}"
+        echo "Log File:        ${LOG_FILE}"
+        echo "Log Level:       ${LOG_LEVEL}"
+        [[ -n "${MAX_FILE_SIZE}" ]] && echo "Max File Size:   ${MAX_FILE_SIZE}"
+        [[ -n "${MAX_NUMBER}" ]] && echo "Max Log Files:   ${MAX_NUMBER}"
+        [[ -n "${CA_CERT}" ]] && echo "CA Certificate:  ${CA_CERT}"
+        [[ -n "${CA_COMMON_NAME}" ]] && echo "CA Common Name:  ${CA_COMMON_NAME}"
+        [[ -n "${PUBLIC_CERT}" ]] && echo "Public Cert:     ${PUBLIC_CERT}"
+        [[ -n "${PRIVATE_KEY}" ]] && echo "Private Key:     ${PRIVATE_KEY}"
+        [[ -n "${FINGERPRINT}" ]] && echo "Fingerprint:     ${FINGERPRINT}"
+        [[ -n "${CUSTOM_CHECK_FILE}" ]] && echo "Custom Check:    ${CUSTOM_CHECK_FILE}"
+        echo "Config File:     ${CONFIG_FILE}"
+    fi
     [[ -n "${ARTIFACT_ID}" ]] && echo "Artifact ID:     ${ARTIFACT_ID} (GitHub Actions)"
-    echo "Config File:     ${CONFIG_FILE}"
     echo "========================================"
     echo ""
 }
@@ -1332,11 +1340,11 @@ main() {
     # Install CMA agent
     install_cma_agent
 
-    # Create configuration file
-    create_config_file
-
-    # Configure and start service
-    configure_service
+    # Create configuration file and start service (only when installing the agent)
+    if [[ "${COMPONENTS}" =~ (^|,)agent(,|$) ]]; then
+        create_config_file
+        configure_service
+    fi
 
     echo ""
     log_info "=== Script execution completed ==="
