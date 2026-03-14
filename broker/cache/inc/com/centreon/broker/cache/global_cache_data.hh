@@ -280,10 +280,11 @@ class global_cache_data : public global_cache {
   };
 
   using id_to_tag = interprocess::flat_map<
-      uint64_t,
+      std::pair<uint64_t, TagType>,
       tag_poller,
-      std::less<uint64_t>,
-      managed_mapped_file::allocator<std::pair<uint64_t, tag_poller>>::type>;
+      std::less<std::pair<uint64_t, TagType>>,
+      managed_mapped_file::allocator<
+          std::pair<std::pair<uint64_t, TagType>, tag_poller>>::type>;
 
   std::unique_ptr<allocators> _allocators;
 

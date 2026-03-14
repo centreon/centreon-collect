@@ -23,7 +23,11 @@
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "neb.pb.h"
 
-namespace com::centreon::broker::http_tsdb {
+namespace com::centreon::broker {
+namespace cache {
+class global_cache;
+}
+namespace http_tsdb {
 /**
  *  @class line_protocol_query line_protocol_query.hh
  * "com/centreon/broker/graphite/line_protocol_query.hh"
@@ -62,6 +66,8 @@ class line_protocol_query {
                        data_escaper escaper,
                        bool escape_fixed_string);
   void _throw_on_invalid(data_type macro_type);
+
+  std::shared_ptr<cache::global_cache> _cache;
 
  private:
   template <typename T, typename U, T(U::*member)>
@@ -199,6 +205,6 @@ class line_protocol_query {
 
   std::shared_ptr<spdlog::logger> _logger;
 };
-}  // namespace com::centreon::broker::http_tsdb
-
+}  // namespace http_tsdb
+}  // namespace com::centreon::broker
 #endif  // !CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH

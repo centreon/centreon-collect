@@ -1063,6 +1063,41 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_config_broker_graphite_output(metric_naming: str, status_naming: str):
+    """
+    Configure broker to add a graphite output. If some old graphite
+    outputs exist, they are removed.
+
+    Args:
+        metric_naming: .
+
+    *Example:*
+
+    | Config Broker Graphite Output |
+    """
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "graphite":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "graphite_output",
+        "type": "graphite",
+        "db_host": "localhost",
+        "db_port": "8000",
+        "db_user": "toto",
+        "db_password": "titi",
+        "metric_naming": metric_naming,
+        "status_naming": status_naming
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
     """
     Configure broker to add an event_script output. If some old event_script

@@ -424,7 +424,7 @@ void global_cache_data::_process_pb_instance(
 void global_cache_data::_process_pb_host(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_host>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host {}", in.host_id());
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing host {}", in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
   if (exist == _id_to_host->end()) {
@@ -463,7 +463,7 @@ void global_cache_data::_process_pb_host(
 void global_cache_data::_process_pb_host_status(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_host_status>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing host status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
@@ -517,7 +517,7 @@ void global_cache_data::_process_pb_adaptive_host_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_host_status>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive host status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive host status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
@@ -547,7 +547,7 @@ void global_cache_data::_process_pb_adaptive_host_status(
 void global_cache_data::_process_pb_adaptive_host(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_adaptive_host>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive host {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive host {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_host->find(in.host_id());
@@ -589,7 +589,7 @@ void global_cache_data::_process_pb_adaptive_host(
 void global_cache_data::_process_pb_host_group(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_host_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(
+  SPDLOG_LOGGER_TRACE(
       _logger,
       "cache: processing pb host group '{}' of id {} for poller {}, enabled {}",
       in.name(), in.hostgroup_id(), in.poller_id(), in.enabled());
@@ -634,7 +634,7 @@ void global_cache_data::_process_pb_host_group_member(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(
+  SPDLOG_LOGGER_TRACE(
       _logger,
       "cache: processing pb host group member (group_name: '{}', group_id: {}, "
       "host_id: {} poller_id: {}, enabled: {})",
@@ -699,7 +699,7 @@ void global_cache_data::_process_pb_custom_variable(
   if (in.name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(in.value(), &value)) {
-      SPDLOG_LOGGER_DEBUG(_logger,
+      SPDLOG_LOGGER_TRACE(_logger,
                           "cache: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
@@ -752,7 +752,7 @@ void global_cache_data::_process_pb_custom_variable(
 void global_cache_data::_process_pb_service(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_service>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(
+  SPDLOG_LOGGER_TRACE(
       _logger, "cache: processing service ({}, {}) (description:{}) enabled {}",
       in.host_id(), in.service_id(), in.description(), in.enabled());
   boost::unique_lock l(_protect);
@@ -794,7 +794,7 @@ void global_cache_data::_process_pb_service_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_service_status>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing host status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing host status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
@@ -849,7 +849,7 @@ void global_cache_data::_process_pb_adaptive_service_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service_status>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive service status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive service status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
@@ -881,7 +881,7 @@ void global_cache_data::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing adaptive service status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive service status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
@@ -928,7 +928,7 @@ void global_cache_data::_process_pb_adaptive_service(
 void global_cache_data::_process_pb_service_group(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_service_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb service group '{}' of id {}",
                       in.name(), in.servicegroup_id());
   boost::unique_lock l(_protect);
@@ -972,7 +972,7 @@ void global_cache_data::_process_pb_service_group_member(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb service group member (group_name: "
                       "'{}', group_id: {}, "
                       "host_id: {}, service_id: {} poller_id: {}, enabled: {})",
@@ -1032,15 +1032,17 @@ void global_cache_data::_process_pb_service_group_member(
  */
 void global_cache_data::_process_pb_tag(std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_tag>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "cache: processing pb tag (name: '{}', id: {})",
-                      in.name(), in.id());
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "cache: processing pb tag (name: '{}', id: {}, type: {})",
+                      in.name(), in.id(), in.type());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_tag->find(in.id());
+  auto key = std::make_pair(in.id(), in.type());
+  auto exist = _id_to_tag->find(key);
   if (exist == _id_to_tag->end()) {
     if (in.action() != Tag::DELETE) {
       tag* to_insert = _file->get_segment_manager()->construct<tag>(
           interprocess::anonymous_instance)(in, *_allocators);
-      _id_to_tag->emplace(in.id(), tag_poller(to_insert, *_allocators));
+      _id_to_tag->emplace(key, tag_poller(to_insert, *_allocators));
       _set_dirty_and_increment_modif();
     }
   } else {
@@ -1071,7 +1073,7 @@ void global_cache_data::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<storage::pb_index_mapping>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb index mapping (index_id: '{}', "
                       "host_id: {}, service_id: {})",
                       in.index_id(), in.host_id(), in.service_id());
@@ -1096,7 +1098,7 @@ void global_cache_data::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<storage::pb_metric_mapping>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb metric mapping (index_id: '{}', "
                       "metric_id: {})",
                       in.index_id(), in.metric_id());
@@ -1121,7 +1123,7 @@ void global_cache_data::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_event>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb dimension ba event (ba_id: '{}', "
                       "name: {})",
                       in.ba_id(), in.ba_name());
@@ -1143,7 +1145,7 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data)
           ->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb dimension ba bv relation event "
                       "(ba_id: {}, bv_id: {})",
                       in.ba_id(), in.bv_id());
@@ -1165,7 +1167,7 @@ void global_cache_data::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_bv_event>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "cache: processing pb dimension ba event (ba_id: '{}', "
                       "name: {})",
                       in.bv_id(), in.bv_name());
@@ -1189,7 +1191,7 @@ void global_cache_data::_process_dimension_bv_event(
  */
 void global_cache_data::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_TRACE(_logger,
                       "lua: processing dimension truncate table signal");
 
   if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
@@ -1494,7 +1496,8 @@ void global_cache_data::append_host_tag_name(uint64_t host,
     for (const auto& tag : search->second.first->tags()) {
       const tag_info& tag_inf = *static_cast<const tag_info*>(tag.get());
       if (tag_inf.type() == tag_type) {
-        auto tag_search = _id_to_tag->find(tag_inf.id());
+        auto tag_search =
+            _id_to_tag->find(std::make_pair(tag_inf.id(), tag_type));
         if (tag_search != _id_to_tag->end()) {
           if (first) {
             request_body << tag_search->second.data->name();
@@ -1532,7 +1535,8 @@ void global_cache_data::append_serv_tag_name(uint64_t host,
     for (const auto& tag : search->second.first->tags()) {
       const tag_info& tag_inf = *static_cast<const tag_info*>(tag.get());
       if (tag_inf.type() == tag_type) {
-        auto tag_search = _id_to_tag->find(tag_inf.id());
+        auto tag_search =
+            _id_to_tag->find(std::make_pair(tag_inf.id(), tag_type));
         if (tag_search != _id_to_tag->end()) {
           if (first) {
             request_body << tag_search->second.data->name();
