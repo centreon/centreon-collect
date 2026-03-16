@@ -113,8 +113,46 @@ EOF
 elif [ "$TYPE" = "poller" ]; then
     echo "=== Generating Gorgone Configuration for Poller ==="
     echo ""
-    echo "Configuring for poller"
-    # TODO: Add poller configuration here
+
+    POLLER_ID="${POLLER_ID:-2}"
+    CENTRAL_ADDRESS="${CENTRAL_ADDRESS:?ERROR: CENTRAL_ADDRESS env var must be set for poller mode}"
+    CENTRAL_PORT="${CENTRAL_PORT:-8086}"
+    GORGONE_TOKEN="${GORGONE_TOKEN:-}"
+
+    echo "Poller ID      : $POLLER_ID"
+    echo "Central address: $CENTRAL_ADDRESS:$CENTRAL_PORT"
+
+    cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+name: poller-${POLLER_ID}
+description: Poller configuration
+gorgone:
+  gorgonecore:
+    id: ${POLLER_ID}
+    privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
+    pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
+
+  modules:
+    - name: action
+      package: gorgone::modules::core::action::hooks
+      enable: true
+
+    - name: engine
+      package: gorgone::modules::centreon::engine::hooks
+      enable: true
+      command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
+
+    - name: pullwss
+      package: "gorgone::modules::core::pullwss::hooks"
+      enable: true
+      ssl: false
+      port: ${CENTRAL_PORT}
+      token: ${GORGONE_TOKEN}
+      address: ${CENTRAL_ADDRESS}
+
+EOF
+
+    echo "✓ Successfully created /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+    echo ""
 fi
 
 echo "✓ Gorgone configuration generation complete"

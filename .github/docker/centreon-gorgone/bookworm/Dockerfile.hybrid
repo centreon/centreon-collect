@@ -51,7 +51,8 @@ RUN cpanm --notest \
     Net::Curl \
     Libssh::Session \
     Crypt::OpenSSL::AES \
-    Net::SSH::Any
+    Net::SSH::Any \
+    Mojo::IOLoop::Signal
 
 #############################################
 # Stage 2b/2c: Gorgone Perl source selector
@@ -144,6 +145,8 @@ RUN apk add --no-cache \
     perl-cryptx \
     perl-hash-merge \
     perl-json \
+    perl-mojolicious \
+    perl-io-socket-ssl \
     rrdtool \
     curl \
     libcurl \
@@ -175,6 +178,8 @@ RUN mkdir -p /etc/centreon/config.d/ \
              /var/lib/centreon-engine/rw && \
     chown -R centreon-gorgone:centreon /etc/centreon/ && \
     chmod -R 775 /etc/centreon/ && \
+    chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
+    chmod -R 775 /etc/centreon-gorgone/ && \
     chown centreon:centreon /var/cache/centreon && \
     chmod 775 /var/cache/centreon && \
     touch /var/lib/centreon/centcore.cmd && \
