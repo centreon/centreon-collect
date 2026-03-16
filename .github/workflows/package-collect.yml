@@ -311,16 +311,18 @@ jobs:
       - name: Display package sizes
         run: |
           EXT="${{ steps.parse-distrib.outputs.package_extension }}"
-          echo "## Package sizes" >> $GITHUB_STEP_SUMMARY
-          echo "| Package | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|------|" >> $GITHUB_STEP_SUMMARY
           TOTAL=0
-          while IFS= read -r pkg; do
-            SIZE=$(stat -c%s "$pkg")
-            TOTAL=$((TOTAL + SIZE))
-            echo "| $(basename "$pkg") | $(numfmt --to=iec-i --suffix=B "$SIZE") |" >> $GITHUB_STEP_SUMMARY
-          done < <(find . -maxdepth 2 -name "*.$EXT" -type f | sort)
-          echo "| **Total** | **$(numfmt --to=iec-i --suffix=B $TOTAL)** |" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Package sizes"
+            echo "| Package | Size |"
+            echo "|---------|------|"
+            while IFS= read -r pkg; do
+              SIZE=$(stat -c%s "$pkg")
+              TOTAL=$((TOTAL + SIZE))
+              echo "| $(basename "$pkg") | $(numfmt --to=iec-i --suffix=B "$SIZE") |"
+            done < <(find . -name "*.$EXT" -not -path "*/build/*" -type f | sort)
+            echo "| **Total** | **$(numfmt --to=iec-i --suffix=B $TOTAL)** |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
         shell: bash
 
       - name: Cleaning not needed packages
