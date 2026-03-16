@@ -19,13 +19,18 @@
 
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include <gtest/gtest.h>
+#include <boost/asio/io_context.hpp>
+#include <memory>
 #include "broker/test/test_server.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class InfluxDB12 : public testing::Test {
  public:
@@ -39,6 +44,16 @@ class InfluxDB12 : public testing::Test {
   void TearDown() override {
     _server.stop();
     _thread.join();
+  }
+
+  static void SetUpTestSuite() {
+    cache::global_cache::load(g_io_context, "/tmp/test_influxdb");
+  }
+
+  static void TearDownTestSuite() {
+    cache::global_cache::unload();
+    ::remove("/tmp/test_influxdb.cnf");
+    ::remove("/tmp/test_influxdb.rt");
   }
 
   test_server _server;

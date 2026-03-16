@@ -64,7 +64,8 @@ class line_protocol_query {
   void _compile_scheme(const std::string allowed_macros,
                        const std::string& scheme,
                        data_escaper escaper,
-                       bool escape_fixed_string);
+                       bool escape_fixed_string,
+                       bool escape_numbers);
   void _throw_on_invalid(data_type macro_type);
 
   std::shared_ptr<cache::global_cache> _cache;

@@ -301,7 +301,7 @@ GRAPHITE_FORMAT_TEST
     Ctn Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
 
-    ${tcp_server}    Ctn Create Tcp Server   8000 
+    ${tcp_server}    Ctn Create Tcp Server   8040 
 
     Ctn Start Broker
     Ctn Start Engine
@@ -320,9 +320,79 @@ GRAPHITE_FORMAT_TEST
         Log To Console    received:${received}
 
         IF    'status' in $received
-            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.23862\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.5,4\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received
+            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.5,4\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received
         ELSE
-            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.23862\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.5,4\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received
+            Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.5,4\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received
+        END
+    END
+
+
+INFLUXDB_FORMAT_TEST
+    [Documentation]    Given a central broker configured with an InfluxDB output using the InfluxDB line protocol
+    ...    And an engine with host_16 belonging to host groups 1 and 2, service_314 belonging to service groups 4 and 5
+    ...    And host_16 tagged with host group tag 2 and host category tag 2
+    ...    And service_314 tagged with service group tag 4 and service category tags 4 and 5
+    ...    And a TCP server listening on port 8086 acting as the InfluxDB endpoint
+    ...    When a service check result is processed for host_16 / service_314 with perfdata metric_taratata=80%;50;75;5;99
+    ...    Then the TCP server receives an HTTP POST to /write containing a metric line in InfluxDB line protocol
+    ...    with measurement centreon_metric, tags host/service/instance/metric and all group/tag fields expanded
+    ...    And the metric value is 80 with the correct timestamp
+    ...    And a second HTTP POST is received containing a status line with measurement centreon_status
+    ...    with value 0 and the same context fields expanded
+    ...    And each HTTP POST is answered with HTTP/1.0 204 No Content to acknowledge the write
+    [Tags]    broker    engine    influxdb    MON-195013
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Add Host Group    ${0}    ${1}    ["host_16", "host_17"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_16"]
+    Ctn Add Service Group    ${0}    ${5}    ["host_16","service_314"]
+    Ctn Add Service Group    ${0}    ${4}    ["host_16","service_314","host_16","service_315"]
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    [16]
+    Ctn Add Tags To Hosts    ${0}    category_tags    2    [16]
+    Ctn Add Tags To Services    ${0}    group_tags    4    [314]
+    Ctn Add Tags To Services    ${0}    category_tags    4,5    [314]
+
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    Ctn Broker Config Log    central    influxdb    trace
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    perfdata    trace
+    Ctn Config Broker Influxdb Output    centreon_metric    centreon_status
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+    ${start}    Get Current Date
+
+    Start Server    127.0.0.1    8086
+
+    Ctn Start Broker
+    Ctn Start Engine
+
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+
+    FOR    ${i}    IN RANGE    2
+        Wait For Request    timeout=30
+        ${body}    Get Request Body
+
+        ${body_str}    Evaluate    $body.decode("utf-8")
+        Log To Console    received:${body_str}
+
+        Reply By   204
+
+        IF    'centreon_status' in $body_str
+            Should Match Regexp    ${body_str}
+            ...    centreon_status,host=host_16,service=service_314,instance=Poller0 value=0,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="5,4",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
+            ...    incorrect influxdb status received
+        ELSE
+            Should Match Regexp    ${body_str}
+            ...    centreon_metric,host=host_16,service=service_314,instance=Poller0,metric=metric_taratata value=80,min=5,max=99,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="5,4",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
+            ...    incorrect influxdb metric received
         END
     END
 

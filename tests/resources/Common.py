@@ -2656,10 +2656,15 @@ def ctn_create_tcp_server(port: int):
         def __init__(self, port: int):
             self.sock = socket.socket()
             self.sock.bind(("0.0.0.0", port))
-            self.sock.listen(1)
+            self.sock.listen(5)
+            self.conn = None
 
         def accept(self, timeout: int):
-            self.conn, _ = self.sock.accept()
+            self.sock.settimeout(timeout)
+            try:
+                self.conn, _ = self.sock.accept()
+            except socket.timeout:
+                return False
             if self.conn is None:
                 return False
             else:
@@ -2669,6 +2674,9 @@ def ctn_create_tcp_server(port: int):
             self.conn.settimeout(timeout)
             data = self.conn.recv(4096)
             return data.decode()
+
+        def send(self, data: str):
+            self.conn.sendall(data.encode())
 
         def close(self):
             if self.conn is not None:

@@ -198,13 +198,15 @@ void line_protocol_query::_append_compiled_string(
  *  @param[in] scheme   The scheme to compile.
  *  @param[in] escaper  Escaper for the scheme.
  *  @param[in] escape_fixed_string  true if escaper has to be applied on fixed
- * strings.
+ *  @param[in] escape_number  true if escaper has to be applied on numbers (ID,
+ * max...) strings.
  */
 void line_protocol_query::_compile_scheme(
     const std::string allowed_macros,
     const std::string& scheme,
     line_protocol_query::data_escaper escaper,
-    bool escape_fixed_string) {
+    bool escape_fixed_string,
+    bool escape_numbers) {
   size_t found_macro(0);
   size_t end_macro(0);
 
@@ -234,30 +236,35 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(
             &line_protocol_query::_get_member<uint32_t, io::data,
                                               &io::data::source_id>,
-            nullptr);
+            escape_numbers ? escaper : nullptr);
       else if (macro == "$HOST$")
         _append_compiled_getter(&line_protocol_query::_get_host, escaper);
       else if (macro == "$HOSTID$")
-        _append_compiled_getter(&line_protocol_query::_get_host_id, nullptr);
+        _append_compiled_getter(&line_protocol_query::_get_host_id,
+                                escape_numbers ? escaper : nullptr);
       else if (macro == "$HOSTGROUP$")
         _append_compiled_getter(&line_protocol_query::_get_host_group, escaper);
       else if (macro == "$SERVICE$")
         _append_compiled_getter(&line_protocol_query::_get_service, escaper);
       else if (macro == "$SERVICEID$")
-        _append_compiled_getter(&line_protocol_query::_get_service_id, nullptr);
+        _append_compiled_getter(&line_protocol_query::_get_service_id,
+                                escape_numbers ? escaper : nullptr);
       else if (macro == "$SERVICE_GROUP$")
         _append_compiled_getter(&line_protocol_query::_get_service_group,
                                 escaper);
       else if (macro == "$MIN$")
-        _append_compiled_getter(&line_protocol_query::_get_min, nullptr);
+        _append_compiled_getter(&line_protocol_query::_get_min,
+                                escape_numbers ? escaper : nullptr);
       else if (macro == "$MAX$")
-        _append_compiled_getter(&line_protocol_query::_get_max, nullptr);
+        _append_compiled_getter(&line_protocol_query::_get_max,
+                                escape_numbers ? escaper : nullptr);
       else if (macro == "$METRIC$") {
         _throw_on_invalid(data_type::metric);
         _append_compiled_getter(&line_protocol_query::_get_metric_name,
                                 escaper);
       } else if (macro == "$INDEXID$")
-        _append_compiled_getter(&line_protocol_query::_get_index_id, escaper);
+        _append_compiled_getter(&line_protocol_query::_get_index_id,
+                                escape_numbers ? escaper : nullptr);
       else if (macro == "$HOST_TAG_CAT_ID$")
         _append_compiled_getter(&line_protocol_query::_get_tag_host_cat_id,
                                 escaper);
@@ -285,17 +292,17 @@ void line_protocol_query::_compile_scheme(
       else if (macro == "$VALUE$") {
         if (_type == data_type::metric)
           _append_compiled_getter(&line_protocol_query::_get_metric_value,
-                                  escaper);
+                                  escape_numbers ? escaper : nullptr);
         else if (_type == data_type::status)
           _append_compiled_getter(&line_protocol_query::_get_status_state,
-                                  escaper);
+                                  escape_numbers ? escaper : nullptr);
       } else if (macro == "$TIME$") {
         if (_type == data_type::metric)
           _append_compiled_getter(&line_protocol_query::_get_metric_time,
-                                  escaper);
+                                  escape_numbers ? escaper : nullptr);
         else if (_type == data_type::status)
           _append_compiled_getter(&line_protocol_query::_get_status_time,
-                                  escaper);
+                                  escape_numbers ? escaper : nullptr);
       } else
         SPDLOG_LOGGER_INFO(_logger, "unknown macro '{}': ignoring it", macro);
     } else {

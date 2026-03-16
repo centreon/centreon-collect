@@ -32,14 +32,6 @@ using namespace com::centreon::broker::graphite;
 static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
     storage::pb_metric::static_type(), storage::pb_status::static_type(),
-    // cache events
-    neb::instance::static_type(), neb::pb_instance::static_type(),
-    neb::host::static_type(), neb::pb_host::static_type(),
-    neb::service::static_type(), neb::pb_service::static_type(),
-    storage::index_mapping::static_type(),
-    storage::pb_index_mapping::static_type(),
-    storage::metric_mapping::static_type(),
-    storage::pb_metric_mapping::static_type(),
     make_type(io::extcmd, extcmd::de_pb_bench)};
 
 static constexpr multiplexing::muxer_filter _graphite_forbidden_filter =

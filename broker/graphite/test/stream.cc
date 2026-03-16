@@ -19,12 +19,15 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include <gtest/gtest.h>
-#include <com/centreon/broker/graphite/connector.hh>
 #include "broker/test/test_server.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class graphiteStream : public testing::Test {
  public:
@@ -37,6 +40,16 @@ class graphiteStream : public testing::Test {
   void TearDown() override {
     _server.stop();
     _thread.join();
+  }
+
+  static void SetUpTestSuite() {
+    cache::global_cache::load(g_io_context, "/tmp/test_graphite");
+  }
+
+  static void TearDownTestSuite() {
+    cache::global_cache::unload();
+    ::remove("/tmp/test_graphite.cnf");
+    ::remove("/tmp/test_graphite.rt");
   }
 
   test_server _server;
