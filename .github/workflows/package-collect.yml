@@ -315,11 +315,11 @@ jobs:
           echo "| Package | Size |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|------|" >> $GITHUB_STEP_SUMMARY
           TOTAL=0
-          for pkg in $(ls -S ./*.$EXT 2>/dev/null); do
+          while IFS= read -r pkg; do
             SIZE=$(stat -c%s "$pkg")
             TOTAL=$((TOTAL + SIZE))
-            echo "| $(basename $pkg) | $(numfmt --to=iec-i --suffix=B $SIZE) |" >> $GITHUB_STEP_SUMMARY
-          done
+            echo "| $(basename "$pkg") | $(numfmt --to=iec-i --suffix=B "$SIZE") |" >> $GITHUB_STEP_SUMMARY
+          done < <(find . -maxdepth 2 -name "*.$EXT" -type f | sort)
           echo "| **Total** | **$(numfmt --to=iec-i --suffix=B $TOTAL)** |" >> $GITHUB_STEP_SUMMARY
         shell: bash
 
