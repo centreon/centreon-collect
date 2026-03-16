@@ -38,8 +38,8 @@
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
 #   -c, --encryption     Encryption mode: full, insecure, or no (default: no)
 #   -r, --reverse        Enable poller-initiated (reversed) connection mode
-#   -a, --ca-cert        Path to CA certificate file (required if encryption=full/insecure, non-reverse)
-#   -N, --ca-name        CA common name (optional, used with encryption=full/insecure)
+#   -a, --ca       Path to CA certificate file (required if encryption=full/insecure, non-reverse)
+#   -N, --common-name        CA common name (optional, used with encryption=full/insecure)
 #   -C, --cert           Path to public certificate file (required if encryption=full/insecure, reverse mode)
 #   -k, --key            Path to private key file (required if encryption=full/insecure, reverse mode)
 #   -f, --fingerprint    Certificate fingerprint for validation
@@ -48,8 +48,8 @@
 #   -l, --log-level      Log level: off, critical, error, warning, info, debug, trace (default: info)
 #   -M, --max-file-size  Maximum log file size in bytes (used with log-type=file)
 #   -m, --max-number     Maximum number of log files for rotation (used with log-type=file)
-#   -x, --custom-check   Path to custom check configuration file
-#   -p, --components     Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+#   -x, --custom-check-file   Path to custom check configuration file
+#   -p, --components     Comma-separated list of components to install: agent,plugins (default: agent,plugins)
 #   -H, --host-template  Host template to use in Centreon (optional , default : OS-Linux-Centreon-Monitoring-Agent-custom)
 #   -d, --dry-run        Show what would be done without making changes
 #   -h, --help           Display this help message
@@ -59,7 +59,7 @@
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-auth-token"
 #
 #   # Installation with plugins and custom hostname
-#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
+#   ./install_cma.sh -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugins"
 #
 #   # Installation with full encryption (agent-initiated)
 #   ./install_cma.sh -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -89,7 +89,7 @@ DEFAULT_LOG_LEVEL="error"
 DEFAULT_LOG_TYPE="file"
 DEFAULT_LOG_FILE="/var/log/centreon-monitoring-agent/centagent.log"
 DEFAULT_MAX_FILE_SIZE="10"
-DEFAULT_MAX_NUMBER="3"
+DEFAULT_MAX_NUMBER="10"
 DEFAULT_HOST_TEMPLATE="OS-Linux-Centreon-Monitoring-Agent-custom"
 
 # Configuration paths
@@ -122,7 +122,7 @@ LOG_LEVEL="${DEFAULT_LOG_LEVEL}"
 MAX_FILE_SIZE="${DEFAULT_MAX_FILE_SIZE}"
 MAX_NUMBER="${DEFAULT_MAX_NUMBER}"
 CUSTOM_CHECK_FILE=""
-COMPONENTS="agent,plugin"
+COMPONENTS="agent,plugins"
 DRY_RUN=false
 OUTPUT_CONFIG=false
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"  # Optional GitHub token for API authentication
@@ -174,8 +174,8 @@ OPTIONAL OPTIONS:
     -v, --version <VERSION>       Centreon version: 24.10 or 25.10 (default: ${DEFAULT_CENTREON_VERSION})
     -c, --encryption <MODE>       Encryption mode: full, insecure, or no (default: ${DEFAULT_ENCRYPTION})
     -r, --reverse                 Enable poller-initiated (reversed) connection mode
-    -a, --ca-cert <PATH>          Path to CA certificate file (used with encryption=full/insecure)
-    -N, --ca-name <NAME>          CA common name (optional, used with encryption=full/insecure)
+    -a, --ca <PATH>          Path to CA certificate file (used with encryption=full/insecure)
+    -N, --common-name <NAME>          CA common name (optional, used with encryption=full/insecure)
     -C, --cert <PATH>             Path to public certificate file (required for TLS in reverse mode)
     -k, --key <PATH>              Path to private key file (required for TLS in reverse mode)
     -f, --fingerprint <STRING>    Certificate fingerprint for validation
@@ -184,8 +184,8 @@ OPTIONAL OPTIONS:
     -l, --log-level <LEVEL>       Log level: off, critical, error, warning, info, debug, trace (default: ${DEFAULT_LOG_LEVEL})
     -M, --max-file-size <BYTES>   Maximum log file size in bytes (used with log-type=file)
     -m, --max-number <NUM>        Maximum number of log files for rotation
-    -x, --custom-check <PATH>     Path to custom check configuration file
-    -p, --components <LIST>       Comma-separated list of components to install: agent,plugin (default: agent,plugin)
+    -x, --custom-check-file <PATH>     Path to custom check configuration file
+    -p, --components <LIST>       Comma-separated list of components to install: agent,plugins (default: agent,plugins)
     -H, --host-template <STRING>    Host template to use in Centreon (optional)
     -d, --dry-run                 Show what would be done without making changes
     -h, --help                    Display this help message
@@ -195,7 +195,7 @@ EXAMPLES:
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-auth-token"
 
     # Installation with plugins and custom hostname
-    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugin"
+    ${SCRIPT_NAME} -e "poller.example.com:4317" -t "my-token" -n "web-server-01" -p "agent,plugins"
 
     # Installation with full encryption (agent-initiated)
     ${SCRIPT_NAME} -e "192.168.1.100:4317" -t "my-token" -c full -a /path/to/ca.crt
@@ -931,7 +931,7 @@ install_cma_agent() {
 
 install_centreon_plugins() {
     # Check if "plugin" is in the COMPONENTS list
-    if [[ ! "${COMPONENTS}" =~ (^|,)plugin(,|$) ]]; then
+    if [[ ! "${COMPONENTS}" =~ (^|,)plugins(,|$) ]]; then
         return 0
     fi
 
@@ -1034,7 +1034,7 @@ generate_config_json() {
     if [[ "${ENCRYPTION}" == "full" || "${ENCRYPTION}" == "insecure" ]]; then
         if [[ "${REVERSE_MODE}" == "true" ]]; then
             if [[ -n "${PUBLIC_CERT}" ]]; then
-                config_json+=$'\n'"    \"certificate\": \"${PUBLIC_CERT}\","
+                config_json+=$'\n'"    \"public_cert\": \"${PUBLIC_CERT}\","
             fi
             if [[ -n "${PRIVATE_KEY}" ]]; then
                 config_json+=$'\n'"    \"private_key\": \"${PRIVATE_KEY}\","
@@ -1054,7 +1054,7 @@ generate_config_json() {
     fi
 
     if [[ -n "${CUSTOM_CHECK_FILE}" ]]; then
-        config_json+=$'\n'"    \"check_file\": \"${CUSTOM_CHECK_FILE}\","
+        config_json+=$'\n'"    \"custom_check_file\": \"${CUSTOM_CHECK_FILE}\","
     fi
 
     config_json="${config_json%,}"
@@ -1131,7 +1131,7 @@ parse_arguments() {
                 CA_CERT="$2"
                 shift 2
                 ;;
-            -N|--commonname)
+            -N|--common-name)
                 CA_COMMON_NAME="$2"
                 shift 2
                 ;;
@@ -1147,16 +1147,16 @@ parse_arguments() {
                 FINGERPRINT="$2"
                 shift 2
                 ;;
-            -T|--logtype)
+            -T|--log-type)
                 LOG_TYPE="$2"
                 validate_log_type "${LOG_TYPE}"
                 shift 2
                 ;;
-            -L|--logfile)
+            -L|--log-file)
                 LOG_FILE="$2"
                 shift 2
                 ;;
-            -l|--loglevel)
+            -l|--log-level)
                 LOG_LEVEL="$2"
                 validate_log_level "${LOG_LEVEL}"
                 shift 2
@@ -1169,7 +1169,7 @@ parse_arguments() {
                 MAX_NUMBER="$2"
                 shift 2
                 ;;
-            -x|--custom-check)
+            -x|--custom-check-file)
                 CUSTOM_CHECK_FILE="$2"
                 shift 2
                 ;;
@@ -1185,7 +1185,7 @@ parse_arguments() {
                 DRY_RUN=true
                 shift
                 ;;
-            -H| --host-template)
+            -H|--host-template)
                 HOST_TEMPLATE="$2"
                 shift 2
                 ;;
