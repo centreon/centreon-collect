@@ -40,10 +40,12 @@
     Maximum log file size
 .PARAMETER MaxNumber
     Maximum number of log files
-.PARAMETER CustomCheck
+.PARAMETER CustomCheckFile
     Custom check configuration
 .PARAMETER PluginSrc
     Plugin source path
+.PARAMETER HostTemplate
+    Template source
 .EXAMPLE
     .\install-centreon-agent.ps1 -Endpoint "h:1"
     Minimal installation with just endpoint and token (prompted). Host defaults to Windows hostname, both agent and plugins installed.
@@ -85,7 +87,7 @@ param(
     [string]$Reverse = "",
     
     [Parameter(Mandatory=$false)]
-    [string]$Encryption = "",
+    [string]$Encryption = "full",
     
     [Parameter(Mandatory=$false)]
     [string]$Cert = "",
@@ -106,16 +108,19 @@ param(
     [string]$LogLevel = "",
     
     [Parameter(Mandatory=$false)]
-    [string]$MaxFileSize = "",
+    [string]$MaxFileSize = "10",
     
     [Parameter(Mandatory=$false)]
-    [string]$MaxNumber = "",
+    [string]$MaxNumber = "10",
     
     [Parameter(Mandatory=$false)]
-    [string]$CustomCheck = "",
+    [string]$CustomCheckFile = "",
     
     [Parameter(Mandatory=$false)]
-    [string]$PluginSrc = ""
+    [string]$PluginSrc = "",
+
+    [Parameter(Mandatory=$false)]
+    [string]$HostTemplate = ""
     
 )
 
@@ -323,7 +328,8 @@ function Build-InstallerArgs {
     if ($LogLevel) { $args += "/LOGLEVEL=$LogLevel" }
     if ($MaxFileSize) { $args += "/MAXFILESIZE=$MaxFileSize" }
     if ($MaxNumber) { $args += "/MAXNUMBER=$MaxNumber" }
-    if ($CustomCheck) { $args += "/CUSTOMCHECKFILE=$CustomCheck" }
+    if ($CustomCheckFile) { $args += "/CUSTOMCHECKFILE=$CustomCheckFile" }
+    if ($HostTemplate)  {$args += "/HOSTTEMPLATE=$HostTemplate"}
     if ($PluginSrc) { $args += "/PLUGINSRC=$PluginSrc" }
     
     return $args
