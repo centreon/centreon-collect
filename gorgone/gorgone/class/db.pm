@@ -24,6 +24,14 @@ use strict;
 use warnings;
 use DBI;
 
+BEGIN {
+    if (-f "/etc/redhat-release" && open(my $fic, "/etc/redhat-release")) {
+        # Disable Hooks::EndOfScope::XS module on Alma10 MON-196549
+        $ENV{B_HOOKS_ENDOFSCOPE_IMPLEMENTATION} = 'PP' if <$fic> =~ /release 10/;
+        close($fic);
+    }
+}
+
 sub new {
     my ($class, %options) = @_;
     my %defaults = (
