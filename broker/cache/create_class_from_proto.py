@@ -365,10 +365,7 @@ def create_header(header_path: str, protos: list, messages: dict, enums: dict, c
 class {snake_name} : public message {{
   '''
         class_declaration += ";\n  ".join(data_member_declare)
-        class_declaration += """;\n
-  friend bool update(const ::google::protobuf::Message& mess);
-"""
-        class_declaration += f'''
+        class_declaration += f''';
  public:
   {snake_name}(const {pb_class_name}& src, const allocators& allocator);
   {snake_name}(const {snake_name}& src, const allocators& allocator);
@@ -815,6 +812,8 @@ using namespace com::centreon::broker;
               interprocess::anonymous_instance)(mess.field(), allocator); \\
     updated = true;                                                        \\
   }} else if (!mess.has_##field() && mutable_##field()) {{                   \\
+    allocator.segm_manager->destroy_ptr(                                     \\
+          static_cast<mess_type*>(mutable_##field().get()));                  \\
     mutable_##field().reset();                                             \\
     updated = true;                                                        \\
   }} else if (mutable_##field()->update(mess.field, allocator)) {{           \\

@@ -58,7 +58,7 @@ class simple_global_cache : public global_cache {
     return nullptr;
   }
 
-  void write(const std::shared_ptr<io::data>& d) override {}
+  void _write_impl(const std::shared_ptr<io::data>& d, bool) override {}
 
   const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override {
     return nullptr;

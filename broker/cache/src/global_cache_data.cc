@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/cache/protobuf.hh"
 
+#include <stdexcept>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
@@ -90,299 +91,323 @@ global_cache_data::global_cache_data(
                    nb_update_before_save,
                    save_interval) {}
 
+/**
+ * @brief Initialize or recover all named containers in the memory-mapped
+ * segment.
+ *
+ * Extends global_cache::managed_map() by finding or constructing every
+ * data container (hosts, services, groups, tags, BAM objects, …) that
+ * global_cache_data needs.
+ *
+ * - create=true  : constructs all named containers from scratch. Called when
+ *                  the file did not exist or was invalid and has just been
+ *                  created.
+ * - create=false : looks up each named container in the existing file and
+ *                  throws std::invalid_argument if any is missing, which causes
+ *                  _open() to delete and recreate the file.
+ *
+ * In both cases the _allocators helper is (re)created from the current segment
+ * manager, which is necessary after any remap (e.g. after a file grow).
+ *
+ * @param create true if the file was just created, false if reopened.
+ * @throws std::invalid_argument if any expected named object is absent.
+ */
 void global_cache_data::managed_map(bool create) {
   global_cache::managed_map(create);
   _allocators = std::make_unique<allocators>(_file->get_segment_manager());
-  bool cont_created = false;
-  _index_id_mapping = _file->find<index_id_mapping>("index_id_mapping").first;
-  if (!_index_id_mapping) {
+  if (create) {
     _index_id_mapping = _file->find_or_construct<index_id_mapping>(
         "index_id_mapping")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_host = _file->find<id_to_host>("id_to_host").first;
-  if (!_id_to_host) {
     _id_to_host = _file->find_or_construct<id_to_host>("id_to_host")(
         _file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_service = _file->find<id_to_serv>("id_to_service").first;
-  if (!_id_to_service) {
     _id_to_service = _file->find_or_construct<id_to_serv>("id_to_service")(
         _file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_instance = _file->find<id_to_instance>("id_to_instance").first;
-  if (!_id_to_instance) {
     _id_to_instance = _file->find_or_construct<id_to_instance>(
         "id_to_instance")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_host_group = _file->find<id_to_host_group>("host_group").first;
-  if (!_id_to_host_group) {
     _id_to_host_group = _file->find_or_construct<id_to_host_group>(
         "host_group")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_serv_group = _file->find<id_to_serv_group>("service_group").first;
-  if (!_id_to_serv_group) {
     _id_to_serv_group = _file->find_or_construct<id_to_serv_group>(
         "service_group")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _host_group_members = _file->find<host_group_cont>("host_group_member").first;
-  if (!_host_group_members) {
     _host_group_members = _file->find_or_construct<host_group_cont>(
         "host_group_member")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _service_group_members =
-      _file->find<service_group_cont>("service_group_member").first;
-  if (!_service_group_members) {
     _service_group_members = _file->find_or_construct<service_group_cont>(
         "service_group_member")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _metric_id_mapping =
-      _file->find<metric_id_mapping>("metric_id_mapping").first;
-  if (!_metric_id_mapping) {
     _metric_id_mapping = _file->find_or_construct<metric_id_mapping>(
         "metric_id_mapping")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_dimension_ba_event =
-      _file->find<id_to_dimension_ba_event>("id_to_dimension_ba_event").first;
-  if (!_id_to_dimension_ba_event) {
     _id_to_dimension_ba_event =
         _file->find_or_construct<id_to_dimension_ba_event>(
             "id_to_dimension_ba_event")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_dimension_bv_event =
-      _file->find<id_to_dimension_bv_event>("id_to_dimension_bv_event").first;
-  if (!_id_to_dimension_bv_event) {
     _id_to_dimension_bv_event =
         _file->find_or_construct<id_to_dimension_bv_event>(
             "id_to_dimension_bv_event")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_dimension_ba_bv_relation = _file
-                                        ->find<id_to_dimension_ba_bv_relation>(
-                                            "id_to_dimension_ba_bv_relation")
-                                        .first;
-  if (!_id_to_dimension_ba_bv_relation) {
     _id_to_dimension_ba_bv_relation =
         _file->find_or_construct<id_to_dimension_ba_bv_relation>(
             "id_to_dimension_ba_bv_relation")(_file->get_segment_manager());
-    cont_created = true;
-  }
-  _id_to_tag = _file->find<id_to_tag>("id_to_tag").first;
-  if (!_id_to_tag) {
     _id_to_tag = _file->find_or_construct<id_to_tag>("id_to_tag")(
         _file->get_segment_manager());
-    cont_created = true;
-  }
-
-  if (cont_created) {
-    boost::unique_lock l(_protect);
-    _set_dirty_and_increment_modif();
+  } else {
+    _index_id_mapping = _file->find<index_id_mapping>("index_id_mapping").first;
+    if (!_index_id_mapping) {
+      throw std::invalid_argument("index_id_mapping not found");
+    }
+    _id_to_host = _file->find<id_to_host>("id_to_host").first;
+    if (!_id_to_host) {
+      throw std::invalid_argument("id_to_host not found");
+    }
+    _id_to_service = _file->find<id_to_serv>("id_to_service").first;
+    if (!_id_to_service) {
+      throw std::invalid_argument("id_to_service not found");
+    }
+    _id_to_instance = _file->find<id_to_instance>("id_to_instance").first;
+    if (!_id_to_instance) {
+      throw std::invalid_argument("id_to_instance not found");
+    }
+    _id_to_host_group = _file->find<id_to_host_group>("host_group").first;
+    if (!_id_to_host_group) {
+      throw std::invalid_argument("host_group not found");
+    }
+    _id_to_serv_group = _file->find<id_to_serv_group>("service_group").first;
+    if (!_id_to_serv_group) {
+      throw std::invalid_argument("service_group not found");
+    }
+    _host_group_members =
+        _file->find<host_group_cont>("host_group_member").first;
+    if (!_host_group_members) {
+      throw std::invalid_argument("host_group_member not found");
+    }
+    _service_group_members =
+        _file->find<service_group_cont>("service_group_member").first;
+    if (!_service_group_members) {
+      throw std::invalid_argument("service_group_member not found");
+    }
+    _metric_id_mapping =
+        _file->find<metric_id_mapping>("metric_id_mapping").first;
+    if (!_metric_id_mapping) {
+      throw std::invalid_argument("metric_id_mapping not found");
+    }
+    _id_to_dimension_ba_event =
+        _file->find<id_to_dimension_ba_event>("id_to_dimension_ba_event").first;
+    if (!_id_to_dimension_ba_event) {
+      throw std::invalid_argument("id_to_dimension_ba_event not found");
+    }
+    _id_to_dimension_bv_event =
+        _file->find<id_to_dimension_bv_event>("id_to_dimension_bv_event").first;
+    if (!_id_to_dimension_bv_event) {
+      throw std::invalid_argument("id_to_dimension_bv_event not found");
+    }
+    _id_to_dimension_ba_bv_relation =
+        _file
+            ->find<id_to_dimension_ba_bv_relation>(
+                "id_to_dimension_ba_bv_relation")
+            .first;
+    if (!_id_to_dimension_ba_bv_relation) {
+      throw std::invalid_argument("id_to_dimension_ba_bv_relation not found");
+    }
+    _id_to_tag = _file->find<id_to_tag>("id_to_tag").first;
+    if (!_id_to_tag) {
+      throw std::invalid_argument("id_to_tag not found");
+    }
   }
 }
 
 /**
- * @brief add metric infos to cache
+ * @brief Dispatch an event to the appropriate cache writer(s).
  *
- * @param metric_id
- * @param index_id
- * @param name
- * @param unit
- * @param min
- * @param max
+ * Routes the event to _write_rt() or _write_conf() depending on the cache
+ * type, then forwards it to the conf cache as well when in real-time mode.
+ *
+ * If the mapped file runs out of space (interprocess::bad_alloc), the file is
+ * grown via allocation_exception_handler() and the write is retried once. On a
+ * second failure the event is dropped and a CRITICAL message is logged.
+ *
+ * @param data           Event to store. No-op if null.
+ * @param first_attempt Internal retry guard — callers must use the default
+ *                       value (true).
  */
-void global_cache_data::write(const std::shared_ptr<io::data>& data) {
+void global_cache_data::_write_impl(const std::shared_ptr<io::data>& data,
+                                    bool first_attempt) {
   if (!data)
     return;
-  if (_cache_type == e_cache_type::real_time) {
-    _write_rt(data);
-    if (_conf_cache) {
-      std::static_pointer_cast<global_cache_data>(_conf_cache)
-          ->_write_conf(data);
+  try {
+    if (_cache_type == e_cache_type::real_time) {
+      _write_rt(data);
+      if (_conf_cache) {
+        _conf_cache->write(data);
+      }
+    } else {
+      _write_conf(data);
     }
-  } else {
-    _write_conf(data);
+  } catch (const interprocess::bad_alloc& e) {
+    if (!first_attempt) {
+      SPDLOG_LOGGER_CRITICAL(
+          _logger, "cache: fail to write datas to {}, we don't retry again",
+          _file_path);
+      return;
+    }
+    SPDLOG_LOGGER_DEBUG(_logger, "cache: file {} full => grow", _file_path);
+    allocation_exception_handler();
+    _write_impl(data, false);
   }
 }
 
 void global_cache_data::_write_rt(const std::shared_ptr<io::data>& data) {
-  try {
-    switch (data->type()) {
-      case neb::host::static_type():
-        _process_pb_host(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host::static_type():
-        _process_pb_host(data);
-        break;
-      case neb::host_status::static_type():
-        _process_pb_host_status(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host_status::static_type():
-        _process_pb_host_status(data);
-        break;
-      case neb::pb_adaptive_host::static_type():
-        _process_pb_adaptive_host(data);
-        break;
-      case neb::pb_adaptive_host_status::static_type():
-        _process_pb_adaptive_host_status(data);
-        break;
-      case neb::service::static_type():
-        _process_pb_service(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service::static_type():
-        _process_pb_service(data);
-        break;
-      case neb::service_status::static_type():
-        _process_pb_service_status(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service_status::static_type():
-        _process_pb_service_status(data);
-        break;
-      case neb::pb_adaptive_service_status::static_type():
-        _process_pb_adaptive_service_status(data);
-        break;
-      case neb::pb_adaptive_service::static_type():
-        _process_pb_adaptive_service(data);
-        break;
-      case bam::dimension_ba_event::static_type():
-        _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_ba_event::static_type():
-        _process_dimension_ba_event(data);
-        break;
-      case bam::dimension_bv_event::static_type():
-        _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_bv_event::static_type():
-        _process_dimension_bv_event(data);
-        break;
-      case bam::dimension_truncate_table_signal::static_type():
-        _process_pb_dimension_truncate_table_signal(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_truncate_table_signal::static_type():
-        _process_pb_dimension_truncate_table_signal(data);
-        break;
-      default:
-        break;
-    }
-  } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(_logger, "file full => grow");
-    allocation_exception_handler();
-    write(data);
+  switch (data->type()) {
+    case neb::host::static_type():
+      _process_pb_host(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_host::static_type():
+      _process_pb_host(data);
+      break;
+    case neb::host_status::static_type():
+      _process_pb_host_status(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_host_status::static_type():
+      _process_pb_host_status(data);
+      break;
+    case neb::pb_adaptive_host::static_type():
+      _process_pb_adaptive_host(data);
+      break;
+    case neb::pb_adaptive_host_status::static_type():
+      _process_pb_adaptive_host_status(data);
+      break;
+    case neb::service::static_type():
+      _process_pb_service(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_service::static_type():
+      _process_pb_service(data);
+      break;
+    case neb::service_status::static_type():
+      _process_pb_service_status(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_service_status::static_type():
+      _process_pb_service_status(data);
+      break;
+    case neb::pb_adaptive_service_status::static_type():
+      _process_pb_adaptive_service_status(data);
+      break;
+    case neb::pb_adaptive_service::static_type():
+      _process_pb_adaptive_service(data);
+      break;
+    case bam::dimension_ba_event::static_type():
+      _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_ba_event::static_type():
+      _process_dimension_ba_event(data);
+      break;
+    case bam::dimension_bv_event::static_type():
+      _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_bv_event::static_type():
+      _process_dimension_bv_event(data);
+      break;
+    case bam::dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(data);
+      break;
+    default:
+      break;
   }
 }
 
 void global_cache_data::_write_conf(const std::shared_ptr<io::data>& data) {
-  try {
-    switch (data->type()) {
-      case neb::instance::static_type():
-        _process_pb_instance(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_instance::static_type():
-        _process_pb_instance(data);
-        break;
-      case neb::host::static_type():
-        _process_pb_host(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host::static_type():
-        _process_pb_host(data);
-        break;
-      case neb::pb_adaptive_host::static_type():
-        _process_pb_adaptive_host(data);
-        break;
-      case neb::host_group::static_type():
-        _process_pb_host_group(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host_group::static_type():
-        _process_pb_host_group(data);
-        break;
-      case neb::host_group_member::static_type():
-        _process_pb_host_group_member(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_host_group_member::static_type():
-        _process_pb_host_group_member(data);
-        break;
-      case neb::service::static_type():
-        _process_pb_service(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service::static_type():
-        _process_pb_service(data);
-        break;
-      case neb::pb_adaptive_service::static_type():
-        _process_pb_adaptive_service(data);
-        break;
-      case neb::service_group::static_type():
-        _process_pb_service_group(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service_group::static_type():
-        _process_pb_service_group(data);
-        break;
-      case neb::service_group_member::static_type():
-        _process_pb_service_group_member(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_service_group_member::static_type():
-        _process_pb_service_group_member(data);
-        break;
-      case neb::custom_variable::static_type():
-        _process_pb_custom_variable(neb::bbdo2_to_bbdo3(data));
-        break;
-      case neb::pb_custom_variable::static_type():
-        _process_pb_custom_variable(data);
-        break;
-      case storage::pb_index_mapping::static_type():
-        _process_index_mapping(data);
-        break;
-      case storage::index_mapping::static_type():
-        _process_index_mapping(neb::bbdo2_to_bbdo3(data));
-        break;
-      case storage::pb_metric_mapping::static_type():
-        _process_metric_mapping(data);
-        break;
-      case storage::metric_mapping::static_type():
-        _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::dimension_ba_event::static_type():
-        _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_ba_event::static_type():
-        _process_dimension_ba_event(data);
-        break;
-      case bam::dimension_ba_bv_relation_event::static_type():
-        _process_dimension_ba_bv_relation_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_ba_bv_relation_event::static_type():
-        _process_dimension_ba_bv_relation_event(data);
-        break;
-      case bam::dimension_bv_event::static_type():
-        _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_bv_event::static_type():
-        _process_dimension_bv_event(data);
-        break;
-      case bam::dimension_truncate_table_signal::static_type():
-        _process_pb_dimension_truncate_table_signal(neb::bbdo2_to_bbdo3(data));
-        break;
-      case bam::pb_dimension_truncate_table_signal::static_type():
-        _process_pb_dimension_truncate_table_signal(data);
-        break;
-      case neb::pb_tag::static_type():
-        _process_pb_tag(data);
-        break;
-      default:
-        break;
-    }
-  } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(_logger, "file full => grow");
-    allocation_exception_handler();
-    write(data);
+  switch (data->type()) {
+    case neb::instance::static_type():
+      _process_pb_instance(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_instance::static_type():
+      _process_pb_instance(data);
+      break;
+    case neb::host::static_type():
+      _process_pb_host(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_host::static_type():
+      _process_pb_host(data);
+      break;
+    case neb::pb_adaptive_host::static_type():
+      _process_pb_adaptive_host(data);
+      break;
+    case neb::host_group::static_type():
+      _process_pb_host_group(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_host_group::static_type():
+      _process_pb_host_group(data);
+      break;
+    case neb::host_group_member::static_type():
+      _process_pb_host_group_member(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_host_group_member::static_type():
+      _process_pb_host_group_member(data);
+      break;
+    case neb::service::static_type():
+      _process_pb_service(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_service::static_type():
+      _process_pb_service(data);
+      break;
+    case neb::pb_adaptive_service::static_type():
+      _process_pb_adaptive_service(data);
+      break;
+    case neb::service_group::static_type():
+      _process_pb_service_group(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_service_group::static_type():
+      _process_pb_service_group(data);
+      break;
+    case neb::service_group_member::static_type():
+      _process_pb_service_group_member(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_service_group_member::static_type():
+      _process_pb_service_group_member(data);
+      break;
+    case neb::custom_variable::static_type():
+      _process_pb_custom_variable(neb::bbdo2_to_bbdo3(data));
+      break;
+    case neb::pb_custom_variable::static_type():
+      _process_pb_custom_variable(data);
+      break;
+    case storage::pb_index_mapping::static_type():
+      _process_index_mapping(data);
+      break;
+    case storage::index_mapping::static_type():
+      _process_index_mapping(neb::bbdo2_to_bbdo3(data));
+      break;
+    case storage::pb_metric_mapping::static_type():
+      _process_metric_mapping(data);
+      break;
+    case storage::metric_mapping::static_type():
+      _process_metric_mapping(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::dimension_ba_event::static_type():
+      _process_dimension_ba_event(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_ba_event::static_type():
+      _process_dimension_ba_event(data);
+      break;
+    case bam::dimension_ba_bv_relation_event::static_type():
+      _process_dimension_ba_bv_relation_event(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_ba_bv_relation_event::static_type():
+      _process_dimension_ba_bv_relation_event(data);
+      break;
+    case bam::dimension_bv_event::static_type():
+      _process_dimension_bv_event(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_bv_event::static_type():
+      _process_dimension_bv_event(data);
+      break;
+    case bam::dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(neb::bbdo2_to_bbdo3(data));
+      break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(data);
+      break;
+    case neb::pb_tag::static_type():
+      _process_pb_tag(data);
+      break;
+    default:
+      break;
   }
 }
 
@@ -589,10 +614,11 @@ void global_cache_data::_process_pb_adaptive_host(
 void global_cache_data::_process_pb_host_group(
     std::shared_ptr<io::data> const& data) {
   const auto& in = std::static_pointer_cast<neb::pb_host_group>(data)->obj();
-  SPDLOG_LOGGER_TRACE(
-      _logger,
-      "cache: processing pb host group '{}' of id {} for poller {}, enabled {}",
-      in.name(), in.hostgroup_id(), in.poller_id(), in.enabled());
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "cache: processing pb host group '{}' of id {} for "
+                      "poller {}, enabled {}",
+                      in.name(), in.hostgroup_id(), in.poller_id(),
+                      in.enabled());
   boost::unique_lock l(_protect);
   auto exist = _id_to_host_group->find(in.hostgroup_id());
 
@@ -634,11 +660,12 @@ void global_cache_data::_process_pb_host_group_member(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
-  SPDLOG_LOGGER_TRACE(
-      _logger,
-      "cache: processing pb host group member (group_name: '{}', group_id: {}, "
-      "host_id: {} poller_id: {}, enabled: {})",
-      in.name(), in.hostgroup_id(), in.host_id(), in.poller_id(), in.enabled());
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "cache: processing pb host group member (group_name: "
+                      "'{}', group_id: {}, "
+                      "host_id: {} poller_id: {}, enabled: {})",
+                      in.name(), in.hostgroup_id(), in.host_id(),
+                      in.poller_id(), in.enabled());
 
   boost::unique_lock l(_protect);
   if (in.enabled()) {

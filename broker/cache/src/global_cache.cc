@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/cache/protobuf.hh"
 
+#include <fmt/format.h>
+#include <stdexcept>
 #include "boost/system/detail/error_code.hpp"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
@@ -41,6 +43,18 @@ inline std::string operator+(const std::string& left,
   ret.append(to_append.data(), to_append.length());
   return ret;
 }
+
+namespace com::centreon::broker::cache {
+struct collect_version {
+  unsigned major;
+  unsigned minor;
+  unsigned patch;
+
+  bool operator!=(const collect_version& other) const {
+    return major != other.major || minor != other.minor || patch != other.patch;
+  }
+};
+}  // namespace com::centreon::broker::cache
 
 // not defined here but in broker engine in order to be accessed by broker
 // engine and every modules
@@ -154,6 +168,14 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
+    } catch (const std::invalid_argument&
+                 e) {  // upgrade broker => erase cache and recreate
+      SPDLOG_LOGGER_ERROR(
+          _logger,
+          e.what() + std::string(", you will have to restart pollers"));
+      _file.reset();
+      _file_size = 0;
+      ::remove(_file_path.c_str());
     } catch (const std::exception& e) {
       std::string err_detail =
           fmt::format("cache: corrupted cache file {} => recreate {}",
@@ -177,6 +199,46 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           _logger, "cache: allocation error: {}, too small initial file size?",
           boost::diagnostic_information(e));
       throw;
+    }
+  }
+}
+
+/**
+ * @brief Initialize or validate the version section in the memory-mapped file.
+ *
+ * This method is called by the derived class after the memory-mapped file has
+ * been opened or created. It acts as a hook so that each level of the class
+ * hierarchy can initialize its own named objects in the segment.
+ *
+ * - create=true  : constructs the named object "collect_version" in the
+ *                  segment with the current binary version.
+ * - create=false : looks up "collect_version" in the existing file and checks
+ *                  that it matches the current binary version. If absent or
+ *                  mismatched, throws std::invalid_argument, which causes
+ *                  _open() to delete and recreate the file.
+ *
+ * @param create true if the file was just created, false if reopened.
+ * @throws std::invalid_argument if the version object is missing or does not
+ *         match the current binary version.
+ */
+void global_cache::managed_map(bool create) {
+  collect_version expected{COLLECT_MAJOR, COLLECT_MINOR, COLLECT_PATCH};
+  if (create) {
+    _file->find_or_construct<collect_version>("collect_version")(expected);
+    return;
+  } else {
+    collect_version* version =
+        _file->find<collect_version>("collect_version").first;
+    if (!version) {
+      throw std::invalid_argument("version not found");
+    }
+    if (*version != expected) {
+      std::string detail = fmt::format(
+          "cache: collect version in cache: {}.{}.{}, expected: {}.{}.{} => "
+          "erase cache {}",
+          version->major, version->minor, version->patch, expected.major,
+          expected.minor, expected.patch, _file_path);
+      throw std::invalid_argument(detail);
     }
   }
 }

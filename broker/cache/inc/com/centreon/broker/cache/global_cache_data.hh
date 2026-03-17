@@ -325,6 +325,9 @@ class global_cache_data : public global_cache {
   void _write_conf(const std::shared_ptr<io::data>& data);
   void _write_rt(const std::shared_ptr<io::data>& data);
 
+  void _write_impl(const std::shared_ptr<io::data>& d,
+                   bool first_attempt) override;
+
  public:
   global_cache_data(const std::shared_ptr<asio::io_context> io_context,
                     const std::string& file_path,
@@ -334,8 +337,6 @@ class global_cache_data : public global_cache {
                     unsigned nb_update_before_save = 1000,
                     std::chrono::system_clock::duration save_interval =
                         std::chrono::seconds(10));
-
-  void write(const std::shared_ptr<io::data>& d) override;
 
   const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override
       ABSL_SHARED_LOCKS_REQUIRED(_protect);

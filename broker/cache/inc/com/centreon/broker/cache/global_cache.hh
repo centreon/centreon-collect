@@ -162,7 +162,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void allocation_exception_handler();
 
-  virtual void managed_map(bool create [[maybe_unused]]) {}
+  virtual void managed_map(bool create);
 
   void _set_dirty_and_increment_modif() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
@@ -171,14 +171,17 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void _flush() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
+  virtual void _write_impl(const std::shared_ptr<io::data>& d,
+                           bool first_attempt) = 0;
+
  public:
   using pointer = std::shared_ptr<global_cache>;
 
   static pointer load(const std::shared_ptr<asio::io_context> io_context,
                       const std::string& file_path,
-                      size_t initial_size = 0x20000000,
+                      size_t initial_size = 0x10000000,
                       const void* address = 0,
-                      unsigned grow_step = 0x20000000,
+                      unsigned grow_step = 0x10000000,
                       unsigned nb_update_before_save = 1000,
                       std::chrono::system_clock::duration save_interval =
                           std::chrono::seconds(10));
@@ -226,7 +229,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   // use only for tests
   const void* get_address() const;
 
-  virtual void write(const std::shared_ptr<io::data>& d) = 0;
+  void write(const std::shared_ptr<io::data>& d) { _write_impl(d, true); }
 
   virtual const host* get_host(uint64_t host_id, upgrade_lock& l) = 0;
   virtual const service* get_service(uint64_t host_id,
