@@ -338,14 +338,14 @@ class global_cache_data : public global_cache {
   void write(const std::shared_ptr<io::data>& d) override;
 
   const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
   const service* get_service(uint64_t host_id,
                              uint64_t service_id,
                              upgrade_lock& read_lock) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
 
   const host_serv_pair* get_host_serv_id(uint64_t index_id) override
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+      ABSL_SHARED_LOCKS_REQUIRED(_protect);
 
   const instance* get_instance(uint64_t instance_id) override
       ABSL_SHARED_LOCKS_REQUIRED(_protect);

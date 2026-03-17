@@ -97,7 +97,9 @@ void global_cache::_save_timer_handler(const boost::system::error_code& err) {
 }
 
 void global_cache::_set_dirty_and_increment_modif() {
-  *_dirty = true;
+  if (_dirty) {
+    *_dirty = true;
+  }
   ++_modif_counter;
   time_t now = time(nullptr);
   if (_modif_counter > _nb_update_before_save && _last_save_time != now) {

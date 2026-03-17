@@ -53,7 +53,7 @@ using private_float_allocator =
     interprocess::private_node_allocator<float, segment_manager, 4096>;
 using private_bool_allocator =
     interprocess::private_node_allocator<bool, segment_manager, 4096>;
-using private_string_pointer_allocator =
+using private_string_allocator =
     interprocess::private_node_allocator<string, segment_manager, 4096>;
 using private_message_pointer_allocator =
     interprocess::private_node_allocator<interprocess::offset_ptr<message>,
@@ -82,7 +82,7 @@ struct allocators {
   private_double_allocator double_alloc;
   private_float_allocator float_alloc;
   private_bool_allocator bool_alloc;
-  private_string_pointer_allocator string_alloc;
+  private_string_allocator string_alloc;
   private_message_pointer_allocator message_alloc;
   segment_manager* segm_manager;
 };
@@ -96,8 +96,7 @@ using uint64_vect =
 using double_vect = boost::container::vector<double, private_double_allocator>;
 using float_vect = boost::container::vector<float, private_float_allocator>;
 using bool_vect = boost::container::vector<bool, private_bool_allocator>;
-using string_vect =
-    boost::container::vector<string, private_string_pointer_allocator>;
+using string_vect = boost::container::vector<string, private_string_allocator>;
 using mess_vect = boost::container::vector<interprocess::offset_ptr<message>,
                                            private_message_pointer_allocator>;
 

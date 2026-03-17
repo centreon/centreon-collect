@@ -40,8 +40,6 @@
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>

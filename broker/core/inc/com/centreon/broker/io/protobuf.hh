@@ -114,9 +114,9 @@ class protobuf : public protobuf_base {
    * object. It is useful to be able to construct an io::protobuf directly from
    * the Protobuf object.
    *
-   * @param o The protobuf object (it is copied).
+   * @param o The protobuf object (it is moved).
    */
-  protobuf(const T&& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+  protobuf(T&& o) : protobuf_base(Typ, &_obj), _obj(o) {}
 
   /**
    * @brief Construct a new protobuf object

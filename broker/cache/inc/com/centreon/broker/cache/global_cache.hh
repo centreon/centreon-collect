@@ -47,41 +47,71 @@ inline bool operator!=(const string& left, const std::string_view& right) {
 }
 
 /**
- * @brief this singleton is used to store many things in a mapped file
- * All memory stored in it are allocated in a memory segment mapped to a file
- * Sometimes file needs to be growned, so memory segment may be moved
- * So before getting data and during the result usage, you must aquire a shared
- * lock by creating a global_cache::lock object
- * example:
- * @code
- * global_cache::lock l;
- * const string * host_name =
- * global_cache::instance_ptr()->get_host_name("toto");
+ * @brief Singleton giving access to a persistent, memory-mapped cache of
+ * broker objects (hosts, services, groups, tags, BAM dimensions, …).
+ *
+ * ## Dual-cache design
+ *
+ * Two independent files are maintained side by side:
+ *  - **conf cache** (`*.cnf`): updated only by configuration events (Host,
+ *    Service, HostGroup, ServiceGroup, Instance, Tag, …). It is stable and
+ *    survives crashes.
+ *  - **real-time cache** (`*.rt`): updated by all events, including status
+ *    updates. If a crash is detected (dirty flag set), this file is discarded
+ *    and rebuilt from the conf cache on the next access.
+ *
+ * `instance_ptr()` always returns the **real-time** cache. The conf cache is
+ * an internal implementation detail; external callers never access it directly.
+ * All public getters transparently fall back to the conf cache when the RT
+ * cache does not yet have the requested object (e.g. after a crash recovery).
+ *
+ * ## Thread safety
+ *
+ * All memory lives inside a mapped file segment. The segment may be remapped
+ * (moved in virtual address space) when it grows, so any pointer into the
+ * segment becomes invalid after a grow. To protect against this:
+ *
+ *  - Acquire a `global_cache::lock` before calling any **getter** and hold it
+ *    for as long as you use the returned pointer.
+ *  - Acquire a `global_cache::upgrade_lock` before calling `get_host`,
+ *    `get_service` or `get_instance` (these may promote to a write lock
+ *    internally to copy data from the conf cache into the RT cache).
+ *  - Never hold a lock while calling `write()`.
+ *
+ * Example — read-only getter:
+ * @code {.cpp}
+ * {
+ *   global_cache::lock l;
+ *   const cache::host* h =
+ *       global_cache::instance_ptr()->get_host(host_id, l);
+ *   if (h) {
+ *     // use h here, while l is still in scope
+ *   }
+ * }  // lock released, h must not be used after this point
  * @endcode
  *
+ * ## Growing the mapped file
  *
- * this class is abstract, it only deals with mapping, data are stored in
- * global_cache_data
- *
- * When you insert data, you must catch interprocess::bad_alloc and call
- * allocation_exception_handler to grow file outside any lock
- * @code {.c++}
- * void global_cache_data::add_service_to_group(uint64_t group,
- *                                         uint64_t host,
- *                                         uint64_t service) {
+ * When an allocation inside the segment fails, catch
+ * `interprocess::bad_alloc` **outside** any lock and call
+ * `allocation_exception_handler()`, then retry the operation:
+ * @code {.cpp}
  * try {
- *   absl::WriterMutexLock l(&_protect);
- *   _service_group->emplace(service_group_element{{host, service}, group});
- * } catch (const interprocess::bad_alloc& e) {
- *   SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
- *   allocation_exception_handler();
- *   add_service_to_group(group, host, service);
+ *   boost::unique_lock l(_protect);
+ *   _some_map->emplace(...);
+ * } catch (const interprocess::bad_alloc&) {
+ *   SPDLOG_LOGGER_DEBUG(_logger, "file full => grow");
+ *   allocation_exception_handler();   // acquires its own lock internally
+ *   retry_the_operation();
  * }
- *}
  * @endcode
  *
+ * ## Dirty flag
  *
- * a flag _dirty indicates if the file has been closed gracefully
+ * A boolean `dirty` object is persisted inside the mapped file. It is set to
+ * `true` on every modification and cleared only by an explicit `flush()`. On
+ * startup, if the flag is found `true` the file was not closed gracefully
+ * (crash) and is discarded and recreated from scratch.
  */
 class global_cache : public std::enable_shared_from_this<global_cache> {
  private:
@@ -109,7 +139,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
    * built from conf one each time we need data (like a service)
    */
   enum class e_cache_type { conf, real_time };
-  std::shared_ptr<global_cache> _conf_cache;
+  const std::shared_ptr<global_cache> _conf_cache;
   const e_cache_type _cache_type;
 
   std::shared_ptr<spdlog::logger> _logger;

@@ -380,7 +380,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/time/timezone_manager.cc
   )
 
-
 # Static libraries.
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)

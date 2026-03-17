@@ -18,7 +18,6 @@
 
 #include "bbdo/neb.pb.h"
 
-#include <cstdint>
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
@@ -413,7 +412,6 @@ bool line_protocol_query::_get_index_id(io::data const& d,
     return true;
   } else {
     return false;
-    ;
   }
 }
 

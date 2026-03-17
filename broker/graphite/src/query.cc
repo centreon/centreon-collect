@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/graphite/query.hh"
-#include <absl/strings/str_cat.h>
-#include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"

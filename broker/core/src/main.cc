@@ -38,9 +38,6 @@
 namespace asio = boost::asio;
 using namespace com::centreon;
 
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
-
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 

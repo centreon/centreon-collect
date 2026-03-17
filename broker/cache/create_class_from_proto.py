@@ -318,7 +318,7 @@ def create_header(header_path: str, protos: list, messages: dict, enums: dict, c
                     if type in enums or f"{pb_class_name}_{type}" in enums:
                         cpp_type = "std::optional<int32_t>"
                     if type in messages:
-                        ccp_type = "message::pointer"
+                        cpp_type = "message::pointer"
                         if not pb_class_name in class_dependencies:
                             class_dependencies[pb_class_name] = []
                         class_dependencies[pb_class_name].append(type)
@@ -812,7 +812,7 @@ using namespace com::centreon::broker;
 #define UPDATE_OPTIONAL_MESS_FIELD(mess_type, field)                       \\
   if (mess.has_##field() && !mutable_##field()) {{                          \\
     mutable_##field() =   allocator.segm_manager->construct<mess_type>(    \\
-              interprocess::anonymous_instance)(mess.field(), allocator)); \\
+              interprocess::anonymous_instance)(mess.field(), allocator); \\
     updated = true;                                                        \\
   }} else if (!mess.has_##field() && mutable_##field()) {{                   \\
     mutable_##field().reset();                                             \\
@@ -822,28 +822,30 @@ using namespace com::centreon::broker;
   }}
 
 #define UPDATE_REPEATED_FIELD(field)                                           \\
-  auto src_iter = mess.field().begin();                                        \\
-  auto src_end = mess.field().end();                                           \\
-  if (static_cast<unsigned>(mess.field().size()) > mutable_##field().size()) {{ \\
-    mutable_##field().reserve(mess.field().size());                            \\
-  }}                                                                            \\
-  auto dst_iter = mutable_##field().begin();                                   \\
-  auto dst_end = mutable_##field().end();                                      \\
-  for (; src_iter != src_end && dst_iter != dst_end; ++src_iter, ++dst_iter) {{ \\
-    if (*src_iter != *dst_iter) {{                                              \\
-      *dst_iter = *src_iter;                                                   \\
-      updated = true;                                                          \\
-    }}                                                                          \\
-  }}                                                                            \\
-  if (dst_iter != dst_end) {{                                                   \\
-    mutable_##field().erase(dst_iter, dst_end);                                \\
-  }}                                                                            \\
-  else if (src_iter != src_end) {{                                               \\
-    updated = true;                                                            \\
-    for (; src_iter != src_end; ++src_iter) {{                                 \\
-      mutable_##field().push_back(*src_iter);                                  \\
-    }}                                                                          \\
-  }}
+  {{                                                                             \\
+    auto src_iter = mess.field().begin();                                        \\
+    auto src_end = mess.field().end();                                           \\
+    if (static_cast<unsigned>(mess.field().size()) > mutable_##field().size()) {{ \\
+        mutable_##field().reserve(mess.field().size());                            \\
+    }}                                                                            \\
+    auto dst_iter = mutable_##field().begin();                                   \\
+    auto dst_end = mutable_##field().end();                                      \\
+    for (; src_iter != src_end && dst_iter != dst_end; ++src_iter, ++dst_iter) {{ \\
+        if (*src_iter != *dst_iter) {{                                              \\
+        *dst_iter = *src_iter;                                                   \\
+        updated = true;                                                          \\
+        }}                                                                          \\
+    }}                                                                            \\
+    if (dst_iter != dst_end) {{                                                   \\
+        mutable_##field().erase(dst_iter, dst_end);                                \\
+    }}                                                                            \\
+    else if (src_iter != src_end) {{                                               \\
+        updated = true;                                                            \\
+        for (; src_iter != src_end; ++src_iter) {{                                 \\
+        mutable_##field().push_back(*src_iter);                                  \\
+        }}                                                                          \\
+    }}                                                                           \\
+  }}                                                                             
 
 #define UPDATE_REPEATED_STRING_FIELD(field)                                    \\
   auto src_iter = mess.field().begin();                                        \\

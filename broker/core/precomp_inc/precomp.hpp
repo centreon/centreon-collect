@@ -66,7 +66,6 @@
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
-#include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 

@@ -31,7 +31,6 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
-#include <boost/interprocess/allocators/private_node_allocator.hpp>
 
 namespace asio = boost::asio;
 
