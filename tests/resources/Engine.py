@@ -84,7 +84,7 @@ def ctn_get_engine_conf_path(idx: int):
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -96,7 +96,7 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host, 0, custom_command)
+        self.build_configs(hosts, srv_by_host, 0, custom_command, check_active)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -213,7 +213,7 @@ class EngineInstance:
                 "check_service_freshness=1\n"
                 "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
-    def _create_host(self):
+    def _create_host(self, check_active: bool = True):
         self.last_host_id += 1
         hid = self.last_host_id
         self.host_cmd[hid] = f"checkh{hid}"
@@ -224,39 +224,53 @@ class EngineInstance:
         c = q % 255
         q //= 255
         d = q % 255
+        check_active_value = 1
+        if not check_active:
+            check_active_value = 0
 
         retval = {
-            "config": f"define host {{\n" f"    host_name                      host_{hid}\n    alias                          "
-            f"host_{hid}\n    address                        {a}.{b}.{c}.{d}\n    check_command                "
-            f"  checkh{hid}\n    check_period                   24x7\n    register                       1\n    "
-            f"_KEY{hid}                      VAL{hid}\n    _SNMPCOMMUNITY                 public\n    "
-            f"_SNMPVERSION                   2c\n    _HOST_ID                       {hid}\n}}\n",
+            "config": f"""define host {{
+    host_name                      host_{hid}
+    alias                          host_{hid}
+    address                        {a}.{b}.{c}.{d}
+    check_command                  checkh{hid}
+    check_period                   24x7
+    register                       1
+    active_checks_enabled           {check_active_value}
+    passive_checks_enabled          1
+    _KEY{hid}                      VAL{hid}
+    _SNMPCOMMUNITY                 public
+    _SNMPVERSION                   2c
+    _HOST_ID                       {hid}
+}}
+""",
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids):
+    def _create_service(self, host_id: int, cmd_ids, check_active: bool = True):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
         self.service_cmd[service_id] = "command_{}".format(command_id)
+        check_active_value = 1
+        if not check_active:
+            check_active_value = 0
 
-        retval = """define service {{
-    host_name                       host_{0}
-    service_description             service_{1}
-    _SERVICE_ID                     {1}
-    check_command                   {2}
+        return f"""define service {{
+    host_name                       host_{host_id}
+    service_description             service_{service_id}
+    _SERVICE_ID                     {service_id}
+    check_command                   {self.service_cmd[service_id]}
     check_period                    24x7
     max_check_attempts              3
     check_interval                  5
     retry_interval                  5
     register                        1
-    active_checks_enabled           1
+    active_checks_enabled           {check_active_value}
     passive_checks_enabled          1
-    _KEY_SERV{0}_{1}                VAL_SERV{1}
+    _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-""".format(
-            host_id, service_id, self.service_cmd[service_id])
-        return retval
+"""
 
     def create_service_with_custom_command(self, host_id: int, service_index_in_host: int):
         """
@@ -468,6 +482,36 @@ define command {{
         logger.console(retval)
         return retval
 
+    def create_all_host_groups(self, nb_group_per_host: int, nb_group: int):
+        file_contents = {}  # instance_id => hostgroups.cfg content
+        groups = {}  # instance_id => group_id => members
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for host_id in range(1, self.last_host_id+1):
+            instance_id = (host_id + nb_host_per_instance -
+                           1) // nb_host_per_instance
+            for grp_index in range(nb_group_per_host):
+                group_id = (host_id+grp_index) % nb_group
+                logger.console(
+                    f"host_id {host_id} instance_id {instance_id} grp_index {grp_index} group_id {group_id}")
+                if not instance_id in groups:
+                    groups[instance_id] = {}
+                if not group_id in groups[instance_id]:
+                    groups[instance_id][group_id] = []
+                groups[instance_id][group_id].append(host_id)
+
+        for instance_id, by_instance in groups.items():
+            if not instance_id in file_contents:
+                file_contents[instance_id] = ""
+            for group_id, members in by_instance.items():
+                sz_members = list(map(lambda x: f"host_{x}", members))
+                grp = engine.create_host_group(
+                    group_id + 1, sz_members)
+                file_contents[instance_id] += grp
+        for instance_id, file_content in file_contents.items():
+            with open(f"{ETC_ROOT}/centreon-engine/config{instance_id-1}/hostgroups.cfg", "a+") as f:
+                f.write(file_content)
+
     @staticmethod
     def create_contact_group(id, mbs):
         retval = """define contactgroup {{
@@ -636,7 +680,7 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = ""):
+    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = "", check_active: bool = True):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -660,7 +704,7 @@ passive_checks_enabled 1
             with open(f"{config_dir}/hosts.cfg", "w") as f:
                 with open(f"{config_dir}/services.cfg", "w") as ff:
                     for i in range(1, nb_hosts + 1):
-                        h = self._create_host()
+                        h = self._create_host(check_active)
                         f.write(h["config"])
                         self.hosts.append("host_{}".format(h["hid"]))
                         for j in range(1, services_by_host + 1):
@@ -669,7 +713,7 @@ passive_checks_enabled 1
                                     self.create_service_with_custom_command(h["hid"], j))
                             else:
                                 ff.write(self._create_service(h["hid"],
-                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count), check_active))
                             self.services.append("service_{}".format(h["hid"]))
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
@@ -873,7 +917,7 @@ define contact {
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -881,10 +925,13 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_c
         num (int): How many engine configurations to start
         hosts (int, optional): Defaults to 50.
         srv_by_host (int, optional): Defaults to 20.
-        sh_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        custom_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        check_active: if false, all services and hosts will use only passive checks
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host, custom_command)
+    engine = EngineInstance(num, hosts, srv_by_host,
+                            custom_command, check_active)
+    return engine
 
 
 def ctn_get_engines_count():
@@ -1776,6 +1823,16 @@ def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
+
+
+def ctn_add_all_host_groups(nb_group_per_host: int, nb_group: int):
+    """
+    Add host groups to all hosts
+    Args:
+        nb_group_per_host (int): number of groups for each host
+        nb_group (int)
+    """
+    engine.create_all_host_groups(nb_group_per_host, nb_group)
 
 
 def ctn_create_service(index: int, host_id: int, cmd_id: int):

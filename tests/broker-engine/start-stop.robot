@@ -703,3 +703,26 @@ BESSCTOWC
       Ctn Stop Engine
       Ctn Kindly Stop Broker    ${True}
     END
+
+
+HUGE_CONF
+    [Documentation]    Given a broker with 3 pollers, we wait that all engine are ready,
+    ...    Then once all data are saved in db, we stop broker, we start broker and we test cache content with a lua script. 
+    ...    We also check that we don't have cache error in broker logs
+    [Tags]    broker    start-stop    MON-195013
+    Ctn Config Engine    ${3}    ${5000}    ${20}    ${EMPTY}    ${False}
+    Ctn Add All Host_Groups    ${3}    ${10}
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${3}
+    Ctn Config BBDO3    ${3}    3.1.0
+
+    FOR    ${i}    IN RANGE    2
+      ${start}    Ctn Get Round Current Date
+      Ctn Start Broker    ${True}
+      Ctn Start Engine
+      Ctn Wait For Engine To Be Ready    ${start}    1
+      ${result}    Ctn Check Host Status    host_5000    4    1    ${True}    30
+      Should Be True    ${result}    no host status for host_5000
+      Ctn Stop Engine
+      Ctn Kindly Stop Broker    ${True}
+    END

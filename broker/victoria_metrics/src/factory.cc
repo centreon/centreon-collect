@@ -52,10 +52,19 @@ factory::factory()
     : http_tsdb::factory("victoria_metrics",
                          com::centreon::common::pool::io_context_ptr()) {}
 
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
+}
+
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params
-    [[maybe_unused]],
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
     std::shared_ptr<persistent_cache>) const {
   is_acceptor = false;

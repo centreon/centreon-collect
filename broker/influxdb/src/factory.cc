@@ -64,8 +64,8 @@ bool factory::has_endpoint(const config::endpoint& cfg,
  * @param cfg config to update
  */
 void factory::set_default_values(config::endpoint& cfg) const {
-  cfg.params["cache"] = "yes";
-  cfg.cache_enabled = true;
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
 }
 
 /**
