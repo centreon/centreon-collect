@@ -29,6 +29,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
 endif()
 
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+#with this define boost::interprocess doesn't need Boost.DataTime
+add_definitions("-DBOOST_DATE_TIME_NO_LIB=1")
 
 option(WITH_LIBCXX "compiles and link cbd with clang++/libc++")
 

@@ -19,11 +19,6 @@
 #ifndef CCB_CACHE_PROTOBUF_UTILS_HH
 #define CCB_CACHE_PROTOBUF_UTILS_HH
 
-#include "boost/container/vector.hpp"
-#include "boost/interprocess/allocators/private_node_allocator.hpp"
-#include "boost/interprocess/interprocess_fwd.hpp"
-#include "boost/interprocess/offset_ptr.hpp"
-
 namespace com::centreon::broker::cache {
 
 namespace interprocess = boost::interprocess;

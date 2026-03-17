@@ -19,22 +19,14 @@
 #ifndef CCB_GLOBAL_CACHE_DATA_HH
 #define CCB_GLOBAL_CACHE_DATA_HH
 
-#include <boost/interprocess/allocators/allocator.hpp>
-#include <boost/interprocess/containers/flat_map.hpp>
-#include <boost/interprocess/containers/flat_set.hpp>
-#include <boost/unordered/unordered_set.hpp>
-#include <optional>
-#include "boost/interprocess/allocators/private_node_allocator.hpp"
 #include "com/centreon/broker/cache/protobuf.hh"
 
-#include "com/centreon/broker/cache/protobuf_utils.hh"
 #include "global_cache.hh"
 
-namespace com::centreon::broker {
-
-namespace cache {
+namespace com::centreon::broker::cache {
 
 namespace multi_index = boost::multi_index;
+namespace interprocess = boost::interprocess;
 
 /**
  * @brief string_string_view_equal and string_string_view_hash are mandatory to
@@ -407,8 +399,6 @@ class global_cache_data : public global_cache {
       ABSL_SHARED_LOCKS_REQUIRED(_protect);
 };
 
-};  // namespace cache
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::cache
 
 #endif
