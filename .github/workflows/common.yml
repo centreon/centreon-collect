@@ -191,7 +191,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, el10, bookworm, trixie]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
