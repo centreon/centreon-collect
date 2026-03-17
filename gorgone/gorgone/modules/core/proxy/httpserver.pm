@@ -257,9 +257,9 @@ sub read_message_client {
         $connector->read_zmq_events();
     }
 }
-=head3 action_proxyaddnode($zmq_message)
+=head3 action_proxyaddnode(token => $t, data => $decoded_json)
 
-zmq_message : PROXYADDNODE message type, received from internal zmq socket to decode and process.
+data : PROXYADDNODE message type, already decoded.
     expect an array of nodes with id, token, type (connection type as in 'pullwss')
 
 If the message is valid, update the internal state to allow new nodes connect, and disconnect any node not existing anymore
@@ -267,12 +267,11 @@ If the message is valid, update the internal state to allow new nodes connect, a
 Return : 1 in case of failure, 0 in case of success
 =cut
 sub action_proxyaddnode {
-    my $self = shift;
-    my $data = shift;
-    my ($status, $nodes) = $self->json_decode(argument => $data);
-        if ($status == 1) {
-            $self->{logger}->writeLogError("Can't decode a proxyaddnode message data : " . $data);
-            return 1;
+    my ($self, %options) = @_;
+    my $nodes = $options{data};
+    if ( is_empty($nodes) ) {
+          $self->{logger}->writeLogError("Can't decode a proxyaddnode message data: no data");
+          return 1;
     }
     # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come from the nodes module, so we keep the old token.
     # if you want to remove the token to use the default one from the conf use "" instead of undef.
@@ -309,9 +308,9 @@ sub action_proxyaddnode {
     $self->{nodes} = $temp_nodes;
     return 0;
 }
-=head3 action_proxydelnode($zmq_message)
+=head3 action_proxydelnode(token => $t, data => $decoded_json)
 
-zmq_message : PROXYDELNODE message type, received from internal zmq socket to decode and process.
+decoded_json : PROXYDELNODE message type already decoded with json_decode.
 
 If the message is valid, update the internal state to remove this node, or log an error if the message is not valid.
 
@@ -321,21 +320,21 @@ Return :
 * 2 if message can be decoded but node don't exist in local state
 =cut
 sub action_proxydelnode {
-    my $self = shift;
-    my $data = shift;
-    my ($status, $node) = $self->json_decode(argument => $data);
-        if ($status == 1) {
-            $self->{logger}->writeLogError("Can't decode a proxydelnode message data : " . $data);
-            return 1;
-        }
-        if ($self->{nodes}->{ $node->{id} }){
-            $self->{logger}->writeLogDebug("[proxy-httpserver] deleting node ". $node->{id} . " from pullwss." );
-            delete($self->{nodes}->{ $node->{id} });
-            return 0;
-        }else {
-            $self->{logger}->writeLogInfo("[proxy-httpserver] tried to delete node " . $node->{id} . " which don't exist, ignoring it." );
-            return 2;
-        }
+    my ($self, %options) = @_;
+    my $node = $options{data};
+    if (is_empty($node)) {
+          $self->{logger}->writeLogError("Can't decode a proxydelnode message data: no data");
+          return 1;
+    }
+
+    if ($self->{nodes}->{ $node->{id} }){
+        $self->{logger}->writeLogDebug("[proxy-httpserver] deleting node ". $node->{id} . " from pullwss." );
+        delete($self->{nodes}->{ $node->{id} });
+        return 0;
+    }else {
+        $self->{logger}->writeLogInfo("[proxy-httpserver] tried to delete node " . $node->{id} . " which don't exist, ignoring it." );
+        return 2;
+    }
 
 }
 =head3 proxy(message => $message)
@@ -356,17 +355,19 @@ sub proxy {
     );
 
     if ($action eq 'BCASTLOGGER' && $target_complete eq '') {
-        (undef, $data) = $connector->json_decode(argument => $data);
-        $connector->action_bcastlogger(data => $data);
+        my (undef, $decoded) = $connector->json_decode(argument => $data);
+        $connector->action_bcastlogger(data => $decoded);
         return ;
     } elsif ($action eq 'BCASTCOREKEY' && $target_complete eq '') {
-        (undef, $data) = $connector->json_decode(argument => $data);
-        $connector->action_bcastcorekey(data => $data);
+        my (undef, $decoded) = $connector->json_decode(argument => $data);
+        $connector->action_bcastcorekey(data => $decoded);
         return ;
     } elsif ($action eq 'PROXYADDNODE' && $target_complete eq '') {
-        return $connector->action_proxyaddnode($data);
+        my (undef, $decoded) = $connector->json_decode(argument => $data);
+        return $connector->action_proxyaddnode(data => $decoded, token => $token);
     } elsif ($action eq 'PROXYDELNODE' && $target_complete eq '') {
-        return $connector->action_proxydelnode($data);
+        my (undef, $decoded) = $connector->json_decode(argument => $data);
+        return $connector->action_proxydelnode(data => $decoded, token => $token);
     }
 
     if ($target_complete !~ /^(.+)~~(.+)$/) {
