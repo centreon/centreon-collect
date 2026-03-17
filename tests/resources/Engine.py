@@ -228,6 +228,12 @@ class EngineInstance:
         if not check_active:
             check_active_value = 0
 
+        active_passive = ""
+        if not check_active_value:
+            active_passive = """    active_checks_enabled           1
+    passive_checks_enabled          1
+    """
+
         retval = {
             "config": f"""define host {{
     host_name                      host_{hid}
@@ -236,9 +242,7 @@ class EngineInstance:
     check_command                  checkh{hid}
     check_period                   24x7
     register                       1
-    active_checks_enabled           {check_active_value}
-    passive_checks_enabled          1
-    _KEY{hid}                      VAL{hid}
+{active_passive}_KEY{hid}                      VAL{hid}
     _SNMPCOMMUNITY                 public
     _SNMPVERSION                   2c
     _HOST_ID                       {hid}
@@ -493,8 +497,6 @@ define command {{
                            1) // nb_host_per_instance
             for grp_index in range(nb_group_per_host):
                 group_id = (host_id+grp_index) % nb_group
-                logger.console(
-                    f"host_id {host_id} instance_id {instance_id} grp_index {grp_index} group_id {group_id}")
                 if not instance_id in groups:
                     groups[instance_id] = {}
                 if not group_id in groups[instance_id]:
@@ -524,8 +526,6 @@ define command {{
                            1) // nb_host_per_instance
             for grp_index in range(nb_group_per_service):
                 group_id = (service_id + grp_index) % nb_group
-                logger.console(
-                    f"service_id {service_id} host_id {host_id} instance_id {instance_id} grp_index {grp_index} group_id {group_id}")
                 if not instance_id in groups:
                     groups[instance_id] = {}
                 if not group_id in groups[instance_id]:
@@ -1899,7 +1899,28 @@ def ctn_process_all_services_check_result_with_metrics(state: int, output: str, 
         metrics (int): The number of metrics that should appear in the result.
         metric_name (str): The base name of metrics. Defaults to 'metric'.
     """
-    engine.process_all_services_check_result_with_metrics(state, output, metrics, metric_name)
+    engine.process_all_services_check_result_with_metrics(
+        state, output, metrics, metric_name)
+
+
+def ctn_get_random_services(n: int):
+    """
+    Returns n randomly picked (host_id, service_id) tuples from engine services.
+
+    Args:
+        n (int): Number of services to pick.
+
+    Returns:
+        List of (host_id, service_id) tuples.
+    """
+    sample = random.sample(engine.services, min(n, len(engine.services)))
+    result = []
+    for entry in sample:
+        svc, hst = entry.split(",")
+        host_id = int(hst.split("_")[1])
+        service_id = int(svc.split("_")[1])
+        result.append((host_id, service_id))
+    return result
 
 
 def ctn_create_service(index: int, host_id: int, cmd_id: int):
