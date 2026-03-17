@@ -256,7 +256,7 @@ class EngineInstance:
         if not check_active:
             check_active_value = 0
 
-        return f"""define service {{
+        return {"config": f"""define service {{
     host_name                       host_{host_id}
     service_description             service_{service_id}
     _SERVICE_ID                     {service_id}
@@ -270,7 +270,8 @@ class EngineInstance:
     passive_checks_enabled          1
     _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-"""
+""",
+            "sid": service_id}
 
     def create_service_with_custom_command(self, host_id: int, service_index_in_host: int):
         """
@@ -302,7 +303,7 @@ class EngineInstance:
             retval += "    _KO                             KO\n"
 
         retval += "}\n"
-        return retval
+        return {"config": retval, "sid": service_id}
 
     def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         """
@@ -512,6 +513,36 @@ define command {{
             with open(f"{ETC_ROOT}/centreon-engine/config{instance_id-1}/hostgroups.cfg", "a+") as f:
                 f.write(file_content)
 
+    def create_all_service_groups(self, nb_group_per_service: int, nb_group: int):
+        file_contents = {}  # instance_id => servicegroups.cfg content
+        groups = {}  # instance_id => group_id => members
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for service_id in range(1, self.last_service_id + 1):
+            host_id = (service_id - 1) // self.service_by_host + 1
+            instance_id = (host_id + nb_host_per_instance -
+                           1) // nb_host_per_instance
+            for grp_index in range(nb_group_per_service):
+                group_id = (service_id + grp_index) % nb_group
+                logger.console(
+                    f"service_id {service_id} host_id {host_id} instance_id {instance_id} grp_index {grp_index} group_id {group_id}")
+                if not instance_id in groups:
+                    groups[instance_id] = {}
+                if not group_id in groups[instance_id]:
+                    groups[instance_id][group_id] = []
+                groups[instance_id][group_id].extend(
+                    [f"host_{host_id}", f"service_{service_id}"])
+
+        for instance_id, by_instance in groups.items():
+            if not instance_id in file_contents:
+                file_contents[instance_id] = ""
+            for group_id, members in by_instance.items():
+                grp = engine.create_service_group(group_id + 1, members)
+                file_contents[instance_id] += grp
+        for instance_id, file_content in file_contents.items():
+            with open(f"{ETC_ROOT}/centreon-engine/config{instance_id-1}/servicegroups.cfg", "a+") as f:
+                f.write(file_content)
+
     @staticmethod
     def create_contact_group(id, mbs):
         retval = """define contactgroup {{
@@ -571,13 +602,13 @@ define command {{
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
     ;dependency_name               HD_test
-    execution_failure_criteria     n 
-    notification_failure_criteria  c 
-    inherits_parent                1 
-    dependent_host_name            {0} 
-    host_name                      {1} 
-    dependent_service_description  {2} 
-    service_description            {3} 
+    execution_failure_criteria     n
+    notification_failure_criteria  c
+    inherits_parent                1
+    dependent_host_name            {0}
+    host_name                      {1}
+    dependent_service_description  {2}
+    service_description            {3}
 
     }}
     """.format(dependenthost, host, dependentservice, service)
@@ -588,12 +619,12 @@ define command {{
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
-    ;dependency_name               MSD_test 
-    execution_failure_criteria     n 
-    notification_failure_criteria  c 
-    inherits_parent                1 
-    dependent_servicegroup_name    {0} 
-    servicegroup_name              {1} 
+    ;dependency_name               MSD_test
+    execution_failure_criteria     n
+    notification_failure_criteria  c
+    inherits_parent                1
+    dependent_servicegroup_name    {0}
+    servicegroup_name              {1}
 
     }}
     """.format(dependentservicegroup, servicegroup)
@@ -604,12 +635,12 @@ define command {{
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
-    ;dependency_name               HD_test2 
-    execution_failure_criteria     n 
-    notification_failure_criteria  d 
-    inherits_parent                1 
-    dependent_host_name            {0} 
-    host_name                      {1} 
+    ;dependency_name               HD_test2
+    execution_failure_criteria     n
+    notification_failure_criteria  d
+    inherits_parent                1
+    dependent_host_name            {0}
+    host_name                      {1}
 
     }}
     """.format(dependenthost, host)
@@ -620,12 +651,12 @@ define command {{
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
-    ;dependency_name               HD_test2 
-    execution_failure_criteria     n 
-    notification_failure_criteria  d 
-    inherits_parent                1 
-    dependent_hostgroup_name       {0} 
-    hostgroup_name                 {1} 
+    ;dependency_name               HD_test2
+    execution_failure_criteria     n
+    notification_failure_criteria  d
+    inherits_parent                1
+    dependent_hostgroup_name       {0}
+    hostgroup_name                 {1}
 
     }}
     """.format(dependenthostgrp, hostgrp)
@@ -706,15 +737,19 @@ passive_checks_enabled 1
                     for i in range(1, nb_hosts + 1):
                         h = self._create_host(check_active)
                         f.write(h["config"])
-                        self.hosts.append("host_{}".format(h["hid"]))
+                        hid = h["hid"]
+                        self.hosts.append("host_{}".format(hid))
                         for j in range(1, services_by_host + 1):
                             if (len(custom_command)) > 0:
-                                ff.write(
-                                    self.create_service_with_custom_command(h["hid"], j))
+                                s = self.create_service_with_custom_command(
+                                    h["hid"], j)
                             else:
-                                ff.write(self._create_service(h["hid"],
-                                                              (inst * self.commands_count + 1, (inst + 1) * self.commands_count), check_active))
-                            self.services.append("service_{}".format(h["hid"]))
+                                s = self._create_service(h["hid"],
+                                                         (inst * self.commands_count + 1, (inst + 1) * self.commands_count), check_active)
+                            ff.write(s["config"])
+                            sid = s["sid"]
+                            self.services.append(
+                                f"service_{sid},host_{hid}")
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
                 if (len(custom_command) > 0):
@@ -912,6 +947,16 @@ define contact {
         with open(f"{config_dir}/centengine.cfg", "w") as f:
             f.writelines(f"cfg_file={config_dir}/anomaly_detection.cfg\n")
             f.writelines(lines)
+
+    def process_all_services_check_result_with_metrics(self, state: int, output: str, metrics: int, metric_name: str = 'metric'):
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for entry in self.services:
+            svc, hst = entry.split(",")
+            host_id = int(hst.split("_")[1])
+            instance_idx = (host_id - 1) // nb_host_per_instance
+            ctn_process_service_check_result_with_metrics(
+                hst, svc, state, output, metrics, f"config{instance_idx}", metric_name)
 
 
 engine = None
@@ -1835,6 +1880,28 @@ def ctn_add_all_host_groups(nb_group_per_host: int, nb_group: int):
     engine.create_all_host_groups(nb_group_per_host, nb_group)
 
 
+def ctn_add_all_service_groups(nb_group_per_service: int, nb_group: int):
+    """
+    Add service groups to all services
+    Args:
+        nb_group_per_service (int): number of groups for each service
+        nb_group (int)
+    """
+    engine.create_all_service_groups(nb_group_per_service, nb_group)
+
+
+def ctn_process_all_services_check_result_with_metrics(state: int, output: str, metrics: int, metric_name: str = 'metric'):
+    """
+    Send a service check result with metrics for all services.
+    Args:
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        metrics (int): The number of metrics that should appear in the result.
+        metric_name (str): The base name of metrics. Defaults to 'metric'.
+    """
+    engine.process_all_services_check_result_with_metrics(state, output, metrics, metric_name)
+
+
 def ctn_create_service(index: int, host_id: int, cmd_id: int):
     """
     Create a service on the engine instance index, on the host host_id, with the command cmd_id.
@@ -1851,7 +1918,7 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     | ${svc_id} | Create Service | 0 | 1 | 1 |
     """
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
-        svc = engine._create_service(host_id, [1, cmd_id])
+        svc = (engine._create_service(host_id, [1, cmd_id]))["config"]
         lst = svc.split('\n')
         good = [line for line in lst if "_SERVICE_ID" in line][0]
         m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)

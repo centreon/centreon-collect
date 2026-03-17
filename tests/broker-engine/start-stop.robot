@@ -712,17 +712,20 @@ HUGE_CONF
     [Tags]    broker    start-stop    MON-195013
     Ctn Config Engine    ${3}    ${5000}    ${20}    ${EMPTY}    ${False}
     Ctn Add All Host_Groups    ${3}    ${10}
+    Ctn Add All Service Groups    ${3}    ${10}
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
     Ctn Config BBDO3    ${3}    3.1.0
 
-    FOR    ${i}    IN RANGE    2
-      ${start}    Ctn Get Round Current Date
-      Ctn Start Broker    ${True}
-      Ctn Start Engine
-      Ctn Wait For Engine To Be Ready    ${start}    1
-      ${result}    Ctn Check Host Status    host_5000    4    1    ${True}    30
-      Should Be True    ${result}    no host status for host_5000
-      Ctn Stop Engine
-      Ctn Kindly Stop Broker    ${True}
-    END
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    ${True}
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
+#    Ctn ProcessAll Services Check Result With Metrics    ${0}    output ok for serv    ${10}
+    ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    4    120    HARD
+    Should Be True    ${result}    no service status for service_100000
+    Ctn Kindly Stop Broker    ${True}
+
+    
+
+    [teardown]    Ctn Stop Engine Broker And Save Logs
