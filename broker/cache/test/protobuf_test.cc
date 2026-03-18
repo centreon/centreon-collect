@@ -17,6 +17,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "protobuf_test_classes.hh"
 
@@ -54,21 +55,25 @@ class simple_global_cache : public global_cache {
     return ret;
   }
 
-  const host_serv_pair* get_host_serv_id(uint64_t) override { return nullptr; }
+  std::optional<host_serv_pair> get_host_serv_id(uint64_t) override {
+    return {};
+  }
 
   void _write_impl(const std::shared_ptr<io::data>&, bool) override {}
 
-  const host* get_host(uint64_t, upgrade_lock&) override { return nullptr; }
-  virtual const service* get_service(uint64_t,
-                                     uint64_t,
-                                     upgrade_lock&) override {
+  const host* get_host(uint64_t, lock&) override { return nullptr; }
+  virtual const service* get_service(uint64_t, uint64_t, lock&) override {
     return nullptr;
   }
 
-  virtual const instance* get_instance(uint64_t) override { return nullptr; }
+  virtual const instance* get_instance(uint64_t, lock&) override {
+    return nullptr;
+  }
 
-  const host_group* get_host_group(uint64_t) const override { return nullptr; }
-  const service_group* get_service_group(uint64_t) const override {
+  const host_group* get_host_group(uint64_t, lock&) const override {
+    return nullptr;
+  }
+  const service_group* get_service_group(uint64_t, lock&) const override {
     return nullptr;
   }
 
@@ -100,10 +105,12 @@ class simple_global_cache : public global_cache {
     return 0;
   }
 
-  const dimension_ba_event* get_dimension_ba_event(uint64_t) const override {
+  const dimension_ba_event* get_dimension_ba_event(uint64_t,
+                                                   lock&) const override {
     return nullptr;
   }
-  const dimension_bv_event* get_dimension_bv_event(uint64_t) const override {
+  const dimension_bv_event* get_dimension_bv_event(uint64_t,
+                                                   lock&) const override {
     return nullptr;
   }
   void enumerate_bvs(uint64_t, bv_enumerator&&) const override {}

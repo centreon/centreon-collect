@@ -29,17 +29,80 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::cache;
 
-/// Acquire a shared (read-only) lock on the singleton instance.
-global_cache::lock::lock() : _lock(global_cache::_instance->_protect) {}
-/// Acquire a shared (read-only) lock on a specific cache object.
-global_cache::lock::lock(global_cache* cache) : _lock(cache->_protect) {}
+global_cache::lock::~lock() {
+  switch (_state) {
+    case e_state::shared:
+      _mut->unlock_shared();
+      break;
+    case e_state::upgrade:
+      _mut->unlock_upgrade();
+      break;
+    case e_state::unique:
+      _mut->unlock();
+      break;
+    default:
+      break;
+  }
+}
 
-/// Acquire an upgradable read lock on the singleton instance.
-global_cache::upgrade_lock::upgrade_lock()
-    : _lock(global_cache::_instance->_protect) {}
-/// Acquire an upgradable read lock on a specific cache object.
-global_cache::upgrade_lock::upgrade_lock(global_cache* cache)
-    : _lock(cache->_protect) {}
+void global_cache::lock::unique(boost::upgrade_mutex* mut) {
+  if (_state == e_state::unique && mut == _mut) {
+    return;
+  }
+  if (_state != e_state::no) {
+    throw std::runtime_error(
+        fmt::format("can't lock state={}", static_cast<unsigned>(_state)));
+  }
+  _mut = mut;
+  _mut->lock();
+  _state = e_state::unique;
+}
+
+void global_cache::lock::upgrade_lock(boost::upgrade_mutex* mut) {
+  if (_state == e_state::upgrade && mut == _mut) {
+    return;
+  }
+  if (_state != e_state::no) {
+    throw std::runtime_error(fmt::format("can't upgrade lock state={}",
+                                         static_cast<unsigned>(_state)));
+  }
+  _mut = mut;
+  _mut->lock_upgrade();
+  _state = e_state::upgrade;
+}
+
+void global_cache::lock::shared_lock(boost::upgrade_mutex* mut) {
+  if (_state == e_state::shared && mut == _mut) {
+    return;
+  }
+  if (_state != e_state::no) {
+    throw std::runtime_error(fmt::format("can't shared lock state={}",
+                                         static_cast<unsigned>(_state)));
+  }
+  _mut = mut;
+  _mut->lock_shared();
+  _state = e_state::shared;
+}
+
+void global_cache::lock::upgrade_to_unique() {
+  if (_state != e_state::upgrade) {
+    throw std::runtime_error(
+        fmt::format("can't promote lock to unique state={}",
+                    static_cast<unsigned>(_state)));
+  }
+  _mut->unlock_upgrade_and_lock();
+  _state = e_state::unique;
+}
+
+void global_cache::lock::unique_to_shared() {
+  if (_state != e_state::unique) {
+    throw std::runtime_error(
+        fmt::format("can't demote lock from unique to shared, current state={}",
+                    static_cast<unsigned>(_state)));
+  }
+  _mut->unlock_and_lock_shared();
+  _state = e_state::shared;
+}
 
 inline std::string operator+(const std::string& left,
                              const std::string_view& to_append) {
@@ -230,9 +293,15 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           _dirty = dirty;
           return;
         } else {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "global_cache dirty flag not reset => erase file and recreate");
+          if (dirty) {
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "global_cache dirty flag not reset => erase file and recreate");
+          } else {
+            SPDLOG_LOGGER_ERROR(
+                _logger,
+                "global_cache dirty flag not found => erase file and recreate");
+          }
           _file.reset();
           _file_size = 0;
         }
@@ -244,8 +313,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
 
       SPDLOG_LOGGER_ERROR(_logger, err_detail);
       if (_cache_type == e_cache_type::conf) {
-        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
-                            _file_path);
+        SPDLOG_LOGGER_ERROR(_logger, "cache: you have to restart pollers");
       }
       _file.reset();
       _file_size = 0;
@@ -253,8 +321,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
                  e) {  // upgrade broker => erase cache and recreate
       SPDLOG_LOGGER_ERROR(_logger, e.what());
       if (_cache_type == e_cache_type::conf) {
-        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
-                            _file_path);
+        SPDLOG_LOGGER_ERROR(_logger, "cache: you have to restart pollers");
       }
       _file.reset();
       _file_size = 0;
@@ -265,8 +332,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
 
       SPDLOG_LOGGER_ERROR(_logger, err_detail);
       if (_cache_type == e_cache_type::conf) {
-        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
-                            _file_path);
+        SPDLOG_LOGGER_ERROR(_logger, "cache: you have to restart pollers");
       }
       _file.reset();
       _file_size = 0;
@@ -314,6 +380,7 @@ void global_cache::managed_map(bool create) {
   collect_version expected{COLLECT_MAJOR, COLLECT_MINOR, COLLECT_PATCH};
   if (create) {
     _file->find_or_construct<collect_version>("collect_version")(expected);
+    _dirty = _file->find_or_construct<bool>("dirty")(false);
     return;
   } else {
     collect_version* version =
@@ -330,7 +397,6 @@ void global_cache::managed_map(bool create) {
       throw std::invalid_argument(detail);
     }
   }
-  _dirty = _file->find_or_construct<bool>("dirty")(false);
 }
 
 /**
@@ -456,11 +522,13 @@ void global_cache::unload() {
  * Safe to call multiple times.
  */
 void global_cache::stop() {
-  boost::unique_lock l(_protect);
-  _save_timer.cancel();
-  _flush();
-  _file.reset();
-  _file_size = 0;
+  {
+    boost::unique_lock l(_protect);
+    _save_timer.cancel();
+    _flush();
+    _file.reset();
+    _file_size = 0;
+  }
   if (_cache_type == e_cache_type::real_time && _conf_cache) {
     _conf_cache->stop();
   }

@@ -71,11 +71,11 @@ inline bool operator!=(const string& left, const std::string_view& right) {
  * (moved in virtual address space) when it grows, so any pointer into the
  * segment becomes invalid after a grow. To protect against this:
  *
- *  - Acquire a `global_cache::lock` before calling any **getter** and hold it
- *    for as long as you use the returned pointer.
- *  - Acquire a `global_cache::upgrade_lock` before calling `get_host`,
- *    `get_service` or `get_instance` (these may promote to a write lock
- *    internally to copy data from the conf cache into the RT cache).
+ *  - Acquire a `global_cache::lock` (shared or upgrade state) before calling *
+ * any **getter** and hold it for as long as you use the returned pointer. *  *
+ * - Use `lock` in upgrade state before calling `get_host`, `get_service` or
+ *    `get_instance` — these may promote to a write lock internally to copy
+ *    data from the conf cache into the RT cache.
  *  - Never hold a lock while calling `write()`.
  *
  * Example — read-only getter:
@@ -195,35 +195,42 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   virtual ~global_cache();
 
   /**
-   * @brief lock the object in read only getter
-   * mandatory before using a getter to use except for get_host, get_service and
-   * get_instance
+   * @brief RAII lock token for the global_cache mutex.
+   *
+   * Unlike a traditional RAII lock, no lock is acquired on construction.
+   * The lock is acquired by the cache itself during getter calls and can
+   * transition between states (shared → upgrade → unique) without being
+   * released.  The destructor releases whichever lock state is currently held.
+   *
+   * States:
+   *  - no      : not locked.
+   *  - shared  : multiple readers allowed, no writer.
+   *  - upgrade : one upgrade holder + multiple readers; can be promoted to
+   *              unique without releasing.
+   *  - unique  : exclusive write lock.
+   *
+   * WARNING: a single lock instance must not be used concurrently from
+   * multiple threads.
    *
    */
   class lock {
-    boost::shared_lock<boost::upgrade_mutex> _lock;
+    enum class e_state : unsigned { no = 0, shared, upgrade, unique };
+
+    e_state _state = e_state::no;
+
+    boost::upgrade_mutex* _mut = nullptr;
+
+    void upgrade_lock(boost::upgrade_mutex* mut);
+    void shared_lock(boost::upgrade_mutex* mut);
+    void unique(boost::upgrade_mutex* mut);
+    void upgrade_to_unique();
+    void unique_to_shared();
 
    public:
-    lock();
-    lock(global_cache* cache);
-    lock(global_cache::pointer cache) : lock(cache.get()) {}
-  };
-
-  /**
-   * @brief lock the object in read only getter
-   * mandatory before using get_host, get_service and get_instance
-   * When upgrade_lock is set, all other shared lock (lock object) can get
-   * ownership but not other upgrade_locks
-   * So use lock class for all other getters
-   */
-  class upgrade_lock {
-    boost::upgrade_lock<boost::upgrade_mutex> _lock;
+    friend class global_cache;
     friend class global_cache_data;
 
-   public:
-    upgrade_lock();
-    upgrade_lock(global_cache* cache);
-    upgrade_lock(global_cache::pointer cache) : upgrade_lock(cache.get()) {}
+    ~lock();
   };
 
   // use only for tests
@@ -231,17 +238,19 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void write(const std::shared_ptr<io::data>& d) { _write_impl(d, true); }
 
-  virtual const host* get_host(uint64_t host_id, upgrade_lock& l) = 0;
+  virtual const host* get_host(uint64_t host_id, lock& l) = 0;
   virtual const service* get_service(uint64_t host_id,
                                      uint64_t service_id,
-                                     upgrade_lock& l) = 0;
+                                     lock& l) = 0;
 
-  virtual const host_serv_pair* get_host_serv_id(uint64_t index_id) = 0;
+  virtual std::optional<host_serv_pair> get_host_serv_id(uint64_t index_id) = 0;
 
-  virtual const instance* get_instance(uint64_t instance_id) = 0;
+  virtual const instance* get_instance(uint64_t instance_id, lock& l) = 0;
 
-  virtual const host_group* get_host_group(uint64_t group_id) const = 0;
-  virtual const service_group* get_service_group(uint64_t group_id) const = 0;
+  virtual const host_group* get_host_group(uint64_t group_id,
+                                           lock& l) const = 0;
+  virtual const service_group* get_service_group(uint64_t group_id,
+                                                 lock& l) const = 0;
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
                                     std::ostream& request_body) const = 0;
@@ -267,10 +276,10 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   virtual std::optional<int32_t> get_severity(uint64_t host_id,
                                               uint64_t service_id) const = 0;
 
-  virtual const dimension_ba_event* get_dimension_ba_event(
-      uint64_t ba_id) const = 0;
-  virtual const dimension_bv_event* get_dimension_bv_event(
-      uint64_t bv_id) const = 0;
+  virtual const dimension_ba_event* get_dimension_ba_event(uint64_t ba_id,
+                                                           lock& l) const = 0;
+  virtual const dimension_bv_event* get_dimension_bv_event(uint64_t bv_id,
+                                                           lock& l) const = 0;
   using bv_enumerator = std::function<void(uint64_t)>;
   virtual void enumerate_bvs(uint64_t ba_id,
                              bv_enumerator&& enumerator) const = 0;

@@ -328,6 +328,12 @@ class global_cache_data : public global_cache {
   void _write_impl(const std::shared_ptr<io::data>& d,
                    bool first_attempt) override;
 
+  host_custom_var_pair _get_host(uint64_t host_id, lock& l);
+
+  service_custom_var_pair _get_service(uint64_t host_id,
+                                       uint64_t service_id,
+                                       lock& l);
+
  public:
   global_cache_data(const std::shared_ptr<asio::io_context> io_context,
                     const std::string& file_path,
@@ -338,23 +344,18 @@ class global_cache_data : public global_cache {
                     std::chrono::system_clock::duration save_interval =
                         std::chrono::seconds(10));
 
-  const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const host* get_host(uint64_t host_id, lock& l) override;
   const service* get_service(uint64_t host_id,
                              uint64_t service_id,
-                             upgrade_lock& read_lock) override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+                             lock& l) override;
 
-  const host_serv_pair* get_host_serv_id(uint64_t index_id) override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  std::optional<host_serv_pair> get_host_serv_id(uint64_t index_id) override;
 
-  const instance* get_instance(uint64_t instance_id) override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const instance* get_instance(uint64_t instance_id, lock& l) override;
 
-  const host_group* get_host_group(uint64_t group_id) const override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
-  const service_group* get_service_group(uint64_t group_id) const override
-      ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const host_group* get_host_group(uint64_t group_id, lock& l) const override;
+  const service_group* get_service_group(uint64_t group_id,
+                                         lock& l) const override;
   void append_service_group(uint64_t host,
                             uint64_t service,
                             std::ostream& request_body) const override
@@ -385,10 +386,10 @@ class global_cache_data : public global_cache {
   std::optional<int32_t> get_severity(uint64_t host_id,
                                       uint64_t service_id) const override
       ABSL_SHARED_LOCKS_REQUIRED(_protect);
-  const dimension_ba_event* get_dimension_ba_event(
-      uint64_t ba_id) const override ABSL_SHARED_LOCKS_REQUIRED(_protect);
-  const dimension_bv_event* get_dimension_bv_event(
-      uint64_t bv_id) const override ABSL_SHARED_LOCKS_REQUIRED(_protect);
+  const dimension_ba_event* get_dimension_ba_event(uint64_t ba_id,
+                                                   lock& l) const override;
+  const dimension_bv_event* get_dimension_bv_event(uint64_t bv_id,
+                                                   lock& l) const override;
   void enumerate_bvs(uint64_t ba_id, bv_enumerator&& enumerator) const override
       ABSL_SHARED_LOCKS_REQUIRED(_protect);
   void enumerate_host_group(uint64_t host_id,

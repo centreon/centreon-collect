@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <optional>
 
 #include "bbdo/neb.pb.h"
 
@@ -117,11 +118,14 @@ TEST_F(global_cache_test, CanBeMoved) {
 
   auto check_data = [&](unsigned index_min, unsigned index_max) {
     for (unsigned ii = index_min; ii < index_max; ++ii) {
-      auto inst = obj->get_instance(ii);
-      ASSERT_TRUE(inst);
-      ASSERT_EQ(fmt::format("instance_{}", ii), to_string(inst->name()));
       {
-        global_cache::upgrade_lock l;
+        global_cache::lock l;
+        auto inst = obj->get_instance(ii, l);
+        ASSERT_TRUE(inst);
+        ASSERT_EQ(fmt::format("instance_{}", ii), to_string(inst->name()));
+      }
+      {
+        global_cache::lock l;
         auto hst = obj->get_host(ii, l);
         ASSERT_TRUE(hst);
         ASSERT_EQ(fmt::format("host_{}", ii), to_string(hst->name()));
@@ -132,7 +136,7 @@ TEST_F(global_cache_test, CanBeMoved) {
         ASSERT_EQ(obj->get_severity(ii, 0), 1);
       }
       {
-        global_cache::upgrade_lock l;
+        global_cache::lock l;
         auto serv = obj->get_service(ii, ii + 1, l);
         ASSERT_TRUE(serv);
         ASSERT_EQ(fmt::format("service_{}", ii + 1),
@@ -141,11 +145,11 @@ TEST_F(global_cache_test, CanBeMoved) {
                   to_string(serv->check_command()));
         ASSERT_EQ(fmt::format("service_check_command_output {}", ii + 1),
                   to_string(serv->output()));
-        ASSERT_EQ(obj->get_severity(ii, ii + 1), 2);
-        auto host_serv_id = obj->get_host_serv_id(ii + 2);
-        ASSERT_TRUE(host_serv_id);
-        ASSERT_EQ(obj->get_index_id_from_metric_id(ii), ii + 1);
       }
+      ASSERT_EQ(obj->get_severity(ii, ii + 1), 2);
+      auto host_serv_id = obj->get_host_serv_id(ii + 2);
+      ASSERT_TRUE(host_serv_id);
+      ASSERT_EQ(obj->get_index_id_from_metric_id(ii), ii + 1);
     }
   };
 
@@ -584,9 +588,9 @@ TEST_F(global_cache_test, Huge) {
   for (unsigned ii = 1; ii < metric_id; ++ii) {
     uint64_t index_id = obj->get_index_id_from_metric_id(ii);
     ASSERT_NE(index_id, 0);
-    const host_serv_pair* hst_serv_id = obj->get_host_serv_id(index_id);
+    std::optional<host_serv_pair> hst_serv_id = obj->get_host_serv_id(index_id);
     ASSERT_TRUE(hst_serv_id);
-    global_cache::upgrade_lock l(obj);
+    global_cache::lock l;
     auto hst = obj->get_host(hst_serv_id->first, l);
     ASSERT_TRUE(hst);
     auto srv = obj->get_service(hst_serv_id->first, hst_serv_id->second, l);
@@ -625,18 +629,27 @@ TEST_F(global_cache_test, UnknownLookupReturnsNull) {
       global_cache::load(g_io_context, "/tmp/cache_test");
 
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     EXPECT_EQ(obj->get_host(9999, l), nullptr);
   }
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     EXPECT_EQ(obj->get_service(9999, 9999, l), nullptr);
   }
-  EXPECT_EQ(obj->get_instance(9999), nullptr);
-  EXPECT_EQ(obj->get_host_serv_id(9999), nullptr);
+  {
+    global_cache::lock l;
+    EXPECT_EQ(obj->get_instance(9999, l), nullptr);
+  }
+  EXPECT_FALSE(obj->get_host_serv_id(9999));
   EXPECT_EQ(obj->get_index_id_from_metric_id(9999), 0u);
-  EXPECT_EQ(obj->get_dimension_ba_event(9999), nullptr);
-  EXPECT_EQ(obj->get_dimension_bv_event(9999), nullptr);
+  {
+    global_cache::lock l;
+    EXPECT_EQ(obj->get_dimension_ba_event(9999, l), nullptr);
+  }
+  {
+    global_cache::lock l;
+    EXPECT_EQ(obj->get_dimension_bv_event(9999, l), nullptr);
+  }
   EXPECT_FALSE(obj->get_severity(9999, 9999).has_value());
 
   obj.reset();
@@ -737,16 +750,19 @@ TEST_F(global_cache_test, InstanceLifecycle) {
   inst->mut_obj().set_name("poller-42");
   inst->mut_obj().set_running(true);
   obj->write(inst);
-
-  auto* stored = obj->get_instance(42);
-  ASSERT_TRUE(stored);
-  EXPECT_EQ(to_string(stored->name()), "poller-42");
-
+  {
+    global_cache::lock l;
+    auto* stored = obj->get_instance(42, l);
+    ASSERT_TRUE(stored);
+    EXPECT_EQ(to_string(stored->name()), "poller-42");
+  }
   // Stopping the instance removes it from the cache.
   inst->mut_obj().set_running(false);
   obj->write(inst);
-  EXPECT_EQ(obj->get_instance(42), nullptr);
-
+  {
+    global_cache::lock l;
+    EXPECT_EQ(obj->get_instance(42, l), nullptr);
+  }
   obj.reset();
   global_cache::unload();
 }
@@ -767,20 +783,17 @@ TEST_F(global_cache_test, HostDisabledIsRemoved) {
   host->mut_obj().set_name("h10");
   host->mut_obj().set_enabled(true);
   obj->write(host);
-
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     ASSERT_TRUE(obj->get_host(10, l));
   }
-
   host->mut_obj().set_enabled(false);
   obj->write(host);
 
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     EXPECT_EQ(obj->get_host(10, l), nullptr);
   }
-
   obj.reset();
   global_cache::unload();
 }
@@ -811,7 +824,7 @@ TEST_F(global_cache_test, HostStatusUpdatesFields) {
   obj->write(status);
 
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     auto* h = obj->get_host(1, l);
     ASSERT_TRUE(h);
     EXPECT_EQ(h->state(), 1);
@@ -847,7 +860,7 @@ TEST_F(global_cache_test, AdaptiveHostUpdatesCheckCommand) {
   obj->write(adaptive);
 
   {
-    global_cache::upgrade_lock l;
+    global_cache::lock l;
     auto* h = obj->get_host(1, l);
     ASSERT_TRUE(h);
     EXPECT_EQ(to_string(h->check_command()), "new_cmd");
@@ -890,18 +903,19 @@ TEST_F(global_cache_test, BAMDimensionsStoredAndQueried) {
   rel2->mut_obj().set_ba_id(1);
   rel2->mut_obj().set_bv_id(20);
   obj->write(rel2);
+  {
+    global_cache::lock l;
+    auto* stored_ba = obj->get_dimension_ba_event(1, l);
+    ASSERT_TRUE(stored_ba);
+    EXPECT_EQ(to_string(stored_ba->ba_name()), "BA-1");
 
-  auto* stored_ba = obj->get_dimension_ba_event(1);
-  ASSERT_TRUE(stored_ba);
-  EXPECT_EQ(to_string(stored_ba->ba_name()), "BA-1");
+    auto* stored_bv = obj->get_dimension_bv_event(10, l);
+    ASSERT_TRUE(stored_bv);
+    EXPECT_EQ(to_string(stored_bv->bv_name()), "BV-10");
 
-  auto* stored_bv = obj->get_dimension_bv_event(10);
-  ASSERT_TRUE(stored_bv);
-  EXPECT_EQ(to_string(stored_bv->bv_name()), "BV-10");
-
-  EXPECT_EQ(obj->get_dimension_ba_event(999), nullptr);
-  EXPECT_EQ(obj->get_dimension_bv_event(999), nullptr);
-
+    EXPECT_EQ(obj->get_dimension_ba_event(999, l), nullptr);
+    EXPECT_EQ(obj->get_dimension_bv_event(999, l), nullptr);
+  }
   // enumerate_bvs must return both bv_ids linked to ba_id=1
   std::vector<uint64_t> bvs;
   obj->enumerate_bvs(1, [&](uint64_t bv_id) { bvs.push_back(bv_id); });
@@ -931,17 +945,23 @@ TEST_F(global_cache_test, DimensionTruncateClearsBAMData) {
   bv->mut_obj().set_bv_name("BV-10");
   obj->write(bv);
 
-  ASSERT_TRUE(obj->get_dimension_ba_event(1));
-  ASSERT_TRUE(obj->get_dimension_bv_event(10));
+  {
+    global_cache::lock l;
+    ASSERT_TRUE(obj->get_dimension_ba_event(1, l));
+    ASSERT_TRUE(obj->get_dimension_bv_event(10, l));
+  }
 
-  // Sending the truncate signal with update_started=true clears all dimensions.
+  // Sending the truncate signal with update_started=true clears all
+  // dimensions.
   auto truncate = std::make_shared<bam::pb_dimension_truncate_table_signal>();
   truncate->mut_obj().set_update_started(true);
   obj->write(truncate);
 
-  EXPECT_EQ(obj->get_dimension_ba_event(1), nullptr);
-  EXPECT_EQ(obj->get_dimension_bv_event(10), nullptr);
-
+  {
+    global_cache::lock l;
+    EXPECT_EQ(obj->get_dimension_ba_event(1, l), nullptr);
+    EXPECT_EQ(obj->get_dimension_bv_event(10, l), nullptr);
+  }
   obj.reset();
   global_cache::unload();
 }

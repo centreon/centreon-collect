@@ -262,7 +262,7 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
         {
-          const cache::host_serv_pair* host_serv =
+          std::optional<cache::host_serv_pair> host_serv =
               cache::global_cache::instance_ptr()->get_host_serv_id(
                   converted.index_id());
           if (!host_serv) {
