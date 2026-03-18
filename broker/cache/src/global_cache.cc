@@ -281,7 +281,6 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
     }
     ::remove(_file_path.c_str());
     _grow(initial_size_on_create);
-    _dirty = _file->find_or_construct<bool>("dirty")(false);
     try {
       this->managed_map(true);
     } catch (const boost::interprocess::bad_alloc& e) {
@@ -331,6 +330,7 @@ void global_cache::managed_map(bool create) {
       throw std::invalid_argument(detail);
     }
   }
+  _dirty = _file->find_or_construct<bool>("dirty")(false);
 }
 
 /**

@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/cache/protobuf.hh"
 
-#include <stdexcept>
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
@@ -232,6 +231,9 @@ void global_cache_data::_write_impl(const std::shared_ptr<io::data>& data,
     if (_cache_type == e_cache_type::real_time) {
       _write_rt(data);
       if (_conf_cache) {
+        // as some methods return object from conf cache, we also lock our
+        // _protect to prevent conf update while we are using objects from this
+        boost::unique_lock l(_protect);
         _conf_cache->write(data);
       }
     } else {
@@ -1183,9 +1185,15 @@ void global_cache_data::_process_dimension_ba_bv_relation_event(
                       "(ba_id: {}, bv_id: {})",
                       in.ba_id(), in.bv_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_dimension_ba_bv_relation->find(in.ba_id());
-  if (exist == _id_to_dimension_ba_bv_relation->end() ||
-      exist->second != in.bv_id()) {
+  auto exist = _id_to_dimension_ba_bv_relation->equal_range(in.ba_id());
+  bool found = false;
+  for (; exist.first != exist.second; ++exist.first) {
+    if (exist.first->second == in.bv_id()) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
     _id_to_dimension_ba_bv_relation->emplace(in.ba_id(), in.bv_id());
     _set_dirty_and_increment_modif();
   }
@@ -1368,6 +1376,17 @@ const service_group* global_cache_data::get_service_group(
   return search != _id_to_serv_group->end() ? search->second.get() : nullptr;
 }
 
+static void sorted_id_to_str(const std::set<uint64_t>& ids,
+                             std::ostream& request_body) {
+  if (!ids.empty()) {
+    std::set<uint64_t>::const_iterator val_iter = ids.begin();
+    request_body << *(val_iter++);
+    for (; val_iter != ids.end(); ++val_iter) {
+      request_body << ',' << *val_iter;
+    }
+  }
+}
+
 /**
  * @brief add service groups to a request body
  *
@@ -1395,13 +1414,7 @@ void global_cache_data::append_service_group(uint64_t host,
       sorted.insert(range.first->group_id);
     }
   }
-  if (!sorted.empty()) {
-    std::set<uint64_t>::const_iterator val_iter = sorted.begin();
-    request_body << *(val_iter++);
-    for (; val_iter != sorted.end(); ++val_iter) {
-      request_body << ',' << *val_iter;
-    }
-  }
+  sorted_id_to_str(sorted, request_body);
 }
 
 /**
@@ -1427,13 +1440,7 @@ void global_cache_data::append_host_group(uint64_t host,
       sorted.insert(range.first->group_id);
     }
   }
-  if (!sorted.empty()) {
-    std::set<uint64_t>::const_iterator val_iter = sorted.begin();
-    request_body << *(val_iter++);
-    for (; val_iter != sorted.end(); ++val_iter) {
-      request_body << ',' << *val_iter;
-    }
-  }
+  sorted_id_to_str(sorted, request_body);
 }
 
 /**
@@ -1456,18 +1463,14 @@ void global_cache_data::append_host_tag_id(uint64_t host,
   auto search = _id_to_host->find(host);
 
   if (search != _id_to_host->end() && search->second.first) {
-    bool first = true;
+    std::set<uint64_t> sorted;
     for (const auto& tag : search->second.first->tags()) {
       const tag_info& tag_inf = *static_cast<const tag_info*>(tag.get());
       if (tag_inf.type() == tag_type) {
-        if (first) {
-          request_body << tag_inf.id();
-          first = false;
-        } else {
-          request_body << ',' << tag_inf.id();
-        }
+        sorted.insert(tag_inf.id());
       }
     }
+    sorted_id_to_str(sorted, request_body);
   }
 }
 
@@ -1491,18 +1494,14 @@ void global_cache_data::append_serv_tag_id(uint64_t host,
   }
   auto search = _id_to_service->find({host, serv});
   if (search != _id_to_service->end() && search->second.first) {
-    bool first = true;
+    std::set<uint64_t> sorted;
     for (const auto& tag : search->second.first->tags()) {
       const tag_info& tag_inf = *static_cast<const tag_info*>(tag.get());
       if (tag_inf.type() == tag_type) {
-        if (first) {
-          request_body << tag_inf.id();
-          first = false;
-        } else {
-          request_body << ',' << tag_inf.id();
-        }
+        sorted.insert(tag_inf.id());
       }
     }
+    sorted_id_to_str(sorted, request_body);
   }
 }
 
