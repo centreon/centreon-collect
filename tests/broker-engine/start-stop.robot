@@ -717,7 +717,6 @@ HUGE_CONF
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
     Ctn Broker Config Source Log    central    1
-    Ctn Broker Config Log    central    lua    trace
     Ctn Config BBDO3    ${3}    3.1.0
     Ctn Broker Config Output Set    central    central-broker-unified-sql   store_in_data_bin    no 
     Ctn Clear Retention
