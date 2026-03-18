@@ -21,6 +21,7 @@
 
 #include "bbdo/neb.pb.h"
 
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
@@ -594,4 +595,428 @@ TEST_F(global_cache_test, Huge) {
   cache::global_cache::unload();
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "end of 10000 metric search");
+}
+
+// ---------------------------------------------------------------------------
+// Write / null guard
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, WriteNullIsNoOp) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+  // Must not crash or throw.
+  ASSERT_NO_THROW(obj->write(nullptr));
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Unknown-ID lookups return null / zero
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, UnknownLookupReturnsNull) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  {
+    global_cache::upgrade_lock l;
+    EXPECT_EQ(obj->get_host(9999, l), nullptr);
+  }
+  {
+    global_cache::upgrade_lock l;
+    EXPECT_EQ(obj->get_service(9999, 9999, l), nullptr);
+  }
+  EXPECT_EQ(obj->get_instance(9999), nullptr);
+  EXPECT_EQ(obj->get_host_serv_id(9999), nullptr);
+  EXPECT_EQ(obj->get_index_id_from_metric_id(9999), 0u);
+  EXPECT_EQ(obj->get_dimension_ba_event(9999), nullptr);
+  EXPECT_EQ(obj->get_dimension_bv_event(9999), nullptr);
+  EXPECT_FALSE(obj->get_severity(9999, 9999).has_value());
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Severity via CRITICALITY_LEVEL custom variable
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, SeverityFromCustomVar) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  // Host without custom var: no severity.
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(1);
+  host->mut_obj().set_name("h1");
+  host->mut_obj().set_enabled(true);
+  obj->write(host);
+  EXPECT_EQ(obj->get_severity(1, 0), 0);
+
+  // Add CRITICALITY_LEVEL=5 on the host.
+  auto hcv = std::make_shared<neb::pb_custom_variable>();
+  hcv->mut_obj().set_host_id(1);
+  hcv->mut_obj().set_name("CRITICALITY_LEVEL");
+  hcv->mut_obj().set_value("5");
+  hcv->mut_obj().set_enabled(true);
+  obj->write(hcv);
+  EXPECT_EQ(obj->get_severity(1, 0), 5);
+
+  // Service: severity from its own custom var overrides the host one.
+  auto service = std::make_shared<neb::pb_service>();
+  service->mut_obj().set_host_id(1);
+  service->mut_obj().set_service_id(2);
+  service->mut_obj().set_description("s2");
+  service->mut_obj().set_enabled(true);
+  obj->write(service);
+  auto scv = std::make_shared<neb::pb_custom_variable>();
+  scv->mut_obj().set_host_id(1);
+  scv->mut_obj().set_service_id(2);
+  scv->mut_obj().set_name("CRITICALITY_LEVEL");
+  scv->mut_obj().set_value("3");
+  scv->mut_obj().set_enabled(true);
+  obj->write(scv);
+  EXPECT_EQ(obj->get_severity(1, 2), 3);
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, SeverityDisabledCustomVarIsIgnored) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(1);
+  host->mut_obj().set_name("h1");
+  host->mut_obj().set_enabled(true);
+  obj->write(host);
+
+  // Add CRITICALITY_LEVEL then disable it.
+  auto hcv = std::make_shared<neb::pb_custom_variable>();
+  hcv->mut_obj().set_host_id(1);
+  hcv->mut_obj().set_name("CRITICALITY_LEVEL");
+  hcv->mut_obj().set_value("7");
+  hcv->mut_obj().set_enabled(true);
+  obj->write(hcv);
+  EXPECT_EQ(obj->get_severity(1, 0), 7);
+
+  host->mut_obj().set_enabled(false);
+  obj->write(host);
+  EXPECT_FALSE(obj->get_severity(1, 0).has_value());
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Instance lifecycle
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, InstanceLifecycle) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto inst = std::make_shared<neb::pb_instance>();
+  inst->mut_obj().set_instance_id(42);
+  inst->mut_obj().set_name("poller-42");
+  inst->mut_obj().set_running(true);
+  obj->write(inst);
+
+  auto* stored = obj->get_instance(42);
+  ASSERT_TRUE(stored);
+  EXPECT_EQ(to_string(stored->name()), "poller-42");
+
+  // Stopping the instance removes it from the cache.
+  inst->mut_obj().set_running(false);
+  obj->write(inst);
+  EXPECT_EQ(obj->get_instance(42), nullptr);
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Host lifecycle (disabled host is removed)
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, HostDisabledIsRemoved) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(10);
+  host->mut_obj().set_name("h10");
+  host->mut_obj().set_enabled(true);
+  obj->write(host);
+
+  {
+    global_cache::upgrade_lock l;
+    ASSERT_TRUE(obj->get_host(10, l));
+  }
+
+  host->mut_obj().set_enabled(false);
+  obj->write(host);
+
+  {
+    global_cache::upgrade_lock l;
+    EXPECT_EQ(obj->get_host(10, l), nullptr);
+  }
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Host status updates runtime fields
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, HostStatusUpdatesFields) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(1);
+  host->mut_obj().set_name("h1");
+  host->mut_obj().set_enabled(true);
+  host->mut_obj().set_state(Host_State::Host_State_UP);
+  obj->write(host);
+
+  auto status = std::make_shared<neb::pb_host_status>();
+  status->mut_obj().set_host_id(1);
+  status->mut_obj().set_state(HostStatus_State::HostStatus_State_DOWN);
+  status->mut_obj().set_output("CRITICAL: disk full");
+  status->mut_obj().set_last_check(123456789);
+  obj->write(status);
+
+  {
+    global_cache::upgrade_lock l;
+    auto* h = obj->get_host(1, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(h->state(), 1);
+    EXPECT_EQ(to_string(h->output()), "CRITICAL: disk full");
+    EXPECT_EQ(h->last_check(), 123456789);
+  }
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Adaptive host updates check-configuration fields
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, AdaptiveHostUpdatesCheckCommand) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(1);
+  host->mut_obj().set_name("h1");
+  host->mut_obj().set_check_command("old_cmd");
+  host->mut_obj().set_enabled(true);
+  obj->write(host);
+
+  auto adaptive = std::make_shared<neb::pb_adaptive_host>();
+  adaptive->mut_obj().set_host_id(1);
+  adaptive->mut_obj().set_check_command("new_cmd");
+  obj->write(adaptive);
+
+  {
+    global_cache::upgrade_lock l;
+    auto* h = obj->get_host(1, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(to_string(h->check_command()), "new_cmd");
+  }
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// BAM dimensions: ba_event, bv_event, ba_bv_relation, truncate
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, BAMDimensionsStoredAndQueried) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  // BA event
+  auto ba = std::make_shared<bam::pb_dimension_ba_event>();
+  ba->mut_obj().set_ba_id(1);
+  ba->mut_obj().set_ba_name("BA-1");
+  ba->mut_obj().set_ba_description("desc-1");
+  obj->write(ba);
+
+  // BV event
+  auto bv = std::make_shared<bam::pb_dimension_bv_event>();
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("BV-10");
+  obj->write(bv);
+
+  // BA-BV relation: ba_id=1 -> bv_id=10 and bv_id=20
+  auto rel1 = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
+  rel1->mut_obj().set_ba_id(1);
+  rel1->mut_obj().set_bv_id(10);
+  obj->write(rel1);
+  auto rel2 = std::make_shared<bam::pb_dimension_ba_bv_relation_event>();
+  rel2->mut_obj().set_ba_id(1);
+  rel2->mut_obj().set_bv_id(20);
+  obj->write(rel2);
+
+  auto* stored_ba = obj->get_dimension_ba_event(1);
+  ASSERT_TRUE(stored_ba);
+  EXPECT_EQ(to_string(stored_ba->ba_name()), "BA-1");
+
+  auto* stored_bv = obj->get_dimension_bv_event(10);
+  ASSERT_TRUE(stored_bv);
+  EXPECT_EQ(to_string(stored_bv->bv_name()), "BV-10");
+
+  EXPECT_EQ(obj->get_dimension_ba_event(999), nullptr);
+  EXPECT_EQ(obj->get_dimension_bv_event(999), nullptr);
+
+  // enumerate_bvs must return both bv_ids linked to ba_id=1
+  std::vector<uint64_t> bvs;
+  obj->enumerate_bvs(1, [&](uint64_t bv_id) { bvs.push_back(bv_id); });
+  std::sort(bvs.begin(), bvs.end());
+  ASSERT_EQ(bvs.size(), 2u);
+  EXPECT_EQ(bvs[0], 10u);
+  EXPECT_EQ(bvs[1], 20u);
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, DimensionTruncateClearsBAMData) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto ba = std::make_shared<bam::pb_dimension_ba_event>();
+  ba->mut_obj().set_ba_id(1);
+  ba->mut_obj().set_ba_name("BA-1");
+  obj->write(ba);
+
+  auto bv = std::make_shared<bam::pb_dimension_bv_event>();
+  bv->mut_obj().set_bv_id(10);
+  bv->mut_obj().set_bv_name("BV-10");
+  obj->write(bv);
+
+  ASSERT_TRUE(obj->get_dimension_ba_event(1));
+  ASSERT_TRUE(obj->get_dimension_bv_event(10));
+
+  // Sending the truncate signal with update_started=true clears all dimensions.
+  auto truncate = std::make_shared<bam::pb_dimension_truncate_table_signal>();
+  truncate->mut_obj().set_update_started(true);
+  obj->write(truncate);
+
+  EXPECT_EQ(obj->get_dimension_ba_event(1), nullptr);
+  EXPECT_EQ(obj->get_dimension_bv_event(10), nullptr);
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Enumerate host/service group
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, EnumerateHostGroup) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  // Two groups, each with host 1.
+  for (unsigned gid : {1u, 2u}) {
+    auto grp = std::make_shared<neb::pb_host_group>();
+    grp->mut_obj().set_hostgroup_id(gid);
+    grp->mut_obj().set_name(fmt::format("hg_{}", gid));
+    grp->mut_obj().set_enabled(true);
+    obj->write(grp);
+    auto mem = std::make_shared<neb::pb_host_group_member>();
+    mem->mut_obj().set_hostgroup_id(gid);
+    mem->mut_obj().set_host_id(1);
+    mem->mut_obj().set_poller_id(0);
+    mem->mut_obj().set_enabled(true);
+    obj->write(mem);
+  }
+
+  std::map<uint64_t, std::string> found;
+  obj->enumerate_host_group(1, [&](uint64_t gid, const cache::string& name) {
+    found[gid] = to_string(name);
+  });
+
+  EXPECT_EQ(found.size(), 2u);
+  EXPECT_EQ(found[1], "hg_1");
+  EXPECT_EQ(found[2], "hg_2");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+TEST_F(global_cache_test, EnumerateServiceGroup) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  for (unsigned gid : {10u, 20u}) {
+    auto grp = std::make_shared<neb::pb_service_group>();
+    grp->mut_obj().set_servicegroup_id(gid);
+    grp->mut_obj().set_name(fmt::format("sg_{}", gid));
+    grp->mut_obj().set_enabled(true);
+    obj->write(grp);
+    auto mem = std::make_shared<neb::pb_service_group_member>();
+    mem->mut_obj().set_servicegroup_id(gid);
+    mem->mut_obj().set_host_id(1);
+    mem->mut_obj().set_service_id(2);
+    mem->mut_obj().set_poller_id(0);
+    mem->mut_obj().set_enabled(true);
+    obj->write(mem);
+  }
+
+  std::map<uint64_t, std::string> found;
+  obj->enumerate_service_group(1, 2,
+                               [&](uint64_t gid, const cache::string& name) {
+                                 found[gid] = to_string(name);
+                               });
+
+  EXPECT_EQ(found.size(), 2u);
+  EXPECT_EQ(found[10], "sg_10");
+  EXPECT_EQ(found[20], "sg_20");
+
+  obj.reset();
+  global_cache::unload();
 }

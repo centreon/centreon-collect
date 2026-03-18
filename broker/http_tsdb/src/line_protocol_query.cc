@@ -32,7 +32,7 @@ using namespace com::centreon::exceptions;
  *  Create an empty query.
  */
 line_protocol_query::line_protocol_query()
-    : _type(data_type::unknown), _cache(cache::global_cache::instance_ptr()) {
+    : _cache(cache::global_cache::instance_ptr()), _type(data_type::unknown) {
   if (!_cache) {
     throw std::invalid_argument("global cache not loaded");
   }
@@ -48,9 +48,9 @@ line_protocol_query::line_protocol_query()
 line_protocol_query::line_protocol_query(
     data_type type,
     const std::shared_ptr<spdlog::logger>& logger)
-    : _type{type},
-      _logger(logger),
-      _cache(cache::global_cache::instance_ptr()) {
+    : _cache(cache::global_cache::instance_ptr()),
+      _type{type},
+      _logger(logger) {
   _compiled_getters.clear();
   _compiled_strings.clear();
   if (!_cache) {

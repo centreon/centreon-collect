@@ -54,82 +54,64 @@ class simple_global_cache : public global_cache {
     return ret;
   }
 
-  const host_serv_pair* get_host_serv_id(uint64_t index_id) override {
+  const host_serv_pair* get_host_serv_id(uint64_t) override { return nullptr; }
+
+  void _write_impl(const std::shared_ptr<io::data>&, bool) override {}
+
+  const host* get_host(uint64_t, upgrade_lock&) override { return nullptr; }
+  virtual const service* get_service(uint64_t,
+                                     uint64_t,
+                                     upgrade_lock&) override {
     return nullptr;
   }
 
-  void _write_impl(const std::shared_ptr<io::data>& d, bool) override {}
+  virtual const instance* get_instance(uint64_t) override { return nullptr; }
 
-  const host* get_host(uint64_t host_id, upgrade_lock& read_lock) override {
-    return nullptr;
-  }
-  virtual const service* get_service(uint64_t host_id,
-                                     uint64_t service_id,
-                                     upgrade_lock& read_lock) override {
+  const host_group* get_host_group(uint64_t) const override { return nullptr; }
+  const service_group* get_service_group(uint64_t) const override {
     return nullptr;
   }
 
-  virtual const instance* get_instance(uint64_t instance_id) override {
-    return nullptr;
-  }
+  virtual void append_service_group(uint64_t,
+                                    uint64_t,
+                                    std::ostream&) const override {}
+  virtual void append_host_group(uint64_t, std::ostream&) const override {}
+  virtual void append_host_tag_id(uint64_t,
+                                  TagType,
+                                  std::ostream&) const override {}
+  virtual void append_serv_tag_id(uint64_t,
+                                  uint64_t,
+                                  TagType,
+                                  std::ostream&) const override {}
+  virtual void append_host_tag_name(uint64_t,
+                                    TagType,
+                                    std::ostream&) const override {}
+  virtual void append_serv_tag_name(uint64_t,
+                                    uint64_t,
+                                    TagType,
+                                    std::ostream&) const override {}
 
-  const host_group* get_host_group(uint64_t group_id) const override {
-    return nullptr;
-  }
-  const service_group* get_service_group(uint64_t group_id) const override {
-    return nullptr;
-  }
-
-  virtual void append_service_group(uint64_t host,
-                                    uint64_t service,
-                                    std::ostream& request_body) const override {
-  }
-  virtual void append_host_group(uint64_t host,
-                                 std::ostream& request_body) const override {}
-  virtual void append_host_tag_id(uint64_t host,
-                                  TagType tag_type,
-                                  std::ostream& request_body) const override {}
-  virtual void append_serv_tag_id(uint64_t host,
-                                  uint64_t serv,
-                                  TagType tag_type,
-                                  std::ostream& request_body) const override {}
-  virtual void append_host_tag_name(uint64_t host,
-                                    TagType tag_type,
-                                    std::ostream& request_body) const override {
-  }
-  virtual void append_serv_tag_name(uint64_t host,
-                                    uint64_t serv,
-                                    TagType tag_type,
-                                    std::ostream& request_body) const override {
-  }
-
-  virtual uint64_t get_index_id_from_metric_id(
-      uint64_t metric_id) const override {
+  virtual uint64_t get_index_id_from_metric_id(uint64_t) const override {
     return 0;
   }
 
-  virtual std::optional<int32_t> get_severity(
-      const uint64_t host_id,
-      const uint64_t service_id) const override {
+  virtual std::optional<int32_t> get_severity(const uint64_t,
+                                              const uint64_t) const override {
     return 0;
   }
 
-  const dimension_ba_event* get_dimension_ba_event(
-      uint64_t ba_id) const override {
+  const dimension_ba_event* get_dimension_ba_event(uint64_t) const override {
     return nullptr;
   }
-  const dimension_bv_event* get_dimension_bv_event(
-      uint64_t bv_id) const override {
+  const dimension_bv_event* get_dimension_bv_event(uint64_t) const override {
     return nullptr;
   }
-  void enumerate_bvs(uint64_t ba_id,
-                     bv_enumerator&& enumerator) const override {}
+  void enumerate_bvs(uint64_t, bv_enumerator&&) const override {}
 
-  void enumerate_host_group(uint64_t host_id,
-                            group_enumerator&& enumerator) const override {}
-  void enumerate_service_group(uint64_t host_id,
-                               uint64_t service_id,
-                               group_enumerator&& enumerator) const override {}
+  void enumerate_host_group(uint64_t, group_enumerator&&) const override {}
+  void enumerate_service_group(uint64_t,
+                               uint64_t,
+                               group_enumerator&&) const override {}
 };
 
 static std::string file_path = "/tmp/protobuf_test.bin";

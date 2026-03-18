@@ -2266,9 +2266,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       else
         _cache_host_instance.erase(h.host_id());
 
-      uint64_t res_id = 0;
       if (_store_in_resources) {
-        res_id = _process_pb_host_in_resources(h, conn);
+        _process_pb_host_in_resources(h, conn);
       }
     } else
       SPDLOG_LOGGER_TRACE(_logger_sql,
@@ -4039,9 +4038,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
 
     _check_and_update_index_cache(s);
 
-    uint64_t res_id = 0;
     if (_store_in_resources) {
-      res_id = _process_pb_service_in_resources(s, conn);
+      _process_pb_service_in_resources(s, conn);
     }
   } else
     SPDLOG_LOGGER_TRACE(_logger_sql,

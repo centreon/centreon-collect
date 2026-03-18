@@ -71,6 +71,14 @@ class line_protocol_query {
   std::shared_ptr<cache::global_cache> _cache;
 
  private:
+  // Compiled data.
+  std::vector<std::pair<data_getter, data_escaper> > _compiled_getters;
+  std::vector<std::string> _compiled_strings;
+
+  // Used for generation.
+  data_type _type;
+
+  std::shared_ptr<spdlog::logger> _logger;
   template <typename T, typename U, T(U::*member)>
   bool _get_member(io::data const& d,
                    unsigned& string_index,
@@ -196,15 +204,6 @@ class line_protocol_query {
   bool _get_status_time(io::data const& d,
                         unsigned& string_index,
                         std::ostream& is) const;
-
-  // Compiled data.
-  std::vector<std::pair<data_getter, data_escaper> > _compiled_getters;
-  std::vector<std::string> _compiled_strings;
-
-  // Used for generation.
-  data_type _type;
-
-  std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace http_tsdb
 }  // namespace com::centreon::broker

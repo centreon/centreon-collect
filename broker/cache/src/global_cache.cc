@@ -29,11 +29,15 @@ using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::cache;
 
+/// Acquire a shared (read-only) lock on the singleton instance.
 global_cache::lock::lock() : _lock(global_cache::_instance->_protect) {}
+/// Acquire a shared (read-only) lock on a specific cache object.
 global_cache::lock::lock(global_cache* cache) : _lock(cache->_protect) {}
 
+/// Acquire an upgradable read lock on the singleton instance.
 global_cache::upgrade_lock::upgrade_lock()
     : _lock(global_cache::_instance->_protect) {}
+/// Acquire an upgradable read lock on a specific cache object.
 global_cache::upgrade_lock::upgrade_lock(global_cache* cache)
     : _lock(cache->_protect) {}
 
@@ -60,6 +64,24 @@ struct collect_version {
 // engine and every modules
 // std::shared_ptr<global_cache> global_cache::_instance;
 
+/**
+ * @brief Construct a global_cache base object.
+ *
+ * Does not open or create the underlying file; call _open() after construction.
+ *
+ * @param io_context  ASIO context used by the periodic save timer.
+ * @param file_path   Base path without extension; ".rt" or ".cnf" is appended
+ *                    depending on cache_type.
+ * @param logger      spdlog logger.
+ * @param cache_type  conf (stable) or real_time (includes status updates).
+ * @param conf_cache  Pointer to the conf cache used as a fallback when the RT
+ *                    cache does not hold a requested object.  nullptr for the
+ *                    conf cache itself.
+ * @param grow_step            Bytes added to the file on each grow (default 512
+ * MB).
+ * @param nb_update_before_save Flush the dirty flag after this many writes.
+ * @param save_interval        Periodic flush interval (default 10 s).
+ */
 global_cache::global_cache(const std::shared_ptr<asio::io_context> io_context,
                            const std::string& file_path,
                            const std::shared_ptr<spdlog::logger>& logger,
@@ -86,12 +108,21 @@ global_cache::global_cache(const std::shared_ptr<asio::io_context> io_context,
                       static_cast<const void*>(this), _file_path);
 }
 
+/**
+ * @brief Flush the file and release the memory mapping.
+ */
 global_cache::~global_cache() {
   SPDLOG_LOGGER_DEBUG(_logger, "cache destroy global_cache {:p} {}",
                       static_cast<const void*>(this), _file_path);
   stop();
 }
 
+/**
+ * @brief Schedule the next periodic flush.
+ *
+ * Arms the ASIO timer for _save_interval from now.  Must be called while
+ * holding _protect (the timer is an ABSL_GUARDED_BY member).
+ */
 void global_cache::_start_save_timer() {
   _save_timer.expires_after(_save_interval);
   _save_timer.async_wait(
@@ -100,6 +131,14 @@ void global_cache::_start_save_timer() {
       });
 }
 
+/**
+ * @brief ASIO callback fired when the periodic save timer expires.
+ *
+ * Flushes the mapped file to disk and re-arms the timer.  If the timer was
+ * cancelled (err is set), the handler returns immediately without flushing.
+ *
+ * @param err  Error code set by ASIO when the timer is cancelled.
+ */
 void global_cache::_save_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
@@ -110,6 +149,15 @@ void global_cache::_save_timer_handler(const boost::system::error_code& err) {
   }
 }
 
+/**
+ * @brief Mark the file dirty and trigger a flush when the write threshold
+ * is reached.
+ *
+ * Sets the in-segment dirty flag so that an unclean shutdown can be detected
+ * on the next open.  After _nb_update_before_save writes within the same
+ * wall-clock second, the file is flushed immediately and the periodic timer
+ * is reset.  Must be called while holding _protect exclusively.
+ */
 void global_cache::_set_dirty_and_increment_modif() {
   if (_dirty) {
     *_dirty = true;
@@ -120,11 +168,20 @@ void global_cache::_set_dirty_and_increment_modif() {
     _modif_counter = 0;
     _last_save_time = now;
     _flush();
-    // reset save timer in order after _save_interval
+    // reset save timer in order to save after _save_interval
     _start_save_timer();
   }
 }
 
+/**
+ * @brief Flush the memory-mapped file to disk and clear the dirty flag.
+ *
+ * The dirty flag is cleared between two flushes so that, if the process
+ * crashes after the first flush but before the second, the flag is found
+ * false on the next open and the file is considered clean.
+ * No-op if the file is not open or is already clean.
+ * Must be called while holding _protect exclusively.
+ */
 void global_cache::_flush() {
   if (_file && _dirty && *_dirty) {
     SPDLOG_LOGGER_TRACE(_logger, "cache: begin flush of {}", _file_path);
@@ -135,6 +192,27 @@ void global_cache::_flush() {
   }
 }
 
+/**
+ * @brief Open an existing cache file or create a new one.
+ *
+ * Tries to open the file at _file_path in read-write mode.  A file is
+ * considered valid only if:
+ *  - it exists, is a regular file and its size is a multiple of 8 bytes,
+ *  - its dirty flag is false (clean shutdown).
+ *
+ * On success, managed_map(false) is called so that the derived class can
+ * locate its named containers inside the segment.
+ *
+ * In all error cases (corrupted file, wrong version, dirty flag set) the file
+ * is deleted and recreated from scratch at initial_size_on_create bytes.
+ * managed_map(true) is then called so that the derived class constructs its
+ * containers in the new segment.
+ *
+ * @param initial_size_on_create  Size of the file when created from scratch.
+ * @param address                 Preferred virtual address for the mapping
+ *                                (0 lets the OS choose).  Used in tests to
+ *                                force a remap to a different address.
+ */
 void global_cache::_open(size_t initial_size_on_create, const void* address) {
   {
     try {
@@ -165,30 +243,42 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
                       _file_path, boost::diagnostic_information(e));
 
       SPDLOG_LOGGER_ERROR(_logger, err_detail);
+      if (_cache_type == e_cache_type::conf) {
+        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
+                            _file_path);
+      }
       _file.reset();
       _file_size = 0;
-      ::remove(_file_path.c_str());
     } catch (const std::invalid_argument&
                  e) {  // upgrade broker => erase cache and recreate
-      SPDLOG_LOGGER_ERROR(
-          _logger,
-          e.what() + std::string(", you will have to restart pollers"));
+      SPDLOG_LOGGER_ERROR(_logger, e.what());
+      if (_cache_type == e_cache_type::conf) {
+        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
+                            _file_path);
+      }
       _file.reset();
       _file_size = 0;
-      ::remove(_file_path.c_str());
     } catch (const std::exception& e) {
       std::string err_detail =
           fmt::format("cache: corrupted cache file {} => recreate {}",
                       _file_path, e.what());
 
       SPDLOG_LOGGER_ERROR(_logger, err_detail);
+      if (_cache_type == e_cache_type::conf) {
+        SPDLOG_LOGGER_ERROR(_logger, "cache:  you have to restart pollers",
+                            _file_path);
+      }
       _file.reset();
       _file_size = 0;
-      ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_INFO(_logger, "cache: create file {}", _file_path);
-
+    if (_cache_type == e_cache_type::conf) {
+      SPDLOG_LOGGER_INFO(_logger,
+                         "cache: create file {}, you have to restart pollers",
+                         _file_path);
+    } else {
+      SPDLOG_LOGGER_INFO(_logger, "cache: create file {}", _file_path);
+    }
     ::remove(_file_path.c_str());
     _grow(initial_size_on_create);
     _dirty = _file->find_or_construct<bool>("dirty")(false);
@@ -359,6 +449,12 @@ void global_cache::unload() {
   }
 }
 
+/**
+ * @brief Flush, cancel the save timer, and close the mapped file.
+ *
+ * For the real-time cache, also stops the conf cache recursively.
+ * Safe to call multiple times.
+ */
 void global_cache::stop() {
   boost::unique_lock l(_protect);
   _save_timer.cancel();

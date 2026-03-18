@@ -683,6 +683,9 @@ void global_cache_data::_process_pb_host_group_member(
       _id_to_host_group->emplace(in.hostgroup_id(), to_insert);
       dirty = true;
     } else {
+      if (hg.name().empty()) {
+        hg.set_name(hg_exist->second->name().c_str());
+      }
       dirty = hg_exist->second->update(hg, *_allocators);
     }
     dirty |= _host_group_members
@@ -1022,6 +1025,9 @@ void global_cache_data::_process_pb_service_group_member(
       _id_to_serv_group->emplace(in.servicegroup_id(), to_insert);
       dirty = true;
     } else {
+      if (sg.name().empty()) {
+        sg.set_name(sg_exist->second->name().c_str());
+      }
       dirty = sg_exist->second->update(sg, *_allocators);
     }
     dirty |= _service_group_members
