@@ -244,6 +244,9 @@ void global_cache_data::_write_impl(const std::shared_ptr<io::data>& data,
       SPDLOG_LOGGER_CRITICAL(
           _logger, "cache: fail to write datas to {}, we don't retry again",
           _file_path);
+      if (_conf_cache) {
+        _conf_cache->write(data);
+      }
       return;
     }
     SPDLOG_LOGGER_DEBUG(_logger, "cache: file {} full => grow", _file_path);

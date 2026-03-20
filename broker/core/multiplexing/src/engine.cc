@@ -32,8 +32,26 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
+/**
+ * @brief part of the global_cache is written here because this part of
+ * 15-cache.so code must remain joinable even after unload 15-cache.so
+ *
+ */
 std::shared_ptr<com::centreon::broker::cache::global_cache>
     com::centreon::broker::cache::global_cache::_instance;
+
+absl::Mutex com::centreon::broker::cache::global_cache::_instance_m;
+
+/**
+ * @brief static method use to get access to global_cache singleton
+ *
+ * @return com::centreon::broker::cache::global_cache::pointer
+ */
+com::centreon::broker::cache::global_cache::pointer
+com::centreon::broker::cache::global_cache::instance_ptr() {
+  absl::MutexLock l(&_instance_m);
+  return _instance;
+}
 
 // Class instance.
 std::shared_ptr<engine> engine::_instance{nullptr};

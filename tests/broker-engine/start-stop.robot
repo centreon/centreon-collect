@@ -715,6 +715,7 @@ HUGE_CONF
     Ctn Add All Host_Groups    ${3}    ${10}
     Ctn Add All Service Groups    ${3}    ${10}
     Ctn Config Broker    central
+    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${3}
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${3}    3.1.0

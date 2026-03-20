@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/lua/broker_cache.hh"
-#include <optional>
-#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -95,10 +93,6 @@ static int l_broker_cache_get_ba_v2(lua_State* L) {
     }
   }
   return 1;
-}
-
-static inline void lua_pushstring(lua_State* state, const std::string& str) {
-  lua_pushlstring(state, str.c_str(), str.length());
 }
 
 /**
@@ -279,8 +273,7 @@ static int l_broker_cache_get_service_v1(lua_State* L) {
     const cache::service* serv =
         cache_instance->get_service(host_id, svc_id, l);
     if (serv) {
-      broker_event::create_as_table(
-          L, neb::pb_service(std::move(serv->to_protobuf())));
+      broker_event::create_as_table(L, neb::pb_service(serv->to_protobuf()));
     } else {
       lua_pushnil(L);
     }
@@ -300,7 +293,7 @@ static int l_broker_cache_get_service_v2(lua_State* L) {
         cache_instance->get_service(host_id, svc_id, l);
     if (serv) {
       std::shared_ptr<neb::pb_service> pb_serv =
-          std::make_shared<neb::pb_service>(std::move(serv->to_protobuf()));
+          std::make_shared<neb::pb_service>(serv->to_protobuf());
       broker_event::create(L, pb_serv);
     } else {
       lua_pushnil(L);
@@ -326,9 +319,7 @@ static int l_broker_cache_get_host_v1(lua_State* L) {
     cache::global_cache::lock l;
     const cache::host* hst = cache_instance->get_host(host_id, l);
     if (hst) {
-      neb::pb_host pb_hst(std::move(hst->to_protobuf()));
-      broker_event::create_as_table(
-          L, neb::pb_host(std::move(hst->to_protobuf())));
+      broker_event::create_as_table(L, neb::pb_host(hst->to_protobuf()));
     } else {
       lua_pushnil(L);
     }
@@ -346,7 +337,7 @@ static int l_broker_cache_get_host_v2(lua_State* L) {
     const cache::host* hst = cache_instance->get_host(host_id, l);
     if (hst) {
       std::shared_ptr<neb::pb_host> pb_hst =
-          std::make_shared<neb::pb_host>(std::move(hst->to_protobuf()));
+          std::make_shared<neb::pb_host>(hst->to_protobuf());
       broker_event::create(L, pb_hst);
     } else {
       lua_pushnil(L);

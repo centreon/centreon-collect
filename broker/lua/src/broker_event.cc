@@ -575,11 +575,13 @@ static int l_broker_event_next(lua_State* L) {
         f = desc->field(0);
       else {
         f = desc->FindFieldByName(key);
-        int idx = f->index();
-        if (idx + 1 < desc->field_count())
-          f = desc->field(f->index() + 1);
-        else
-          f = nullptr;
+        if (f) {
+          int idx = f->index();
+          if (idx + 1 < desc->field_count())
+            f = desc->field(f->index() + 1);
+          else
+            f = nullptr;
+        }
       }
       if (f) {
         auto oof = f->containing_oneof();

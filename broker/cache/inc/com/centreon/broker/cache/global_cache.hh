@@ -115,7 +115,8 @@ inline bool operator!=(const string& left, const std::string_view& right) {
  */
 class global_cache : public std::enable_shared_from_this<global_cache> {
  private:
-  static std::shared_ptr<global_cache> _instance;
+  static std::shared_ptr<global_cache> _instance ABSL_GUARDED_BY(_instance_m);
+  static absl::Mutex _instance_m;
   std::shared_ptr<asio::io_context> _io_context;
   asio::system_timer _save_timer ABSL_GUARDED_BY(_protect);
   const unsigned _grow_step;
@@ -190,7 +191,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void stop();
 
-  static pointer instance_ptr() { return _instance; }
+  static pointer instance_ptr();
 
   virtual ~global_cache();
 

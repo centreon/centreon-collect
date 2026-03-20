@@ -26,9 +26,6 @@
 #include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
 #include <nlohmann/json.hpp>
 #include <sstream>
 
@@ -856,6 +853,7 @@ static void md5_message(const unsigned char* message,
   auto logger = log_v2::instance().get(log_v2::LUA);
   if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
     logger->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+    return;
   }
   if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
     logger->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
@@ -866,6 +864,8 @@ static void md5_message(const unsigned char* message,
   if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
       nullptr) {
     logger->error("lua: fail to call MD5 (OPENSSL_malloc call)");
+    EVP_MD_CTX_free(mdctx);
+    return;
   }
   if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
     logger->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");

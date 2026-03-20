@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/cache/protobuf.hh"
 
-#include <fmt/format.h>
-#include <stdexcept>
 #include "boost/system/detail/error_code.hpp"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
@@ -482,6 +480,7 @@ global_cache::pointer global_cache::load(
     unsigned grow_step,
     unsigned nb_update_before_save,
     std::chrono::system_clock::duration save_interval) {
+  absl::MutexLock instance_lock(&_instance_m);
   if (!_instance) {
     std::shared_ptr<global_cache> conf_cache(new global_cache_data(
         io_context, file_path, e_cache_type::conf, nullptr, grow_step,
@@ -509,6 +508,7 @@ global_cache::pointer global_cache::load(
  *
  */
 void global_cache::unload() {
+  absl::MutexLock instance_lock(&_instance_m);
   if (_instance) {
     _instance->stop();
     _instance.reset();
@@ -522,6 +522,7 @@ void global_cache::unload() {
  * Safe to call multiple times.
  */
 void global_cache::stop() {
+  SPDLOG_LOGGER_INFO(_logger, "cache: stop {}", _file_path);
   {
     boost::unique_lock l(_protect);
     _save_timer.cancel();
