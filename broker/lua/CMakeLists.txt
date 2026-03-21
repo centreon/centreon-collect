@@ -25,7 +25,7 @@ include_directories(
   "${INC_DIR}" 
   "${PROJECT_SOURCE_DIR}/neb/inc" 
   "${PROJECT_SOURCE_DIR}/bam/inc" 
-  "${PROJECT_SOURCE_DIR}/cache/inc"
+  "${PROJECT_SOURCE_DIR}/core/cache/inc"
   ${CMAKE_BINARY_DIR}/common/process_stat
   #to remove
   /usr/include/lua5.3

@@ -16,20 +16,18 @@
 #
 
 # Global options.
-set(INC_DIR "${PROJECT_SOURCE_DIR}/cache/inc/com/centreon/broker/cache")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/cache/src")
-set(TEST_DIR "${PROJECT_SOURCE_DIR}/cache/test")
+set(INC_DIR "${PROJECT_SOURCE_DIR}/core/cache/inc/com/centreon/broker/cache")
+set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/cache/src")
+set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/cache/test")
 include_directories(
-  "${PROJECT_SOURCE_DIR}/cache/inc" 
+  "${PROJECT_SOURCE_DIR}/core/cache/inc" 
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${PROJECT_SOURCE_DIR}/bam/inc")
 
 # Cache module.
-set(CACHE_MOD "15-cache")
 add_library(
-  "${CACHE_MOD}" SHARED
+  global_cache STATIC
   # Sources.
-  ${SRC_DIR}/main.cc
   ${SRC_DIR}/global_cache.cc
   ${SRC_DIR}/global_cache_data.cc
   ${SRC_DIR}/protobuf.cc
@@ -41,7 +39,7 @@ add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
-    python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam ${INC_DIR}/protobuf.hh ${SRC_DIR}/protobuf.cc
+    python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${INC_DIR}/protobuf.hh ${SRC_DIR}/protobuf.cc
       Comment,AdaptiveService,Host,Service,Tag,Instance,HostGroup,ServiceGroup,DimensionBaEvent,DimensionBvEvent 
   VERBATIM)
 
@@ -51,16 +49,13 @@ add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/bbdo/neb.proto ${CMAKE_SOURCE_DIR}/bbdo/bam.proto
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
   COMMAND
-    python3 ARGS ${PROJECT_SOURCE_DIR}/cache/create_class_from_proto.py neb,header,bam ${TEST_DIR}/protobuf_test_classes.hh ${TEST_DIR}/protobuf_test_classes.cc
+    python3 ARGS ${PROJECT_SOURCE_DIR}/core/cache/create_class_from_proto.py neb,header,bam ${TEST_DIR}/protobuf_test_classes.hh ${TEST_DIR}/protobuf_test_classes.cc
   VERBATIM)
 
 
-set_target_properties("${CACHE_MOD}" PROPERTIES PREFIX ""
-  POSITION_INDEPENDENT_CODE ON
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-target_link_libraries("${CACHE_MOD}" PRIVATE fmt::fmt)
-target_precompile_headers(${CACHE_MOD} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(${CACHE_MOD}  pb_common_lib process_stat)
+target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
+add_dependencies(global_cache  pb_common_lib process_stat)
+set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.
 if(WITH_TESTING)
@@ -68,16 +63,14 @@ if(WITH_TESTING)
     ${TEST_DIR}/protobuf_test_classes.cc
   )
 
-  target_precompile_headers(ut_cache REUSE_FROM  ${CACHE_MOD} )
+  target_precompile_headers(ut_cache REUSE_FROM  global_cache )
   set(TESTS_SOURCES
       ${TESTS_SOURCES} 
       ${TEST_DIR}/global_cache_test.cc
       ${TEST_DIR}/protobuf_test.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
-      ${TESTS_LIBRARIES} ut_cache ${CACHE_MOD}
+      ${TESTS_LIBRARIES} ut_cache global_cache
       PARENT_SCOPE)
 endif(WITH_TESTING)
 
-# Install rule.
-install(TARGETS "${CACHE_MOD}" LIBRARY DESTINATION "${PREFIX_MODULES}")

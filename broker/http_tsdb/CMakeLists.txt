@@ -26,7 +26,7 @@ include_directories(inc
     ${INC_DIR} 
     ${HTTP_INC_DIR} 
     ${CMAKE_BINARY_DIR}/common/process_stat
-    ${PROJECT_SOURCE_DIR}/cache/inc)
+    ${PROJECT_SOURCE_DIR}/core/cache/inc)
 
 # Sources.
 set(SOURCES

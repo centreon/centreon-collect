@@ -41,7 +41,13 @@ using namespace com::centreon;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/containers/vector.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
+
 #include "com/centreon/broker/brokerrpc.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -334,6 +340,9 @@ int main(int argc, char* argv[]) {
         config::applier::state::instance().apply(conf, !check);
         broker_name = conf.broker_name();
         gl_state = conf;
+        cache::global_cache::load(
+            com::centreon::common::pool::io_context_ptr(),
+            config::applier::state::instance().cache_dir() + ".cache.global");
       }
 
       if (!gl_state.listen_address().empty())
@@ -378,6 +387,7 @@ int main(int argc, char* argv[]) {
     retval = EXIT_FAILURE;
   }
 
+  cache::global_cache::unload();
   SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
                      argv[0], getpid(), retval);
   g_io_context->stop();

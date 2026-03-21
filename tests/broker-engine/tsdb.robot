@@ -272,7 +272,7 @@ GRAPHITE_FORMAT_TEST
     ...    And the TCP server receives a status message whose path contains all the same context macros
     ...    And both messages include the expected Basic authentication header
     [Tags]    broker    engine    graphite    MON-195013
-    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}    ${EMPTY}    ${False}
     Ctn Add Host Group    ${0}    ${1}    ["host_16", "host_17"]
     Ctn Add Host Group    ${0}    ${2}    ["host_16"]
     Ctn Add Service Group    ${0}    ${5}    ["host_16","service_314"]
@@ -313,6 +313,8 @@ GRAPHITE_FORMAT_TEST
     ${accepted}    CallMethod    ${tcp_server}    accept    ${30}
     Should Be True    ${accepted}    no incoming connection
 
+    ${status_received}    Set Variable    ${False}
+    ${metric_received}    Set Variable    ${False}
 
     FOR    ${i}     IN RANGE     2
         ${received}    CallMethod    ${tcp_server}    receive    ${30}
@@ -321,8 +323,14 @@ GRAPHITE_FORMAT_TEST
 
         IF    'status' in $received
             Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received
-        ELSE
+            ${status_received}    Set Variable    ${True}
+        END
+        IF    'metric' in $received
             Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received
+            ${metric_received}    Set Variable    ${True}
+        END
+        IF    ${metric_received} and ${status_received}
+            BREAK
         END
     END
 
@@ -341,7 +349,7 @@ INFLUXDB_FORMAT_TEST
     ...    with value 0 and the same context fields expanded
     ...    And each HTTP POST is answered with HTTP/1.0 204 No Content to acknowledge the write
     [Tags]    broker    engine    influxdb    MON-195013
-    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Engine    ${1}    ${50}    ${20}    ${EMPTY}    ${False}
     Ctn Add Host Group    ${0}    ${1}    ["host_16", "host_17"]
     Ctn Add Host Group    ${0}    ${2}    ["host_16"]
     Ctn Add Service Group    ${0}    ${5}    ["host_16","service_314"]
@@ -376,6 +384,9 @@ INFLUXDB_FORMAT_TEST
 
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
+    ${status_received}    Set Variable    ${False}
+    ${metric_received}    Set Variable    ${False}
+
     FOR    ${i}    IN RANGE    2
         Wait For Request    timeout=30
         ${body}    Get Request Body
@@ -389,10 +400,16 @@ INFLUXDB_FORMAT_TEST
             Should Match Regexp    ${body_str}
             ...    centreon_status,host=host_16,service=service_314,instance=Poller0 value=0,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
             ...    incorrect influxdb status received
-        ELSE
+            ${status_received}    Set Variable    ${True}
+        END
+        IF    'centreon_metric' in $body_str
             Should Match Regexp    ${body_str}
             ...    centreon_metric,host=host_16,service=service_314,instance=Poller0,metric=metric_taratata value=80,min=5,max=99,host_id="16",service_id="314",instance_id="1",index_id="\\d+",host_groups="1,2",serv_groups="4,5",host_tag_cat="tag8",host_tag_cat_id="2",host_tag_group="tag6",host_tag_group_id="2",serv_tag_cat="tag19,tag15",serv_tag_cat_id="4,5",serv_tag_group="tag13",serv_tag_group_id="4" \\d+
             ...    incorrect influxdb metric received
+            ${metric_received}    Set Variable    ${True}
+        END
+        IF    ${metric_received} and ${status_received}
+            BREAK
         END
     END
 

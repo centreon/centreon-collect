@@ -319,7 +319,7 @@ cache on the first call to `get_host()` / `get_service()`.
 
 Protobuf objects cannot be stored directly in a `boost::interprocess` segment
 because they use the global heap allocator. The script
-`broker/cache/create_class_from_proto.py` generates at build time the C++
+`broker/core/cache/create_class_from_proto.py` generates at build time the C++
 files `protobuf.hh` and `protobuf.cc`, which contain mirror classes (`host`,
 `service`, `instance`, etc.) that use interprocess-compatible allocators and
 can live inside the mapped segment.
@@ -397,7 +397,7 @@ logic concise:
 #### Adding a new proto class to the cache
 
 1. Add the class name to the `create_class_from_proto.py` invocation in
-   `broker/cache/CMakeLists.txt` (the `[class_filter]` argument).
+   `broker/core/cache/CMakeLists.txt` (the `[class_filter]` argument).
 2. Rebuild — the header and source are regenerated automatically.
 3. Add a handler `_process_pb_<name>()` in `global_cache_data` and dispatch it
    from `_write_conf()` and/or `_write_rt()` as appropriate.
@@ -446,13 +446,6 @@ try {
 
 `allocation_exception_handler()` grows the file by `_grow_step` (256 MB by
 default), remaps the segment, and refreshes all internal pointers.
-
-### Broker module
-
-The cache is packaged as a dedicated broker module (`15-cache.so`). It is
-loaded before other modules so that `global_cache::instance_ptr()` is available
-from their initialization. The `_instance` singleton definition is shared
-between the cache module and consumer modules via DSO symbol export.
 
 ## Modules
 

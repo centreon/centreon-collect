@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <optional>
 
 #include "bbdo/neb.pb.h"
 

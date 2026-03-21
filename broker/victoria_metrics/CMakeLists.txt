@@ -25,7 +25,7 @@ include_directories(inc
   ${PROJECT_SOURCE_DIR}/http_tsdb/inc
   ${HTTP_INC_DIR}
   ${PROJECT_SOURCE_DIR}/neb/inc
-  ${PROJECT_SOURCE_DIR}/cache/inc
+  ${PROJECT_SOURCE_DIR}/core/cache/inc
 )
 
 # Sources.

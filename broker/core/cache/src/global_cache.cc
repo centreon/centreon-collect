@@ -121,9 +121,10 @@ struct collect_version {
 };
 }  // namespace com::centreon::broker::cache
 
-// not defined here but in broker engine in order to be accessed by broker
-// engine and every modules
-// std::shared_ptr<global_cache> global_cache::_instance;
+std::shared_ptr<com::centreon::broker::cache::global_cache>
+    com::centreon::broker::cache::global_cache::_instance;
+
+absl::Mutex com::centreon::broker::cache::global_cache::_instance_m;
 
 /**
  * @brief Construct a global_cache base object.
@@ -176,6 +177,17 @@ global_cache::~global_cache() {
   SPDLOG_LOGGER_DEBUG(_logger, "cache destroy global_cache {:p} {}",
                       static_cast<const void*>(this), _file_path);
   stop();
+}
+
+/**
+ * @brief static method use to get access to global_cache singleton
+ *
+ * @return com::centreon::broker::cache::global_cache::pointer
+ */
+com::centreon::broker::cache::global_cache::pointer
+com::centreon::broker::cache::global_cache::instance_ptr() {
+  absl::MutexLock l(&_instance_m);
+  return _instance;
 }
 
 /**
@@ -522,13 +534,15 @@ void global_cache::unload() {
  * Safe to call multiple times.
  */
 void global_cache::stop() {
-  SPDLOG_LOGGER_INFO(_logger, "cache: stop {}", _file_path);
   {
     boost::unique_lock l(_protect);
     _save_timer.cancel();
-    _flush();
-    _file.reset();
-    _file_size = 0;
+    if (_file) {
+      SPDLOG_LOGGER_INFO(_logger, "cache: stop {}", _file_path);
+      _flush();
+      _file.reset();
+      _file_size = 0;
+    }
   }
   if (_cache_type == e_cache_type::real_time && _conf_cache) {
     _conf_cache->stop();

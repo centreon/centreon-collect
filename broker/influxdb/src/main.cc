@@ -43,7 +43,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", "15-cache.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
   return retval;
 }
 

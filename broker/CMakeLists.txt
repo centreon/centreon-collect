@@ -86,6 +86,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
+  "${PROJECT_SOURCE_DIR}/core/cache/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
   ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
@@ -321,10 +322,12 @@ target_link_libraries(pb_broker_lib
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(core/bbdo)
+add_subdirectory(core/cache)
 
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
+    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
     ${SRC_DIR}/compression/factory.cc
@@ -391,6 +394,7 @@ target_include_directories(rokerbase
 target_link_libraries(
   rokerbase PRIVATE
   sql
+  global_cache
   bbdo_bbdo
   pb_broker_lib
   bbdo
@@ -423,6 +427,9 @@ target_link_libraries(
   multiplexing
   centreon_common
   centreon_process
+  pb_neb_lib
+  pb_bam_lib
+  pb_storage_lib
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive
@@ -451,7 +458,6 @@ add_subdirectory(core/sql)
 
 if (ONLY_ROBOT_CMA)
   add_broker_module(STATS ON)
-  add_broker_module(CACHE ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
@@ -462,7 +468,6 @@ else()
   # Generator module.
   add_broker_module(GENERATOR OFF)
   add_broker_module(STATS ON)
-  add_broker_module(CACHE ON)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
@@ -595,6 +600,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/processing/feeder.cc
     ${TEST_DIR}/time/timerange.cc
     ${TEST_DIR}/rpc/brokerrpc.cc
+    ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
     ${TEST_DIR}/exceptions.cc
     ${TEST_DIR}/io.cc
   )
