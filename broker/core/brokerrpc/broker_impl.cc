@@ -21,8 +21,10 @@
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 
+#include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -670,6 +672,9 @@ grpc::Status broker_impl::GetHostIds(grpc::ServerContext* context
                                      [[maybe_unused]],
                                      IdsList* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_HOSTS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Host cache is not enabled in this broker instance");
   auto lst = cache.host_ids();
   response->mutable_ids()->Reserve(lst.size());
   for (uint64_t host_id : lst)
@@ -693,6 +698,9 @@ grpc::Status broker_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
                                   const GenericNameOrIndex* request,
                                   Host* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_HOSTS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Host cache is not enabled in this broker instance");
   switch (request->nameOrIndex_case()) {
     case GenericNameOrIndex::kStr: {
       auto const& host = cache.host(request->str());
@@ -736,6 +744,9 @@ grpc::Status broker_impl::GetServiceIds(grpc::ServerContext* context
                                         [[maybe_unused]],
                                         IdsPairsList* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Service cache is not enabled in this broker instance");
   auto lst = cache.service_ids();
   for (const auto& [host_id, service_id] : lst) {
     auto* pair = response->add_pairs();
@@ -763,6 +774,9 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
                                      const ServiceIdentifier* request,
                                      com::centreon::broker::Service* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Service cache is not enabled in this broker instance");
   uint64_t host_id = std::numeric_limits<uint64_t>::max();
   uint64_t service_id = std::numeric_limits<uint64_t>::max();
   switch (request->host_case()) {
@@ -809,6 +823,9 @@ grpc::Status broker_impl::GetHostGroupIds(
     const ::google::protobuf::Empty* request [[maybe_unused]],
     IdsList* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_GROUPS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Group cache is not enabled in this broker instance");
   auto lst = cache.hostgroup_ids();
   response->mutable_ids()->Reserve(lst.size());
   for (uint64_t hg_id : lst)
@@ -835,6 +852,9 @@ grpc::Status broker_impl::GetHostGroup(grpc::ServerContext* context
                                        const GenericNameOrIndex* request,
                                        HostGroup* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_GROUPS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Group cache is not enabled in this broker instance");
   std::shared_ptr<neb::pb_host_group> hg;
   switch (request->nameOrIndex_case()) {
     case GenericNameOrIndex::kStr:
@@ -878,6 +898,9 @@ grpc::Status broker_impl::GetServiceGroupIds(
     const ::google::protobuf::Empty* request [[maybe_unused]],
     IdsList* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_GROUPS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Group cache is not enabled in this broker instance");
   auto lst = cache.servicegroup_ids();
   response->mutable_ids()->Reserve(lst.size());
   for (uint64_t sg_id : lst)
@@ -897,11 +920,14 @@ grpc::Status broker_impl::GetServiceGroupIds(
  * @return grpc::Status::OK, or grpc::StatusCode::INVALID_ARGUMENT if the
  * index is not set.
  */
-grpc::Status broker_impl::GetServiceGroup(
-    grpc::ServerContext* context [[maybe_unused]],
-    const GenericNameOrIndex* request,
-    ServiceGroup* response) {
+grpc::Status broker_impl::GetServiceGroup(grpc::ServerContext* context
+                                          [[maybe_unused]],
+                                          const GenericNameOrIndex* request,
+                                          ServiceGroup* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_GROUPS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Group cache is not enabled in this broker instance");
   std::shared_ptr<neb::pb_service_group> sg;
   switch (request->nameOrIndex_case()) {
     case GenericNameOrIndex::kIdx:
@@ -938,11 +964,16 @@ grpc::Status broker_impl::GetServiceGroup(
  *
  * @return grpc::Status::OK.
  */
-grpc::Status broker_impl::GetSeverities(
-    grpc::ServerContext* context [[maybe_unused]],
-    const ::google::protobuf::Empty* request [[maybe_unused]],
-    SeverityList* response) {
+grpc::Status broker_impl::GetSeverities(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const ::google::protobuf::Empty* request
+                                        [[maybe_unused]],
+                                        SeverityList* response) {
   auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_SEVERITIES))
+    return grpc::Status(
+        grpc::StatusCode::UNAVAILABLE,
+        "Severity cache is not enabled in this broker instance");
   auto sevs = cache.severities();
   response->mutable_entries()->Reserve(sevs.size());
   for (const auto& [key, sev] : sevs) {

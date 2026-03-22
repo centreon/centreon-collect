@@ -20,6 +20,8 @@
 
 #include <cassert>
 
+#include "absl/container/flat_hash_set.h"
+
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -116,6 +118,35 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
     std::lock_guard<std::timed_mutex> lock(_endpointsm);
     std::list<config::endpoint> endp_to_delete;
     _diff_endpoints(_endpoints, tmp_endpoints, endp_to_create, endp_to_delete);
+
+    // Detect output additions or removals that would require a broker restart
+    // to correctly reconfigure the broker cache sections.
+    {
+      absl::flat_hash_set<std::string> names_to_delete;
+      for (const auto& ep : endp_to_delete)
+        names_to_delete.insert(ep.name);
+      absl::flat_hash_set<std::string> names_to_create;
+      for (const auto& ep : endp_to_create)
+        names_to_create.insert(ep.name);
+      for (const auto& name : names_to_delete) {
+        if (!names_to_create.count(name))
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "endpoint applier: output '{}' has been removed from the "
+              "configuration. The broker cache cannot be reconfigured at "
+              "runtime: a full broker restart is required.",
+              name);
+      }
+      for (const auto& name : names_to_create) {
+        if (!names_to_delete.count(name))
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "endpoint applier: output '{}' has been added to the "
+              "configuration. The broker cache cannot be reconfigured at "
+              "runtime: a full broker restart is required.",
+              name);
+      }
+    }
 
     // Remove old endpoints.
     for (auto& ep : endp_to_delete) {
@@ -467,7 +498,6 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
        it != end; ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
-
       endp =
           std::shared_ptr<io::endpoint>(it->second.endpntfactry->new_endpoint(
               cfg, global_params, is_acceptor));

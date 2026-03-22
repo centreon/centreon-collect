@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include "bbdo/storage/metric.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -61,6 +63,10 @@ stream::stream(std::string const& metric_naming,
       _status_query{_status_naming, escape_string, query::status},
       _socket{_io_context},
       _logger{log_v2::instance().get(log_v2::GRAPHITE)} {
+  config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_HOSTS | cache::broker_cache::CACHE_SERVICES |
+      cache::broker_cache::CACHE_INSTANCES |
+      cache::broker_cache::CACHE_METRIC_MAPPINGS);
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
