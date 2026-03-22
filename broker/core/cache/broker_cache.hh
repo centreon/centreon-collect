@@ -302,8 +302,21 @@ class broker_cache {
     uint64_t db_id;
   };
 
+  enum cache_section : uint32_t {
+    CACHE_NONE = 0,
+    CACHE_INSTANCES = 1 << 0,
+    CACHE_HOSTS = 1 << 1,
+    CACHE_SERVICES = 1 << 2,
+    CACHE_GROUPS = 1 << 3,
+    CACHE_METRIC_MAPPINGS = 1 << 4,
+    CACHE_SEVERITIES = 1 << 5,
+    CACHE_BAM = 1 << 6,
+    CACHE_ALL = 0xFFFFFFFF,
+  };
+
  private:
   std::shared_ptr<spdlog::logger> _logger;
+  std::atomic<uint32_t> _enabled_sections{CACHE_NONE};
 
   mutable absl::Mutex _mutex;
   absl::flat_hash_map<uint64_t, std::string> _instances ABSL_GUARDED_BY(_mutex);
@@ -372,6 +385,13 @@ class broker_cache {
   broker_cache(const broker_cache&) = delete;
   broker_cache& operator=(const broker_cache&) = delete;
   ~broker_cache() noexcept;
+
+  void enable_section(uint32_t sections) noexcept {
+    _enabled_sections.fetch_or(sections, std::memory_order_relaxed);
+  }
+  bool section_enabled(uint32_t section) const noexcept {
+    return (_enabled_sections.load(std::memory_order_relaxed) & section) != 0;
+  }
   void merge(const com::centreon::engine::configuration::State& state)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void apply(const com::centreon::engine::configuration::DiffState& diff)

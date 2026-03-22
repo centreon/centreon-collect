@@ -64,6 +64,9 @@ luabinding::luabinding(std::string const& lua_script,
       _total{0},
       _broker_api_version{1},
       _logger{log_v2::instance().get(log_v2::LUA)} {
+  com::centreon::broker::config::applier::state::instance()
+      .cache()
+      .enable_section(com::centreon::broker::cache::broker_cache::CACHE_ALL);
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();

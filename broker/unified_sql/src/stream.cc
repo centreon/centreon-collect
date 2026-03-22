@@ -190,6 +190,8 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)",
            _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+  config::applier::state::instance().cache().enable_section(
+      cache::broker_cache::CACHE_ALL);
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
@@ -604,8 +606,8 @@ void stream::_load_caches() {
         uint32_t type = res.value_as_u32(2);
         cache.set_db_id_for_severity(config_id, type, db_id);
         _logger_sql->trace(
-            "loading severities cache: id={} type={} severity_id={}",
-            config_id, type, db_id);
+            "loading severities cache: id={} type={} severity_id={}", config_id,
+            type, db_id);
       }
     } catch (const std::exception& e) {
       throw msg_fmt("unified sql: could not get the list of severities: {}",

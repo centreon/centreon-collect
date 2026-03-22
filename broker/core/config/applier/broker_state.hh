@@ -73,6 +73,7 @@ class broker_state : public state {
    * stream when the neb::pb_instance_configuration is handled. */
   absl::flat_hash_map<uint64_t, std::string> _engine_configuration
       ABSL_GUARDED_BY(_connected_peers_m);
+  std::atomic<bool> _watch_engine_conf_stopped{false};
   std::unique_ptr<boost::asio::steady_timer> _watch_engine_conf_timer;
   mutable absl::Mutex _lck_set_m;
   absl::flat_hash_set<uint32_t> _lck_set ABSL_GUARDED_BY(_lck_set_m);
