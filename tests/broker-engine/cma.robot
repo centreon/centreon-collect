@@ -559,6 +559,77 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
     Should Be True    ${result}    resources table not updated
 
+BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_WITHOUT_CERT
+    [Documentation]    Given Engine is configured with a full TLS gRPC server (port 4318) exposing its CA certificate,
+    ...    And the CMA has only a fingerprint (no CA certificate file) and a JWT token,
+    ...    When the CMA starts and attempts a full TLS connection to Engine (which fails — no CA yet),
+    ...    Then the CMA falls back to an insecure TLS connection to retrieve the CA certificate from Engine,
+    ...    And Engine logs a security entry confirming the CA certificate was delivered,
+    ...    And the CMA validates the retrieved CA certificate against the configured fingerprint,
+    ...    And the CMA logs a security entry confirming the CA bootstrap succeeded,
+    ...    And the CMA stores the CA certificate and reconnects using full TLS with the JWT token,
+    ...    Then the host check result is reported successfully in the resources table.
+    [Tags]    broker    engine    opentelemetry    MON-192054
+    
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4318, "encryption": "full", "public_cert": "/tmp/server_grpc.crt", "private_key": "/tmp/server_grpc.key"}, "centreon_agent":{"export_period":5}, "max_length_grpc_log":0}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    otel_check_icmp
+    
+    ${echo_command}   Ctn Echo Command   "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
+    Ctn Engine Config Add Command    ${0}    otel_check_icmp    ${echo_command}    OTEL connector
+    Ctn Set Hosts Passive    ${0}    host_1 
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Engine Config Set Value In Hosts    ${0}    host_1    check_interval    1
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    ${token}    Ctn Create Jwt Token    ${600}
+    ${fingerprint}    Ctn Get Cert Fingerprint    /tmp/server_grpc.crt
+    Ctn Config Centreon Agent    ${None}    ${None}    ${None}    ${token}    fingerprint=${fingerprint}
+    Ctn Add Token Otl Server Module    0    ${token}
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Get Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    ${content}    Create List    ] encrypted server listening on 0.0.0.0:4318
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    Should Be True    ${result}    "encrypted server listening on 0.0.0.0:4318" should be available.
+
+    # Verify engine security log: CA certificate was delivered to the agent
+    ${content}    Create List    [SECURITY] CA bootstrap certificate delivered to peer
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result}    Engine security log "[SECURITY] CA bootstrap certificate delivered to peer" not found
+
+    # Verify agent security log: CA was successfully bootstrapped from fingerprint
+    ${content}    Create List    [SECURITY] CA bootstrap succeeded from fingerprint for endpoint
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    30    agent_format=${True}
+    Should Be True    ${result}    Agent security log "[SECURITY] CA bootstrap succeeded from fingerprint for endpoint" not found
+
+    ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    120    ${start_int}    0  HARD  OK - 127.0.0.1
+    Should Be True    ${result}    resources table not updated
+
+
 BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_ENCRYPTED_CREDENTIALS
     [Documentation]    Given an agent host checked by centagent over an encrypted connection,
     ...    Engine use credentials encryption and send encrypted commands

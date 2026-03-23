@@ -66,6 +66,7 @@ add_custom_command(
 # mod_externalcmd target.
 add_library(
   opentelemetry SHARED
+  ${SRC_DIR}/certificate_service.cc
   ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
   ${SRC_DIR}/centreon_agent/agent.pb.cc
   ${SRC_DIR}/centreon_agent/agent_check_result_builder.cc
