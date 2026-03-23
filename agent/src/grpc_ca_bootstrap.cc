@@ -21,9 +21,6 @@
 
 #if defined(__linux__)
 #include <pwd.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
 #elif defined(_WIN32)
 #include <wincrypt.h>
 #include <windows.h>
