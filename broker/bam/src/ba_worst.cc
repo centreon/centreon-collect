@@ -182,7 +182,6 @@ void ba_worst::_unapply_impact(kpi* kpi_ptr,
  *  @return Service output.
  */
 std::string ba_worst::get_output() const {
-  std::string retval;
   auto not_ok_kpis = [this]() {
     std::list<std::string> retval;
     for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
@@ -199,22 +198,25 @@ std::string ba_worst::get_output() const {
   state state = get_state_hard();
   switch (state) {
     case state_unknown:
-      retval = fmt::format("At least one KPI is in an UNKNOWN state: {}",
-                           fmt::join(not_ok_kpis(), ", "));
+      return output_begin() +
+             fmt::format("At least one KPI is in an UNKNOWN state: {}",
+                         fmt::join(not_ok_kpis(), ", "));
       break;
     case state_ok:
-      retval = "All KPIs are in an OK state";
+      return output_begin() + "All KPIs are in an OK state";
       break;
     case state_warning:
-      retval = fmt::format("At least one KPI is in a WARNING state: {}",
-                           fmt::join(not_ok_kpis(), ", "));
+      return output_begin() +
+             fmt::format("At least one KPI is in a WARNING state: {}",
+                         fmt::join(not_ok_kpis(), ", "));
       break;
     case state_critical:
-      retval = fmt::format("At least one KPI is in a CRITICAL state: {}",
-                           fmt::join(not_ok_kpis(), ", "));
+      return output_begin() +
+             fmt::format("At least one KPI is in a CRITICAL state: {}",
+                         fmt::join(not_ok_kpis(), ", "));
       break;
   }
-  return retval;
+  return {};
 }
 
 /**
