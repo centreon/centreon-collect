@@ -35,7 +35,8 @@ class skip_all_certificate_verifier
   bool Verify(::grpc::experimental::TlsCustomVerificationCheckRequest*,
               std::function<void(::grpc::Status)>,
               ::grpc::Status* sync_status) override {
-    *sync_status = ::grpc::Status::OK;
+    if (sync_status)
+      *sync_status = ::grpc::Status::OK;
     return true;
   }
   void Cancel(
