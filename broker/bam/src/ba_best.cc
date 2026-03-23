@@ -182,19 +182,19 @@ std::string ba_best::get_output() const {
   switch (state) {
     case state_unknown:
       retval =
-          "Status is UNKNOWN - All KPIs are in an UNKNOWN state or worse "
+          "All KPIs are in an UNKNOWN state or worse "
           "(WARNING or CRITICAL)";
       break;
     case state_ok:
-      retval = "Status is OK - At least one KPI is in an OK state";
+      retval = "At least one KPI is in an OK state";
       break;
     case state_warning:
       retval =
-          "Status is WARNING - All KPIs are in a WARNING state or worse "
+          "All KPIs are in a WARNING state or worse "
           "(CRITICAL)";
       break;
     case state_critical:
-      retval = "Status is CRITICAL - All KPIs are in a CRITICAL state";
+      retval = "All KPIs are in a CRITICAL state";
       break;
   }
   return retval;

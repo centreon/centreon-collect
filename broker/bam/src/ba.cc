@@ -497,6 +497,13 @@ void ba::_compute_inherited_downtime(io::stream* visitor) {
         _in_downtime);
 }
 
+static std::string_view state_to_str(unsigned state) {
+  if (state < state_str.size()) {
+    return state_str[state];
+  }
+  return "bad state";
+}
+
 std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   if (bbdo.major_v < 3) {
@@ -525,7 +532,8 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     status->latency = 0.0;
     status->max_check_attempts = 1;
     status->obsess_over = false;
-    status->output = get_output();
+    status->output = fmt::format("BA: {} - {} - {}:", _id, _name,
+                                 state_to_str(get_state_hard()), get_output());
     status->perf_data = fmt::format(
         "BA_Level={}%;{};{};0;100", static_cast<int>(_normalize(_level_hard)),
         static_cast<int>(_level_warning), static_cast<int>(_level_critical));
@@ -550,7 +558,8 @@ std::shared_ptr<io::data> ba::_generate_virtual_service_status() const {
     o.set_last_hard_state(static_cast<ServiceStatus_State>(get_state_hard()));
     o.set_last_hard_state_change(o.last_check());
     o.set_last_state_change(o.last_check());
-    o.set_output(get_output());
+    o.set_output(fmt::format("BA: {} - {} - {}:", _id, _name,
+                             state_to_str(get_state_hard()), get_output()));
     o.set_perfdata(get_perfdata());
     o.set_service_id(_service_id);
     o.set_state_type(ServiceStatus_StateType_HARD);

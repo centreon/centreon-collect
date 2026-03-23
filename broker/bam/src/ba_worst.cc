@@ -199,22 +199,19 @@ std::string ba_worst::get_output() const {
   state state = get_state_hard();
   switch (state) {
     case state_unknown:
-      retval = fmt::format(
-          "Status is UNKNOWN - At least one KPI is in an UNKNOWN state: {}",
-          fmt::join(not_ok_kpis(), ", "));
+      retval = fmt::format("At least one KPI is in an UNKNOWN state: {}",
+                           fmt::join(not_ok_kpis(), ", "));
       break;
     case state_ok:
-      retval = "Status is OK - All KPIs are in an OK state";
+      retval = "All KPIs are in an OK state";
       break;
     case state_warning:
-      retval = fmt::format(
-          "Status is WARNING - At least one KPI is in a WARNING state: {}",
-          fmt::join(not_ok_kpis(), ", "));
+      retval = fmt::format("At least one KPI is in a WARNING state: {}",
+                           fmt::join(not_ok_kpis(), ", "));
       break;
     case state_critical:
-      retval = fmt::format(
-          "Status is CRITICAL - At least one KPI is in a CRITICAL state: {}",
-          fmt::join(not_ok_kpis(), ", "));
+      retval = fmt::format("At least one KPI is in a CRITICAL state: {}",
+                           fmt::join(not_ok_kpis(), ", "));
       break;
   }
   return retval;

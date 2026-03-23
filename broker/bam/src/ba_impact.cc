@@ -174,20 +174,17 @@ std::string ba_impact::get_output() const {
   double level = _normalize(_level_hard);
   uint32_t s = _impacts.size();
   switch (state) {
-    case state_unknown:
-      retval = "Status is unknown";
-      break;
     case state_ok:
       if (level >= 100 - eps) {
         retval = fmt::format(
-            "Status is OK - Level = 100 (warn: {} - crit: {}) - none of the {} "
+            "Level = 100 (warn: {} - crit: {}) - none of the {} "
             "KPI{} is impacting the BA right now",
             _level_warning, _level_critical, s, s > 1 ? "s" : "");
       } else {
         auto lst = impacting_kpis();
         uint32_t nb_imp = lst.size();
         retval = fmt::format(
-            "Status is OK - Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
+            "Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
             "{} impact{} the BA: {}",
             level, _level_warning, _level_critical, nb_imp,
             nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
@@ -198,7 +195,7 @@ std::string ba_impact::get_output() const {
       auto lst = impacting_kpis();
       uint32_t nb_imp = lst.size();
       retval = fmt::format(
-          "Status is WARNING - Level = {} - {} KPI{} out of {} impact{} the BA "
+          "Level = {} - {} KPI{} out of {} impact{} the BA "
           "for {} points - {}",
           level, nb_imp, nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
           100 - level, fmt::join(lst, ", "));
@@ -207,11 +204,13 @@ std::string ba_impact::get_output() const {
       auto lst = impacting_kpis();
       uint32_t nb_imp = lst.size();
       retval = fmt::format(
-          "Status is CRITICAL - Level = {} - {} KPI{} out of {} impact{} the "
+          "Level = {} - {} KPI{} out of {} impact{} the "
           "BA for {} points - {}",
           level, nb_imp, nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",
           100 - level, fmt::join(lst, ", "));
     } break;
+    default:
+      break;
   }
   return retval;
 }

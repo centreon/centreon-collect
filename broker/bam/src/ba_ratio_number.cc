@@ -22,6 +22,7 @@
 
 #include <cassert>
 
+#include "bam/state.hh"
 #include "bbdo/bam/ba_status.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
@@ -170,17 +171,10 @@ std::string ba_ratio_number::get_output() const {
   state state = get_state_hard();
   uint32_t s = _impacts.size();
   std::string retval;
-  switch (state) {
-    case state_unknown:
-      retval = "Status is UNKNOWN";
-      break;
-    default:
-      retval = fmt::format(
-          "Status is {} - {} out of {} KPI{} are in a CRITICAL state (warn: {} "
-          "- crit: {})",
-          state_str[state], _level_hard, s, s > 1 ? "s" : "", _level_warning,
-          _level_critical);
-      break;
+  if (state != state_unknown) {
+    retval = fmt::format(
+        "{} out of {} KPI{} are in a CRITICAL state (warn: {} - crit: {})",
+        _level_hard, s, s > 1 ? "s" : "", _level_warning, _level_critical);
   }
 
   return retval;
