@@ -112,6 +112,7 @@ Gorgone Execute Sql
 Setup Gorgone Config
     [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=
     Gorgone Execute Sql    ${sql_file}
+    Run    rm -rf /etc/centreon-gorgone/${gorgone_name}/*
     Create Directory    /var/log/centreon-gorgone/${gorgone_name}/
     Copy File    ${CURDIR}${/}..${/}config${/}includer.yaml    /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
@@ -157,7 +158,7 @@ Check Poller Communicate
     [Arguments]    ${poller_id}    ${max_failed_attempt}=0
     ${response}     Set Variable    ${EMPTY}
     Log To Console    checking Gorgone see poller in rest api response...
-    FOR    ${i}    IN RANGE    30
+    FOR    ${i}    IN RANGE    61
         Sleep    1
         ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
@@ -170,17 +171,24 @@ Check Poller Communicate
         END
     END
     Log To Console    json response : ${response.json()}
-    Should Be True    ${i} < 29    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
+    Should Be True    ${i} < 60    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
     Should Be True    ${max_failed_attempt} >= ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
     ${start_time}   Get Time    str=epoch
-    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+
     # generate key if there is none.
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
     # this script only create key if the files don't exists, and silently finish if the files already exists.
+    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+    # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
+    # this should not stay after merge on develop
+    Gorgone Fix Schema
+    # add central node to the database, the poller will be added in the next if/else.
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+
     IF    '${communication_mode}' == 'push_zmq'
         @{central_push_config}=    Copy List    ${central_config}
         Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
@@ -188,7 +196,7 @@ Setup Two Gorgone Instances
         @{poller_push_config}=    Copy List    ${poller_config}
         Append To List    ${poller_push_config}    ${push_poller_config}
 
-        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_push_poller.sql
         Setup Gorgone Config    ${poller_push_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${poller_name}
@@ -202,12 +210,12 @@ Setup Two Gorgone Instances
     ELSE IF    '${communication_mode}' == 'pullwss'
 
         @{central_pullwss_config}=    Copy List    ${central_config}
-        Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${ROOT_CONFIG}pullwss_node_register_one_node.yaml    ${gorgone_core_config}
+        Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
 
         @{poller_pullwss_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
 
-        Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -219,12 +227,12 @@ Setup Two Gorgone Instances
         Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
         @{central_pull_config}=    Copy List    ${central_config}
-        Append To List    ${central_pull_config}    ${pull_central_config}    ${ROOT_CONFIG}pull_node_register_one_node.yaml    ${gorgone_core_config}
+        Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
 
         @{poller_pull_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pull_config}    ${pull_poller_config}    ${gorgone_core_config}
 
-        Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+        Setup Gorgone Config    ${central_pull_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pull_poller.sql
         Setup Gorgone Config    ${poller_pull_config}     gorgone_name=${poller_name}
 
         Start Gorgone    debug    ${central_name}
@@ -261,3 +269,11 @@ Ctn Check No Error In Logs
 
     ${log_line_wrong}    RUN    ${cmd}
     Should Be Empty     ${log_line_wrong}    There is Log in ${gorgone_id} not mathcing the standard gorgone format : ${log_line_wrong}
+
+Gorgone Fix Schema
+    [Documentation]    gorgone will now need new field in the db. while waiting to include it by the webapp, let's fix the tests manually.
+        Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
+        ${nb_column}=    Query   SELECT count(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'centreon' AND TABLE_NAME = 'nagios_server' AND COLUMN_NAME = 'gorgone_auth_token'
+        IF    ${nb_column}[0][0] == 0
+            Execute SQL Script    ${ROOT_CONFIG}database/gorgone-pullwss-db-update.sql
+        END
