@@ -96,7 +96,10 @@ RUN mkdir -p /etc/centreon-engine \
              /var/log/centreon-engine/archives \
              /var/lib/centreon/centplugins \
              /usr/share/centreon/lib/centreon-broker \
-             /usr/lib64/centreon-engine && \
+             /usr/lib64/centreon-engine \
+             /usr/lib/nagios/plugins \
+             /usr/lib64/nagios && \
+    ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins && \
     chown -R centreon-engine:centreon-engine \
              /etc/centreon-engine \
              /var/lib/centreon-engine \
