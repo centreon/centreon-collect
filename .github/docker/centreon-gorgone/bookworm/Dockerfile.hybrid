@@ -94,16 +94,15 @@ RUN groupadd -g 33 www-data 2>/dev/null || true && \
     usermod -aG centreon-engine centreon-gorgone && \
     usermod -aG centreon-broker centreon-gorgone
 
-# Add Centreon plugins-stable repository (provides libnet-curl-perl, libcrypt-openssl-aes-perl,
-# libssh-session-perl, libmojo-ioloop-signal-perl — not available in standard Debian 12 repos)
+# Add Centreon plugins-stable repository (amd64 only — arm64 packages not published there)
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates && \
-    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" \
+    echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ bookworm main" \
         > /etc/apt/sources.list.d/centreon-plugins.list && \
     wget -O- https://apt-key.centreon.com | gpg --dearmor \
         | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
     rm -rf /var/lib/apt/lists/*
 
-# Install runtime dependencies — all XS modules available as .deb on bookworm
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     perl \
     libdbi-perl \
@@ -117,8 +116,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libschedule-cron-perl \
     librrds-perl \
     libhash-merge-perl \
-    libnet-curl-perl \
-    libcrypt-openssl-aes-perl \
     libjson-perl \
     libmojolicious-perl \
     libio-socket-ssl-perl \
@@ -128,8 +125,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcrypt-urandom-perl \
     libnet-ssleay-perl \
     libzmq-ffi-perl \
-    libssh-session-perl \
-    libmojo-ioloop-signal-perl \
     rrdtool \
     curl \
     openssl \
@@ -144,6 +139,26 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tzdata \
     ca-certificates && \
     rm -rf /var/lib/apt/lists/*
+
+# Install Perl modules only available in Centreon repo for amd64, or via cpanm for arm64
+RUN ARCH=$(dpkg --print-architecture) && \
+    if [ "$ARCH" = "amd64" ]; then \
+        apt-get update && apt-get install -y --no-install-recommends \
+            libnet-curl-perl \
+            libcrypt-openssl-aes-perl \
+            libssh-session-perl \
+            libmojo-ioloop-signal-perl && \
+        rm -rf /var/lib/apt/lists/*; \
+    else \
+        apt-get update && apt-get install -y --no-install-recommends \
+            cpanminus \
+            build-essential \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libssh-dev && \
+        rm -rf /var/lib/apt/lists/* && \
+        cpanm --notest Net::Curl Crypt::OpenSSL::AES Net::SSH::Session Mojo::IOLoop::Signal; \
+    fi
 
 # Create directory structure
 RUN mkdir -p /etc/centreon/config.d/ \
