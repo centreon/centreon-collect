@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/rrd/output.hh"
+#include "com/centreon/broker/rrd/stream.hh"
 #include "com/centreon/broker/rrd/internal.hh"
 
 #include <absl/strings/str_join.h>
@@ -74,7 +74,7 @@ std::set<typename map_type::mapped_type> values_of_map(const map_type& data) {
  *                                  written.
  */
 template <>
-output<lib>::output(std::string const& metrics_path,
+stream<lib>::stream(std::string const& metrics_path,
                     std::string const& status_path,
                     uint32_t cache_size,
                     bool ignore_update_errors,
@@ -103,7 +103,7 @@ output<lib>::output(std::string const& metrics_path,
  *                                  written.
  */
 template <>
-output<cached<asio::local::stream_protocol::socket>>::output(
+stream<cached<asio::local::stream_protocol::socket>>::stream(
     std::string const& metrics_path,
     std::string const& status_path,
     uint32_t cache_size,
@@ -136,7 +136,7 @@ output<cached<asio::local::stream_protocol::socket>>::output(
  *                                  written.
  */
 template <>
-output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
+stream<cached<asio::ip::tcp::socket>>::stream(std::string const& metrics_path,
                                               std::string const& status_path,
                                               uint32_t cache_size,
                                               bool ignore_update_errors,
@@ -163,7 +163,7 @@ output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
  *  @return This method throws.
  */
 template <typename T>
-bool output<T>::read(std::shared_ptr<io::data>& d, time_t deadline) {
+bool stream<T>::read(std::shared_ptr<io::data>& d, time_t deadline) {
   (void)deadline;
   d.reset();
   throw com::centreon::broker::exceptions::shutdown(
@@ -175,7 +175,7 @@ bool output<T>::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *  Update backend after a sigup.
  */
 template <typename T>
-void output<T>::update() {
+void stream<T>::update() {
   _backend.clean();
 }
 
@@ -187,8 +187,8 @@ void output<T>::update() {
  *  @return Number of events acknowledged.
  */
 template <typename T>
-int output<T>::write(std::shared_ptr<io::data> const& d) {
-  SPDLOG_LOGGER_TRACE(_logger, "RRD: output::write.");
+int stream<T>::write(std::shared_ptr<io::data> const& d) {
+  SPDLOG_LOGGER_TRACE(_logger, "RRD: stream::write.");
   // Check that data exists.
   if (!validate(d, "RRD"))
     return 1;
@@ -549,7 +549,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
  * @param rm The message to handle.
  */
 template <typename T>
-void output<T>::_rebuild_data(const RebuildMessage& rm) {
+void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   // we can receive the same status indexed by index_id in several metrics, so
   // whe have to reorder that in this container
   struct status_data {

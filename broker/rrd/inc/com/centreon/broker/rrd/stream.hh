@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCB_RRD_OUTPUT_HH
-#define CCB_RRD_OUTPUT_HH
+#ifndef CCB_RRD_STREAM_HH
+#define CCB_RRD_STREAM_HH
 
 #include "bbdo/rebuild_message.pb.h"
 #include "com/centreon/broker/io/stream.hh"
@@ -29,13 +29,13 @@ namespace com::centreon::broker {
 
 namespace rrd {
 /**
- *  @class output output.hh "com/centreon/broker/rrd/output.hh"
- *  @brief RRD output class.
+ *  @class stream stream.hh "com/centreon/broker/rrd/stream.hh"
+ *  @brief RRD stream class.
  *
  *  Write RRD files.
  */
 template <typename T>
-class output : public io::stream {
+class stream : public io::stream {
   using rebuild_cache =
       std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
 
@@ -58,29 +58,29 @@ class output : public io::stream {
   void _rebuild_data(const RebuildMessage& rm);
 
  public:
-  output(std::string const& metrics_path,
+  stream(std::string const& metrics_path,
          std::string const& status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          bool write_metrics = true,
          bool write_status = true);
-  output(std::string const& metrics_path,
+  stream(std::string const& metrics_path,
          std::string const& status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          std::string const& local,
          bool write_metrics = true,
          bool write_status = true);
-  output(std::string const& metrics_path,
+  stream(std::string const& metrics_path,
          std::string const& status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          unsigned short port,
          bool write_metrics = true,
          bool write_status = true);
-  output(const output&) = delete;
-  output& operator=(const output&) = delete;
-  ~output() noexcept = default;
+  stream(const stream&) = delete;
+  stream& operator=(const stream&) = delete;
+  ~stream() noexcept = default;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override;
   int32_t write(std::shared_ptr<io::data> const& d) override;
@@ -91,4 +91,4 @@ class output : public io::stream {
 
 }  // namespace com::centreon::broker
 
-#endif  // !CCB_RRD_OUTPUT_HH
+#endif  // !CCB_RRD_STREAM_HH

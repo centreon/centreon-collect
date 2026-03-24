@@ -22,7 +22,7 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/rrd/internal.hh"
-#include "com/centreon/broker/rrd/output.hh"
+#include "com/centreon/broker/rrd/stream.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -60,15 +60,15 @@ connector::connector()
 std::shared_ptr<io::stream> connector::open() {
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
-    retval.reset(new output<cached<asio::local::stream_protocol::socket>>(
+    retval.reset(new stream<cached<asio::local::stream_protocol::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
         _cached_local, _write_metrics, _write_status));
   else if (_cached_port)
-    retval.reset(new output<cached<asio::ip::tcp::socket>>(
+    retval.reset(new stream<cached<asio::ip::tcp::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
         _cached_port, _write_metrics, _write_status));
   else
-    retval.reset(new output<lib>(_metrics_path, _status_path, _cache_size,
+    retval.reset(new stream<lib>(_metrics_path, _status_path, _cache_size,
                                  _ignore_update_errors, _write_metrics,
                                  _write_status));
   return retval;
