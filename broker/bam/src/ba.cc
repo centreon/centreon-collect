@@ -685,3 +685,19 @@ void ba::dump(std::ofstream& output) const {
 int32_t ba::get_ack_impact_hard() const {
   return _acknowledgement_count;
 }
+
+/**
+ * @brief used to build ba outputs
+ *
+ * @return std::string first chars of baoutput string
+ */
+std::string ba::output_begin() const {
+  std::string_view sz_state;
+  unsigned hard_state = get_state_hard();
+  if (hard_state < state_str.size()) {
+    sz_state = state_str[hard_state];
+  } else {
+    sz_state = "bad state";
+  }
+  return fmt::format("BA: {} - {} - {}: ", _id, _name, sz_state);
+}
