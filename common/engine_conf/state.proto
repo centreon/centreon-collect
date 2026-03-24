@@ -1140,4 +1140,5 @@ message DiffState {
   /* This field is needed when a full conf is given to the unified_sql stream.
    * Before adding/modifying elements, we have to disable the previous ones. */
   repeated uint64 full_conf_poller_id = 146;
+  bool unknown = 147;
 }

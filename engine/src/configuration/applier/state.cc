@@ -106,6 +106,24 @@ static void increase_fd_limit(uint32_t soft_fd_limit) {
 }
 
 /**
+ * @brief Get the current configuration state from the state.prot and fill the
+ * given state object with it.
+ *
+ * @param state The state object to fill with the current configuration state.
+ */
+void applier::state::get_current_state(configuration::State& state) {
+  if (!proto_conf.empty()) {
+    std::ifstream f(proto_conf / "state.prot", std::ios::binary);
+    if (f) {
+      state.ParseFromIstream(&f);
+    } else {
+      process_logger->error("Unable to open '{}/state.prot'",
+                            proto_conf.string());
+    }
+  }
+}
+
+/**
  *  Apply new protobuf configuration.
  *
  *  @param[in] new_cfg        The new protobuf configuration.

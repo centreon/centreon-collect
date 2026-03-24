@@ -97,6 +97,75 @@ void broker_state::set_cache_config_dir(
 }
 
 /**
+ * @brief Create the <ID>.prot file for a poller with the given configuration.
+ * This file will be used by broker to fill the cache and prepare the storage
+ * database. The configuration is sent by the poller when Broker lost it.
+ *
+ * Before writing, we check whether a newer configuration is already in place
+ * or being processed (a .lck file from PHP, a new-<ID>.prot being prepared, or
+ * a <ID>.prot already installed by the normal flow). In those cases we skip the
+ * write so as not to overwrite a more recent configuration.
+ *
+ * @param conf The configuration of the poller to create the <ID>.prot file for.
+ */
+void broker_state::create_prot_file(
+    const com::centreon::engine::configuration::State& conf) {
+  assert(conf.poller_id());
+  const uint32_t poller_id = conf.poller_id();
+
+  // If PHP has already sent a new configuration for this poller (signalled by
+  // a .lck file), let the normal configuration flow handle it rather than
+  // overwriting with the engine's current (possibly older) state.
+  if (!_cache_config_dir.empty()) {
+    std::filesystem::path lck_file =
+        _cache_config_dir / fmt::format("{}.lck", poller_id);
+    if (std::filesystem::is_regular_file(lck_file)) {
+      _logger->info(
+          "Skipping prot file creation for poller {}: '{}' exists, the "
+          "normal configuration flow will handle it",
+          poller_id, lck_file.string());
+      set_poller_engine_conf_unknown(poller_id, false);
+      return;
+    }
+  }
+
+  // If the normal flow is already preparing a new-<ID>.prot or has already
+  // installed a <ID>.prot, do not overwrite it.
+  std::filesystem::path prot_file =
+      pollers_config_dir() / fmt::format("{}.prot", poller_id);
+  std::filesystem::path new_prot_file =
+      pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
+  if (std::filesystem::is_regular_file(new_prot_file)) {
+    _logger->info(
+        "Skipping prot file creation for poller {}: '{}' already exists, the "
+        "normal configuration flow will handle it",
+        poller_id, new_prot_file.string());
+    set_poller_engine_conf_unknown(poller_id, false);
+    return;
+  }
+  if (std::filesystem::is_regular_file(prot_file)) {
+    _logger->info(
+        "Skipping prot file creation for poller {}: '{}' already exists, the "
+        "normal configuration flow has already handled it",
+        poller_id, prot_file.string());
+    set_poller_engine_conf_unknown(poller_id, false);
+    return;
+  }
+
+  std::ofstream f(prot_file);
+  if (f) {
+    conf.SerializeToOstream(&f);
+    f.close();
+    _logger->debug("Created prot file '{}' for poller id {}",
+                   prot_file.string(), poller_id);
+    set_poller_engine_conf_unknown(poller_id, false);
+    _feed_cache_and_wake_up_resources(poller_id);
+  } else {
+    _logger->error("Unable to create '{}'", prot_file.string());
+  }
+}
+
+/**
  * @brief Add a poller to the list of connected pollers.
  *
  * @param poller_id The id of the poller (an id by host)
@@ -109,26 +178,29 @@ void broker_state::add_peer(uint64_t poller_id,
                             bool extended_negotiation,
                             const std::string& engine_conf) {
   assert(poller_id && !broker_name.empty());
-  absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found == _connected_peers.end()) {
-    _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
-    _connected_peers[{poller_id, poller_name, broker_name}] =
-        peer{poller_id,   poller_name,
-             broker_name, time(nullptr),
-             peer_type,   extended_negotiation,
-             "",          engine_conf,
-             false,       true};
-  } else {
-    _logger->warn(
-        "Poller '{}' with id {} already known as connected. Replacing it.",
-        broker_name, poller_id);
-    found->second.connected_since = time(nullptr);
-    found->second.peer_type = peer_type;
-    found->second.extended_negotiation = extended_negotiation;
-    found->second.engine_conf = engine_conf;
-    found->second.available_conf_sent = false;
-    /* available_conf is already set. */
+  {
+    absl::WriterMutexLock lck(&_connected_peers_m);
+    auto found = _connected_peers.find({poller_id, poller_name, broker_name});
+    if (found == _connected_peers.end()) {
+      _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
+      _connected_peers[{poller_id, poller_name, broker_name}] =
+          peer{poller_id,   poller_name,
+               broker_name, time(nullptr),
+               peer_type,   extended_negotiation,
+               "",          engine_conf,
+               false,       true,
+               false};
+    } else {
+      _logger->warn(
+          "Poller '{}' with id {} already known as connected. Replacing it.",
+          broker_name, poller_id);
+      found->second.connected_since = time(nullptr);
+      found->second.peer_type = peer_type;
+      found->second.extended_negotiation = extended_negotiation;
+      found->second.engine_conf = engine_conf;
+      found->second.available_conf_sent = false;
+      /* available_conf is already set. */
+    }
   }
   if (extended_negotiation) {
     if (!_watch_engine_conf_timer) {
@@ -139,32 +211,66 @@ void broker_state::add_peer(uint64_t poller_id,
     }
 
     /* Feeding the cache and waking up resources in the database */
-    std::filesystem::path prot_file =
-        pollers_config_dir() / fmt::format("{}.prot", poller_id);
-    std::fstream f(prot_file);
-    if (f) {
-      auto engine_state = std::make_shared<neb::pb_engine_state>();
-      auto& state = engine_state->mut_obj();
-      state.ParseFromIstream(&f);
-      multiplexing::publisher pblshr;
-      _logger->debug("Publishing poller {} configuration", poller_id);
-      pblshr.write(engine_state);
-    } else {
-      _logger->error("Unable to fill global cache: cannot open '{}'",
-                     prot_file.string());
-    }
-
-    /* The directory watcher has been started but may be there were <ID>.lck
-     * files already present in the cache directory. We need to check them
-     * and apply the diff if needed.
-     */
-    _logger->debug("Checking for existing {}.lck file", poller_id);
-    uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
-    if (existing_lck) {
-      absl::MutexLock lck(&_lck_set_m);
-      _lck_set.insert(existing_lck);
-    }
+    _feed_cache_and_wake_up_resources(poller_id);
   }
+}
+
+/**
+ * @brief Feed the global cache with the poller configuration and wake up
+ * resources in the database. Reads the <poller_id>.prot file and publishes
+ * the Engine state. If neither a .prot file nor a .lck file is found, the
+ * poller configuration is considered lost and Broker will request it from
+ * Engine via a DiffState{unknown=true} at the next negotiation.
+ *
+ * @param poller_id The poller ID.
+ * @return true if the configuration was found, false if it is lost/unknown.
+ */
+bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
+  bool retval = true;
+  std::filesystem::path prot_file =
+      pollers_config_dir() / fmt::format("{}.prot", poller_id);
+  std::fstream f(prot_file);
+  multiplexing::publisher pblshr;
+  bool poller_conf_lost = false;
+  if (f) {
+    auto engine_state = std::make_shared<neb::pb_engine_state>();
+    auto& state = engine_state->mut_obj();
+    state.ParseFromIstream(&f);
+    _logger->debug("Publishing poller {} configuration", poller_id);
+    pblshr.write(engine_state);
+  } else {
+    _logger->info("Unable to fill global cache: cannot open '{}'",
+                  prot_file.string());
+    poller_conf_lost = true;
+  }
+
+  /* The directory watcher has been started but may be there were <ID>.lck
+   * files already present in the cache directory. We need to check them
+   * and apply the diff if needed.
+   */
+  _logger->debug("Checking for existing {}.lck file", poller_id);
+  uint32_t existing_lck = _get_lck_file_if_exists(poller_id);
+  if (existing_lck) {
+    absl::MutexLock lck(&_lck_set_m);
+    _lck_set.insert(existing_lck);
+    poller_conf_lost = false;
+  }
+  if (poller_conf_lost) {
+    /* Broker is unable to update the cache concerning this poller because
+     * no <ID>.prot file is present in the pollers configuration directory and
+     * no <ID>.lck file is present in the cache configuration directory. So,
+     * no known configuration and no new configuration for this poller.
+     * In that case, Broker sends an empty DiffState to the poller that
+     * forces the poller to send its current configuration if it has one.
+     */
+    _logger->info(
+        "The configuration of poller {} seems lost or unknown, asking for it "
+        "to the poller",
+        poller_id);
+    set_poller_engine_conf_unknown(poller_id, true);
+    retval = false;
+  }
+  return retval;
 }
 
 /**
@@ -220,6 +326,48 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
         engine_conf);
     found->second.engine_conf = engine_conf;
   }
+}
+
+/**
+ * @brief Set the engine configuration unknown flag for the given poller.
+ * When set to true, Broker will send a DiffState{unknown=true} to Engine
+ * at the next negotiation, asking it to send back its full configuration.
+ *
+ * @param poller_id The poller ID.
+ * @param unknown true to mark the configuration as unknown, false otherwise.
+ */
+void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
+                                                  bool unknown) {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      _logger->info("Poller with id {} engine conf is now {}", poller_id,
+                    unknown ? "unknown" : "known");
+      lower->second.conf_unknown = unknown;
+    }
+  }
+}
+
+/**
+ * @brief Check if the Engine configuration for the given poller is known
+ * to Broker. Returns false if the configuration has been marked unknown,
+ * for example after losing its .prot file with no .lck file available.
+ *
+ * @param poller_id The poller ID.
+ * @return true if the configuration is known, false if unknown.
+ */
+bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
+  for (auto end = _connected_peers.end();
+       lower != end && lower->second.poller_id == poller_id; ++lower) {
+    if (lower->second.peer_type == common::ENGINE) {
+      return !lower->second.conf_unknown;
+    }
+  }
+  return true;
 }
 
 bool broker_state::poller_is_up_to_date(uint32_t poller_id,
@@ -305,29 +453,46 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
 }
 
 /**
- * @brief Check if all Engine peers acknowledged their configuration.
- * If it is the case, Broker can prepare the database for them.
+ * @brief Check if all Engine peers, whose an available configuration has been
+ * sent, acknowledged their configuration. If it is the case, Broker can prepare
+ * the database for them.
+ *
+ * This function is a "test-and-reset": if all ENGINE peers have acknowledged,
+ * it resets all their conf_acknowledged flags to false before returning true.
+ * This prevents two concurrent ack handlers from both entering the global diff
+ * block when they check simultaneously under the same write lock.
  *
  * @return True if all Engine peers acknowledged their configuration,
  * false otherwise.
  */
-bool broker_state::all_engine_peers_acknowledged() const {
-  absl::ReaderMutexLock lck(&_connected_peers_m);
+bool broker_state::all_engine_peers_acknowledged() {
+  absl::WriterMutexLock lck(&_connected_peers_m);
   bool retval = true;
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
   for (const auto& peer : _connected_peers) {
-    if (peer.second.peer_type == common::ENGINE) {
+    if (peer.second.peer_type == common::ENGINE &&
+        peer.second.available_conf_sent) {
       if (!peer.second.conf_acknowledged)
         retval = false;
       else
-        engine_good++;
+        ++engine_good;
       ++engine_count;
     }
   }
   _logger->debug("All engine peers acknowledged? {}/{} acknowledged",
                  engine_good, engine_count);
-  return retval;
+  if (retval && engine_count > 0) {
+    /* Reset all flags so that a concurrent or subsequent call won't
+     * trigger a second global diff publication for the same round. */
+    for (auto& peer : _connected_peers) {
+      if (peer.second.peer_type == common::ENGINE) {
+        peer.second.conf_acknowledged = false;
+        peer.second.available_conf_sent = false;
+      }
+    }
+  }
+  return retval && engine_count > 0;
 }
 
 /**
@@ -346,6 +511,40 @@ void broker_state::_check_last_engine_conf() {
 
   _watch_engine_conf(&pollers_set);
 
+  /* Fallback: scan the directory for any .lck files that inotify may have
+   * missed (e.g. when multiple rapid touch() calls overflow the inotify
+   * queue). This ensures that no configuration update is permanently lost. */
+  if (!_cache_config_dir.empty()) {
+    std::error_code scan_ec;
+    std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
+    if (scan_ec) {
+      _logger->warn("Error scanning engine config directory '{}': {}",
+                    _cache_config_dir.string(), scan_ec.message());
+    } else {
+      for (const auto& entry : dir_it) {
+        const auto& p = entry.path();
+        if (p.extension() == ".lck") {
+          std::string stem = p.stem().string();
+          uint32_t poller_id;
+          if (absl::SimpleAtoi(stem, &poller_id)) {
+            if (pollers_set.contains(poller_id))
+              continue;  // already queued by inotify
+            _logger->info(
+                "Found orphan lock file '{}' not reported by inotify — "
+                "scheduling configuration check for poller {}",
+                p.string(), poller_id);
+            std::error_code rm_ec;
+            std::filesystem::remove(p, rm_ec);
+            if (rm_ec)
+              _logger->warn("Cannot remove orphan lock file '{}': {}",
+                            p.string(), rm_ec.message());
+            pollers_set.insert(poller_id);
+          }
+        }
+      }
+    }
+  }
+
   std::error_code ec;
   for (uint32_t poller_id : pollers_set) {
     _logger->debug(
@@ -358,7 +557,8 @@ void broker_state::_check_last_engine_conf() {
         cache_config_dir() / fmt::to_string(poller_id), ec);
     if (ec) {
       _logger->error(
-          "Cannot compute the Engine configuration version for poller '{}': {}",
+          "Cannot compute the Engine configuration version for poller '{}': "
+          "{}",
           poller_id, ec.message());
       continue;
     }
@@ -392,6 +592,15 @@ void broker_state::_check_last_engine_conf() {
 
           state->SerializeToOstream(&f);
           f.close();
+          std::filesystem::path lck_file =
+              cache_config_dir() / fmt::format("{}.lck", poller_id);
+          std::filesystem::remove(lck_file, ec);
+          if (ec)
+            _logger->warn("Cannot remove lock file '{}': {}", lck_file.string(),
+                          ec.message());
+          else
+            _logger->debug("Removed lock file '{}' after processing",
+                           lck_file.string());
         } else {
           _logger->error(
               "Cannot write the new Engine protobuf configuration '{}': {}",
@@ -414,6 +623,8 @@ void broker_state::_check_last_engine_conf() {
  *
  */
 void broker_state::_start_watch_engine_conf_timer() {
+  _logger->trace(
+      "Starting watch engine configuration timer with a 5 seconds delay");
   _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
   _watch_engine_conf_timer->async_wait(
       [this](const boost::system::error_code& ec) {

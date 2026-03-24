@@ -603,18 +603,51 @@ sequenceDiagram
 
 **Remarques.**
 
-    1. Un point de vigilance : Dans le cas où le second poller a
-       beaucoup de retard, l’arrivée de la seconde `ConfigurationInstance` peut
-       vraiment tarder. Si `Broker` attend tous les `ConfigurationInstance` pour mettre à
-       jour la base, ça pénalise les données de E1 puisque le cache va mettre longtemps
-       avant d'être mis à jour.
+1. Un point de vigilance : Dans le cas où le second poller a
+   beaucoup de retard, l’arrivée de la seconde `ConfigurationInstance` peut
+   vraiment tarder. Si `Broker` attend tous les `ConfigurationInstance` pour mettre à
+   jour la base, ça pénalise les données de E1 puisque le cache va mettre longtemps
+   avant d'être mis à jour.
 
-    2. Peut-être que la différence globale pourrait être faite sur la réception des
-       acquittements. Et cadencée avec un timeout. Par exemple à partir de la première
-       réception, Broker se donne un timeout de 10s, pendant ce laps de temps, dès qu'il
-       reçoit un acquittement, il enrichit la différence globale avec la configuration
-       acquittée. Lorsque le timeout est terminé, tout est envoyé à la base de données
-       et au cache.
+2. Peut-être que la différence globale pourrait être faite sur la réception des
+   acquittements. Et cadencée avec un timeout. Par exemple à partir de la première
+   réception, Broker se donne un timeout de 10s, pendant ce laps de temps, dès qu'il
+   reçoit un acquittement, il enrichit la différence globale avec la configuration
+   acquittée. Lorsque le timeout est terminé, tout est envoyé à la base de données
+   et au cache.
+
+3. Un point de vigilance, nous avons supposé ici que la configuration arrivait du php,
+   il faut aussi être capable de tout reprendre si la configuration est déjà côté
+   Engine, y compris si elle a été supprimée côté Broker.
+
+Pour le point 3., si Engine démarre avec une configuration connue de Broker, il n’y
+a pas de souci, la configuration est déjà en place. Par contre, dans le cas où un
+administrateur a supprimé la configuration connue par Engine, ce serait bien
+qu’Engine soit en mesure de l’envoyer à Broker pour régler le souci.
+
+Ce cas est géré de la façon suivante : lors de la négociation BBDO, si Broker ne
+trouve ni fichier `<ID>.prot` ni fichier `<ID>.lck` pour un poller, il envoie un
+`DiffState{unknown=true}` à Engine. Engine détecte ce message et envoie sa
+configuration courante à Broker. Broker la reçoit, crée le fichier `<ID>.prot` et
+alimente son cache.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine
+    participant B as Broker
+
+    E ->> B: Connexion et négociation BBDO
+    B ->> B: add_peer()
+    note right of B: Broker ne trouve ni <ID>.prot<br/>ni <ID>.lck pour ce poller.<br/>Le flag conf_unknown est mis à true.
+    B ->> B: is_peer_conf_known() → false
+    B ->> E: DiffState { unknown = true }
+    note right of B: Broker demande à Engine<br/>de lui envoyer sa configuration.
+    E ->> E: Lecture de state.prot<br/>via get_current_state()
+    E ->> B: pb_diff_state contenant le State courant
+    note right of E: Engine envoie sa configuration<br/>dans le prochain write().
+    B ->> B: create_prot_file()
+    note right of B: Broker écrit <ID>.prot,<br/>remet conf_unknown à false<br/>et alimente le cache.
+```
 
 Si l’`Engine` est redémarré avant l’envoi de cet
    *event*, il va se connecter avec la nouvelle configuration mais
@@ -809,14 +842,16 @@ stateDiagram-v2
     
     state if_existing_lck_file_for_current_poller_id <<choice>>
     prot_file_created_from_state --> if_existing_lck_file_for_current_poller_id
-    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: A lck file already exists for the given poller ID
-    if_existing_lck_file_for_current_poller_id --> [*]: No lck file exists for the given poller ID
+    if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: Un fichier lck existe pour ce poller ID
+    if_existing_lck_file_for_current_poller_id --> [*]: Aucun fichier lck pour ce poller ID
+    keep_lck_file_in_memory: Ajout de l'ID dans la liste à traiter
     keep_lck_file_in_memory --> [*]
 ```
 
 Cette méthode mémorise le poller dans sa liste de peers. Elle démarre le timer de surveillance de la configuration
 `Engine` si la négociation est étendue et que le peer est un `Engine`. Et elle vérifie aussi s'il existe déjà un
-fichier `.lck` pour le poller ID car `inotify` ne remonte pas les fichiers existant avant son démarrage.
+fichier `.lck` pour le poller ID car `inotify` ne remonte pas les fichiers existant avant son démarrage. Si un tel
+fichier est trouvé, l'ID du poller est ajouté à la liste à traiter pour le prochain tick du timer.
 
 Par la suite, le timer est exécuté en tâche de fond et vérifie toutes les 5s si un fichier `.lck` a été modifié ou créé,
 dans ce cas la liste des fichiers `.lck` est enrichie puis traitée en tâche de fond. Intéressons-nous à cette partie.
@@ -835,7 +870,9 @@ stateDiagram-v2
     resolution_de_la_configuration_engine: Resolution et extension de la configuration Engine
     resolution_de_la_configuration_engine --> ecriture_dans_fichier__new_ID_prot
     ecriture_dans_fichier__new_ID_prot: Ecriture de la configuration au format State<br/> dans un fichier new-ID.prot
-    ecriture_dans_fichier__new_ID_prot --> preparation_de_la_difference
+    ecriture_dans_fichier__new_ID_prot --> suppression_fichier_lck
+    suppression_fichier_lck: Suppression du fichier ID.lck<br/>(no-op si déjà supprimé par _watch_engine_conf)
+    suppression_fichier_lck --> preparation_de_la_difference
     preparation_de_la_difference: _prepare_diff_for_poller(poller_id, state)
     preparation_de_la_difference --> fin_pour_chaque_poller_id
     note right of preparation_de_la_difference: Cette fonction prépare la différence<br/> entre la configuration actuelle et la nouvelle.<br/>Elle crée les fichiers diff-ID.prot et new-ID.prot

@@ -19,7 +19,7 @@
 #define CCB_NEB_CBMOD_HH
 #include <filesystem>
 #include "bbdo/bbdo_version.hh"
-//#include "com/centreon/broker/config/applier/cbmod_state.hh"
+// #include "com/centreon/broker/config/applier/cbmod_state.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -86,6 +86,8 @@ class cbmod {
   std::unique_ptr<com::centreon::engine::configuration::DiffState> diff_state();
   void set_diff_state_applied(const std::string& config_version);
   bool centralized_conf() const;
+  void send_engine_conf(
+      std::unique_ptr<com::centreon::engine::configuration::State>&& conf);
 };
 }  // namespace neb
 }  // namespace com::centreon::broker
