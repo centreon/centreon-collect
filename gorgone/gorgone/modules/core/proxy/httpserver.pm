@@ -195,7 +195,7 @@ sub run {
         $connector->{logger}->writeLogDebug('[proxy] httpserver recurring timeout loop');
         my $ctime = time();
         foreach my $ws_id (keys %{$connector->{ws_clients}}) {
-            if (($ctime - $connector->{ws_clients}->{$ws_id}->{last_update}) > 300) {
+            if (defined($connector->{ws_clients}->{$ws_id}->{last_update}) && ($ctime - $connector->{ws_clients}->{$ws_id}->{last_update}) > 300) {
                 $connector->{logger}->writeLogDebug('[proxy] httpserver websocket client timeout reached: ' . $ws_id);
                 $connector->close_websocket(
                     code => 500,
@@ -301,6 +301,10 @@ sub action_proxyaddnode {
         next if $temp_nodes->{$delete_node};
 
         my $ws_id = $self->{identities}->{ $delete_node };
+        if (!defined($ws_id) || !defined($self->{ws_clients}->{ $ws_id })) {
+            $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore but has no active websocket, skipping.");
+            next;
+        }
         $self->{ws_clients}->{ $ws_id }->{tx}->finish();
         $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore, disconnecting client " . $ws_id );
     }
@@ -501,6 +505,7 @@ sub clean_websocket {
 sub close_websocket {
     my ($self, %options) = @_;
 
+    return if (!defined($self->{ws_clients}->{ $options{ws_id} }) || !defined($self->{ws_clients}->{ $options{ws_id} }->{tx}));
     $self->{ws_clients}->{ $options{ws_id} }->{tx}->send({json => {
         code => $options{code},
         message  => $options{message}
