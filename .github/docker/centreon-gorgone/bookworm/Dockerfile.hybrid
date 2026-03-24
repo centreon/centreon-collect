@@ -94,6 +94,15 @@ RUN groupadd -g 33 www-data 2>/dev/null || true && \
     usermod -aG centreon-engine centreon-gorgone && \
     usermod -aG centreon-broker centreon-gorgone
 
+# Add Centreon plugins-stable repository (provides libnet-curl-perl, libcrypt-openssl-aes-perl,
+# libssh-session-perl, libmojo-ioloop-signal-perl — not available in standard Debian 12 repos)
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates && \
+    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" \
+        > /etc/apt/sources.list.d/centreon-plugins.list && \
+    wget -O- https://apt-key.centreon.com | gpg --dearmor \
+        | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install runtime dependencies — all XS modules available as .deb on bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     perl \
