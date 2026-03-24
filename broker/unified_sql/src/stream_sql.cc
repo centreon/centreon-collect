@@ -1,5 +1,5 @@
 /**
- * Copyright 2021-2023 Centreon
+ * Copyright 2021-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,6 @@
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
-#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 
@@ -1676,7 +1675,7 @@ void stream::_process_host_status(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   const auto& hst = std::static_pointer_cast<neb::pb_host>(d);
-  auto& h = hst->obj();
+  const auto& h = hst->obj();
 
   // Log message.
   SPDLOG_LOGGER_INFO(_logger_sql,
@@ -1853,13 +1852,6 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       _pb_host_insupdate << *hst;
       _mysql.run_statement(_pb_host_insupdate,
                            database::mysql_error::store_host, 0);
-
-      // Fill the cache... Already done by the multiplexer
-      // FIXME DBO: This must be done once on global cache. So this is the wrong
-      // place for that. if (h.enabled())
-      //  _cache_host_instance[h.host_id()] = h.instance_id();
-      // else
-      //  _cache_host_instance.erase(h.host_id());
 
       uint64_t res_id = 0;
       if (_store_in_resources) {

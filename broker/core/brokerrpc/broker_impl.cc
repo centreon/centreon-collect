@@ -462,9 +462,9 @@ grpc::Status broker_impl::GetHostIds(grpc::ServerContext* context
                                      IdsList* response) {
   auto& cache = config::applier::state::instance().cache();
   auto lst = cache.host_ids();
-  for (const uint64_t& host_id : lst) {
+  response->mutable_ids()->Reserve(lst.size());
+  for (uint64_t host_id : lst)
     response->add_ids(host_id);
-  }
   return grpc::Status::OK;
 }
 
