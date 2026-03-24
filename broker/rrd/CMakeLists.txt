@@ -74,7 +74,7 @@ add_library(
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
-  "${SRC_DIR}/output.cc"
+  "${SRC_DIR}/stream.cc"
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
   "${INC_DIR}/com/centreon/broker/rrd/connector.hh"
@@ -83,7 +83,7 @@ add_library(
   "${INC_DIR}/com/centreon/broker/rrd/exceptions/update.hh"
   "${INC_DIR}/com/centreon/broker/rrd/factory.hh"
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
-  "${INC_DIR}/com/centreon/broker/rrd/output.hh")
+  "${INC_DIR}/com/centreon/broker/rrd/stream.hh")
 set_target_properties("${RRD}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hpp)
