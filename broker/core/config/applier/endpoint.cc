@@ -119,8 +119,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
     std::list<config::endpoint> endp_to_delete;
     _diff_endpoints(_endpoints, tmp_endpoints, endp_to_create, endp_to_delete);
 
-    // Detect output additions or removals that would require a broker restart
-    // to correctly reconfigure the broker cache sections.
+    // Endpoints cannot be added or removed at runtime (only reconfigured).
+    // Pure removals and pure additions are logged as errors and skipped;
+    // the reload proceeds normally for everything else.
     {
       absl::flat_hash_set<std::string> names_to_delete;
       for (const auto& ep : endp_to_delete)
@@ -128,23 +129,38 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints,
       absl::flat_hash_set<std::string> names_to_create;
       for (const auto& ep : endp_to_create)
         names_to_create.insert(ep.name);
-      for (const auto& name : names_to_delete) {
-        if (!names_to_create.count(name))
+
+      // Pure removals: log and keep the endpoint running.
+      endp_to_delete.remove_if([&](const config::endpoint& ep) {
+        if (names_to_create.count(ep.name))
+          return false;
+        const char* kind =
+            (ep.get_io_type() == config::endpoint::input) ? "input" : "output";
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "endpoint applier: {} '{}' has been removed from the "
+            "configuration but cannot be removed at runtime; keeping it "
+            "running. A full broker restart is required to apply this change.",
+            kind, ep.name);
+        return true;
+      });
+
+      // Pure additions during reload: log and do not create the endpoint.
+      if (!_endpoints.empty()) {
+        endp_to_create.remove_if([&](const config::endpoint& ep) {
+          if (names_to_delete.count(ep.name))
+            return false;
+          const char* kind = (ep.get_io_type() == config::endpoint::input)
+                                 ? "input"
+                                 : "output";
           SPDLOG_LOGGER_ERROR(
               _logger,
-              "endpoint applier: output '{}' has been removed from the "
-              "configuration. The broker cache cannot be reconfigured at "
-              "runtime: a full broker restart is required.",
-              name);
-      }
-      for (const auto& name : names_to_create) {
-        if (!names_to_delete.count(name))
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "endpoint applier: output '{}' has been added to the "
-              "configuration. The broker cache cannot be reconfigured at "
-              "runtime: a full broker restart is required.",
-              name);
+              "endpoint applier: {} '{}' has been added to the configuration "
+              "but cannot be added at runtime; ignoring it. A full broker "
+              "restart is required to apply this change.",
+              kind, ep.name);
+          return true;
+        });
       }
     }
 
