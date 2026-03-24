@@ -125,6 +125,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libev-perl \
     libclass-dbi-perl \
     libcryptx-perl \
+    libcrypt-urandom-perl \
     libnet-ssleay-perl \
     libzmq-ffi-perl \
     libssh-session-perl \
