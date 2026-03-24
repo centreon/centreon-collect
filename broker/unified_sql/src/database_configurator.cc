@@ -364,8 +364,6 @@ void database_configurator::_disable_resources_for_pollers_with_full_conf(
 void database_configurator::_del_severities_mariadb(
     const ::google::protobuf::RepeatedPtrField<
         com::centreon::engine::configuration::KeyType>& keys) {
-  auto& cache = _stream->severities_cache();
-
   if (keys.empty())
     return;
 
@@ -381,12 +379,13 @@ void database_configurator::_del_severities_mariadb(
   auto bind = stmt->create_bind();
   bind->reserve(keys.size());
 
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : keys) {
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     bind->set_value_as_u64(0, msg.id());
     bind->set_value_as_u32(1, msg.type());
     bind->next_row();
-    cache.erase(std::make_pair(msg.id(), msg.type()));
+    bc.erase_severity(msg.id(), msg.type());
   }
 
   stmt->set_bind(std::move(bind));
@@ -401,8 +400,6 @@ void database_configurator::_del_severities_mariadb(
 void database_configurator::_del_severities_mysql(
     const ::google::protobuf::RepeatedPtrField<
         com::centreon::engine::configuration::KeyType>& keys) {
-  auto& cache = _stream->severities_cache();
-
   if (keys.empty())
     return;
 
@@ -414,12 +411,13 @@ void database_configurator::_del_severities_mysql(
     mysql.prepare_statement(*_del_severities_stmt);
   }
 
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : keys) {
     _logger->info("deleting severity id={} ; type={}", msg.id(), msg.type());
     _del_severities_stmt->bind_value_as_u64(0, msg.id());
     _del_severities_stmt->bind_value_as_u32(1, msg.type());
     mysql.run_statement(*_del_severities_stmt);
-    cache.erase(std::make_pair(msg.id(), msg.type()));
+    bc.erase_severity(msg.id(), msg.type());
   }
 }
 
@@ -539,7 +537,6 @@ void database_configurator::_add_severities_mariadb(
         lst) {
   if (lst.empty())
     return;
-  auto& cache = _stream->severities_cache();
   std::list<std::pair<uint64_t, uint16_t>> keys;
   mysql& mysql = _stream->get_mysql();
   if (!_add_severities_stmt) {
@@ -580,15 +577,17 @@ void database_configurator::_add_severities_mariadb(
         *_add_severities_stmt, std::move(promise),
         mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
+    auto& bc = config::applier::state::instance().cache();
     for (auto& k : keys) {
-      auto inserted = cache.emplace(k, first_id);
-      if (inserted.second) {
+      uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
+      if (!existing_id) {
+        bc.set_db_id_for_severity(k.first, k.second, first_id);
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
         first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, inserted.first->second);
+                       k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
@@ -606,7 +605,6 @@ void database_configurator::_add_severities_mysql(
         lst) {
   if (lst.empty())
     return;
-  auto& cache = _stream->severities_cache();
   mysql& mysql = _stream->get_mysql();
   std::list<std::pair<uint64_t, uint16_t>> keys;
 
@@ -641,15 +639,17 @@ void database_configurator::_add_severities_mysql(
     mysql.run_query_and_get_int(query, std::move(promise),
                                 mysql_task::int_type::LAST_INSERT_ID);
     int first_id = future.get();
+    auto& bc = config::applier::state::instance().cache();
     for (auto& k : keys) {
-      auto inserted = cache.emplace(k, first_id);
-      if (inserted.second) {
+      uint64_t existing_id = bc.get_db_id_for_severity(k.first, k.second);
+      if (!existing_id) {
+        bc.set_db_id_for_severity(k.first, k.second, first_id);
         _logger->trace("Severity with id {} and type {} has severity_id {}",
                        k.first, k.second, first_id);
         first_id++;
       } else {
         _logger->trace("Severity with id {} and type {} has severity_id {}",
-                       k.first, k.second, inserted.first->second);
+                       k.first, k.second, existing_id);
       }
     }
   } catch (const std::exception& e) {
@@ -1239,6 +1239,7 @@ void database_configurator::_add_host_resources_mariadb(
   auto bind = _add_host_resources_stmt->create_bind();
 
   auto& hosts_cache = _stream->host_name_id_cache();
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
@@ -1253,10 +1254,19 @@ void database_configurator::_add_host_resources_mariadb(
     bind->set_value_as_u32(3, 1);
     bind->set_value_as_u32(4, msg.max_check_attempts());
     bind->set_value_as_u64(5, msg.poller_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
+      _logger->trace(
+          "host {} has severity_id config={} => db_sid={}", msg.host_id(),
+          msg.severity_id(), db_sid);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else {
+      _logger->trace("host {} has no severity_id", msg.host_id());
       bind->set_null_u64(6);
+    }
     bind->set_value_as_str(
         7, common::truncate_utf8(msg.host_name(),
                                  get_centreon_storage_resources_col_size(
@@ -1342,15 +1352,19 @@ void database_configurator::_add_host_resources_mysql(
 
   std::vector<std::string> values;
   auto& hosts_cache = _stream->host_name_id_cache();
+  auto& bc = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), 0);
     keys.push_back(key);
 
+    uint64_t sid = 0;
+    if (msg.has_severity_id())
+      sid = bc.get_db_id_for_severity(msg.severity_id(), 1);
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}','{}','{}',NULL,{},'{}','{}','{}',{}"
         ",{},{},1)",
         msg.host_id(), 0, 1, msg.max_check_attempts(), msg.poller_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
+        sid ? fmt::to_string(sid) : "NULL",
         misc::string::escape(msg.host_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
@@ -2251,12 +2265,16 @@ void database_configurator::_add_service_resources_mariadb(
     bind->set_value_as_u32(4, msg.max_check_attempts());
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else
       bind->set_null_u64(6);
     bind->set_value_as_str(
-        7, common::truncate_utf8(msg.service_description(),
+        7, common::truncate_utf8(msg.display_name(),
                                  get_centreon_storage_resources_col_size(
                                      centreon_storage_resources_name)));
     bind->set_null_str(8);
@@ -2331,20 +2349,23 @@ void database_configurator::_add_service_resources_mysql(
   std::vector<std::string> values;
   values.reserve(lst.size());
   auto& services_cache = _stream->service_description_id_cache();
+  auto& global_cache = config::applier::state::instance().cache();
   for (const auto& msg : lst) {
     auto key = std::make_pair(msg.host_id(), msg.service_id());
     keys.push_back(key);
 
-    auto& global_cache = config::applier::state::instance().cache();
     auto h = global_cache.host(msg.host_id());
+    uint64_t svc_sid = 0;
+    if (msg.has_severity_id())
+      svc_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
     std::string value(fmt::format(
         "({},{},NULL,{},4, 1, "
         "1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), get_service_type(msg),
         msg.max_check_attempts(), h->obj().instance_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
-        misc::string::escape(msg.service_description(),
+        svc_sid ? fmt::to_string(svc_sid) : "NULL",
+        misc::string::escape(msg.display_name(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
         misc::string::escape(msg.host_name(),
@@ -2461,9 +2482,13 @@ void database_configurator::_add_anomalydetection_resources_mariadb(
     bind->set_value_as_u32(4, msg.max_check_attempts());
     auto h = global_cache.host(msg.host_id());
     bind->set_value_as_u64(5, h->obj().instance_id());
-    if (msg.has_severity_id())
-      bind->set_value_as_u64(6, msg.severity_id());
-    else
+    if (msg.has_severity_id()) {
+      uint64_t db_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
+      if (db_sid)
+        bind->set_value_as_u64(6, db_sid);
+      else
+        bind->set_null_u64(6);
+    } else
       bind->set_null_u64(6);
     bind->set_value_as_str(
         7, common::truncate_utf8(msg.service_description(),
@@ -2545,12 +2570,15 @@ void database_configurator::_add_anomalydetection_resources_mysql(
     keys.push_back(key);
 
     auto h = global_cache.host(msg.host_id());
+    uint64_t ad_sid = 0;
+    if (msg.has_severity_id())
+      ad_sid = global_cache.get_db_id_for_severity(msg.severity_id(), 0);
     std::string value(fmt::format(
         "({},{},NULL,{},4,1,1,{},{},{},'{}',NULL,'{}','{}','{}','{}',{},{},{},"
         "1)",
         msg.service_id(), msg.host_id(), 4, msg.max_check_attempts(),
         h->obj().instance_id(),
-        msg.severity_id() ? fmt::to_string(msg.severity_id()) : "NULL",
+        ad_sid ? fmt::to_string(ad_sid) : "NULL",
         misc::string::escape(msg.service_description(),
                              get_centreon_storage_resources_col_size(
                                  centreon_storage_resources_name)),
