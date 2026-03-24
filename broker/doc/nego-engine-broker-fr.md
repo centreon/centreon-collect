@@ -1575,14 +1575,27 @@ message MetricPoint {
 }
 ```
 
-Les fichiers sont organisés par poller avec rotation sur taille configurable :
+Les fichiers sont stockés dans le répertoire `cache_directory` du broker RRD
+(paramètre JSON `cache_directory`, valeur de production `/var/lib/centreon-broker`,
+préfixé par `/tmp` dans les tests) :
 
 ```
-retention_buffer/
-  <poller_id>_0001.prot    ← fermé, en attente de merge
-  <poller_id>_0002.prot    ← fermé, en attente de merge
-  <poller_id>_0003.prot    ← fichier courant en écriture
+{cache_directory}/{broker_name}/metric_<metric_id>.prot
+{cache_directory}/{broker_name}/metric_<metric_id>_0001.prot   ← roté, en attente de merge
+{cache_directory}/{broker_name}/status_<index_id>.prot
 ```
+
+Exemple en production pour le broker `central-rrd-master` :
+
+```
+/var/lib/centreon-broker/central-rrd-master/metric_42.prot
+/var/lib/centreon-broker/central-rrd-master/metric_42_0001.prot
+/var/lib/centreon-broker/central-rrd-master/status_7.prot
+```
+
+La rotation se déclenche quand le fichier courant dépasse
+`retention_buffer_max_file_size` (défaut : 100 Mo). Le suffixe `_NNNN` est ajouté
+aux fichiers rotatés pour les distinguer du fichier courant.
 
 Un fichier est **immuable** une fois roté : il peut être lu en streaming pendant le
 merge sans verrouillage. Après un merge réussi, les fichiers `.prot` correspondants
@@ -1593,9 +1606,14 @@ sont supprimés.
 | Déclencheur | Description |
 |---|---|
 | Jonction détectée | Buffer a rattrapé le RRD courant (écart ≤ step) |
-| Taille buffer | Buffer dépasse N Mo (configurable) |
+| Nombre de fichiers | Nombre de fichiers rotatés atteint `retention_buffer_max_files` (défaut : 5) |
 | Schedule | Merge nocturne à faible charge |
 | Manuel | Commande d'administration explicite |
+
+Le paramètre `retention_buffer_max_files` est lu dans le bloc JSON de l'endpoint
+RRD (comme `cache_size`). Quand le nombre de fichiers rotatés d'une métrique
+atteint cette limite, un merge partiel est déclenché immédiatement pour libérer
+de l'espace avant de continuer le buffering.
 
 ## Gestion des déconnexions multiples
 
@@ -1772,9 +1790,18 @@ flowchart LR
 ```
 
 Aucun changement de protocole n'est nécessaire : Broker détermine lui-même si une
-donnée est en rétention en comparant son horodatage à `now - step`. Si le timestamp
-est plus ancien que ce seuil (configurable), la donnée est considérée comme de la
+donnée est en rétention en comparant son horodatage à `now - step[id]`. Si le
+timestamp est plus ancien que ce seuil, la donnée est considérée comme de la
 rétention et aiguillée vers le buffer ; sinon elle va directement dans le RRD.
+
+**Origine de `step` et `rrd_len`**
+
+Le module RRD n'a pas accès à la base de données. Ces deux valeurs sont portées
+directement par les événements `pb_metric` et `pb_status` via les champs
+`interval()` et `rrd_len()`. Dès le premier événement reçu pour une métrique,
+`step[id]` et `rrd_len[id]` sont connus et stockés dans le `MetricRetentionState`.
+Au redémarrage après crash, ces valeurs sont récupérées depuis le premier événement
+reçu pour chaque métrique — aucune persistance supplémentaire n'est nécessaire.
 
 Les événements reçus par le module RRD sont `storage::pb_metric` (métriques) et
 `storage::pb_status` (états). Ces messages sont volumineux ; avant d'être stockés
@@ -1812,11 +1839,16 @@ Créer un nouveau composant `broker/rrd/src/retention_buffer.cc` (+ `.hh`)
 responsable de :
 
 - Recevoir des `MetricRetentionPoint` / `StatusRetentionPoint` et les sérialiser
-  dans les fichiers `.prot` correspondants (rotation à taille ou durée configurables).
+  dans les fichiers `.prot` correspondants, avec rotation quand la taille du fichier
+  courant dépasse `retention_buffer_max_file_size` (défaut : 100 Mo, cohérent avec
+  `file::splitter`). Ce paramètre est lu dans la config JSON de l'endpoint RRD, au
+  même titre que `cache_size`.
 - Maintenir en mémoire le dernier horodatage reçu par `metric_id` (et par
   `index_id` pour les status) pour permettre la détection de jonction.
-- Supprimer immédiatement tout point plus ancien que `rrd_len` pour ne pas grossir
-  inutilement les buffers.
+- Supprimer immédiatement tout point dont l'âge dépasse `rrd_len[id]` pour ne pas
+  grossir inutilement les buffers.
+- Stocker `step[id]` et `rrd_len[id]` lors de la réception du premier événement
+  (champs `interval()` et `rrd_len()` de `pb_metric` / `pb_status`).
 
 Ce composant peut être développé et testé indépendamment avec des données
 synthétiques.
@@ -1826,11 +1858,14 @@ synthétiques.
 Modifier la méthode `write()` du module RRD pour aiguiller selon l'âge de la
 donnée. Pour `storage::pb_metric` et `storage::pb_status` :
 
-- `timestamp ≥ now - step` → chemin actuel : écriture directe dans le fichier RRD.
-  En parallèle, enregistrer `earliest_current_time[id]` = premier horodatage
+- `timestamp ≥ now - step[id]` → chemin actuel : écriture directe dans le fichier
+  RRD. En parallèle, enregistrer `earliest_current_time[id]` = premier horodatage
   courant reçu pour cet identifiant depuis la (re)connexion.
-- `timestamp < now - step` → conversion en `MetricRetentionPoint` ou
+- `timestamp < now - step[id]` → conversion en `MetricRetentionPoint` ou
   `StatusRetentionPoint` puis délégation au `retention_buffer`.
+
+Si `step[id]` n'est pas encore connu (aucun événement reçu pour cette métrique
+depuis le démarrage), la donnée est aiguillée vers le buffer par défaut.
 
 Nécessite Étape 1.
 
@@ -1883,10 +1918,15 @@ complet soit disponible.
 Quand une jonction ou un merge partiel est détecté, le merge est déclenché de façon
 asynchrone via `asio::post` pour ne pas bloquer le chemin de write.
 
-Un timer de nettoyage à basse fréquence (défaut : 5 min) gère uniquement les
-**buffers orphelins** : métriques dont la rétention est présente mais dont aucune
-donnée courante n'arrivera jamais (host supprimé, métrique désactivée…). Son rôle
-est de libérer les ressources, pas de détecter des jonctions.
+Un timer de nettoyage gère uniquement les **buffers orphelins** : métriques dont
+la rétention est présente mais dont aucune donnée n'est arrivée depuis plus de
+`retention_buffer_orphan_interval` secondes (host supprimé, métrique désactivée…).
+Son rôle est de libérer les ressources, pas de détecter des jonctions. Il se
+déclenche à la même période `retention_buffer_orphan_interval`.
+
+Ce paramètre est lu dans le bloc JSON de l'endpoint RRD (comme `cache_size`) avec
+une valeur par défaut de **3600 secondes** (1 heure). Si la clé est absente du
+fichier de configuration, cette valeur par défaut s'applique.
 
 Nécessite Étape 2.
 
@@ -1910,6 +1950,24 @@ Dans les deux cas, le moteur :
 Le chemin de code du rebuild manuel existant devient alors un cas particulier de
 ce moteur : pas de changement visible pour les utilisateurs qui déclenchent un
 rebuild via l'interface.
+
+**Compatibilité librrd / rrdcached**
+
+Le module RRD peut fonctionner avec deux backends : `librrd` (écriture directe)
+ou `rrdcached` (écriture via un daemon qui batche les updates). Le moteur de
+reconstruction doit adapter son comportement selon le backend actif :
+
+| Étape | librrd | rrdcached |
+|---|---|---|
+| Avant `rrd_fetch` (étape 2) | rien | `FLUSH <path>` — force l'écriture des données en attente dans rrdcached |
+| Après `rename(2)` (étape 4) | rien | `FORGET <old_path>` — purge la queue interne de rrdcached pour l'ancien chemin |
+
+Sans le `FLUSH`, `rrd_fetch` lirait un fichier incomplet (données récentes encore
+dans le buffer de rrdcached). Sans le `FORGET`, rrdcached tenterait d'écrire dans
+un chemin inexistant ou incorrect après le rename.
+
+Le mécanisme de rebuild existant gère déjà probablement le `FLUSH` ; le `FORGET`
+après rename est le point à vérifier lors de l'implémentation.
 
 # Poller HA
 ## Arborescence de configuration des pollers
