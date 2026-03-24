@@ -200,6 +200,11 @@ void broker_stream::_handle_bbdo_event(const std::shared_ptr<io::data>& d) {
         pblshr.write(diff);
       }
     } break;
+    case pb_diff_state::static_type(): {
+      auto diff = std::static_pointer_cast<bbdo::pb_diff_state>(d);
+      assert(diff->obj().has_state());
+      _state.create_prot_file(diff->obj().state());
+    } break;
     default:
       break;
   }
@@ -234,8 +239,8 @@ bool broker_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
       f.close();
       uint32_t id = obj.has_state() ? obj.state().poller_id() : obj.poller_id();
       _logger->debug(
-          "BBDO: Sending Engine configuration to poller {} and from diff state "
-          "{}",
+          "BBDO: Sending Engine configuration to poller {} and from diff "
+          "state {}",
           poller_id(), id);
       _write(pb_conf);
       _state.set_available_conf_sent_to_engine_peer(poller_id());
