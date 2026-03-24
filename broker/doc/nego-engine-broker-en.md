@@ -1383,6 +1383,87 @@ The atomic rename guarantees that a crash during the merge leaves the system in 
 consistent state: either the old RRD is intact, or the new one is in place. The
 `.prot` files are only deleted after a successful rename.
 
+### Broker crash during buffering
+
+If Broker crashes while retention data is being buffered (outside of a merge),
+the `.prot` files are on disk but the in-memory state is lost. Full reconstruction
+is possible without any separate metadata file.
+
+| Lost state | Reconstruction source |
+|---|---|
+| `last_retention_time[id]` | last record of the metric's last `.prot` file |
+| `earliest_current_time[id]` | no need to recover — reset when first current data point arrives |
+| `last_partial_merge[id]` | first record of the metric's oldest `.prot` file − 1 step |
+
+**Potentially truncated current file**
+
+A crash mid-write may leave the current file with an incomplete trailing protobuf
+message. On startup, Broker repairs each current file: it reads it sequentially
+up to the last *complete* message (the length-delimited format makes truncation
+detectable) then truncates the file at that offset. Rotated files are always
+intact by definition (immutable once rotated).
+
+**Startup algorithm**
+
+```
+for each metric that has .prot files:
+  1. repair the current file if needed (truncate to last valid message)
+  2. read the last record → last_retention_time
+  3. last_partial_merge = first record of oldest file − step
+  4. check the junction condition immediately
+     (may have been reached before the crash)
+```
+
+`earliest_current_time` is reset to "unknown"; junction detection resumes
+naturally as soon as the first current data point arrives.
+
+**In-memory data not yet flushed to disk**
+
+Because the buffer is memory-first, data received but not yet written to disk at
+the time of the crash is permanently lost. This data is retention data — already
+in the past — whose absence slightly widens the gap in the graph without affecting
+real-time monitoring. This trade-off is acceptable: a synchronous flush after each
+record would be too costly, and a periodic flush would add complexity for a
+marginal benefit on data that is offline by definition.
+
+## Concurrency
+
+The `retention_buffer` is accessed from two concurrent paths:
+
+- **Write path**: data reception from `output::write()` (muxer thread)
+- **Merge path**: reading `.prot` files and reconstructing the RRD (Asio thread
+  via `asio::post`)
+
+The fundamental property that simplifies synchronisation is that **rotated files
+are immutable**: the write path always writes to the *current* file for a metric,
+while the merge path always reads *rotated* files. These two operations never
+contend for the same file — except at rotation time.
+
+**Model: per-metric mutex**
+
+```cpp
+struct MetricRetentionState {
+  absl::Mutex           mutex;
+  int                   current_fd;
+  uint64_t              last_retention_time;
+  uint64_t              earliest_current_time;
+  uint64_t              last_partial_merge;
+  std::vector<fs::path> rotated_files;  // immutable, readable without lock
+};
+```
+
+- **Write path**: acquires the mutex, appends to `current_fd`, updates timestamps,
+  checks the junction condition, releases. Critical section: a few microseconds.
+- **Merge trigger**: acquires the mutex, performs rotation (closes `current_fd`,
+  adds it to `rotated_files`, opens a new file), releases immediately. Then reads
+  `rotated_files` **without holding the lock** (immutable). The critical section
+  is limited to the rotation, not the duration of the merge.
+- **After merge**: acquires the mutex, updates `last_partial_merge`, deletes the
+  merged files, releases.
+
+Lock contention is therefore limited to a few microseconds per rotation. The merge
+itself (potentially several seconds for large files) runs entirely without any lock.
+
 ## Migration plan
 
 The transformation of the current RRD module into this new architecture is carried

@@ -1668,6 +1668,92 @@ Le rename atomique garantit qu'un crash pendant le merge laisse le système dans
 état cohérent : soit l'ancien RRD est intact, soit le nouveau est en place. Les
 fichiers `.prot` ne sont supprimés qu'après un rename réussi.
 
+### Reprise après crash pendant le buffering
+
+Si Broker crashe alors que des données de rétention sont en cours de buffering
+(hors merge), les fichiers `.prot` sont sur disque mais l'état en mémoire est
+perdu. La reconstruction est entièrement possible sans fichier de métadonnées
+séparé.
+
+| État perdu | Source de reconstruction |
+|---|---|
+| `last_retention_time[id]` | dernier enregistrement du dernier `.prot` de la métrique |
+| `earliest_current_time[id]` | inutile à récupérer — réinitialisé à la première donnée courante reçue |
+| `last_partial_merge[id]` | premier enregistrement du plus vieux `.prot` de la métrique − 1 step |
+
+**Fichier courant potentiellement tronqué**
+
+Un crash en pleine écriture peut laisser le fichier courant avec un dernier
+message protobuf incomplet. Au démarrage, Broker répare chaque fichier courant :
+il le lit séquentiellement jusqu'au dernier message *complet* (le format
+length-delimited permet de détecter l'incomplétude) puis tronque le fichier à cet
+offset. Les fichiers rotatés sont toujours intacts par définition (immuables dès
+la rotation).
+
+**Algorithme de démarrage**
+
+```
+pour chaque métrique ayant des fichiers .prot :
+  1. réparer le fichier courant si nécessaire (truncate au dernier message valide)
+  2. lire le dernier enregistrement → last_retention_time
+  3. last_partial_merge = premier enregistrement du plus vieux fichier − step
+  4. vérifier immédiatement la condition de jonction
+     (peut-être atteinte avant le crash)
+```
+
+`earliest_current_time` est réinitialisé à « inconnu » ; la détection de jonction
+reprend naturellement dès la première donnée courante reçue.
+
+**Données en mémoire non encore flushées**
+
+Le buffer étant memory-first, les données reçues mais pas encore écrites sur disque
+au moment du crash sont définitivement perdues. Il s'agit de données de rétention
+— donc déjà dans le passé — dont l'absence agrandit légèrement le trou dans le
+graphe sans affecter le monitoring en temps réel. Ce compromis est acceptable : un
+flush synchrone après chaque enregistrement serait trop coûteux, et un flush
+périodique ajouterait de la complexité pour un bénéfice marginal sur des données
+qui sont de toute façon hors ligne.
+
+## Concurrence
+
+Le `retention_buffer` est accédé depuis deux chemins simultanés :
+
+- **Write path** : réception de données depuis `output::write()` (thread du muxer)
+- **Merge path** : lecture des fichiers `.prot` et reconstruction du RRD (thread
+  Asio via `asio::post`)
+
+La propriété fondamentale qui simplifie la synchronisation est que les **fichiers
+rotatés sont immuables** : le write path écrit toujours dans le fichier *courant*
+de la métrique, le merge path lit toujours les fichiers *rotatés*. Ces deux
+opérations ne se disputent jamais le même fichier — sauf au moment de la rotation.
+
+**Modèle : mutex par métrique**
+
+```cpp
+struct MetricRetentionState {
+  absl::Mutex           mutex;
+  int                   current_fd;
+  uint64_t              last_retention_time;
+  uint64_t              earliest_current_time;
+  uint64_t              last_partial_merge;
+  std::vector<fs::path> rotated_files;  // immuables, lisibles sans lock
+};
+```
+
+- **Write path** : acquiert le mutex, append dans `current_fd`, met à jour les
+  timestamps, vérifie la condition de jonction, relâche. Section critique :
+  quelques microsecondes.
+- **Déclenchement du merge** : acquiert le mutex, effectue la rotation (ferme
+  `current_fd`, l'ajoute à `rotated_files`, ouvre un nouveau fichier), relâche
+  immédiatement. Puis lit les `rotated_files` **sans lock** (immuables). La
+  section critique se limite à la rotation, pas à la durée du merge.
+- **Après merge** : acquiert le mutex, met à jour `last_partial_merge`, supprime
+  les fichiers mergés, relâche.
+
+La contention est donc réduite à quelques microsecondes par rotation. Le merge
+lui-même (potentiellement plusieurs secondes pour des fichiers volumineux) s'exécute
+entièrement sans aucun verrou.
+
 ## Plan de migration
 
 La transformation du module RRD actuel vers cette nouvelle architecture se fait en
