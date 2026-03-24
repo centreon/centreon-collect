@@ -1158,6 +1158,355 @@ particularly interesting with the broker cluster.
 
 # Retention
 
+## Current problem
+
+When an Engine is disconnected for a long period (e.g. one week), it accumulates
+retention data. Upon reconnection, Broker receives this data in the order Engine
+emitted it — oldest first. Throughout the entire transmission of the retention
+data, current data is not visible.
+
+This behaviour raises two distinct problems:
+
+1. **Visibility**: current data (real-time monitoring state) only reaches Broker
+   once all retention data has been transmitted.
+2. **RRD writing**: RRD requires data to be inserted in strictly chronological
+   order. Any value older than the last written timestamp is silently rejected.
+   It is therefore impossible to insert past data once recent data has been
+   written.
+
+## Proposed architecture
+
+### Overview
+
+The central idea is to split the data stream into two channels as soon as Engine
+reconnects:
+
+```mermaid
+flowchart TD
+    E([Engine reconnected])
+    E -->|current data| RRD[current RRD\nimmediate write]
+    E -->|retention data| BUF[.prot buffer\non disk]
+    BUF --> J{junction\ndetection}
+    J --> MR[reconstruction engine]
+    MR --> TMP[temp RRD]
+    TMP -->|atomic rename| RRD2[final RRD]
+```
+
+Current data is written immediately to the live RRD, guaranteeing visibility
+without delay. Retention data is stored in an intermediate buffer (memory-first,
+spilling to disk if needed) and merged in later.
+
+### Phase 1: Reconnection
+
+```mermaid
+gantt
+    dateFormat X
+    axisFormat %s
+    section Current RRD
+        normal data      : 0, 10
+        empty (gap)      : crit, 10, 20
+        current data     : 20, 30
+    section .prot buffer
+        buffered retention data : active, 10, 20
+```
+
+- The current RRD contains data from before the disconnection and current data
+  (after reconnection). The disconnection period remains a gap in the RRD.
+- The `.prot` buffer accumulates data from the disconnection period as Engine
+  retransmits it.
+
+### Phase 2: Junction detection
+
+The junction is reached when the last data point in the buffer and the first
+post-reconnection data point in the current RRD are at most one step apart
+(configurable, default 5 minutes):
+
+```mermaid
+gantt
+    dateFormat X
+    axisFormat %s
+    section .prot buffer
+        retention data   : 10, 19
+    section Current RRD
+        current data     : 20, 30
+    section Junction
+        gap ≤ step       : milestone, 19, 20
+```
+
+This condition is reliable because the step is statically known for each metric.
+
+### Phase 3: Merge via the reconstruction engine
+
+Once the junction is detected (or on an external trigger), the reconstruction
+engine produces a new complete RRD file:
+
+```mermaid
+flowchart LR
+    BUF[".prot files\n(chrono sort)"]
+    RRD["current RRD\n(rrd_fetch)"]
+    MS["external merge-sort\n(bounded memory)"]
+    TMP[temp RRD]
+    OUT[final RRD]
+
+    BUF -->|stream| MS
+    RRD -->|stream| MS
+    MS --> TMP
+    TMP -->|atomic rename| OUT
+```
+
+The external merge-sort guarantees bounded memory consumption regardless of the
+amount of buffered data: each source is read sequentially; only the head of each
+stream is in memory at any given time.
+
+## Buffer format
+
+### `.prot` files
+
+The buffer uses *length-delimited* protobuf messages written in *append* mode.
+`storage::pb_metric` and `storage::pb_status` events received by the RRD module
+are large; before being stored in the buffer they are converted into compact
+protobuf messages defined in a file internal to the RRD module
+(`broker/rrd/proto/rrd_retention.proto`) — this format is never transmitted over
+the network:
+
+```protobuf
+message MetricRetentionPoint {
+  uint64 time  = 1;
+  double value = 2;
+}
+
+message StatusRetentionPoint {
+  uint64 time   = 1;
+  uint32 status = 2;
+}
+```
+
+The `retention_buffer` creates **one `.prot` file per metric and per status**:
+
+- `metric_<metric_id>.prot` for metrics
+- `status_<index_id>.prot` for statuses
+
+Each file is append-only and naturally sorted by time. This per-identifier
+organisation is essential for the merge (Step 4): at the junction of metric X,
+only the rotation files for X are opened, without scanning unrelated data. With
+a memory-first buffer, files are not all open simultaneously, making the file
+count (on the order of the number of metrics) perfectly manageable.
+
+Files are organised with rotation on configurable size:
+
+```
+retention_buffer/
+  metric_42_0001.prot    ← closed, awaiting merge
+  metric_42_0002.prot    ← closed, awaiting merge
+  metric_42_0003.prot    ← current write file
+```
+
+A file is **immutable** once rotated: it can be read as a stream during the merge
+without locking. After a successful merge, the corresponding `.prot` files are
+deleted.
+
+### Merge triggers
+
+| Trigger | Description |
+|---|---|
+| Junction detected | Buffer has caught up with the current RRD (gap ≤ step) |
+| Buffer size | Buffer exceeds N MB (configurable) |
+| Schedule | Low-load nightly merge |
+| Manual | Explicit administration command |
+
+## Multiple disconnections
+
+If an Engine disconnects several times, gaps accumulate in the buffer without
+creating extra files: the buffer accepts all gaps in the same
+`(metric_id, timestamp, value)` structure, regardless of how many there are.
+
+```mermaid
+gantt
+    dateFormat X
+    axisFormat %s
+    section Current RRD
+        active : 0,  5
+        active : 10, 15
+        active : 20, 25
+        active : 30, 35
+    section .prot buffer
+        gap 1  : active, 5,  10
+        gap 2  : active, 15, 20
+        gap 3  : active, 25, 30
+```
+
+The merge remains a single operation: all data in the buffer (all gaps combined)
+is merged with the current RRD in a single pass.
+
+## Integration with the existing rebuild
+
+The current RRD rebuild and the retention merge are structurally identical: both
+create a temporary RRD, write in chronological order from multiple sources, then
+perform an atomic rename. They therefore share the same **reconstruction engine**:
+
+```mermaid
+flowchart LR
+    T1([Manual rebuild])
+    T2([Retention junction])
+    T3([Nightly schedule])
+    S1[historical DB]
+    S2[.prot files]
+    S3[current RRD]
+    MS[merge-sort]
+    TMP[temp RRD]
+    OUT[final RRD]
+
+    T1 & T2 & T3 --> MS
+    S1 & S2 & S3 -->|stream| MS
+    MS --> TMP -->|atomic rename| OUT
+```
+
+Practical consequence: a manually triggered rebuild **automatically absorbs** the
+pending `.prot` files for the affected metrics. There is no separate code path to
+maintain.
+
+## Edge cases
+
+### Retention exceeded
+
+If the disconnection period exceeds the RRD archive duration (e.g. 3-month
+disconnection for a 1-month RRD), the junction can never be reached. In that case:
+
+- There is no point storing data that is too old; it is discarded immediately.
+- When the buffer is merged, a few data points may fall outside the RRD window
+  (they will be ignored by RRD but do not cause errors).
+- The `.prot` files are deleted after the merge, whether complete or partial.
+
+### Broker crash during merge
+
+The atomic rename guarantees that a crash during the merge leaves the system in a
+consistent state: either the old RRD is intact, or the new one is in place. The
+`.prot` files are only deleted after a successful rename.
+
+## Migration plan
+
+The transformation of the current RRD module into this new architecture is carried
+out in four sequential steps, summarised in the following diagram:
+
+```mermaid
+flowchart LR
+    E1["Step 1\nretention_buffer component\n(.prot files)"]
+    E2["Step 2\nBifurcation in output.cc\n(current / retention)"]
+    E3["Step 3\nJunction detection\n(Asio timer)"]
+    E4["Step 4\nUnified reconstruction\nengine"]
+
+    E1 --> E2
+    E2 --> E3
+    E3 --> E4
+```
+
+No protocol change is required: Broker determines itself whether a data point is
+retention by comparing its timestamp to `now - step`. If the timestamp is older
+than this threshold (configurable), the data point is treated as retention and
+routed to the buffer; otherwise it goes directly to the RRD.
+
+### Step 1 — `retention_buffer` component
+
+Create a new component `broker/rrd/src/retention_buffer.cc` (+ `.hh`) responsible
+for:
+
+- Receiving `MetricRetentionPoint` / `StatusRetentionPoint` messages and
+  serialising them into the corresponding `.prot` files (rotation on configurable
+  size or duration).
+- Keeping in memory the latest timestamp received per `metric_id` (and per
+  `index_id` for statuses) to enable junction detection.
+- Immediately discarding any point older than `rrd_len` to avoid growing buffers
+  unnecessarily.
+
+This component can be developed and tested independently with synthetic data.
+
+### Step 2 — Bifurcation in `output.cc`
+
+Modify the `write()` method of the RRD module to route based on the age of the
+data point. For `storage::pb_metric` and `storage::pb_status`:
+
+- `timestamp ≥ now - step` → current path: write directly to the RRD file.
+  In parallel, record `earliest_current_time[id]` = first current timestamp
+  received for this identifier since (re)connection.
+- `timestamp < now - step` → convert to `MetricRetentionPoint` or
+  `StatusRetentionPoint` and delegate to the `retention_buffer`.
+
+Requires Step 1.
+
+### Step 3 — Junction detection
+
+Detection is **event-driven**: the check is performed inside `write()` on every
+incoming data point, in O(1) via an `unordered_map` lookup. No periodic scan of
+all metrics is needed.
+
+Monitoring does not stop during downtimes: data is collected every 5 minutes
+without interruption. Consequently, a large gap between two consecutive timestamps
+in the retention stream (> 2 × `step`) is a reliable signal: it marks the
+boundary between two distinct disconnection periods. This is the natural moment to
+check the junction condition for the batch that has just ended.
+
+The junction is reached as soon as one of these two conditions is true:
+
+| Condition | Trigger |
+|---|---|
+| `last_retention[id] + step ≥ earliest_current[id]` | arrival of a current or retention data point for `id` |
+| `last_retention[id] + step ≥ now` | arrival of a retention data point (no current data known yet) |
+
+A third trigger covers batch endings: when a retention data point shows a gap
+`timestamp − last_retention[id] > 2 × step`, the previous batch is finished; the
+conditions above are checked immediately against `last_retention[id]` before
+updating the value.
+
+#### Progressive partial merge
+
+When the retention backlog is large (disconnection of several days or weeks),
+waiting for the full junction before triggering the merge means the user sees no
+graph reconstruction during the entire catch-up period.
+
+To address this, a **partial merge** is triggered as soon as the buffer for a
+metric covers a complete slice of configurable duration (default: 1 day) since the
+last merge (or since the start of buffering). Each processed slice produces a valid
+RRD immediately visible; the user sees the graph rebuild day by day as data is
+received.
+
+This trigger is handled by the same event-driven mechanism: on each incoming
+retention data point, check whether
+`last_retention[id] − last_partial_merge[id] ≥ partial_merge_interval`.
+
+The reconstruction engine (Step 4) must therefore support partial merges: merging
+only the `.prot` files covering the slice
+`[last_partial_merge[id], last_partial_merge[id] + partial_merge_interval]`
+without waiting for the complete buffer to be available.
+
+When a junction or partial merge is detected, the merge is triggered asynchronously
+via `asio::post` so as not to block the write path.
+
+A low-frequency cleanup timer (default: 5 min) handles only **orphan buffers**:
+metrics whose retention is present but for which no current data will ever arrive
+(host deleted, metric disabled…). Its role is to free resources, not to detect
+junctions.
+
+Requires Step 2.
+
+### Step 4 — Unified reconstruction engine
+
+Extend the existing RRD rebuild mechanism (START / DATA / END sequence) to accept
+as input either:
+
+- A manually triggered rebuild (current behaviour), or
+- The result of a detected junction (Step 3).
+
+In both cases, the engine:
+
+1. Reads the relevant `.prot` files in chronological order (external merge-sort
+   with bounded memory).
+2. Merges with the data already in the current RRD via `rrd_fetch`.
+3. Writes a new temporary RRD file in strictly increasing order.
+4. Atomically substitutes the new RRD for the old one via `rename(2)`.
+5. Deletes the merged `.prot` files.
+
+The existing manual rebuild code path becomes a special case of this engine: no
+visible change for users who trigger a rebuild via the interface.
 
 # Poller HA
 ## Poller configuration tree
