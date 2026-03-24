@@ -80,9 +80,14 @@ void broker_cache::merge(
   _instances.insert_or_assign(state.poller_id(), state.poller_name());
 
   /* Work on severities */
-  for (const engine::configuration::Severity& sev : state.severities())
-    _severities.insert_or_assign(
-        std::make_pair(sev.key().id(), sev.key().type()), sev.level());
+  for (const engine::configuration::Severity& sev : state.severities()) {
+    auto key = std::make_pair(sev.key().id(), sev.key().type());
+    auto it = _severities.find(key);
+    if (it != _severities.end())
+      it->second.level = sev.level();  // preserve existing db_id
+    else
+      _severities.insert({key, {sev.level(), 0}});
+  }
 
   /* Work on hosts */
   auto& index = _hosts.get<by_id>();
@@ -257,12 +262,20 @@ void broker_cache::apply(
   /* Work on severities */
   for (const engine::configuration::Severity& sev : diff.severities().added()) {
     auto key = std::make_pair(sev.key().id(), sev.key().type());
-    _severities.insert_or_assign(key, sev.level());
+    auto it = _severities.find(key);
+    if (it != _severities.end())
+      it->second.level = sev.level();  // preserve existing db_id
+    else
+      _severities.insert({key, {sev.level(), 0}});
   }
   for (const engine::configuration::Severity& sev :
        diff.severities().modified()) {
     auto key = std::make_pair(sev.key().id(), sev.key().type());
-    _severities.insert_or_assign(key, sev.level());
+    auto it = _severities.find(key);
+    if (it != _severities.end())
+      it->second.level = sev.level();  // preserve existing db_id
+    else
+      _severities.insert({key, {sev.level(), 0}});
   }
   for (const engine::configuration::KeyType& key :
        diff.severities().removed()) {
@@ -724,6 +737,14 @@ void broker_cache::_fill_host(Host* obj,
   obj->set_instance_id(pid);
 }
 
+/**
+ * @brief Fill common service fields from a configuration object.
+ *
+ * @tparam ConfigType The configuration type (pb_service or pb_anomaly_detection
+ * configuration).
+ * @param obj The Service protobuf object to fill.
+ * @param cfg The source configuration object.
+ */
 template <typename ConfigType>
 void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
   BOOST_PP_SEQ_FOR_EACH(
@@ -1044,7 +1065,7 @@ void broker_cache::update_hostgroup_member(
     assert(it->hostgroup->obj().hostgroup_id() == hgm_obj.hostgroup_id());
     if (it->hostgroup->obj().name() != hgm_obj.name()) {
       auto extracted = _hostgroups.extract(found);
-      std::string old_name = std::move(extracted.value().first->mut_obj().name());
+      std::string old_name = extracted.value().first->mut_obj().name();
       extracted.value().first->mut_obj().set_name(hgm_obj.name());
       auto result = _hostgroups.get<by_id>().insert(std::move(extracted));
       if (!result.inserted) {
@@ -1102,7 +1123,7 @@ void broker_cache::update_servicegroup_member(
            sgm_obj.servicegroup_id());
     if (it->servicegroup->obj().name() != sgm_obj.name()) {
       auto extracted = _servicegroups.extract(found);
-      std::string old_name = std::move(extracted.value().first->mut_obj().name());
+      std::string old_name = extracted.value().first->mut_obj().name();
       extracted.value().first->mut_obj().set_name(sgm_obj.name());
       auto result = _servicegroups.get<by_id>().insert(std::move(extracted));
       if (!result.inserted) {
@@ -1119,6 +1140,11 @@ void broker_cache::update_servicegroup_member(
   }
 }
 
+/**
+ * @brief Update a metric mapping in the cache.
+ *
+ * @param mm The metric mapping to update.
+ */
 void broker_cache::update_metric_mapping(
     const std::shared_ptr<storage::pb_metric_mapping>& mm) {
   absl::WriterMutexLock l{&_mutex};
@@ -1459,13 +1485,101 @@ void broker_cache::update_service(
     svc.set_notification_number(obj.notification_number());
 }
 
+/**
+ * @brief Update a severity level in the cache from a NEB event. The existing
+ * db_id is preserved so that the database foreign key is not lost.
+ *
+ * @param evt The severity event carrying the updated level.
+ */
 void broker_cache::update_severity(
     const std::shared_ptr<neb::pb_severity>& evt) {
   auto& obj = evt->obj();
   absl::WriterMutexLock lck{&_mutex};
-  _severities.insert_or_assign({obj.id(), obj.type()}, obj.level());
+  auto it = _severities.find({obj.id(), obj.type()});
+  if (it != _severities.end())
+    it->second.level = obj.level();  // preserve existing db id
+  else
+    _severities.insert({{obj.id(), obj.type()}, {obj.level(), 0}});
 }
 
+/**
+ * @brief Set the database ID for a severity entry identified by its config ID
+ * and type. If the entry does not exist yet in the cache (e.g. loaded from the
+ * database at startup before the configuration events arrive), a stub entry is
+ * created so the db_id is not lost.
+ *
+ * @param config_id The severity configuration ID.
+ * @param type The severity type (0=service, 1=host).
+ * @param db_id The auto-increment database ID to store.
+ */
+
+/**
+ * @brief Return a snapshot of all severities currently held in the cache.
+ *
+ * @return A copy of the internal severities map, keyed by (config_id, type).
+ */
+absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                    struct broker_cache::severity>
+broker_cache::severities() const {
+  absl::ReaderMutexLock lck{&_mutex};
+  return _severities;
+}
+
+void broker_cache::set_db_id_for_severity(uint64_t config_id,
+                                          uint32_t type,
+                                          uint64_t db_id) {
+  absl::WriterMutexLock lck{&_mutex};
+  auto it = _severities.find({config_id, type});
+  if (it != _severities.end())
+    it->second.db_id = db_id;
+  else
+    // Entry may not exist yet (e.g. loaded from DB at startup before config
+    // events arrive): create a stub entry so the db_id is not lost.
+    _severities.insert({{config_id, type}, {0, db_id}});
+}
+
+/**
+ * @brief Remove a severity from the cache by its config ID and type.
+ *
+ * Called when a severity is deleted from the database so the cache no longer
+ * holds a stale entry for it.
+ *
+ * @param config_id The severity configuration ID.
+ * @param type The severity type (0=service, 1=host).
+ */
+void broker_cache::erase_severity(uint64_t config_id, uint32_t type) {
+  absl::WriterMutexLock lck{&_mutex};
+  _severities.erase({config_id, type});
+}
+
+/**
+ * @brief Get the database auto-increment ID for a severity identified by its
+ * config ID and type.
+ *
+ * @param severity_id The severity configuration ID.
+ * @param type The severity type (0=service, 1=host).
+ * @return The database ID, or 0 if the severity is not found in the cache.
+ */
+uint64_t broker_cache::get_db_id_for_severity(uint64_t severity_id,
+                                              uint32_t type) {
+  absl::ReaderMutexLock lck{&_mutex};
+  auto it = _severities.find({severity_id, type});
+  if (it != _severities.end())
+    return it->second.db_id;
+  else {
+    SPDLOG_LOGGER_WARN(_logger,
+                       "Attempt to get severity ID for severity with key ({}, "
+                       "{}), but it does not exist in cache.",
+                       severity_id, type);
+    return 0;
+  }
+}
+
+/**
+ * @brief Update a BA/BV relation in the cache.
+ *
+ * @param rel The dimension BA/BV relation event to store.
+ */
 void broker_cache::update_dimension_ba_bv_relation(
     const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel) {
   absl::WriterMutexLock l(&_mutex);
@@ -1473,6 +1587,12 @@ void broker_cache::update_dimension_ba_bv_relation(
   _dimension_ba_bv_relations.emplace(std::make_pair(obj.ba_id(), obj.bv_id()));
 }
 
+/**
+ * @brief Get the list of BV IDs associated with a given BA ID.
+ *
+ * @param ba_id The business activity ID.
+ * @return A vector of BV IDs linked to this BA.
+ */
 std::vector<uint64_t> broker_cache::dimension_bvs_for_ba(uint64_t ba_id) const {
   absl::ReaderMutexLock l(&_mutex);
   std::vector<uint64_t> retval;
@@ -1515,6 +1635,11 @@ std::shared_ptr<bam::pb_dimension_bv_event> broker_cache::dimension_bv(
     return found->second;
 }
 
+/**
+ * @brief Update a dimension business activity event in the cache.
+ *
+ * @param ba_event The dimension business activity event to update.
+ */
 void broker_cache::update_dimension_ba_event(
     const std::shared_ptr<bam::pb_dimension_ba_event>& ba_event) {
   absl::WriterMutexLock l(&_mutex);
@@ -1522,6 +1647,12 @@ void broker_cache::update_dimension_ba_event(
   _dimension_bas.insert_or_assign(obj.ba_id(), ba_event);
 }
 
+/**
+ * @brief Get the dimension business activity event for the given BA ID.
+ *
+ * @param ba_id The business activity ID.
+ * @return A shared pointer to the event, nullptr if not found.
+ */
 std::shared_ptr<bam::pb_dimension_ba_event> broker_cache::dimension_ba(
     uint64_t ba_id) const {
   absl::ReaderMutexLock l(&_mutex);
@@ -1618,6 +1749,12 @@ std::shared_ptr<neb::pb_service> broker_cache::service(
     return *found;
 }
 
+/**
+ * @brief Get an index mapping by its index ID.
+ *
+ * @param index_id The index ID to look up.
+ * @return A shared pointer to the index mapping, nullptr if not found.
+ */
 std::shared_ptr<storage::pb_index_mapping> broker_cache::get_index_mapping(
     uint64_t index_id) const {
   absl::ReaderMutexLock l{&_mutex};
@@ -1629,6 +1766,13 @@ std::shared_ptr<storage::pb_index_mapping> broker_cache::get_index_mapping(
     return *found;
 }
 
+/**
+ * @brief Get an index mapping by host ID and service ID.
+ *
+ * @param host_id The host ID.
+ * @param service_id The service ID.
+ * @return A shared pointer to the index mapping, nullptr if not found.
+ */
 std::shared_ptr<storage::pb_index_mapping> broker_cache::get_index_mapping(
     uint64_t host_id,
     uint64_t service_id) const {
@@ -1641,6 +1785,12 @@ std::shared_ptr<storage::pb_index_mapping> broker_cache::get_index_mapping(
     return *found;
 }
 
+/**
+ * @brief Retrieve the metric mapping for a given metric ID.
+ *
+ * @param metric_id The metric ID to look up.
+ * @return A shared pointer to the pb_metric_mapping, or nullptr if not found.
+ */
 std::shared_ptr<storage::pb_metric_mapping> broker_cache::get_metric_mapping(
     uint64_t metric_id) const {
   absl::ReaderMutexLock l{&_mutex};
@@ -1993,7 +2143,7 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
       if (severity_id) {
         auto severity_it = _severities.find({severity_id, Severity_Type_HOST});
         if (severity_it != _severities.end())
-          return severity_it->second;
+          return severity_it->second.level;
       } else
         throw exceptions::msg_fmt("Host {} has no severity set", host_id);
     } else {
@@ -2011,7 +2161,7 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
         auto severity_it =
             _severities.find({severity_id, Severity_Type_SERVICE});
         if (severity_it != _severities.end())
-          return severity_it->second;
+          return severity_it->second.level;
       } else
         throw exceptions::msg_fmt("Service ({}, {}) has no severity set",
                                   host_id, service_id);

@@ -292,6 +292,16 @@ using IndexMappingContainer = boost::multi_index::multi_index_container<
                                           indexmapping_service_id_extractor>>>;
 
 class broker_cache {
+ public:
+  struct severity {
+    uint32_t level;
+    /* This db_id is the ID of the severity in the database. It is initialized
+     * to 0 when the severity is not yet stored in the database, and updated
+     * when done.
+     */
+    uint64_t db_id;
+  };
+
  private:
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -325,8 +335,8 @@ class broker_cache {
       _metric_mappings ABSL_GUARDED_BY(_mutex);
 
   /* Key for severities is {severity_id, severity_type},
-   * value is the severity level. */
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, uint32_t> _severities
+   * value is the struct severity defined earlier (fields are level and ID) */
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, severity> _severities
       ABSL_GUARDED_BY(_mutex);
 
   /* BAM relations from BA to BV */
@@ -442,6 +452,14 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_severity(const std::shared_ptr<neb::pb_severity>& evt)
       ABSL_LOCKS_EXCLUDED(_mutex);
+  void set_db_id_for_severity(uint64_t config_id, uint32_t type, uint64_t db_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void erase_severity(uint64_t config_id, uint32_t type)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  uint64_t get_db_id_for_severity(uint64_t severity_id, uint32_t type)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, struct severity>
+  severities() const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);
