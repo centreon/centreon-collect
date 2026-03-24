@@ -24,6 +24,26 @@
 using namespace com::centreon::common::grpc;
 
 /**
+ * @brief Certificate verifier that unconditionally accepts any peer.
+ *
+ * Used for the TLS_SKIP_VERIFY_CA bootstrap channel where server identity
+ * is validated via CA-fingerprint instead of the TLS hostname check.
+ */
+class skip_all_certificate_verifier
+    : public ::grpc::experimental::ExternalCertificateVerifier {
+ public:
+  bool Verify(::grpc::experimental::TlsCustomVerificationCheckRequest*,
+              std::function<void(::grpc::Status)>,
+              ::grpc::Status* sync_status) override {
+    if (sync_status)
+      *sync_status = ::grpc::Status::OK;
+    return true;
+  }
+  void Cancel(
+      ::grpc::experimental::TlsCustomVerificationCheckRequest*) override {}
+};
+
+/**
  * @brief Construct a new grpc client base::grpc client base object
  *
  * @param conf
@@ -63,6 +83,10 @@ grpc_client_base::grpc_client_base(
     if (conf->get_security_mode() == grpc_config::TLS_SKIP_VERIFY_CA) {
       ::grpc::experimental::TlsChannelCredentialsOptions options;
       options.set_verify_server_certs(false);
+      options.set_check_call_host(false);
+      options.set_certificate_verifier(
+          ::grpc::experimental::ExternalCertificateVerifier::Create<
+              skip_all_certificate_verifier>());
       creds = ::grpc::experimental::TlsCredentials(options);
       SPDLOG_LOGGER_INFO(_logger, "skip ca verify encrypted connection to {}",
                          conf->get_hostport());

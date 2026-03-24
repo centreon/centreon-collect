@@ -71,6 +71,7 @@ TEST_F(BamBA, KpiServiceRecompute) {
       std::make_shared<bam::ba_impact>(1, 1, 1, true, _logger)};
   test_ba->set_level_critical(0);
   test_ba->set_level_warning(25);
+  test_ba->set_name("impact_ba");
 
   std::shared_ptr<bam::kpi_service> kpi{
       std::make_shared<bam::kpi_service>(1, 1, 1, 1, "host_1/serv_1", _logger)};
@@ -96,7 +97,8 @@ TEST_F(BamBA, KpiServiceRecompute) {
     if (i == 0) {
       /* Here is an occasion to checkout output from ba when it is critical */
       ASSERT_EQ(test_ba->get_output(),
-                "Status is CRITICAL - Level = 0 - 1 KPI out of 1 impacts the "
+                "BA: 1 - impact_ba - CRITICAL: Level = 0 - 1 KPI out of 1 "
+                "impacts the "
                 "BA for 100 points - KPI host_1/serv_1 (impact: 100)");
       ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=0;25;0;0;100");
     }
@@ -123,6 +125,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
   // Build BAM objects.
   std::shared_ptr<bam::ba> test_ba{
       std::make_shared<bam::ba_impact>(1, 1, 2, true, _logger)};
+  test_ba->set_name("impact_ba");
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
   std::vector<short> results{0, 0, 1, 1, 1, 2};
@@ -165,13 +168,15 @@ TEST_F(BamBA, KpiServiceImpactState) {
           /* Here is an occasion to test get_output for a status OK but not
            * totally */
           ASSERT_EQ(test_ba->get_output(),
-                    "Status is OK - Level = 90 (warn: 70 - crit: 40) - 1 KPI "
+                    "BA: 1 - impact_ba - OK: Level = 90 (warn: 70 - crit: 40) "
+                    "- 1 KPI "
                     "out of 3 impacts the BA: KPI host_1/serv_1 (impact: 10)");
           ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=90;70;40;0;100");
         } else if (j == 2) {
           /* Here is an occasion to test get_output for a status WARNING */
           std::regex re(
-              "Status is WARNING - Level = 70 - 3 KPIs out of 3 impact "
+              "BA: 1 - impact_ba - WARNING: Level = 70 - 3 KPIs out of 3 "
+              "impact "
               "the BA for 30 points - KPI.+ \\(impact: 10\\), KPI.+ \\(impact: "
               "10\\), KPI.+ \\(impact: 10\\)");
           ASSERT_TRUE(std::regex_search(test_ba->get_output(), re));

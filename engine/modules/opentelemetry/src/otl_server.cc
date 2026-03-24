@@ -330,6 +330,11 @@ otl_server::pointer otl_server::load(
       io_context, agent_config, handler, logger, agent_stats,
       conf->is_crypted(), std::move(token_validator));
 
+  if (conf->is_crypted() && !conf->get_ca().empty()) {
+    ret->_ca_service =
+        centreon_agent::certificate_service::load(logger, conf->get_ca());
+  }
+
   ret->start();
   return ret;
 }
@@ -342,6 +347,9 @@ void otl_server::start() {
   _init([this](::grpc::ServerBuilder& builder) {
     builder.RegisterService(_service.get());
     builder.RegisterService(_agent_service.get());
+    if (_ca_service) {
+      builder.RegisterService(_ca_service.get());
+    }
   });
 }
 

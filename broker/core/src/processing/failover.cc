@@ -181,7 +181,7 @@ void failover::_run() {
       error_retry_delay = _max_retry_delay;
     }
     SPDLOG_LOGGER_ERROR(
-        _logger, " {} Failed to send event to stream, we wait {s} before retry",
+        _logger, " {} Failed to send event to stream, we wait {}s before retry",
         _name, error_retry_delay);
     for (ssize_t i = 0; !should_exit() && i < error_retry_delay * 10; i++) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
