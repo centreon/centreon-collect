@@ -62,11 +62,13 @@ broker_cache::~broker_cache() noexcept {
  * received).
  *
  * In centralized configuration mode the protobuf `State` message carries a
- * top-level `poller_id` field, but the individual `Host` objects embedded
- * inside `state.hosts()` do NOT have their own `poller_id` set. To ensure
- * that the cached hosts end up with a correct `instance_id` (needed by the
- * group-link removal code in `apply()`), `state.poller_id()` is forwarded to
- * `_fill_host()` as the `poller_id_hint`.
+ * top-level `poller_id` field, but the individual `Hostgroup` and
+ * `Servicegroup` objects embedded inside `state` do NOT have their own
+ * `poller_id` set (Engine has no concept of per-object poller ownership).
+ * `state.poller_id()` is used as fallback wherever `obj.poller_id() == 0`.
+ *
+ * Similarly, individual `Host` objects do not carry their own `poller_id`;
+ * `state.poller_id()` is forwarded to `_fill_host()` as the `poller_id_hint`.
  *
  * @param state Configuration state to merge
  */
@@ -106,9 +108,6 @@ void broker_cache::merge(
   };
 
   for (const auto& hg : state.hostgroups()) {
-    /* In Engine's State proto, individual Hostgroup objects do not carry their
-     * own poller_id. Use the top-level state.poller_id() as fallback, exactly
-     * as _fill_host() uses its poller_id_hint for hosts. */
     const uint64_t hg_poller_id =
         hg.poller_id() != 0 ? hg.poller_id() : state.poller_id();
     auto found = hg_index.find(hg.hostgroup_id());
@@ -179,10 +178,6 @@ void broker_cache::merge(
   };
 
   for (const auto& sg : state.servicegroups()) {
-    /* In Engine's State proto, individual Servicegroup objects do not carry
-     * their own poller_id (Engine has no concept of per-object poller
-     * ownership). Use the top-level state.poller_id() as the authoritative
-     * source, exactly as _fill_host() uses its poller_id_hint for hosts. */
     const uint64_t sg_poller_id =
         sg.poller_id() != 0 ? sg.poller_id() : state.poller_id();
     auto found = _servicegroups.find(sg.servicegroup_id());
@@ -231,7 +226,7 @@ void broker_cache::merge(
  * `pb_global_diff_state` event is received).
  *
  * Unlike `merge()`, the Host objects in the diff already carry their own
- * `poller_id` field, set by `indexed_diff_state::add_diff_state()` before the
+ * `poller_id` field, set by `indexed_diff_state::add_state()` before the
  * global diff is published. Therefore `_fill_host()` is called without a
  * `poller_id_hint` here — `cfg.poller_id()` is non-zero and is used directly.
  *

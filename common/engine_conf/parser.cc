@@ -189,8 +189,7 @@ void parser::_parse_global_configuration(const std::string& path,
                 std::string(module_args.data(), module_args.size()));
             _logger->warn(
                 "Parsing the configuration file '{}' of the 'cbmod' module "
-                "to "
-                "still be able to use it.",
+                "to still be able to use it.",
                 module_args);
           } else {
             _logger->warn(
