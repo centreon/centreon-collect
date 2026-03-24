@@ -157,7 +157,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
             libssl-dev \
             libssh-dev && \
         rm -rf /var/lib/apt/lists/* && \
-        cpanm --notest Net::Curl Crypt::OpenSSL::AES Net::SSH::Session Mojo::IOLoop::Signal; \
+        cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session Mojo::IOLoop::Signal; \
     fi
 
 # Create directory structure
