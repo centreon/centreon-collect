@@ -47,4 +47,4 @@ trap cleanup EXIT
 # Entrypoint runs as root to handle directory/permission setup
 # But gorgoned should run as centreon-gorgone user
 echo "Switching to centreon-gorgone user..."
-exec su-exec centreon-gorgone "$@"
+exec gosu centreon-gorgone "$@"
