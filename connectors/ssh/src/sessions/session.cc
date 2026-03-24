@@ -17,7 +17,7 @@
  */
 
 #include <pwd.h>
-
+#include <libssh2.h>
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -68,10 +68,17 @@ session::session(credentials const& creds, const shared_io_context& io_context)
   _session = libssh2_session_init_ex(nullptr, nullptr, nullptr, this);
   if (!_session)
     throw msg_fmt("SSH session creation failed (out of memory ?)");
+#if LIBSSH2_VERSION_NUM >= 0x010b01
+  libssh2_session_callback_set2(_session, LIBSSH2_CALLBACK_RECV,
+                               (libssh2_cb_generic*)g_socket_recv);
+  libssh2_session_callback_set2(_session, LIBSSH2_CALLBACK_SEND,
+                               (libssh2_cb_generic*)g_socket_send);
+#else
   libssh2_session_callback_set(_session, LIBSSH2_CALLBACK_RECV,
                                (void*)g_socket_recv);
   libssh2_session_callback_set(_session, LIBSSH2_CALLBACK_SEND,
                                (void*)g_socket_send);
+#endif
   log::core()->debug("new session this:{}", *this);
 }
 
