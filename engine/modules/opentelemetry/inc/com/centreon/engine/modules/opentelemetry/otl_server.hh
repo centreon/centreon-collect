@@ -25,6 +25,7 @@
 
 #include "com/centreon/common/grpc/grpc_server.hh"
 #include "com/centreon/engine/modules/opentelemetry/centreon_agent/agent_service.hh"
+#include "com/centreon/engine/modules/opentelemetry/certificate_service.hh"
 
 namespace com::centreon::engine::modules::opentelemetry {
 
@@ -41,6 +42,7 @@ class otl_server : public common::grpc::grpc_server_base,
                    public std::enable_shared_from_this<otl_server> {
   std::shared_ptr<detail::metric_service> _service;
   std::shared_ptr<centreon_agent::agent_service> _agent_service;
+  std::shared_ptr<centreon_agent::certificate_service> _ca_service;
   absl::Mutex _protect;
 
   otl_server(const grpc_config::pointer& conf,

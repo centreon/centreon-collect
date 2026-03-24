@@ -880,6 +880,8 @@ std::vector<std::vector<std::string>> parse_timeperiods_cfg(
   bool wait_time_period_begin = true;
 
   std::vector<std::string> current;
+  if (!f)
+    return ret;
   while (!f.eof()) {
     std::getline(f, line);
 
