@@ -50,12 +50,6 @@ jobs:
           - package_extension: deb
             image: packaging-centreon-collect-bookworm
             distrib: bookworm
-          - package_extension: deb
-            image: packaging-centreon-collect-jammy
-            distrib: jammy
-          - package_extension: deb
-            image: packaging-centreon-collect-noble
-            distrib: noble
 
     runs-on: ubuntu-24.04
 
@@ -135,7 +129,7 @@ jobs:
 
     strategy:
       matrix:
-        distrib: [bookworm, jammy, noble]
+        distrib: [bookworm]
 
     steps:
       - name: Checkout sources
@@ -163,7 +157,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble, jammy]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
