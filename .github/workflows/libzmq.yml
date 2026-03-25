@@ -148,14 +148,6 @@ jobs:
             distrib: bookworm
             runner: ubuntu-24.04
             arch: amd64
-          - image: packaging-centreon-collect-jammy
-            distrib: jammy
-            runner: ubuntu-24.04
-            arch: amd64
-          - image: packaging-centreon-collect-noble
-            distrib: noble
-            runner: ubuntu-24.04
-            arch: amd64
     runs-on: ${{ matrix.runner }}
 
     container:
@@ -254,10 +246,6 @@ jobs:
         include:
           - distrib: bookworm
             arch: amd64
-          - distrib: jammy
-            arch: amd64
-          - distrib: noble
-            arch: amd64
 
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
@@ -289,7 +277,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm, noble]
+        distrib: [el8, el9, bookworm]
 
     steps:
       - name: Checkout sources
