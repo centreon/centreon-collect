@@ -22,31 +22,32 @@ set(BAM_TESTS_DIR ${PROJECT_SOURCE_DIR}/bam/test)
 set(WDOG_TESTS_DIR ${PROJECT_SOURCE_DIR}/watchdog/test)
 
 # Include directories.
-include_directories(${CMAKE_SOURCE_DIR}/bbdo)
-include_directories(${PROJECT_SOURCE_DIR}/bam/inc)
-include_directories(${PROJECT_SOURCE_DIR}/bam/test)
-include_directories(${PROJECT_SOURCE_DIR}/storage/src)
-include_directories(${PROJECT_SOURCE_DIR}/storage/inc)
-include_directories(${PROJECT_SOURCE_DIR}/unified_sql/inc)
-include_directories(${PROJECT_SOURCE_DIR}/graphite/inc)
-include_directories(${PROJECT_SOURCE_DIR}/sql/inc)
-include_directories(${PROJECT_SOURCE_DIR}/influxdb/inc)
-include_directories(${PROJECT_SOURCE_DIR}/lua/inc)
-include_directories(${PROJECT_SOURCE_DIR}/neb/inc)
-include_directories(${PROJECT_SOURCE_DIR}/rrd/inc)
-include_directories(${PROJECT_SOURCE_DIR}/simu/inc)
-include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
-include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
-include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
-include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
-include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
-include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
-include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
-include_directories(${CMAKE_SOURCE_DIR}/common/grpc/inc)
-include_directories(${CMAKE_SOURCE_DIR}/common/log_v2/inc)
-include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
-include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
-include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
+include_directories(${CMAKE_SOURCE_DIR}/bbdo
+    ${CMAKE_BINARY_DIR}/broker/rrd
+    ${PROJECT_SOURCE_DIR}/bam/inc
+    ${PROJECT_SOURCE_DIR}/bam/test
+    ${PROJECT_SOURCE_DIR}/storage/src
+    ${PROJECT_SOURCE_DIR}/storage/inc
+    ${PROJECT_SOURCE_DIR}/unified_sql/inc
+    ${PROJECT_SOURCE_DIR}/graphite/inc
+    ${PROJECT_SOURCE_DIR}/sql/inc
+    ${PROJECT_SOURCE_DIR}/influxdb/inc
+    ${PROJECT_SOURCE_DIR}/lua/inc
+    ${PROJECT_SOURCE_DIR}/neb/inc
+    ${PROJECT_SOURCE_DIR}/rrd/inc
+    ${PROJECT_SOURCE_DIR}/simu/inc
+    ${PROJECT_SOURCE_DIR}/stats/inc
+    ${PROJECT_SOURCE_DIR}/tcp/inc
+    ${PROJECT_SOURCE_DIR}/tls/inc
+    ${PROJECT_SOURCE_DIR}/tls2/inc
+    ${PROJECT_SOURCE_DIR}/grpc/inc
+    ${PROJECT_SOURCE_DIR}/grpc/src
+    ${CMAKE_SOURCE_DIR}/common/http/inc
+    ${CMAKE_SOURCE_DIR}/common/grpc/inc
+    ${CMAKE_SOURCE_DIR}/common/log_v2/inc
+    ${PROJECT_SOURCE_DIR}/http_tsdb/inc
+    ${PROJECT_SOURCE_DIR}/victoria_metrics/inc
+    ${PROJECT_SOURCE_DIR}/test/test_util/inc)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
 

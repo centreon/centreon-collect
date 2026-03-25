@@ -20,9 +20,7 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/rrd/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/rrd/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/rrd/test")
-include_directories("${INC_DIR}")
-include_directories("${CMAKE_SOURCE_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
+include_directories("${INC_DIR}" "${CMAKE_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/neb/inc" ${CMAKE_BINARY_DIR}/broker/rrd)
 
 # Find librrd.
 include(FindPkgConfig)
@@ -61,6 +59,16 @@ else()
       PARENT_SCOPE)
 endif()
 
+# Retention buffer protobuf library (internal to RRD module).
+set(RRD_PROTO_DIR "${PROJECT_SOURCE_DIR}/rrd/proto")
+add_library(pb_rrd_retention_lib "${RRD_PROTO_DIR}/rrd_retention.proto")
+set_target_properties(pb_rrd_retention_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(
+  TARGET pb_rrd_retention_lib
+  IMPORT_DIRS "${RRD_PROTO_DIR}")
+target_include_directories(pb_rrd_retention_lib PUBLIC
+  "${CMAKE_CURRENT_BINARY_DIR}")
+
 # RRD module.
 set(RRD "70-rrd")
 set(RRD
@@ -74,6 +82,7 @@ add_library(
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/lib.cc"
   "${SRC_DIR}/main.cc"
+  "${SRC_DIR}/retention_manager.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
   "${INC_DIR}/com/centreon/broker/rrd/backend.hh"
@@ -83,11 +92,15 @@ add_library(
   "${INC_DIR}/com/centreon/broker/rrd/exceptions/update.hh"
   "${INC_DIR}/com/centreon/broker/rrd/factory.hh"
   "${INC_DIR}/com/centreon/broker/rrd/lib.hh"
+  "${INC_DIR}/com/centreon/broker/rrd/retention_manager.hh"
   "${INC_DIR}/com/centreon/broker/rrd/stream.hh")
 set_target_properties("${RRD}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
 target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hpp)
-add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib process_stat)
+target_include_directories("${RRD}" PRIVATE
+  $<TARGET_PROPERTY:pb_rrd_retention_lib,INTERFACE_INCLUDE_DIRECTORIES>)
+add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib
+  pb_rrd_retention_lib process_stat)
 
 # Compile with librrd flags.
 if(LIBRRD_CFLAGS)
@@ -111,6 +124,7 @@ target_link_libraries(
   pb_storage_lib
   pb_rebuild_message_lib
   pb_remove_graph_message_lib
+  pb_rrd_retention_lib
   spdlog::spdlog)
 
 # Testing.
@@ -118,6 +132,7 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} "${TEST_DIR}/cached.cc" "${TEST_DIR}/exceptions.cc"
       "${TEST_DIR}/factory.cc" "${TEST_DIR}/lib.cc" "${TEST_DIR}/rrd.cc"
+      "${TEST_DIR}/retention_manager.cc"
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} "${RRD}"

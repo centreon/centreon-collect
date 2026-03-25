@@ -55,14 +55,21 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    std::filesystem::remove(".cache");
+    std::error_code ec;
+    std::filesystem::remove("/tmp/broker_test.cache", ec);
+    if (ec)
+      _logger->error("Failed to remove .cache directory: {}", ec.message());
+
     _logger = log_v2::instance().get(log_v2::LUA);
 
     try {
       config::applier::init<
           com::centreon::broker::config::applier::broker_state>(
           "", 0, "test_broker", 0);
+      config::applier::state::instance().set_cache_dir("/tmp/broker_test");
       config::applier::state::instance().clear_cache(_logger);
+      config::applier::state::instance().cache().enable_section(
+          com::centreon::broker::cache::broker_cache::CACHE_ALL);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -98,6 +105,11 @@ class LuaAsioTest : public LuaTest {
     _thread = std::thread(&test_server::run, &_server);
 
     _server.wait_for_init();
+    config::applier::state::load<config::applier::broker_state>("unittest");
+    config::applier::state::instance().initialize_cache(
+        log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override {
     LuaTest::TearDown();

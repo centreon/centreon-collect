@@ -1279,40 +1279,56 @@ message StatusRetentionPoint {
   uint64 time   = 1;
   uint32 status = 2;
 }
+
+// Each on-disk .prot file contains exactly one of these batch messages.
+message MetricRetentionBatch {
+  repeated MetricRetentionPoint points = 1;
+}
+
+message StatusRetentionBatch {
+  repeated StatusRetentionPoint points = 1;
+}
 ```
 
-The `retention_buffer` creates **one `.prot` file per metric and per status**:
+Points accumulate in an **in-memory protobuf batch** (`MetricRetentionBatch` or
+`StatusRetentionBatch`). The batch is only serialised to disk when it reaches
+the configured rotation threshold or when the manager is destroyed (graceful
+shutdown). Each on-disk `.prot` file therefore contains exactly one batch
+message.
 
-- `metric_<metric_id>.prot` for metrics
-- `status_<index_id>.prot` for statuses
+The `retention_manager` creates **one `.prot` file per metric and per status**,
+co-located with the `.rrd` files:
 
-Each file is append-only and naturally sorted by time. This per-identifier
-organisation is essential for the merge (Step 4): at the junction of metric X,
-only the rotation files for X are opened, without scanning unrelated data. With
-a memory-first buffer, files are not all open simultaneously, making the file
-count (on the order of the number of metrics) perfectly manageable.
+- `<metric_id>.prot` in `metrics_path` for metrics
+- `<index_id>.prot` in `status_path` for statuses
 
-Files are stored under the RRD broker's `cache_directory` (JSON parameter
-`cache_directory`, production value `/var/lib/centreon-broker`, prefixed by `/tmp`
-in tests):
+This per-identifier organisation is essential for the merge (Step 4): at the
+junction of metric X, only the rotation files for X are opened, without
+scanning unrelated data.
 
-```
-{cache_directory}/{broker_name}/metric_<metric_id>.prot
-{cache_directory}/{broker_name}/metric_<metric_id>_0001.prot   ← rotated, awaiting merge
-{cache_directory}/{broker_name}/status_<index_id>.prot
-```
-
-Example in production for the `central-rrd-master` broker:
+Files are stored alongside the `.rrd` files in the RRD broker's `metrics_path`
+and `status_path` directories (JSON parameters, production values e.g.
+`/var/lib/centreon/metrics` and `/var/lib/centreon/status`):
 
 ```
-/var/lib/centreon-broker/central-rrd-master/metric_42.prot
-/var/lib/centreon-broker/central-rrd-master/metric_42_0001.prot
-/var/lib/centreon-broker/central-rrd-master/status_7.prot
+{metrics_path}/<metric_id>.prot              ← graceful-shutdown flush
+{metrics_path}/<metric_id>.<ts>.prot         ← rotated, immutable, awaiting merge
+{status_path}/<index_id>.prot
+{status_path}/<index_id>.<ts>.prot
 ```
 
-Rotation is triggered when the current file exceeds `retention_buffer_max_file_size`
-(default: 100 MB). The `_NNNN` suffix is appended to rotated files to distinguish
-them from the current file.
+Example in production:
+
+```
+/var/lib/centreon/metrics/42.prot
+/var/lib/centreon/metrics/42.1735000000.prot
+/var/lib/centreon/status/7.prot
+```
+
+Rotation is triggered when the combined number of points in the in-memory batch
+reaches `retention_buffer_max_pending_points` (default: **144**, i.e. 12 hours
+at one point per 5 minutes). The Unix timestamp is inserted before `.prot` in
+rotated file names.
 
 A file is **immutable** once rotated: it can be read as a stream during the merge
 without locking. After a successful merge, the corresponding `.prot` files are
@@ -1513,24 +1529,29 @@ known and stored in the `MetricRetentionState`. After a crash and restart, these
 values are recovered from the first event received for each metric — no additional
 persistence is required.
 
-### Step 1 — `retention_buffer` component
+### Step 1 — `retention_manager` component ✅ implemented
 
-Create a new component `broker/rrd/src/retention_buffer.cc` (+ `.hh`) responsible
+The component `broker/rrd/src/retention_manager.cc` (+ `.hh`) is responsible
 for:
 
-- Receiving `MetricRetentionPoint` / `StatusRetentionPoint` messages and
-  serialising them into the corresponding `.prot` files, with rotation when the
-  current file exceeds `retention_buffer_max_file_size` (default: 100 MB,
-  consistent with `file::splitter`). This parameter is read from the RRD endpoint
-  JSON configuration, in the same way as `cache_size`.
+- Accumulating `MetricRetentionPoint` / `StatusRetentionPoint` data points into
+  in-memory protobuf batches (`MetricRetentionBatch` / `StatusRetentionBatch`),
+  one batch per metric/status identifier.
+- Flushing a batch to a rotated `.prot` file when the combined point count
+  reaches `retention_buffer_max_pending_points` (default: **144**). This
+  parameter is read from the RRD endpoint JSON configuration.
+- Serialising remaining in-memory batches to disk on graceful shutdown
+  (`~retention_manager()`), so no data is lost across restarts.
+- Scanning `metrics_path` and `status_path` on `init()` to recover files left
+  by a previous instance (crash recovery).
+- Keeping `last_activity_time` per identifier to detect and clean up orphan
+  buffers after `retention_buffer_orphan_interval` seconds of inactivity.
 - Keeping in memory the latest timestamp received per `metric_id` (and per
-  `index_id` for statuses) to enable junction detection.
-- Immediately discarding any point whose age exceeds `rrd_len[id]` to avoid
-  growing buffers unnecessarily.
-- Storing `step[id]` and `rrd_len[id]` on receipt of the first event for a metric
-  (from the `interval()` and `rrd_len()` fields of `pb_metric` / `pb_status`).
+  `index_id` for statuses) to enable junction detection (Step 3).
+- Storing `step[id]` on receipt of the first event for a metric.
 
-This component can be developed and tested independently with synthetic data.
+This component is tested independently with synthetic data in
+`broker/rrd/test/retention_manager.cc`.
 
 ### Step 2 — Bifurcation in `output.cc`
 

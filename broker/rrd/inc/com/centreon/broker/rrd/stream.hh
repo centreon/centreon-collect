@@ -24,6 +24,7 @@
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/cached.hh"
 #include "com/centreon/broker/rrd/lib.hh"
+#include "com/centreon/broker/rrd/retention_manager.hh"
 
 namespace com::centreon::broker {
 
@@ -52,16 +53,36 @@ class stream : public io::stream {
   const bool _write_status;
   T _backend;
 
+  /* Retention buffer */
+  retention_manager _retention;
+
+  /**
+   * @brief Earliest current-data timestamp seen per metric/status since this
+   *        stream session started.
+   *
+   * Set in write() when a data point is routed to the RRD backend (i.e. its
+   * timestamp is recent enough: t >= now - step).  Used by Step 3 (junction
+   * detection) to determine when the buffered backfill data has caught up with
+   * the live stream, at which point a merge can be triggered.
+   *
+   * Cleared on successful merge (_do_metric/status_merge) and on graph removal.
+   */
+  absl::flat_hash_map<uint64_t, uint64_t> _metric_earliest_current;
+  absl::flat_hash_map<uint64_t, uint64_t> _status_earliest_current;
+
   /* Loggers */
   std::shared_ptr<spdlog::logger> _logger;
 
   void _rebuild_data(const RebuildMessage& rm);
+  void _do_metric_merge(uint64_t metric_id, const std::string& rrd_path);
+  void _do_status_merge(uint64_t index_id, const std::string& rrd_path);
 
  public:
   stream(std::string const& metrics_path,
          std::string const& status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
+         retention_config retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(std::string const& metrics_path,
@@ -69,6 +90,7 @@ class stream : public io::stream {
          uint32_t cache_size,
          bool ignore_update_errors,
          std::string const& local,
+         retention_config retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(std::string const& metrics_path,
@@ -76,6 +98,7 @@ class stream : public io::stream {
          uint32_t cache_size,
          bool ignore_update_errors,
          unsigned short port,
+         retention_config retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
   stream(const stream&) = delete;

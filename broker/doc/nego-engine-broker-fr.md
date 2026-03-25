@@ -1486,7 +1486,7 @@ L'idée centrale est de séparer le flux de données en deux canaux dès la reco
 flowchart TD
     E([Engine reconnecté])
     E -->|données actuelles| RRD[RRD courant\nécriture immédiate]
-    E -->|données de rétention| BUF[buffer .buf\ndisque]
+    E -->|données de rétention| BUF[buffer .prot\ndisque]
     BUF --> J{détection\nde jonction}
     J --> MR[moteur de reconstruction]
     MR --> TMP[RRD temp]
@@ -1575,27 +1575,28 @@ message MetricPoint {
 }
 ```
 
-Les fichiers sont stockés dans le répertoire `cache_directory` du broker RRD
-(paramètre JSON `cache_directory`, valeur de production `/var/lib/centreon-broker`,
-préfixé par `/tmp` dans les tests) :
+Les fichiers sont co-localisés avec les fichiers `.rrd`, dans les répertoires
+`metrics_path` et `status_path` de l'endpoint RRD (paramètres JSON) :
 
 ```
-{cache_directory}/{broker_name}/metric_<metric_id>.prot
-{cache_directory}/{broker_name}/metric_<metric_id>_0001.prot   ← roté, en attente de merge
-{cache_directory}/{broker_name}/status_<index_id>.prot
+{metrics_path}/<metric_id>.prot              ← flush arrêt gracieux
+{metrics_path}/<metric_id>.<ts>.prot         ← roté, immuable, en attente de merge
+{status_path}/<index_id>.prot
+{status_path}/<index_id>.<ts>.prot
 ```
 
-Exemple en production pour le broker `central-rrd-master` :
+Exemple en production :
 
 ```
-/var/lib/centreon-broker/central-rrd-master/metric_42.prot
-/var/lib/centreon-broker/central-rrd-master/metric_42_0001.prot
-/var/lib/centreon-broker/central-rrd-master/status_7.prot
+/var/lib/centreon/metrics/42.prot
+/var/lib/centreon/metrics/42.1735000000.prot
+/var/lib/centreon/status/7.prot
 ```
 
-La rotation se déclenche quand le fichier courant dépasse
-`retention_buffer_max_file_size` (défaut : 100 Mo). Le suffixe `_NNNN` est ajouté
-aux fichiers rotatés pour les distinguer du fichier courant.
+La rotation se déclenche quand le nombre de points cumulé dans le batch en mémoire
+atteint `retention_buffer_max_pending_points` (défaut : **144**, soit 12 heures à
+un point toutes les 5 minutes). L'horodatage Unix est inséré avant `.prot` dans
+le nom des fichiers rotatés.
 
 Un fichier est **immuable** une fois roté : il peut être lu en streaming pendant le
 merge sans verrouillage. Après un merge réussi, les fichiers `.prot` correspondants
@@ -1819,39 +1820,56 @@ message StatusRetentionPoint {
   uint64 time   = 1;
   uint32 status = 2;
 }
+
+// Chaque fichier .prot sur disque contient exactement un de ces messages batch.
+message MetricRetentionBatch {
+  repeated MetricRetentionPoint points = 1;
+}
+
+message StatusRetentionBatch {
+  repeated StatusRetentionPoint points = 1;
+}
 ```
 
-Le `retention_buffer` crée **un fichier `.prot` par métrique et par status** :
+Les points s'accumulent dans un **batch protobuf en mémoire** (`MetricRetentionBatch`
+ou `StatusRetentionBatch`). Le batch n'est sérialisé sur disque que lorsqu'il
+atteint le seuil de rotation configuré, ou à la destruction du manager (arrêt
+gracieux). Chaque fichier `.prot` sur disque contient donc exactement un message
+batch.
 
-- `metric_<metric_id>.prot` pour les métriques
-- `status_<index_id>.prot` pour les états
+Le `retention_manager` crée **un fichier `.prot` par métrique et par status**,
+co-localisé avec les fichiers `.rrd` :
 
-Chaque fichier est append-only et naturellement trié par temps. Cette organisation
-par identifiant est essentielle pour le merge (Étape 4) : à la jonction de la
-métrique X, on ouvre uniquement les fichiers de rotation de X, sans scanner de
-données étrangères. Avec un buffer memory-first, les fichiers ne sont pas tous
-ouverts simultanément, ce qui rend le nombre de fichiers (de l'ordre du nombre de
-métriques) parfaitement gérable.
+- `<metric_id>.prot` dans `metrics_path` pour les métriques
+- `<index_id>.prot` dans `status_path` pour les états
 
-### Étape 1 — Composant `retention_buffer`
+Cette organisation par identifiant est essentielle pour le merge (Étape 4) : à
+la jonction de la métrique X, on ouvre uniquement les fichiers de rotation de X,
+sans scanner de données étrangères.
 
-Créer un nouveau composant `broker/rrd/src/retention_buffer.cc` (+ `.hh`)
-responsable de :
+### Étape 1 — Composant `retention_manager` ✅ implémenté
 
-- Recevoir des `MetricRetentionPoint` / `StatusRetentionPoint` et les sérialiser
-  dans les fichiers `.prot` correspondants, avec rotation quand la taille du fichier
-  courant dépasse `retention_buffer_max_file_size` (défaut : 100 Mo, cohérent avec
-  `file::splitter`). Ce paramètre est lu dans la config JSON de l'endpoint RRD, au
-  même titre que `cache_size`.
+Le composant `broker/rrd/src/retention_manager.cc` (+ `.hh`) est responsable
+de :
+
+- Accumuler les points `MetricRetentionPoint` / `StatusRetentionPoint` dans des
+  batchs protobuf en mémoire (`MetricRetentionBatch` / `StatusRetentionBatch`),
+  un batch par identifiant métrique/status.
+- Flusher un batch vers un fichier `.prot` roté lorsque le nombre de points
+  cumulés atteint `retention_buffer_max_pending_points` (défaut : **144**). Ce
+  paramètre est lu dans la config JSON de l'endpoint RRD.
+- Sérialiser les batchs restants en mémoire sur disque à l'arrêt gracieux
+  (`~retention_manager()`), pour ne perdre aucune donnée entre deux démarrages.
+- Scanner `metrics_path` et `status_path` lors du `init()` pour récupérer les
+  fichiers laissés par une instance précédente (reprise après crash).
+- Maintenir `last_activity_time` par identifiant pour détecter et nettoyer les
+  buffers orphelins après `retention_buffer_orphan_interval` secondes d'inactivité.
 - Maintenir en mémoire le dernier horodatage reçu par `metric_id` (et par
-  `index_id` pour les status) pour permettre la détection de jonction.
-- Supprimer immédiatement tout point dont l'âge dépasse `rrd_len[id]` pour ne pas
-  grossir inutilement les buffers.
-- Stocker `step[id]` et `rrd_len[id]` lors de la réception du premier événement
-  (champs `interval()` et `rrd_len()` de `pb_metric` / `pb_status`).
+  `index_id` pour les status) pour permettre la détection de jonction (Étape 3).
+- Stocker `step[id]` lors de la réception du premier événement pour une métrique.
 
-Ce composant peut être développé et testé indépendamment avec des données
-synthétiques.
+Ce composant est testé indépendamment avec des données synthétiques dans
+`broker/rrd/test/retention_manager.cc`.
 
 ### Étape 2 — Bifurcation dans `output.cc`
 

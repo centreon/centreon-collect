@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,14 @@
 #include "com/centreon/broker/influxdb/stream.hh"
 #include <gtest/gtest.h>
 #include <com/centreon/broker/influxdb/connector.hh>
+#include "broker/core/config/applier/broker_state.hh"
 #include "broker/test/test_server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 class InfluxDBStream : public testing::Test {
  public:
@@ -33,6 +36,11 @@ class InfluxDBStream : public testing::Test {
     _thread = std::thread(&test_server::run, &_server);
 
     _server.wait_for_init();
+    config::applier::state::load<config::applier::broker_state>("unittest");
+    config::applier::state::instance().initialize_cache(
+        log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override {
     _server.stop();

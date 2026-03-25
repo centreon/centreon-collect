@@ -21,6 +21,7 @@
 
 #include "bbdo/storage/metric_mapping.hh"
 #include "broker/core/config/applier/broker_state.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -35,9 +36,20 @@ using com::centreon::common::log_v2::log_v2;
 class InfluxDBLineProtoQuery : public ::testing::Test {
  public:
   void SetUp() override {
-    config::applier::state::load<config::applier::broker_state>("unittest");
-    config::applier::state::instance().initialize_cache(
-        log_v2::instance().get(log_v2::CORE));
+    auto logger = log_v2::instance().get(log_v2::CORE);
+    try {
+      config::applier::init<
+          com::centreon::broker::config::applier::broker_state>(
+          "", 0, "test_broker", 0);
+      config::applier::state::instance().clear_cache(logger);
+    } catch (std::exception const& e) {
+      (void)e;
+    }
+    // config::applier::state::load<config::applier::broker_state>("unittest");
+    // config::applier::state::instance().initialize_cache(
+    //     log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override { config::applier::state::unload(); }
 };
