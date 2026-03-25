@@ -1,0 +1,59 @@
+x-defaults: &defaults
+  environment:
+    TZ: "${TZ:-America/Toronto}"
+    DEBUG: "${DEBUG:-false}"
+
+services:
+  centengine:
+    <<: *defaults
+    image: docker.centreon.com/centreon/centreon-engine-bookworm:${TAG:-latest}
+    container_name: centpoller
+    hostname: centengine
+    restart: always
+    networks:
+      - poller-network
+    volumes:
+      - poller-engine:/etc/centreon-engine:rw,z
+      - poller-broker:/etc/centreon-broker:rw,z
+      - poller-centcmd:/var/lib/centreon-engine/rw:rw,z
+      - poller-centlog:/var/log/centreon-engine:rw
+
+  gorgone:
+    environment:
+      TZ: "${TZ:-America/Toronto}"
+      DEBUG: "${DEBUG:-false}"
+      TYPE: poller
+      POLLER_ID: "${POLLER_ID}"
+      CENTRAL_ADDRESS: "${CENTRAL_ADDRESS}"
+      CENTRAL_PORT: "${CENTRAL_PORT:-443}"
+      GORGONE_TOKEN: "${GORGONE_TOKEN}"
+    image: docker.centreon.com/centreon/centreon-gorgone-bookworm:${TAG:-latest}
+    container_name: centpoller-gorgone
+    hostname: centgorgone
+    restart: always
+    networks:
+      - poller-network
+    volumes:
+      - poller-etc:/etc/centreon/:rw
+      - poller-engine:/etc/centreon-engine:rw,z
+      - poller-broker:/etc/centreon-broker:rw,z
+      - poller-gorgone:/etc/centreon-gorgone:rw,z
+      - poller-centcore:/var/lib/centreon/centcore:rw,z
+      - poller-centcmd:/var/lib/centreon-engine/rw:rw,z
+      - poller-centcache:/var/cache/centreon/:rw,z
+      - poller-gorgone-keys:/var/lib/centreon-gorgone/.keys:rw
+
+networks:
+  poller-network:
+    driver: bridge
+
+volumes:
+  poller-etc:
+  poller-engine:
+  poller-broker:
+  poller-gorgone:
+  poller-centcore:
+  poller-centcmd:
+  poller-centlog:
+  poller-centcache:
+  poller-gorgone-keys:
