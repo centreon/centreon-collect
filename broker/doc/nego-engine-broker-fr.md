@@ -1894,7 +1894,7 @@ et sur les événements remove-graph.  `cleanup_orphans()` est appelé depuis
 
 Nécessite Étape 1.
 
-### Étape 3 — Détection de jonction
+### Étape 3 — Détection de jonction ✅ implémentée
 
 La détection est **event-driven** : la vérification se fait dans `write()` à chaque
 arrivée de donnée, en O(1) par lookup dans une `unordered_map`. Aucun scan

@@ -1576,7 +1576,7 @@ and on remove-graph events.  `cleanup_orphans()` is called from `update()`
 
 Requires Step 1.
 
-### Step 3 — Junction detection
+### Step 3 — Junction detection ✅ implemented
 
 Detection is **event-driven**: the check is performed inside `write()` on every
 incoming data point, in O(1) via an `unordered_map` lookup. No periodic scan of
