@@ -418,13 +418,15 @@ TEST_F(global_cache_test, Tag) {
     host->mut_obj().set_name(fmt::format("host_{}", ii));
     host->mut_obj().set_enabled(true);
     // host group
-    for (int tag_id = 100 + (ii % 10); tag_id < 110 + (ii % 10); ++tag_id) {
+    for (unsigned tag_id = 100 + (ii % 10); tag_id < 110 + (ii % 10);
+         ++tag_id) {
       auto tg = host->mut_obj().add_tags();
       tg->set_id(tag_id);
       tg->set_type(TagType::HOSTGROUP);
     }
     // host cat
-    for (int tag_id = 300 + (ii % 10); tag_id < 310 + (ii % 10); ++tag_id) {
+    for (unsigned tag_id = 300 + (ii % 10); tag_id < 310 + (ii % 10);
+         ++tag_id) {
       auto tg = host->mut_obj().add_tags();
       tg->set_id(tag_id);
       tg->set_type(TagType::HOSTCATEGORY);
@@ -438,13 +440,14 @@ TEST_F(global_cache_test, Tag) {
     service->mut_obj().set_description(fmt::format("service_{}", ii + 1));
     service->mut_obj().set_enabled(true);
     // service group
-    for (int tag_id = 10 + (ii % 10); tag_id < 20 + (ii % 10); ++tag_id) {
+    for (unsigned tag_id = 10 + (ii % 10); tag_id < 20 + (ii % 10); ++tag_id) {
       auto tg = service->mut_obj().add_tags();
       tg->set_id(tag_id);
       tg->set_type(TagType::SERVICEGROUP);
     }
     // service cat
-    for (int tag_id = 200 + (ii % 10); tag_id < 210 + (ii % 10); ++tag_id) {
+    for (unsigned tag_id = 200 + (ii % 10); tag_id < 210 + (ii % 10);
+         ++tag_id) {
       auto tg = service->mut_obj().add_tags();
       tg->set_id(tag_id);
       tg->set_type(TagType::SERVICECATEGORY);
@@ -540,7 +543,6 @@ TEST_F(global_cache_test, Huge) {
                      "begin construct cache");
   // 10000 hosts with 30 services with 20 metrics
   unsigned serv_id = 1;
-  unsigned resource_id = 1;
   unsigned index_id = 1;
   unsigned metric_id = 1;
   for (unsigned host_id = 1; host_id < 10000; ++host_id) {
@@ -593,6 +595,7 @@ TEST_F(global_cache_test, Huge) {
     auto hst = obj->get_host(hst_serv_id->first, l);
     ASSERT_TRUE(hst);
     auto srv = obj->get_service(hst_serv_id->first, hst_serv_id->second, l);
+    ASSERT_TRUE(srv);
   }
   obj.reset();
   cache::global_cache::unload();

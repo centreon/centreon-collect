@@ -375,7 +375,7 @@ class {snake_name} : public message {{
 
   {pb_class_name} to_protobuf() const;
 
-  bool update(const {pb_class_name}& mess, const allocators& allocator);
+  bool update(const {pb_class_name}& mess,[[maybe_unused]] const allocators& allocator);
 
 '''
         class_declaration += "\n".join(modifiers)
@@ -432,7 +432,7 @@ class message {{
       : _type(typ), _char_alloc(char_alloc) {{}}
 
   bool update(const ::google::protobuf::Message& mess,
-              const allocators& allocator);
+              [[maybe_unused]] const allocators& allocator);
 
 }};
 
@@ -710,7 +710,7 @@ def create_cc(cc_path: str, hh_path: str, messages: dict, enums: dict, classes: 
  * @return true at least one field had been modified
  * @return false 
  */
-bool {snake_name}::update(const {pb_class_name}& mess, const allocators& allocator) {{
+bool {snake_name}::update(const {pb_class_name}& mess,[[maybe_unused]] const allocators& allocator) {{
   bool updated = false;
   {update_fields_str}
   return updated;
@@ -916,7 +916,7 @@ using namespace com::centreon::broker;
  * @return false not updated
  */
 bool message::update(const ::google::protobuf::Message& mess,
-                     const allocators& allocator) {{
+                     [[maybe_unused]] const allocators& allocator) {{
   switch (_type) {{
   {update_field_impl_str}
     default:

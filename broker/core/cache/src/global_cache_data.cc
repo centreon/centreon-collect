@@ -28,10 +28,7 @@
 #include "boost/interprocess/detail/segment_manager_helper.hpp"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bbdo2_to_bbdo3.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/cache/global_cache_data.hh"
-#include "com/centreon/broker/cache/protobuf.hh"
-#include "com/centreon/broker/cache/protobuf_utils.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -827,7 +824,7 @@ void global_cache_data::_process_pb_service_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_service_status>(data)->obj();
-  SPDLOG_LOGGER_TRACE(_logger, "cache: processing host status {}",
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing service status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
   auto exist = _id_to_service->find({in.host_id(), in.service_id()});
@@ -1210,7 +1207,7 @@ void global_cache_data::_process_dimension_bv_event(
   const auto& in =
       std::static_pointer_cast<bam::pb_dimension_bv_event>(data)->obj();
   SPDLOG_LOGGER_TRACE(_logger,
-                      "cache: processing pb dimension ba event (ba_id: '{}', "
+                      "cache: processing pb dimension bv event (bv_id: '{}', "
                       "name: {})",
                       in.bv_id(), in.bv_name());
   boost::unique_lock l(_protect);
@@ -1224,6 +1221,22 @@ void global_cache_data::_process_dimension_bv_event(
   } else if (exist->second->update(in, *_allocators)) {
     _set_dirty_and_increment_modif();
   }
+}
+
+/**
+ * @brief delete all elements of a map to pointers and clear it
+ *
+ * @tparam pointer_container
+ * @param segm_manager
+ * @param cont
+ */
+template <class pointer_container>
+void remove_all_element_and_clear(segment_manager* segm_manager,
+                                  pointer_container* cont) {
+  for (auto& member : *cont) {
+    segm_manager->destroy_ptr(member.second.get());
+  }
+  cont->clear();
 }
 
 /**
@@ -1244,9 +1257,11 @@ void global_cache_data::_process_pb_dimension_truncate_table_signal(
                    !_id_to_dimension_bv_event->empty() ||
                    !_id_to_dimension_ba_bv_relation->empty();
     if (cleared) {
-      _id_to_dimension_ba_event->clear();
+      remove_all_element_and_clear(_file->get_segment_manager(),
+                                   _id_to_dimension_ba_event);
       _id_to_dimension_ba_bv_relation->clear();
-      _id_to_dimension_bv_event->clear();
+      remove_all_element_and_clear(_file->get_segment_manager(),
+                                   _id_to_dimension_bv_event);
       _set_dirty_and_increment_modif();
     }
   }
