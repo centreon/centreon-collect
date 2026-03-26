@@ -24,6 +24,8 @@
 
 #include <cctype>
 #include <cerrno>
+#include <cmath>
+#include <absl/container/flat_hash_map.h>
 
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
@@ -183,4 +185,124 @@ void lib::update(const std::deque<std::string>& pts) {
       _logger->error("RRD: ignored update error in file '{}': {}", _filename,
                      msg);
   }
+}
+
+/**
+ * @brief Read RRD file metadata and fetch all known data-points in
+ *        [@p from_ts, @p to_ts] using librrd directly.
+ *
+ * Uses rrd_info_r() to determine step, rrd_len and value_type, then
+ * rrd_fetch_r() to retrieve the actual data.  NaN values (unknown) are
+ * omitted from the returned vector.
+ *
+ * @return rrd_existing_data with step == 0 on any error.
+ */
+rrd_existing_data lib::fetch_existing(const std::string& filename,
+                                      uint64_t from_ts,
+                                      uint64_t to_ts) {
+  rrd_existing_data result;
+
+  // ---- 1. Parse file metadata via rrd_info_r ----
+  rrd_info_t* info = rrd_info_r(const_cast<char*>(filename.c_str()));
+  if (!info) {
+    _logger->error("RRD: rrd_info_r failed for '{}': {}", filename,
+                   rrd_get_error());
+    return result;
+  }
+
+  // Per-RRA data needed to compute max retention.
+  absl::flat_hash_map<int, uint32_t> rra_pdp_per_row;
+  absl::flat_hash_map<int, uint32_t> rra_rows;
+
+  for (rrd_info_t* it = info; it; it = it->next) {
+    std::string_view key{it->key};
+
+    if (key == "step" && it->type == RD_I_CNT) {
+      result.step = static_cast<uint32_t>(it->value.u_cnt);
+    } else if (key == "ds[value].type" && it->type == RD_I_STR) {
+      std::string_view type{it->value.u_str};
+      if (type == "COUNTER")
+        result.value_type = 1;
+      else if (type == "DERIVE")
+        result.value_type = 2;
+      else if (type == "ABSOLUTE")
+        result.value_type = 3;
+      // else GAUGE = 0 (default)
+    } else {
+      int rra_idx = -1;
+      if (std::sscanf(it->key, "rra[%d].pdp_per_row", &rra_idx) == 1 &&
+          it->type == RD_I_CNT) {
+        rra_pdp_per_row[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
+      } else if (std::sscanf(it->key, "rra[%d].rows", &rra_idx) == 1 &&
+                 it->type == RD_I_CNT) {
+        rra_rows[rra_idx] = static_cast<uint32_t>(it->value.u_cnt);
+      }
+    }
+  }
+  rrd_info_free(info);
+
+  if (result.step == 0) {
+    _logger->error("RRD: could not read step from '{}'", filename);
+    return result;
+  }
+
+  // Compute max retention across all RRAs.
+  for (auto& [idx, pdp] : rra_pdp_per_row) {
+    auto rows_it = rra_rows.find(idx);
+    if (rows_it != rra_rows.end()) {
+      uint32_t retention = result.step * pdp * rows_it->second;
+      result.rrd_len = std::max(result.rrd_len, retention);
+    }
+  }
+
+  // ---- 2. Fetch data via rrd_fetch_r ----
+  time_t start = static_cast<time_t>(from_ts) - static_cast<time_t>(result.step);
+  time_t end = static_cast<time_t>(to_ts);
+  unsigned long step_out = 0, ds_cnt = 0;
+  char** ds_names = nullptr;
+  rrd_value_t* data = nullptr;
+
+  rrd_clear_error();
+  if (rrd_fetch_r(filename.c_str(), "AVERAGE", &start, &end, &step_out,
+                  &ds_cnt, &ds_names, &data) != 0) {
+    _logger->warn("RRD: rrd_fetch_r failed for '{}': {}", filename,
+                  rrd_get_error());
+    return result;
+  }
+
+  if (step_out > 0 && ds_cnt > 0 && data) {
+    size_t n = static_cast<size_t>((end - start) / static_cast<time_t>(step_out));
+    uint64_t t = static_cast<uint64_t>(start) + step_out;  // first timestamp
+    for (size_t i = 0; i < n; ++i, t += step_out) {
+      double v = data[i * ds_cnt];  // DS index 0
+      if (!std::isnan(v))
+        result.points.emplace_back(t, v);
+    }
+  }
+
+  // Free rrd_fetch_r allocations.
+  free(data);
+  if (ds_names) {
+    for (unsigned long i = 0; i < ds_cnt; ++i)
+      free(ds_names[i]);
+    free(ds_names);
+  }
+
+  return result;
+}
+
+/**
+ * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
+ *        into it.  Bypasses rrdcached entirely (safe during merge).
+ */
+void lib::merge_create_temp(const std::string& tmp_path,
+                            uint32_t rrd_len,
+                            time_t from,
+                            uint32_t step,
+                            short value_type,
+                            const std::deque<std::string>& batch) {
+  // Create (or overwrite) the temp file.
+  lib::open(tmp_path, rrd_len, from, step, value_type, /*without_cache=*/true);
+  // Write all merged points using librrd directly.
+  lib::update(batch);
 }

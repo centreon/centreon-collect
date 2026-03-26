@@ -53,6 +53,17 @@ class lib : public backend {
   void update(time_t t, std::string const& value) override;
   void update(const std::deque<std::string>& pts) override;
 
+  rrd_existing_data fetch_existing(const std::string& filename,
+                                   uint64_t from_ts,
+                                   uint64_t to_ts) override;
+
+  void merge_create_temp(const std::string& tmp_path,
+                         uint32_t rrd_len,
+                         time_t from,
+                         uint32_t step,
+                         short value_type,
+                         const std::deque<std::string>& batch) override;
+
  private:
   creator _creator;
   std::string _filename;
