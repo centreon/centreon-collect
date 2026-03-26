@@ -347,11 +347,13 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
     to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
                                                  raw_src->_buffer.end());
   }
-  {
-    std::lock_guard l(_write_m);
-    _write_queue.push(to_send);
+  if (to_send) {
+    {
+      std::lock_guard l(_write_m);
+      _write_queue.push(to_send);
+    }
+    start_write();
   }
-  start_write();
   return 0;
 }
 

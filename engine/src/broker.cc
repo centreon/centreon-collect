@@ -1957,7 +1957,7 @@ static void forward_pb_external_command(int type,
           if (host_id != 0) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(host_id);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -1994,7 +1994,7 @@ static void forward_pb_external_command(int type,
           if (p.first && p.second) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(p.first);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
