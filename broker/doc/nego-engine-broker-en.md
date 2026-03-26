@@ -1553,19 +1553,26 @@ for:
 This component is tested independently with synthetic data in
 `broker/rrd/test/retention_manager.cc`.
 
-### Step 2 — Bifurcation in `output.cc`
+### Step 2 — Bifurcation in `stream.cc` ✅ implemented
 
-Modify the `write()` method of the RRD module to route based on the age of the
-data point. For `storage::pb_metric` and `storage::pb_status`:
+The `write()` method of `stream<T>` routes each data point based on its age
+relative to `now - step`, where `step` is always available from the event itself
+(`pb_metric::interval()` / `pb_status::interval()`):
 
-- `timestamp ≥ now - step[id]` → current path: write directly to the RRD file.
-  In parallel, record `earliest_current_time[id]` = first current timestamp
-  received for this identifier since (re)connection.
-- `timestamp < now - step[id]` → convert to `MetricRetentionPoint` or
-  `StatusRetentionPoint` and delegate to the `retention_buffer`.
+- `timestamp ≥ now - step` → **current** path: write directly to the RRD
+  backend.  Record `_metric_earliest_current[id]` (or
+  `_status_earliest_current[id]`) = earliest current timestamp seen for this
+  identifier since the stream was instantiated.  This value is used by Step 3
+  to detect the junction.
+- `timestamp < now - step` → **old / backfill** data: route to the
+  `retention_manager` only.  The RRD backend is **not** called.
 
-If `step[id]` is not yet known (no event received for this metric since startup),
-the data point is routed to the buffer by default.
+The bifurcation applies to both `storage::pb_metric` / `storage::pb_status`
+(protobuf) and the legacy `storage::metric` / `storage::status` events.
+
+`_metric_earliest_current[id]` is cleared on `_do_metric_merge()` (gap filled)
+and on remove-graph events.  `cleanup_orphans()` is called from `update()`
+(invoked on SIGHUP).
 
 Requires Step 1.
 

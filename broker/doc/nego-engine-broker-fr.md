@@ -1871,19 +1871,26 @@ de :
 Ce composant est testé indépendamment avec des données synthétiques dans
 `broker/rrd/test/retention_manager.cc`.
 
-### Étape 2 — Bifurcation dans `output.cc`
+### Étape 2 — Bifurcation dans `stream.cc` ✅ implémentée
 
-Modifier la méthode `write()` du module RRD pour aiguiller selon l'âge de la
-donnée. Pour `storage::pb_metric` et `storage::pb_status` :
+La méthode `write()` de `stream<T>` aiguille chaque point selon son âge par
+rapport à `now - step`, où `step` est toujours disponible dans l'événement lui-même
+(`pb_metric::interval()` / `pb_status::interval()`) :
 
-- `timestamp ≥ now - step[id]` → chemin actuel : écriture directe dans le fichier
-  RRD. En parallèle, enregistrer `earliest_current_time[id]` = premier horodatage
-  courant reçu pour cet identifiant depuis la (re)connexion.
-- `timestamp < now - step[id]` → conversion en `MetricRetentionPoint` ou
-  `StatusRetentionPoint` puis délégation au `retention_buffer`.
+- `timestamp ≥ now - step` → chemin **courant** : écriture directe dans le
+  backend RRD.  Enregistre `_metric_earliest_current[id]` (ou
+  `_status_earliest_current[id]`) = premier horodatage courant vu pour cet
+  identifiant depuis l'instanciation du stream.  Utilisé par l'Étape 3 pour
+  détecter la jonction.
+- `timestamp < now - step` → données **anciennes / backfill** : délégation au
+  `retention_manager` uniquement.  Le backend RRD **n'est pas** appelé.
 
-Si `step[id]` n'est pas encore connu (aucun événement reçu pour cette métrique
-depuis le démarrage), la donnée est aiguillée vers le buffer par défaut.
+La bifurcation s'applique à `storage::pb_metric` / `storage::pb_status` (protobuf)
+et aux événements legacy `storage::metric` / `storage::status`.
+
+`_metric_earliest_current[id]` est effacé dans `_do_metric_merge()` (gap comblé)
+et sur les événements remove-graph.  `cleanup_orphans()` est appelé depuis
+`update()` (déclenché sur SIGHUP).
 
 Nécessite Étape 1.
 
