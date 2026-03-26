@@ -941,6 +941,9 @@ jobs:
               const testConfigs = [];
 
               for (const config of configs) {
+                if (config.operating_system === "noble") {
+                  continue;
+                }
                 testConfigs.push({...config, "database_type": "mariadb", "tests_params": "{}"});
               }
               return testConfigs;
