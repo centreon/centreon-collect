@@ -225,15 +225,6 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
         if (it == _metrics_rebuild.end()) {
-          // Write metrics RRD.
-          try {
-            _backend.open(metric_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(m.interval() ? m.interval() : 60);
-            assert(m.rrd_len());
-            _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
-                          m.value_type());
-          }
           std::string v;
           switch (m.value_type()) {
             case Metric_ValueType_GAUGE:
@@ -271,14 +262,29 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
           if (!_retention.enabled() ||
               static_cast<time_t>(m.time()) >=
                   std::time(nullptr) - static_cast<time_t>(step)) {
-            // Current data → write directly to the RRD backend.
+            // Current data → open/create RRD file and write directly.
+            try {
+              _backend.open(metric_path);
+            } catch (exceptions::open const& b) {
+              time_t interval(m.interval() ? m.interval() : 60);
+              assert(m.rrd_len());
+              _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
+                            m.value_type());
+            }
             _backend.update(m.time(), v);
             if (_retention.enabled()) {
-              // Track earliest current point for junction detection (Step 3).
               auto [it, inserted] =
                   _metric_earliest_current.try_emplace(m.metric_id(), m.time());
               if (!inserted && m.time() < it->second)
                 it->second = m.time();
+              // Junction: buffer may have already caught up.
+              if (_retention.check_metric_junction(m.metric_id(), it->second)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: metric {} junction reached via current data (ect={})",
+                    m.metric_id(), it->second);
+                _do_metric_merge(m.metric_id(), metric_path);
+              }
             }
           } else {
             // Old (backfill) data → retention buffer only; bypass RRD backend.
@@ -287,8 +293,20 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 "RRD: metric {} t={} is old (step={}s) → retention buffer",
                 m.metric_id(), m.time(), step);
             if (_retention.write_metric(m.metric_id(), m.time(), m.value(),
-                                        step))
+                                        step)) {
               _do_metric_merge(m.metric_id(), metric_path);
+            } else {
+              auto ect_it = _metric_earliest_current.find(m.metric_id());
+              if (ect_it != _metric_earliest_current.end() &&
+                  m.time() + static_cast<uint64_t>(step) >= ect_it->second) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: metric {} junction reached "
+                    "(t={}+step={}s >= ect={})",
+                    m.metric_id(), m.time(), step, ect_it->second);
+                _do_metric_merge(m.metric_id(), metric_path);
+              }
+            }
           }
         } else
           // Cache value.
@@ -311,15 +329,6 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
         if (e->is_for_rebuild || it == _metrics_rebuild.end()) {
-          // Write metrics RRD.
-          try {
-            _backend.open(metric_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(e->interval ? e->interval : 60);
-            assert(e->rrd_len);
-            _backend.open(metric_path, e->rrd_len, e->time - 1, interval,
-                          e->value_type);
-          }
           std::string v;
           switch (e->value_type) {
             case common::perfdata::gauge:
@@ -354,26 +363,61 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               break;
           }
           const uint32_t step = e->interval ? e->interval : 60;
-          if (!_retention.enabled() ||
+          if (!_retention.enabled() || e->is_for_rebuild ||
               static_cast<time_t>(e->time) >=
                   std::time(nullptr) - static_cast<time_t>(step)) {
+            // Current (or rebuild) data → open/create RRD file and write.
+            try {
+              _backend.open(metric_path);
+            } catch (exceptions::open const& b) {
+              time_t interval(e->interval ? e->interval : 60);
+              assert(e->rrd_len);
+              _backend.open(metric_path, e->rrd_len, e->time - 1, interval,
+                            e->value_type);
+            }
             _backend.update(e->time, v);
-            if (_retention.enabled()) {
+            if (_retention.enabled() && !e->is_for_rebuild) {
               auto [it, inserted] = _metric_earliest_current.try_emplace(
                   e->metric_id, static_cast<uint64_t>(e->time));
               if (!inserted && static_cast<uint64_t>(e->time) < it->second)
                 it->second = static_cast<uint64_t>(e->time);
+              if (_retention.check_metric_junction(e->metric_id, it->second)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: metric {} junction reached via current data (ect={})",
+                    e->metric_id, it->second);
+                _do_metric_merge(
+                    e->metric_id,
+                    (_metrics_path / fmt::format("{}.rrd", e->metric_id))
+                        .string());
+              }
             }
           } else {
             SPDLOG_LOGGER_DEBUG(
                 _logger,
                 "RRD: metric {} t={} is old (step={}s) → retention buffer",
                 e->metric_id, e->time, step);
-            if (_retention.write_metric(e->metric_id, e->time, e->value, step))
+            if (_retention.write_metric(e->metric_id, e->time, e->value,
+                                        step)) {
               _do_metric_merge(
                   e->metric_id,
                   (_metrics_path / fmt::format("{}.rrd", e->metric_id))
                       .string());
+            } else {
+              auto ect_it = _metric_earliest_current.find(e->metric_id);
+              if (ect_it != _metric_earliest_current.end() &&
+                  static_cast<uint64_t>(e->time) + step >= ect_it->second) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: metric {} junction reached "
+                    "(t={}+step={}s >= ect={})",
+                    e->metric_id, e->time, step, ect_it->second);
+                _do_metric_merge(
+                    e->metric_id,
+                    (_metrics_path / fmt::format("{}.rrd", e->metric_id))
+                        .string());
+              }
+            }
           }
         } else
           // Cache value.
@@ -397,14 +441,6 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(status_path));
         if (it == _status_rebuild.end()) {
-          // Write status RRD.
-          try {
-            _backend.open(status_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(s.interval() ? s.interval() : 60);
-            assert(s.rrd_len());
-            _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
-          }
           std::string value;
           switch (s.state()) {
             case 0:
@@ -424,12 +460,27 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
           if (!_retention.enabled() ||
               static_cast<time_t>(s.time()) >=
                   std::time(nullptr) - static_cast<time_t>(step)) {
+            // Current data → open/create RRD file and write directly.
+            try {
+              _backend.open(status_path);
+            } catch (exceptions::open const& b) {
+              time_t interval(s.interval() ? s.interval() : 60);
+              assert(s.rrd_len());
+              _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
+            }
             _backend.update(s.time(), value);
             if (_retention.enabled()) {
               auto [it, inserted] =
                   _status_earliest_current.try_emplace(s.index_id(), s.time());
               if (!inserted && s.time() < it->second)
                 it->second = s.time();
+              if (_retention.check_status_junction(s.index_id(), it->second)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: status {} junction reached via current data (ect={})",
+                    s.index_id(), it->second);
+                _do_status_merge(s.index_id(), status_path);
+              }
             }
           } else {
             SPDLOG_LOGGER_DEBUG(
@@ -437,8 +488,20 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 "RRD: status {} t={} is old (step={}s) → retention buffer",
                 s.index_id(), s.time(), step);
             if (_retention.write_status(s.index_id(), s.time(), s.state(),
-                                        step))
+                                        step)) {
               _do_status_merge(s.index_id(), status_path);
+            } else {
+              auto ect_it = _status_earliest_current.find(s.index_id());
+              if (ect_it != _status_earliest_current.end() &&
+                  s.time() + static_cast<uint64_t>(step) >= ect_it->second) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: status {} junction reached "
+                    "(t={}+step={}s >= ect={})",
+                    s.index_id(), s.time(), step, ect_it->second);
+                _do_status_merge(s.index_id(), status_path);
+              }
+            }
           }
         } else
           // Cache value.
@@ -461,14 +524,6 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(status_path));
         if (e->is_for_rebuild || it == _status_rebuild.end()) {
-          // Write status RRD.
-          try {
-            _backend.open(status_path);
-          } catch (exceptions::open const& b) {
-            time_t interval(e->interval ? e->interval : 60);
-            assert(e->rrd_len);
-            _backend.open(status_path, e->rrd_len, e->time - 1, interval);
-          }
           std::string value;
           switch (e->state) {
             case 0:
@@ -485,26 +540,59 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               break;
           }
           const uint32_t step = e->interval ? e->interval : 60;
-          if (!_retention.enabled() ||
+          if (!_retention.enabled() || e->is_for_rebuild ||
               static_cast<time_t>(e->time) >=
                   std::time(nullptr) - static_cast<time_t>(step)) {
+            // Current (or rebuild) data → open/create RRD file and write.
+            try {
+              _backend.open(status_path);
+            } catch (exceptions::open const& b) {
+              time_t interval(e->interval ? e->interval : 60);
+              assert(e->rrd_len);
+              _backend.open(status_path, e->rrd_len, e->time - 1, interval);
+            }
             _backend.update(e->time, value);
-            if (_retention.enabled()) {
+            if (_retention.enabled() && !e->is_for_rebuild) {
               auto [it, inserted] = _status_earliest_current.try_emplace(
                   e->index_id, static_cast<uint64_t>(e->time));
               if (!inserted && static_cast<uint64_t>(e->time) < it->second)
                 it->second = static_cast<uint64_t>(e->time);
+              if (_retention.check_status_junction(e->index_id, it->second)) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: status {} junction reached via current data (ect={})",
+                    e->index_id, it->second);
+                _do_status_merge(
+                    e->index_id,
+                    (_status_path / fmt::format("{}.rrd", e->index_id))
+                        .string());
+              }
             }
           } else {
             SPDLOG_LOGGER_DEBUG(
                 _logger,
                 "RRD: status {} t={} is old (step={}s) → retention buffer",
                 e->index_id, e->time, step);
-            if (_retention.write_status(e->index_id, e->time, e->state, step))
+            if (_retention.write_status(e->index_id, e->time, e->state,
+                                        step)) {
               _do_status_merge(
                   e->index_id,
-                  (_status_path / fmt::format("{}.rrd", e->index_id))
-                      .string());
+                  (_status_path / fmt::format("{}.rrd", e->index_id)).string());
+            } else {
+              auto ect_it = _status_earliest_current.find(e->index_id);
+              if (ect_it != _status_earliest_current.end() &&
+                  static_cast<uint64_t>(e->time) + step >= ect_it->second) {
+                SPDLOG_LOGGER_DEBUG(
+                    _logger,
+                    "RRD: status {} junction reached "
+                    "(t={}+step={}s >= ect={})",
+                    e->index_id, e->time, step, ect_it->second);
+                _do_status_merge(
+                    e->index_id,
+                    (_status_path / fmt::format("{}.rrd", e->index_id))
+                        .string());
+              }
+            }
           }
         } else
           // Cache value.

@@ -222,6 +222,31 @@ class retention_manager {
   void remove_status(uint64_t index_id);
 
   /**
+   * @brief Check whether the junction condition is met for a metric.
+   *
+   * The junction is reached when the last buffered point is within one step of
+   * the first current-data point:
+   *   last_retention_time + step >= earliest_current_time
+   *
+   * Called from the current-data write path after updating
+   * earliest_current_time, so that a merge can be triggered as soon as the
+   * buffer catches up.
+   *
+   * @param metric_id              Metric identifier.
+   * @param earliest_current_time  Earliest current-data timestamp seen for this
+   *                               metric (0 = unknown → returns false).
+   * @return true  Junction reached → merge should be triggered.
+   */
+  bool check_metric_junction(uint64_t metric_id,
+                             uint64_t earliest_current_time);
+
+  /**
+   * @brief Same as check_metric_junction() for a status index.
+   */
+  bool check_status_junction(uint64_t index_id,
+                             uint64_t earliest_current_time);
+
+  /**
    * @brief Remove retention buffers for metrics inactive longer than
    *        orphan_interval seconds.
    *
