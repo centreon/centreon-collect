@@ -74,7 +74,7 @@ static void resolve_custom_macro_value(nagios_macros* mac,
 
   std::string resolved;
   process_macros_r(mac, output, resolved, 0);
-  output = resolved;
+  output = std::move(resolved);
 
   mac->custom_macro_recursion_depth--;
 }
