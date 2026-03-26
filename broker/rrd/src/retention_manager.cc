@@ -744,6 +744,48 @@ void retention_manager::remove_status(uint64_t index_id) {
  * cleaned up.  Only entries that have been inactive for at least
  * orphan_interval seconds will be removed as orphans.
  */
+
+/**
+ * @brief Check whether the junction condition is met for a metric.
+ *
+ * Acquires a shared lock on the map, then a shared lock on the per-metric
+ * state, and evaluates:
+ *   last_retention_time + step >= earliest_current_time
+ *
+ * Both locks are shared so this method has negligible contention with the
+ * write path.
+ */
+bool retention_manager::check_metric_junction(uint64_t metric_id,
+                                              uint64_t earliest_current_time) {
+  if (earliest_current_time == 0)
+    return false;
+  absl::ReaderMutexLock map_lk(&_metrics_mutex);
+  auto it = _metrics.find(metric_id);
+  if (it == _metrics.end())
+    return false;
+  auto& state = *it->second;
+  absl::ReaderMutexLock state_lk(&state.mutex);
+  return state.last_retention_time != 0 &&
+         state.last_retention_time + state.step >= earliest_current_time;
+}
+
+/**
+ * @brief Check whether the junction condition is met for a status index.
+ */
+bool retention_manager::check_status_junction(uint64_t index_id,
+                                              uint64_t earliest_current_time) {
+  if (earliest_current_time == 0)
+    return false;
+  absl::ReaderMutexLock map_lk(&_statuses_mutex);
+  auto it = _statuses.find(index_id);
+  if (it == _statuses.end())
+    return false;
+  auto& state = *it->second;
+  absl::ReaderMutexLock state_lk(&state.mutex);
+  return state.last_retention_time != 0 &&
+         state.last_retention_time + state.step >= earliest_current_time;
+}
+
 void retention_manager::cleanup_orphans(uint64_t now_seconds) {
   auto cleanup_map = [&](absl::Mutex& map_mutex, auto& map, const char* kind) {
     absl::MutexLock lk(&map_mutex);

@@ -272,6 +272,10 @@ TEST_F(StreamBifurcation, RetentionDisabledAllDataToBackend) {
  * should trigger _do_metric_merge() which replays the buffered points into the
  * .rrd file and then clears the retention buffer.  After the merge all .prot
  * files for that metric must be gone.
+ *
+ * Pre-condition: a current-data point arrives first so that the .rrd file
+ * already exists when the quota-based merge fires.  This reflects the realistic
+ * reconnection scenario where live data and backfill data arrive concurrently.
  */
 TEST_F(StreamBifurcation, MergeTriggeredByFileCountLimit) {
   tmp_dirs tmp;
@@ -281,11 +285,26 @@ TEST_F(StreamBifurcation, MergeTriggeredByFileCountLimit) {
 
   const uint64_t id = 4001;
   const uint32_t step = 300;  // 5 min
-  // Base timestamp old enough so all writes land in the "old" path.
-  const uint64_t base_time = static_cast<uint64_t>(std::time(nullptr)) -
-                             static_cast<uint64_t>(step) * 100;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  // Base timestamp old enough so backfill writes land in the "old" path.
+  const uint64_t base_time = now - static_cast<uint64_t>(step) * 100;
 
-  // The first write also creates the .rrd file via _backend.open().
+  // Write one current-data point first to create the .rrd file.
+  {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(id);
+    m.set_time(now);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(0.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    s.write(e);
+  }
+  ASSERT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
+      << "current-data write must create the .rrd file";
+
+  // Now send old (backfill) data until the quota-based merge fires.
   bool merge_triggered = false;
   for (int i = 0; i <= 10 && !merge_triggered; ++i) {
     auto e = std::make_shared<storage::pb_metric>();
@@ -306,4 +325,215 @@ TEST_F(StreamBifurcation, MergeTriggeredByFileCountLimit) {
       << "merge should have fired and cleared all .prot files";
   EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
       << ".rrd file must exist after merge";
+}
+
+// ---------------------------------------------------------------------------
+// check_metric_junction() — direct unit tests on retention_manager
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/**
+ * @brief Build a retention_manager backed by real temporary directories.
+ *
+ * @param max_pending  Point-count threshold before rotation (default: large to
+ *                     avoid interfering with junction tests).
+ */
+std::unique_ptr<retention_manager> make_manager(const tmp_dirs& tmp,
+                                                uint32_t max_pending = 1024) {
+  retention_config cfg;
+  cfg.metrics_dir = tmp.metrics;
+  cfg.status_dir = tmp.status;
+  cfg.max_pending_points = max_pending;
+  cfg.max_files = 100;
+  auto mgr =
+      std::make_unique<retention_manager>(cfg, spdlog::default_logger());
+  mgr->init();
+  return mgr;
+}
+
+}  // namespace
+
+/** No retention state for the requested id → always false. */
+TEST(RetentionManagerJunction, NoStateReturnsFalse) {
+  tmp_dirs tmp;
+  auto mgr = make_manager(tmp);
+  EXPECT_FALSE(mgr->check_metric_junction(9001, 1000));
+}
+
+/** earliest_current_time == 0 means "unknown" → always false. */
+TEST(RetentionManagerJunction, EctZeroReturnsFalse) {
+  tmp_dirs tmp;
+  auto mgr = make_manager(tmp);
+  mgr->write_metric(9002, 1000, 1.0, 60);
+  EXPECT_FALSE(mgr->check_metric_junction(9002, 0));
+}
+
+/** last_retention_time + step < ect → not yet at junction. */
+TEST(RetentionManagerJunction, NotReached) {
+  tmp_dirs tmp;
+  auto mgr = make_manager(tmp);
+  // last=1000, step=60 → 1060 < 1200
+  mgr->write_metric(9003, 1000, 1.0, 60);
+  EXPECT_FALSE(mgr->check_metric_junction(9003, 1200));
+}
+
+/** last_retention_time + step == ect → exactly at junction boundary. */
+TEST(RetentionManagerJunction, AtBoundary) {
+  tmp_dirs tmp;
+  auto mgr = make_manager(tmp);
+  // last=1000, step=60 → 1060 >= 1060
+  mgr->write_metric(9004, 1000, 1.0, 60);
+  EXPECT_TRUE(mgr->check_metric_junction(9004, 1060));
+}
+
+/** last_retention_time + step > ect → past junction. */
+TEST(RetentionManagerJunction, PastBoundary) {
+  tmp_dirs tmp;
+  auto mgr = make_manager(tmp);
+  // last=1000, step=60 → 1060 >= 1000
+  mgr->write_metric(9005, 1000, 1.0, 60);
+  EXPECT_TRUE(mgr->check_metric_junction(9005, 1000));
+}
+
+// ---------------------------------------------------------------------------
+// Stream junction — old-data write path
+// ---------------------------------------------------------------------------
+
+/**
+ * Scenario: a current-data point arrives first (sets ect), then old data is
+ * replayed.  When the last old point satisfies  t + step >= ect  the junction
+ * is detected from the old-data write path and a merge is triggered.
+ *
+ * Timestamps (step = 60 s, now = std::time(nullptr)):
+ *   current point : now - 20  (clearly current: >= now - 60)
+ *   old point 1   : now - 90  (old; (now-90)+60 = now-30 < now-20 → no junction)
+ *   old point 2   : now - 65  (old; (now-65)+60 = now-5  >= now-20 → junction!)
+ */
+TEST_F(StreamBifurcation, OldDataPathTriggersJunctionMerge) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 60;
+  const uint64_t id = 7001;
+  // max_pending=1 → each write rotates to a .prot file (makes buffer visible)
+  // max_files=100 → quota-based merge won't interfere
+  stream<lib> s(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  auto make_m = [&](uint64_t t) {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(id);
+    m.set_time(t);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(1.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    return e;
+  };
+
+  // 1. Current data → creates .rrd, sets ect = now-20.
+  s.write(make_m(now - 20));
+  ASSERT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)));
+
+  // 2. Old data: (now-90)+60 = now-30 < now-20 → no junction yet.
+  s.write(make_m(now - 90));
+  EXPECT_GT(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "point buffered, junction not yet reached";
+
+  // 3. Old data: (now-65)+60 = now-5 >= now-20 → junction → merge.
+  s.write(make_m(now - 65));
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "junction merge must clear all .prot files";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)));
+}
+
+// ---------------------------------------------------------------------------
+// Stream junction — current-data write path
+// ---------------------------------------------------------------------------
+
+/**
+ * Scenario: old data is buffered first (no current data → ect unknown).
+ * When the first current-data point arrives, check_metric_junction() is
+ * called immediately and fires the merge.
+ *
+ * Timestamps:
+ *   old point 1   : now - 150  (old)
+ *   old point 2   : now - 65   (old; last_retention_time = now-65)
+ *   current point : now - 20   (current; ect = now-20;
+ *                               (now-65)+60 = now-5 >= now-20 → junction!)
+ */
+TEST_F(StreamBifurcation, CurrentDataPathTriggersJunctionMerge) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 60;
+  const uint64_t id = 8001;
+  stream<lib> s(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  auto make_m = [&](uint64_t t) {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(id);
+    m.set_time(t);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(1.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    return e;
+  };
+
+  // 1-2. Old data only — no ect, no junction.
+  s.write(make_m(now - 150));
+  s.write(make_m(now - 65));  // last_retention_time = now-65
+  ASSERT_GT(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "old data buffered; no junction without current data";
+
+  // 3. First current point → creates .rrd, sets ect = now-20,
+  //    check_metric_junction fires → merge.
+  s.write(make_m(now - 20));
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "junction merge must fire on first current-data arrival";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)));
+}
+
+// ---------------------------------------------------------------------------
+// No junction when no current data has been seen
+// ---------------------------------------------------------------------------
+
+/**
+ * Old data is buffered but ect is never set → junction condition cannot be
+ * evaluated → no junction merge.
+ */
+TEST_F(StreamBifurcation, NoJunctionWithoutCurrentData) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 60;
+  const uint64_t id = 8002;
+  // max_pending=1 makes .prot files visible; max_files=100 blocks quota merge.
+  stream<lib> s(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  auto make_m = [&](uint64_t t) {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(id);
+    m.set_time(t);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(1.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    return e;
+  };
+
+  // All old data — even the point closest to the current boundary cannot
+  // trigger a junction merge because ect is unknown.
+  s.write(make_m(now - 150));
+  s.write(make_m(now - 90));
+  s.write(make_m(now - 65));
+
+  EXPECT_GT(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "without current data no junction merge must occur";
+  EXPECT_FALSE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
+      << "no .rrd file without a merge";
 }
