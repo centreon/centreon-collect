@@ -194,41 +194,26 @@ void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
  **************************************/
 
 /**
- *  Get the real path (absolute, expanded) of a path.
+ *  Get the real path (absolute, symlinks resolved) of a directory path.
  *
- *  @param[in] path Path to resolve.
+ *  Uses std::filesystem::weakly_canonical so that non-existent paths are
+ *  accepted (the unresolvable tail is appended as-is).  No trailing slash
+ *  is added; callers use the filesystem path operator/ to build file paths.
  *
- *  @return Real path.
+ *  @param[in] path Directory path to resolve.
+ *
+ *  @return Resolved path.
  */
-std::string connector::_real_path_of(std::string const& path) {
-  // Variables.
-  std::string retval;
-  char* real_path{realpath(path.c_str(), nullptr)};
+std::filesystem::path connector::_real_path_of(std::string const& path) {
   auto logger = log_v2::instance().get(log_v2::RRD);
-
-  // Resolution success.
-  if (real_path) {
-    logger->info("RRD: path '{}' resolved as '{}'", path, real_path);
-    try {
-      retval = real_path;
-    } catch (...) {
-      free(real_path);
-      throw;
-    }
-    free(real_path);
-  }
-  // Resolution failure.
-  else {
-    char const* msg{strerror(errno)};
+  std::error_code ec;
+  auto resolved = std::filesystem::weakly_canonical(path, ec);
+  if (ec) {
     logger->error("RRD: could not resolve path '{}', using it as such: {}",
-                  path, msg);
-    retval = path;
+                  path, ec.message());
+    return std::filesystem::path{path};
   }
-
-  // Last slash.
-  int last_index{static_cast<int>(retval.size()) - 1};
-  if (!retval.empty() && retval[last_index] != '/')
-    retval.append("/");
-
-  return retval;
+  if (resolved.string() != path)
+    logger->info("RRD: path '{}' resolved as '{}'", path, resolved.string());
+  return resolved;
 }

@@ -42,8 +42,10 @@ class cached : public backend {
   std::string _filename;
 
  public:
-  cached(const std::string& tmpl_path, uint32_t cache_size)
-      : _batch{false}, _lib{tmpl_path, cache_size}, _socket{_io_context} {}
+  cached(std::filesystem::path tmpl_path, uint32_t cache_size)
+      : _batch{false},
+        _lib{std::move(tmpl_path), cache_size},
+        _socket{_io_context} {}
   /**
    * @brief Open an RRD file which already exists.
    *

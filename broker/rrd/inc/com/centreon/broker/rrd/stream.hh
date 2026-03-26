@@ -44,10 +44,10 @@ class stream : public io::stream {
       boost::container::flat_map<uint64_t, uint64_t>;
 
   bool _ignore_update_errors;
-  std::string _metrics_path;
+  std::filesystem::path _metrics_path;
   rebuild_cache _metrics_rebuild;
   rebuild_metric_to_index _metrics_to_index_rebuild;
-  std::string _status_path;
+  std::filesystem::path _status_path;
   rebuild_cache _status_rebuild;
   const bool _write_metrics;
   const bool _write_status;
@@ -78,23 +78,23 @@ class stream : public io::stream {
   void _do_status_merge(uint64_t index_id, const std::string& rrd_path);
 
  public:
-  stream(std::string const& metrics_path,
-         std::string const& status_path,
+  stream(std::filesystem::path metrics_path,
+         std::filesystem::path status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          retention_config retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
-  stream(std::string const& metrics_path,
-         std::string const& status_path,
+  stream(std::filesystem::path metrics_path,
+         std::filesystem::path status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          std::string const& local,
          retention_config retention_cfg = {},
          bool write_metrics = true,
          bool write_status = true);
-  stream(std::string const& metrics_path,
-         std::string const& status_path,
+  stream(std::filesystem::path metrics_path,
+         std::filesystem::path status_path,
          uint32_t cache_size,
          bool ignore_update_errors,
          unsigned short port,

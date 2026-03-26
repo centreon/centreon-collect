@@ -31,14 +31,14 @@ namespace rrd {
  *  Generate an RRD stream that will write files.
  */
 class connector : public io::endpoint {
-  std::string _real_path_of(std::string const& path);
+  std::filesystem::path _real_path_of(std::string const& path);
 
   uint32_t _cache_size;
   std::string _cached_local;
   uint16_t _cached_port;
   bool _ignore_update_errors;
-  std::string _metrics_path;
-  std::string _status_path;
+  std::filesystem::path _metrics_path;
+  std::filesystem::path _status_path;
   bool _write_metrics;
   bool _write_status;
 

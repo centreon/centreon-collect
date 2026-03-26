@@ -133,6 +133,7 @@ if(WITH_TESTING)
       ${TESTS_SOURCES} "${TEST_DIR}/cached.cc" "${TEST_DIR}/exceptions.cc"
       "${TEST_DIR}/factory.cc" "${TEST_DIR}/lib.cc" "${TEST_DIR}/rrd.cc"
       "${TEST_DIR}/retention_manager.cc"
+      "${TEST_DIR}/stream_bifurcation.cc"
       PARENT_SCOPE)
   set(TESTS_LIBRARIES
       ${TESTS_LIBRARIES} "${RRD}"
