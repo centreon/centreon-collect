@@ -65,6 +65,8 @@ int grab_contact_macros_r(nagios_macros* mac, contact* cntct) {
  */
 static void resolve_custom_macro_value(nagios_macros* mac,
                                        std::string& output) {
+  if (!mac)
+    return;
   if (output.empty() || output.find('$') == std::string::npos)
     return;
   if (mac->custom_macro_recursion_depth >= MAX_CUSTOM_MACRO_RECURSION_DEPTH)
