@@ -37,6 +37,21 @@ namespace com::centreon::broker::cache {
  */
 broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
     : _logger{std::move(logger)} {  // logger: log_v2::CORE
+  const auto& cache_dir = config::applier::state::instance().cache_dir();
+  if (cache_dir.empty()) {
+    // No cache directory configured — typically a unit-test context.
+    // Build a path that is unique per process AND per broker_cache instance
+    // so that parallel CI runs and successive deinit/init cycles within the
+    // same process never share a file.
+    _cache_file = std::filesystem::temp_directory_path() /
+                  fmt::format("broker_cache_{}.prot", ::getpid());
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "broker_cache: cache directory not set, using '{}'",
+                        _cache_file.string());
+  } else {
+    _cache_file = std::filesystem::path{cache_dir + ".cache"};
+  }
+
   auto& state = config::applier::state::instance();
   if (!state.supports_centralized_conf()) {
     /* Here, we are in legacy mode. We have to load the cache. If Broker is
@@ -2254,15 +2269,14 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
  * Protocol Buffers serialization.
  */
 void broker_cache::_load_cache() {
-  SPDLOG_LOGGER_INFO(_logger, "broker_cache: loading cache...");
-  auto& state = config::applier::state::instance();
-  std::filesystem::path cache_file{fmt::format("{}.cache", state.cache_dir())};
-  std::ifstream ifs{cache_file, std::ios::binary};
+  SPDLOG_LOGGER_INFO(_logger, "broker_cache: loading cache from '{}'",
+                     _cache_file.string());
+  std::ifstream ifs{_cache_file, std::ios::binary};
   if (ifs) {
     BrokerCache to_load;
     if (!to_load.ParseFromIstream(&ifs)) {
       SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot parse cache file '{}'",
-                          cache_file.string());
+                          _cache_file.string());
     } else {
       absl::WriterMutexLock lck{&_mutex};
       for (const auto& inst_pair : to_load.instances())
@@ -2315,11 +2329,11 @@ void broker_cache::_load_cache() {
         }
       }
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
-                         cache_file.string());
+                         _cache_file.string());
     }
   } else {
     SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache file '{}' does not exist",
-                       cache_file.string());
+                       _cache_file.string());
   }
 }
 
@@ -2378,20 +2392,18 @@ void broker_cache::_save_cache() {
     }
   }
   /* Saving the BrokerCache */
-  std::filesystem::path cache_file{
-      fmt::format("{}.cache", config::applier::state::instance().cache_dir())};
-  std::ofstream ofs{cache_file, std::ios::binary | std::ios::trunc};
+  std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
   if (!ofs) {
     SPDLOG_LOGGER_ERROR(_logger, "broker_cache: cannot open cache file '{}'",
-                        cache_file.string());
+                        _cache_file.string());
   } else {
     if (!to_save.SerializeToOstream(&ofs)) {
       SPDLOG_LOGGER_ERROR(_logger,
                           "broker_cache: cannot serialize cache to file '{}'",
-                          cache_file.string());
+                          _cache_file.string());
     } else {
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache saved to file '{}'",
-                         cache_file.string());
+                         _cache_file.string());
     }
   }
 }

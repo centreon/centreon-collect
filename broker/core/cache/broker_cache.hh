@@ -316,6 +316,16 @@ class broker_cache {
 
  private:
   std::shared_ptr<spdlog::logger> _logger;
+  /**
+   * @brief Absolute path of the on-disk cache file for this instance.
+   *
+   * Computed once in the constructor so that _load_cache() and _save_cache()
+   * always use the same path.  When cache_dir() is empty (unit-test context),
+   * a per-process, per-instance unique path under /tmp is used so that
+   * concurrent processes and successive deinit/init cycles within the same
+   * process never share the same file.
+   */
+  std::filesystem::path _cache_file;
   std::atomic<uint32_t> _enabled_sections{CACHE_NONE};
 
   mutable absl::Mutex _mutex;
