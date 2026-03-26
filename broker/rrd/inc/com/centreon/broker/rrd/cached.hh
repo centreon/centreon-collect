@@ -295,6 +295,56 @@ class cached : public backend {
                        e.what() + 5);
     }
   }
+
+  /**
+   * @brief Flush pending rrdcached writes for @p filename to disk so that
+   *        rrd_fetch_r (which reads the file directly) sees up-to-date data.
+   */
+  void pre_merge_flush(const std::string& filename) override {
+    try {
+      _logger->debug("RRD: FLUSH '{}' before merge-fetch", filename);
+      _send_to_cached(fmt::format("FLUSH {}\n", filename));
+    } catch (msg_fmt const& e) {
+      _logger->error("RRD: pre_merge_flush failed for '{}': {}", filename,
+                     e.what());
+    }
+  }
+
+  /**
+   * @brief Delegate to _lib (librrd direct) after the caller has flushed.
+   */
+  rrd_existing_data fetch_existing(const std::string& filename,
+                                   uint64_t from_ts,
+                                   uint64_t to_ts) override {
+    return _lib.fetch_existing(filename, from_ts, to_ts);
+  }
+
+  /**
+   * @brief Create temp file and write batch via librrd directly (bypasses
+   *        rrdcached socket), so the file is immediately on disk for rename.
+   */
+  void merge_create_temp(const std::string& tmp_path,
+                         uint32_t rrd_len,
+                         time_t from,
+                         uint32_t step,
+                         short value_type,
+                         const std::deque<std::string>& batch) override {
+    _lib.merge_create_temp(tmp_path, rrd_len, from, step, value_type, batch);
+  }
+
+  /**
+   * @brief Tell rrdcached to drop its in-memory queue for @p filename after
+   *        the atomic rename replaced the file with the merged version.
+   */
+  void post_merge_forget(const std::string& filename) override {
+    try {
+      _logger->debug("RRD: FORGET '{}' after merge-rename", filename);
+      _send_to_cached(fmt::format("FORGET {}\n", filename));
+    } catch (msg_fmt const& e) {
+      _logger->error("RRD: post_merge_forget failed for '{}': {}", filename,
+                     e.what());
+    }
+  }
 };
 
 }  // namespace com::centreon::broker::rrd

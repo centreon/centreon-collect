@@ -36,6 +36,20 @@ namespace rrd {
  *  @see rrd::lib
  *  @see rrd::cached
  */
+/**
+ * @brief Metadata and existing data-points read from an RRD file.
+ *
+ * Returned by backend::fetch_existing().  The @c points vector contains only
+ * non-NaN (known) values, sorted by ascending timestamp.
+ */
+struct rrd_existing_data {
+  uint32_t step = 0;        ///< Time step in seconds (0 = unknown/error)
+  uint32_t rrd_len = 0;     ///< Total retention in seconds
+  short value_type = 0;     ///< 0=GAUGE, 1=COUNTER, 2=DERIVE, 3=ABSOLUTE
+  /// Known data points: (unix_timestamp, value), sorted ascending.
+  std::vector<std::pair<uint64_t, double>> points;
+};
+
 class backend {
  protected:
   std::shared_ptr<spdlog::logger> _logger;
@@ -59,6 +73,46 @@ class backend {
   virtual void remove(std::string const& filename) = 0;
   virtual void update(time_t t, std::string const& value) = 0;
   virtual void update(const std::deque<std::string>& pts) = 0;
+
+  /**
+   * @brief Flush pending rrdcached writes for @p filename to disk before a
+   *        merge-read.  No-op for the lib backend.
+   */
+  virtual void pre_merge_flush(const std::string& /*filename*/) {}
+
+  /**
+   * @brief Read file metadata (step, rrd_len, value_type) and all non-NaN
+   *        data points in [@p from_ts, @p to_ts] from an RRD file.
+   *
+   * Uses librrd directly (bypasses rrdcached).  Caller must call
+   * pre_merge_flush() first when using the cached backend.
+   *
+   * @return rrd_existing_data with step == 0 on failure.
+   */
+  virtual rrd_existing_data fetch_existing(const std::string& filename,
+                                           uint64_t from_ts,
+                                           uint64_t to_ts) = 0;
+
+  /**
+   * @brief Create a temporary RRD file and write @p batch into it using
+   *        librrd directly (bypasses rrdcached socket).
+   *
+   * Used during merge to produce the new file before an atomic rename.
+   * The caller is responsible for the subsequent rename and
+   * post_merge_forget().
+   */
+  virtual void merge_create_temp(const std::string& tmp_path,
+                                 uint32_t rrd_len,
+                                 time_t from,
+                                 uint32_t step,
+                                 short value_type,
+                                 const std::deque<std::string>& batch) = 0;
+
+  /**
+   * @brief Invalidate rrdcached's in-memory queue for @p filename after an
+   *        atomic rename.  No-op for the lib backend.
+   */
+  virtual void post_merge_forget(const std::string& /*filename*/) {}
 };
 }  // namespace rrd
 
