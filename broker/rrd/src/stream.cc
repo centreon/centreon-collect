@@ -74,8 +74,8 @@ std::set<typename map_type::mapped_type> values_of_map(const map_type& data) {
  *                                  written.
  */
 template <>
-stream<lib>::stream(std::string const& metrics_path,
-                    std::string const& status_path,
+stream<lib>::stream(std::filesystem::path metrics_path,
+                    std::filesystem::path status_path,
                     uint32_t cache_size,
                     bool ignore_update_errors,
                     retention_config retention_cfg,
@@ -87,7 +87,9 @@ stream<lib>::stream(std::string const& metrics_path,
       _status_path(status_path),
       _write_metrics(write_metrics),
       _write_status(write_status),
-      _backend(!metrics_path.empty() ? metrics_path : status_path, cache_size),
+      _backend(!metrics_path.empty() ? std::move(metrics_path)
+                                     : std::move(status_path),
+               cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
       _logger{log_v2::instance().get(log_v2::RRD)} {
   _retention.init();
@@ -108,8 +110,8 @@ stream<lib>::stream(std::string const& metrics_path,
  */
 template <>
 stream<cached<asio::local::stream_protocol::socket>>::stream(
-    std::string const& metrics_path,
-    std::string const& status_path,
+    std::filesystem::path metrics_path,
+    std::filesystem::path status_path,
     uint32_t cache_size,
     bool ignore_update_errors,
     std::string const& local,
@@ -122,7 +124,7 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
       _status_path(status_path),
       _write_metrics(write_metrics),
       _write_status(write_status),
-      _backend(metrics_path, cache_size),
+      _backend(std::move(metrics_path), cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
       _logger{log_v2::instance().get(log_v2::RRD)} {
   _backend.connect_local(local);
@@ -143,8 +145,8 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
  *                                  written.
  */
 template <>
-stream<cached<asio::ip::tcp::socket>>::stream(std::string const& metrics_path,
-                                              std::string const& status_path,
+stream<cached<asio::ip::tcp::socket>>::stream(std::filesystem::path metrics_path,
+                                              std::filesystem::path status_path,
                                               uint32_t cache_size,
                                               bool ignore_update_errors,
                                               unsigned short port,
@@ -157,7 +159,7 @@ stream<cached<asio::ip::tcp::socket>>::stream(std::string const& metrics_path,
       _status_path(status_path),
       _write_metrics(write_metrics),
       _write_status(write_status),
-      _backend(metrics_path, cache_size),
+      _backend(std::move(metrics_path), cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
       _logger{log_v2::instance().get(log_v2::RRD)} {
   _backend.connect_remote("localhost", port);
@@ -218,7 +220,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
 
         // Metric path.
         std::string metric_path(
-            fmt::format("{}{}.rrd", _metrics_path, m.metric_id()));
+            (_metrics_path / fmt::format("{}.rrd", m.metric_id())).string());
 
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
@@ -304,7 +306,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
 
         // Metric path.
         std::string metric_path(
-            fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
+            (_metrics_path / fmt::format("{}.rrd", e->metric_id)).string());
 
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
@@ -370,7 +372,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             if (_retention.write_metric(e->metric_id, e->time, e->value, step))
               _do_metric_merge(
                   e->metric_id,
-                  fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
+                  (_metrics_path / fmt::format("{}.rrd", e->metric_id))
+                      .string());
           }
         } else
           // Cache value.
@@ -389,7 +392,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
 
         // Status path.
         std::string status_path(
-            fmt::format("{}{}.rrd", _status_path, s.index_id()));
+            (_status_path / fmt::format("{}.rrd", s.index_id())).string());
 
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(status_path));
@@ -453,7 +456,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
 
         // Status path.
         std::string status_path(
-            fmt::format("{}{}.rrd", _status_path, e->index_id));
+            (_status_path / fmt::format("{}.rrd", e->index_id)).string());
 
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(status_path));
@@ -500,7 +503,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             if (_retention.write_status(e->index_id, e->time, e->state, step))
               _do_status_merge(
                   e->index_id,
-                  fmt::format("{}{}.rrd", _status_path, e->index_id));
+                  (_status_path / fmt::format("{}.rrd", e->index_id))
+                      .string());
           }
         } else
           // Cache value.
@@ -525,13 +529,14 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
           _metrics_to_index_rebuild.reserve(
               e->obj().metric_to_index_id().size());
           for (auto& m : e->obj().metric_to_index_id()) {
-            std::string path{fmt::format("{}{}.rrd", _metrics_path, m.first)};
+            std::string path{
+                (_metrics_path / fmt::format("{}.rrd", m.first)).string()};
             /* Creation of metric caches */
             _metrics_rebuild[path];
             /* File removed */
             _backend.remove(path);
             // creation of status caches
-            path = fmt::format("{}{}.rrd", _status_path, m.second);
+            path = (_status_path / fmt::format("{}.rrd", m.second)).string();
             if (_status_rebuild.find(path) == _status_rebuild.end()) {
               _status_rebuild[path];
               _metrics_to_index_rebuild[m.first] = m.second;
@@ -559,7 +564,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
           // Rebuild is ending.
           for (auto& m : e->obj().metric_to_index_id()) {
-            std::string path{fmt::format("{}{}.rrd", _metrics_path, m.first)};
+            std::string path{
+                (_metrics_path / fmt::format("{}.rrd", m.first)).string()};
             auto it = _metrics_rebuild.find(path);
             std::list<std::shared_ptr<io::data>> l;
             if (it != _metrics_rebuild.end()) {
@@ -570,7 +576,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 l.pop_front();
               }
             }
-            path = fmt::format("{}{}.rrd", _status_path, m.second);
+            path = (_status_path / fmt::format("{}.rrd", m.second)).string();
             it = _status_rebuild.find(path);
             if (it != _status_rebuild.end()) {
               l = std::move(it->second);
@@ -595,7 +601,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
       std::shared_ptr<storage::pb_remove_graph_message> e{
           std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
       for (auto& m : e->obj().metric_ids()) {
-        std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+        std::string path{
+            (_metrics_path / fmt::format("{}.rrd", m)).string()};
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
@@ -604,7 +611,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         _metric_earliest_current.erase(m);
       }
       for (auto& i : e->obj().index_ids()) {
-        std::string path{fmt::format("{}{}.rrd", _status_path, i)};
+        std::string path{
+            (_status_path / fmt::format("{}.rrd", i)).string()};
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
@@ -622,8 +630,10 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                           e->is_index ? "index" : "metric", e->id);
 
       // Generate path.
-      std::string path(fmt::format(
-          "{}{}.rrd", e->is_index ? _status_path : _metrics_path, e->id));
+      std::string path(
+          ((e->is_index ? _status_path : _metrics_path) /
+           fmt::format("{}.rrd", e->id))
+              .string());
 
       // Remove data from cache.
       rebuild_cache& cache(e->is_index ? _status_rebuild : _metrics_rebuild);
@@ -806,7 +816,8 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding metric {}", p.first);
-    std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+    std::string path{
+        (_metrics_path / fmt::format("{}.rrd", p.first)).string()};
     auto index_id_search = _metrics_to_index_rebuild.find(p.first);
     uint64_t index_id = 0;
     if (index_id_search != _metrics_to_index_rebuild.end()) {
@@ -876,7 +887,8 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding status {}",
                         by_index_status_values.first);
     std::string status_path{
-        fmt::format("{}{}.rrd", _status_path, by_index_status_values.first)};
+        (_status_path / fmt::format("{}.rrd", by_index_status_values.first))
+            .string()};
 
     time_t start_time =
         by_index_status_values.second.time_to_value.begin()->first -

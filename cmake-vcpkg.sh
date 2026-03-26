@@ -286,6 +286,7 @@ if [ "$force" = "1" ] ; then
   rm -rf "$BUILD_DIR"
   rm -rf vcpkg
   mkdir "$BUILD_DIR"
+  ln -s ../overlays build/overlays
 fi
 
 if [ ! -d vcpkg ] ; then

@@ -38,8 +38,8 @@ using namespace com::centreon::broker::rrd;
  *  @param[in] tmpl_path  The template path.
  *  @param[in] cache_size The maximum number of cache element.
  */
-lib::lib(std::string const& tmpl_path, uint32_t cache_size)
-    : _creator(tmpl_path, cache_size) {}
+lib::lib(std::filesystem::path tmpl_path, uint32_t cache_size)
+    : _creator(std::move(tmpl_path), cache_size) {}
 
 /**
  *  @brief Initiates the bulk load of multiple commands.

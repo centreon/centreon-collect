@@ -34,7 +34,7 @@ namespace rrd {
  */
 class lib : public backend {
  public:
-  lib(std::string const& tmpl_path, uint32_t cache_size);
+  lib(std::filesystem::path tmpl_path, uint32_t cache_size);
   lib(lib const& l) = delete;
   ~lib() = default;
   lib& operator=(lib const& l) = delete;

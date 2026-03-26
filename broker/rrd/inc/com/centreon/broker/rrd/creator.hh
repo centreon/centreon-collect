@@ -78,10 +78,10 @@ class creator {
 
   uint32_t _cache_size;
   std::map<tmpl_info, fd_info> _fds;
-  std::string _tmpl_path;
+  std::filesystem::path _tmpl_path;
 
  public:
-  creator(std::string const& tmpl_path, uint32_t cache_size);
+  creator(std::filesystem::path tmpl_path, uint32_t cache_size);
   creator(creator const&) = delete;
   ~creator();
   creator& operator=(creator const&) = delete;

@@ -45,12 +45,12 @@ using com::centreon::common::log_v2::log_v2;
  *  @param[in] tmpl_path  The template path.
  *  @param[in] cache_size The maximum number of cache element.
  */
-creator::creator(std::string const& tmpl_path, uint32_t cache_size)
-    : _cache_size(cache_size), _tmpl_path(tmpl_path) {
+creator::creator(std::filesystem::path tmpl_path, uint32_t cache_size)
+    : _cache_size(cache_size), _tmpl_path(std::move(tmpl_path)) {
   SPDLOG_LOGGER_DEBUG(
       log_v2::instance().get(log_v2::RRD),
       "RRD: file creator will maintain at most {} templates in '{}'",
-      _cache_size, _tmpl_path);
+      _cache_size, _tmpl_path.string());
 }
 
 /**
@@ -114,9 +114,10 @@ void creator::create(std::string const& filename,
     // Not in the cache, but we have enough space in the cache.
     // Create new entry.
     else if (_fds.size() < _cache_size) {
-      std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}_{}.rrd",
-                                            _tmpl_path, from, length, step,
-                                            value_type));
+      auto tmpl_filename =
+          (_tmpl_path / fmt::format("tmpl_{}_{}_{}_{}.rrd", from, length, step,
+                                    value_type))
+              .string();
       info.from = from;
 
       // Create new template.
