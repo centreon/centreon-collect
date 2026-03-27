@@ -119,10 +119,12 @@ std::mutex stream<bireactor_class>::_instances_m;
  */
 template <class bireactor_class>
 stream<bireactor_class>::stream(const grpc_config::pointer& conf,
-                                const std::string_view& class_name)
+                                const std::string_view& class_name,
+                                const std::string& peer)
     : io::stream("GRPC"),
       _conf(conf),
       _class_name(class_name),
+      _peer(peer),
       _logger{log_v2::instance().get(log_v2::GRPC)} {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));

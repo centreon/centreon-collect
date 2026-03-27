@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/broker.hh"
 #include <openssl/x509.h>
+#include <spdlog/common.h>
 #include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
@@ -3678,7 +3679,12 @@ static void forward_log(const char* data, time_t entry_time) {
  */
 static void forward_pb_log(const char* data, time_t entry_time) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  if (neb_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(neb_logger, "callbacks: generating pb log event {}",
+                        data);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  }
 
   try {
     // In/Out variables.

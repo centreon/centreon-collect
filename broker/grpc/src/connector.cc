@@ -96,7 +96,7 @@ class client_stream : public stream_base_class {
  * @param conf
  */
 client_stream::client_stream(const grpc_config::pointer& conf)
-    : stream_base_class(conf, "client") {
+    : stream_base_class(conf, "client", conf->get_hostport()) {
   if (!conf->get_authorization().empty()) {
     _context.AddMetadata(authorization_header, conf->get_authorization());
   }

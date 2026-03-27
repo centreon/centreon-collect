@@ -25,8 +25,10 @@ BEACK1
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
-    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module0    neb    trace
     Ctn Broker Config Log    central    sql    debug
+    Ctn Broker Config Log    central    processing    trace
+    Ctn Broker Config Log    module0    processing    trace
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker

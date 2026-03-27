@@ -105,13 +105,16 @@ class stream : public io::stream,
 
   grpc_config::pointer _conf;
   const std::string_view _class_name;
+  const std::string _peer;
 
   std::mutex _protect;
 
   void start_write();
 
  protected:
-  stream(const grpc_config::pointer& conf, const std::string_view& class_name);
+  stream(const grpc_config::pointer& conf,
+         const std::string_view& class_name,
+         const std::string& peer);
 
   // called only by public stop
   virtual void shutdown();
@@ -125,7 +128,12 @@ class stream : public io::stream,
   static void register_stream(
       const std::shared_ptr<stream<bireactor_class>>& strm);
 
+  template <class visitor>
+  static void visit_all_instances(visitor&& visit);
+
   void start_read();
+
+  std::string peer() const override { return _peer; }
 
   // bireactor part
   void OnReadDone(bool ok) override;
@@ -146,6 +154,22 @@ class stream : public io::stream,
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
+
+/**
+ * @brief apply visit on all const instances
+ *
+ * @tparam bireactor_class
+ * @tparam visitor
+ * @param visit
+ */
+template <class bireactor_class>
+template <class visitor>
+void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
+  std::lock_guard l(_instances_m);
+  for (const auto& inst : *_instances) {
+    visit(*inst);
+  }
+}
 
 }  // namespace grpc
 

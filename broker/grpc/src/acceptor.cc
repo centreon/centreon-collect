@@ -17,6 +17,8 @@
  *
  */
 
+#include <fmt/ranges.h>
+
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/acceptor.hh"
@@ -52,7 +54,8 @@ class server_stream : public client_stream_base_class {
 
  public:
   server_stream(const grpc_config::pointer& conf,
-                const std::shared_ptr<service_impl>& serv);
+                const std::shared_ptr<service_impl>& serv,
+                const std::string& endpoint);
 
   void OnDone() override;
 };
@@ -63,8 +66,9 @@ class server_stream : public client_stream_base_class {
  * @param conf
  */
 server_stream::server_stream(const grpc_config::pointer& conf,
-                             const std::shared_ptr<service_impl>& serv)
-    : client_stream_base_class(conf, "accepted"), _parent(serv) {}
+                             const std::shared_ptr<service_impl>& serv,
+                             const std::string& endpoint)
+    : client_stream_base_class(conf, "accepted", endpoint), _parent(serv) {}
 
 /**
  * @brief shutdown bireactor
@@ -133,20 +137,24 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
       return nullptr;
     }
     bool found = false;
+    std::string last_received;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(logger, "Wrong client authorization token from {}",
-                            context->peer());
+        SPDLOG_LOGGER_ERROR(logger,
+                            "Wrong client authorization token from {}: {}",
+                            context->peer(), last_received);
         return nullptr;
       }
+      last_received.assign(header_search->second.begin(),
+                           header_search->second.end());
       found = _conf->get_authorization() == header_search->second;
     }
   }
 
   SPDLOG_LOGGER_DEBUG(logger, "connection accepted from {}", context->peer());
 
-  std::shared_ptr<server_stream> next_stream =
-      std::make_shared<server_stream>(_conf, shared_from_this());
+  std::shared_ptr<server_stream> next_stream = std::make_shared<server_stream>(
+      _conf, shared_from_this(), context->peer());
 
   server_stream::register_stream(next_stream);
   next_stream->start_read();
@@ -301,4 +309,19 @@ std::shared_ptr<io::stream> acceptor::open() {
  */
 bool acceptor::is_ready() const {
   return _service->has_wait_stream();
+}
+
+/**
+ *  Get statistics about this GRPC acceptor.
+ *  It list all connected IPs
+ *
+ *  @param[out] tree Buffer in which statistics will be written.
+ */
+void acceptor::stats(nlohmann::json& tree) {
+  std::list<std::string> children;
+  server_stream::visit_all_instances(
+      [&children](const auto& inst) { children.emplace_back(inst.peer()); });
+
+  tree["peers"] =
+      fmt::format("{}: {}", children.size(), fmt::join(children, ", "));
 }
