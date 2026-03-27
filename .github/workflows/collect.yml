@@ -94,30 +94,6 @@ jobs:
   dependency-scan:
     uses: centreon/security-tools/.github/workflows/dependency-analysis.yml@main
 
-  check-cache-usage:
-    runs-on: ubuntu-24.04
-    permissions:
-      actions: read
-    steps:
-      - name: Report cache usage
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          REPO="${{ github.repository }}"
-          read -r active_count active_bytes < <(
-            gh api "repos/$REPO/actions/cache/usage" \
-              --jq '[.active_caches_count, .active_caches_size_in_bytes] | @tsv'
-          )
-          used_mb=$((active_bytes / 1024 / 1024))
-          limit_mb=20480
-          pct=$((used_mb * 100 / limit_mb))
-          echo "Cache usage: ${used_mb} MB / ${limit_mb} MB (${pct}%) across ${active_count} cache(s)"
-          if [ "$used_mb" -ge 18432 ]; then
-            echo "::error::Cache usage is above 90% (${used_mb} MB / ${limit_mb} MB). Run the prune-old-caches workflow or merge/close open PRs to free space."
-          elif [ "$used_mb" -ge 15360 ]; then
-            echo "::warning::Cache usage is above 75% (${used_mb} MB / ${limit_mb} MB). Consider closing stale PRs or triggering prune-old-caches."
-          fi
-
   dispatch-to-maintenance-branches:
     if: |
       github.run_attempt == 1 &&
