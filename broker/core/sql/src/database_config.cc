@@ -117,45 +117,6 @@ database_config::database_config(
     const std::map<std::string, std::string>& global_params)
     : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
       _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
-  std::string env_file;
-  {
-    auto found = global_params.find("env_file");
-    if (found != global_params.end()) {
-      env_file = found->second;
-      _config_logger->debug("Env file '{}' used.", env_file);
-    } else {
-      env_file = "/usr/share/centreon/.env";
-      _config_logger->debug(
-          "No env_file provided in Broker configuration, default one used.");
-    }
-  }
-  std::string vault_file;
-  {
-    auto found = global_params.find("vault_configuration");
-    if (found != global_params.end()) {
-      vault_file = found->second;
-      _config_logger->debug("Vault configuration file '{}' used.", vault_file);
-    } else {
-      _config_logger->debug(
-          "No vault configuration file provided in Broker configuration.");
-    }
-  }
-  bool verify_peer = true;
-  {
-    auto found = global_params.find("verify_vault_peer");
-    if (found != global_params.end()) {
-      if (absl::SimpleAtob(found->second, &verify_peer)) {
-        _config_logger->debug("Verify Vault peer {}.",
-                              verify_peer ? "enabled" : "disabled");
-      } else {
-        _config_logger->debug("Verification of Vault peer enabled by default.");
-        verify_peer = true;
-      }
-    } else {
-      _config_logger->debug("Verification of Vault peer enabled by default.");
-    }
-  }
-
   // db_type
   auto found = cfg.params.find("db_type");
   if (found != cfg.params.end())
@@ -207,15 +168,13 @@ database_config::database_config(
     _password = found->second;
 
   try {
-    common::vault::vault_access vault(env_file, vault_file, verify_peer,
-                                      _config_logger);
-    _password = vault.decrypt(_password);
+    _password = common::vault::vault_access::load(global_params, _config_logger)
+                    ->decrypt(_password);
     _config_logger->info("Database password get from Vault configuration");
   } catch (const std::exception& e) {
-    constexpr std::string_view password_prefix("secret::hashicorp_vault::");
-    std::string_view password_header(_password.data(), password_prefix.size());
-    if (password_header == password_prefix)
+    if (common::vault::vault_access::is_vault_prefixed(_password)) {
       _config_logger->error("No usable Vault configuration: {}", e.what());
+    }
   }
 
   // db_name
