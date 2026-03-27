@@ -47,6 +47,7 @@ namespace com::centreon::broker::rrd {
 template <class map_type>
 std::vector<typename map_type::key_type> keys_of_map(const map_type& data) {
   std::vector<typename map_type::key_type> ret;
+  ret.reserve(data.size());
   for (const auto& key_val : data) {
     ret.push_back(key_val.first);
   }
@@ -54,8 +55,9 @@ std::vector<typename map_type::key_type> keys_of_map(const map_type& data) {
 }
 
 template <class map_type>
-std::set<typename map_type::mapped_type> values_of_map(const map_type& data) {
-  std::set<typename map_type::mapped_type> ret;
+absl::flat_hash_set<typename map_type::mapped_type> values_of_map(
+    const map_type& data) {
+  absl::flat_hash_set<typename map_type::mapped_type> ret;
   for (const auto& key_val : data) {
     ret.insert(key_val.second);
   }
@@ -94,8 +96,12 @@ stream<lib>::stream(std::filesystem::path metrics_path,
                                      : std::move(status_path),
                cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
+      _merge_lib("", 0),
       _logger{log_v2::instance().get(log_v2::RRD)} {
+  _merge_work.emplace(_merge_ctx.get_executor());
+  _merge_thread = std::thread([this] { _merge_ctx.run(); });
   _retention.init();
+  _startup_merge();
 }
 
 /**
@@ -129,9 +135,13 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
       _write_status(write_status),
       _backend(std::move(metrics_path), cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
+      _merge_lib("", 0),
       _logger{log_v2::instance().get(log_v2::RRD)} {
+  _merge_work.emplace(_merge_ctx.get_executor());
+  _merge_thread = std::thread([this] { _merge_ctx.run(); });
   _backend.connect_local(local);
   _retention.init();
+  _startup_merge();
 }
 
 /**
@@ -148,14 +158,15 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
  *                                  written.
  */
 template <>
-stream<cached<asio::ip::tcp::socket>>::stream(std::filesystem::path metrics_path,
-                                              std::filesystem::path status_path,
-                                              uint32_t cache_size,
-                                              bool ignore_update_errors,
-                                              unsigned short port,
-                                              retention_config retention_cfg,
-                                              bool write_metrics,
-                                              bool write_status)
+stream<cached<asio::ip::tcp::socket>>::stream(
+    std::filesystem::path metrics_path,
+    std::filesystem::path status_path,
+    uint32_t cache_size,
+    bool ignore_update_errors,
+    unsigned short port,
+    retention_config retention_cfg,
+    bool write_metrics,
+    bool write_status)
     : io::stream("RRD"),
       _ignore_update_errors(ignore_update_errors),
       _metrics_path(metrics_path),
@@ -164,11 +175,66 @@ stream<cached<asio::ip::tcp::socket>>::stream(std::filesystem::path metrics_path
       _write_status(write_status),
       _backend(std::move(metrics_path), cache_size),
       _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
+      _merge_lib("", 0),
       _logger{log_v2::instance().get(log_v2::RRD)} {
+  _merge_work.emplace(_merge_ctx.get_executor());
+  _merge_thread = std::thread([this] { _merge_ctx.run(); });
   _backend.connect_remote("localhost", port);
   _retention.init();
+  _startup_merge();
 }
 }  // namespace com::centreon::broker::rrd
+
+/**
+ * @brief Destructor: wait for background merge thread to finish.
+ */
+template <typename T>
+stream<T>::~stream() noexcept {
+  // Drop the work guard so that the io_context stops after pending tasks
+  // finish.
+  _merge_work.reset();
+  if (_merge_thread.joinable())
+    _merge_thread.join();
+}
+
+/**
+ * @brief Schedule a metric merge on the background thread.
+ *
+ * If a merge for this metric is already queued or running a new one will still
+ * be posted; the pending-set prevents only exact duplicates from queuing up
+ * simultaneously.  The pending flag is cleared at the start of @c
+ * _do_metric_merge so that a subsequent trigger during the merge is accepted.
+ */
+template <typename T>
+void stream<T>::_schedule_metric_merge(uint64_t metric_id, std::string rrd_path)
+    ABSL_NO_THREAD_SAFETY_ANALYSIS {
+  {
+    absl::MutexLock lk(&_merge_pending_m);
+    if (!_pending_metric_merges.insert(metric_id).second)
+      return;  // already queued
+  }
+  asio::post(_merge_ctx,
+             [this, metric_id, path = std::move(rrd_path)]() mutable {
+               _do_metric_merge(metric_id, path);
+             });
+}
+
+/**
+ * @brief Schedule a status merge on the background thread.
+ */
+template <typename T>
+void stream<T>::_schedule_status_merge(uint64_t index_id, std::string rrd_path)
+    ABSL_NO_THREAD_SAFETY_ANALYSIS {
+  {
+    absl::MutexLock lk(&_merge_pending_m);
+    if (!_pending_status_merges.insert(index_id).second)
+      return;  // already queued
+  }
+  asio::post(_merge_ctx,
+             [this, index_id, path = std::move(rrd_path)]() mutable {
+               _do_status_merge(index_id, path);
+             });
+}
 
 /**
  *  Read data.
@@ -276,17 +342,22 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             }
             _backend.update(m.time(), v);
             if (_retention.enabled()) {
-              auto [it, inserted] =
-                  _metric_earliest_current.try_emplace(m.metric_id(), m.time());
-              if (!inserted && m.time() < it->second)
-                it->second = m.time();
+              uint64_t ect = 0;
+              {
+                absl::MutexLock lk(&_ect_m);
+                auto [it, inserted] = _metric_earliest_current.try_emplace(
+                    m.metric_id(), m.time());
+                if (!inserted && m.time() < it->second)
+                  it->second = m.time();
+                ect = it->second;
+              }
               // Junction: buffer may have already caught up.
-              if (_retention.check_metric_junction(m.metric_id(), it->second)) {
+              if (_retention.check_metric_junction(m.metric_id(), ect)) {
                 SPDLOG_LOGGER_DEBUG(
                     _logger,
                     "RRD: metric {} junction reached via current data (ect={})",
-                    m.metric_id(), it->second);
-                _do_metric_merge(m.metric_id(), metric_path);
+                    m.metric_id(), ect);
+                _schedule_metric_merge(m.metric_id(), metric_path);
               }
             }
           } else {
@@ -297,18 +368,24 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 m.metric_id(), m.time(), step);
             if (_retention.write_metric(m.metric_id(), m.time(), m.value(),
                                         step)) {
-              _do_metric_merge(m.metric_id(), metric_path);
+              _schedule_metric_merge(m.metric_id(), metric_path);
             } else {
-              auto ect_it = _metric_earliest_current.find(m.metric_id());
-              if (ect_it != _metric_earliest_current.end() &&
-                  m.time() + static_cast<uint64_t>(step) >= ect_it->second) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger,
-                    "RRD: metric {} junction reached "
-                    "(t={}+step={}s >= ect={})",
-                    m.metric_id(), m.time(), step, ect_it->second);
-                _do_metric_merge(m.metric_id(), metric_path);
+              bool should_merge = false;
+              {
+                absl::ReaderMutexLock lk(&_ect_m);
+                auto ect_it = _metric_earliest_current.find(m.metric_id());
+                if (ect_it != _metric_earliest_current.end() &&
+                    m.time() + static_cast<uint64_t>(step) >= ect_it->second) {
+                  should_merge = true;
+                  SPDLOG_LOGGER_DEBUG(_logger,
+                                      "RRD: metric {} junction reached "
+                                      "(t={}+step={}s >= ect={})",
+                                      m.metric_id(), m.time(), step,
+                                      ect_it->second);
+                }
               }
+              if (should_merge)
+                _schedule_metric_merge(m.metric_id(), metric_path);
             }
           }
         } else
@@ -380,16 +457,21 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             }
             _backend.update(e->time, v);
             if (_retention.enabled() && !e->is_for_rebuild) {
-              auto [it, inserted] = _metric_earliest_current.try_emplace(
-                  e->metric_id, static_cast<uint64_t>(e->time));
-              if (!inserted && static_cast<uint64_t>(e->time) < it->second)
-                it->second = static_cast<uint64_t>(e->time);
-              if (_retention.check_metric_junction(e->metric_id, it->second)) {
+              uint64_t ect = 0;
+              {
+                absl::MutexLock lk(&_ect_m);
+                auto [it, inserted] = _metric_earliest_current.try_emplace(
+                    e->metric_id, static_cast<uint64_t>(e->time));
+                if (!inserted && static_cast<uint64_t>(e->time) < it->second)
+                  it->second = static_cast<uint64_t>(e->time);
+                ect = it->second;
+              }
+              if (_retention.check_metric_junction(e->metric_id, ect)) {
                 SPDLOG_LOGGER_DEBUG(
                     _logger,
                     "RRD: metric {} junction reached via current data (ect={})",
-                    e->metric_id, it->second);
-                _do_metric_merge(
+                    e->metric_id, ect);
+                _schedule_metric_merge(
                     e->metric_id,
                     (_metrics_path / fmt::format("{}.rrd", e->metric_id))
                         .string());
@@ -402,24 +484,30 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 e->metric_id, e->time, step);
             if (_retention.write_metric(e->metric_id, e->time, e->value,
                                         step)) {
-              _do_metric_merge(
+              _schedule_metric_merge(
                   e->metric_id,
                   (_metrics_path / fmt::format("{}.rrd", e->metric_id))
                       .string());
             } else {
-              auto ect_it = _metric_earliest_current.find(e->metric_id);
-              if (ect_it != _metric_earliest_current.end() &&
-                  static_cast<uint64_t>(e->time) + step >= ect_it->second) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger,
-                    "RRD: metric {} junction reached "
-                    "(t={}+step={}s >= ect={})",
-                    e->metric_id, e->time, step, ect_it->second);
-                _do_metric_merge(
+              bool should_merge = false;
+              {
+                absl::ReaderMutexLock lk(&_ect_m);
+                auto ect_it = _metric_earliest_current.find(e->metric_id);
+                if (ect_it != _metric_earliest_current.end() &&
+                    static_cast<uint64_t>(e->time) + step >= ect_it->second) {
+                  should_merge = true;
+                  SPDLOG_LOGGER_DEBUG(_logger,
+                                      "RRD: metric {} junction reached "
+                                      "(t={}+step={}s >= ect={})",
+                                      e->metric_id, e->time, step,
+                                      ect_it->second);
+                }
+              }
+              if (should_merge)
+                _schedule_metric_merge(
                     e->metric_id,
                     (_metrics_path / fmt::format("{}.rrd", e->metric_id))
                         .string());
-              }
             }
           }
         } else
@@ -473,16 +561,21 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             }
             _backend.update(s.time(), value);
             if (_retention.enabled()) {
-              auto [it, inserted] =
-                  _status_earliest_current.try_emplace(s.index_id(), s.time());
-              if (!inserted && s.time() < it->second)
-                it->second = s.time();
-              if (_retention.check_status_junction(s.index_id(), it->second)) {
+              uint64_t ect = 0;
+              {
+                absl::MutexLock lk(&_ect_m);
+                auto [it, inserted] = _status_earliest_current.try_emplace(
+                    s.index_id(), s.time());
+                if (!inserted && s.time() < it->second)
+                  it->second = s.time();
+                ect = it->second;
+              }
+              if (_retention.check_status_junction(s.index_id(), ect)) {
                 SPDLOG_LOGGER_DEBUG(
                     _logger,
                     "RRD: status {} junction reached via current data (ect={})",
-                    s.index_id(), it->second);
-                _do_status_merge(s.index_id(), status_path);
+                    s.index_id(), ect);
+                _schedule_status_merge(s.index_id(), status_path);
               }
             }
           } else {
@@ -492,18 +585,24 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 s.index_id(), s.time(), step);
             if (_retention.write_status(s.index_id(), s.time(), s.state(),
                                         step)) {
-              _do_status_merge(s.index_id(), status_path);
+              _schedule_status_merge(s.index_id(), status_path);
             } else {
-              auto ect_it = _status_earliest_current.find(s.index_id());
-              if (ect_it != _status_earliest_current.end() &&
-                  s.time() + static_cast<uint64_t>(step) >= ect_it->second) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger,
-                    "RRD: status {} junction reached "
-                    "(t={}+step={}s >= ect={})",
-                    s.index_id(), s.time(), step, ect_it->second);
-                _do_status_merge(s.index_id(), status_path);
+              bool should_merge = false;
+              {
+                absl::ReaderMutexLock lk(&_ect_m);
+                auto ect_it = _status_earliest_current.find(s.index_id());
+                if (ect_it != _status_earliest_current.end() &&
+                    s.time() + static_cast<uint64_t>(step) >= ect_it->second) {
+                  should_merge = true;
+                  SPDLOG_LOGGER_DEBUG(_logger,
+                                      "RRD: status {} junction reached "
+                                      "(t={}+step={}s >= ect={})",
+                                      s.index_id(), s.time(), step,
+                                      ect_it->second);
+                }
               }
+              if (should_merge)
+                _schedule_status_merge(s.index_id(), status_path);
             }
           }
         } else
@@ -556,16 +655,21 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             }
             _backend.update(e->time, value);
             if (_retention.enabled() && !e->is_for_rebuild) {
-              auto [it, inserted] = _status_earliest_current.try_emplace(
-                  e->index_id, static_cast<uint64_t>(e->time));
-              if (!inserted && static_cast<uint64_t>(e->time) < it->second)
-                it->second = static_cast<uint64_t>(e->time);
-              if (_retention.check_status_junction(e->index_id, it->second)) {
+              uint64_t ect = 0;
+              {
+                absl::MutexLock lk(&_ect_m);
+                auto [it, inserted] = _status_earliest_current.try_emplace(
+                    e->index_id, static_cast<uint64_t>(e->time));
+                if (!inserted && static_cast<uint64_t>(e->time) < it->second)
+                  it->second = static_cast<uint64_t>(e->time);
+                ect = it->second;
+              }
+              if (_retention.check_status_junction(e->index_id, ect)) {
                 SPDLOG_LOGGER_DEBUG(
                     _logger,
                     "RRD: status {} junction reached via current data (ect={})",
-                    e->index_id, it->second);
-                _do_status_merge(
+                    e->index_id, ect);
+                _schedule_status_merge(
                     e->index_id,
                     (_status_path / fmt::format("{}.rrd", e->index_id))
                         .string());
@@ -576,25 +680,30 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _logger,
                 "RRD: status {} t={} is old (step={}s) → retention buffer",
                 e->index_id, e->time, step);
-            if (_retention.write_status(e->index_id, e->time, e->state,
-                                        step)) {
-              _do_status_merge(
+            if (_retention.write_status(e->index_id, e->time, e->state, step)) {
+              _schedule_status_merge(
                   e->index_id,
                   (_status_path / fmt::format("{}.rrd", e->index_id)).string());
             } else {
-              auto ect_it = _status_earliest_current.find(e->index_id);
-              if (ect_it != _status_earliest_current.end() &&
-                  static_cast<uint64_t>(e->time) + step >= ect_it->second) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger,
-                    "RRD: status {} junction reached "
-                    "(t={}+step={}s >= ect={})",
-                    e->index_id, e->time, step, ect_it->second);
-                _do_status_merge(
+              bool should_merge = false;
+              {
+                absl::ReaderMutexLock lk(&_ect_m);
+                auto ect_it = _status_earliest_current.find(e->index_id);
+                if (ect_it != _status_earliest_current.end() &&
+                    static_cast<uint64_t>(e->time) + step >= ect_it->second) {
+                  should_merge = true;
+                  SPDLOG_LOGGER_DEBUG(_logger,
+                                      "RRD: status {} junction reached "
+                                      "(t={}+step={}s >= ect={})",
+                                      e->index_id, e->time, step,
+                                      ect_it->second);
+                }
+              }
+              if (should_merge)
+                _schedule_status_merge(
                     e->index_id,
                     (_status_path / fmt::format("{}.rrd", e->index_id))
                         .string());
-              }
             }
           }
         } else
@@ -626,6 +735,9 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             _metrics_rebuild[path];
             /* File removed */
             _backend.remove(path);
+            /* Clear stale retention data so the rebuild starts fresh. */
+            if (_retention.enabled())
+              _retention.remove_metric(m.first);
             // creation of status caches
             path = (_status_path / fmt::format("{}.rrd", m.second)).string();
             if (_status_rebuild.find(path) == _status_rebuild.end()) {
@@ -633,6 +745,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               _metrics_to_index_rebuild[m.first] = m.second;
               /* File removed */
               _backend.remove(path);
+              if (_retention.enabled())
+                _retention.remove_status(m.second);
             }
           }
           break;
@@ -678,6 +792,17 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               }
             }
             _metrics_to_index_rebuild.erase(m.first);
+            /* Trigger async merge to backfill rebuilt data into the RRD files.
+             */
+            if (_retention.enabled()) {
+              _schedule_metric_merge(
+                  m.first,
+                  (_metrics_path / fmt::format("{}.rrd", m.first)).string());
+              if (m.second)
+                _schedule_status_merge(
+                    m.second,
+                    (_status_path / fmt::format("{}.rrd", m.second)).string());
+            }
           }
           break;
         default:
@@ -692,24 +817,28 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
       std::shared_ptr<storage::pb_remove_graph_message> e{
           std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
       for (auto& m : e->obj().metric_ids()) {
-        std::string path{
-            (_metrics_path / fmt::format("{}.rrd", m)).string()};
+        std::string path{(_metrics_path / fmt::format("{}.rrd", m)).string()};
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
         if (_retention.enabled())
           _retention.remove_metric(m);
-        _metric_earliest_current.erase(m);
+        {
+          absl::MutexLock lk(&_ect_m);
+          _metric_earliest_current.erase(m);
+        }
       }
       for (auto& i : e->obj().index_ids()) {
-        std::string path{
-            (_status_path / fmt::format("{}.rrd", i)).string()};
+        std::string path{(_status_path / fmt::format("{}.rrd", i)).string()};
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
         if (_retention.enabled())
           _retention.remove_status(i);
-        _status_earliest_current.erase(i);
+        {
+          absl::MutexLock lk(&_ect_m);
+          _status_earliest_current.erase(i);
+        }
       }
     } break;
     case storage::remove_graph::static_type(): {
@@ -721,10 +850,9 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                           e->is_index ? "index" : "metric", e->id);
 
       // Generate path.
-      std::string path(
-          ((e->is_index ? _status_path : _metrics_path) /
-           fmt::format("{}.rrd", e->id))
-              .string());
+      std::string path(((e->is_index ? _status_path : _metrics_path) /
+                        fmt::format("{}.rrd", e->id))
+                           .string());
 
       // Remove data from cache.
       rebuild_cache& cache(e->is_index ? _status_rebuild : _metrics_rebuild);
@@ -737,10 +865,12 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
       if (e->is_index) {
         if (_retention.enabled())
           _retention.remove_status(e->id);
+        absl::MutexLock lk(&_ect_m);
         _status_earliest_current.erase(e->id);
       } else {
         if (_retention.enabled())
           _retention.remove_metric(e->id);
+        absl::MutexLock lk(&_ect_m);
         _metric_earliest_current.erase(e->id);
       }
     } break;
@@ -761,9 +891,54 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
  * @param metric_id  The metric identifier.
  * @param rrd_path   Absolute path to the metric's .rrd file.
  */
+/**
+ * @brief Trigger merges for all metrics and statuses whose retention data was
+ *        recovered from disk by retention_manager::init().
+ *
+ * Called once from each stream constructor after _retention.init() so that
+ * buffered data from a previous broker run is replayed into the RRD files
+ * immediately, without waiting for new data to arrive.  If an RRD file does
+ * not yet exist the merge is silently deferred (the buffer is preserved on
+ * disk until the file is created by an incoming current-data write).
+ */
+template <typename T>
+void stream<T>::_startup_merge() {
+  if (!_retention.enabled())
+    return;
+
+  if (_write_metrics) {
+    for (uint64_t id : _retention.metric_ids_with_data()) {
+      const std::string path =
+          (_metrics_path / fmt::format("{}.rrd", id)).string();
+      SPDLOG_LOGGER_INFO(_logger,
+                         "RRD: startup merge for recovered metric {} ('{}')",
+                         id, path);
+      _schedule_metric_merge(id, path);
+    }
+  }
+
+  if (_write_status) {
+    for (uint64_t id : _retention.status_ids_with_data()) {
+      const std::string path =
+          (_status_path / fmt::format("{}.rrd", id)).string();
+      SPDLOG_LOGGER_INFO(_logger,
+                         "RRD: startup merge for recovered status {} ('{}')",
+                         id, path);
+      _schedule_status_merge(id, path);
+    }
+  }
+}
+
 template <typename T>
 void stream<T>::_do_metric_merge(uint64_t metric_id,
                                  const std::string& rrd_path) {
+  // 0. Clear the pending flag so that a new merge can be scheduled while this
+  //    one is running (preventing unbounded accumulation).
+  {
+    absl::MutexLock lk(&_merge_pending_m);
+    _pending_metric_merges.erase(metric_id);
+  }
+
   // 1. Collect buffered points.
   auto buf_pts = _retention.get_metric_merge_points(metric_id);
   if (buf_pts.empty()) {
@@ -777,21 +952,22 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
 
   // 2. File must exist (created by a current-data write).
   if (!std::filesystem::exists(rrd_path)) {
-    SPDLOG_LOGGER_WARN(
+    SPDLOG_LOGGER_DEBUG(
         _logger,
-        "RRD: metric {} file '{}' not found during merge — skipping",
+        "RRD: metric {} file '{}' not found — deferring merge until RRD exists",
         metric_id, rrd_path);
-    _retention.metric_merge_done(metric_id);
-    return;
+    return;  // Keep buffer; will retry when current data creates the file.
   }
 
   // 3. For rrdcached: flush pending writes to disk before reading.
+  //    _backend.pre_merge_flush is thread-safe (socket mutex inside cached<T>).
   _backend.pre_merge_flush(rrd_path);
 
-  // 4. Read file metadata and existing data-points.
+  // 4. Read file metadata and existing data-points using the dedicated merge
+  //    lib (avoids contending on _backend's internal _filename state).
   const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
   auto existing =
-      _backend.fetch_existing(rrd_path, buf_pts.front().first, now);
+      _merge_lib.fetch_existing(rrd_path, buf_pts.front().first, now);
 
   if (existing.step == 0) {
     SPDLOG_LOGGER_WARN(
@@ -804,8 +980,8 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
 
   // 5. For non-GAUGE types, rrd_fetch returns rates (not raw values) so a
   //    full reconstruction would produce wrong data.  Fall back to a direct
-  //    update; some points may be silently dropped by librrd but the file
-  //    is not corrupted.
+  //    librrd update; some points may be silently dropped but the file is not
+  //    corrupted.  We also call post_merge_forget to keep rrdcached consistent.
   if (existing.value_type != 0) {
     SPDLOG_LOGGER_DEBUG(
         _logger,
@@ -813,7 +989,7 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
         "(points older than last_update may be discarded by librrd)",
         metric_id, existing.value_type);
     try {
-      _backend.open(rrd_path);
+      _merge_lib.open(rrd_path);
     } catch (const exceptions::open&) {
       _retention.metric_merge_done(metric_id);
       return;
@@ -821,9 +997,13 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
     std::deque<std::string> batch;
     for (const auto& [t, v] : buf_pts)
       batch.emplace_back(fmt::format("{}:{:f}", t, v));
-    _backend.update(batch);
+    _merge_lib.update(batch);
+    _backend.post_merge_forget(rrd_path);
     _retention.metric_merge_done(metric_id);
-    _metric_earliest_current.erase(metric_id);
+    {
+      absl::MutexLock lk(&_ect_m);
+      _metric_earliest_current.erase(metric_id);
+    }
     return;
   }
 
@@ -839,12 +1019,13 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
   for (const auto& [t, v] : merged)
     batch.emplace_back(fmt::format("{}:{:f}", t, v));
 
-  // 8. Create temp file and write all merged points via librrd directly.
+  // 8. Create temp file and write all merged points via _merge_lib (librrd
+  //    directly, bypasses rrdcached socket — safe from the merge thread).
   const std::string tmp_path = rrd_path + ".tmp";
   const time_t from =
       static_cast<time_t>(merged.begin()->first) - existing.step;
-  _backend.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
-                             existing.value_type, batch);
+  _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
+                               existing.value_type, batch);
 
   // 9. Atomic rename: replace the live file with the merged one.
   std::error_code ec;
@@ -863,7 +1044,10 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
 
   // 11. Cleanup.
   _retention.metric_merge_done(metric_id);
-  _metric_earliest_current.erase(metric_id);
+  {
+    absl::MutexLock lk(&_ect_m);
+    _metric_earliest_current.erase(metric_id);
+  }
   SPDLOG_LOGGER_INFO(_logger,
                      "RRD: retention merge for metric {} done ({} points)",
                      metric_id, merged.size());
@@ -878,6 +1062,11 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
 template <typename T>
 void stream<T>::_do_status_merge(uint64_t index_id,
                                  const std::string& rrd_path) {
+  // 0. Clear pending flag.
+  {
+    absl::MutexLock lk(&_merge_pending_m);
+    _pending_status_merges.erase(index_id);
+  }
   // RRD status strings (static storage, safe for string_view).
   static constexpr std::string_view kOk{"100"};
   static constexpr std::string_view kWarn{"75"};
@@ -887,19 +1076,26 @@ void stream<T>::_do_status_merge(uint64_t index_id,
   // State (0=OK/UP, 1=WARN/DOWN, 2=CRIT, else UNKNOWN/PENDING) → RRD string.
   static constexpr auto state_to_str = [](uint32_t state) -> std::string_view {
     switch (state) {
-      case 0:  return kOk;
-      case 1:  return kWarn;
-      case 2:  return kCrit;
-      default: return kUnknown;
+      case 0:
+        return kOk;
+      case 1:
+        return kWarn;
+      case 2:
+        return kCrit;
+      default:
+        return kUnknown;
     }
   };
 
   // double percentage from rrd_fetch → RRD string ("U" if out of range).
   static constexpr auto pct_to_str = [](double v) -> std::string_view {
     int iv = static_cast<int>(std::round(v));
-    if (iv == 100) return kOk;
-    if (iv == 75)  return kWarn;
-    if (iv == 0)   return kCrit;
+    if (iv == 100)
+      return kOk;
+    if (iv == 75)
+      return kWarn;
+    if (iv == 0)
+      return kCrit;
     return kUnknown;
   };
 
@@ -916,21 +1112,22 @@ void stream<T>::_do_status_merge(uint64_t index_id,
 
   // 2. File must exist.
   if (!std::filesystem::exists(rrd_path)) {
-    SPDLOG_LOGGER_WARN(
+    SPDLOG_LOGGER_DEBUG(
         _logger,
-        "RRD: status {} file '{}' not found during merge — skipping",
+        "RRD: status {} file '{}' not found — deferring merge until RRD exists",
         index_id, rrd_path);
-    _retention.status_merge_done(index_id);
-    return;
+    return;  // Keep buffer; will retry when current data creates the file.
   }
 
-  // 3. For rrdcached: flush before read.
+  // 3. For rrdcached: flush before read (thread-safe via socket mutex in
+  // cached<T>).
   _backend.pre_merge_flush(rrd_path);
 
-  // 4. Read metadata and existing data-points.
+  // 4. Read metadata and existing data-points via _merge_lib (no _backend state
+  // used).
   const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
   auto existing =
-      _backend.fetch_existing(rrd_path, buf_pts.front().first, now);
+      _merge_lib.fetch_existing(rrd_path, buf_pts.front().first, now);
 
   if (existing.step == 0) {
     SPDLOG_LOGGER_WARN(
@@ -965,12 +1162,12 @@ void stream<T>::_do_status_merge(uint64_t index_id,
     return;
   }
 
-  // 7. Create temp file and write merged data via librrd directly.
+  // 7. Create temp file and write merged data via _merge_lib (librrd directly).
   const std::string tmp_path = rrd_path + ".tmp";
   const time_t from =
       static_cast<time_t>(merged.begin()->first) - existing.step;
-  _backend.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
-                             /*value_type=*/0, batch);
+  _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
+                               /*value_type=*/0, batch);
 
   // 8. Atomic rename.
   std::error_code ec;
@@ -989,7 +1186,10 @@ void stream<T>::_do_status_merge(uint64_t index_id,
 
   // 10. Cleanup.
   _retention.status_merge_done(index_id);
-  _status_earliest_current.erase(index_id);
+  {
+    absl::MutexLock lk(&_ect_m);
+    _status_earliest_current.erase(index_id);
+  }
   SPDLOG_LOGGER_INFO(_logger,
                      "RRD: retention merge for status {} done ({} points)",
                      index_id, merged.size());
@@ -1004,6 +1204,63 @@ void stream<T>::_do_status_merge(uint64_t index_id,
  */
 template <typename T>
 void stream<T>::_rebuild_data(const RebuildMessage& rm) {
+  if (_retention.enabled()) {
+    // Route rebuild data through the retention buffer.  The RRD files are
+    // created (empty) here so that the merge thread can read their metadata.
+    // The actual data is written by the async merge triggered at END.
+    for (auto& p : rm.timeserie()) {
+      SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding metric {} via retention",
+                          p.first);
+      if (p.second.pts().empty()) {
+        SPDLOG_LOGGER_TRACE(_logger, "Nothing to rebuild for metric {}",
+                            p.first);
+        continue;
+      }
+
+      const uint32_t interval =
+          p.second.check_interval() ? p.second.check_interval() : 60;
+      const time_t start_time =
+          static_cast<time_t>(p.second.pts()[0].ctime()) - interval;
+      const std::string metric_path{
+          (_metrics_path / fmt::format("{}.rrd", p.first)).string()};
+
+      // Create (or reuse) the metric RRD file so the merge can read its
+      // metadata.  The file was already removed in the START phase.
+      try {
+        _backend.open(metric_path);
+      } catch (const exceptions::open&) {
+        _backend.open(metric_path, p.second.rrd_retention(), start_time,
+                      interval, p.second.data_source_type(),
+                      /*without_cache=*/true);
+      }
+
+      // Locate the associated status index.
+      auto index_it = _metrics_to_index_rebuild.find(p.first);
+      const uint64_t index_id =
+          index_it != _metrics_to_index_rebuild.end() ? index_it->second : 0;
+
+      if (index_id) {
+        const std::string status_path{
+            (_status_path / fmt::format("{}.rrd", index_id)).string()};
+        try {
+          _backend.open(status_path);
+        } catch (const exceptions::open&) {
+          _backend.open(status_path, p.second.rrd_retention(), start_time,
+                        interval, /*value_type=*/0, /*without_cache=*/true);
+        }
+      }
+
+      // Buffer all data points — merge at END will write them to RRD.
+      for (const auto& pt : p.second.pts()) {
+        _retention.write_metric(p.first, pt.ctime(), pt.value(), interval);
+        if (index_id)
+          _retention.write_status(index_id, pt.ctime(), pt.status(), interval);
+      }
+    }
+    return;
+  }
+
+  // ---- Legacy direct-write path (no retention configured) ----
   // we can receive the same status indexed by index_id in several metrics, so
   // whe have to reorder that in this container
   struct status_data {
@@ -1045,8 +1302,7 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding metric {}", p.first);
-    std::string path{
-        (_metrics_path / fmt::format("{}.rrd", p.first)).string()};
+    std::string path{(_metrics_path / fmt::format("{}.rrd", p.first)).string()};
     auto index_id_search = _metrics_to_index_rebuild.find(p.first);
     uint64_t index_id = 0;
     if (index_id_search != _metrics_to_index_rebuild.end()) {
@@ -1151,3 +1407,11 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
     _backend.update(status_query);
   }
 }
+
+// Explicit instantiations — required for the destructor which is defined in
+// this translation unit (not inlined in the header) and must be available to
+// the test binary that links against the shared library.
+template stream<lib>::~stream() noexcept;
+template stream<
+    cached<asio::local::stream_protocol::socket>>::~stream() noexcept;
+template stream<cached<asio::ip::tcp::socket>>::~stream() noexcept;

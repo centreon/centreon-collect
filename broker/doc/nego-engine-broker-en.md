@@ -1635,7 +1635,7 @@ configuration file, this default applies.
 
 Requires Step 2.
 
-### Step 4 — Unified reconstruction engine
+### Step 4 — Unified reconstruction engine ✅ implemented
 
 Extend the existing RRD rebuild mechanism (START / DATA / END sequence) to accept
 as input either:

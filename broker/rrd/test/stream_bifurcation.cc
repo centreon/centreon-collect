@@ -317,8 +317,11 @@ TEST_F(StreamBifurcation, MergeTriggeredByFileCountLimit) {
     m.set_value_type(Metric_ValueType_GAUGE);
     s.write(e);
     // After the merge the retention .prot files disappear.
-    if (i > 0)
+    // flush_merges() ensures the background merge thread has completed.
+    if (i > 0) {
+      s.flush_merges();
       merge_triggered = (tmp_dirs::count_prot(tmp.metrics, id) == 0);
+    }
   }
 
   EXPECT_TRUE(merge_triggered)
@@ -346,8 +349,7 @@ std::unique_ptr<retention_manager> make_manager(const tmp_dirs& tmp,
   cfg.status_dir = tmp.status;
   cfg.max_pending_points = max_pending;
   cfg.max_files = 100;
-  auto mgr =
-      std::make_unique<retention_manager>(cfg, spdlog::default_logger());
+  auto mgr = std::make_unique<retention_manager>(cfg, spdlog::default_logger());
   mgr->init();
   return mgr;
 }
@@ -407,8 +409,9 @@ TEST(RetentionManagerJunction, PastBoundary) {
  *
  * Timestamps (step = 60 s, now = std::time(nullptr)):
  *   current point : now - 20  (clearly current: >= now - 60)
- *   old point 1   : now - 90  (old; (now-90)+60 = now-30 < now-20 → no junction)
- *   old point 2   : now - 65  (old; (now-65)+60 = now-5  >= now-20 → junction!)
+ *   old point 1   : now - 90  (old; (now-90)+60 = now-30 < now-20 → no
+ * junction) old point 2   : now - 65  (old; (now-65)+60 = now-5  >= now-20 →
+ * junction!)
  */
 TEST_F(StreamBifurcation, OldDataPathTriggersJunctionMerge) {
   tmp_dirs tmp;
@@ -443,6 +446,7 @@ TEST_F(StreamBifurcation, OldDataPathTriggersJunctionMerge) {
 
   // 3. Old data: (now-65)+60 = now-5 >= now-20 → junction → merge.
   s.write(make_m(now - 65));
+  s.flush_merges();
   EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
       << "junction merge must clear all .prot files";
   EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)));
@@ -492,6 +496,7 @@ TEST_F(StreamBifurcation, CurrentDataPathTriggersJunctionMerge) {
   // 3. First current point → creates .rrd, sets ect = now-20,
   //    check_metric_junction fires → merge.
   s.write(make_m(now - 20));
+  s.flush_merges();
   EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
       << "junction merge must fire on first current-data arrival";
   EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)));
@@ -536,4 +541,223 @@ TEST_F(StreamBifurcation, NoJunctionWithoutCurrentData) {
       << "without current data no junction merge must occur";
   EXPECT_FALSE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
       << "no .rrd file without a merge";
+}
+
+// ---------------------------------------------------------------------------
+// Startup merge: data buffered before a broker restart is replayed
+// ---------------------------------------------------------------------------
+
+/**
+ * Simulate a broker restart:
+ *  1. First stream session: write current data (creates .rrd), then write old
+ *     data (creates .prot files).  Destroy the stream (graceful-shutdown flush
+ *     ensures the pending batch is written to disk).
+ *  2. Second stream session with the same directories: the constructor calls
+ *     retention_manager::init() which recovers the .prot files, then
+ *     _startup_merge() which immediately merges them into the existing .rrd.
+ *
+ * Expected result after restart: no .prot files remain.
+ */
+TEST_F(StreamBifurcation, StartupMergeOnRestart) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 60;
+  const uint64_t id = 9001;
+  // max_pending=1 → each write produces a rotated .prot file immediately.
+  // max_files=100 → no quota merge (we control the merge via startup only).
+  const auto cfg = make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100);
+
+  auto make_m = [&](uint64_t t) {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(id);
+    m.set_time(t);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(42.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    return e;
+  };
+
+  // --- Session 1 ---
+  {
+    stream<lib> s1(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                   cfg);
+    // Current data → creates the .rrd file.
+    s1.write(make_m(now));
+    ASSERT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
+        << "current write must create the .rrd file";
+    // Old data → buffered to .prot files (no junction: more old points could
+    // arrive before the buffer catches up).
+    s1.write(make_m(now - 300));
+    s1.write(make_m(now - 240));
+    // Destructor flushes any in-memory pending batch to disk.
+  }
+
+  ASSERT_GT(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "session 1 must leave .prot files on disk";
+
+  // --- Session 2 (simulates broker restart) ---
+  {
+    stream<lib> s2(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                   cfg);
+    // _startup_merge() ran inside the constructor.
+  }
+
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
+      << "startup merge must consume all .prot files";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", id)))
+      << ".rrd file must still exist after merge";
+}
+
+// ---------------------------------------------------------------------------
+// Step-4: Rebuild path through retention
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/**
+ * @brief Build a START or END RebuildMessage for a single metric/index pair.
+ */
+std::shared_ptr<storage::pb_rebuild_message> make_rebuild_boundary(
+    RebuildMessage_State state,
+    uint64_t metric_id,
+    uint64_t index_id) {
+  auto msg = std::make_shared<storage::pb_rebuild_message>();
+  msg->mut_obj().set_state(state);
+  (*msg->mut_obj().mutable_metric_to_index_id())[metric_id] = index_id;
+  return msg;
+}
+
+/**
+ * @brief Build a DATA RebuildMessage with @p n sequential GAUGE points
+ *        starting at @p base_time, spaced @p step seconds apart.
+ */
+std::shared_ptr<storage::pb_rebuild_message> make_rebuild_data(
+    uint64_t metric_id,
+    uint64_t base_time,
+    uint32_t step,
+    int n) {
+  auto msg = std::make_shared<storage::pb_rebuild_message>();
+  msg->mut_obj().set_state(RebuildMessage_State_DATA);
+  auto& ts = (*msg->mut_obj().mutable_timeserie())[metric_id];
+  ts.set_data_source_type(0);  // GAUGE
+  ts.set_check_interval(step);
+  ts.set_rrd_retention(90u * 24u * 3600u);
+  for (int i = 0; i < n; ++i) {
+    auto* pt = ts.add_pts();
+    pt->set_ctime(
+        static_cast<int64_t>(base_time + static_cast<uint64_t>(i) * step));
+    pt->set_value(static_cast<double>(i));
+    pt->set_status(0);
+  }
+  return msg;
+}
+
+}  // namespace
+
+/**
+ * Full rebuild lifecycle with retention enabled:
+ *   START → DATA (3 points) → END → flush_merges()
+ *
+ * Expected after END + flush_merges():
+ *   - No .prot files remain (merged into the .rrd)
+ *   - The .rrd file exists
+ */
+TEST_F(StreamBifurcation, RebuildLifecycleWithRetention) {
+  tmp_dirs tmp;
+  // max_pending=1 so each retention write produces a rotated .prot file.
+  stream<lib> s(tmp.metrics, tmp.status, 16,
+                /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  const uint64_t metric_id = 11001;
+  const uint64_t index_id = 0;  // no status for this test
+  const uint32_t step = 300;
+  // Points are well in the past so they land in the retention path.
+  const uint64_t base_time = static_cast<uint64_t>(std::time(nullptr)) - 10000;
+
+  s.write(
+      make_rebuild_boundary(RebuildMessage_State_START, metric_id, index_id));
+  s.write(make_rebuild_data(metric_id, base_time, step, 3));
+  // DATA with retention enabled: .prot files must have appeared.
+  EXPECT_GT(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "rebuild DATA must buffer points in .prot files";
+
+  s.write(make_rebuild_boundary(RebuildMessage_State_END, metric_id, index_id));
+  s.flush_merges();
+
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "all .prot files must be consumed by the post-END merge";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", metric_id)))
+      << ".rrd file must exist after rebuild merge";
+}
+
+/**
+ * START clears any pre-existing retention data for the rebuilt metric.
+ *
+ * Scenario:
+ *   1. Write old (backfill) data for a metric → .prot files appear.
+ *   2. Send START for that metric.
+ *   3. .prot files must be gone (retention cleared by START).
+ */
+TEST_F(StreamBifurcation, RebuildStartClearsStaleRetentionData) {
+  tmp_dirs tmp;
+  stream<lib> s(tmp.metrics, tmp.status, 16,
+                /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  const uint64_t metric_id = 11002;
+  const uint64_t index_id = 0;
+  const uint32_t step = 60;
+  const uint64_t old_ts = static_cast<uint64_t>(std::time(nullptr)) - 500;
+
+  // 1. Write old data → buffered in .prot.
+  {
+    auto e = std::make_shared<storage::pb_metric>();
+    Metric& m = e->mut_obj();
+    m.set_metric_id(metric_id);
+    m.set_time(old_ts);
+    m.set_interval(step);
+    m.set_rrd_len(90u * 24u * 3600u);
+    m.set_value(1.0);
+    m.set_value_type(Metric_ValueType_GAUGE);
+    s.write(e);
+  }
+  ASSERT_GT(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "old data must produce .prot files before START";
+
+  // 2. Send START → must clear the stale retention buffer.
+  s.write(
+      make_rebuild_boundary(RebuildMessage_State_START, metric_id, index_id));
+
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "START must erase all pre-existing .prot files for the metric";
+}
+
+/**
+ * Without retention configured, rebuild still works via the legacy
+ * direct-write path: after START/DATA/END the .rrd file exists and no
+ * .prot files were created.
+ */
+TEST_F(StreamBifurcation, RebuildFallbackWithoutRetention) {
+  tmp_dirs tmp;
+  // Retention disabled: empty retention_config.
+  stream<lib> s(tmp.metrics, tmp.status, 16,
+                /*ignore_update_errors=*/true, retention_config{});
+
+  const uint64_t metric_id = 11003;
+  const uint64_t index_id = 0;
+  const uint32_t step = 300;
+  const uint64_t base_time = static_cast<uint64_t>(std::time(nullptr)) - 10000;
+
+  s.write(
+      make_rebuild_boundary(RebuildMessage_State_START, metric_id, index_id));
+  s.write(make_rebuild_data(metric_id, base_time, step, 3));
+  s.write(make_rebuild_boundary(RebuildMessage_State_END, metric_id, index_id));
+
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "no .prot files must be created without retention";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", metric_id)))
+      << ".rrd file must exist after rebuild (direct-write path)";
 }

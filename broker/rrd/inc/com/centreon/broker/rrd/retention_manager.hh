@@ -57,15 +57,24 @@ struct retention_config {
  */
 template <typename BatchT>
 struct retention_state {
+  /// The current-file path is set once at construction and never changes, so
+  /// it is the only field safe to read without holding @c mutex.
+  explicit retention_state(std::filesystem::path path)
+      : current_path(std::move(path)) {}
+
   absl::Mutex mutex;
-  uint32_t step = 0;                   ///< Metric step in seconds
-  uint64_t last_retention_time = 0;    ///< Timestamp of last buffered point
-  uint64_t last_activity_time = 0;     ///< Wall-clock time of last write
-  std::filesystem::path current_path;  ///< Path for the shutdown flush
-  std::vector<std::filesystem::path>
-      rotated_files;   ///< Immutable on-disk files (oldest first)
-  BatchT pending;      ///< In-memory batch, not yet serialised to disk
-                       ///< points_size() drives the rotation threshold
+  uint32_t step ABSL_GUARDED_BY(mutex) = 0;  ///< Metric step in seconds
+  uint64_t last_retention_time ABSL_GUARDED_BY(mutex) =
+      0;  ///< Timestamp of last buffered point
+  uint64_t last_activity_time ABSL_GUARDED_BY(mutex) =
+      0;  ///< Wall-clock time of last write
+  /// Path for the graceful-shutdown flush.  Initialised by the constructor.
+  const std::filesystem::path current_path;
+  std::vector<std::filesystem::path> rotated_files
+      ABSL_GUARDED_BY(mutex);  ///< Immutable on-disk files (oldest first)
+  BatchT pending
+      ABSL_GUARDED_BY(mutex);  ///< In-memory batch, not yet serialised to disk
+                               ///< points_size() drives the rotation threshold
 };
 
 using metric_retention_state = retention_state<MetricRetentionBatch>;
@@ -78,8 +87,8 @@ using status_retention_state = retention_state<StatusRetentionBatch>;
  *
  * Data flow:
  *   write_metric/status()  →  add point to in-memory protobuf batch
- *   combined points_size() >= max_pending_points  →  serialise batch to rotated file
- *   ~retention_manager()  →  serialise remaining batch to {id}.prot
+ *   combined points_size() >= max_pending_points  →  serialise batch to rotated
+ * file ~retention_manager()  →  serialise remaining batch to {id}.prot
  *
  * On-disk layout (co-located with .rrd files):
  *   {metrics_dir}/{id}.prot         (graceful-shutdown flush)
@@ -99,22 +108,20 @@ class retention_manager {
   retention_config _config;
   std::shared_ptr<spdlog::logger> _logger;
 
-  absl::Mutex _metrics_mutex;
+  absl::Mutex _metrics_m;
   absl::flat_hash_map<uint64_t, std::unique_ptr<metric_retention_state>>
-      _metrics ABSL_GUARDED_BY(_metrics_mutex);
+      _metrics ABSL_GUARDED_BY(_metrics_m);
 
-  absl::Mutex _statuses_mutex;
+  absl::Mutex _statuses_m;
   absl::flat_hash_map<uint64_t, std::unique_ptr<status_retention_state>>
-      _statuses ABSL_GUARDED_BY(_statuses_mutex);
+      _statuses ABSL_GUARDED_BY(_statuses_m);
 
   // ---- internal helpers ----
 
-  template <typename StateT>
-  StateT& _get_or_create(
-      absl::Mutex& map_mutex,
-      absl::flat_hash_map<uint64_t, std::unique_ptr<StateT>>& map,
-      uint64_t id,
-      const std::filesystem::path& dir) ABSL_LOCKS_EXCLUDED(map_mutex);
+  metric_retention_state& _get_or_create_metric(uint64_t id)
+      ABSL_LOCKS_EXCLUDED(_metrics_m);
+  status_retention_state& _get_or_create_status(uint64_t id)
+      ABSL_LOCKS_EXCLUDED(_statuses_m);
 
   /// Serialise pending batch to a new rotated file; clears batch afterwards.
   template <typename StateT>
@@ -123,21 +130,19 @@ class retention_manager {
 
   /// Serialise remaining pending batch to {id}.prot; used at shutdown.
   template <typename StateT>
-  void _flush_pending(StateT& state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  void _flush_pending(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
 
-  /// Check if pending batch has grown past max_pending_points and rotate if needed.
+  /// Check if pending batch has grown past max_pending_points and rotate if
+  /// needed.
   template <typename StateT>
   bool _check_and_rotate(StateT& state)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
 
   template <typename StateT>
-  void _clear_merge(StateT& state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  void _clear_merge(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
 
   template <typename StateT>
-  void _remove_state(StateT& state)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
+  void _remove_state(StateT& state) ABSL_EXCLUSIVE_LOCKS_REQUIRED(state.mutex);
 
   static std::vector<std::pair<uint64_t, double>> _read_metric_points(
       const std::vector<std::filesystem::path>& files,
@@ -243,8 +248,21 @@ class retention_manager {
   /**
    * @brief Same as check_metric_junction() for a status index.
    */
-  bool check_status_junction(uint64_t index_id,
-                             uint64_t earliest_current_time);
+  bool check_status_junction(uint64_t index_id, uint64_t earliest_current_time);
+
+  /**
+   * @brief Return the IDs of all metrics that have at least one buffered point
+   *        (rotated file, current file, or pending batch).
+   *
+   * Used at startup to schedule merges for data recovered by init().
+   */
+  std::vector<uint64_t> metric_ids_with_data();
+
+  /**
+   * @brief Return the IDs of all status indices that have at least one buffered
+   *        point.
+   */
+  std::vector<uint64_t> status_ids_with_data();
 
   /**
    * @brief Remove retention buffers for metrics inactive longer than

@@ -1955,7 +1955,7 @@ fichier de configuration, cette valeur par défaut s'applique.
 
 Nécessite Étape 2.
 
-### Étape 4 — Moteur de reconstruction unifié
+### Étape 4 — Moteur de reconstruction unifié ✅ implémentée
 
 Étendre le mécanisme de rebuild RRD existant (séquence START / DATA / END) pour
 qu'il accepte en entrée soit :

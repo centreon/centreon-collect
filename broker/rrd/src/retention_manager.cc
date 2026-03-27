@@ -69,15 +69,16 @@ retention_manager::retention_manager(retention_config config,
 
 retention_manager::~retention_manager() {
   // Flush in-memory pending batches to disk for graceful shutdown.
-  auto flush_map = [this](absl::Mutex& map_mutex, auto& map) {
-    absl::MutexLock lk(&map_mutex);
-    for (auto& [id, state] : map) {
-      absl::MutexLock slk(&state->mutex);
-      _flush_pending(*state);
-    }
-  };
-  flush_map(_metrics_mutex, _metrics);
-  flush_map(_statuses_mutex, _statuses);
+  auto flush_map = [this](absl::Mutex& map_mutex, auto& map)
+                       ABSL_NO_THREAD_SAFETY_ANALYSIS {
+                         absl::MutexLock lk(&map_mutex);
+                         for (auto& [id, state] : map) {
+                           absl::MutexLock slk(&state->mutex);
+                           _flush_pending(*state);
+                         }
+                       };
+  flush_map(_metrics_m, _metrics);
+  flush_map(_statuses_m, _statuses);
 }
 
 /**
@@ -125,24 +126,13 @@ void retention_manager::init() {
     return std::make_tuple(id, ts, true);
   };
 
-  /**
-   * @brief Scan a directory for .prot files, parse their names to group them by
-   * metric/status ID, and update the corresponding in-memory state maps.  For
-   * each ID, the current file (if any) is distinguished from rotated files, and
-   * the in-memory state is updated accordingly.  The map_mutex is used to
-   * protect concurrent access to the map, and the logger is used for error
-   * reporting and debug messages.
-   *
-   * @param dir The directory to scan (e.g., metrics_dir or status_dir).
-   * @param map_mutex The mutex protecting the map to update.
-   * @param map The map to update with the found files, keyed by metric/status
-   * ID.
-   * @param kind A string ("metric" or "status") used in log messages for
-   * clarity.
-   *
-   */
-  auto scan_dir = [&](const fs::path& dir, absl::Mutex& map_mutex, auto& map,
-                      const char* kind) {
+  // Helper: scan one directory, build a sorted per-ID list of file_info, then
+  // populate rotated_files for each recovered state.  Written as a lambda only
+  // to avoid duplicating the parse_name/directory-scan boilerplate; the actual
+  // map access is done via the typed _get_or_create_metric/_status methods so
+  // the thread-safety analyser sees the right mutex.
+  auto scan_dir = [&](const fs::path& dir, const char* kind,
+                      auto get_or_create_fn) ABSL_NO_THREAD_SAFETY_ANALYSIS {
     if (dir.empty())
       return;
 
@@ -176,58 +166,50 @@ void retention_manager::init() {
                   return a.ts < b.ts;
                 });
 
-      using StateT =
-          typename std::decay_t<decltype(map)>::mapped_type::element_type;
-      StateT& state = _get_or_create(map_mutex, map, id, dir);
+      auto& state = get_or_create_fn(id);
 
       absl::MutexLock lk(&state.mutex);
       for (const auto& fi : files) {
         if (fi.is_rotated)
           state.rotated_files.push_back(fi.path);
-        else
-          state.current_path = fi.path;
+        // non-rotated: current_path is already set by the constructor
       }
-      SPDLOG_LOGGER_DEBUG(
-          _logger, "retention: recovered {} rotated + current for {} id={}",
-          state.rotated_files.size(), kind, id);
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "retention: recovered {} rotated files for {} id={}",
+                          state.rotated_files.size(), kind, id);
     }
   };
 
-  scan_dir(_config.metrics_dir, _metrics_mutex, _metrics, "metric");
-  scan_dir(_config.status_dir, _statuses_mutex, _statuses, "status");
+  scan_dir(_config.metrics_dir, "metric",
+           [this](uint64_t id) -> metric_retention_state& {
+             return _get_or_create_metric(id);
+           });
+  scan_dir(_config.status_dir, "status",
+           [this](uint64_t id) -> status_retention_state& {
+             return _get_or_create_status(id);
+           });
 }
 
-/**
- * @brief Helper to get or create the retention state for a given metric/status
- * ID.
- *
- * @tparam StateT The type of the retention state (metric_retention_state or
- * status_retention_state).
- * @param map_mutex The mutex protecting the map to access.
- * @param map The map to access, keyed by metric/status ID and containing
- * unique_ptr to the state.
- * @param id The metric or status ID for which to get or create the state.
- * @param dir The base directory where the .prot files are stored (used to
- * generate the current file path for new states).
- *
- * @return A reference to the retention state for the given ID.  If the state
- * does not already exist in the map, a new one is created with an empty pending
- * batch, no rotated files, and a current file path generated from the directory
- * and ID.  The map_mutex is locked during the operation to ensure thread
- * safety.
- */
-template <typename StateT>
-StateT& retention_manager::_get_or_create(
-    absl::Mutex& map_mutex,
-    absl::flat_hash_map<uint64_t, std::unique_ptr<StateT>>& map,
-    uint64_t id,
-    const fs::path& dir) {
-  absl::MutexLock lk(&map_mutex);
-  auto it = map.find(id);
-  if (it == map.end()) {
-    auto state = std::make_unique<StateT>();
-    state->current_path = _current_path(dir, id);
-    it = map.emplace(id, std::move(state)).first;
+metric_retention_state& retention_manager::_get_or_create_metric(uint64_t id) {
+  absl::MutexLock lk(&_metrics_m);
+  auto it = _metrics.find(id);
+  if (it == _metrics.end()) {
+    it = _metrics
+             .emplace(id, std::make_unique<metric_retention_state>(
+                              _current_path(_config.metrics_dir, id)))
+             .first;
+  }
+  return *it->second;
+}
+
+status_retention_state& retention_manager::_get_or_create_status(uint64_t id) {
+  absl::MutexLock lk(&_statuses_m);
+  auto it = _statuses.find(id);
+  if (it == _statuses.end()) {
+    it = _statuses
+             .emplace(id, std::make_unique<status_retention_state>(
+                              _current_path(_config.status_dir, id)))
+             .first;
   }
   return *it->second;
 }
@@ -367,7 +349,7 @@ void retention_manager::_remove_state(StateT& state) {
  * given metric ID.  If the batch reaches the configured max_pending_points, it
  * is flushed to a new rotated file and a merge is triggered if the number of
  * rotated files reaches max_files.  The state for the metric ID is created if
- * it does not already exist.  The caller should hold the _metrics_mutex when
+ * it does not already exist.  The caller should hold the _metrics_m when
  * calling this function to ensure thread safety.
  *
  * @param metric_id The identifier of the metric for which to write the data
@@ -392,8 +374,7 @@ bool retention_manager::write_metric(uint64_t metric_id,
   if (_config.metrics_dir.empty())
     return false;
 
-  metric_retention_state& state =
-      _get_or_create(_metrics_mutex, _metrics, metric_id, _config.metrics_dir);
+  metric_retention_state& state = _get_or_create_metric(metric_id);
 
   absl::MutexLock lk(&state.mutex);
   state.step = step;
@@ -412,7 +393,7 @@ bool retention_manager::write_metric(uint64_t metric_id,
  * given index ID.  If the batch reaches the configured max_pending_points, it
  * is flushed to a new rotated file and a merge is triggered if the number of
  * rotated files reaches max_files.  The state for the index ID is created if it
- * does not already exist.  The caller should hold the _statuses_mutex when
+ * does not already exist.  The caller should hold the _statuses_m when
  * calling this function to ensure thread safety.
  *
  * @param index_id The identifier of the status index for which to write the
@@ -438,8 +419,7 @@ bool retention_manager::write_status(uint64_t index_id,
   if (_config.status_dir.empty())
     return false;
 
-  status_retention_state& state =
-      _get_or_create(_statuses_mutex, _statuses, index_id, _config.status_dir);
+  status_retention_state& state = _get_or_create_status(index_id);
 
   absl::MutexLock lk(&state.mutex);
   state.step = step;
@@ -541,7 +521,7 @@ retention_manager::_read_status_points(const std::vector<fs::path>& files,
 /**
  * @brief Get all data points for a given metric ID from the rotated files and
  * current file, and combine them with any pending points in memory.  The caller
- * should hold the _metrics_mutex when calling this function to ensure thread
+ * should hold the _metrics_m when calling this function to ensure thread
  * safety.  The returned vector contains pairs of (time, value) for all points
  * associated with the metric ID, including those from on-disk files and the
  * in-memory batch.  This function is typically called during a merge operation
@@ -561,7 +541,7 @@ retention_manager::_read_status_points(const std::vector<fs::path>& files,
  */
 std::vector<std::pair<uint64_t, double>>
 retention_manager::get_metric_merge_points(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_mutex);
+  absl::MutexLock lk(&_metrics_m);
   auto it = _metrics.find(metric_id);
   if (it == _metrics.end())
     return {};
@@ -577,7 +557,7 @@ retention_manager::get_metric_merge_points(uint64_t metric_id) {
 /**
  * @brief Get all data points for a given status index ID from the rotated files
  * and current file, and combine them with any pending points in memory.  The
- * caller should hold the _statuses_mutex when calling this function to ensure
+ * caller should hold the _statuses_m when calling this function to ensure
  * thread safety.  The returned vector contains pairs of (time, status) for all
  * points associated with the index ID, including those from on-disk files and
  * the in-memory batch.  This function is typically called during a merge
@@ -598,7 +578,7 @@ retention_manager::get_metric_merge_points(uint64_t metric_id) {
  */
 std::vector<std::pair<uint64_t, uint32_t>>
 retention_manager::get_status_merge_points(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_mutex);
+  absl::MutexLock lk(&_statuses_m);
   auto it = _statuses.find(index_id);
   if (it == _statuses.end())
     return {};
@@ -617,7 +597,7 @@ retention_manager::get_status_merge_points(uint64_t index_id) {
  * retention data for a metric has been successfully merged into the main RRD
  * files, and it resets the retention state for that metric ID by deleting all
  * associated files and clearing the in-memory batch.  The caller should hold
- * the _metrics_mutex when calling this function to ensure thread safety, and it
+ * the _metrics_m when calling this function to ensure thread safety, and it
  * should also hold the mutex for the specific metric state while calling this
  * function to avoid concurrent modifications.  If the metric ID does not exist
  * in the retention manager, this function does nothing.
@@ -629,7 +609,7 @@ retention_manager::get_status_merge_points(uint64_t index_id) {
  * exist, the function will simply return without performing any actions.
  */
 void retention_manager::metric_merge_done(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_mutex);
+  absl::MutexLock lk(&_metrics_m);
   auto it = _metrics.find(metric_id);
   if (it == _metrics.end())
     return;
@@ -643,7 +623,7 @@ void retention_manager::metric_merge_done(uint64_t metric_id) {
  * after the retention data for a status index has been successfully merged into
  * the main RRD files, and it resets the retention state for that index ID by
  * deleting all associated files and clearing the in-memory batch.  The caller
- * should hold the _statuses_mutex when calling this function to ensure thread
+ * should hold the _statuses_m when calling this function to ensure thread
  * safety, and it should also hold the mutex for the specific status state while
  * calling this function to avoid concurrent modifications.  If the index ID
  * does not exist in the retention manager, this function does nothing.
@@ -655,7 +635,7 @@ void retention_manager::metric_merge_done(uint64_t metric_id) {
  * exist, the function will simply return without performing any actions.
  */
 void retention_manager::status_merge_done(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_mutex);
+  absl::MutexLock lk(&_statuses_m);
   auto it = _statuses.find(index_id);
   if (it == _statuses.end())
     return;
@@ -669,7 +649,7 @@ void retention_manager::status_merge_done(uint64_t index_id) {
  * system, and it cleans up all associated retention data for that metric ID by
  * deleting all rotated files and the current file from disk, and removing the
  * in-memory state from the retention manager.  The caller should hold the
- * _metrics_mutex when calling this function to ensure thread safety, and it
+ * _metrics_m when calling this function to ensure thread safety, and it
  * should also hold the mutex for the specific metric state while calling this
  * function to avoid concurrent modifications.  If the metric ID does not exist
  * in the retention manager, this function does nothing.
@@ -682,7 +662,7 @@ void retention_manager::status_merge_done(uint64_t index_id) {
  * simply return without performing any actions.
  */
 void retention_manager::remove_metric(uint64_t metric_id) {
-  absl::MutexLock lk(&_metrics_mutex);
+  absl::MutexLock lk(&_metrics_m);
   auto it = _metrics.find(metric_id);
   if (it == _metrics.end())
     return;
@@ -699,7 +679,7 @@ void retention_manager::remove_metric(uint64_t metric_id) {
  * removed from the system, and it cleans up all associated retention data for
  * that index ID by deleting all rotated files and the current file from disk,
  * and removing the in-memory state from the retention manager.  The caller
- * should hold the _statuses_mutex when calling this function to ensure thread
+ * should hold the _statuses_m when calling this function to ensure thread
  * safety, and it should also hold the mutex for the specific status state while
  * calling this function to avoid concurrent modifications.  If the index ID
  * does not exist in the retention manager, this function does nothing.
@@ -712,7 +692,7 @@ void retention_manager::remove_metric(uint64_t metric_id) {
  * return without performing any actions.
  */
 void retention_manager::remove_status(uint64_t index_id) {
-  absl::MutexLock lk(&_statuses_mutex);
+  absl::MutexLock lk(&_statuses_m);
   auto it = _statuses.find(index_id);
   if (it == _statuses.end())
     return;
@@ -759,7 +739,7 @@ bool retention_manager::check_metric_junction(uint64_t metric_id,
                                               uint64_t earliest_current_time) {
   if (earliest_current_time == 0)
     return false;
-  absl::ReaderMutexLock map_lk(&_metrics_mutex);
+  absl::ReaderMutexLock map_lk(&_metrics_m);
   auto it = _metrics.find(metric_id);
   if (it == _metrics.end())
     return false;
@@ -776,7 +756,7 @@ bool retention_manager::check_status_junction(uint64_t index_id,
                                               uint64_t earliest_current_time) {
   if (earliest_current_time == 0)
     return false;
-  absl::ReaderMutexLock map_lk(&_statuses_mutex);
+  absl::ReaderMutexLock map_lk(&_statuses_m);
   auto it = _statuses.find(index_id);
   if (it == _statuses.end())
     return false;
@@ -786,8 +766,39 @@ bool retention_manager::check_status_junction(uint64_t index_id,
          state.last_retention_time + state.step >= earliest_current_time;
 }
 
+std::vector<uint64_t> retention_manager::metric_ids_with_data() {
+  absl::ReaderMutexLock lk(&_metrics_m);
+  std::vector<uint64_t> result;
+  result.reserve(_metrics.size());
+  for (const auto& [id, state_ptr] : _metrics) {
+    absl::ReaderMutexLock slk(&state_ptr->mutex);
+    if (!state_ptr->rotated_files.empty() ||
+        !state_ptr->pending.points().empty() ||
+        (!state_ptr->current_path.empty() &&
+         std::filesystem::exists(state_ptr->current_path)))
+      result.push_back(id);
+  }
+  return result;
+}
+
+std::vector<uint64_t> retention_manager::status_ids_with_data() {
+  absl::ReaderMutexLock lk(&_statuses_m);
+  std::vector<uint64_t> result;
+  result.reserve(_statuses.size());
+  for (const auto& [id, state_ptr] : _statuses) {
+    absl::ReaderMutexLock slk(&state_ptr->mutex);
+    if (!state_ptr->rotated_files.empty() ||
+        !state_ptr->pending.points().empty() ||
+        (!state_ptr->current_path.empty() &&
+         std::filesystem::exists(state_ptr->current_path)))
+      result.push_back(id);
+  }
+  return result;
+}
+
 void retention_manager::cleanup_orphans(uint64_t now_seconds) {
-  auto cleanup_map = [&](absl::Mutex& map_mutex, auto& map, const char* kind) {
+  auto cleanup_map = [&](absl::Mutex& map_mutex, auto& map,
+                         const char* kind) ABSL_NO_THREAD_SAFETY_ANALYSIS {
     absl::MutexLock lk(&map_mutex);
     absl::erase_if(map, [&](auto& kv) {
       auto& [id, state_ptr] = kv;
@@ -804,20 +815,9 @@ void retention_manager::cleanup_orphans(uint64_t now_seconds) {
     });
   };
 
-  cleanup_map(_metrics_mutex, _metrics, "metric");
-  cleanup_map(_statuses_mutex, _statuses, "status");
+  cleanup_map(_metrics_m, _metrics, "metric");
+  cleanup_map(_statuses_m, _statuses, "status");
 }
-
-template metric_retention_state& retention_manager::_get_or_create(
-    absl::Mutex&,
-    absl::flat_hash_map<uint64_t, std::unique_ptr<metric_retention_state>>&,
-    uint64_t,
-    const fs::path&);
-template status_retention_state& retention_manager::_get_or_create(
-    absl::Mutex&,
-    absl::flat_hash_map<uint64_t, std::unique_ptr<status_retention_state>>&,
-    uint64_t,
-    const fs::path&);
 
 template void retention_manager::_flush_to_rotated(metric_retention_state&);
 template void retention_manager::_flush_to_rotated(status_retention_state&);
