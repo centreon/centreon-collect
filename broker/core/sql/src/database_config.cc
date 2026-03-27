@@ -168,8 +168,8 @@ database_config::database_config(
     _password = found->second;
 
   try {
-    common::vault::vault_access::load(global_params, _config_logger)
-        ->decrypt(_password);
+    _password = common::vault::vault_access::load(global_params, _config_logger)
+                    ->decrypt(_password);
     _config_logger->info("Database password get from Vault configuration");
   } catch (const std::exception& e) {
     if (common::vault::vault_access::is_vault_prefixed(_password)) {

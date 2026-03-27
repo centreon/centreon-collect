@@ -85,11 +85,11 @@ static std::string read_file(const std::string& path) {
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const std::map<std::string, std::string>& global_params,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
-    return _new_endpoint_bbdo_cs(cfg, is_acceptor);
+    return _new_endpoint_bbdo_cs(cfg, global_params, is_acceptor);
 
   // Find host (if exists).
   std::string host;
@@ -195,12 +195,12 @@ io::endpoint* factory::new_endpoint(
     authorization = it->second;
     // if crypted => decrypt
     try {
-      common::vault::vault_access::load(global_params,
-                                        log_v2::instance().get(log_v2::GRPC))
-          ->decrypt(authorization);
+      authorization = common::vault::vault_access::load(
+                          global_params, log_v2::instance().get(log_v2::GRPC))
+                          ->decrypt(authorization);
       log_v2::instance()
           .get(log_v2::GRPC)
-          ->info("Database password get from Vault configuration");
+          ->info("Authorization get from Vault configuration");
     } catch (const std::exception& e) {
       if (common::vault::vault_access::is_vault_prefixed(authorization)) {
         log_v2::instance()
@@ -286,6 +286,7 @@ io::endpoint* factory::new_endpoint(
  */
 io::endpoint* factory::_new_endpoint_bbdo_cs(
     com::centreon::broker::config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
     bool& is_acceptor) const {
   // Find host (if exists).
   std::string host;
@@ -342,12 +343,27 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   // Find authorization token (if exists).
   std::string authorization;
   it = cfg.params.find("authorization");
-  if (it != cfg.params.end())
+  if (it != cfg.params.end()) {
     authorization = it->second;
-  log_v2::instance()
-      .get(log_v2::GRPC)
-      ->debug("GRPC: 'authorization' field contains '{}'", authorization);
-
+    log_v2::instance()
+        .get(log_v2::GRPC)
+        ->debug("GRPC: 'authorization' field contains '{}'", authorization);
+    // if crypted => decrypt
+    try {
+      authorization = common::vault::vault_access::load(
+                          global_params, log_v2::instance().get(log_v2::GRPC))
+                          ->decrypt(authorization);
+      log_v2::instance()
+          .get(log_v2::GRPC)
+          ->info("Authorization get from Vault configuration");
+    } catch (const std::exception& e) {
+      if (common::vault::vault_access::is_vault_prefixed(authorization)) {
+        log_v2::instance()
+            .get(log_v2::GRPC)
+            ->error("No usable Vault configuration: {}", e.what());
+      }
+    }
+  }
   // Find ca_name token (if exists).
   std::string ca_name;
   it = cfg.params.find("ca_name");
