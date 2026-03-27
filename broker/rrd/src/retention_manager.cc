@@ -380,6 +380,9 @@ bool retention_manager::write_metric(uint64_t metric_id,
   state.step = step;
   state.last_retention_time = time;
   state.last_activity_time = static_cast<uint64_t>(std::time(nullptr));
+  // Initialise partial-merge timestamp on the very first write (Step 3.3).
+  if (state.last_partial_merge_ts == 0)
+    state.last_partial_merge_ts = time;
 
   auto* pt = state.pending.add_points();
   pt->set_time(time);
@@ -425,6 +428,9 @@ bool retention_manager::write_status(uint64_t index_id,
   state.step = step;
   state.last_retention_time = time;
   state.last_activity_time = static_cast<uint64_t>(std::time(nullptr));
+  // Initialise partial-merge timestamp on the very first write (Step 3.3).
+  if (state.last_partial_merge_ts == 0)
+    state.last_partial_merge_ts = time;
 
   auto* pt = state.pending.add_points();
   pt->set_time(time);
@@ -614,6 +620,9 @@ void retention_manager::metric_merge_done(uint64_t metric_id) {
   if (it == _metrics.end())
     return;
   absl::MutexLock slk(&it->second->mutex);
+  // Advance the partial-merge cursor so the next write does not immediately
+  // re-trigger.  last_retention_time is not cleared by _clear_merge.
+  it->second->last_partial_merge_ts = it->second->last_retention_time;
   _clear_merge(*it->second);
 }
 
@@ -640,6 +649,7 @@ void retention_manager::status_merge_done(uint64_t index_id) {
   if (it == _statuses.end())
     return;
   absl::MutexLock slk(&it->second->mutex);
+  it->second->last_partial_merge_ts = it->second->last_retention_time;
   _clear_merge(*it->second);
 }
 
@@ -817,6 +827,77 @@ void retention_manager::cleanup_orphans(uint64_t now_seconds) {
 
   cleanup_map(_metrics_m, _metrics, "metric");
   cleanup_map(_statuses_m, _statuses, "status");
+}
+
+// ---------------------------------------------------------------------------
+// Step 3.2 / 3.3 helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Return the @c last_retention_time for a metric (0 if unknown).
+ *
+ * Called from the stream write path to read the previous timestamp before
+ * appending a new point, enabling gap detection (Step 3.2).
+ */
+uint64_t retention_manager::last_metric_time(uint64_t metric_id) {
+  absl::ReaderMutexLock lk(&_metrics_m);
+  auto it = _metrics.find(metric_id);
+  if (it == _metrics.end())
+    return 0;
+  metric_retention_state& s = *it->second;
+  absl::ReaderMutexLock slk(&s.mutex);
+  return s.last_retention_time;
+}
+
+/**
+ * @brief Return the @c last_retention_time for a status index (0 if unknown).
+ */
+uint64_t retention_manager::last_status_time(uint64_t index_id) {
+  absl::ReaderMutexLock lk(&_statuses_m);
+  auto it = _statuses.find(index_id);
+  if (it == _statuses.end())
+    return 0;
+  status_retention_state& s = *it->second;
+  absl::ReaderMutexLock slk(&s.mutex);
+  return s.last_retention_time;
+}
+
+/**
+ * @brief Check if a partial merge should be triggered for a metric (Step 3.3).
+ *
+ * Returns true when
+ *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
+ * and @c last_partial_merge_ts is already initialised (non-zero).
+ */
+bool retention_manager::check_metric_partial_merge(uint64_t metric_id) {
+  absl::ReaderMutexLock lk(&_metrics_m);
+  auto it = _metrics.find(metric_id);
+  if (it == _metrics.end())
+    return false;
+  metric_retention_state& s = *it->second;
+  absl::ReaderMutexLock slk(&s.mutex);
+  if (s.last_partial_merge_ts == 0 || s.last_retention_time == 0)
+    return false;
+  return s.last_retention_time >= s.last_partial_merge_ts &&
+         s.last_retention_time - s.last_partial_merge_ts >=
+             _config.partial_merge_interval;
+}
+
+/**
+ * @brief Check if a partial merge should be triggered for a status index.
+ */
+bool retention_manager::check_status_partial_merge(uint64_t index_id) {
+  absl::ReaderMutexLock lk(&_statuses_m);
+  auto it = _statuses.find(index_id);
+  if (it == _statuses.end())
+    return false;
+  status_retention_state& s = *it->second;
+  absl::ReaderMutexLock slk(&s.mutex);
+  if (s.last_partial_merge_ts == 0 || s.last_retention_time == 0)
+    return false;
+  return s.last_retention_time >= s.last_partial_merge_ts &&
+         s.last_retention_time - s.last_partial_merge_ts >=
+             _config.partial_merge_interval;
 }
 
 template void retention_manager::_flush_to_rotated(metric_retention_state&);
