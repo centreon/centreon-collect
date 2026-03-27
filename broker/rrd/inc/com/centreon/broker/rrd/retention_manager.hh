@@ -42,6 +42,9 @@ struct retention_config {
   uint32_t max_pending_points = 144;
   uint32_t max_files = 5;           ///< Max rotated files before forced merge
   uint32_t orphan_interval = 3600;  ///< Inactivity seconds before cleanup
+  /// Time window (seconds) that must elapse between two successive partial
+  /// merges for the same metric/status (Step 3.3).  Default: 1 day.
+  uint64_t partial_merge_interval = 86400;
 };
 
 /**
@@ -68,6 +71,9 @@ struct retention_state {
       0;  ///< Timestamp of last buffered point
   uint64_t last_activity_time ABSL_GUARDED_BY(mutex) =
       0;  ///< Wall-clock time of last write
+  /// Timestamp of the last partial merge (or the first buffered point if no
+  /// merge has run yet).  0 = not yet initialized.
+  uint64_t last_partial_merge_ts ABSL_GUARDED_BY(mutex) = 0;
   /// Path for the graceful-shutdown flush.  Initialised by the constructor.
   const std::filesystem::path current_path;
   std::vector<std::filesystem::path> rotated_files
@@ -225,6 +231,28 @@ class retention_manager {
    */
   void remove_metric(uint64_t metric_id);
   void remove_status(uint64_t index_id);
+
+  /**
+   * @brief Return the last buffered timestamp for a metric/status (0 if none).
+   *
+   * Used by the stream write path to detect gaps between consecutive old-data
+   * points (Step 3.2).
+   */
+  uint64_t last_metric_time(uint64_t metric_id);
+  uint64_t last_status_time(uint64_t index_id);
+
+  /**
+   * @brief Check whether a partial merge should be triggered.
+   *
+   * Returns true when the buffer has accumulated at least @c
+   * partial_merge_interval seconds of data since the previous (partial) merge:
+   *   last_retention_time - last_partial_merge_ts >= partial_merge_interval
+   *
+   * Returns false if the state is not yet initialised (@c last_partial_merge_ts
+   * == 0) to avoid a spurious trigger on the very first write.
+   */
+  bool check_metric_partial_merge(uint64_t metric_id);
+  bool check_status_partial_merge(uint64_t index_id);
 
   /**
    * @brief Check whether the junction condition is met for a metric.
