@@ -340,9 +340,6 @@ int main(int argc, char* argv[]) {
         config::applier::state::instance().apply(conf, !check);
         broker_name = conf.broker_name();
         gl_state = conf;
-        cache::global_cache::load(
-            com::centreon::common::pool::io_context_ptr(),
-            config::applier::state::instance().cache_dir() + ".cache.global");
       }
 
       if (!gl_state.listen_address().empty())

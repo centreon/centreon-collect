@@ -304,13 +304,15 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           return;
         } else {
           if (dirty) {
-            SPDLOG_LOGGER_ERROR(
-                _logger,
-                "global_cache dirty flag not reset => erase file and recreate");
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "global_cache dirty flag not reset for {} => "
+                                "erase file and recreate",
+                                _file_path);
           } else {
-            SPDLOG_LOGGER_ERROR(
-                _logger,
-                "global_cache dirty flag not found => erase file and recreate");
+            SPDLOG_LOGGER_ERROR(_logger,
+                                "global_cache dirty flag not found for {} => "
+                                "erase file and recreate",
+                                _file_path);
           }
           _file.reset();
           _file_size = 0;

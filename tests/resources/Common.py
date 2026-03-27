@@ -468,19 +468,19 @@ def ctn_stop_mysql():
 
 def ctn_stop_rrdcached():
     getoutput(
-        "kill -9 $(ps ax | ctn_grep '.usr.bin.rrdcached' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall  usr.bin.rrdcached")
 
 
 def ctn_kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbwd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbwd")
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbd")
 
 
 def ctn_kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/centengine")
 
 
 def ctn_clear_retention():
@@ -2003,7 +2003,7 @@ def ctn_create_bad_queue(filename: str):
     f.close()
 
 
-def ctn_grep(file_path: str, pattern: str):
+def grep(file_path: str, pattern: str):
     with open(file_path, "r") as file:
         for line in file:
             if re.search(pattern, line):

@@ -18,7 +18,10 @@
 
 #include "com/centreon/broker/graphite/factory.hh"
 #include <absl/strings/match.h>
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/graphite/connector.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -135,6 +138,12 @@ io::endpoint* factory::new_endpoint(
   std::string status_naming(
       get_string_param(cfg, "status_naming", "centreon.statuses.$INDEXID$"));
   std::string escape_string(get_string_param(cfg, "escape_string", "_"));
+
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
+  }
 
   // Connector.
   std::unique_ptr<graphite::connector> c(new graphite::connector);

@@ -157,7 +157,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
                unsigned grow_step = 0x20000000,
                unsigned nb_update_before_save = 1000,
                std::chrono::system_clock::duration save_interval =
-                   std::chrono::seconds(10));
+                   std::chrono::seconds(5));
 
   void _open(size_t initial_size_on_create, const void* address = 0);
 

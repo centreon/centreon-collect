@@ -325,9 +325,6 @@ void global_cache_data::_write_conf(const std::shared_ptr<io::data>& data) {
     case neb::pb_host::static_type():
       _process_pb_host(data);
       break;
-    case neb::pb_adaptive_host::static_type():
-      _process_pb_adaptive_host(data);
-      break;
     case neb::host_group::static_type():
       _process_pb_host_group(bbdo2_to_bbdo3(data));
       break;
@@ -345,9 +342,6 @@ void global_cache_data::_write_conf(const std::shared_ptr<io::data>& data) {
       break;
     case neb::pb_service::static_type():
       _process_pb_service(data);
-      break;
-    case neb::pb_adaptive_service::static_type():
-      _process_pb_adaptive_service(data);
       break;
     case neb::service_group::static_type():
       _process_pb_service_group(bbdo2_to_bbdo3(data));
@@ -491,8 +485,8 @@ void global_cache_data::_process_pb_host_status(
   SPDLOG_LOGGER_TRACE(_logger, "cache: processing host status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_host->find(in.host_id());
-  if (exist == _id_to_host->end() || !exist->second.first) {
+  auto exist = _get_host(in.host_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update host ({}) in cache, but it does not "
@@ -500,7 +494,7 @@ void global_cache_data::_process_pb_host_status(
         in.host_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
   UPDATE_FIELD(checked);
   UPDATE_FIELD(check_type);
@@ -545,8 +539,8 @@ void global_cache_data::_process_pb_adaptive_host_status(
   SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive host status {}",
                       in.host_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_host->find(in.host_id());
-  if (exist == _id_to_host->end() || !exist->second.first) {
+  auto exist = _get_host(in.host_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update host ({}) in cache, but it does not "
@@ -554,7 +548,7 @@ void global_cache_data::_process_pb_adaptive_host_status(
         in.host_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
   UPDATE_OPTIONAL_FIELD(scheduled_downtime_depth);
   UPDATE_OPTIONAL_FIELD(acknowledgement_type);
@@ -575,8 +569,8 @@ void global_cache_data::_process_pb_adaptive_host(
   SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive host {}",
                       in.host_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_host->find(in.host_id());
-  if (exist == _id_to_host->end() || !exist->second.first) {
+  auto exist = _get_host(in.host_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update host ({}) in cache, but it does not "
@@ -584,7 +578,7 @@ void global_cache_data::_process_pb_adaptive_host(
         in.host_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
   UPDATE_OPTIONAL_FIELD(notify);
   UPDATE_OPTIONAL_FIELD(active_checks);
@@ -824,11 +818,11 @@ void global_cache_data::_process_pb_service_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_service_status>(data)->obj();
-  SPDLOG_LOGGER_TRACE(_logger, "cache: processing service status {}",
-                      in.host_id());
+  SPDLOG_LOGGER_TRACE(_logger, "cache: processing service status {}:{}",
+                      in.host_id(), in.service_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_service->find({in.host_id(), in.service_id()});
-  if (exist == _id_to_service->end() || !exist->second.first) {
+  auto exist = _get_service(in.host_id(), in.service_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update service ({}, {}) in cache, but it does not "
@@ -836,7 +830,7 @@ void global_cache_data::_process_pb_service_status(
         in.host_id(), in.service_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
   UPDATE_FIELD(checked);
   UPDATE_FIELD(check_type);
@@ -879,11 +873,12 @@ void global_cache_data::_process_pb_adaptive_service_status(
     const std::shared_ptr<io::data>& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service_status>(data)->obj();
-  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive service status {}",
-                      in.host_id());
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "cache: processing adaptive service status {}:{}",
+                      in.host_id(), in.service_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_service->find({in.host_id(), in.service_id()});
-  if (exist == _id_to_service->end() || !exist->second.first) {
+  auto exist = _get_service(in.host_id(), in.service_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update service ({}, {}) in cache, but it does not "
@@ -891,7 +886,7 @@ void global_cache_data::_process_pb_adaptive_service_status(
         in.host_id(), in.service_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
   UPDATE_OPTIONAL_FIELD(scheduled_downtime_depth);
   UPDATE_OPTIONAL_FIELD(acknowledgement_type);
@@ -911,11 +906,12 @@ void global_cache_data::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& in =
       std::static_pointer_cast<neb::pb_adaptive_service>(data)->obj();
-  SPDLOG_LOGGER_TRACE(_logger, "cache: processing adaptive service status {}",
-                      in.host_id());
+  SPDLOG_LOGGER_TRACE(_logger,
+                      "cache: processing adaptive service status {}:{}",
+                      in.host_id(), in.service_id());
   boost::unique_lock l(_protect);
-  auto exist = _id_to_service->find({in.host_id(), in.service_id()});
-  if (exist == _id_to_service->end() || !exist->second.first) {
+  auto exist = _get_service(in.host_id(), in.service_id());
+  if (!exist.first) {
     SPDLOG_LOGGER_WARN(
         _logger,
         "Attempt to update service ({}, {}) in cache, but it does not "
@@ -923,7 +919,7 @@ void global_cache_data::_process_pb_adaptive_service(
         in.host_id(), in.service_id());
     return;
   }
-  auto& to_update = *exist->second.first;
+  auto& to_update = *exist.first;
   bool at_least_one_modif = false;
 
   UPDATE_OPTIONAL_FIELD(notify);
@@ -1306,6 +1302,35 @@ global_cache_data::host_custom_var_pair global_cache_data::_get_host(
  * @param host_id
  * @return const host* nullptr if not found
  */
+global_cache_data::host_custom_var_pair global_cache_data::_get_host(
+    uint64_t host_id) {
+  auto search = _id_to_host->find(host_id);
+  if ((search == _id_to_host->end() || !search->second.first) &&
+      _cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // not found in rt cache => search in conf cache
+    lock conf_lock;
+    auto conf_host_sev =
+        std::static_pointer_cast<global_cache_data>(_conf_cache)
+            ->_get_host(host_id, conf_lock);
+    if (conf_host_sev.first) {
+      host* to_insert = _file->get_segment_manager()->construct<host>(
+          interprocess::anonymous_instance)(*conf_host_sev.first, *_allocators);
+      _id_to_host->emplace(
+          host_id, host_custom_var_pair(to_insert, conf_host_sev.second));
+      _set_dirty_and_increment_modif();
+      return std::make_pair(to_insert, conf_host_sev.second);
+    }
+  }
+  return search != _id_to_host->end() ? search->second
+                                      : host_custom_var_pair{nullptr, 0};
+}
+
+/**
+ * @brief get host from cache
+ *
+ * @param host_id
+ * @return const host* nullptr if not found
+ */
 const host* global_cache_data::get_host(uint64_t host_id, lock& l) {
   return _get_host(host_id, l).first.get();
 }
@@ -1339,6 +1364,38 @@ global_cache_data::service_custom_var_pair global_cache_data::_get_service(
           service_custom_var_pair(to_insert, conf_service.second));
       _set_dirty_and_increment_modif();
       l.unique_to_shared();
+      return std::make_pair(to_insert, conf_service.second);
+    }
+  }
+  return search != _id_to_service->end() ? search->second
+                                         : service_custom_var_pair{nullptr, 0};
+}
+
+/**
+ * @brief get service from cache
+ *
+ * @param host_id
+ * @param service_id
+ * @return const service* nullptr if not found
+ */
+global_cache_data::service_custom_var_pair global_cache_data::_get_service(
+    uint64_t host_id,
+    uint64_t service_id) {
+  auto search = _id_to_service->find({host_id, service_id});
+  if ((search == _id_to_service->end() || !search->second.first) &&
+      _cache_type == e_cache_type::real_time &&
+      _conf_cache) {  // not found in rt cache => search in conf cache
+    lock conf_lock;
+    service_custom_var_pair conf_service =
+        std::static_pointer_cast<global_cache_data>(_conf_cache)
+            ->_get_service(host_id, service_id, conf_lock);
+    if (conf_service.first) {
+      service* to_insert = _file->get_segment_manager()->construct<service>(
+          interprocess::anonymous_instance)(*conf_service.first, *_allocators);
+      _id_to_service->emplace(
+          std::make_pair(host_id, service_id),
+          service_custom_var_pair(to_insert, conf_service.second));
+      _set_dirty_and_increment_modif();
       return std::make_pair(to_insert, conf_service.second);
     }
   }

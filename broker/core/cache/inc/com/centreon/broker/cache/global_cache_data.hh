@@ -328,11 +328,18 @@ class global_cache_data : public global_cache {
   void _write_impl(const std::shared_ptr<io::data>& d,
                    bool first_attempt) override;
 
+ private:
   host_custom_var_pair _get_host(uint64_t host_id, lock& l);
 
   service_custom_var_pair _get_service(uint64_t host_id,
                                        uint64_t service_id,
                                        lock& l);
+
+  host_custom_var_pair _get_host(uint64_t host_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+
+  service_custom_var_pair _get_service(uint64_t host_id, uint64_t service_id)
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
  public:
   global_cache_data(const std::shared_ptr<asio::io_context> io_context,

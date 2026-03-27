@@ -335,6 +335,106 @@ GRAPHITE_FORMAT_TEST
     END
 
 
+GRAPHITE_BROKER_RESTART_TEST
+    [Documentation]    Given a central broker configured with a Graphite output (same config as GRAPHITE_FORMAT_TEST)
+    ...    And engine already running
+    ...    When broker is started, a service check result is processed for host_16 / service_314,
+    ...    the TCP server receives a graphite frame, then broker is killed with SIGKILL (repeated 10 times)
+    ...    Then each cycle produces a valid graphite metric or status frame on the TCP server
+    ...    The goal is to test cache resilience to broker crash
+    [Tags]    broker    engine    graphite    MON-195013
+    Ctn Config Engine    ${1}    ${50}    ${20}    ${EMPTY}    ${False}
+    Ctn Add Host Group    ${0}    ${1}    ["host_16", "host_17"]
+    Ctn Add Host Group    ${0}    ${2}    ["host_16"]
+    Ctn Add Service Group    ${0}    ${5}    ["host_16","service_314"]
+    Ctn Add Service Group    ${0}    ${4}    ["host_16","service_314","host_16","service_315"]
+    Ctn Config Engine Add Cfg File    ${0}    servicegroups.cfg
+    Ctn Create Tags File    ${0}    ${20}
+    Ctn Config Engine Add Cfg File    ${0}    tags.cfg
+    Ctn Add Tags To Hosts    ${0}    group_tags    2    [16]
+    Ctn Add Tags To Hosts    ${0}    category_tags    2    [16]
+    Ctn Add Tags To Services    ${0}    group_tags    4    [314]
+    Ctn Add Tags To Services    ${0}    category_tags    4,5    [314]
+
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+    # Ctn Broker Config Log    central    graphite    debug
+    Ctn Broker Config Log    central    core    trace
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Config Broker Graphite Output
+    ...    centreon.metric.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.perfdata.$METRIC$.max.$MAX$.min.$MIN$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
+    ...    centreon.status.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
+    Ctn Broker Config Source Log    central    1
+    Ctn Config Broker Sql Output    central    unified_sql
+
+    ${tcp_server}    Ctn Create Tcp Server    8040
+
+    ${start}    Get Current Date
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+
+    FOR    ${i}    IN RANGE    10
+
+        Log to Console    kill (SIG_KILL) broker
+        Ctn Kill Broker
+
+        ${broker_start}    Get Current Date
+        Log to Console    start broker
+        Ctn Start Broker
+
+        ${broker_content}    Create List    New incoming connection 'central-broker-master-input-1'
+        ${result}    Ctn Find In Log With Timeout
+        ...    ${centralLog}
+        ...    ${broker_start}    ${broker_content}    60
+        Should Be True
+        ...    ${result}
+        ...    A message telling New incoming connection 'central-broker-master-input-1' should be available in ${centralLog}.
+
+        #let a little time to broker to slow down
+        sleep    5
+
+        ${accepted}    CallMethod    ${tcp_server}    accept    ${30}
+        Should Be True    ${accepted}    no incoming connection on iteration ${i}
+        
+        #this check creates index_mapping entry in cache
+        Ctn Process Service Check Result    host_16    service_315    0    taratata|metric_taratata=80%;50;75;5;99
+        
+        Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
+
+        ${status_received}    Set Variable    ${False}
+        ${metric_received}    Set Variable    ${False}
+
+        FOR    ${j}    IN RANGE    4
+            ${received}    CallMethod    ${tcp_server}    receive    ${30}
+            Log To Console    iteration ${i} received:${received}
+
+            IF    'status' in $received and 'service_314' in $received
+                Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received on iteration ${i}
+                ${status_received}    Set Variable    ${True}
+            END
+            IF    'metric' in $received and 'service_314' in $received
+                Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received on iteration ${i}
+                ${metric_received}    Set Variable    ${True}
+            END
+            IF    ${metric_received} and ${status_received}
+                BREAK
+            END
+        END
+
+        #let time to save conf cache
+        Sleep    6s
+        
+        #by doing this we update real time cache and we don't let time to save it
+        Ctn Process Service Check Result    host_16    service_315    0    taratata|metric_taratata=80%;50;75;5;99
+        ${random_sleep}=    Evaluate    random.randint(1,4)    modules=random
+        Sleep    ${random_sleep}
+
+    END
+
+
 INFLUXDB_FORMAT_TEST
     [Documentation]    Given a central broker configured with an InfluxDB output using the InfluxDB line protocol
     ...    And an engine with host_16 belonging to host groups 1 and 2, service_314 belonging to service groups 4 and 5
