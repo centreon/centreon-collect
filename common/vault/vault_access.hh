@@ -69,7 +69,7 @@ class vault_access {
       const std::map<std::string, std::string>& global_params,
       const std::shared_ptr<spdlog::logger>& logger);
 
-  static bool is_vault_prefixed(const std::string& cred);
+  static bool is_vault_prefixed(const std::string_view& cred);
 };
 }  // namespace com::centreon::common::vault
 #endif /* !CCC_VAULT_VAULT_ACCESS_HH */

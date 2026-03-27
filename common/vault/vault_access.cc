@@ -276,7 +276,7 @@ std::unique_ptr<vault_access> vault_access::load(
  * @return true begins
  * @return false does not begin
  */
-bool vault_access::is_vault_prefixed(const std::string& cred) {
-  constexpr std::string_view password_prefix("secret::hashicorp_vault::");
-  return password_prefix == std::string_view(cred.data(), cred.size());
+bool vault_access::is_vault_prefixed(const std::string_view& cred) {
+  constexpr std::string_view vault_prefix("secret::hashicorp_vault::");
+  return vault_prefix == cred.substr(0, vault_prefix.size());
 }
