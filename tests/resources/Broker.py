@@ -1063,7 +1063,7 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_config_broker_graphite_output(metric_naming: str, status_naming: str):
+def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_naming: str):
     """
     Configure broker to add a graphite output. If some old graphite
     outputs exist, they are removed.
@@ -1088,7 +1088,7 @@ def ctn_config_broker_graphite_output(metric_naming: str, status_naming: str):
         "name": "graphite_output",
         "type": "graphite",
         "db_host": "localhost",
-        "db_port": "8040",
+        "db_port": f"{port}",
         "db_user": "toto",
         "db_password": "titi",
         "metric_naming": metric_naming,

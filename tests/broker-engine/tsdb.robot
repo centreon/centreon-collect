@@ -294,7 +294,7 @@ GRAPHITE_FORMAT_TEST
     Ctn Broker Config Log    central    graphite    trace
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    perfdata    trace
-    Ctn Config Broker Graphite Output    
+    Ctn Config Broker Graphite Output    8040    
     ...    centreon.metric.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.perfdata.$METRIC$.max.$MAX$.min.$MIN$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$  
     ...    centreon.status.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$ 
     Ctn Broker Config Source Log    central    1
@@ -364,13 +364,13 @@ GRAPHITE_BROKER_RESTART_TEST
     # Ctn Broker Config Log    central    graphite    debug
     Ctn Broker Config Log    central    core    trace
     Ctn Broker Config Log    central    sql    debug
-    Ctn Config Broker Graphite Output
+    Ctn Config Broker Graphite Output    8041
     ...    centreon.metric.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.perfdata.$METRIC$.max.$MAX$.min.$MIN$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
     ...    centreon.status.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
     Ctn Broker Config Source Log    central    1
     Ctn Config Broker Sql Output    central    unified_sql
 
-    ${tcp_server}    Ctn Create Tcp Server    8040
+    ${tcp_server}    Ctn Create Tcp Server    8041
 
     ${start}    Get Current Date
     Ctn Start Engine
@@ -425,7 +425,7 @@ GRAPHITE_BROKER_RESTART_TEST
         END
 
         #let time to save conf cache
-        Sleep    6s
+        Sleep    7s
         
         #by doing this we update real time cache and we don't let time to save it
         Ctn Process Service Check Result    host_16    service_315    0    taratata|metric_taratata=80%;50;75;5;99

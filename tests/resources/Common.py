@@ -2003,7 +2003,7 @@ def ctn_create_bad_queue(filename: str):
     f.close()
 
 
-def grep(file_path: str, pattern: str):
+def ctn_grep(file_path: str, pattern: str):
     with open(file_path, "r") as file:
         for line in file:
             if re.search(pattern, line):
