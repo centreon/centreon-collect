@@ -944,17 +944,6 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               }
             }
             _metrics_to_index_rebuild.erase(m.first);
-            /* Trigger async merge to backfill rebuilt data into the RRD files.
-             */
-            if (_retention.enabled()) {
-              _schedule_metric_merge(
-                  m.first,
-                  (_metrics_path / fmt::format("{}.rrd", m.first)).string());
-              if (m.second)
-                _schedule_status_merge(
-                    m.second,
-                    (_status_path / fmt::format("{}.rrd", m.second)).string());
-            }
           }
           break;
         default:
@@ -1356,63 +1345,14 @@ void stream<T>::_do_status_merge(uint64_t index_id,
  */
 template <typename T>
 void stream<T>::_rebuild_data(const RebuildMessage& rm) {
-  if (_retention.enabled()) {
-    // Route rebuild data through the retention buffer.  The RRD files are
-    // created (empty) here so that the merge thread can read their metadata.
-    // The actual data is written by the async merge triggered at END.
-    for (auto& p : rm.timeserie()) {
-      SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding metric {} via retention",
-                          p.first);
-      if (p.second.pts().empty()) {
-        SPDLOG_LOGGER_TRACE(_logger, "Nothing to rebuild for metric {}",
-                            p.first);
-        continue;
-      }
+  // Always use the direct-write path for rebuild data, even when the retention
+  // buffer is enabled.  Rebuild data is written to a freshly-created RRD (the
+  // file was removed at START) in strict chronological order, so there is no
+  // risk of an "illegal attempt to update" error.  Routing through the
+  // retention buffer would make the write asynchronous (merge scheduled at
+  // END) which breaks the expectation that data is available immediately after
+  // "RRD: Finishing to rebuild metrics" is logged.
 
-      const uint32_t interval =
-          p.second.check_interval() ? p.second.check_interval() : 60;
-      const time_t start_time =
-          static_cast<time_t>(p.second.pts()[0].ctime()) - interval;
-      const std::string metric_path{
-          (_metrics_path / fmt::format("{}.rrd", p.first)).string()};
-
-      // Create (or reuse) the metric RRD file so the merge can read its
-      // metadata.  The file was already removed in the START phase.
-      try {
-        _backend.open(metric_path);
-      } catch (const exceptions::open&) {
-        _backend.open(metric_path, p.second.rrd_retention(), start_time,
-                      interval, p.second.data_source_type(),
-                      /*without_cache=*/true);
-      }
-
-      // Locate the associated status index.
-      auto index_it = _metrics_to_index_rebuild.find(p.first);
-      const uint64_t index_id =
-          index_it != _metrics_to_index_rebuild.end() ? index_it->second : 0;
-
-      if (index_id) {
-        const std::string status_path{
-            (_status_path / fmt::format("{}.rrd", index_id)).string()};
-        try {
-          _backend.open(status_path);
-        } catch (const exceptions::open&) {
-          _backend.open(status_path, p.second.rrd_retention(), start_time,
-                        interval, /*value_type=*/0, /*without_cache=*/true);
-        }
-      }
-
-      // Buffer all data points — merge at END will write them to RRD.
-      for (const auto& pt : p.second.pts()) {
-        _retention.write_metric(p.first, pt.ctime(), pt.value(), interval);
-        if (index_id)
-          _retention.write_status(index_id, pt.ctime(), pt.status(), interval);
-      }
-    }
-    return;
-  }
-
-  // ---- Legacy direct-write path (no retention configured) ----
   // we can receive the same status indexed by index_id in several metrics, so
   // whe have to reorder that in this container
   struct status_data {

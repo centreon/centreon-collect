@@ -26,4 +26,5 @@ $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grp
 $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/common/v1/common.proto
 $my_python -m grpc_tools.protoc -I../../opentelemetry-proto --python_out=. --grpc_python_out=. opentelemetry/proto/resource/v1/resource.proto
 $my_python -m grpc_tools.protoc -I../../common/engine_conf -I../../common/engine_conf --python_out=. state.proto
+$my_python -m grpc_tools.protoc -I../../broker/rrd/proto --python_out=. rrd_retention.proto
 cd ..

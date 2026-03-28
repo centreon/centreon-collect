@@ -734,15 +734,17 @@ std::shared_ptr<storage::pb_rebuild_message> make_rebuild_data(
 
 /**
  * Full rebuild lifecycle with retention enabled:
- *   START → DATA (3 points) → END → flush_merges()
+ *   START → DATA (3 points) → END
  *
- * Expected after END + flush_merges():
- *   - No .prot files remain (merged into the .rrd)
- *   - The .rrd file exists
+ * Since _rebuild_data() always uses the direct-write path (retention buffer
+ * bypassed), expected after END — without flush_merges():
+ *   - No .prot files at any point (data was never buffered)
+ *   - The .rrd file exists immediately after END
  */
 TEST_F(StreamBifurcation, RebuildLifecycleWithRetention) {
   tmp_dirs tmp;
-  // max_pending=1 so each retention write produces a rotated .prot file.
+  // max_pending=1 so any accidental retention write would immediately produce a
+  // rotated .prot file — makes it easy to detect regressions.
   stream<lib> s(tmp.metrics, tmp.status, 16,
                 /*ignore_update_errors=*/true,
                 make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
@@ -750,23 +752,80 @@ TEST_F(StreamBifurcation, RebuildLifecycleWithRetention) {
   const uint64_t metric_id = 11001;
   const uint64_t index_id = 0;  // no status for this test
   const uint32_t step = 300;
-  // Points are well in the past so they land in the retention path.
+  // Points are well in the past — would land in the retention path for normal
+  // pb_metric writes, but rebuild always uses the direct-write path.
   const uint64_t base_time = static_cast<uint64_t>(std::time(nullptr)) - 10000;
 
   s.write(
       make_rebuild_boundary(RebuildMessage_State_START, metric_id, index_id));
   s.write(make_rebuild_data(metric_id, base_time, step, 3));
-  // DATA with retention enabled: .prot files must have appeared.
-  EXPECT_GT(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
-      << "rebuild DATA must buffer points in .prot files";
+  // Even though retention is enabled and timestamps are old, rebuild DATA must
+  // bypass the retention buffer → no .prot files.
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "rebuild DATA must NOT buffer points via retention (bypass enforced)";
 
   s.write(make_rebuild_boundary(RebuildMessage_State_END, metric_id, index_id));
-  s.flush_merges();
+  // No flush_merges() call — data must be available synchronously after END.
 
   EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
-      << "all .prot files must be consumed by the post-END merge";
+      << "no .prot files must exist after rebuild (direct-write path)";
   EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", metric_id)))
-      << ".rrd file must exist after rebuild merge";
+      << ".rrd file must exist after rebuild END";
+}
+
+// ---------------------------------------------------------------------------
+// Rebuild bypasses retention buffer (regression test for the async-write bug)
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Validates that _rebuild_data() always uses the direct-write path,
+ *        even when the retention buffer is enabled.
+ *
+ * Before the fix, rebuild DATA was routed through the retention buffer
+ * (buffered to .prot files) and the merge was scheduled asynchronously at END.
+ * This broke the synchronous guarantee: "RRD: Finishing to rebuild metrics"
+ * was logged before the async merge ran, so callers reading the RRD
+ * immediately after got NaN.
+ *
+ * After the fix, _rebuild_data() never enters the retention buffer branch.
+ * Observable invariants:
+ *   1. No .prot files appear at any stage (DATA or after END).
+ *   2. The .rrd file exists immediately after END — no flush_merges() needed.
+ */
+TEST_F(StreamBifurcation, RebuildBypassesRetentionBuffer) {
+  tmp_dirs tmp;
+  // max_pending=1 ensures any accidental retention write is immediately visible
+  // as a rotated .prot file — a hair-trigger for detecting the regression.
+  stream<lib> s(tmp.metrics, tmp.status, 16,
+                /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  const uint64_t metric_id = 15001;
+  const uint64_t index_id = 0;
+  const uint32_t step = 60;
+  // Timestamps deeply in the past: for a normal pb_metric write these would
+  // land in the retention buffer.  Rebuild must bypass that branch.
+  const uint64_t base_time = static_cast<uint64_t>(std::time(nullptr)) - 7200;
+
+  // START: removes any existing .rrd, clears stale retention state.
+  s.write(
+      make_rebuild_boundary(RebuildMessage_State_START, metric_id, index_id));
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "START must not create .prot files";
+
+  // DATA: 5 historical points.  Must go directly to the RRD backend.
+  s.write(make_rebuild_data(metric_id, base_time, step, 5));
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "DATA must not be buffered in .prot files (retention bypass)";
+
+  // END: signals completion.  .rrd must exist synchronously — no async merge.
+  s.write(make_rebuild_boundary(RebuildMessage_State_END, metric_id, index_id));
+
+  // Intentionally NOT calling flush_merges(): the data must be present already.
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, metric_id), 0u)
+      << "after END, no .prot files must exist";
+  EXPECT_TRUE(fs::exists(tmp.metrics / fmt::format("{}.rrd", metric_id)))
+      << ".rrd file must exist immediately after END (synchronous write)";
 }
 
 /**
@@ -1006,5 +1065,153 @@ TEST_F(StreamBifurcation, PartialMergeAfterInterval) {
 
   EXPECT_EQ(tmp_dirs::count_prot(tmp.metrics, id), 0u)
       << "partial merge must consume all .prot files after interval is reached";
+  EXPECT_TRUE(fs::exists(rrd_path));
+}
+
+// ---------------------------------------------------------------------------
+// _do_status_merge coverage
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief End-to-end test for _do_status_merge.
+ *
+ * Scenario:
+ *   step = 3600s (1 h) — large value to make T_old robustly old regardless
+ *   of wall-clock drift during the test.
+ *
+ *   T_old     = now − step − 1  (just barely old; < now − step always)
+ *   T_current = now − 100       (safely current for ≥ 3500 s of test time)
+ *
+ *   1. Write old status (CRITICAL) at T_old  → .prot created.
+ *   2. Write current status (OK) at T_current → .rrd created, ect set.
+ *      Junction check: T_old + step = now − 1 ≥ ect = now − 100 → TRUE
+ *      → _schedule_status_merge called.
+ *   3. flush_merges() → _do_status_merge runs.
+ *   4. .prot files must be gone; .rrd must still exist.
+ *
+ * State encodings written into the status RRD (percentage strings):
+ *   0 (OK)       → "100"
+ *   1 (WARNING)  → "75"
+ *   2 (CRITICAL) → "0"
+ */
+TEST_F(StreamBifurcation, StatusMergeJunctionOnCurrentWrite) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 3600;
+  const uint64_t index_id = 22010;
+
+  // T_old is robustly old: now − step − 1 < now − step always (X ≥ 0).
+  const uint64_t T_old = now - step - 1;
+  // T_current is safely current for up to 3500 s of wall-clock drift.
+  const uint64_t T_current = now - 100;
+
+  stream<lib> s(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                make_cfg(tmp, /*max_pending=*/1, /*max_files=*/100));
+
+  const auto rrd_path = tmp.status / fmt::format("{}.rrd", index_id);
+
+  // Step 1: write old status → retention buffer.
+  {
+    auto e = std::make_shared<storage::pb_status>();
+    Status& st = e->mut_obj();
+    st.set_index_id(index_id);
+    st.set_time(T_old);
+    st.set_interval(step);
+    st.set_rrd_len(90u * 24u * 3600u);
+    st.set_state(2);  // CRITICAL → "0"
+    s.write(e);
+  }
+  ASSERT_GT(tmp_dirs::count_prot(tmp.status, index_id), 0u)
+      << "old status must produce a .prot file";
+
+  // Step 2: write current status → creates .rrd, sets ect, triggers junction.
+  {
+    auto e = std::make_shared<storage::pb_status>();
+    Status& st = e->mut_obj();
+    st.set_index_id(index_id);
+    st.set_time(T_current);
+    st.set_interval(step);
+    st.set_rrd_len(90u * 24u * 3600u);
+    st.set_state(0);  // OK → "100"
+    s.write(e);
+  }
+  ASSERT_TRUE(fs::exists(rrd_path))
+      << "current status write must create the .rrd file";
+
+  // Step 3: wait for _do_status_merge to complete.
+  s.flush_merges();
+
+  // Step 4: verify.
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.status, index_id), 0u)
+      << "_do_status_merge must consume the buffered .prot file";
+  EXPECT_TRUE(fs::exists(rrd_path))
+      << ".rrd must survive the merge";
+}
+
+/**
+ * @brief _do_status_merge via partial-merge trigger.
+ *
+ * Accumulate more than partial_merge_interval seconds of old status data
+ * (without any current data) and verify that a merge fires automatically
+ * once the threshold is crossed.
+ *
+ * Uses partial_merge_interval = 3 × step to keep the test compact.
+ */
+TEST_F(StreamBifurcation, StatusMergePartialMerge) {
+  tmp_dirs tmp;
+  const uint64_t now = static_cast<uint64_t>(std::time(nullptr));
+  const uint32_t step = 300;
+  const uint64_t index_id = 22011;
+  const uint64_t T0 = now - 20 * step;
+
+  retention_config cfg;
+  cfg.metrics_dir = tmp.metrics;
+  cfg.status_dir = tmp.status;
+  cfg.max_pending_points = 1;
+  cfg.max_files = 100;
+  cfg.partial_merge_interval = 3 * step;
+
+  stream<lib> s(tmp.metrics, tmp.status, 16, /*ignore_update_errors=*/true,
+                cfg);
+
+  const auto rrd_path = tmp.status / fmt::format("{}.rrd", index_id);
+
+  // Create the .rrd first so the merge can succeed.
+  {
+    auto e = std::make_shared<storage::pb_status>();
+    Status& st = e->mut_obj();
+    st.set_index_id(index_id);
+    st.set_time(now);
+    st.set_interval(step);
+    st.set_rrd_len(90u * 24u * 3600u);
+    st.set_state(0);
+    s.write(e);
+  }
+  ASSERT_TRUE(fs::exists(rrd_path));
+
+  auto write_old_status = [&](uint64_t t, uint32_t state) {
+    auto e = std::make_shared<storage::pb_status>();
+    Status& st = e->mut_obj();
+    st.set_index_id(index_id);
+    st.set_time(t);
+    st.set_interval(step);
+    st.set_rrd_len(90u * 24u * 3600u);
+    st.set_state(state);
+    s.write(e);
+  };
+
+  // Write 3 old status points: T0, T0+step, T0+2*step.
+  // After 3 writes: last_retention − last_partial_merge_ts = 2*step < 3*step.
+  write_old_status(T0, 0);        // OK
+  write_old_status(T0 + step, 1); // WARNING
+  write_old_status(T0 + 2 * step, 2); // CRITICAL
+  s.flush_merges();
+
+  // 4th write: T0 + 3*step + 1 → 3*step + 1 ≥ partial_merge_interval → trigger.
+  write_old_status(T0 + 3 * step + 1, 0);
+  s.flush_merges();
+
+  EXPECT_EQ(tmp_dirs::count_prot(tmp.status, index_id), 0u)
+      << "partial merge must consume all status .prot files";
   EXPECT_TRUE(fs::exists(rrd_path));
 }
