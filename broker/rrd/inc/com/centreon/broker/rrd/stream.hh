@@ -44,7 +44,7 @@ namespace rrd {
 template <typename T>
 class stream : public io::stream {
   using rebuild_cache =
-      std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
+      absl::flat_hash_map<uint64_t, std::list<std::shared_ptr<io::data>>>;
 
   using rebuild_metric_to_index =
       boost::container::flat_map<uint64_t, uint64_t>;

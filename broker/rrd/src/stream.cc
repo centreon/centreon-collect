@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2015,2017, 2020-2022 Centreon
+ * Copyright 2011-2015,2017, 2020-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,9 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/common/perfdata.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
@@ -345,7 +343,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             (_metrics_path / fmt::format("{}.rrd", m.metric_id())).string());
 
         // Check that metric is not being rebuilt.
-        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
+        rebuild_cache::iterator it = _metrics_rebuild.find(m.metric_id());
         if (it == _metrics_rebuild.end()) {
           std::string v;
           switch (m.value_type()) {
@@ -486,7 +484,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             (_metrics_path / fmt::format("{}.rrd", e->metric_id)).string());
 
         // Check that metric is not being rebuilt.
-        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
+        rebuild_cache::iterator it = _metrics_rebuild.find(e->metric_id);
         if (e->is_for_rebuild || it == _metrics_rebuild.end()) {
           std::string v;
           switch (e->value_type) {
@@ -634,7 +632,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             (_status_path / fmt::format("{}.rrd", s.index_id())).string());
 
         // Check that status is not begin rebuild.
-        rebuild_cache::iterator it(_status_rebuild.find(status_path));
+        rebuild_cache::iterator it(_status_rebuild.find(s.index_id()));
         if (it == _status_rebuild.end()) {
           std::string value;
           switch (s.state()) {
@@ -751,7 +749,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             (_status_path / fmt::format("{}.rrd", e->index_id)).string());
 
         // Check that status is not begin rebuild.
-        rebuild_cache::iterator it(_status_rebuild.find(status_path));
+        rebuild_cache::iterator it(_status_rebuild.find(e->index_id));
         if (e->is_for_rebuild || it == _status_rebuild.end()) {
           std::string value;
           switch (e->state) {
@@ -884,7 +882,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             std::string path{
                 (_metrics_path / fmt::format("{}.rrd", m.first)).string()};
             /* Creation of metric caches */
-            _metrics_rebuild[path];
+            _metrics_rebuild[m.first];
             /* File removed */
             _backend.remove(path);
             /* Clear stale retention data so the rebuild starts fresh. */
@@ -892,8 +890,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               _retention.remove_metric(m.first);
             // creation of status caches
             path = (_status_path / fmt::format("{}.rrd", m.second)).string();
-            if (_status_rebuild.find(path) == _status_rebuild.end()) {
-              _status_rebuild[path];
+            if (_status_rebuild.find(m.second) == _status_rebuild.end()) {
+              _status_rebuild[m.second];
               _metrics_to_index_rebuild[m.first] = m.second;
               /* File removed */
               _backend.remove(path);
@@ -921,9 +919,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
           // Rebuild is ending.
           for (auto& m : e->obj().metric_to_index_id()) {
-            std::string path{
-                (_metrics_path / fmt::format("{}.rrd", m.first)).string()};
-            auto it = _metrics_rebuild.find(path);
+            auto it = _metrics_rebuild.find(m.first);
             std::list<std::shared_ptr<io::data>> l;
             if (it != _metrics_rebuild.end()) {
               l = std::move(it->second);
@@ -933,8 +929,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 l.pop_front();
               }
             }
-            path = (_status_path / fmt::format("{}.rrd", m.second)).string();
-            it = _status_rebuild.find(path);
+            it = _status_rebuild.find(m.second);
             if (it != _status_rebuild.end()) {
               l = std::move(it->second);
               _status_rebuild.erase(it);
@@ -997,7 +992,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
 
       // Remove data from cache.
       rebuild_cache& cache(e->is_index ? _status_rebuild : _metrics_rebuild);
-      rebuild_cache::iterator it(cache.find(path));
+      rebuild_cache::iterator it(cache.find(e->id));
       if (it != cache.end())
         cache.erase(it);
 
@@ -1358,11 +1353,11 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   struct status_data {
     uint32_t check_interval = 60;
     uint32_t rrd_retention = 0;
-    std::map<uint64_t /*time*/, const char* /* "{}:[100,75,0]" */>
+    absl::btree_map<uint64_t /*time*/, const char* /* "{}:[100,75,0]" */>
         time_to_value;
   };
   using index_id_to_status_values =
-      std::map<uint64_t /*index_id*/, status_data>;
+      absl::flat_hash_map<uint64_t /*index_id*/, status_data>;
 
   index_id_to_status_values status_values;
 
