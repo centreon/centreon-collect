@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2013,2015,2017 Centreon
+ * Copyright 2011-2013,2015,2017, 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -76,7 +76,7 @@ void lib::commit() {}
  *
  *  @param[in] filename Path to the RRD file.
  */
-void lib::open(std::string const& filename) {
+void lib::open(const std::filesystem::path& filename) {
   // Close previous file.
   this->close();
 
@@ -98,7 +98,7 @@ void lib::open(std::string const& filename) {
  *  @param[in] step       Time interval between each record.
  *  @param[in] value_type Type of the metric.
  */
-void lib::open(std::string const& filename,
+void lib::open(const std::filesystem::path& filename,
                uint32_t length,
                time_t from,
                uint32_t step,
@@ -109,7 +109,9 @@ void lib::open(std::string const& filename,
 
   // Remember informations for further operations.
   _filename = filename;
-  _creator.create(filename, length, from, step, value_type, without_cache);
+  // creator::create still uses std::string (not yet migrated).
+  _creator.create(filename.string(), length, from, step, value_type,
+                  without_cache);
 }
 
 /**
@@ -117,7 +119,7 @@ void lib::open(std::string const& filename,
  *
  *  @param[in] filename Path to the RRD file.
  */
-void lib::remove(std::string const& filename) {
+void lib::remove(const std::filesystem::path& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
     _logger->error("RRD: could not remove file '{}': {}", filename, msg);
@@ -197,7 +199,7 @@ void lib::update(const std::deque<std::string>& pts) {
  *
  * @return rrd_existing_data with step == 0 on any error.
  */
-rrd_existing_data lib::fetch_existing(const std::string& filename,
+rrd_existing_data lib::fetch_existing(const std::filesystem::path& filename,
                                       uint64_t from_ts,
                                       uint64_t to_ts) {
   rrd_existing_data result;
@@ -295,7 +297,7 @@ rrd_existing_data lib::fetch_existing(const std::string& filename,
  * @brief Create a new RRD file at @p tmp_path via librrd and write @p batch
  *        into it.  Bypasses rrdcached entirely (safe during merge).
  */
-void lib::merge_create_temp(const std::string& tmp_path,
+void lib::merge_create_temp(const std::filesystem::path& tmp_path,
                             uint32_t rrd_len,
                             time_t from,
                             uint32_t step,

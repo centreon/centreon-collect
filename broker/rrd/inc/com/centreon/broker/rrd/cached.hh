@@ -1,5 +1,5 @@
 /**
- * Copyright 2020-2025 Centreon
+ * Copyright 2020-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <fmt/std.h>
 
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
@@ -39,7 +40,7 @@ class cached : public backend {
   bool _batch;
   lib _lib;
   T _socket;
-  std::string _filename;
+  std::filesystem::path _filename;
   /// Serialises socket access between the write thread and the merge thread.
   absl::Mutex _socket_m;
 
@@ -53,7 +54,7 @@ class cached : public backend {
    *
    * @param filename Path to the RRD file.
    */
-  void open(const std::string& filename) override {
+  void open(const std::filesystem::path& filename) override {
     // Close previous file.
     this->close();
 
@@ -76,7 +77,7 @@ class cached : public backend {
    *  @param[in] step       Time interval between each record.
    *  @param[in] value_type Type of the metric.
    */
-  void open(std::string const& filename,
+  void open(const std::filesystem::path& filename,
             uint32_t length,
             time_t from,
             uint32_t step,
@@ -112,7 +113,7 @@ class cached : public backend {
    *
    *  @param[in] filename Path to the RRD file.
    */
-  void remove(std::string const& filename) override {
+  void remove(const std::filesystem::path& filename) override {
     // Build rrdcached command.
     _logger->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
@@ -303,7 +304,7 @@ class cached : public backend {
    * @brief Flush pending rrdcached writes for @p filename to disk so that
    *        rrd_fetch_r (which reads the file directly) sees up-to-date data.
    */
-  void pre_merge_flush(const std::string& filename) override {
+  void pre_merge_flush(const std::filesystem::path& filename) override {
     try {
       _logger->debug("RRD: FLUSH '{}' before merge-fetch", filename);
       _send_to_cached(fmt::format("FLUSH {}\n", filename));
@@ -316,7 +317,7 @@ class cached : public backend {
   /**
    * @brief Delegate to _lib (librrd direct) after the caller has flushed.
    */
-  rrd_existing_data fetch_existing(const std::string& filename,
+  rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                    uint64_t from_ts,
                                    uint64_t to_ts) override {
     return _lib.fetch_existing(filename, from_ts, to_ts);
@@ -326,7 +327,7 @@ class cached : public backend {
    * @brief Create temp file and write batch via librrd directly (bypasses
    *        rrdcached socket), so the file is immediately on disk for rename.
    */
-  void merge_create_temp(const std::string& tmp_path,
+  void merge_create_temp(const std::filesystem::path& tmp_path,
                          uint32_t rrd_len,
                          time_t from,
                          uint32_t step,
@@ -339,7 +340,7 @@ class cached : public backend {
    * @brief Tell rrdcached to drop its in-memory queue for @p filename after
    *        the atomic rename replaced the file with the merged version.
    */
-  void post_merge_forget(const std::string& filename) override {
+  void post_merge_forget(const std::filesystem::path& filename) override {
     try {
       _logger->debug("RRD: FORGET '{}' after merge-rename", filename);
       _send_to_cached(fmt::format("FORGET {}\n", filename));

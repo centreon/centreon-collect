@@ -42,6 +42,7 @@
 namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/std.h>
 #include <spdlog/spdlog.h>
 
 #endif

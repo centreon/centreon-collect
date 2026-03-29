@@ -104,14 +104,16 @@ class stream : public io::stream {
   std::shared_ptr<spdlog::logger> _logger;
 
   void _rebuild_data(const RebuildMessage& rm);
-  void _do_metric_merge(uint64_t metric_id, const std::string& rrd_path);
-  void _do_status_merge(uint64_t index_id, const std::string& rrd_path);
+  void _do_metric_merge(uint64_t metric_id, const std::filesystem::path& rrd_path);
+  void _do_status_merge(uint64_t index_id, const std::filesystem::path& rrd_path);
   void _startup_merge();
 
   /// Schedule a background merge, skipping if one is already queued.
-  void _schedule_metric_merge(uint64_t metric_id, std::string rrd_path)
+  void _schedule_metric_merge(uint64_t metric_id,
+                               std::filesystem::path rrd_path)
       ABSL_LOCKS_EXCLUDED(_merge_pending_m);
-  void _schedule_status_merge(uint64_t index_id, std::string rrd_path)
+  void _schedule_status_merge(uint64_t index_id,
+                               std::filesystem::path rrd_path)
       ABSL_LOCKS_EXCLUDED(_merge_pending_m);
 
  public:

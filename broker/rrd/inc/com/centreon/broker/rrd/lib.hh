@@ -42,22 +42,22 @@ class lib : public backend {
   void clean() override;
   void close() override;
   void commit() override;
-  void open(std::string const& filename) override;
-  void open(std::string const& filename,
+  void open(const std::filesystem::path& filename) override;
+  void open(const std::filesystem::path& filename,
             uint32_t length,
             time_t from,
             uint32_t step,
             short value_type = 0,
             bool without_cache = false) override;
-  void remove(std::string const& filename) override;
+  void remove(const std::filesystem::path& filename) override;
   void update(time_t t, std::string const& value) override;
   void update(const std::deque<std::string>& pts) override;
 
-  rrd_existing_data fetch_existing(const std::string& filename,
+  rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                    uint64_t from_ts,
                                    uint64_t to_ts) override;
 
-  void merge_create_temp(const std::string& tmp_path,
+  void merge_create_temp(const std::filesystem::path& tmp_path,
                          uint32_t rrd_len,
                          time_t from,
                          uint32_t step,
@@ -66,7 +66,7 @@ class lib : public backend {
 
  private:
   creator _creator;
-  std::string _filename;
+  std::filesystem::path _filename;
 };
 }  // namespace rrd
 

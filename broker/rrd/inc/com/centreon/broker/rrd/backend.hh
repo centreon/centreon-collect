@@ -63,14 +63,14 @@ class backend {
   virtual void clean() = 0;
   virtual void close() = 0;
   virtual void commit() = 0;
-  virtual void open(std::string const& filename) = 0;
-  virtual void open(std::string const& filename,
+  virtual void open(const std::filesystem::path& filename) = 0;
+  virtual void open(const std::filesystem::path& filename,
                     uint32_t length,
                     time_t from,
                     uint32_t step,
                     short value_type = 0,
                     bool without_cache = false) = 0;
-  virtual void remove(std::string const& filename) = 0;
+  virtual void remove(const std::filesystem::path& filename) = 0;
   virtual void update(time_t t, std::string const& value) = 0;
   virtual void update(const std::deque<std::string>& pts) = 0;
 
@@ -78,7 +78,7 @@ class backend {
    * @brief Flush pending rrdcached writes for @p filename to disk before a
    *        merge-read.  No-op for the lib backend.
    */
-  virtual void pre_merge_flush(const std::string& /*filename*/) {}
+  virtual void pre_merge_flush(const std::filesystem::path& /*filename*/) {}
 
   /**
    * @brief Read file metadata (step, rrd_len, value_type) and all non-NaN
@@ -89,7 +89,7 @@ class backend {
    *
    * @return rrd_existing_data with step == 0 on failure.
    */
-  virtual rrd_existing_data fetch_existing(const std::string& filename,
+  virtual rrd_existing_data fetch_existing(const std::filesystem::path& filename,
                                            uint64_t from_ts,
                                            uint64_t to_ts) = 0;
 
@@ -101,7 +101,7 @@ class backend {
    * The caller is responsible for the subsequent rename and
    * post_merge_forget().
    */
-  virtual void merge_create_temp(const std::string& tmp_path,
+  virtual void merge_create_temp(const std::filesystem::path& tmp_path,
                                  uint32_t rrd_len,
                                  time_t from,
                                  uint32_t step,
@@ -112,7 +112,7 @@ class backend {
    * @brief Invalidate rrdcached's in-memory queue for @p filename after an
    *        atomic rename.  No-op for the lib backend.
    */
-  virtual void post_merge_forget(const std::string& /*filename*/) {}
+  virtual void post_merge_forget(const std::filesystem::path& /*filename*/) {}
 };
 }  // namespace rrd
 

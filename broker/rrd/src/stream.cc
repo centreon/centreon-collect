@@ -204,7 +204,8 @@ stream<T>::~stream() noexcept {
  * _do_metric_merge so that a subsequent trigger during the merge is accepted.
  */
 template <typename T>
-void stream<T>::_schedule_metric_merge(uint64_t metric_id, std::string rrd_path)
+void stream<T>::_schedule_metric_merge(uint64_t metric_id,
+                                       std::filesystem::path rrd_path)
     ABSL_NO_THREAD_SAFETY_ANALYSIS {
   {
     absl::MutexLock lk(&_merge_pending_m);
@@ -221,7 +222,8 @@ void stream<T>::_schedule_metric_merge(uint64_t metric_id, std::string rrd_path)
  * @brief Schedule a status merge on the background thread.
  */
 template <typename T>
-void stream<T>::_schedule_status_merge(uint64_t index_id, std::string rrd_path)
+void stream<T>::_schedule_status_merge(uint64_t index_id,
+                                       std::filesystem::path rrd_path)
     ABSL_NO_THREAD_SAFETY_ANALYSIS {
   {
     absl::MutexLock lk(&_merge_pending_m);
@@ -280,15 +282,14 @@ void stream<T>::update() {
     }
     if (ect != 0)
       continue;  // junction detection in write() handles this case.
-    const auto rrd_path =
-        (_metrics_path / fmt::format("{}.rrd", metric_id)).string();
+    auto rrd_path = _metrics_path / fmt::format("{}.rrd", metric_id);
     if (std::filesystem::exists(rrd_path)) {
       SPDLOG_LOGGER_DEBUG(
           _logger,
           "RRD: metric {} has buffered data and .rrd exists; "
           "scheduling deferred merge from update()",
           metric_id);
-      _schedule_metric_merge(metric_id, rrd_path);
+      _schedule_metric_merge(metric_id, std::move(rrd_path));
     }
   }
   for (uint64_t index_id : _retention.status_ids_with_data()) {
@@ -301,15 +302,14 @@ void stream<T>::update() {
     }
     if (ect != 0)
       continue;
-    const auto rrd_path =
-        (_status_path / fmt::format("{}.rrd", index_id)).string();
+    auto rrd_path = _status_path / fmt::format("{}.rrd", index_id);
     if (std::filesystem::exists(rrd_path)) {
       SPDLOG_LOGGER_DEBUG(
           _logger,
           "RRD: status {} has buffered data and .rrd exists; "
           "scheduling deferred merge from update()",
           index_id);
-      _schedule_status_merge(index_id, rrd_path);
+      _schedule_status_merge(index_id, std::move(rrd_path));
     }
   }
 }
@@ -339,8 +339,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                             m.metric_id(), m.time());
 
         // Metric path.
-        std::string metric_path(
-            (_metrics_path / fmt::format("{}.rrd", m.metric_id())).string());
+        auto metric_path = _metrics_path / fmt::format("{}.rrd", m.metric_id());
 
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(m.metric_id());
@@ -480,8 +479,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                             e->is_for_rebuild ? "for rebuild" : "");
 
         // Metric path.
-        std::string metric_path(
-            (_metrics_path / fmt::format("{}.rrd", e->metric_id)).string());
+        auto metric_path = _metrics_path / fmt::format("{}.rrd", e->metric_id);
 
         // Check that metric is not being rebuilt.
         rebuild_cache::iterator it = _metrics_rebuild.find(e->metric_id);
@@ -548,10 +546,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                     _logger,
                     "RRD: metric {} junction reached via current data (ect={})",
                     e->metric_id, ect);
-                _schedule_metric_merge(
-                    e->metric_id,
-                    (_metrics_path / fmt::format("{}.rrd", e->metric_id))
-                        .string());
+                _schedule_metric_merge(e->metric_id, metric_path);
               }
             }
           } else {
@@ -563,10 +558,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                 _retention.last_metric_time(e->metric_id);
             if (_retention.write_metric(e->metric_id, e->time, e->value,
                                         step)) {
-              _schedule_metric_merge(
-                  e->metric_id,
-                  (_metrics_path / fmt::format("{}.rrd", e->metric_id))
-                      .string());
+              _schedule_metric_merge(e->metric_id, metric_path);
             } else {
               bool should_merge = false;
               uint64_t ect = 0;
@@ -606,10 +598,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                     e->metric_id);
               }
               if (should_merge)
-                _schedule_metric_merge(
-                    e->metric_id,
-                    (_metrics_path / fmt::format("{}.rrd", e->metric_id))
-                        .string());
+                _schedule_metric_merge(e->metric_id, metric_path);
             }
           }
         } else
@@ -628,8 +617,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                             s.index_id(), s.state());
 
         // Status path.
-        std::string status_path(
-            (_status_path / fmt::format("{}.rrd", s.index_id())).string());
+        auto status_path = _status_path / fmt::format("{}.rrd", s.index_id());
 
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(s.index_id()));
@@ -745,8 +733,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             e->index_id, e->state, e->is_for_rebuild ? "for rebuild" : "");
 
         // Status path.
-        std::string status_path(
-            (_status_path / fmt::format("{}.rrd", e->index_id)).string());
+        auto status_path = _status_path / fmt::format("{}.rrd", e->index_id);
 
         // Check that status is not begin rebuild.
         rebuild_cache::iterator it(_status_rebuild.find(e->index_id));
@@ -808,9 +795,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
             const uint64_t prev_t =
                 _retention.last_status_time(e->index_id);
             if (_retention.write_status(e->index_id, e->time, e->state, step)) {
-              _schedule_status_merge(
-                  e->index_id,
-                  (_status_path / fmt::format("{}.rrd", e->index_id)).string());
+              _schedule_status_merge(e->index_id, status_path);
             } else {
               bool should_merge = false;
               uint64_t ect = 0;
@@ -850,10 +835,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                     e->index_id);
               }
               if (should_merge)
-                _schedule_status_merge(
-                    e->index_id,
-                    (_status_path / fmt::format("{}.rrd", e->index_id))
-                        .string());
+                _schedule_status_merge(e->index_id, status_path);
             }
           }
         } else
@@ -879,22 +861,19 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
           _metrics_to_index_rebuild.reserve(
               e->obj().metric_to_index_id().size());
           for (auto& m : e->obj().metric_to_index_id()) {
-            std::string path{
-                (_metrics_path / fmt::format("{}.rrd", m.first)).string()};
             /* Creation of metric caches */
             _metrics_rebuild[m.first];
             /* File removed */
-            _backend.remove(path);
+            _backend.remove(_metrics_path / fmt::format("{}.rrd", m.first));
             /* Clear stale retention data so the rebuild starts fresh. */
             if (_retention.enabled())
               _retention.remove_metric(m.first);
             // creation of status caches
-            path = (_status_path / fmt::format("{}.rrd", m.second)).string();
             if (_status_rebuild.find(m.second) == _status_rebuild.end()) {
               _status_rebuild[m.second];
               _metrics_to_index_rebuild[m.first] = m.second;
               /* File removed */
-              _backend.remove(path);
+              _backend.remove(_status_path / fmt::format("{}.rrd", m.second));
               if (_retention.enabled())
                 _retention.remove_status(m.second);
             }
@@ -953,7 +932,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
       std::shared_ptr<storage::pb_remove_graph_message> e{
           std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
       for (auto& m : e->obj().metric_ids()) {
-        std::string path{(_metrics_path / fmt::format("{}.rrd", m)).string()};
+        auto path = _metrics_path / fmt::format("{}.rrd", m);
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
@@ -965,7 +944,7 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         }
       }
       for (auto& i : e->obj().index_ids()) {
-        std::string path{(_status_path / fmt::format("{}.rrd", i)).string()};
+        auto path = _status_path / fmt::format("{}.rrd", i);
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
@@ -986,9 +965,8 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                           e->is_index ? "index" : "metric", e->id);
 
       // Generate path.
-      std::string path(((e->is_index ? _status_path : _metrics_path) /
-                        fmt::format("{}.rrd", e->id))
-                           .string());
+      auto path = (e->is_index ? _status_path : _metrics_path) /
+                  fmt::format("{}.rrd", e->id);
 
       // Remove data from cache.
       rebuild_cache& cache(e->is_index ? _status_rebuild : _metrics_rebuild);
@@ -1044,30 +1022,28 @@ void stream<T>::_startup_merge() {
 
   if (_write_metrics) {
     for (uint64_t id : _retention.metric_ids_with_data()) {
-      const std::string path =
-          (_metrics_path / fmt::format("{}.rrd", id)).string();
+      auto path = _metrics_path / fmt::format("{}.rrd", id);
       SPDLOG_LOGGER_INFO(_logger,
                          "RRD: startup merge for recovered metric {} ('{}')",
-                         id, path);
-      _schedule_metric_merge(id, path);
+                         id, path.string());
+      _schedule_metric_merge(id, std::move(path));
     }
   }
 
   if (_write_status) {
     for (uint64_t id : _retention.status_ids_with_data()) {
-      const std::string path =
-          (_status_path / fmt::format("{}.rrd", id)).string();
+      auto path = _status_path / fmt::format("{}.rrd", id);
       SPDLOG_LOGGER_INFO(_logger,
                          "RRD: startup merge for recovered status {} ('{}')",
-                         id, path);
-      _schedule_status_merge(id, path);
+                         id, path.string());
+      _schedule_status_merge(id, std::move(path));
     }
   }
 }
 
 template <typename T>
 void stream<T>::_do_metric_merge(uint64_t metric_id,
-                                 const std::string& rrd_path) {
+                                 const std::filesystem::path& rrd_path) {
   // 0. Clear the pending flag so that a new merge can be scheduled while this
   //    one is running (preventing unbounded accumulation).
   {
@@ -1123,7 +1099,7 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
         _logger,
         "RRD: metric {} is non-GAUGE (value_type={}), using direct update "
         "(points older than last_update may be discarded by librrd)",
-        metric_id, existing.value_type);
+        metric_id, existing.value_type);  // value_type is int, no change
     try {
       _merge_lib.open(rrd_path);
     } catch (const exceptions::open&) {
@@ -1157,7 +1133,8 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
 
   // 8. Create temp file and write all merged points via _merge_lib (librrd
   //    directly, bypasses rrdcached socket — safe from the merge thread).
-  const std::string tmp_path = rrd_path + ".tmp";
+  auto tmp_path = rrd_path;
+  tmp_path += ".tmp";
   const time_t from =
       static_cast<time_t>(merged.begin()->first) - existing.step;
   _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
@@ -1197,7 +1174,7 @@ void stream<T>::_do_metric_merge(uint64_t metric_id,
  */
 template <typename T>
 void stream<T>::_do_status_merge(uint64_t index_id,
-                                 const std::string& rrd_path) {
+                                 const std::filesystem::path& rrd_path) {
   // 0. Clear pending flag.
   {
     absl::MutexLock lk(&_merge_pending_m);
@@ -1299,7 +1276,8 @@ void stream<T>::_do_status_merge(uint64_t index_id,
   }
 
   // 7. Create temp file and write merged data via _merge_lib (librrd directly).
-  const std::string tmp_path = rrd_path + ".tmp";
+  auto tmp_path = rrd_path;
+  tmp_path += ".tmp";
   const time_t from =
       static_cast<time_t>(merged.begin()->first) - existing.step;
   _merge_lib.merge_create_temp(tmp_path, existing.rrd_len, from, existing.step,
@@ -1389,7 +1367,7 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding metric {}", p.first);
-    std::string path{(_metrics_path / fmt::format("{}.rrd", p.first)).string()};
+    auto path = _metrics_path / fmt::format("{}.rrd", p.first);
     auto index_id_search = _metrics_to_index_rebuild.find(p.first);
     uint64_t index_id = 0;
     if (index_id_search != _metrics_to_index_rebuild.end()) {
@@ -1458,9 +1436,8 @@ void stream<T>::_rebuild_data(const RebuildMessage& rm) {
   for (const auto& by_index_status_values : status_values) {
     SPDLOG_LOGGER_DEBUG(_logger, "RRD: Rebuilding status {}",
                         by_index_status_values.first);
-    std::string status_path{
-        (_status_path / fmt::format("{}.rrd", by_index_status_values.first))
-            .string()};
+    auto status_path = _status_path /
+                       fmt::format("{}.rrd", by_index_status_values.first);
 
     time_t start_time =
         by_index_status_values.second.time_to_value.begin()->first -
