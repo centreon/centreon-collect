@@ -227,7 +227,7 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_dollar_sign,
                                 escaper);
       if (macro == "$METRICID$") {
-        _throw_on_invalid(data_type::metric);
+        _throw_on_invalid(data_type::metric, macro);
         _append_compiled_getter(&line_protocol_query::_get_metric_id, escaper);
       } else if (macro == "$INSTANCE$")
         _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
@@ -258,7 +258,7 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_max,
                                 escape_numbers ? escaper : nullptr);
       else if (macro == "$METRIC$") {
-        _throw_on_invalid(data_type::metric);
+        _throw_on_invalid(data_type::metric, macro);
         _append_compiled_getter(&line_protocol_query::_get_metric_name,
                                 escaper);
       } else if (macro == "$INDEXID$")
@@ -320,9 +320,13 @@ void line_protocol_query::_compile_scheme(
  *
  *  @param[in] macro_type  The macro type;
  */
-void line_protocol_query::_throw_on_invalid(data_type macro_type) {
+void line_protocol_query::_throw_on_invalid(
+    data_type macro_type,
+    const std::string_view& macro_value) {
   if (macro_type != _type)
-    throw msg_fmt("macro of invalid type");
+    throw msg_fmt("macro of invalid type: {} is not allowed for {}",
+                  macro_value,
+                  _type == data_type::metric ? "metric" : "status");
 }
 
 /**

@@ -25,9 +25,11 @@
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
@@ -71,7 +73,13 @@ void connector::connect_to(std::string const& metric_naming,
  *  @return Graphite connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(
-      new stream(_metric_naming, _status_naming, _escape_string, _user,
-                 _password, _addr, _port, _queries_per_transaction));
+  try {
+    return std::unique_ptr<stream>(
+        new stream(_metric_naming, _status_naming, _escape_string, _user,
+                   _password, _addr, _port, _queries_per_transaction));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::GRAPHITE),
+                        "Fail to init graphite connexion: {}", e.what());
+    throw;
+  }
 }

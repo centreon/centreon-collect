@@ -24,9 +24,11 @@
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _influxdb_stream_filter = {
     storage::metric::static_type(), storage::status::static_type(),
@@ -74,7 +76,13 @@ void connector::connect_to(std::string const& user,
  * @return An Influxdb connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(
-      new stream(_user, _password, _addr, _port, _db, _queries_per_transaction,
-                 _status_ts, _status_cols, _metric_ts, _metric_cols));
+  try {
+    return std::unique_ptr<stream>(new stream(
+        _user, _password, _addr, _port, _db, _queries_per_transaction,
+        _status_ts, _status_cols, _metric_ts, _metric_cols));
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::INFLUXDB),
+                        "Fail to init influxdb connexion: {}", e.what());
+    throw;
+  }
 }

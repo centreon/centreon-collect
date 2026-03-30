@@ -58,18 +58,21 @@ struct string_string_view_hash {
  *
  */
 class global_cache_data : public global_cache {
-  using index_id_mapping =
-      interprocess::flat_map<uint64_t /* metric_id */,
-                             host_serv_pair,
-                             std::less<uint64_t>,
-                             managed_mapped_file::allocator<
-                                 std::pair<uint64_t, host_serv_pair>>::type>;
+  using index_id_mapping = interprocess::flat_map<
+      uint64_t /* metric_id */,
+      host_serv_pair,
+      std::less<uint64_t>,
+      interprocess::private_node_allocator<std::pair<uint64_t, host_serv_pair>,
+                                           segment_manager,
+                                           4096>>;
 
   using metric_id_mapping = interprocess::flat_map<
       uint64_t /* metric_id */,
       uint64_t /* index_id */,
       std::less<uint64_t>,
-      managed_mapped_file::allocator<std::pair<uint64_t, uint64_t>>::type>;
+      interprocess::private_node_allocator<std::pair<uint64_t, uint64_t>,
+                                           segment_manager,
+                                           4096>>;
 
   /**
    * @brief severity is also given by a custom variable "CRITICALITY_LEVEL"
@@ -79,12 +82,14 @@ class global_cache_data : public global_cache {
       std::pair<interprocess::offset_ptr<host>,
                 int32_t /* severity given by custom var*/>;
 
-  using id_to_host = interprocess::flat_map<
-      uint64_t,
-      host_custom_var_pair,
-      std::less<uint64_t>,
-      managed_mapped_file::allocator<
-          std::pair<uint64_t, host_custom_var_pair>>::type>;
+  using id_to_host =
+      interprocess::flat_map<uint64_t,
+                             host_custom_var_pair,
+                             std::less<uint64_t>,
+                             interprocess::private_node_allocator<
+                                 std::pair<uint64_t, host_custom_var_pair>,
+                                 segment_manager,
+                                 4096>>;
 
   /**
    * @brief severity is also given by a custom variable "CRITICALITY_LEVEL"
@@ -97,8 +102,10 @@ class global_cache_data : public global_cache {
       host_serv_pair,
       service_custom_var_pair,
       std::less<host_serv_pair>,
-      managed_mapped_file::allocator<
-          std::pair<host_serv_pair, service_custom_var_pair>>::type>;
+      interprocess::private_node_allocator<
+          std::pair<host_serv_pair, service_custom_var_pair>,
+          segment_manager,
+          65536>>;
 
   using id_to_instance = interprocess::flat_map<
       uint64_t,
@@ -112,8 +119,10 @@ class global_cache_data : public global_cache {
       uint64_t,
       interprocess::offset_ptr<host_group>,
       std::less<uint64_t>,
-      managed_mapped_file::allocator<
-          std::pair<uint64_t, interprocess::offset_ptr<host_group>>>::type>;
+      interprocess::private_node_allocator<
+          std::pair<uint64_t, interprocess::offset_ptr<host_group>>,
+          segment_manager,
+          4096>>;
 
   struct host_group_member {
     host_group_member() {}
@@ -173,8 +182,10 @@ class global_cache_data : public global_cache {
       uint64_t,
       interprocess::offset_ptr<service_group>,
       std::less<uint64_t>,
-      managed_mapped_file::allocator<
-          std::pair<uint64_t, interprocess::offset_ptr<service_group>>>::type>;
+      interprocess::private_node_allocator<
+          std::pair<uint64_t, interprocess::offset_ptr<service_group>>,
+          segment_manager,
+          4096>>;
 
   struct service_group_member {
     service_group_member() {}
@@ -275,8 +286,10 @@ class global_cache_data : public global_cache {
       std::pair<uint64_t, TagType>,
       tag_poller,
       std::less<std::pair<uint64_t, TagType>>,
-      managed_mapped_file::allocator<
-          std::pair<std::pair<uint64_t, TagType>, tag_poller>>::type>;
+      interprocess::private_node_allocator<
+          std::pair<std::pair<uint64_t, TagType>, tag_poller>,
+          segment_manager,
+          4096>>;
 
   std::unique_ptr<allocators> _allocators;
 

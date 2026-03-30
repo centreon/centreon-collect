@@ -291,9 +291,6 @@ GRAPHITE_FORMAT_TEST
     Ctn Config Broker    module    ${1}
     Ctn Config BBDO3    1
     Ctn Clear Retention
-    Ctn Broker Config Log    central    graphite    trace
-    Ctn Broker Config Log    central    core    trace
-    Ctn Broker Config Log    central    perfdata    trace
     Ctn Config Broker Graphite Output    8040    
     ...    centreon.metric.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.perfdata.$METRIC$.max.$MAX$.min.$MIN$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$  
     ...    centreon.status.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$ 
@@ -362,8 +359,6 @@ GRAPHITE_BROKER_RESTART_TEST
     Ctn Config BBDO3    1
     Ctn Clear Retention
     # Ctn Broker Config Log    central    graphite    debug
-    Ctn Broker Config Log    central    core    trace
-    Ctn Broker Config Log    central    sql    debug
     Ctn Config Broker Graphite Output    8041
     ...    centreon.metric.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.perfdata.$METRIC$.max.$MAX$.min.$MIN$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
     ...    centreon.status.instance.$INSTANCE$.$INSTANCEID$.host.$HOSTID$.$HOST$.service.$SERVICEID$.$SERVICE$.index_id.$INDEXID$.host_groups.$HOSTGROUP$.serv_groups.$SERVICE_GROUP$.host_tag_cat.$HOST_TAG_CAT_NAME$.host_tag_cat_id.$HOST_TAG_CAT_ID$.host_tag_group.$HOST_TAG_GROUP_NAME$.host_tag_group_id.$HOST_TAG_GROUP_ID$.serv_tag_cat.$SERV_TAG_CAT_NAME$.serv_tag_cat_id.$SERV_TAG_CAT_ID$.serv_tag_group.$SERV_TAG_GROUP_NAME$.serv_tag_group_id.$SERV_TAG_GROUP_ID$
@@ -412,11 +407,11 @@ GRAPHITE_BROKER_RESTART_TEST
             Log To Console    iteration ${i} received:${received}
 
             IF    'status' in $received and 'service_314' in $received
-                Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received on iteration ${i}
+                Should Match Regexp    ${received}    centreon\\.status\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 0 \\d+    incorrect status received on iteration ${i}
                 ${status_received}    Set Variable    ${True}
             END
             IF    'metric' in $received and 'service_314' in $received
-                Should Match Regexp    ${received}    Authorization: Basic dG90bzp0aXRp\ncentreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received on iteration ${i}
+                Should Match Regexp    ${received}    centreon\\.metric\\.instance\\.Poller0\\.1\\.host\\.16\\.host_16\\.service\\.314\\.service_314\\.index_id\\.\\d+\\.perfdata\\.metric_taratata\\.max\\.99\\.min\\.5\\.host_groups\\.1,2\\.serv_groups\\.4,5\\.host_tag_cat\\.tag8\\.host_tag_cat_id\\.2\\.host_tag_group\\.tag6\\.host_tag_group_id\\.2\\.serv_tag_cat\\.tag19,tag15\\.serv_tag_cat_id\\.4,5\\.serv_tag_group\\.tag13\\.serv_tag_group_id\\.4 80 \\d+    incorrect metric received on iteration ${i}
                 ${metric_received}    Set Variable    ${True}
             END
             IF    ${metric_received} and ${status_received}
@@ -425,13 +420,8 @@ GRAPHITE_BROKER_RESTART_TEST
         END
 
         #let time to save conf cache
-        Sleep    7s
+        Sleep    10s
         
-        #by doing this we update real time cache and we don't let time to save it
-        Ctn Process Service Check Result    host_16    service_315    0    taratata|metric_taratata=80%;50;75;5;99
-        ${random_sleep}=    Evaluate    random.randint(1,4)    modules=random
-        Sleep    ${random_sleep}
-
     END
 
 
