@@ -193,19 +193,20 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("authorization");
   if (it != cfg.params.end()) {
     authorization = it->second;
-    // if crypted => decrypt
-    try {
-      authorization = common::vault::vault_access::load(
-                          global_params, log_v2::instance().get(log_v2::GRPC))
-                          ->decrypt(authorization);
-      log_v2::instance()
-          .get(log_v2::GRPC)
-          ->info("Authorization get from Vault configuration");
-    } catch (const std::exception& e) {
-      if (common::vault::vault_access::is_vault_prefixed(authorization)) {
+    if (common::vault::vault_access::is_vault_prefixed(
+            authorization)) {  // if crypted => decrypt
+      try {
+        authorization = common::vault::vault_access::load(
+                            global_params, log_v2::instance().get(log_v2::GRPC))
+                            ->decrypt(authorization);
+        log_v2::instance()
+            .get(log_v2::GRPC)
+            ->info("Authorization obtained from Vault configuration");
+      } catch (const std::exception& e) {
         log_v2::instance()
             .get(log_v2::GRPC)
             ->error("No usable Vault configuration: {}", e.what());
+        throw msg_fmt("No usable Vault configuration: {}", e.what());
       }
     }
   }
@@ -348,19 +349,20 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     log_v2::instance()
         .get(log_v2::GRPC)
         ->debug("GRPC: 'authorization' field contains '{}'", authorization);
-    // if crypted => decrypt
-    try {
-      authorization = common::vault::vault_access::load(
-                          global_params, log_v2::instance().get(log_v2::GRPC))
-                          ->decrypt(authorization);
-      log_v2::instance()
-          .get(log_v2::GRPC)
-          ->info("Authorization get from Vault configuration");
-    } catch (const std::exception& e) {
-      if (common::vault::vault_access::is_vault_prefixed(authorization)) {
+    if (common::vault::vault_access::is_vault_prefixed(
+            authorization)) {  // if crypted => decrypt
+      try {
+        authorization = common::vault::vault_access::load(
+                            global_params, log_v2::instance().get(log_v2::GRPC))
+                            ->decrypt(authorization);
+        log_v2::instance()
+            .get(log_v2::GRPC)
+            ->info("Authorization obtained from Vault configuration");
+      } catch (const std::exception& e) {
         log_v2::instance()
             .get(log_v2::GRPC)
             ->error("No usable Vault configuration: {}", e.what());
+        throw msg_fmt("No usable Vault configuration: {}", e.what());
       }
     }
   }

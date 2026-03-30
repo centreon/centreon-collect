@@ -495,7 +495,7 @@ BSCSSGA3
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
 
-    ${content}    Create List    Authorization get from Vault configuration
+    ${content}    Create List    Authorization obtained from Vault configuration
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the authorization token found in the vault.
 
