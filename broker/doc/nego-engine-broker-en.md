@@ -27,14 +27,91 @@
 * [Broker centralized cache](#broker-centralized-cache)
   * [Operating in centralized configuration](#operating-in-centralized-configuration)
   * [Host `poller_id` population in the cache](#host-poller_id-population-in-the-cache)
+    * [The problem](#the-problem)
+    * [The fix — two complementary changes](#the-fix--two-complementary-changes)
+    * [Why the global diff has no `poller_id`](#why-the-global-diff-has-no-poller_id)
   * [Operating in *legacy* mode](#operating-in-legacy-mode)
   * [Possible evolutions](#possible-evolutions)
-* [Retention](#retention)
+* [Retention and RRD stream](#retention-and-rrd-stream)
+  * [Current problem](#current-problem)
+  * [Proposed architecture](#proposed-architecture)
+    * [Overview](#overview)
+    * [Phase 1: Reconnection](#phase-1-reconnection)
+    * [Phase 2: Junction detection](#phase-2-junction-detection)
+    * [Phase 3: Merge via the reconstruction engine](#phase-3-merge-via-the-reconstruction-engine)
+  * [Buffer format](#buffer-format)
+    * [`.prot` files](#prot-files)
+    * [Merge triggers](#merge-triggers)
+  * [Multiple disconnections](#multiple-disconnections)
+  * [Integration with the existing rebuild](#integration-with-the-existing-rebuild)
+  * [Edge cases](#edge-cases)
+    * [Retention exceeded](#retention-exceeded)
+    * [Broker crash during merge](#broker-crash-during-merge)
+    * [Broker crash during buffering](#broker-crash-during-buffering)
+  * [Concurrency](#concurrency)
+  * [Migration plan](#migration-plan)
+    * [Step 1 — `retention_manager` component ✅ implemented](#step-1--retention_manager-component--implemented)
+    * [Step 2 — Bifurcation in `stream.cc` ✅ implemented](#step-2--bifurcation-in-streamcc--implemented)
+    * [Step 3 — Junction detection ✅ implemented](#step-3--junction-detection--implemented)
+      * [Progressive partial merge](#progressive-partial-merge)
+    * [Step 4 — Unified reconstruction engine ✅ implemented](#step-4--unified-reconstruction-engine--implemented)
+* [Remote Servers and centralized configuration](#remote-servers-and-centralized-configuration)
+  * [Current situation](#current-situation)
+  * [Relay identification](#relay-identification)
+  * [New BBDO messages](#new-bbdo-messages)
+  * [Topology in broker\_cache](#topology-in-broker_cache)
+  * [Topology persistence](#topology-persistence)
+  * [Scenario 1: poller connects to the remote](#scenario-1-poller-connects-to-the-remote)
+  * [Scenario 1b: relay chain (multi-hop)](#scenario-1b-relay-chain-multi-hop)
+  * [Scenario 2: configuration pushed by PHP](#scenario-2-configuration-pushed-by-php)
+  * [Scenario 3: remote offline then reconnects](#scenario-3-remote-offline-then-reconnects)
+  * [Scenario 4: central restart](#scenario-4-central-restart)
+  * [Poller migration between two remotes](#poller-migration-between-two-remotes)
+  * [gRPC GetTopology endpoint](#grpc-gettopology-endpoint)
+  * [.prot file storage](#prot-file-storage)
+  * [broker\_state evolution](#broker_state-evolution)
+  * [Required changes](#required-changes)
+  * [Roll-out](#roll-out)
+    * [Step 1 — New BBDO messages ( ✅ implemented)](#step-1--new-bbdo-messages--implemented)
+    * [Step 2 — via_remote + relay detection ( ✅ implemented)](#step-2--via_remote--relay-detection--implemented)
+    * [Step 3 — ConfigRequest sent by the relay ( ✅ implemented)](#step-3--configrequest-sent-by-the-relay--implemented)
+    * [Step 4 — ConfigRequest handling at the central ( ✅ implemented)](#step-4--configrequest-handling-at-the-central--implemented)
+    * [Step 5 — Forward DiffState/ack in the relay ( ✅ implemented)](#step-5--forward-diffstateack-in-the-relay--implemented)
+    * [Step 6 — PHP push via relay ( ✅ implemented)](#step-6--php-push-via-relay--implemented)
+    * [Step 7 — Migration + ConfigRevoke ( ✅ implemented)](#step-7--migration--configrevoke--implemented)
+    * [Step 8 — Topology persistence](#step-8--topology-persistence)
+    * [Step 9 — gRPC GetTopology](#step-9--grpc-gettopology)
+* [Centralized downtime and acknowledgement management](#centralized-downtime-and-acknowledgement-management)
+  * [Problem](#problem)
+  * [Solution: Broker as source of truth](#solution-broker-as-source-of-truth)
+  * [New BBDO messages](#new-bbdo-messages)
+  * [Persistence and restart](#persistence-and-restart)
+  * [Migration and downtimes / acknowledgements](#migration-and-downtimes--acknowledgements)
 * [Poller HA](#poller-ha)
   * [Poller configuration tree](#poller-configuration-tree)
   * [Engine configuration files](#engine-configuration-files)
   * [List of peers](#list-of-peers)
+  * [Engine self-monitoring](#engine-self-monitoring)
+    * [Implementation](#implementation-1)
+    * [What Engine does with these indicators](#what-engine-does-with-these-indicators)
   * [unified_sql](#unified_sql)
+  * [HA protocol architecture](#ha-protocol-architecture)
+    * [Overview](#overview-1)
+    * [Non-HA mode: compatibility and single-poller zone](#non-ha-mode-compatibility-and-single-poller-zone)
+    * [PHP → Broker interface: centengine.cfg](#php--broker-interface-centengine)
+    * [Zone-to-poller configuration inheritance](#zone-to-poller-configuration-inheritance)
+    * [Zone activation: min_pollers](#zone-activation-min_pollers)
+    * [Resource distribution across pollers](#resource-distribution-across-pollers)
+      * [Co-location blocks](#co-location-blocks)
+      * [Two-phase algorithm](#two-phase-algorithm)
+    * [Behavior when a poller is removed from the zone](#behavior-when-a-poller-is-removed-from-the-zone)
+    * [Host migration protocol](#host-migration-protocol)
+    * [Runtime state preservation during migration](#runtime-state-preservation-during-migration)
+    * [Threshold rebalancing](#threshold-rebalancing)
+      * [Health message](#health-message)
+      * [Load score and thresholds](#load-score-and-thresholds)
+    * [Failure detection and failover](#failure-detection-and-failover)
+    * [Return of a failed poller](#return-of-a-failed-poller)
 * [Tickets](#tickets)
   * [First tickets](#first-tickets)
     * [Internal health check in Engine with reporting to Broker](#internal-health-check-in-engine-with-reporting-to-broker)
@@ -274,7 +351,7 @@ Knowing that `Broker` listens to the PHP cache directory, when it has a new conf
 An important point: `Broker` does not check the available `Engine` configuration version during negotiation. This is done as a background task. However, it stores in its information about the `Engine` peer its configuration version. Consequently, when a new version arrives, it can verify that the two are indeed different.
 
 ```mermaid
-sequenceDiagram              
+sequenceDiagram
     participant E as Engine
     participant BS as Broker SQL
     participant BR as Broker RRD
@@ -585,7 +662,7 @@ sequenceDiagram
     B ->> E: BBDO negotiation and retrieving<br/>Engine's current version<br/>and registering this poller<br/>in the peers list.
     deactivate B
 ```
-        
+
 In this second case, there is no configuration sending, so no acknowledgement, so no database update.
 The user is left in the dark, because resources are disabled and don't reactivate.
 
@@ -618,7 +695,7 @@ stateDiagram-v2
     if_watch_engine_timer_started --> start_watch_engine_conf_timer(): engine conf timer not started
     start_watch_engine_conf_timer() --> prot_file_created_from_state
     if_watch_engine_timer_started --> prot_file_created_from_state: engine conf timer already started
-    
+
     state if_existing_lck_file_for_current_poller_id <<choice>>
     prot_file_created_from_state --> if_existing_lck_file_for_current_poller_id
     if_existing_lck_file_for_current_poller_id --> keep_lck_file_in_memory: A .lck file exists for this poller ID
@@ -755,7 +832,7 @@ and Reading on BBDO stream
     BBDO ->> S: Updating peers list<br/>to not send it a second time.
     end
     deactivate BBDO
-and Reading on Unified SQL stream    
+and Reading on Unified SQL stream
     USQL ->> USQL: read()
     activate USQL
     USQL ->> USQL: reading events
@@ -763,7 +840,7 @@ and Reading on Unified SQL stream
         USQL ->> USQL: updating database<br/>from global diff
     end
     deactivate USQL
-end        
+end
 ```
 
 ## Split of broker::config::applier::state
@@ -808,7 +885,9 @@ classDiagram
         -path _cache_config_dir
         -path _pollers_config_dir
         -unique_ptr<directory_watcher> _cache_config_dir_watcher
-        -btree_map<tuple<uint64_t, string, string>, peer> _connected_peers
+        -flat_hash_map<peer_key, engine_peer> _engine_peers
+        -flat_hash_map<peer_key, broker_peer> _broker_peers
+        -flat_hash_map<peer_key, unknown_peer> _unknown_peers
         -flat_hash_map<uint64_t, string> _engine_configuration
         -unique_ptr<steady_timer> _watch_engine_conf_timer
         -flat_hash_set<uint32_t> _lck_set
@@ -821,6 +900,7 @@ classDiagram
         +remove_peer()
         +has_connection_from_poller(uint64_t poller_id)
         +connected_peers()
+        +connected_pollers()
         +engine_peer_needs_update(uint64_t poller_id)
         +acknowledge_engine_peer(uint64_t poller_id)
         +set_poller_engine_conf()
@@ -929,7 +1009,7 @@ sequenceDiagram
             deactivate B
         end
     end
-    
+
     B ->> B: Preparing DB from global diff.<br/>All changes are processed at once.
     activate B
     B ->> C: Updating cache from global diff.
@@ -994,7 +1074,7 @@ sequenceDiagram
             USQL ->> USQL: updating database<br/>from global diff
         end
         deactivate USQL
-    end        
+    end
 ```
 
 ## Host `poller_id` population in the cache
@@ -1156,7 +1236,7 @@ A second evolution would be for the cache to become a broker module. This cache 
 and neighboring brokers could access it in read/write mode via BBDO messages. This solution is
 particularly interesting with the broker cluster.
 
-# Retention
+# Retention and RRD stream
 
 ## Current problem
 
@@ -1673,6 +1753,727 @@ a non-existent or incorrect path after the rename.
 The existing rebuild mechanism likely already handles `FLUSH`; `FORGET` after
 rename is the point to verify during implementation.
 
+# Remote Servers and centralized configuration
+
+A **remote server** is an intermediate node between the central and a group of pollers. It has its own `cbd` instance and its own local database. Its poller Engine instances connect to its local `cbd` — they do not see the central directly.
+
+## Current situation
+
+The centralized configuration mechanism as currently implemented only covers `ENGINE` peers:
+
+```cpp
+if (peer_type() == common::ENGINE &&
+    _state.engine_peer_needs_update(poller_id())) {
+```
+
+A remote server connects to the central as a `BROKER` peer. It therefore receives no configuration diff. Its local pollers are not visible to the central and never receive their centralized configuration.
+
+## Relay identification
+
+### Central vs relay
+
+Both the central and a relay have incoming BBDO connections (from pollers or other relays) and outgoing BBDO connections (to rrd for the central, to the central for the relay). The presence of a CBD output alone is therefore not enough to tell them apart.
+
+**The real discriminant is `pollers_config_dir`**: the central is configured with a `pollers_config_dir` directory where PHP deposits `.prot` files. A relay does not have one.
+
+```cpp
+bool supports_centralized_conf() const override {
+  return !_pollers_config_dir.empty();
+}
+```
+
+| | Central | Relay |
+|---|---|---|
+| `pollers_config_dir` | configured | empty |
+| `supports_centralized_conf()` | `true` | `false` |
+| BBDO output | toward rrd | toward the central |
+| `ConfigRequest` received | handles (replies with `DiffState`) | forwards upstream |
+
+### Behaviour on ConfigRequest receipt
+
+When a `bbdo_stream` receives a `ConfigRequest` for poller N:
+
+- `supports_centralized_conf() == true` → we are the **central**: look up N's `.prot` and reply with `DiffState`.
+- `supports_centralized_conf() == false` → we are a **relay**: record `_engine_peers[N].via_remote`, then forward the `ConfigRequest` on the CBD output stream.
+
+### Relay auto-detection
+
+No new `PeerType` and no flag in the `Welcome` message are needed. A cbd automatically detects itself as a relay as soon as the following three conditions are met:
+
+1. **BBDO3 active** — centralized configuration is enabled
+2. **At least one incoming Engine connection** — this cbd receives pollers
+3. **`supports_centralized_conf() == false` and at least one outgoing connection to a CBD** — this cbd is connected to an upstream broker without being the central itself
+
+Once in relay mode, a cbd sends a `ConfigRequest` to the central for each Engine poller that connects. It is through these `ConfigRequest` messages that the central discovers the topology — not from the `Welcome`. There is no explicit declaration: the relay behaviour manifests itself naturally.
+
+## New BBDO messages
+
+A new message allows the remote to request a poller's configuration from the central. The response is an ordinary `DiffState` — the same message the central sends to a directly connected Engine.
+
+```proto
+message ConfigRequest {
+  uint64 poller_id      = 1;
+  string config_version = 2;  // hash of the local .prot for this poller
+                               // empty if the remote has no cached config for this poller
+}
+// No ConfigResponse: the central replies with a standard DiffState.
+```
+
+The central compares `config_version` with its own version for this poller and responds:
+- `config_version` empty **or** central does not know N → `DiffState{unknown=true}`
+- versions identical → empty `DiffState` (no changes, nothing to do)
+- central has a newer version → `DiffState{diff}`
+
+The remote handles this `DiffState` the same way a direct Engine would: whether received in response to a `ConfigRequest` or pushed by the central (scenario 2), the behaviour is identical. This is the same mechanism as the direct Engine↔central negotiation (the `engine_conf` field in `Welcome`), proxied one level through the remote.
+
+## Topology in broker\_cache
+
+Topology (which poller is behind which remote) is encoded directly in the `via_remote` field of `engine_peer` entries in `_engine_peers`. When remote R sends `ConfigRequest {poller_id=N}`, the central creates (or updates) an `engine_peer{poller_id=N, via_remote=R}` entry in `_engine_peers`. When PHP pushes a diff, the central looks up `_engine_peers[N].via_remote` to determine which remote to route the diff to.
+
+The central has only a partial view: for a chain `N → R2 → R1 → central`, it only sees `via_remote=R1`. R2 is opaque to it.
+
+There is no separate `remote_relay` table in `broker_cache`: the information is derived from `_engine_peers`. `broker_cache` remains responsible for **persistence** of the topology via `topology.cache` (see next section), which stores `(poller_id, remote_id)` pairs to reconstruct hints on restart.
+
+## Topology persistence
+
+`broker_cache` is today purely in-memory. In centralized configuration mode, the topology part must be persisted to survive a central restart.
+
+On clean shutdown, the central writes a `topology.cache` file (protobuf). On startup, it reloads it as a **hint**: the topology is considered valid until proven otherwise. Incoming `ConfigRequest` messages as remotes reconnect correct or confirm each entry.
+
+On crash (no clean shutdown), `topology.cache` is absent or stale. This is not blocking: the central starts without topology and rebuilds it as remotes reconnect. PHP diffs produced during this window are queued.
+
+## Scenario 1: poller connects to the remote
+
+A poller Engine connects to the remote. Two situations are possible depending on whether the remote is itself connected to the central.
+
+The remote cannot know whether its local copy of N's config is up to date without querying the central — when the connection is up, it **always** sends a `ConfigRequest`. When the connection is down, it behaves as if the central had replied `unknown=true`.
+
+In both cases, if the remote already holds a local `N.prot` cache and the central says it does not know N, the local cache is authoritative: the remote sends it to Engine **and** to the central to resynchronise them.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine (poller N)
+    participant R as Remote Broker
+    participant C as Central Broker
+
+    E->>R: Welcome {poller_id=N, engine_conf=version_E}
+
+    alt Remote connected to central
+        opt Remote has N.prot in local cache (version_R ≠ version_E)
+            Note over R,E: Immediate service — no wait for central
+            R->>E: pb_diff_state {local config of N}
+            E->>R: pb_diff_state_ack
+        end
+
+        R->>C: ConfigRequest {poller_id=N, config_version=version_R or ""}
+        C->>C: _engine_peers[N].via_remote ← R
+
+        alt Central has newer config → DiffState{diff}
+            C->>R: DiffState {diff-N}
+            R->>R: updates N.prot (→ version_R')
+            R->>E: pb_diff_state {diff-N}
+            E->>R: pb_diff_state_ack
+            R->>C: pb_diff_state_ack
+        else Central does not know N → DiffState{unknown=true}
+            C->>R: DiffState {unknown=true}
+            alt Remote has N.prot in local cache
+                Note over R: Engine already served — sync local cache to central only
+                R->>C: pb_diff_state {local config of N}
+                C->>C: creates N.prot
+            else Remote has no cache for N
+                R->>E: pb_diff_state {unknown=true}
+                E->>R: pb_diff_state {full state}
+                R->>R: stores N.prot locally
+                R->>C: pb_diff_state {full state of N}
+                C->>C: creates N.prot
+            end
+        else Central is up to date → DiffState{empty}
+            Note over R: Local cache already up to date, nothing to do
+        end
+
+    else Remote not connected to central
+        alt Remote has N.prot in local cache
+            R->>E: pb_diff_state {local config of N}
+            E->>R: pb_diff_state_ack
+        else Remote has no cache for N
+            R->>E: pb_diff_state {unknown=true}
+            E->>R: pb_diff_state {full state}
+            R->>R: stores N.prot locally
+        end
+        Note over R: Synchronisation with central on reconnect (see Scenario 3)
+    end
+```
+
+## Scenario 1b: relay chain (multi-hop)
+
+This scenario generalises Scenario 1 to a topology with several relays in series.
+
+```mermaid
+graph LR
+    E["Engine\n(poller N)"]
+    R2["R2\n(direct relay)"]
+    R1["R1\n(intermediate relay)"]
+    C["Central Broker"]
+
+    E -- BBDO --> R2
+    R2 -- BBDO --> R1
+    R1 -- BBDO --> C
+```
+
+R2 is the direct relay for the poller. R1 is an intermediate relay between R2 and the central.
+
+### Hop-by-hop routing
+
+`via_remote` remains a single integer representing the **immediate next hop** toward the poller:
+
+| Node | `_engine_peers[N].via_remote` |
+|------|-------------------------------|
+| Central C | `R1_id` |
+| Relay R1 | `R2_id` |
+| Relay R2 | `0` (direct connection) |
+
+Each relay derives its next hop from **the connection on which the `ConfigRequest` arrived** — no full path is needed in the message.
+
+### ConfigRequest forwarding
+
+When a relay receives a `ConfigRequest` for a poller it does not serve directly, it:
+1. records the source connection as `_engine_peers[N].via_remote`;
+2. forwards the `ConfigRequest` upstream unchanged.
+
+`DiffState` responses and acknowledgements travel in the opposite direction, each relay routing via its own `_engine_peers[N].via_remote`.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine (poller N)
+    participant R2 as Relay R2 (direct)
+    participant R1 as Relay R1 (intermediate)
+    participant C as Central Broker
+
+    E->>R2: Welcome {poller_id=N, engine_conf=version_E}
+
+    opt R2 has N.prot in local cache (version_R2 ≠ version_E)
+        Note over R2,E: Immediate service — no wait for central (see Scenario 1)
+        R2->>E: pb_diff_state {local config of N}
+        E->>R2: pb_diff_state_ack
+    end
+
+    R2->>R1: ConfigRequest {poller_id=N, config_version=version_R2}
+    R1->>R1: _engine_peers[N].via_remote ← R2
+    R1->>C: ConfigRequest {poller_id=N, config_version=version_R2}
+    C->>C: _engine_peers[N].via_remote ← R1 (R2 opaque to central)
+
+    alt Central has newer config → DiffState{diff}
+        C->>R1: DiffState {diff-N}
+        R1->>R2: DiffState {diff-N}
+        R2->>R2: updates N.prot (→ version_R2')
+        R2->>E: pb_diff_state {diff-N}
+        E->>R2: pb_diff_state_ack
+        R2->>R1: pb_diff_state_ack
+        R1->>C: pb_diff_state_ack
+    else Central does not know N → DiffState{unknown=true}
+        C->>R1: DiffState {unknown=true}
+        R1->>R2: DiffState {unknown=true}
+        alt R2 has N.prot in local cache
+            Note over R2: Engine already served — sync local cache to C via R1
+            R2->>R1: pb_diff_state {local config of N}
+            R1->>C: pb_diff_state {local config of N}
+            C->>C: creates N.prot
+        else R2 has no cache for N
+            R2->>E: pb_diff_state {unknown=true}
+            E->>R2: pb_diff_state {full state}
+            R2->>R2: stores N.prot locally
+            R2->>R1: pb_diff_state {full state of N}
+            R1->>C: pb_diff_state {full state of N}
+            C->>C: creates N.prot
+        end
+    else Central is up to date → DiffState{empty}
+        C->>R1: DiffState {empty}
+        R1->>R2: DiffState {empty}
+        Note over R2: Local caches already up to date, nothing to do
+    end
+```
+
+## Scenario 2: configuration pushed by PHP
+
+PHP produces a new configuration for poller N, which is behind remote R.
+
+```mermaid
+sequenceDiagram
+    participant P as PHP
+    participant C as Central Broker
+    participant R as Remote Broker
+    participant E as Engine (poller N)
+
+    P->>C: new-N.prot
+    C->>C: computes diff-N.prot
+    C->>C: _engine_peers[N].via_remote = R → route to R
+    C->>R: pb_diff_state {diff-N}
+    R->>R: updates N.prot locally
+    R->>E: pb_diff_state {diff-N}
+    E->>E: applies configuration
+    E->>R: pb_diff_state_ack
+    R->>C: pb_diff_state_ack
+    C->>C: N.prot ← new-N.prot
+```
+
+## Scenario 3: remote offline then reconnects
+
+Phase 1: the remote ↔ central link is down, one or more pollers connect to the remote (see Scenario 1, "not connected to central" branch).
+Phase 2: the remote reconnects to the central.
+
+When the Welcome negotiation completes, the remote recognises its peer as a CBD (peer_type=BROKER). As it is itself in relay mode, it then iterates all its local `engine_peer` entries and sends one `ConfigRequest` per poller. This is what triggers the batch resynchronisation.
+
+```mermaid
+sequenceDiagram
+    participant E1 as Engine (poller N)
+    participant E2 as Engine (poller M)
+    participant R as Remote Broker
+    participant C as Central Broker
+
+    Note over R,C: Remote ↔ Central link down
+    Note over R: Pollers N and M connect (Scenario 1 offline branch)
+    Note over R: R holds N.prot and M.prot in local cache
+
+    Note over R,C: Remote reconnects to Central
+
+    R->>C: Welcome {remote_server=true}
+    C->>R: Welcome {peer_type=BROKER, remote_server=false}
+
+    Note over R: Welcome received → R iterates its engine_peers (N, M)
+
+    par ConfigRequest for each connected poller
+        R->>C: ConfigRequest {poller_id=N, config_version=version_RN}
+        C->>C: _engine_peers[N].via_remote ← R
+    and
+        R->>C: ConfigRequest {poller_id=M, config_version=version_RM}
+        C->>C: _engine_peers[M].via_remote ← R
+    end
+
+    alt Central has newer config for N → DiffState{diff}
+        C->>R: DiffState {diff-N}
+        R->>R: updates N.prot (→ version_RN')
+        R->>E1: pb_diff_state {diff-N}
+        E1->>R: pb_diff_state_ack
+        R->>C: pb_diff_state_ack
+    else Central does not know N → DiffState{unknown=true}
+        C->>R: DiffState {unknown=true for N}
+        R->>C: pb_diff_state {local config of N}
+        C->>C: creates N.prot
+    else Central is up to date for N → DiffState{empty}
+        C->>R: DiffState {empty for N}
+        Note over R,E1: version_RN compared to version_EN (see Scenario 1)
+    end
+
+    Note over R,C: Same sequence for M (parallel or sequential)
+```
+
+## Scenario 4: central restart
+
+The central restarts. PHP may have pushed a config during the outage.
+
+```mermaid
+sequenceDiagram
+    participant P as PHP
+    participant C as Central Broker
+    participant R as Remote Broker
+    participant E as Engine (poller N)
+
+    Note over C: Clean shutdown — writes topology.cache
+    Note over C: Restart — loads topology.cache
+    C->>C: _engine_peers[N].via_remote = R (hint from topology.cache)
+
+    P->>C: new-N.prot (while R not yet reconnected)
+    C->>C: computes diff-N.prot
+    C->>C: _engine_peers[N].via_remote = R → diff queued for R
+
+    Note over R,C: R reconnects to central
+    R->>C: Welcome {remote_server=true}
+    R->>C: ConfigRequest {poller_id=N}
+    C->>C: _engine_peers[N].via_remote ← R (confirms or corrects hint)
+    C->>R: DiffState {diff-N} (queued diff sent)
+    R->>R: updates N.prot locally
+    R->>E: pb_diff_state {diff-N}
+    E->>R: pb_diff_state_ack
+    R->>C: pb_diff_state_ack
+    C->>C: N.prot ← new-N.prot
+```
+
+## Poller migration between two remotes
+
+Poller N moves from R1 to R2 (PHP reconfiguration). When N connects to R2, `broker_state` detects the migration and must send `ConfigRevoke` to R1 — but this message must go through `bbdo_stream_1`, the stream connected to R1, not through `bbdo_stream_2` which received the `ConfigRequest`.
+
+The diagram below breaks the central into its internal components: `broker_state` manages the topology, `bbdo_stream_1` is the stream toward R1, `bbdo_stream_2` is the stream toward R2.
+
+```mermaid
+sequenceDiagram
+    participant E as Engine (poller N)
+    participant R2 as Relay R2 (new)
+    box cbd_central
+        participant S2 as bbdo_stream_2
+        participant BS as broker_state
+        participant S1 as bbdo_stream_1
+    end
+    participant R1 as Relay R1 (old)
+
+    Note over BS: _engine_peers[N].via_remote = R1_id
+
+    E->>R2: Welcome {poller_id=N, engine_conf=version_E}
+    opt R2 has N.prot in local cache (version_R2 ≠ version_E)
+        R2->>E: pb_diff_state {local config of N}
+        E->>R2: pb_diff_state_ack
+    end
+
+    R2->>S2: ConfigRequest {poller_id=N, config_version=version_R2}
+    S2->>BS: on_config_request(poller_id=N, relay_id=R2_id)
+    Note over BS: R1_id ≠ R2_id → migration detected
+    BS->>BS: find stream for R1_id → bbdo_stream_1
+    BS->>S1: send_config_revoke(poller_id=N)
+    S1->>R1: ConfigRevoke {poller_id=N}
+    R1->>R1: deletes local N.prot
+    BS->>BS: _engine_peers[N].via_remote ← R2_id
+    BS->>S2: send_diff_state(poller_id=N)
+    S2->>R2: DiffState {diff-N}
+    R2->>R2: stores N.prot locally
+    R2->>E: pb_diff_state {diff-N}
+    E->>R2: pb_diff_state_ack
+    R2->>S2: pb_diff_state_ack
+    S2->>BS: ack(poller_id=N)
+```
+
+## gRPC GetTopology endpoint
+
+A gRPC endpoint exposes the central's current topology. It is useful for debugging, monitoring, and PHP.
+
+The central always has exactly **one level of CBD** directly connected to it. Its view is partial: for a chain `N → R2 → R1 → central`, N appears as directly behind R1 — R2 is invisible.
+
+```proto
+// excerpt from broker.proto
+message PollerEntry {
+  uint64 poller_id   = 1;
+  string poller_name = 2;
+}
+
+message BrokerEntry {
+  uint64               poller_id   = 1;
+  string               broker_name = 2;
+  repeated PollerEntry pollers     = 3;
+}
+
+message TopologyResponse {
+  repeated BrokerEntry direct_brokers = 1; // brokers directly connected to the central
+  repeated PollerEntry direct_pollers = 2; // pollers directly connected to the central (no broker)
+}
+```
+
+Example for the topology `N → R2 → R1 → central`, `M → R1 → central`, `P → central`:
+
+```
+direct_brokers:
+  { poller_id: R1_id, broker_name: "r1", pollers: [
+      { poller_id: N_id, poller_name: "n" },
+      { poller_id: M_id, poller_name: "m" }
+  ]}
+direct_pollers:
+  { poller_id: P_id, poller_name: "p" }
+```
+
+N appears behind R1 even though it is actually behind R2 — the central cannot do better with the information it has.
+
+## .prot file storage
+
+The central remains the source of truth for configurations it knows. The remote stores `.prot` files locally for its pollers so it can serve them if the central is disconnected (scenario 3, phase 1). This local persistence also allows it to send a targeted `ConfigRequest` with a version number at reconnection time.
+
+A relay only stores `.prot` files for the Engine pollers **directly connected** to it. It does not store `.prot` files for child relays or their pollers — each relay is responsible for its own direct pollers only.
+
+## broker\_state evolution
+
+The former single `peer` struct mixed Engine-specific fields with generic ones. It has been replaced by three distinct structs, each stored in its own `flat_hash_map` indexed by `peer_key = tuple<poller_id, poller_name, broker_name>`:
+
+```cpp
+struct engine_peer {
+    uint64_t    poller_id;
+    std::string poller_name;
+    std::string broker_name;
+    time_t      connected_since;
+    bool        extended_negotiation;
+    std::string available_conf;      // diff available to send to the engine
+    std::string engine_conf;         // config version the engine declares it has
+    bool        available_conf_sent;
+    bool        conf_acknowledged;
+    bool        conf_unknown;
+};
+
+struct broker_peer {
+    uint64_t    poller_id;
+    std::string poller_name;
+    std::string broker_name;
+    time_t      connected_since;
+    bool        extended_negotiation;
+};
+
+struct unknown_peer {
+    uint64_t         poller_id;
+    std::string      poller_name;
+    std::string      broker_name;
+    time_t           connected_since;
+    common::PeerType peer_type;       // precise type if determined later
+    bool             extended_negotiation;
+};
+
+// Reporting struct returned by connected_peers()
+struct peer {
+    engine_peer      ep;
+    common::PeerType peer_type;
+};
+
+using peer_key = std::tuple<uint64_t, std::string, std::string>;
+
+absl::flat_hash_map<peer_key, engine_peer>  _engine_peers
+    ABSL_GUARDED_BY(_connected_peers_m);
+absl::flat_hash_map<peer_key, broker_peer>  _broker_peers
+    ABSL_GUARDED_BY(_connected_peers_m);
+absl::flat_hash_map<peer_key, unknown_peer> _unknown_peers
+    ABSL_GUARDED_BY(_connected_peers_m);
+```
+
+Three type-separated maps eliminate all dispatch at iteration time: methods that operate on engine peers (`engine_peer_needs_update()`, `all_engine_peers_acknowledged()`, etc.) iterate `_engine_peers` directly without any type test. `connected_peers()` aggregates the three maps into a vector of `peer` with the correct `peer_type` for each entry.
+
+```cpp
+// Targeted iteration over engine peers:
+for (auto& [key, ep] : _engine_peers) {
+    if (std::get<0>(key) == poller_id) { /* engine logic */ }
+}
+
+// Adding a peer — erase from all maps first
+// in case the type changed on reconnection:
+_engine_peers.erase(key);
+_broker_peers.erase(key);
+_unknown_peers.erase(key);
+switch (peer_type) {
+    case common::ENGINE:  _engine_peers[key]  = engine_peer{...};  break;
+    case common::BROKER:  _broker_peers[key]  = broker_peer{...};  break;
+    default:              _unknown_peers[key] = unknown_peer{...}; break;
+}
+```
+
+## Required changes
+
+| Component | Change |
+|-----------|--------|
+| `bbdo/bbdo.proto` | Add `bool remote_server` to `Welcome` |
+| `bbdo/bbdo.proto` | Add `ConfigRequest` and `ConfigRevoke` messages |
+| `broker_state` | Replace `_connected_peers` with three typed `flat_hash_map`s: `_engine_peers`, `_broker_peers`, `_unknown_peers` |
+| `broker_cache` | Persist topology in `topology.cache` on clean shutdown (`poller_id → remote_id` pairs) |
+| `broker_stream::read()` (central) | Detect `remote_server=true`; handle `ConfigRequest`; populate `_engine_peers[N].via_remote`; send `ConfigRevoke` on migration |
+| `broker_state` (central) | Route PHP diffs via `_engine_peers[N].via_remote`; queue diffs when remote is absent |
+| `broker_state` (remote) | Store `.prot` files locally; send `ConfigRequest`; collect and relay acks |
+| `broker.proto` (gRPC) | Add `GetTopology` |
+
+## Roll-out
+
+### Step 1 — New BBDO messages ( ✅ implemented)
+  No Robot test at this stage — validation is purely at compilation and unit test level
+  (message serialisation/deserialisation).
+
+### Step 2 — via_remote + relay detection ( ✅ implemented)
+  Same — unit tests on `is_relay()` and the detection logic.
+
+### Step 3 — ConfigRequest sent by the relay ( ✅ implemented)
+  → CCCRC1 (`centralized-relay-conf.robot`): A configured relay receives an Engine. Verify in the
+  central's logs that `ConfigRequest{poller_id=N}` is received.
+
+  Implemented keywords: `Ctn Config Relay`, `Ctn Start Relay`, `Ctn Stop Relay`
+  (in `tests/resources/Broker.py` and `tests/resources/resources.resource`).
+
+### Step 4 — ConfigRequest handling at the central ( ✅ implemented)
+  → CCCRC2 (`centralized-relay-conf.robot`): A poller configuration is pre-created before the
+  central broker starts. Verify that the central processes the lck file, computes the diff, and
+  sends a non-unknown `DiffState` to the relay when a `ConfigRequest` arrives.
+
+  CCCRC1 covers the unknown path (central has no config → sends `DiffState{unknown=true}`).
+  CCCRC2 covers the diff_ready path (central has config → sends `DiffState` with content).
+
+### Step 5 — Forward DiffState/ack in the relay ( ✅ implemented)
+  → CCCRC3 (`centralized-relay-conf.robot`): Pre-created config for poller 1. Central sends
+  `DiffState` to relay. The relay queues it in `_pending_diff_states` and forwards it to Engine
+  on the next `read()` cycle of the ENGINE-connected stream. Engine applies it and sends back a
+  `DiffStateAck`. The relay queues the ack in `_pending_diff_state_acks` and forwards it upstream
+  to the central on the next `read()` cycle of the BROKER-connected stream. No local storage on
+  the relay. Verified by: central log `received diff state ack from poller 1`.
+  The handler for `pb_diff_state_ack` was also fixed to use `obj.poller_id()` (not `poller_id()`)
+  so that forwarded acks (where the BROKER stream's poller_id is the relay's, not the Engine's)
+  are routed correctly.
+
+### Step 6 — PHP push via relay ( ✅ implemented)
+  When PHP pushes a new `.lck` for a poller whose Engine is behind a relay, the central must
+  route the resulting DiffState through the relay rather than looking for a direct ENGINE stream.
+
+  **Implementation**: `broker_state::engine_peers_via_relay_needing_update(relay_id)` collects
+  engine peers with `via_remote == relay_id` that have `available_conf ≠ engine_conf` and
+  `available_conf_sent == false`.  In `broker_stream::read()`, when `peer_type() == BROKER &&
+  !is_relay()`, the central iterates this list and pushes the `diff-N.prot` to the relay —
+  identical to the `ConfigRequest` diff_ready path, but triggered by the PHP push timer instead
+  of an incoming request.
+
+  → CCCRC4 (`centralized-relay-conf.robot`): Initial config established via relay (ack received).
+  Then `Ctn Prepare Engine Config` adds 5 hosts + `Ctn Notify Broker Of Engine Config Change` →
+  verify central log "BBDO: sending DiffState to relay for poller 1" then "received diff state ack
+  from poller 1".
+
+### Step 7 — Migration + ConfigRevoke ( ✅ implemented)
+  When Engine N reconnects via a new relay R2 while previously registered behind R1, the central
+  detects the migration and must send `ConfigRevoke{poller_id=N}` to R1 so it can clean up.
+
+  **Implementation**:
+  - `broker_state::_pending_config_revokes` — `flat_hash_map<relay_id, vector<engine_id>>` guarded
+    by `_connected_peers_m`.
+  - `register_engine_peer_via_relay`: when `old_relay != 0 && old_relay != relay_poller_id`,
+    pushes `engine_id` into `_pending_config_revokes[old_relay]` before updating `via_remote`.
+  - `pop_pending_config_revokes(relay_id)`: drains the queue under WriterMutex; called by the old
+    relay's BROKER stream in `read()`.
+  - `broker_stream::read()` (central, `BROKER && !is_relay()`): sends `pb_config_revoke` for each
+    engine popped from the queue.
+  - `broker_stream::_handle_bbdo_event()` (relay, `pb_config_revoke`): logs receipt and calls
+    `clear_pending_for_poller(pid)` to discard stale forwarding state.
+
+  → CCCRC5 (`centralized-relay-conf.robot`): Engine connects via Relay3 (poller_id=4, port 5669),
+  initial config acked.  Then cbmod output port changed to 5670, Relay4 (poller_id=5) started,
+  Engine restarted → Relay4 sends ConfigRequest → central detects migration →
+  central sends ConfigRevoke to Relay3 (verified in relay3 log) + DiffState to Relay4 → ack.
+
+### Step 8 — Topology persistence ( ✅ implemented)
+  **Implementation**:
+  - `TopologyCache` protobuf message added to `bbdo/bbdo.proto` — on-disk format for
+    `(poller_id, relay_id)` pairs.
+  - `broker_state::save_topology_cache()` — called from the destructor on clean shutdown;
+    iterates `_engine_peers` and writes all entries with `via_remote != 0`.
+  - `broker_state::load_topology_cache()` — called from `apply()` the first time
+    `_pollers_config_dir` is set; populates `_engine_peers[N]` hints so that PHP diffs
+    pushed during the outage can be routed via `via_remote` before relays reconnect.
+
+  → CCCRC6 (`centralized-relay-conf.robot`): Relay→central flow established (initial
+  DiffStateAck received). Central stopped cleanly. New config pushed. Central restarted.
+  Verify that the relay reconnects and DiffStateAck is received again (topology.cache hint
+  enables routing before relay reconnects).
+
+### Step 9 — gRPC GetTopology ( ✅ implemented)
+  **Implementation**: `broker_impl::GetTopology` iterates `connected_peers()` and builds
+  a `TopologyResponse` with `direct_brokers` (ENGINE peers with `via_remote != 0` grouped
+  under their relay entry) and `direct_pollers` (ENGINE peers with `via_remote == 0`).
+  Python test keyword `ctn_check_broker_topology(relay_poller_id, engine_poller_ids)` added
+  to `tests/resources/Broker.py`.
+
+  → CCCRC7 (`centralized-relay-conf.robot`): Relay3 (poller_id=4) connected to central
+  with Engine (poller_id=1) behind it. Call `GetTopology` on central gRPC port. Verify
+  that `direct_brokers` contains relay3 with poller 1 listed under it.
+
+### Common Robot infrastructure to create in tests/resources/:
+  - `Relay.py` (or extension of `Broker.py`) — config/start/stop of a relay cbd
+  - Keyword `Ctn Config Engine For Relay`
+  - Keyword `Ctn Wait For Relay To Be Ready` (relay↔central connection log)
+  - Keyword `Ctn Check Poller Config Via Relay` (verifies `N.prot` on the relay side)
+
+  Tests would live in `tests/remote-servers/remote-servers.robot`. They can be created
+  incrementally — BCSRV1 from step 3, BCSRV2/3 at steps 5/6, etc.
+
+# Centralized downtime and acknowledgement management
+
+## Problem
+
+In the current architecture, downtimes and acknowledgements are managed directly by Engine. PHP
+sends commands to Engine, which stores and applies these objects locally. Two distinct problems
+arise from this.
+
+**BAM / Engine synchronisation (existing problem)**
+
+Broker's BAM module manages *inherited downtimes*: when a host or service enters a downtime,
+BAM can propagate that downtime to a Business Activity. To do so, Broker must create or delete
+downtimes in Engine via external commands. However, Engine remains the source of truth for its
+own downtimes — Broker merely injects commands into it. On Engine or Broker restart, the two
+can fall out of sync: Engine has lost the inherited downtimes that Broker thought were active,
+or conversely Broker is unaware of downtimes that Engine retained in its retention file. This
+desynchronisation causes false alerts or unwanted alert suppression.
+
+**Poller HA migration (upcoming problem)**
+
+If a host is migrated from poller A to poller B under Poller HA, the downtimes and
+acknowledgements defined on A are not automatically transferred to B. The host would arrive on
+B without its active downtimes, risking false alerts during a maintenance window.
+
+## Solution: Broker as source of truth
+
+Broker manages downtimes and acknowledgements centrally, consistent with its role as the source
+of truth for configuration in BBDO3. PHP sends downtimes and acknowledgements to Broker (no
+longer directly to Engine). Broker stores them persistently and notifies the relevant Engine via
+new BBDO messages.
+
+During a migration, no specific action is required for downtimes and acknowledgements — they
+stay in Broker and follow the host naturally via the standard notification mechanism described
+below.
+
+## New BBDO messages
+
+These messages are sent by Broker to the Engine supervising the relevant host:
+
+```protobuf
+// Broker → Engine: start of a downtime on a host or service
+message DowntimeStart {
+  uint64 downtime_id = 1;   // unique identifier assigned by Broker
+  uint64 host_id     = 2;
+  uint64 service_id  = 3;   // 0 for a host downtime
+  int64  start_time  = 4;
+  int64  end_time    = 5;
+  bool   fixed       = 6;
+  int64  duration    = 7;   // for flexible downtimes
+  string author      = 8;
+  string comment     = 9;
+}
+
+// Broker → Engine: end or cancellation of a downtime
+message DowntimeEnd {
+  uint64 downtime_id = 1;
+  uint64 host_id     = 2;
+  uint64 service_id  = 3;
+}
+
+// Broker → Engine: acknowledgement of a host or service
+message AckSet {
+  uint64 host_id    = 1;
+  uint64 service_id = 2;   // 0 for a host acknowledgement
+  string author     = 3;
+  string comment    = 4;
+  bool   sticky     = 5;
+  bool   notify     = 6;
+}
+
+// Broker → Engine: removal of an acknowledgement
+message AckClear {
+  uint64 host_id    = 1;
+  uint64 service_id = 2;
+}
+```
+
+Engine applies these messages in real time to suppress or restore alerts. It no longer needs to
+receive downtime or ack commands directly from PHP.
+
+## Persistence and restart
+
+Broker stores downtimes and acknowledgements in its persistent database, including future
+downtimes whose window has not yet started. On Broker restart, these objects are reloaded and
+resent to each Engine on reconnection, alongside the configuration (via the initial `DiffState`).
+On Engine restart, Broker resends all active downtimes and acknowledgements for its hosts as
+part of the `DiffState`.
+
+## Migration and downtimes / acknowledgements
+
+When migrating from poller A to poller B, Broker sends B the `DowntimeStart` and `AckSet`
+messages for the migrated hosts immediately after the `DiffState(add)`, exactly as it would
+for any Engine reconnection. Engine A receives the corresponding `DowntimeEnd` and `AckClear`
+messages alongside the `DiffState(remove)`, so it stops suppressing alerts for those hosts.
+
+The `MigrationStateSnapshot` contains only check state (statuses, attempts, perfdata).
+Downtimes and acknowledgements flow through their own channel — the same one used on restart.
+
 # Poller HA
 ## Poller configuration tree
 Without talking about HA, we have the following structure:
@@ -1691,55 +2492,643 @@ Currently, with centralized configuration:
 * Updating global configuration for broker cache
 * updating global difference, if several configurations are received simultaneously, to be able to update the STORAGE database.
 
-The next step is to replace poller 1 with zone 1.
+The zone concept replaces the poller as the central configuration unit. The full architecture — PHP→Broker interface files, zone-to-poller configuration inheritance, `min_pollers` activation, resource distribution, and rebalancing — is described in the [HA protocol architecture](#ha-protocol-architecture) section below.
 
-* creation of new-1.prot file with configuration inside
-* Creation of diff-1.prot which contains the difference with previous configuration.
+## Engine self-monitoring
 
-By moving to HA configuration, this ID will represent a zone ID (poller group).
-The change is at the next step. diff-1.prot contains a difference concerning zone 1. So it describes several pollers at the same time.
+To feed the load calculation described above, Engine must monitor itself.
+As a first step, two indicators are sufficient and cheap to collect:
 
-1.prot contains current configuration. It is not aware of host/poller association.
-new-1.prot must be created this way:
-* reading configuration
-* resolving configuration
-* difference calculation doesn't change.
-* we can process by poller, deleted or modified objects.
-* in a second step, we can process added objects, to be done globally on the entire zone.
-* After this last step, we get diff-1.prot, diff-2.prot, ...
+**Global latency** — Engine already computes `latency = actual_start − scheduled_start` per host/service check. A sliding average over the last N minutes (e.g. 5 min) across all checks is enough. An average latency exceeding one step is the first sign of overload.
 
-## Engine configuration files
-There is a new file which is pollers.cfg. It must contain the following fields for each poller:
+**`events::loop` queue depth** — Engine's internal event loop maintains a scheduled queue. If this queue grows monotonically between two samples, Engine is accumulating backlog faster than it can drain it.
+
+### Implementation
+
+An ASIO timer (`asio::steady_timer`) fired every N seconds (e.g. 10 s) inside the event loop thread is sufficient. No dedicated thread is needed:
+
+```mermaid
+flowchart TD
+    A[events::loop] --> B["asio::steady_timer\n(every 10 s)"]
+    B --> C[latency_avg\nsliding average of last N checks]
+    B --> D[queue_depth\nevents::loop queue size]
+    C --> E["EngineHealth\n{ poller_id, latency_avg, queue_depth, timestamp }"]
+    D --> E
+    E --> F[log WARN\nif thresholds exceeded]
+    E --> G["(next phase)\nBBDO message → Broker"]
 ```
+
+### What Engine does with these indicators
+
+In a first phase, Engine simply logs a warning whenever a threshold is crossed (e.g. `latency_avg > step` or `queue_depth > 1000`). This lets the watchdog (`cbwd`) and operators detect a degraded Engine before it fully falls behind, without modifying the BBDO protocol.
+
+These values are sent to Broker in a `Health` message belonging to the **bbdo** namespace
+(not `neb`), guaranteeing immediate delivery without going through the queue. If Engine is
+overloaded, the `neb` queue is precisely what is growing — a `Health` message in `neb` would
+be delayed by the very overload it is meant to report.
+
+## HA protocol architecture
+
+### Overview
+
+The HA model introduces a load-balancing and failover layer on top of the existing centralized
+configuration mechanism. A *zone* groups several pollers that can monitor the same set of
+resources. At any instant, each host is assigned to **exactly one** poller within its zone.
+
+Broker maintains an **assignment table** `host → poller` as the source of truth. This table must
+be persisted to survive Broker restarts.
+
+### Non-HA mode: compatibility and single-poller zone
+
+Poller HA is a **PHP module**. Broker and Engine do not know whether they are operating in
+HA mode or not — they always process zones, with no conditional branch.
+
+In the free edition, PHP generates single-poller zones. A single-poller zone is semantically
+identical to the old per-poller model: no distribution, no migration, no rebalancing. The Broker
+code is the same in both cases.
+
+**`zone_id` is a stable identifier, independent of `poller_id`s.**
+
+PHP assigns `zone_id`s in its own namespace, distinct from `poller_id`s, from the very first
+deployment — even for a single-poller zone. Broker treats `zone_id`s as opaque and never assumes
+`zone_id == poller_id`.
+
+This independence guarantees that the `zone_id` remains stable throughout the zone lifecycle:
+
+```
+# free edition — single-poller zone
+define zone { zone_id 1001  pollers 1 }
+
+# HA upgrade — PHP adds pollers to the same zone
+define zone { zone_id 1001  pollers 1 2 3 }
+
+# rollback — PHP removes the added pollers
+define zone { zone_id 1001  pollers 1 }
+# → Broker migrates everything to poller 1 via the standard protocol
+# → no ID realignment needed
+```
+
+Rollback is an ordinary zone update: PHP sends a `centengine.cfg` with one poller, Broker redistributes
+resources via the migration protocol, the `zone_id` does not change.
+
+**Backward compatibility: automatic format detection**
+
+Broker detects the `centengine.cfg` format when reading the `.lck` file based on which field is present:
+
+- **`poller_id` present** → old format. Broker automatically creates a single-poller zone with
+  `zone_id = poller_id`. `pollers.cfg` is not required. The existing installation continues to
+  work without any change on the PHP side.
+- **`zone_id` present** → new zone format.
+
+```
+# old centengine.cfg — still supported as-is
+poller_id=1
+log_file=/var/log/centreon-engine/centengine.log
+...
+# → Broker implicitly creates: define zone { zone_id 1  pollers 1 }
+```
+
+PHP can migrate progressively, poller by poller: existing pollers keep working while new
+ones are deployed in zone format. Existing Robot Framework tests, which use the `poller_id`
+format, continue to run without modification.
+
+### PHP → Broker interface: centengine.cfg
+
+PHP sends a `centengine.cfg` file **in addition to** the existing per-poller configuration files it
+already sends. The format is identical to the existing text `cfg` files — the impact on the PHP
+side is minimal.
+
+The trigger changes from `{poller_id}.lck` to `{zone_id}.lck`.
+
+The zone directory contains:
+
+```
+42/
+  centengine.cfg       ← zone_id, poller list, shared parameters
+  pollers.cfg    ← per-poller identity (poller_id, poller_name)
+  hosts.cfg      ← all zone hosts
+  services.cfg
+  commands.cfg
+  contacts.cfg
+  timeperiods.cfg
+  hostgroups.cfg
+  servicegroups.cfg
+42.lck
+```
+
+`centengine.cfg` holds the Engine parameters shared across all pollers as well as the zone structure.
+`pollers.cfg` contains one block per poller, reduced to identity. Resource files (`hosts.cfg`,
+etc.) cover the whole zone. Hosts not covered by a pattern in `pollers.cfg` are free —
+Broker distributes them automatically.
+
+```
+# centengine.cfg
+define zone {
+  zone_id   42
+  pollers   1 3 7
+  log_file  /var/log/centreon-engine/centengine.log
+  ...
+}
+
+# pollers.cfg
 define poller {
   poller_id    1
-  poller_name  titus
-  address      192.168.1.18
-  hosts        list of hosts essential to each poller
+  poller_name  poller-paris
+  hosts        paris-*
+}
+define poller {
+  poller_id    3
+  poller_name  poller-lyon
+  hosts        lyon-* bordeaux-*
+}
+define poller {
+  poller_id    7
+  poller_name  poller-nice
+}
+
+# hosts.cfg — no poller_id in host definitions
+define host { host_name paris-web-01 }
+define host { host_name lyon-db-01   }
+define host { host_name srv-generic  }   # free → no pattern matches, Broker distributes
+```
+
+When Broker detects `{zone_id}.lck`, it:
+
+1. Reads `centengine.cfg` and `pollers.cfg`
+2. Reads the resource files (`hosts.cfg`, `services.cfg`, …)
+3. Computes or updates the resource → poller distribution (see next section)
+4. Computes diffs for **currently connected** pollers whose configuration changed —
+   disconnected pollers will receive their diff upon reconnection, computed by comparing
+   their declared state against `{zone_id}.prot`
+5. Stores the complete zone state in `{zone_id}.prot`
+6. Sends `pb_diff_state` only to pollers whose configuration changed
+
+### Zone-to-poller configuration inheritance
+
+The zone acts as a **configuration template** for its pollers. All Engine behaviour parameters
+can be defined at zone level and inherited by pollers.
+
+**Precedence rule**: if a parameter is defined both in the zone and in a poller, the **poller
+wins**. A poller that does not redefine a parameter inherits the zone value.
+
+```
+final_poller_config = zone_config ← overridden by poller_config
+```
+
+**What can be defined at zone level (all Engine behaviour):**
+- Log levels and behaviour (`log_level_config`, `log_level_checks`, …)
+- Intervals and attempts (`interval_length`, `max_check_attempts`, …)
+- Check and notification timeouts
+- Notification settings (`enable_notifications`, …)
+- Flap detection, freshness checks, event handlers
+- BBDO output configuration — all pollers in a zone connect to the same Broker
+
+**What must remain per-poller:**
+- Identity: `poller_id`, `poller_name`
+
+In a containerized architecture (the target model), each poller runs in its own container with
+an isolated filesystem. Paths such as `log_file`, `command_file`, or `lock_file` are **identical
+inside each container** — they can therefore be defined at zone level.
+
+The only case where these paths must be per-poller is a bare-metal installation with several
+pollers on the same machine (legacy case).
+
+**Practical impact for PHP**: `pollers.cfg` is reduced to pure identity. All configuration
+lives in `centengine.cfg`.
+
+```diff
+# centengine.cfg — complete zone configuration
+ define zone {
++  zone_id            42
++  pollers            1 3 7
+   cfg_file           /etc/centreon-engine/42/hosts.cfg
+   cfg_file           /etc/centreon-engine/42/services.cfg
+   cfg_file           /etc/centreon-engine/42/commands.cfg
+   cfg_file           /etc/centreon-engine/42/pollers.cfg
+   log_file           /var/log/centreon-engine/centengine.log
+   command_file       /var/run/centreon-engine/rw/centengine.cmd
+   lock_file          /var/run/centreon-engine/centengine.pid
+   log_level_checks   error
+   interval_length    60
+   max_check_attempts 3
+   broker_host        central-broker.example.com
+   broker_port        5669
+ }
+
+# pollers.cfg — pure identity
+define poller {
+  poller_id    1
+  poller_name  poller-paris
+}
+
+define poller {
+  poller_id    3
+  poller_name  poller-lyon
 }
 ```
 
-When broker creates the first prot file, which is now called new-zone1.prot, it's a new Zone message that contains the same fields as State with in addition:
-* zone_id
-* a list of Pollers, each with the fields defined above.
+#### Evolution of the `centengine.cfg` format
 
-We redefine all fields of the Zone message, it doesn't directly contain the State message, this to keep flexibility.
+The current `centengine.cfg` is a flat key=value file generated by PHP for **a single poller**.
+Paths and identifiers are specific to that poller (the `1` in the paths is the `poller_id`):
 
-Conclusion: we no longer define 1.prot and new-1.prot but zone1.prot and new-zon1.prot. They are no longer dumps of the State message but dumps of Zone.
+```
+# current centengine.cfg — flat format, per-poller
+cfg_file=/etc/centreon-engine/config1/hosts.cfg
+cfg_file=/etc/centreon-engine/config1/services.cfg
+cfg_file=/etc/centreon-engine/config1/commands.cfg
+cfg_file=/etc/centreon-engine/config1/pollers.cfg
+...
+log_file=/var/log/centreon-engine/config1/centengine.log
+command_file=/var/run/centreon-engine/config1/rw/centengine.cmd
+interval_length=60
+rpc_port=50002
+broker_module=/usr/lib64/centreon-engine/externalcmd.so
+broker_module_cfg_file=/etc/centreon-broker/central-module1.json
+log_level_checks=info
+...
+```
 
-The next step is creating diff-1.prot
+The new format covers an entire zone. Here are the field-by-field changes:
 
-## List of peers
-com::centreon::broker::config::applier::state contains the list of peers connected to broker.
+**Added fields (mandatory)**
 
-It must be completed with poller occupation and supported load. This load is not directly configurable but calculated by broker as it operates.
+- `zone_id`: **replaces `poller_id`** in `centengine.cfg` — stable zone identifier (PHP's own namespace, distinct from `poller_id`s)
+- `pollers`: space-separated list of `poller_id`s in the zone
 
-We must maintain the list of hosts associated with pollers on the broker side. At the next restart, allocations are therefore not recalculated.
+**Added field (optional)**
 
-Load calculation quite problematic.
+- `min_pollers`: zone activation threshold (default: 1 — see next section)
 
-## unified_sql
-instance_id will become zone_id in resources and hosts.
+**Format**
+
+The key=value format is kept as-is — the existing definitions are simply wrapped with
+`define zone {` on one side and `}` on the other (see example above).
+Only `zone_id`, `min_pollers` and `pollers` are added as new fields.
+
+**New file: `pollers.cfg`**
+
+PHP must create this file alongside `centengine.cfg`. It contains one `define poller { }`
+block per poller listed in `pollers`. Only `poller_id` and `poller_name` are mandatory.
+Any other Engine parameter in a `define poller` block overrides the zone value for that
+poller only (bare-metal use case: different paths and ports per poller).
+
+**PHP action checklist**
+
+1. Emit **one** `centengine.cfg` per zone in `{zone_id}/` instead of one file
+   per poller in `config{poller_id}/`
+2. Switch from flat key=value to a `define zone { ... }` block
+3. Create `{zone_id}/pollers.cfg` — new file
+4. Place all resource files in the shared `{zone_id}/` directory
+5. Create `{zone_id}.lck` after all files are written (triggers Broker)
+
+### Zone activation: min_pollers
+
+The `min_pollers` parameter in `centengine.cfg` defines the number of pollers expected for
+the initial distribution. Broker pre-divides the resources into `min_pollers` shares and
+sends them as pollers connect, one share per poller.
+
+```
+define zone {
+  zone_id      42
+  pollers      1 3 7 53 99
+  min_pollers  3            # default: 1
+}
+```
+
+Broker pre-divides the resources into `min_pollers` equal-weight shares **before** the first
+poller connects. Each poller receives its share upon its first connection, without modifying
+shares already sent.
+
+**Startup sequence**
+
+```
+min_pollers=3, 30 resources, pollers=[1, 3, 7]
+
+Poller 1 connects → receives 10 resources (1/3), pollers 3 and 7 unchanged
+Poller 3 connects → receives 10 resources (2/3), poller 1 unchanged
+Poller 7 connects → receives 10 resources (3/3), pollers 1 and 3 unchanged
+```
+
+Monitoring starts as soon as the first poller connects — on its fraction of the resources.
+Full coverage is reached when all `min_pollers` pollers have received their share.
+
+**Additional pollers**
+
+When a poller beyond `min_pollers` connects, Broker redistributes only if the rebalancing
+threshold is exceeded (see *Threshold rebalancing* section).
+
+**Unassigned share**
+
+Shares go to the first `min_pollers` pollers that connect, regardless of their `poller_id`.
+With `min_pollers=3` and `pollers=[1, 3, 5, 7]`, any three pollers from the zone connecting
+is enough for all resources to be distributed.
+
+Shares remain unassigned only if the total number of connected pollers never reaches
+`min_pollers` — this is a user configuration error.
+
+**Failover after full initialisation**
+
+Once all `min_pollers` pollers have received their share, the zone is fully initialised.
+Any subsequent disconnection triggers the standard failover — the failed poller's resources
+are redistributed to the survivors, without checking `min_pollers` again.
+
+**Default value: 1** — all resources go to the first poller that connects. This is the
+non-HA behaviour and the equivalent of the old per-poller model.
+
+### Resource distribution across pollers
+
+Broker is responsible for distributing resources across the pollers of a zone. Two cases:
+
+**Assigned resource**: a host whose `host_name` matches one of the glob patterns in the
+`hosts` field of a `define poller` block in `pollers.cfg` is assigned to that poller. `hosts`
+accepts a space-separated list of patterns (`hosts lyon-* bordeaux-*`). If a host matches
+patterns from multiple pollers, Broker raises a configuration error. If the target poller is
+not in the zone, same error.
+
+**Free resource**: a host that matches no pattern is distributed by the *sticky rebalancing*
+algorithm described below.
+
+#### Co-location blocks
+
+Before any distribution, Broker identifies **co-location blocks**: sets of hosts that must
+reside on the same poller. Blocks are computed as the transitive closure of the following
+constraints:
+
+- `hostdependencies` / `servicedependencies`: linked hosts must be on the same poller
+- `anomalydetection`: must be on the same poller as its associated service
+- `hostescalation` / `serviceescalation`: must follow the monitored object
+
+A block is the atomic unit of distribution — its members cannot be split across different
+pollers. The weight of a block is the total number of services across all its hosts.
+
+Hosts with no constraints each form their own block of size 1.
+
+#### Two-phase algorithm
+
+**Phase 1 — Initial assignment or after topology change**
+
+```
+For each block not yet assigned or whose poller has been removed:
+  → assign to the active poller with the lowest total weight
+  (first-fit decreasing: sort blocks by descending weight before assignment)
+```
+
+Existing assignments are preserved without modification.
+
+**Phase 2 — Rebalancing if imbalance detected**
+
+```
+# quantities computed by Broker
+total_weight   = sum of services across all hosts in the zone
+target_load    = total_weight / nb_pollers         # ideal load if perfectly balanced
+
+# configurable parameter
+rebalance_threshold = 0.2                          # default ±20%
+
+# derived threshold
+high_threshold = target_load × (1 + rebalance_threshold)
+
+# effective weights, updated in real time
+W_eff[P] = W[P] for all pollers P
+
+# Phase 1 — build the pool of blocks to redistribute
+pool = []
+for each poller S (by descending W_eff) where W_eff[S] > high_threshold:
+  Δ = W_eff[S] − target_load
+  sum = 0
+  for each block b from S (by descending weight):
+    pool.append((b, S))          # keep origin for bilateral exchange
+    sum += weight(b) ; W_eff[S] −= weight(b)
+    if sum >= Δ: break
+
+# Phase 2 — redistribute the pool to the least-loaded pollers
+sort pool by descending weight
+for each (b, S_src) in pool:
+  R = poller with minimum W_eff
+  assign b to R ; W_eff[R] += weight(b)
+  # Bilateral exchange: if b overloads R while S_src has dropped below target_load,
+  # R gives back a light block to S_src — both converge to target_load in one cycle.
+  if W_eff[R] > target_load and W_eff[S_src] < target_load:
+    b' = block from R with weight ≤ min(W_eff[R] − target_load, target_load − W_eff[S_src])
+    if b' found:
+      assign b' to S_src ; W_eff[S_src] += weight(b') ; W_eff[R] −= weight(b')
+
+# Phase 3 — send migrations in one round trip per poller
+for each poller P with a non-zero balance (blocks received and/or given):
+  send DiffState(add received blocks, remove given blocks) → P
+  wait for ack
+```
+
+- **Phase 1**: each overloaded poller releases its heaviest blocks until its surplus is covered. Multiple pollers can feed the pool simultaneously.
+- **Phase 2**: pool blocks are redistributed one by one to the least-loaded poller. If a block overloads its receiver R while the source poller has dropped below `target_load`, R gives back one of its lightest blocks to the source: both converge to `target_load` in a single Health cycle, even with coarse-grained blocks.
+- **Phase 3**: all additions and removals for a given poller are combined into a single DiffState, regardless of batch size.
+- If a poller remains above `target_load` after the pool (no exchange possible), the partial migration is applied; the next `Health` cycle will trigger a new iteration.
+
+`rebalance_threshold` is the only parameter to configure (default: 0.2, i.e. ±20%). It
+controls the trade-off between stability and balance: a high value minimises movements, a
+low value enforces strict balance. Below 0.1, the risk of incessant migrations increases;
+above 0.3, rebalancing becomes rare.
+
+For dynamic rebalancing triggered by `Health` messages, phase 2 applies using runtime metrics
+(`latency_avg`, `queue_depth`) instead of service counts.
+
+### Behavior when a poller is removed from the zone
+
+When PHP removes a poller from `pollers.cfg`, the `define poller` block disappears along with
+its `hosts` field. Hosts that matched its patterns no longer have any pattern claiming them —
+they become free and are automatically redistributed to the remaining pollers via the migration
+protocol.
+
+A poller added to the zone receives a share of free resources from the most-loaded pollers.
+
+### Host migration protocol
+
+Migration of host H from poller A to poller B follows an overlap protocol:
+
+```
+1. Broker sends DiffState(add H + runtime_state of H) → poller B  — B starts monitoring H
+2. Broker waits for B's DiffStateAck
+3. Broker sends DiffState(remove H) → poller A
+4. Broker waits for A's DiffStateAck
+5. Broker updates the assignment table: H → B
+```
+
+During the window between steps 1 and 3, both pollers monitor H simultaneously. `unified_sql`
+receives duplicates and filters them by only retaining results from the assigned poller (according
+to the assignment table) once step 5 is reached. The out-of-order RRD data problem being already
+handled, late results from A do not affect data consistency.
+
+**Failover case** (A is dead): steps 3 and 4 are skipped. Broker sends
+`DiffState(add H + runtime_state of H) → B` directly then updates the table. No deletion
+`DiffState` is sent to A.
+
+### Runtime state preservation during migration
+
+When host H is migrated, poller B must receive the last known state of H and its services to
+avoid false alerts at the first check start.
+
+Broker has this information: all status events (`pb_host_status`, `pb_service_status`) transit
+through Broker from the pollers. Broker therefore always knows the last state of each host and
+service.
+
+The state is embedded in the optional `runtime_state` field of any `DiffState` containing added
+hosts during a migration. Broker fills it from its cache for each added host/service, whether it
+is the initial `DiffState(add)` to the receiver or the return `DiffState(add)` to the source in
+a bilateral exchange:
+
+```protobuf
+message HostRuntimeState {
+  uint64 host_id           = 1;
+  int32  current_status    = 2;  // UP/DOWN/UNREACHABLE
+  int32  state_type        = 3;  // SOFT/HARD
+  int32  current_attempt   = 4;
+  string output            = 5;
+  string perfdata          = 6;
+  int64  last_check        = 7;
+  int64  last_state_change = 8;
+  bool   acknowledged      = 9;
+  bool   in_downtime       = 10;
+}
+
+message ServiceRuntimeState {
+  uint64 host_id           = 1;
+  uint64 service_id        = 2;
+  int32  current_status    = 3;
+  int32  state_type        = 4;
+  int32  current_attempt   = 5;
+  string output            = 6;
+  string perfdata          = 7;
+  int64  last_check        = 8;
+  int64  last_state_change = 9;
+  bool   acknowledged      = 10;
+  bool   in_downtime       = 11;
+}
+
+message MigrationStateSnapshot {
+  repeated HostRuntimeState    hosts    = 1;
+  repeated ServiceRuntimeState services = 2;
+}
+
+// Field added to DiffState — present in any add DiffState issued from a migration.
+// Broker embeds the cached state for each added host/service.
+message DiffState {
+  // ... existing fields (hosts, services, hostgroups, etc.) ...
+  optional MigrationStateSnapshot runtime_state = N;
+}
+```
+
+Engine initialises the internal state of each host/service from this snapshot before starting to
+monitor them. It schedules the next check at `last_check + check_interval` rather than
+immediately.
+
+In a failover case, the transmitted state is the last message received from A before its
+disconnection, potentially slightly old depending on the outage duration. This is always
+preferable to a cold start.
+
+### Threshold rebalancing
+
+#### Health message
+
+Broker periodically receives a `Health` message from each Engine. `Health` belongs to the
+**bbdo** namespace (like `pb_welcome`, `pb_diff_state_ack`): it is transmitted immediately,
+bypassing the `neb` queue. This is essential — if Engine is overloaded, the `neb` queue is
+precisely what is growing, and a message in `neb` would be delayed by the overload it is
+meant to report.
+
+The two retained metrics are **latency** and **queue_depth** — Engine-internal metrics,
+directly linked to its capacity to sustain its workload, without system calls or
+platform-specific code:
+
+```protobuf
+// bbdo namespace — immediate delivery, bypasses neb queue
+message Health {
+  uint32 poller_id    = 1;
+  float  latency_avg  = 2;  // sliding average of (actual_start − scheduled_start) in seconds
+  uint32 queue_depth  = 3;  // number of events waiting in the event loop queue
+}
+```
+
+CPU and memory were discarded: they are indirect system metrics, sensitive to noise from other
+processes on the machine and not reliably correlated with monitoring overload.
+
+The implementation in Engine is an `asio::steady_timer` fired every N seconds (e.g. 10 s) in the
+event loop thread — no dedicated thread needed.
+
+#### Load score and thresholds
+
+A global score is computed from the two metrics, each normalised between 0 and 1:
+
+```
+C = α · min(latency_avg / latency_max, 1.0) + β · min(queue_depth / queue_max, 1.0)
+    with α + β = 1
+```
+
+Rebalancing is triggered only by threshold crossing, not continuously:
+
+- When a poller's score exceeds the **high threshold** (e.g. 80%): Broker computes the batch of
+  blocks to migrate (see the phase 2 algorithm) and distributes them to the most available pollers
+  in the zone.
+- A **cooldown** applies: a poller that has recently sent or received a migration cannot trigger
+  a new one for N minutes.
+- A recently migrated host cannot be re-migrated during the same delay (anti-ping-pong
+  protection).
+
+The high threshold, α/β weights, latency_max, queue_max, and cooldown are configurable.
+
+```mermaid
+sequenceDiagram
+    participant E1 as Engine 1 (overloaded)
+    participant B as Broker
+    participant E2 as Engine 2 (available)
+
+    loop every 10 s
+        E1->>B: Health { latency_avg=2.5s, queue_depth=850 }
+        E2->>B: Health { latency_avg=0.1s, queue_depth=30 }
+    end
+
+    Note over B: score(E1) > high threshold (80 %)<br/>Δ = W_E1 − target_load<br/>blocks sorted by descending weight,<br/>receivers sorted by descending capacity
+
+    B->>E2: DiffState(add blocks b₁…bₖ)
+    E2-->>B: DiffStateAck
+    Note over E2: starts monitoring blocks
+
+    B->>E1: DiffState(remove blocks b₁…bₖ)
+    E1-->>B: DiffStateAck
+    Note over E1: stops monitoring blocks
+
+    Note over B: assignments updated<br/>cooldown started for E1 and migrated blocks
+```
+
+### Failure detection and failover
+
+Poller loss is detected by the **absence of BBDO messages for a configurable delay**, not by a
+pure TCP disconnect which can be transient. Periodic Health messages serve as a heartbeat.
+
+Failover sequence:
+
+```
+1. Broker receives no message from A for the configured delay
+2. Broker marks A as failed
+3. Broker redistributes all hosts assigned to A to other pollers in the zone
+   (migration protocol — steps 1, 2, 4 only; no deletion DiffState sent)
+4. Assignments are updated and persisted
+```
+
+If A reconnects before the delay expires, the reconnection is handled normally — no failover
+is triggered.
+
+### Return of a failed poller
+
+When a dead poller reconnects, the existing centralized reconnection mechanism applies: Broker
+sends it the configuration corresponding to its current assignment. If all its hosts were
+redistributed during the failover, it receives an empty configuration and remains host-free
+until threshold rebalancing naturally redistributes some hosts to it (if the other pollers in
+the zone are overloaded).
+
+No special mechanism is needed for a returning poller — centralized reconnection and threshold
+rebalancing together cover the case.
+
 
 # Tickets
 ## First tickets
