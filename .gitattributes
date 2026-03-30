@@ -6,3 +6,4 @@ Dockerfile* text eol=lf
 entrypoint  text eol=lf
 systemctl   text eol=lf
 centreon    text eol=lf
+* text=auto eol=lf

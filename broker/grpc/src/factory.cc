@@ -27,6 +27,7 @@
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/vault/vault_access.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
@@ -84,11 +85,11 @@ static std::string read_file(const std::string& path) {
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const std::map<std::string, std::string>& global_params,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
-    return _new_endpoint_bbdo_cs(cfg, is_acceptor);
+    return _new_endpoint_bbdo_cs(cfg, global_params, is_acceptor);
 
   // Find host (if exists).
   std::string host;
@@ -98,7 +99,7 @@ io::endpoint* factory::new_endpoint(
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->error(
             "GRPC: 'host' must be a string matching a host, not beginning or "
             "ending with spaces for endpoint {}, it contains '{}'",
@@ -114,7 +115,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->error("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
   }
@@ -122,7 +123,7 @@ io::endpoint* factory::new_endpoint(
     uint32_t port32;
     if (!absl::SimpleAtoi(it->second, &port32)) {
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->error(
               "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
               it->second, cfg.name);
@@ -192,6 +193,21 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("authorization");
   if (it != cfg.params.end()) {
     authorization = it->second;
+    // if crypted => decrypt
+    try {
+      authorization = common::vault::vault_access::load(
+                          global_params, log_v2::instance().get(log_v2::GRPC))
+                          ->decrypt(authorization);
+      log_v2::instance()
+          .get(log_v2::GRPC)
+          ->info("Authorization get from Vault configuration");
+    } catch (const std::exception& e) {
+      if (common::vault::vault_access::is_vault_prefixed(authorization)) {
+        log_v2::instance()
+            .get(log_v2::GRPC)
+            ->error("No usable Vault configuration: {}", e.what());
+      }
+    }
   }
 
   std::string ca_name;
@@ -212,7 +228,7 @@ io::endpoint* factory::new_endpoint(
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->error(
               "GRPC: 'keepalive_interval' field should be an integer and not "
               "'{}'",
@@ -242,7 +258,7 @@ io::endpoint* factory::new_endpoint(
   // Acceptor.
   if (is_acceptor) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->debug("GRPC: encryption {} on gRPC server port {}",
                 encrypted ? "enabled" : "disabled", port);
     endp = std::make_unique<grpc::acceptor>(conf);
@@ -250,7 +266,7 @@ io::endpoint* factory::new_endpoint(
   // Connector.
   else {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->debug("GRPC: encryption {} on gRPC client port {}",
                 encrypted ? "enabled" : "disabled", port);
     endp = std::make_unique<grpc::connector>(conf);
@@ -270,6 +286,7 @@ io::endpoint* factory::new_endpoint(
  */
 io::endpoint* factory::_new_endpoint_bbdo_cs(
     com::centreon::broker::config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params,
     bool& is_acceptor) const {
   // Find host (if exists).
   std::string host;
@@ -279,7 +296,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->error(
             "GRPC: 'host' must be a string matching a host, not beginning or "
             "ending with spaces for endpoint {}, it contains '{}'",
@@ -301,7 +318,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->error("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
   }
@@ -309,7 +326,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     uint32_t port32;
     if (!absl::SimpleAtoi(it->second, &port32)) {
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->error(
               "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
               it->second, cfg.name);
@@ -326,12 +343,27 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   // Find authorization token (if exists).
   std::string authorization;
   it = cfg.params.find("authorization");
-  if (it != cfg.params.end())
+  if (it != cfg.params.end()) {
     authorization = it->second;
-  log_v2::instance()
-      .get(log_v2::CORE)
-      ->debug("GRPC: 'authorization' field contains '{}'", authorization);
-
+    log_v2::instance()
+        .get(log_v2::GRPC)
+        ->debug("GRPC: 'authorization' field contains '{}'", authorization);
+    // if crypted => decrypt
+    try {
+      authorization = common::vault::vault_access::load(
+                          global_params, log_v2::instance().get(log_v2::GRPC))
+                          ->decrypt(authorization);
+      log_v2::instance()
+          .get(log_v2::GRPC)
+          ->info("Authorization get from Vault configuration");
+    } catch (const std::exception& e) {
+      if (common::vault::vault_access::is_vault_prefixed(authorization)) {
+        log_v2::instance()
+            .get(log_v2::GRPC)
+            ->error("No usable Vault configuration: {}", e.what());
+      }
+    }
+  }
   // Find ca_name token (if exists).
   std::string ca_name;
   it = cfg.params.find("ca_name");
@@ -341,7 +373,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     ca_name = it->second;
 
   log_v2::instance()
-      .get(log_v2::CORE)
+      .get(log_v2::GRPC)
       ->debug("GRPC: 'ca_name' field contains '{}'", ca_name);
 
   bool encryption = false;
@@ -349,7 +381,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &encryption)) {
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->error("GRPC: 'encryption' field should be a boolean and not '{}'",
                   it->second);
       throw msg_fmt("GRPC: 'encryption' field should be a boolean and not '{}'",
@@ -373,7 +405,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       }
     } else
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->warn("GRPC: 'private_key' ignored since 'encryption' is disabled");
   }
 
@@ -393,7 +425,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       }
     } else
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->warn("GRPC: 'certificate' ignored since 'encryption' is disabled");
   }
 
@@ -414,7 +446,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       }
     } else
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->warn(
               "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
   }
@@ -442,7 +474,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
       log_v2::instance()
-          .get(log_v2::CORE)
+          .get(log_v2::GRPC)
           ->error(
               "GRPC: 'keepalive_interval' field should be an integer and not "
               "'{}'",
@@ -471,7 +503,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   std::unique_ptr<io::endpoint> endp;
   if (is_acceptor) {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->debug("GRPC: encryption {} on gRPC server port {}",
                 encryption ? "enabled" : "disabled", port);
     endp = std::make_unique<grpc::acceptor>(conf);
@@ -480,7 +512,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   // Connector.
   else {
     log_v2::instance()
-        .get(log_v2::CORE)
+        .get(log_v2::GRPC)
         ->debug("GRPC: encryption {} on gRPC client port {}",
                 encryption ? "enabled" : "disabled", port);
     endp = std::make_unique<grpc::connector>(conf);
