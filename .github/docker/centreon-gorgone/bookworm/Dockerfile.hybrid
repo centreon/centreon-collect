@@ -138,7 +138,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     iputils-ping \
     wget \
     tzdata \
-    ca-certificates && \
+    ca-certificates \
+    libnetaddr-ip-perl && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Perl modules only available in Centreon repo for amd64, or via cpanm for arm64

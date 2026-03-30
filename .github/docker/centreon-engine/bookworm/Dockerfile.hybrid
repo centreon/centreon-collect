@@ -67,7 +67,9 @@ APT::Install-Recommends "false";\n\
 APT::Install-Suggests "false";' > /etc/apt/apt.conf.d/99custom
 
 # Install ONLY runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list && \
+    wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
+    apt-get update && apt-get install -y --no-install-recommends \
     python3-minimal \
     python3.11-venv \
     libmariadb3 \
@@ -79,6 +81,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     wget \
     gnupg \
+    centreon-plugin-applications-monitoring-centreon-poller \
     && rm -rf /var/lib/apt/lists/* \
                /tmp/* \
                /var/tmp/* \
@@ -116,9 +119,7 @@ RUN mkdir -p /etc/centreon-engine \
               /var/log/centreon-engine/archives \
               /usr/share/centreon/lib/centreon-broker && \
     echo '{"app_secret":"","salt":""}' > /etc/centreon-engine/engine-context.json && \
-    chown centreon-engine:centreon-engine /etc/centreon-engine/engine-context.json && \
-    echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list && \
-    wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+    chown centreon-engine:centreon-engine /etc/centreon-engine/engine-context.json
 
 # Copy ONLY runtime files from extractor
 

@@ -41,7 +41,7 @@ services:
       - poller-centcore:/var/lib/centreon/centcore:rw,z
       - poller-centcmd:/var/lib/centreon-engine/rw:rw,z
       - poller-centcache:/var/cache/centreon/:rw,z
-      - poller-gorgone-keys:/var/lib/centreon-gorgone/.keys:rw
+      - poller-gorgone-keys:/var/lib/centreon-gorgone/:rw
 
 networks:
   poller-network:
