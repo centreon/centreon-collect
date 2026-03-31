@@ -66,10 +66,15 @@ Acquire::http::Timeout "300";\n\
 APT::Install-Recommends "false";\n\
 APT::Install-Suggests "false";' > /etc/apt/apt.conf.d/99custom
 
+RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates && \
+    echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ bookworm main" \
+        > /etc/apt/sources.list.d/centreon-plugins.list && \
+    wget -O- https://apt-key.centreon.com | gpg --dearmor \
+        | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
+    rm -rf /var/lib/apt/lists/*
+
 # Install ONLY runtime dependencies
-RUN echo "deb https://packages.centreon.com/apt-plugins-stable/ bookworm main" > /etc/apt/sources.list.d/centreon-plugins.list && \
-    wget -O- https://apt-key.centreon.com | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
-    apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-minimal \
     python3.11-venv \
     libmariadb3 \
