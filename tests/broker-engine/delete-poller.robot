@@ -212,8 +212,10 @@ EBDP3
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
     ${start}    Get Current Date
+    Ctn Clear Db    instances
     Ctn Start Broker
     Ctn Start Engine
+    
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
@@ -251,9 +253,6 @@ EBDP3
 
     Ctn Remove Poller    51001    Poller2
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
@@ -261,6 +260,8 @@ EBDP3
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 EBDP4
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by Broker.
@@ -486,19 +487,15 @@ EBDP7
     Ctn Config BBDO3    ${3}
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    core    trace
+    Ctn Clear Db    instances
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
-        Sleep    1s
-        Log To Console    Output with 3 pollers: ${output}
-        IF    ${output} != "()"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((3,),)    There are 3 running pollers.
+
+    Check Row Count   SELECT instance_id FROM instances WHERE name='Poller2' and instance_id=3    equal    1     retry_timeout=60    retry_pause=1
 
     # Let's brutally kill the pollers
     Send Signal To Process    SIGKILL    e0
@@ -526,16 +523,9 @@ EBDP7
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Ctn Stop Engine
-    Ctn Kindly Stop Broker
+    Check Row Count   SELECT instance_id, running, deleted, outdated FROM instances WHERE instance_id=3    equal    0    retry_timeout=60    retry_pause=1
 
-    FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE instance_id=3
-        Sleep    1s
-        Log To Console    Output= ${output}
-        IF    "${output}" == "()"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ()
+    [Teardown]    Ctn Stop Engine Broker And Save Logs
 
 EBDP8
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.

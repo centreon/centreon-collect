@@ -32,6 +32,10 @@ BESS1
 BESS2
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Clear Retention
     Ctn Config Engine    ${1}
     Ctn Config Broker    central

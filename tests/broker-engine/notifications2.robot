@@ -790,6 +790,9 @@ not18
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
 
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -832,6 +835,9 @@ not19
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
 
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
+
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -873,6 +879,9 @@ not20
 
     ${cmd_service_1}    Ctn Get Service Command Id    ${1}
     Ctn Set Command Status    ${cmd_service_1}    ${2}
+
+    #let time to first check to be done in order to not do following checks at the same timestamp
+    Sleep    5
 
     Ctn Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 

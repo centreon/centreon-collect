@@ -82,7 +82,13 @@ BWVC4
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    END
 
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
@@ -112,8 +118,12 @@ BWVC5
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
-
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password    
+    END
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {
     ...      "name": "vault",
@@ -147,7 +157,12 @@ BWVC6
     Ctn Broker Config Add Item    central    env_file    /tmp/env_file
     Ctn Broker Config Log    central    config    debug
     Ctn Broker Config Log    central    core    error
-    Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Ctn Broker Config Output Set    central    central-broker-unified-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    ELSE
+        Ctn Broker Config Output Set    central    central-broker-master-sql    db_password    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    END
 
     ${vault_file}    Catenate    SEPARATOR=\n
     ...    {

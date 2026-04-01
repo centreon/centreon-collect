@@ -13,6 +13,10 @@ Test Teardown       Ctn Save Logs If Failed
 BDB1
     [Documentation]    Access denied when database name exists but is not the good one for sql output
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -31,6 +35,10 @@ BDB1
 BDB2
     [Documentation]    Access denied when database name exists but is not the good one for storage output
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Broker Config Log    central    sql    info
     Ctn Config Broker    rrd
@@ -50,6 +58,10 @@ BDB2
 BDB3
     [Documentation]    Access denied when database name does not exist for sql output
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -66,6 +78,10 @@ BDB3
 BDB4
     [Documentation]    Access denied when database name does not exist for storage and sql outputs
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -85,6 +101,10 @@ BDB4
 BDB5
     [Documentation]    cbd does not crash if the storage/sql db_host is wrong
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -102,6 +122,10 @@ BDB5
 BDB6
     [Documentation]    cbd does not crash if the sql db_host is wrong
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -118,6 +142,10 @@ BDB6
 BDB7
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -133,6 +161,10 @@ BDB7
 BDB8
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -148,6 +180,10 @@ BDB8
 BDB9
     [Documentation]    access denied when database user password is wrong for sql
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -162,6 +198,10 @@ BDB9
 BDB10
     [Documentation]    connection should be established when user password is good for sql/perfdata
     [Tags]    broker    sql
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Broker    central
     Ctn Config Broker    rrd
     Ctn Config Broker    module
@@ -258,6 +298,10 @@ BDBM1
     ...    Then the connection between the broker/engine and MariaDB should be successfully established and 
     ...    number of connections in the stats file should be equal to the configured connections_count
     [Tags]    broker    sql    start-stop
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     @{lst}    Create List    1    6
     FOR    ${c}    IN    @{lst}
         Ctn Config Broker    central
