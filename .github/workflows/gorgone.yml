@@ -437,7 +437,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9, el10]
+        # distrib: [el9, el10]
+        distrib: [el10]
 
     steps:
       - name: Checkout sources
@@ -504,7 +505,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9, el10, trixie]
+        # distrib: [el9, el10, trixie]
+        distrib: [el10, trixie]
 
     steps:
       - name: Checkout sources

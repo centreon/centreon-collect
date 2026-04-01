@@ -233,9 +233,9 @@ jobs:
       - name: Compile centreon-collect
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.operating_system }}" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
+          # if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
+          #   CMAKE="cmake3"
+          # fi
 
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
@@ -370,7 +370,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma9]
+        # distrib: [alma9]
+        distrib: [alma10]
 
     name: dockerize centreon-poller-${{ matrix.distrib }}
 
@@ -516,8 +517,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: el9
-            arch: amd64
+          # - distrib: el9
+          #   arch: amd64
           - distrib: el10
             arch: amd64
 
@@ -599,7 +600,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9, el10, trixie]
+        # distrib: [el9, el10, trixie]
+        distrib: [el10, trixie]
 
     steps:
       - name: Checkout sources

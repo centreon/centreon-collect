@@ -758,13 +758,18 @@ jobs:
             const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
             // --- Config sets ---
-            const configs = [alma10_mariadb_11_8, alma10_mysql_8_4, alma9_mariadb_10_11, alma9_mysql_8_0, trixie_mariadb_11_8, trixie_mysql_8_4];
+            // const configs = [alma10_mariadb_11_8, alma10_mysql_8_4, alma9_mariadb_10_11, alma9_mysql_8_0, trixie_mariadb_11_8, trixie_mysql_8_4];
+            const configs = [alma10_mariadb_11_8, alma10_mysql_8_4, trixie_mariadb_11_8, trixie_mysql_8_4];
+            // const cmaConfigs = [
+            //   alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
+            //   bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
+            //   jammy_mariadb_10_11, noble_mariadb_10_11
+            // ];
             const cmaConfigs = [
-              alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
-              bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
-              jammy_mariadb_10_11, noble_mariadb_10_11
+              alma10_mariadb_10_11, trixie_mariadb_11_8
             ];
-            const cloud = alma9_mysql_8_0;
+            // const cloud = alma9_mysql_8_0;
+            const cloud = alma10_mysql_8_4;
 
             // --- Nightly rotation (cycles through configs on working days) ---
             const getDailyConfig = (configs) => {
@@ -781,7 +786,8 @@ jobs:
             };
 
             // --- Build base matrix ---
-            const main = isCloud ? cloud : alma9_mariadb_10_11;
+            // const main = isCloud ? cloud : alma9_mariadb_10_11;
+            const main = isCloud ? cloud : alma10_mariadb_11_8;
             const activeConfig = isNightly ? getDailyConfig(configs) : main;
 
             let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };

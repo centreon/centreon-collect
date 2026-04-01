@@ -55,12 +55,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma9
-            distrib: el9
-            lua_version: 5.4
-            runner: ubuntu-24.04
-            arch: amd64
+          # - package_extension: rpm
+          #   image: packaging-centreon-collect-alma9
+          #   distrib: el9
+          #   lua_version: 5.4
+          #   runner: ubuntu-24.04
+          #   arch: amd64
           - package_extension: rpm
             image: packaging-centreon-collect-alma10
             distrib: el10
@@ -172,8 +172,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: el9
-            arch: amd64
+          # - distrib: el9
+          #   arch: amd64
           - distrib: el10
             arch: amd64
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
@@ -244,7 +244,8 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, el10, bookworm, trixie]
+        # distrib: [el9, el10, bookworm, trixie]
+        distrib: [el10, trixie]
 
     steps:
       - name: Checkout sources

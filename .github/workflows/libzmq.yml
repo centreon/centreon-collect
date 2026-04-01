@@ -42,9 +42,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: packaging-centreon-collect-alma9
-            distrib: el9
-            arch: amd64
+          # - image: packaging-centreon-collect-alma9
+          #   distrib: el9
+          #   arch: amd64
           - image: packaging-centreon-collect-alma10
             distrib: el10
             arch: amd64
@@ -94,9 +94,9 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: packaging-alma9
-            distrib: el9
-            arch: amd64
+          # - image: packaging-alma9
+          #   distrib: el9
+          #   arch: amd64
           - image: packaging-alma10
             distrib: el10
             arch: amd64
@@ -222,8 +222,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: el9
-            arch: amd64
+          # - distrib: el9
+          #   arch: amd64
           - distrib: el10
             arch: amd64
 
@@ -295,7 +295,8 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, el10, trixie]
+        # distrib: [el9, el10, trixie]
+        distrib: [el10, trixie]
 
     steps:
       - name: Checkout sources
