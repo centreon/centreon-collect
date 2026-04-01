@@ -117,7 +117,7 @@ jobs:
         with:
           file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile.hybrid
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           build-args: |
             "VERSION=${{ needs.get-environment.outputs.major_version }}"
             "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"

@@ -78,8 +78,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
         apt-get update && apt-get install -y --no-install-recommends \
             libnet-curl-perl \
             libcrypt-openssl-aes-perl \
-            libssh-session-perl \
-            centreon-plugin-applications-monitoring-centreon-poller && \
+            libssh-session-perl && \
         rm -rf /var/lib/apt/lists/*; \
     else \
         apt-get update && apt-get install -y --no-install-recommends \
@@ -89,12 +88,7 @@ RUN ARCH=$(dpkg --print-architecture) && \
             libssl-dev \
             libssh-dev && \
         rm -rf /var/lib/apt/lists/* && \
-        cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session && \
-        apt-get update && \
-        apt-get download centreon-plugin-applications-monitoring-centreon-poller && \
-        dpkg -i --force-depends centreon-plugin-applications-monitoring-centreon-poller*.deb && \
-        rm -f centreon-plugin-applications-monitoring-centreon-poller*.deb && \
-        rm -rf /var/lib/apt/lists/*; \
+        cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session; \
     fi
 
 # Install ONLY runtime dependencies
@@ -110,6 +104,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     wget \
     gnupg \
+    centreon-plugin-applications-monitoring-centreon-poller \
     && rm -rf /var/lib/apt/lists/* \
                /tmp/* \
                /var/tmp/* \
