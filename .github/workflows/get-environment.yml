@@ -787,7 +787,9 @@ jobs:
             if (isFullRun) {
               matrix = { ...matrix, operating_systems: configs };
               collectMatrix = configs;
-              cmaMatrix = cmaConfigs;
+              cmaMatrix = isCloud
+                ? cmaConfigs.filter(c => c.operating_system !== 'bullseye')
+                : cmaConfigs;
             }
 
             console.log('matrix', matrix);

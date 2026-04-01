@@ -554,6 +554,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Publish DEB packages
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/deb-delivery
         with:
           module_name: monitoring-agent
@@ -629,6 +630,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Promote ${{ matrix.distrib }} to stable
+        if: ${{ !(needs.get-environment.outputs.is_cloud == 'true' && matrix.distrib == 'bullseye') }}
         uses: ./.github/actions/promote-to-stable
         with:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
