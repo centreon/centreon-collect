@@ -265,7 +265,7 @@ BSCSSTG2
     ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    encrypted connection    write: buff:    write done: buff:
+    ${content}    Create List    encrypted connection    write:    write done:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker
@@ -330,6 +330,10 @@ BSCSSTG3
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd

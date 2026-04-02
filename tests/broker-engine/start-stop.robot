@@ -83,6 +83,9 @@ BESS2U
     Should Be True    ${result}    Connection between Engine and Broker not established
     ${result}    Ctn Check Poller Enabled In Database    1    10
     Should Be True    ${result}    Poller not visible in database
+    ${content}    Create List    'central-rrd-master' with id [0-9]+ connected
+    ${result}    Ctn Find RegEx In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No rrd cbd connected    
     &{result}    Ctn Get Peers    51001
     Log To Console    ${result}
     ${length}    Get Length    ${result['peers']}
@@ -533,6 +536,7 @@ BESSBQ1
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    core    debug
     Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Source Log    central    true
     Ctn Clear Retention
     Ctn Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     Remove Directory    ${varRoot}/lib/centreon-broker/pollers-configuration    recursive=True
@@ -541,7 +545,7 @@ BESSBQ1
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    ${content}    Create List    execute statement 1245300e
+    ${content}    Create List    end execute statement
 
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file

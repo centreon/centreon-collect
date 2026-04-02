@@ -764,6 +764,7 @@ not18
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -810,6 +811,7 @@ not19
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
@@ -855,6 +857,7 @@ not20
     [Tags]    broker    engine    services    hosts    notification
     Ctn Clear Commands Status
     Ctn Config Engine    ${1}    ${1}    ${1}
+    Ctn Set Services Passive    ${0}    service_.*
     Ctn Engine Config Set Value    0    interval_length    1    True
     Ctn Config Notifications
     Ctn Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1

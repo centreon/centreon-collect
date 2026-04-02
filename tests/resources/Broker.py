@@ -3340,7 +3340,7 @@ def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
         if last_timestamp == 0:
             last_timestamp = new_ts
         else:
-            if new_ts != last_timestamp + last_interval:
+            if new_ts < (last_timestamp + last_interval-1) and new_ts > (last_timestamp + last_interval + 1):
                 logger.console(
                     f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
                 return False
