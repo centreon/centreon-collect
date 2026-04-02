@@ -1612,7 +1612,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
         if value is not None and r_expected.match(value):
             return True
         time.sleep(5)
-    logger.console(f"key:{keys} value not expected: {value}")
+    logger.console(f"key:{keys} {expected} does not match: {value}")
     return False
 
 
