@@ -2176,7 +2176,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
-    ${token1}    Ctn Create Jwt Token    ${10}
+    ${token1}    Ctn Create Jwt Token    ${15}
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
@@ -2224,7 +2224,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
 
     Ctn Kindly Stop Agent
 
-    ${token2}    Ctn Create Jwt Token    ${10}
+    ${token2}    Ctn Create Jwt Token    ${15}
 
     ${otl_path}    Ctn Get Engine Conf Path   0
     ${agent_path}    Ctn Get Agent Conf Path
