@@ -140,14 +140,19 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
     std::string last_received;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(logger,
-                            "Wrong client authorization token from {}: {}",
+        SPDLOG_LOGGER_ERROR(logger, "Wrong client authorization token from {}: {}",
                             context->peer(), last_received);
         return nullptr;
       }
       last_received.assign(header_search->second.begin(),
                            header_search->second.end());
       found = _conf->get_authorization() == header_search->second;
+    }
+    if (!found) {
+      SPDLOG_LOGGER_ERROR(logger,
+                          "Wrong client authorization token from {}: {}",
+                          context->peer(), last_received);
+      return nullptr;
     }
   }
 

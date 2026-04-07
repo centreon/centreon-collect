@@ -350,6 +350,8 @@ void mysql_column::set_null_str(size_t row) {
  */
 std::optional<std::string_view> mysql_column::get_value_str(size_t row) const {
   std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+  if (!vector)
+    return {};
   assert(row < vector->size());
   if (_indicator[row] == STMT_INDICATOR_NULL) {
     return {};
@@ -563,6 +565,8 @@ std::optional<char> mysql_column::get_value_bool(size_t row) const {
   }                                                                          \
   std::optional<vtype> mysql_column::get_value_##ftype(size_t row) const {   \
     std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (!vector)                                                             \
+      return {};                                                             \
     assert(row < vector->size());                                            \
     if (_indicator[row] == STMT_INDICATOR_NULL) {                            \
       return {};                                                             \
@@ -618,6 +622,8 @@ std::optional<char> mysql_column::get_value_bool(size_t row) const {
   }                                                                          \
   std::optional<vtype> mysql_column::get_value_##ftype(size_t row) const {   \
     std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (!vector)                                                             \
+      return {};                                                             \
     assert(row < vector->size());                                            \
     if (_indicator[row] == STMT_INDICATOR_NULL) {                            \
       return {};                                                             \

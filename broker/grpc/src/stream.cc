@@ -343,6 +343,11 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (_conf->get_grpc_serialized() &&
       std::dynamic_pointer_cast<io::protobuf_base>(d)) {  // no bbdo serialize
     to_send = create_event_with_data(d);
+    // As some internal events have not to be sent on wire, we log an info
+    // message instead of an errror
+    if (!to_send) {
+      SPDLOG_LOGGER_INFO(_logger, "Unable to serialize {}", *d);
+    }
   } else {
     to_send = std::make_shared<event_with_data>();
     std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);

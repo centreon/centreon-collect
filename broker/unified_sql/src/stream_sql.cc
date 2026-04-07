@@ -2825,8 +2825,7 @@ static bool update_bulk_host_status_with_adaptive_host_status(
     if (host_id_column.get_value_i32(row_index) == host_status.host_id()) {
       if (host_status.has_acknowledgement_type()) {
         to_update->at(24).set_value_bool(
-            row_index,
-            host_status.acknowledgement_type() != AckType::NONE);
+            row_index, host_status.acknowledgement_type() != AckType::NONE);
         to_update->at(25).set_value_i32(row_index,
                                         host_status.acknowledgement_type());
       }
@@ -2880,8 +2879,7 @@ static bool update_bulk_resources_with_adaptive_host_status(
     if (host_id_column.get_value_u64(row_index) == host_status.host_id()) {
       if (host_status.has_acknowledgement_type())
         to_update->at(4).set_value_bool(
-            row_index,
-            host_status.acknowledgement_type() != AckType::NONE);
+            row_index, host_status.acknowledgement_type() != AckType::NONE);
       if (host_status.has_scheduled_downtime_depth())
         to_update->at(3).set_value_bool(
             row_index, host_status.scheduled_downtime_depth() > 0);
@@ -2924,6 +2922,7 @@ void stream::_process_pb_adaptive_host_status(
     if (_bulk_prepared_statement && _hscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      std::lock_guard<bulk_bind> lck(*_hscr_bind);
       if (!_hscr_bind->bind(conn))
         _hscr_bind->init_from_stmt(conn);
       auto* b = _hscr_bind->bind(conn).get();
@@ -2942,9 +2941,10 @@ void stream::_process_pb_adaptive_host_status(
       constexpr std::string_view buf("UPDATE hosts SET ");
       std::string query{buf};
       if (hscr.has_acknowledgement_type())
-        query += fmt::format("acknowledged='{}',acknowledgement_type='{}',",
-                             hscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
-                             hscr.acknowledgement_type());
+        query +=
+            fmt::format("acknowledged='{}',acknowledgement_type='{}',",
+                        hscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
+                        hscr.acknowledgement_type());
       if (hscr.has_notification_number())
         query +=
             fmt::format("notification_number={},", hscr.notification_number());
@@ -2971,6 +2971,7 @@ void stream::_process_pb_adaptive_host_status(
     if (_bulk_prepared_statement && _hscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
       if (!_hscr_resources_bind->bind(conn))
         _hscr_resources_bind->init_from_stmt(conn);
       auto* b = _hscr_resources_bind->bind(conn).get();
@@ -3003,7 +3004,8 @@ void stream::_process_pb_adaptive_host_status(
         res_query.resize(res_query.size() - 1);
         res_query +=
             fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
-        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
+        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
+                            res_query);
         _mysql.run_query(res_query, database::mysql_error::update_resources,
                          conn);
         _add_action(conn, actions::resources);
@@ -4908,9 +4910,12 @@ static bool update_bulk_service_status_with_adaptive_service_status(
     if (service_id_column.get_value_i32(row_index) ==
             serv_status.service_id() &&
         host_id_column.get_value_i32(row_index) == serv_status.host_id()) {
-      if (serv_status.has_acknowledgement_type())
+      if (serv_status.has_acknowledgement_type()) {
+        to_update->at(25).set_value_bool(
+            row_index, serv_status.acknowledgement_type() != AckType::NONE);
         to_update->at(26).set_value_i32(row_index,
                                         serv_status.acknowledgement_type());
+      }
       if (serv_status.has_notification_number())
         to_update->at(21).set_value_i32(row_index,
                                         serv_status.notification_number());
@@ -4918,10 +4923,10 @@ static bool update_bulk_service_status_with_adaptive_service_status(
         to_update->at(27).set_value_i32(row_index,
                                         serv_status.scheduled_downtime_depth());
       if (serv_status.has_next_check())
-        to_update->at(18).set_value_i32(row_index, serv_status.next_check());
+        to_update->at(18).set_value_i64(row_index, serv_status.next_check());
       if (serv_status.has_should_be_scheduled())
-        to_update->at(19).set_value_i32(row_index,
-                                        serv_status.should_be_scheduled());
+        to_update->at(19).set_value_bool(row_index,
+                                         serv_status.should_be_scheduled());
       return true;
     }
   }
@@ -5013,6 +5018,7 @@ void stream::_process_pb_adaptive_service_status(
     if (_bulk_prepared_statement && _sscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+      std::lock_guard lck(*_sscr_bind);
       if (!_sscr_bind->bind(conn))
         _sscr_bind->init_from_stmt(conn);
       auto* b = _sscr_bind->bind(conn).get();
@@ -5068,6 +5074,7 @@ void stream::_process_pb_adaptive_service_status(
     if (_bulk_prepared_statement && _sscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+      std::lock_guard lck(*_sscr_resources_bind);
       if (!_sscr_resources_bind->bind(conn))
         _sscr_resources_bind->init_from_stmt(conn);
       auto* b = _sscr_resources_bind->bind(conn).get();
