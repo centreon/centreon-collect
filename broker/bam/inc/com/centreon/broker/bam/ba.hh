@@ -154,6 +154,7 @@ class ba : public computable, public service_listener {
   std::string object_info() const override;
   void dump(const std::string& filename) const;
   void dump(std::ofstream& output) const override;
+  std::string output_begin() const;
 };
 }  // namespace com::centreon::broker::bam
 
