@@ -468,7 +468,7 @@ def ctn_stop_mysql():
 
 def ctn_stop_rrdcached():
     getoutput(
-        "killall  usr.bin.rrdcached")
+        "killall  /usr/bin/rrdcached")
 
 
 def ctn_kill_broker():

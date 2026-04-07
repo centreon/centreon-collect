@@ -1230,7 +1230,9 @@ template <class pointer_container>
 void remove_all_element_and_clear(segment_manager* segm_manager,
                                   pointer_container* cont) {
   for (auto& member : *cont) {
-    segm_manager->destroy_ptr(member.second.get());
+    if (member.second) {
+      segm_manager->destroy_ptr(member.second.get());
+    }
   }
   cont->clear();
 }

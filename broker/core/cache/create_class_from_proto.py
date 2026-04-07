@@ -446,6 +446,8 @@ class message {{
 #endif
 '''
     with open(header_path, 'w') as hh_file:
+        if '..' in header_path:
+            raise Exception('Invalid file path')
         hh_file.write(hh)
 
 
@@ -931,6 +933,8 @@ bool message::update(const ::google::protobuf::Message& mess,
         cc += class_impl
 
     with open(cc_path, 'w') as cc_file:
+        if '..' in cc_path:
+            raise Exception('Invalid file path')
         cc_file.write(cc)
 
 
