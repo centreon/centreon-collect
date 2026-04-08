@@ -785,7 +785,8 @@ jobs:
             let cmaMatrix = [activeConfig];
 
             if (isFullRun) {
-              matrix = { ...matrix, operating_systems: configs };
+              const uniqueOsConfigs = [...new Map(configs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+              matrix = { ...matrix, operating_systems: uniqueOsConfigs };
               collectMatrix = configs;
               cmaMatrix = cmaConfigs;
             }
