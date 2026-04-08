@@ -25,7 +25,8 @@ if(WITH_TESTING)
 
   include_directories(
     ${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc ${MODULE_DIR_OTL}/inc
-    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc)
+    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc
+    ${CMAKE_SOURCE_DIR}/common/crypto)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")

@@ -33,6 +33,9 @@ using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::common::http;
 
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
+
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   s << cfg.get_type() << ": " << cfg.get_user() << '@';
@@ -169,7 +172,22 @@ database_config::database_config(
   if (found != cfg.params.end())
     _password = found->second;
 
-  if (common::vault::vault_access::is_vault_prefixed(_password)) {
+  // has to decrypt cmd_line
+  if (!_password.compare(0, 9, "encrypt::")) {
+    if (!credentials_decrypt) {
+      SPDLOG_LOGGER_ERROR(_config_logger,
+                          "encrypted password but no decrypt enabled");
+      throw std::invalid_argument("encrypted password but no decrypt enabled");
+    }
+    try {
+      _password =
+          credentials_decrypt->decrypt(std::string_view(_password).substr(9));
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_config_logger, "No usable encrypted password: {}",
+                          e.what());
+      throw msg_fmt("No usable encrypted password: {}", e.what());
+    }
+  } else if (common::vault::vault_access::is_vault_prefixed(_password)) {
     try {
       _password =
           common::vault::vault_access::load(global_params, _config_logger)
