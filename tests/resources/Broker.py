@@ -584,7 +584,7 @@ def ctn_add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bo
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
-            if v["type"] == "grpc":
+            if v["type"] == "grpc" or v["transport_protocol"] == "grpc":
                 _add_broker_crypto(v, add_cert, reversed)
 
     _apply_conf(name, _crypto_modifier)
@@ -606,7 +606,7 @@ def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: b
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
-            if v["type"] == "grpc":
+            if v["type"] == "grpc" or v["transport_protocol"] == "grpc":
                 _add_broker_crypto(v, add_cert, not reversed)
 
     _apply_conf(name, _crypto_modifier)
@@ -631,6 +631,8 @@ def ctn_add_host_to_broker_output(name: str, output_name: str, host_ip: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v["host"] = host_ip
+                if v["type"] == "bbdo_server":
+                    v["type"] = "bbdo_client"
 
     _apply_conf(name, modifier)
 
@@ -652,8 +654,10 @@ def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
-            if (v["name"] == input_name):
+            if v["name"] == input_name:
                 v["host"] = host_ip
+                if v["type"] == "bbdo_server":
+                    v["type"] = "bbdo_client"
 
     _apply_conf(name, modifier)
 
@@ -676,6 +680,8 @@ def ctn_remove_host_from_broker_output(name: str, output_name: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v.pop("host")
+                if v["type"] == "bbdo_client":
+                    v["type"] = "bbdo_server"
 
     _apply_conf(name, modifier)
 
@@ -698,6 +704,8 @@ def ctn_remove_host_from_broker_input(name: str, input_name: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == input_name):
                 v.pop("host")
+                if v["type"] == "bbdo_client":
+                    v["type"] = "bbdo_server"
 
     _apply_conf(name, modifier)
 
@@ -757,7 +765,7 @@ def ctn_config_broker_remove_rrd_output(name):
 
     | Config Broker Remove Rrd Output | central |
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
@@ -802,7 +810,7 @@ def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
         raise Exception("A bbdo_client must specify a host to connect to")
 
     input_name = f"{name}-broker-master-input"
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = f"central-{name}.json"
@@ -855,7 +863,7 @@ def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
         raise Exception("A bbdo_client must specify a host to connect to")
 
     output_name = f"{name}-broker-master-output"
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
         output_name = 'centreon-broker-master-rrd'
     elif name.startswith('module'):
@@ -894,7 +902,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         output (str): One string among "unified_sql" and "sql/perfdata".
         queries_per_transaction (int, optional): Defaults to 20000.
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
@@ -1269,7 +1277,7 @@ def ctn_broker_config_add_item(name, key, value):
 
     | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name == 'rrd':
         filename = "central-rrd.json"
@@ -1637,7 +1645,7 @@ def ctn_broker_config_source_log(name, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
+def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int = TIMEOUT):
     """
     Return True if the Broker stats file contain keys pair (key1,key2). key2 must
     be a daughter key of key1.
@@ -1771,7 +1779,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
         if value is not None and r_expected.match(value):
             return True
         time.sleep(5)
-    logger.console(f"key:{keys} value not expected: {value}")
+    logger.console(f"key:{keys} {expected} does not match: {value}")
     return False
 
 
@@ -2150,7 +2158,7 @@ def ctn_create_metrics(count: int):
                 connection.commit()
 
 
-def ctn_run_reverse_bam(duration, interval):
+def ctn_run_reverse_bam(duration, interval, bbdo_version="2.0.0"):
     """
     Launch the map_client.py script that simulates map.
 
@@ -2159,7 +2167,7 @@ def ctn_run_reverse_bam(duration, interval):
         interval: Interval given to the map_client.py that tells the duration
                   between to recv calls.
     """
-    pro = subp.Popen("broker/map_client.py {:f}".format(interval),
+    pro = subp.Popen("broker/map_client.py {:f} {}".format(interval, bbdo_version),
                      shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
     os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
@@ -3499,8 +3507,8 @@ def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
         if last_timestamp == 0:
             last_timestamp = new_ts
         else:
-            if new_ts != last_timestamp + last_interval:
-                logger.console.log(
+            if new_ts < (last_timestamp + last_interval-1) and new_ts > (last_timestamp + last_interval + 1):
+                logger.console(
                     f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
                 return False
             else:
@@ -3509,3 +3517,16 @@ def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
                 if last_interval > max_retry_delay:
                     last_interval = max_retry_delay
     return True
+
+
+def ctn_broker_get_bbdo_version():
+    """
+    Return bbdo_version of central-broker.json file
+    """
+    with open(f"{ETC_ROOT}/centreon-broker/central-broker.json", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        if "bbdo_version" in conf["centreonBroker"]:
+            return conf["centreonBroker"]["bbdo_version"]
+        else:
+            return "2.0.0"

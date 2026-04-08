@@ -153,7 +153,7 @@ BAWORST
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers
@@ -175,7 +175,7 @@ BAWORST
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers

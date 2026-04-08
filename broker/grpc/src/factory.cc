@@ -329,7 +329,7 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (it != cfg.params.end())
     authorization = it->second;
   log_v2::instance()
-      .get(log_v2::CORE)
+      .get(log_v2::GRPC)
       ->debug("GRPC: 'authorization' field contains '{}'", authorization);
 
   // Find ca_name token (if exists).
@@ -380,6 +380,9 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   // Certificate.
   std::string certificate;
   it = cfg.params.find("certificate");
+  if (it == cfg.params.end()) {
+    it = cfg.params.find("public_cert");
+  }
   if (it != cfg.params.end()) {
     if (encryption) {
       try {
@@ -416,7 +419,8 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       log_v2::instance()
           .get(log_v2::CORE)
           ->warn(
-              "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
+              "GRPC: 'ca_certificate' ignored since 'encryption' is "
+              "disabled");
   }
 
   bool compression = false;
@@ -448,7 +452,8 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
               "'{}'",
               it->second);
       throw msg_fmt(
-          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
+          "GRPC: 'keepalive_interval' field should be an integer and not "
+          "'{}'",
           it->second);
     }
   }

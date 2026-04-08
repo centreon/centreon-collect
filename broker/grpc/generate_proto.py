@@ -153,7 +153,7 @@ cc_file_create_event_with_data_function_end = """
     default:
       {
         auto logger = log_v2::instance().get(log_v2::GRPC);
-        SPDLOG_LOGGER_ERROR(logger, "unknown event type: {}", *event);
+        SPDLOG_LOGGER_ERROR(logger, "unable to send unknown event type: {}", *event);
       }  
     }
     if (ret) {

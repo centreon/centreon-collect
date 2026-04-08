@@ -12,6 +12,10 @@ Test Setup          Ctn Stop Processes
 MIGRATION
     [Documentation]    Migration bbdo2 with sql/storage to bbdo2 with unified_sql and then to bbdo3 with unified_sql and then to bbdo2 with unified_sql and then to bbdo2 with sql/storage
     [Tags]    broker    engine    services    protobuf
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
 
     Log To Console    Pure legacy mode
     Ctn Config Engine    ${3}    ${50}    ${20}

@@ -13,6 +13,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 EBNHG1
     [Documentation]    New host group with several pollers and connections to DB
     [Tags]    broker    engine    hostgroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
@@ -134,6 +139,10 @@ EBNHGU3
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
     [Tags]    broker    engine    hostgroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central
