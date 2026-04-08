@@ -788,7 +788,9 @@ jobs:
               const uniqueOsConfigs = [...new Map(configs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
               matrix = { ...matrix, operating_systems: uniqueOsConfigs };
               collectMatrix = configs;
-              cmaMatrix = cmaConfigs;
+              cmaMatrix = isCloud
+                ? cmaConfigs.filter(c => c.operating_system !== 'bullseye')
+                : cmaConfigs;
             }
 
             console.log('matrix', matrix);
