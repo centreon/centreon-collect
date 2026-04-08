@@ -303,6 +303,9 @@ class mysql_bulk_bind : public mysql_bind_base {
    */
   void set_null_tiny(size_t range);
 
+  template <typename updater_type>
+  bool update(updater_type&& updater);
+
   int get_size() const;
   bool value_is_null(size_t range) const;
   bool empty() const;
@@ -312,6 +315,22 @@ class mysql_bulk_bind : public mysql_bind_base {
   void next_row();
   void reserve(size_t size);
 };
+
+/**
+ * @brief Applies an updater callable to the internal column collection.
+ *
+ * The updater receives a reference to the underlying column vector and returns
+ * a boolean indicating whether the update was successful.
+ *
+ * @tparam updater_type A callable type with signature
+ * bool(std::vector<database::mysql_column>*).
+ * @param updater The callable to apply to the column collection.
+ * @return The value returned by the updater.
+ */
+template <typename updater_type>
+bool mysql_bulk_bind::update(updater_type&& updater) {
+  return updater(&_column);
+}
 
 }  // namespace database
 

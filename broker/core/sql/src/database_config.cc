@@ -24,9 +24,11 @@
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/vault/vault_access.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::common::http;
@@ -167,13 +169,16 @@ database_config::database_config(
   if (found != cfg.params.end())
     _password = found->second;
 
-  try {
-    _password = common::vault::vault_access::load(global_params, _config_logger)
-                    ->decrypt(_password);
-    _config_logger->info("Database password get from Vault configuration");
-  } catch (const std::exception& e) {
-    if (common::vault::vault_access::is_vault_prefixed(_password)) {
+  if (common::vault::vault_access::is_vault_prefixed(_password)) {
+    try {
+      _password =
+          common::vault::vault_access::load(global_params, _config_logger)
+              ->decrypt(_password);
+      _config_logger->info(
+          "Database password obtained from Vault configuration");
+    } catch (const std::exception& e) {
       _config_logger->error("No usable Vault configuration: {}", e.what());
+      throw msg_fmt("No usable Vault configuration: {}", e.what());
     }
   }
 
@@ -253,6 +258,7 @@ database_config::database_config(
       _ssl_enabled = false;
     }
   }
+  _ssl_verify_cert = true;
   if (_ssl_enabled) {
     _config_logger->info("SSL/TLS enabled for database connection");
 
@@ -291,7 +297,6 @@ database_config::database_config(
     }
 
     // SSL certificate verification (default to true for security)
-    _ssl_verify_cert = true;
     found = cfg.params.find("db_ssl_verify_cert");
     if (found != cfg.params.end()) {
       if (!absl::SimpleAtob(found->second, &_ssl_verify_cert)) {

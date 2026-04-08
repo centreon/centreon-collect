@@ -892,7 +892,7 @@ void stream::_process_pb_custom_variable_status(
   const neb::pb_custom_variable_status& cv{
       *static_cast<neb::pb_custom_variable_status const*>(d.get())};
 
-  const com::centreon::broker::CustomVariable& data = cv.obj();
+  const com::centreon::broker::CustomVariableStatus& data = cv.obj();
   _cvs.push_query(fmt::format(
       "('{}',{},{},{},{},'{}')",
       misc::string::escape(data.name(),
@@ -2788,6 +2788,107 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         now, hscr.state(), hscr.state_type());
 }
 
+constexpr size_t host_id_column_host_status_update = 27;
+
+/**
+ * @brief Update a pending bulk hosts row with fields from an
+ *        AdaptiveHostStatus event.
+ *
+ * When a bulk-insert statement for the hosts table is waiting to be flushed,
+ * an incoming adaptive host status may need to patch one of the
+ * not-yet-committed rows instead of issuing a separate UPDATE query.  This
+ * function scans the bulk bind columns in reverse order (most-recent first) to
+ * find the last row that matches host_id and overwrites only the optional
+ * fields that are present in @p host_status:
+ *   - acknowledgement_type  (column 25) + acknowledged (column 24)
+ *   - notification_number   (column 20)
+ *   - scheduled_downtime_depth (column 26)
+ *   - next_check            (column 17)
+ *   - should_be_scheduled   (column 18)
+ *
+ * @param host_status  The adaptive host status event to apply.
+ * @param to_update    The vector of mysql_column objects that back the pending
+ *                     bulk prepared statement for the hosts table.
+ * @return true  if a matching row was found and updated in place.
+ * @return false if no matching row exists (caller must fall back to a direct
+ *               UPDATE query).
+ */
+static bool update_bulk_host_status_with_adaptive_host_status(
+    const AdaptiveHostStatus host_status,
+    std::vector<database::mysql_column>* to_update) {
+  const database::mysql_column& host_id_column =
+      to_update->at(host_id_column_host_status_update);
+
+  // scan in reverse so that the most-recent pending row is patched first
+  for (int row_index = host_id_column.array_size() - 1; row_index >= 0;
+       --row_index) {
+    if (host_id_column.get_value_i32(row_index) == host_status.host_id()) {
+      if (host_status.has_acknowledgement_type()) {
+        to_update->at(24).set_value_bool(
+            row_index, host_status.acknowledgement_type() != AckType::NONE);
+        to_update->at(25).set_value_i32(row_index,
+                                        host_status.acknowledgement_type());
+      }
+      if (host_status.has_notification_number())
+        to_update->at(20).set_value_u64(row_index,
+                                        host_status.notification_number());
+      if (host_status.has_scheduled_downtime_depth())
+        to_update->at(26).set_value_i32(row_index,
+                                        host_status.scheduled_downtime_depth());
+      if (host_status.has_next_check())
+        to_update->at(17).set_value_i64(row_index, host_status.next_check());
+      if (host_status.has_should_be_scheduled())
+        to_update->at(18).set_value_bool(row_index,
+                                         host_status.should_be_scheduled());
+      return true;
+    }
+  }
+  return false;
+}
+
+constexpr size_t host_id_column_resources_host_status_update = 13;
+
+/**
+ * @brief Update a pending bulk resources row with fields from an
+ *        AdaptiveHostStatus event.
+ *
+ * Mirror of update_bulk_host_status_with_adaptive_host_status() for the
+ * resources table bulk bind (_hscr_resources_bind).  It scans the pending
+ * rows in reverse order (most-recent first) to find the last row whose
+ * host_id matches @p host_status (parent_id=0 for hosts) and overwrites only
+ * the optional fields that are present:
+ *   - acknowledged   (column 4) ← acknowledgement_type != AckType::NONE
+ *   - in_downtime    (column 3) ← scheduled_downtime_depth > 0
+ *
+ * @param host_status  The adaptive host status event to apply.
+ * @param to_update    The vector of mysql_column objects that back the pending
+ *                     bulk prepared statement for the resources table.
+ * @return true  if a matching row was found and updated in place.
+ * @return false if no matching row exists (caller must fall back to a direct
+ *               UPDATE query).
+ */
+static bool update_bulk_resources_with_adaptive_host_status(
+    const AdaptiveHostStatus host_status,
+    std::vector<database::mysql_column>* to_update) {
+  const database::mysql_column& host_id_column =
+      to_update->at(host_id_column_resources_host_status_update);
+
+  // scan in reverse so that the most-recent pending row is patched first
+  for (int row_index = host_id_column.array_size() - 1; row_index >= 0;
+       --row_index) {
+    if (host_id_column.get_value_u64(row_index) == host_status.host_id()) {
+      if (host_status.has_acknowledgement_type())
+        to_update->at(4).set_value_bool(
+            row_index, host_status.acknowledgement_type() != AckType::NONE);
+      if (host_status.has_scheduled_downtime_depth())
+        to_update->at(3).set_value_bool(
+            row_index, host_status.scheduled_downtime_depth() > 0);
+      return true;
+    }
+  }
+  return false;
+}
+
 void stream::_process_pb_adaptive_host_status(
     const std::shared_ptr<io::data>& d) {
   _finish_action(
@@ -2817,52 +2918,98 @@ void stream::_process_pb_adaptive_host_status(
       _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
 
   if (_store_in_hosts_services) {
-    constexpr std::string_view buf("UPDATE hosts SET ");
-    std::string query{buf};
-    if (hscr.has_acknowledgement_type())
-      query += fmt::format("acknowledged='{}',acknowledgement_type='{}',",
-                           hscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
-                           hscr.acknowledgement_type());
-    if (hscr.has_notification_number())
-      query +=
-          fmt::format("notification_number={},", hscr.notification_number());
-    if (hscr.has_scheduled_downtime_depth())
-      query += fmt::format("scheduled_downtime_depth={},",
-                           hscr.scheduled_downtime_depth());
-    if (hscr.has_next_check())
-      query += fmt::format(" next_check={},", hscr.next_check());
-    if (hscr.has_should_be_scheduled())
-      query += fmt::format(" should_be_scheduled='{}',",
-                           hscr.should_be_scheduled() ? 1 : 0);
-    if (query.size() > buf.size()) {
-      query.resize(query.size() - 1);
-      query += fmt::format(" WHERE host_id={}", hscr.host_id());
-      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
-      _mysql.run_query(query, database::mysql_error::store_host_status, conn);
-      _add_action(conn, actions::hosts);
+    bool update_in_hscr_bind = false;
+    if (_bulk_prepared_statement && _hscr_bind) {
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      std::lock_guard<bulk_bind> lck(*_hscr_bind);
+      if (!_hscr_bind->bind(conn))
+        _hscr_bind->init_from_stmt(conn);
+      auto* b = _hscr_bind->bind(conn).get();
+      update_in_hscr_bind =
+          b->update([&hscr](std::vector<database::mysql_column>* to_update) {
+            return update_bulk_host_status_with_adaptive_host_status(hscr,
+                                                                     to_update);
+          });
+    }
+    if (update_in_hscr_bind) {
+      SPDLOG_LOGGER_TRACE(_logger_sql,
+                          "unified_sql: processing pb adaptive host status "
+                          "of {} updates host status request",
+                          hscr.host_id());
+    } else {
+      constexpr std::string_view buf("UPDATE hosts SET ");
+      std::string query{buf};
+      if (hscr.has_acknowledgement_type())
+        query +=
+            fmt::format("acknowledged='{}',acknowledgement_type='{}',",
+                        hscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
+                        hscr.acknowledgement_type());
+      if (hscr.has_notification_number())
+        query +=
+            fmt::format("notification_number={},", hscr.notification_number());
+      if (hscr.has_scheduled_downtime_depth())
+        query += fmt::format("scheduled_downtime_depth={},",
+                             hscr.scheduled_downtime_depth());
+      if (hscr.has_next_check())
+        query += fmt::format(" next_check={},", hscr.next_check());
+      if (hscr.has_should_be_scheduled())
+        query += fmt::format(" should_be_scheduled='{}',",
+                             hscr.should_be_scheduled() ? 1 : 0);
+      if (query.size() > buf.size()) {
+        query.resize(query.size() - 1);
+        query += fmt::format(" WHERE host_id={}", hscr.host_id());
+        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", query);
+        _mysql.run_query(query, database::mysql_error::store_host_status, conn);
+        _add_action(conn, actions::hosts);
+      }
     }
   }
 
   if (_store_in_resources) {
-    constexpr std::string_view res_buf("UPDATE resources SET ");
-    std::string res_query{res_buf};
-    if (hscr.has_acknowledgement_type())
-      res_query +=
-          fmt::format("acknowledged='{}',",
-                      hscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    // if (hscr.has_notification_number())
-    //   res_query +=
-    //       fmt::format("notification_number={},", hscr.notification_number());
-    if (hscr.has_scheduled_downtime_depth())
-      res_query +=
-          fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
-    if (res_query.size() > res_buf.size()) {
-      res_query.resize(res_query.size() - 1);
-      res_query += fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
-      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", res_query);
-      _mysql.run_query(res_query, database::mysql_error::update_resources,
-                       conn);
-      _add_action(conn, actions::resources);
+    bool update_in_hscr_resources_bind = false;
+    if (_bulk_prepared_statement && _hscr_resources_bind) {
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
+      if (!_hscr_resources_bind->bind(conn))
+        _hscr_resources_bind->init_from_stmt(conn);
+      auto* b = _hscr_resources_bind->bind(conn).get();
+      update_in_hscr_resources_bind =
+          b->update([&hscr](std::vector<database::mysql_column>* to_update) {
+            return update_bulk_resources_with_adaptive_host_status(hscr,
+                                                                   to_update);
+          });
+    }
+    if (update_in_hscr_resources_bind) {
+      SPDLOG_LOGGER_TRACE(_logger_sql,
+                          "unified_sql: processing pb adaptive host status "
+                          "of {} updates resources request",
+                          hscr.host_id());
+    } else {
+      constexpr std::string_view res_buf("UPDATE resources SET ");
+      std::string res_query{res_buf};
+      if (hscr.has_acknowledgement_type())
+        res_query +=
+            fmt::format("acknowledged='{}',",
+                        hscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
+      // if (hscr.has_notification_number())
+      //   res_query +=
+      //       fmt::format("notification_number={},",
+      //       hscr.notification_number());
+      if (hscr.has_scheduled_downtime_depth())
+        res_query +=
+            fmt::format("in_downtime={},", hscr.scheduled_downtime_depth() > 0);
+      if (res_query.size() > res_buf.size()) {
+        res_query.resize(res_query.size() - 1);
+        res_query +=
+            fmt::format(" WHERE parent_id=0 AND id={}", hscr.host_id());
+        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
+                            res_query);
+        _mysql.run_query(res_query, database::mysql_error::update_resources,
+                         conn);
+        _add_action(conn, actions::resources);
+      }
     }
   }
 }
@@ -4164,6 +4311,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
       _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
   if (_store_in_hosts_services) {
+    // first we check that this service is not yet in update bulk request
+
     constexpr std::string_view buf("UPDATE services SET");
     std::string query{buf.data(), buf.size()};
     if (as.has_notify())
@@ -4447,6 +4596,11 @@ void stream::_process_service_status(const std::shared_ptr<io::data>& d) {
   _unified_sql_process_service_status(d);
 }
 
+constexpr size_t host_id_column_service_status_update = 28;
+constexpr size_t service_id_column_service_status_update = 29;
+constexpr size_t host_id_column_resources_service_status_update = 14;
+constexpr size_t service_id_column_resources_service_status_update = 13;
+
 /**
  *  Process a service status event.
  *
@@ -4546,8 +4700,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                            sscr.host_id(), sscr.service_id(),
                            sscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
-        b->set_value_as_i32(28, sscr.host_id());
-        b->set_value_as_i32(29, sscr.service_id());
+        b->set_value_as_i32(host_id_column_service_status_update,
+                            sscr.host_id());
+        b->set_value_as_i32(service_id_column_service_status_update,
+                            sscr.service_id());
         b->next_row();
         SPDLOG_LOGGER_TRACE(_logger_sql,
                             "{} waiting updates for service status in services",
@@ -4688,8 +4844,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_bool(11, sscr.flapping());
         _sscr_resources_update->bind_value_as_f64(12,
                                                   sscr.percent_state_change());
-        _sscr_resources_update->bind_value_as_u64(13, sscr.service_id());
-        _sscr_resources_update->bind_value_as_u64(14, sscr.host_id());
+        _sscr_resources_update->bind_value_as_u64(
+            service_id_column_resources_service_status_update,
+            sscr.service_id());
+        _sscr_resources_update->bind_value_as_u64(
+            host_id_column_resources_service_status_update, sscr.host_id());
 
         _mysql.run_statement(*_sscr_resources_update,
                              database::mysql_error::store_service_status, conn);
@@ -4712,6 +4871,111 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
   /* perfdata part */
   _unified_sql_process_pb_service_status(d);
+}
+
+/**
+ * @brief Update a pending bulk service status row with fields from an
+ *        AdaptiveServiceStatus event.
+ *
+ * When a bulk-insert statement is waiting to be flushed, an incoming adaptive
+ * service status may need to patch one of the not-yet-committed rows instead
+ * of issuing a separate UPDATE query.  This function scans the bulk bind
+ * columns in reverse order (most-recent first) to find the last row that
+ * matches (host_id, service_id) and overwrites only the optional fields that
+ * are present in @p serv_status:
+ *   - acknowledgement_type  (column 26)
+ *   - notification_number   (column 21)
+ *   - scheduled_downtime_depth (column 27)
+ *   - next_check            (column 18)
+ *   - should_be_scheduled   (column 19)
+ *
+ * @param serv_status  The adaptive service status event to apply.
+ * @param to_update    The vector of mysql_column objects that back the pending
+ *                     bulk prepared statement.
+ * @return true  if a matching row was found and updated in place.
+ * @return false if no matching row exists (caller must fall back to a direct
+ *               UPDATE query).
+ */
+static bool update_bulk_service_status_with_adaptive_service_status(
+    const AdaptiveServiceStatus serv_status,
+    std::vector<database::mysql_column>* to_update) {
+  const database::mysql_column& host_id_column =
+      to_update->at(host_id_column_service_status_update);
+  const database::mysql_column& service_id_column =
+      to_update->at(service_id_column_service_status_update);
+
+  // the only last service row must be updated
+  for (int row_index = host_id_column.array_size() - 1; row_index >= 0;
+       --row_index) {
+    if (service_id_column.get_value_i32(row_index) ==
+            serv_status.service_id() &&
+        host_id_column.get_value_i32(row_index) == serv_status.host_id()) {
+      if (serv_status.has_acknowledgement_type()) {
+        to_update->at(25).set_value_bool(
+            row_index, serv_status.acknowledgement_type() != AckType::NONE);
+        to_update->at(26).set_value_i32(row_index,
+                                        serv_status.acknowledgement_type());
+      }
+      if (serv_status.has_notification_number())
+        to_update->at(21).set_value_i32(row_index,
+                                        serv_status.notification_number());
+      if (serv_status.has_scheduled_downtime_depth())
+        to_update->at(27).set_value_i32(row_index,
+                                        serv_status.scheduled_downtime_depth());
+      if (serv_status.has_next_check())
+        to_update->at(18).set_value_i64(row_index, serv_status.next_check());
+      if (serv_status.has_should_be_scheduled())
+        to_update->at(19).set_value_bool(row_index,
+                                         serv_status.should_be_scheduled());
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief Update a pending bulk resources row with fields from an
+ *        AdaptiveServiceStatus event.
+ *
+ * Mirror of update_bulk_service_status_with_adaptive_service_status() for the
+ * resources table bulk bind (@p _sscr_resources_bind).  It scans the pending
+ * rows in reverse order (most-recent first) to find the last row whose
+ * (parent_id/host_id, id/service_id) pair matches @p serv_status and
+ * overwrites only the optional fields that are present:
+ *   - acknowledged   (column 4) ← acknowledgement_type != AckType::NONE
+ *   - in_downtime    (column 3) ← scheduled_downtime_depth > 0
+ *
+ * @param serv_status  The adaptive service status event to apply.
+ * @param to_update    The vector of mysql_column objects that back the pending
+ *                     bulk prepared statement for the resources table.
+ * @return true  if a matching row was found and updated in place.
+ * @return false if no matching row exists (caller must fall back to a direct
+ *               UPDATE query).
+ */
+static bool update_bulk_resources_with_adaptive_service_status(
+    const AdaptiveServiceStatus serv_status,
+    std::vector<database::mysql_column>* to_update) {
+  const database::mysql_column& host_id_column =
+      to_update->at(host_id_column_resources_service_status_update);
+  const database::mysql_column& service_id_column =
+      to_update->at(service_id_column_resources_service_status_update);
+
+  // scan in reverse so that the most-recent pending row is patched first
+  for (int row_index = host_id_column.array_size() - 1; row_index >= 0;
+       --row_index) {
+    if (service_id_column.get_value_u64(row_index) ==
+            serv_status.service_id() &&
+        host_id_column.get_value_u64(row_index) == serv_status.host_id()) {
+      if (serv_status.has_acknowledgement_type())
+        to_update->at(4).set_value_bool(
+            row_index, serv_status.acknowledgement_type() != AckType::NONE);
+      if (serv_status.has_scheduled_downtime_depth())
+        to_update->at(3).set_value_bool(
+            row_index, serv_status.scheduled_downtime_depth() > 0);
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -4750,63 +5014,108 @@ void stream::_process_pb_adaptive_service_status(
       _cache_host_instance[sscr.host_id()]);
 
   if (_store_in_hosts_services) {
-    constexpr std::string_view query("UPDATE services SET ");
-    std::string buf_query(query);
-    if (sscr.has_acknowledgement_type())
-      buf_query +=
-          fmt::format("acknowledged='{}',acknowledgement_type={},",
-                      sscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
-                      sscr.acknowledgement_type());
-    if (sscr.has_notification_number())
-      buf_query +=
-          fmt::format("notification_number={},", sscr.notification_number());
-    _logger_sql->debug("service7 ({}, {}) scheduled_downtime_depth: {}",
-                       sscr.host_id(), sscr.service_id(),
-                       sscr.scheduled_downtime_depth());
-    if (sscr.has_scheduled_downtime_depth())
-      buf_query += fmt::format("scheduled_downtime_depth={},",
-                               sscr.scheduled_downtime_depth());
-    if (sscr.has_next_check())
-      buf_query += fmt::format(" next_check={},", sscr.next_check());
-    if (sscr.has_should_be_scheduled())
-      buf_query += fmt::format(" should_be_scheduled='{}',",
-                               sscr.should_be_scheduled() ? 1 : 0);
-    if (buf_query.size() > query.size()) {
-      buf_query.resize(buf_query.size() - 1);
-      buf_query += fmt::format(" WHERE host_id={} AND service_id={}",
-                               sscr.host_id(), sscr.service_id());
-      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>", buf_query);
-      _mysql.run_query(buf_query, database::mysql_error::store_service_status,
-                       conn);
-      _add_action(conn, actions::services);
+    bool update_in_sscr_bind = false;
+    if (_bulk_prepared_statement && _sscr_bind) {
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+      std::lock_guard lck(*_sscr_bind);
+      if (!_sscr_bind->bind(conn))
+        _sscr_bind->init_from_stmt(conn);
+      auto* b = _sscr_bind->bind(conn).get();
+
+      update_in_sscr_bind =
+          b->update([&sscr](std::vector<database::mysql_column>* to_update) {
+            return update_bulk_service_status_with_adaptive_service_status(
+                sscr, to_update);
+          });
+    }
+    if (update_in_sscr_bind) {
+      SPDLOG_LOGGER_TRACE(_logger_sql,
+                          "unified_sql: processing pb adaptive service status "
+                          "of ({}, {}) updates service status request",
+                          sscr.host_id(), sscr.service_id());
+    } else {
+      constexpr std::string_view query("UPDATE services SET ");
+      std::string buf_query(query);
+      if (sscr.has_acknowledgement_type())
+        buf_query +=
+            fmt::format("acknowledged='{}',acknowledgement_type={},",
+                        sscr.acknowledgement_type() != AckType::NONE ? 1 : 0,
+                        sscr.acknowledgement_type());
+      if (sscr.has_notification_number())
+        buf_query +=
+            fmt::format("notification_number={},", sscr.notification_number());
+      _logger_sql->debug("service7 ({}, {}) scheduled_downtime_depth: {}",
+                         sscr.host_id(), sscr.service_id(),
+                         sscr.scheduled_downtime_depth());
+      if (sscr.has_scheduled_downtime_depth())
+        buf_query += fmt::format("scheduled_downtime_depth={},",
+                                 sscr.scheduled_downtime_depth());
+      if (sscr.has_next_check())
+        buf_query += fmt::format(" next_check={},", sscr.next_check());
+      if (sscr.has_should_be_scheduled())
+        buf_query += fmt::format(" should_be_scheduled='{}',",
+                                 sscr.should_be_scheduled() ? 1 : 0);
+      if (buf_query.size() > query.size()) {
+        buf_query.resize(buf_query.size() - 1);
+        buf_query += fmt::format(" WHERE host_id={} AND service_id={}",
+                                 sscr.host_id(), sscr.service_id());
+        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
+                            buf_query);
+        _mysql.run_query(buf_query, database::mysql_error::store_service_status,
+                         conn);
+        _add_action(conn, actions::services);
+      }
     }
   }
 
   if (_store_in_resources) {
-    constexpr std::string_view res_query("UPDATE resources SET ");
-    std::string buf_res_query(res_query);
-    if (sscr.has_acknowledgement_type())
-      buf_res_query +=
-          fmt::format("acknowledged='{}',",
-                      sscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
-    // if (sscr.has_notification_number())
-    //   buf_res_query +=
-    //       fmt::format("notification_number={},", sscr.notification_number());
-    _logger_sql->debug("service8 ({}, {}) scheduled_downtime_depth: {}",
-                       sscr.host_id(), sscr.service_id(),
-                       sscr.scheduled_downtime_depth());
-    if (sscr.has_scheduled_downtime_depth())
-      buf_res_query +=
-          fmt::format("in_downtime={},", sscr.scheduled_downtime_depth() > 0);
-    if (buf_res_query.size() > res_query.size()) {
-      buf_res_query.resize(buf_res_query.size() - 1);
-      buf_res_query += fmt::format(" WHERE parent_id={} AND id={}",
-                                   sscr.host_id(), sscr.service_id());
-      SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
-                          buf_res_query);
-      _mysql.run_query(buf_res_query, database::mysql_error::update_resources,
-                       conn);
-      _add_action(conn, actions::resources);
+    bool update_in_sscr_resources_bind = false;
+    if (_bulk_prepared_statement && _sscr_resources_bind) {
+      int32_t conn = _mysql.choose_connection_by_instance(
+          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+      std::lock_guard lck(*_sscr_resources_bind);
+      if (!_sscr_resources_bind->bind(conn))
+        _sscr_resources_bind->init_from_stmt(conn);
+      auto* b = _sscr_resources_bind->bind(conn).get();
+      update_in_sscr_resources_bind =
+          b->update([&sscr](std::vector<database::mysql_column>* to_update) {
+            return update_bulk_resources_with_adaptive_service_status(
+                sscr, to_update);
+          });
+    }
+    if (update_in_sscr_resources_bind) {
+      SPDLOG_LOGGER_TRACE(_logger_sql,
+                          "unified_sql: processing pb adaptive service status "
+                          "of ({}, {}) updates resources request",
+                          sscr.host_id(), sscr.service_id());
+    } else {
+      constexpr std::string_view res_query("UPDATE resources SET ");
+      std::string buf_res_query(res_query);
+      if (sscr.has_acknowledgement_type())
+        buf_res_query +=
+            fmt::format("acknowledged='{}',",
+                        sscr.acknowledgement_type() != AckType::NONE ? 1 : 0);
+      // if (sscr.has_notification_number())
+      //   buf_res_query +=
+      //       fmt::format("notification_number={},",
+      //       sscr.notification_number());
+      _logger_sql->debug("service8 ({}, {}) scheduled_downtime_depth: {}",
+                         sscr.host_id(), sscr.service_id(),
+                         sscr.scheduled_downtime_depth());
+      if (sscr.has_scheduled_downtime_depth())
+        buf_res_query +=
+            fmt::format("in_downtime={},", sscr.scheduled_downtime_depth() > 0);
+      if (buf_res_query.size() > res_query.size()) {
+        buf_res_query.resize(buf_res_query.size() - 1);
+        buf_res_query += fmt::format(" WHERE parent_id={} AND id={}",
+                                     sscr.host_id(), sscr.service_id());
+        SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: query <<{}>>",
+                            buf_res_query);
+        _mysql.run_query(buf_res_query, database::mysql_error::update_resources,
+                         conn);
+        _add_action(conn, actions::resources);
+      }
     }
   }
 }

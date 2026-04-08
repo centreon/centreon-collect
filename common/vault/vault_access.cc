@@ -204,7 +204,7 @@ std::string vault_access::decrypt(const std::string& encrypted) {
             promise_decrypted.set_value(result);
           } catch (const std::exception& e) {
             auto exc = std::make_exception_ptr(exceptions::msg_fmt(
-                "Response is not as expected: {}", err.message()));
+                "Response is not as expected: {}", e.what()));
             promise_decrypted.set_exception(exc);
           }
         }
@@ -213,7 +213,7 @@ std::string vault_access::decrypt(const std::string& encrypted) {
 }
 
 /**
- * @brief Helper to create a vault logger
+ * @brief Helper to create a vault_access instance
  *
  * @param global_params params that contains env_file, vault... key values
  * @param logger

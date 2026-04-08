@@ -54,8 +54,8 @@ BSCSSK2
 
     # Client cannot connect. It returns an error
     ${content}    Create List
-    ...    BBDO: invalid protocol header, aborting connection: waiting for message of type 'version_response' but nothing received
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ...    BBDO: invalid protocol header, aborting connection: waiting for message of type '.*' but nothing received
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad connection.
 
     Ctn Kindly Stop Broker

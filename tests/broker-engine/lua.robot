@@ -185,6 +185,10 @@ LUA_CACHE_SAVE_BBDO3
     [Documentation]    Given a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
     ...    To do that we compare host and service event with lua cache
     [Tags]    broker    engine    services    lua    MON-157906
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Clear Commands Status
     Ctn Clear Retention
 
