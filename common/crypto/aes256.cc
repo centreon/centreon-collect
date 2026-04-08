@@ -220,11 +220,12 @@ void aes256::decrypt(const std::string_view& input, std::string* output) const {
           "Error during the message authentication code computation");
 
     assert(second_encrypted_length == 64);
-    if (hash == second_encrypted_new)
-      return;
+    if (hash != second_encrypted_new) {
+      output->clear();
+      throw exceptions::msg_fmt(
+          "Error during the message authentication code validation");
+    }
   }
-
-  output->clear();
 }
 
 }  // namespace com::centreon::common::crypto

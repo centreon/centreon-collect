@@ -64,50 +64,49 @@ int main(int argc, char** argv, char** env) {
     }
     if (opts.get_argument("test-file").get_is_set()) {
       test_file_path = opts.get_argument("test-file").get_value();
-    } else {
-      // Set logging object.
-      if (opts.get_argument("log-file").get_is_set()) {
-        std::string filename(opts.get_argument("log-file").get_value());
-        log::instance().switch_to_file(filename);
-      } else
-        log::instance().switch_to_stdout();
-
-      if (opts.get_argument("debug").get_is_set()) {
-        log::instance().set_level(spdlog::level::trace);
-      } else {
-        log::instance().set_level(spdlog::level::info);
-      }
-      log::instance().add_pid_to_log();
-      log::core()->info("Centreon Perl Connector {} starting",
-                        CENTREON_CONNECTOR_VERSION);
-
-      shared_io_context io_context(std::make_shared<asio::io_context>());
-      checks::shared_signal_set signal_handler(
-          std::make_shared<asio::signal_set>(*io_context, SIGTERM, SIGINT,
-                                             SIGPIPE));
-
-      signal_handler->async_wait(
-          [io_context](const boost::system::error_code&, int signal_number) {
-            if (signal_number == SIGPIPE) {
-              log::core()->info("SIGPIPE received");
-              return;
-            }
-            log::core()->info("termination request received {}", signal_number);
-            io_context->stop();
-          });
-
-      // Load Embedded Perl.
-      embedded_perl::load(argc, argv, env,
-                          (opts.get_argument("code").get_is_set()
-                               ? opts.get_argument("code").get_value().c_str()
-                               : nullptr));
-
-      // Program policy.
-      // Program policy.
-      policy::create(io_context, test_file_path);
-
-      io_context->run();
     }
+    // Set logging object.
+    if (opts.get_argument("log-file").get_is_set()) {
+      std::string filename(opts.get_argument("log-file").get_value());
+      log::instance().switch_to_file(filename);
+    } else
+      log::instance().switch_to_stdout();
+
+    if (opts.get_argument("debug").get_is_set()) {
+      log::instance().set_level(spdlog::level::trace);
+    } else {
+      log::instance().set_level(spdlog::level::info);
+    }
+    log::instance().add_pid_to_log();
+    log::core()->info("Centreon Perl Connector {} starting",
+                      CENTREON_CONNECTOR_VERSION);
+
+    shared_io_context io_context(std::make_shared<asio::io_context>());
+    checks::shared_signal_set signal_handler(std::make_shared<asio::signal_set>(
+        *io_context, SIGTERM, SIGINT, SIGPIPE));
+
+    signal_handler->async_wait(
+        [io_context](const boost::system::error_code&, int signal_number) {
+          if (signal_number == SIGPIPE) {
+            log::core()->info("SIGPIPE received");
+            return;
+          }
+          log::core()->info("termination request received {}", signal_number);
+          io_context->stop();
+        });
+
+    // Load Embedded Perl.
+    embedded_perl::load(argc, argv, env,
+                        (opts.get_argument("code").get_is_set()
+                             ? opts.get_argument("code").get_value().c_str()
+                             : nullptr));
+
+    // Program policy.
+    // Program policy.
+    policy::create(io_context, test_file_path);
+
+    io_context->run();
+
   } catch (const std::exception& e) {
     log::core()->error(e.what());
   }

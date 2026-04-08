@@ -96,17 +96,20 @@ void check::close_all_father_fd() {
 pid_t check::execute() {
   try {
     // Run process.
-    int fds[3];
-    _child = embedded_perl::instance().run(_cmd, fds, _io_context);
-    ::close(fds[0]);
-    _all_child_fd.insert(fds[1]);
-    _all_child_fd.insert(fds[2]);
-    _out_fd = fds[1];
-    _err_fd = fds[2];
-    _out.assign(fds[1]);
-    _err.assign(fds[2]);
+    fork_pipes pipes;
+    pipes.init();
+    _child = embedded_perl::instance().run(_cmd, pipes, _io_context);
+    ::close(pipes.get_father_fds()[STDIN_FILENO]);
+    _all_child_fd.insert(pipes.get_father_fds()[STDOUT_FILENO]);
+    _all_child_fd.insert(pipes.get_father_fds()[STDERR_FILENO]);
+    _out_fd = pipes.get_father_fds()[STDOUT_FILENO];
+    _err_fd = pipes.get_father_fds()[STDERR_FILENO];
+    _out.assign(pipes.get_father_fds()[STDOUT_FILENO]);
+    _err.assign(pipes.get_father_fds()[STDERR_FILENO]);
     _start_read_out();
     _start_read_err();
+
+    pipes.set_has_to_close_father_side(false);
 
     // Store command ID.
     log::core()->debug("execute {} _out_fd={} _err_fd={}", *this, _out_fd,

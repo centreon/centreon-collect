@@ -20,8 +20,12 @@
 add_custom_command(OUTPUT "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc"
   COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc")
 
-include_directories(${PROJECT_SOURCE_DIR}/perl/inc/)
+include_directories(${PROJECT_SOURCE_DIR}/perl/inc/ ${CMAKE_BINARY_DIR}/connectors/perl)
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+
+add_library(pb_perl_connector_lib src/perl_connector.proto)
+set_target_properties(pb_perl_connector_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_perl_connector_lib)
 
 # Perl connector.
 add_executable(centreon_connector_perl
@@ -51,10 +55,25 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
+
+
+
+
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} spdlog::spdlog fmt::fmt
-  absl::any absl::log absl::base absl::bits
-  absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+target_link_libraries(centreon_connector_perl 
+  centreon_clib 
+  ${PERL_LIBRARIES}
+  pb_perl_connector_lib
+  spdlog::spdlog
+  fmt::fmt
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  absl::raw_hash_set
+  absl::hash
+  absl::low_level_hash
+  absl::hashtablez_sampler
   pthread)
 
 target_precompile_headers(centreon_connector_perl PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

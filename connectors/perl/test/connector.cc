@@ -346,8 +346,8 @@ int process::get_exit_code() {
 
 class TestConnector : public testing::Test {
  public:
-  void SetUp() override{};
-  void TearDown() override{};
+  void SetUp() override {};
+  void TearDown() override {};
   static void SetUpTestSuite() {
     _work_guard = std::make_unique<work_guard>(_io_context->get_executor());
     std::thread t([]() { _io_context->run(); });
@@ -426,6 +426,8 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   oss.write(cmd1, sizeof(cmd1) - 1);
   oss << script_path;
   oss.write(cmd2, sizeof(cmd2) - 1);
+  std::ofstream dbg("/tmp/toto");
+  dbg << oss.str();
   write_cmd(*p, oss.str());
 
   // Read reply.
@@ -434,7 +436,8 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
-  remove(script_path);
+  // TO RESTORE
+  // remove(script_path);
 
   ASSERT_EQ(retval, 0);
   std::string expected(result, result + sizeof(result) - 1);

@@ -37,6 +37,119 @@ PerlInterpreter* my_perl(nullptr);
 // Allow module loading.
 EXTERN_C void xs_init(pTHX);
 
+/**
+ * @brief Default constructor.
+ *
+ * Initialises all file descriptors to 0 and sets both close flags to true so
+ * that the destructor will close whichever sides have not been explicitly
+ * transferred to caller ownership.
+ */
+fork_pipes::fork_pipes()
+    : _son_fds{0,0,0,}, _father_fds{0,0,0} ,_has_to_close_son_side(true), _has_to_close_father_side(true) {
+}
+
+/**
+ * @brief Destructor.
+ *
+ * Closes the child-side and/or parent-side file descriptors according to
+ * the flags set by set_has_to_close_son_side() and
+ * set_has_to_close_father_side(). Flags that have been cleared (ownership
+ * transferred to the caller) are left untouched.
+ */
+fork_pipes::~fork_pipes() {
+  if (_has_to_close_son_side) {
+    close_son_side();
+  }
+  if (_has_to_close_father_side) {
+    close_father_side();
+  }
+}
+
+/**
+ * @brief Create the three pipe pairs (stdin, stdout, stderr).
+ *
+ * For each standard stream, a pipe() call produces two ends that are
+ * assigned as follows:
+ *   - stdin:  child reads from _son_fds[0],  parent writes to _father_fds[0]
+ *   - stdout: child writes to _son_fds[1],   parent reads from _father_fds[1]
+ *   - stderr: child writes to _son_fds[2],   parent reads from _father_fds[2]
+ *
+ * Throws exceptions::msg_fmt on pipe() failure.
+ */
+void fork_pipes::init() {
+  int fds[2];
+  if (pipe(fds)) {
+    throw exceptions::msg_fmt("{}", strerror(errno));
+  }
+  _son_fds[STDIN_FILENO] = fds[0];
+  _father_fds[STDIN_FILENO] = fds[1];
+  if (pipe(fds)) {
+    throw exceptions::msg_fmt("{}", strerror(errno));
+  }
+  _son_fds[STDOUT_FILENO] = fds[1];
+  _father_fds[STDOUT_FILENO] = fds[0];
+  if (pipe(fds)) {
+    throw exceptions::msg_fmt("{}", strerror(errno));
+  }
+  _son_fds[STDERR_FILENO] = fds[1];
+  _father_fds[STDERR_FILENO] = fds[0];
+}
+
+/**
+ * @brief Close all child-side (son) file descriptors.
+ *
+ * Iterates over the three child-side FDs and closes any that are > 0
+ * (descriptors initialised to 0 are considered not yet opened).
+ */
+void fork_pipes::close_son_side() {
+  for (int* fd = _son_fds; fd < _son_fds + 3; ++fd) {
+    if (*fd > 0) {
+      ::close(*fd);
+    }
+  }
+}
+
+/**
+ * @brief Close all parent-side (father) file descriptors.
+ *
+ * Iterates over the three parent-side FDs and closes any that are > 0
+ * (descriptors initialised to 0 are considered not yet opened).
+ */
+void fork_pipes::close_father_side() {
+  for (int* fd = _father_fds; fd < _father_fds + 3; ++fd) {
+    if (*fd > 0) {
+      ::close(*fd);
+    }
+  }
+}
+
+/**
+ * @brief Redirect child-side pipe ends to the real stdin/stdout/stderr.
+ *
+ * Must be called from the child process after fork(), before the Perl script
+ * is executed. Uses dup2() to replace file descriptors 0, 1, and 2 with the
+ * corresponding child-side pipe ends so that standard I/O of the script flows
+ * through the pipes instead of the terminal.
+ *
+ * @return true on success, false if any dup2() call fails (error logged to
+ *         stderr).
+ */
+bool fork_pipes::dup_son_fd_to_std() {
+  if (::dup2(_son_fds[STDIN_FILENO], STDIN_FILENO) < 0) {
+    std::cerr << "stdin dup2 error: " << strerror(errno) << std::endl;
+    return false;
+  }
+  if (::dup2(_son_fds[STDOUT_FILENO], STDOUT_FILENO) < 0) {
+    std::cerr << "stdout dup2 error: " << strerror(errno) << std::endl;
+    return false;
+  }
+  if (::dup2(_son_fds[STDERR_FILENO], STDERR_FILENO) < 0) {
+    std::cerr << "stderr dup2 error: " << strerror(errno) << std::endl;
+    return false;
+  }
+  return true;
+}
+
 /**************************************
  *                                     *
  *           Public Methods            *
@@ -92,13 +205,8 @@ void embedded_perl::load(int argc, char** argv, char** env, char const* code) {
  *  @return Process ID.
  */
 pid_t embedded_perl::run(std::string const& cmd,
-                         int fds[3],
+                         fork_pipes& pipes,
                          const shared_io_context& io_context) {
-  // Check arguments.
-  if (!fds)
-    throw exceptions::msg_fmt(
-        "cannot run Perl script without fetching process' descriptors");
-
   // Extract arguments.
   size_t pos(cmd.find(' '));
   std::string args;
@@ -140,40 +248,13 @@ pid_t embedded_perl::run(std::string const& cmd,
   else
     handle = it->second;
 
-  // Open pipes.
-  int in_pipe[2];
-  int err_pipe[2];
-  int out_pipe[2];
-  if (pipe(in_pipe)) {
-    char const* msg(strerror(errno));
-    throw exceptions::msg_fmt("{}", msg);
-  } else if (pipe(err_pipe)) {
-    char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    throw exceptions::msg_fmt("{}", msg);
-  }
-  if (pipe(out_pipe)) {
-    char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    close(err_pipe[0]);
-    close(err_pipe[1]);
-    throw exceptions::msg_fmt("{}", msg);
-  }
-
   io_context->notify_fork(asio::io_context::fork_prepare);
   log::core()->flush();
   // Execute Perl file.
   pid_t child(fork());
   if (child > 0) {  // Parent
     io_context->notify_fork(asio::io_context::fork_parent);
-    close(in_pipe[0]);
-    close(err_pipe[1]);
-    close(out_pipe[1]);
-    fds[0] = in_pipe[1];
-    fds[1] = out_pipe[0];
-    fds[2] = err_pipe[0];
+    pipes.close_son_side();
   } else if (!child) {  // Child
     io_context->notify_fork(asio::io_context::fork_child);
     unsigned father_process_name_length = strlen(_argv[0]);
@@ -195,33 +276,12 @@ pid_t embedded_perl::run(std::string const& cmd,
     checks::check::close_all_father_fd();
     io_context->stop();
     // Setup process.
-    close(in_pipe[1]);
-    close(err_pipe[0]);
-    close(out_pipe[0]);
-    if (dup2(in_pipe[0], STDIN_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(in_pipe[0]);
-      close(err_pipe[1]);
-      close(out_pipe[1]);
+    pipes.close_father_side();
+    if (!pipes.dup_son_fd_to_std()) {
+      std::cerr << "dup2 error: " << strerror(errno) << std::endl;
+      pipes.close_son_side();
       exit(3);
     }
-    close(in_pipe[0]);
-    if (dup2(err_pipe[1], STDERR_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(err_pipe[1]);
-      close(out_pipe[1]);
-      exit(3);
-    }
-    close(err_pipe[1]);
-    if (dup2(out_pipe[1], STDOUT_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(out_pipe[1]);
-      exit(3);
-    }
-    close(out_pipe[1]);
 
     // Run check.
     ENTER;
@@ -239,12 +299,8 @@ pid_t embedded_perl::run(std::string const& cmd,
     exit(EXIT_SUCCESS);
   } else if (child < 0) {  // Error
     char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    close(out_pipe[0]);
-    close(out_pipe[1]);
-    close(err_pipe[0]);
-    close(err_pipe[1]);
+    pipes.close_son_side();
+    pipes.close_father_side();
     throw exceptions::msg_fmt("{}", msg);
   }
 
