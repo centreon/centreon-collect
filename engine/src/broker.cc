@@ -1147,6 +1147,7 @@ static void forward_pb_service(int type,
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
     srv.set_icon_id(es->get_icon_id());
+    srv.set_instance_id(cbm->poller_id());
 
     for (auto& tg : es->tags()) {
       com::centreon::broker::TagInfo* ti = srv.mutable_tags()->Add();
