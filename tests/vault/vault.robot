@@ -24,8 +24,7 @@ BWVC1
     Ctn Start Broker
     ${content}    Create List    The env file could not be open
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No message about the env file that could not be open.
-    Ctn Kindly Stop Broker
+    Should Be True    ${result}    No message about the env file that could not be opened.
 
 BWVC2
     [Documentation]    Broker is tuned with a wrong vault configuration and the env file exists
@@ -50,7 +49,6 @@ BWVC2
     ${content}    Create List    No usable Vault configuration: No APP_SECRET provided.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the bad value in APP_SECRET.
-    Ctn Kindly Stop Broker
 
 BWVC3
     [Documentation]    Broker is tuned with an env file containing a strange key APP_SECRET
@@ -110,7 +108,6 @@ BWVC4
     ${content}    Create List    No usable Vault configuration: The '/tmp/vault_file.json' file is malformed, we should have keys 'salt', 'role_id'
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about wrong keys displayed.
-    Ctn Kindly Stop Broker
 
 BWVC5
     [Documentation]    Broker is tuned with strange keys APP_SECRET and salt.
@@ -150,7 +147,6 @@ BWVC5
     ${content}    Create List    type must be string, but is number
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about the bad encryption.
-    Ctn Kindly Stop Broker
 
 BWVC6
     [Documentation]    Broker is tuned with strange keys APP_SECRET and salt that are not base64 encoded.
@@ -191,7 +187,6 @@ BWVC6
     ${content}    Create List    This string 'strange&éè' contains characters not legal in a base64 encoded string.
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    no message about the bad base64 encoding.
-    Ctn Kindly Stop Broker
 
 BAEOK
     [Documentation]    Broker is used to AES256 encrypt a content.
@@ -284,7 +279,7 @@ BAV
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
 
-    ${content}    Create List    Database password get from Vault configuration
+    ${content}    Create List    Database password obtained from Vault configuration
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the password found in the vault.
 
@@ -336,8 +331,6 @@ BASV
     ${content}    Create List    No usable Vault configuration: Error from http server
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No message about the inactivity of the http server.
-
-    Ctn Kindly Stop Broker
 
 *** Variables ***
 ${Salt}        U2FsdA==
