@@ -273,14 +273,14 @@ w_service_info::w_service_info(service_enumerator& service_enumerator,
 void w_service_info::on_service(const ENUM_SERVICE_STATUSA& service_status) {
   unsigned state = service_status.ServiceStatus.dwCurrentState & 7;
   unsigned state_flag = 1 << (state - 1);
-  if (state & _state_to_critical) {
+  if (state_flag & _state_to_critical) {
     _status = e_status::critical;
     if (!_output.empty()) {
       _output.push_back(' ');
     }
     _output += fmt::format("CRITICAL: {} is {}", service_status.lpServiceName,
                            _labels[state]);
-  } else if (state & _state_to_warning) {
+  } else if (state_flag & _state_to_warning) {
     if (_status == e_status::ok) {
       _status = e_status::warning;
     }
