@@ -53,11 +53,12 @@ runs:
       env:
         JF_URL: https://packages.centreon.com
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
+        GH_HEAD_REF: ${{ github.event.pull_request.head.ref }}
       run: |
         set -eu
         . .version
         major_version=$(grep -E "MAJOR" .version | cut -d '=' -f2)
-        feature_ticket=$(echo "${{ github.event.pull_request.head.ref }}" | grep -oE 'MON-[0-9]+')
+        feature_ticket=$(echo "$GH_HEAD_REF" | grep -oE 'MON-[0-9]+')
         echo "[INFO] Creating a rpm feature repository if it does not exist"
 
         curl -X POST \
@@ -97,6 +98,7 @@ runs:
       env:
         JF_URL: https://packages.centreon.com
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
+        GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
       run: |
         set -eux
 
@@ -147,7 +149,7 @@ runs:
         done
 
         if [[ "${{ inputs.delivery_type }}" == "feature" ]]; then
-          ROOT_REPO_PATH="rpm-standard-feature-$(echo "${{ github.head_ref || github.ref_name }}" | grep -oP '^.*MON-[0-9]+')"
+          ROOT_REPO_PATH="rpm-standard-feature-$(echo "$GH_HEAD_REF" | grep -oP '^.*MON-[0-9]+')"
         elif [[ "${{ inputs.is_cloud }}" == "true" ]]; then
           ROOT_REPO_PATH="rpm-standard-internal"
         else
