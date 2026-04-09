@@ -42,7 +42,11 @@ apt-get install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} SHELL="$(which bash)" sh -
 source ~/.bashrc
 cd /usr/local/src
-pnpm install --frozen-lockfile
+pnpm install \
+  --frozen-lockfile \
+  --config.trustPolicy=no-downgrade \
+  --config.minimumReleaseAge=2880 \
+  --config.blockExoticSubdeps=true
 
 VERSION_CODENAME=\$(
   . /etc/os-release
