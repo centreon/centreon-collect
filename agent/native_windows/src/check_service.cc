@@ -254,7 +254,8 @@ w_service_info::w_service_info(service_enumerator& service_enumerator,
                                unsigned state_to_critical,
                                const std::shared_ptr<spdlog::logger>& logger)
     : _state_to_warning(state_to_warning),
-      _state_to_critical(state_to_critical) {
+      _state_to_critical(state_to_critical),
+      _logger(logger) {
   memset(&_metrics, 0, sizeof(_metrics));
   service_enumerator.enumerate_services(
       filter,
@@ -272,6 +273,11 @@ w_service_info::w_service_info(service_enumerator& service_enumerator,
  */
 void w_service_info::on_service(const ENUM_SERVICE_STATUSA& service_status) {
   unsigned state = service_status.ServiceStatus.dwCurrentState & 7;
+  if (!state) {
+    SPDLOG_LOGGER_ERROR(_logger, "bad state value for {}",
+                        service_status.lpDisplayName);
+    return;
+  }
   unsigned state_flag = 1 << (state - 1);
   if (state_flag & _state_to_critical) {
     _status = e_status::critical;

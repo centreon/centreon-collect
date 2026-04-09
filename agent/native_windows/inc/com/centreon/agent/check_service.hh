@@ -138,6 +138,7 @@ class w_service_info : public snapshot<e_service_metric::nb_service_metric> {
   unsigned _state_to_warning;
   unsigned _state_to_critical;
   e_status _status = e_status::ok;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   w_service_info(service_enumerator& service_enumerator,
