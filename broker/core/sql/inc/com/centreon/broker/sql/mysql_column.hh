@@ -102,6 +102,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_i32(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * MYSQL_TYPE_LONG.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<int32_t> false if null
+   */
+  std::optional<int32_t> get_value_i32(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -122,6 +131,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_u32(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * unsigned MYSQL_TYPE_LONG.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<unt32_t> false if null
+   */
+  std::optional<uint32_t> get_value_u32(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -142,6 +160,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_i64(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * MYSQL_TYPE_LONGLONG.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<int64_t> false if null
+   */
+  std::optional<int64_t> get_value_i64(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -162,6 +189,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_u64(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * unsigned MYSQL_TYPE_LONGLONG.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<uint64_t> false if null
+   */
+  std::optional<uint64_t> get_value_u64(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -182,6 +218,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_f32(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * MYSQL_TYPE_FLOAT.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<float> false if null
+   */
+  std::optional<float> get_value_f32(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -202,6 +247,15 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_f64(size_t row);
+  /**
+   * @brief Get the value at the row specified (we start at
+   * index 0).This method can only be called when the content type is
+   * MYSQL_TYPE_DOUBLE.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<double> false if null
+   */
+  std::optional<double> get_value_f64(size_t row) const;
 
   /**
    * @brief Set the value into the column at the row specified (we start at
@@ -222,12 +276,23 @@ class mysql_column {
    * @param row The row concerned by the insertion.
    */
   void set_null_tiny(size_t row);
+  /**
+   * @brief Get the at the row specified (we start at
+   * index 0). This method can only be called when the content type is
+   * MYSQL_TYPE_TINY.
+   *
+   * @param row The row where to extract value
+   * @return std::optional<char> false if null
+   */
+  std::optional<char> get_value_tiny(size_t row) const;
 
   void set_value_bool(size_t row, bool value);
   void set_null_bool(size_t row);
+  std::optional<char> get_value_bool(size_t row) const;
 
   void set_value_str(size_t row, const fmt::string_view& str);
   void set_null_str(size_t row);
+  std::optional<std::string_view> get_value_str(size_t row) const;
 
   char* indicator_buffer();
   bool is_null() const;

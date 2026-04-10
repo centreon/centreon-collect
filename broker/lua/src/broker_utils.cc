@@ -18,26 +18,17 @@
 
 #include "com/centreon/broker/lua/broker_utils.hh"
 
-#include <fmt/format.h>
-#include <sys/stat.h>
-#include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
+#include <absl/strings/str_split.h>
 #include "com/centreon/broker/config/applier/state.hh"
 #include "common/crypto/base64.hh"
 
 #include <openssl/evp.h>
-#include <cstdlib>
-#include <cstring>
-#include <iomanip>
 #include <nlohmann/json.hpp>
-#include <sstream>
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/perfdata.hh"
@@ -853,9 +844,12 @@ static void md5_message(const unsigned char* message,
                         unsigned char** digest,
                         unsigned int* digest_len) {
   EVP_MD_CTX* mdctx;
+  *digest = nullptr;
+  *digest_len = 0;
   auto logger = log_v2::instance().get(log_v2::LUA);
   if ((mdctx = EVP_MD_CTX_new()) == nullptr) {
     logger->error("lua: fail to call MD5 (EVP_MD_CTX_new call)");
+    return;
   }
   if (1 != EVP_DigestInit_ex(mdctx, EVP_md5(), nullptr)) {
     logger->error("lua: fail to call MD5 (EVP_DigestInit_ex call)");
@@ -866,6 +860,8 @@ static void md5_message(const unsigned char* message,
   if ((*digest = (unsigned char*)OPENSSL_malloc(EVP_MD_size(EVP_md5()))) ==
       nullptr) {
     logger->error("lua: fail to call MD5 (OPENSSL_malloc call)");
+    EVP_MD_CTX_free(mdctx);
+    return;
   }
   if (1 != EVP_DigestFinal_ex(mdctx, *digest, digest_len)) {
     logger->error("lua: fail to call MD5 (EVP_DigestFinal_ex call)");
@@ -886,6 +882,10 @@ static int l_broker_md5(lua_State* L) {
   unsigned char* md5;
   uint32_t md5_len;
   md5_message(str, len, &md5, &md5_len);
+  if (!md5) {
+    lua_pushnil(L);
+    return 1;
+  }
   char result[2 * md5_len + 1];
   char* tmp = result;
   for (uint32_t i = 0; i < md5_len; i++) {

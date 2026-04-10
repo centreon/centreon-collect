@@ -19,8 +19,8 @@
 #ifndef CCB_VICTORIA_METRICS_STREAM_HH
 #define CCB_VICTORIA_METRICS_STREAM_HH
 
-#include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
+#include "com/centreon/broker/victoria_metrics/line_protocol_query.hh"
 
 namespace com::centreon::broker {
 
@@ -32,8 +32,8 @@ namespace victoria_metrics {
 class stream : public http_tsdb::stream {
   unsigned _body_size_to_reserve;
 
-  http_tsdb::line_protocol_query _metric_formatter;
-  http_tsdb::line_protocol_query _status_formatter;
+  line_protocol_query _metric_formatter;
+  line_protocol_query _status_formatter;
 
   std::string _authorization;
   std::string _account_id;

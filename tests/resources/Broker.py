@@ -584,7 +584,7 @@ def ctn_add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bo
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
-            if v["type"] == "grpc":
+            if v["type"] == "grpc" or v["transport_protocol"] == "grpc":
                 _add_broker_crypto(v, add_cert, reversed)
 
     _apply_conf(name, _crypto_modifier)
@@ -606,7 +606,7 @@ def ctn_add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: b
     def _crypto_modifier(conf):
         input_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(input_dict):
-            if v["type"] == "grpc":
+            if v["type"] == "grpc" or v["transport_protocol"] == "grpc":
                 _add_broker_crypto(v, add_cert, not reversed)
 
     _apply_conf(name, _crypto_modifier)
@@ -631,6 +631,8 @@ def ctn_add_host_to_broker_output(name: str, output_name: str, host_ip: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v["host"] = host_ip
+                if v["type"] == "bbdo_server":
+                    v["type"] = "bbdo_client"
 
     _apply_conf(name, modifier)
 
@@ -652,8 +654,10 @@ def ctn_add_host_to_broker_input(name: str, input_name: str, host_ip: str):
     def modifier(conf):
         input_dict = conf["centreonBroker"]["input"]
         for i, v in enumerate(input_dict):
-            if (v["name"] == input_name):
+            if v["name"] == input_name:
                 v["host"] = host_ip
+                if v["type"] == "bbdo_server":
+                    v["type"] = "bbdo_client"
 
     _apply_conf(name, modifier)
 
@@ -676,6 +680,8 @@ def ctn_remove_host_from_broker_output(name: str, output_name: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == output_name):
                 v.pop("host")
+                if v["type"] == "bbdo_client":
+                    v["type"] = "bbdo_server"
 
     _apply_conf(name, modifier)
 
@@ -698,6 +704,8 @@ def ctn_remove_host_from_broker_input(name: str, input_name: str):
         for i, v in enumerate(input_dict):
             if (v["name"] == input_name):
                 v.pop("host")
+                if v["type"] == "bbdo_client":
+                    v["type"] = "bbdo_server"
 
     _apply_conf(name, modifier)
 
@@ -757,7 +765,7 @@ def ctn_config_broker_remove_rrd_output(name):
 
     | Config Broker Remove Rrd Output | central |
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
@@ -802,7 +810,7 @@ def ctn_config_broker_bbdo_input(name, stream, port, proto, host=None):
         raise Exception("A bbdo_client must specify a host to connect to")
 
     input_name = f"{name}-broker-master-input"
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = f"central-{name}.json"
@@ -855,7 +863,7 @@ def ctn_config_broker_bbdo_output(name, stream, port, proto, host=None):
         raise Exception("A bbdo_client must specify a host to connect to")
 
     output_name = f"{name}-broker-master-output"
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
         output_name = 'centreon-broker-master-rrd'
     elif name.startswith('module'):
@@ -894,7 +902,7 @@ def ctn_config_broker_sql_output(name, output, queries_per_transaction: int = 20
         output (str): One string among "unified_sql" and "sql/perfdata".
         queries_per_transaction (int, optional): Defaults to 20000.
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
@@ -1055,6 +1063,173 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_naming: str):
+    """
+    Configure broker to add a graphite output. If some old graphite
+    outputs exist, they are removed.
+
+    Args:
+        metric_naming: .
+
+    *Example:*
+
+    | Config Broker Graphite Output |
+    """
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "graphite":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "graphite_output",
+        "type": "graphite",
+        "db_host": "localhost",
+        "db_port": f"{port}",
+        "db_user": "toto",
+        "db_password": "titi",
+        "metric_naming": metric_naming,
+        "status_naming": status_naming
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_config_broker_influxdb_output(
+    metrics_timeseries: str,
+    status_timeseries: str,
+    db_name: str = "centreon",
+    db_user: str = "toto",
+    db_password: str = "titi",
+    db_port: str = "8086",
+    queries_per_transaction: str = "1",
+):
+    """
+    Configure broker to add an influxdb output. If some old influxdb
+    outputs exist, they are removed.
+
+    Uses a comprehensive column set covering all supported macros:
+    host, service, instance as tags; value/min/max as number fields;
+    host_id, service_id, instance_id, index_id, host/service groups
+    and host/service tags as string fields.
+
+    Args:
+        metrics_timeseries: measurement name for metrics.
+        status_timeseries: measurement name for statuses.
+        db_name: InfluxDB database name.
+        db_user: InfluxDB username.
+        db_password: InfluxDB password.
+        db_port: InfluxDB TCP port.
+        queries_per_transaction: number of events per HTTP commit.
+
+    *Example:*
+
+    | Ctn Config Broker Influxdb Output | centreon_metric | centreon_status |
+    """
+    filename = "central-broker.json"
+
+    metrics_columns = [
+        {"name": "host", "value": "$HOST$", "is_tag": "yes", "type": "string"},
+        {"name": "service", "value": "$SERVICE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "instance", "value": "$INSTANCE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "metric", "value": "$METRIC$", "is_tag": "yes", "type": "string"},
+        {"name": "value", "value": "$VALUE$", "is_tag": "no", "type": "number"},
+        {"name": "min", "value": "$MIN$", "is_tag": "no", "type": "number"},
+        {"name": "max", "value": "$MAX$", "is_tag": "no", "type": "number"},
+        {"name": "host_id", "value": "$HOSTID$", "is_tag": "no", "type": "string"},
+        {"name": "service_id", "value": "$SERVICEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "instance_id", "value": "$INSTANCEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "index_id", "value": "$INDEXID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_groups", "value": "$HOSTGROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_groups", "value": "$SERVICE_GROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat", "value": "$HOST_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat_id", "value": "$HOST_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group", "value": "$HOST_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group_id", "value": "$HOST_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat", "value": "$SERV_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat_id", "value": "$SERV_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group", "value": "$SERV_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group_id", "value": "$SERV_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+    ]
+    status_columns = [
+        {"name": "host", "value": "$HOST$", "is_tag": "yes", "type": "string"},
+        {"name": "service", "value": "$SERVICE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "instance", "value": "$INSTANCE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "value", "value": "$VALUE$", "is_tag": "no", "type": "number"},
+        {"name": "host_id", "value": "$HOSTID$", "is_tag": "no", "type": "string"},
+        {"name": "service_id", "value": "$SERVICEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "instance_id", "value": "$INSTANCEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "index_id", "value": "$INDEXID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_groups", "value": "$HOSTGROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_groups", "value": "$SERVICE_GROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat", "value": "$HOST_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat_id", "value": "$HOST_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group", "value": "$HOST_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group_id", "value": "$HOST_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat", "value": "$SERV_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat_id", "value": "$SERV_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group", "value": "$SERV_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group_id", "value": "$SERV_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+    ]
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "influxdb":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "influxdb_output",
+        "type": "influxdb",
+        "db_host": "localhost",
+        "db_port": db_port,
+        "db_user": db_user,
+        "db_password": db_password,
+        "db_name": db_name,
+        "queries_per_transaction": queries_per_transaction,
+        "metrics_timeseries": metrics_timeseries,
+        "status_timeseries": status_timeseries,
+        "metrics_column": metrics_columns,
+        "status_column": status_columns,
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
     """
     Configure broker to add an event_script output. If some old event_script
@@ -1102,7 +1277,7 @@ def ctn_broker_config_add_item(name, key, value):
 
     | Broker Config Add Item | module0 | bbdo_version | 3.0.1 |
     """
-    if name == 'central':
+    if name == 'central' or name == 'central_map':
         filename = "central-broker.json"
     elif name == 'rrd':
         filename = "central-rrd.json"
@@ -1470,7 +1645,7 @@ def ctn_broker_config_source_log(name, value):
         f.write(json.dumps(conf, indent=2))
 
 
-def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
+def ctn_check_broker_stats_exist(name: str, key1: str, key2: str, timeout: int = TIMEOUT):
     """
     Return True if the Broker stats file contain keys pair (key1,key2). key2 must
     be a daughter key of key1.
@@ -1604,7 +1779,7 @@ def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
         if value is not None and r_expected.match(value):
             return True
         time.sleep(5)
-    logger.console(f"key:{keys} value not expected: {value}")
+    logger.console(f"key:{keys} {expected} does not match: {value}")
     return False
 
 
@@ -1983,7 +2158,7 @@ def ctn_create_metrics(count: int):
                 connection.commit()
 
 
-def ctn_run_reverse_bam(duration, interval):
+def ctn_run_reverse_bam(duration, interval, bbdo_version="2.0.0"):
     """
     Launch the map_client.py script that simulates map.
 
@@ -1992,7 +2167,7 @@ def ctn_run_reverse_bam(duration, interval):
         interval: Interval given to the map_client.py that tells the duration
                   between to recv calls.
     """
-    pro = subp.Popen("broker/map_client.py {:f}".format(interval),
+    pro = subp.Popen("broker/map_client.py {:f} {}".format(interval, bbdo_version),
                      shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
     os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
@@ -3332,8 +3507,8 @@ def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
         if last_timestamp == 0:
             last_timestamp = new_ts
         else:
-            if new_ts != last_timestamp + last_interval:
-                logger.console.log(
+            if new_ts < (last_timestamp + last_interval-1) and new_ts > (last_timestamp + last_interval + 1):
+                logger.console(
                     f"expected interval: {last_interval}, but interval found: {new_ts} - {last_timestamp} = {new_ts - last_timestamp}")
                 return False
             else:
@@ -3342,3 +3517,16 @@ def ctn_broker_check_failover_lua_retry(lua_log_lines, max_retry_delay: int):
                 if last_interval > max_retry_delay:
                     last_interval = max_retry_delay
     return True
+
+
+def ctn_broker_get_bbdo_version():
+    """
+    Return bbdo_version of central-broker.json file
+    """
+    with open(f"{ETC_ROOT}/centreon-broker/central-broker.json", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        if "bbdo_version" in conf["centreonBroker"]:
+            return conf["centreonBroker"]["bbdo_version"]
+        else:
+            return "2.0.0"

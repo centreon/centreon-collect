@@ -109,6 +109,16 @@ class protobuf : public protobuf_base {
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
 
   /**
+   * @brief Constructor that initializes the T object from an existing one.
+   * The io::protobuf class is a BBDO object that encapsulates a protobuf
+   * object. It is useful to be able to construct an io::protobuf directly from
+   * the Protobuf object.
+   *
+   * @param o The protobuf object (it is moved).
+   */
+  protobuf(T&& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  /**
    * @brief Construct a new protobuf object
    * same as previous constructor except that it accepts two more parameters
    * @param o

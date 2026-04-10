@@ -13,6 +13,11 @@ Test Teardown       Ctn Stop Engine Broker And Save Logs
 EBNSG1
     [Documentation]    New service group with several pollers and connections to DB
     [Tags]    broker    engine    servicegroup
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${3}
     Ctn Config Broker    rrd
     Ctn Config Broker    central

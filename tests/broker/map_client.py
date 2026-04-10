@@ -27,8 +27,11 @@ from datetime import datetime
 import sys
 
 
-def welcome():
-    s = "\x65\xfe\x00\x0e\x00\x02\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x02\x00\x00\x00\x00\x54\x4c\x53\x00\x00\x00\x00\x00"
+def welcome(bbdo_version: str):
+    if (bbdo_version >= "3.0.0"):
+        s = "\x65\xfe\x00\x0e\x00\x02\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x03\x00\x00\x00\x00\x54\x4c\x53\x00\x00\x00\x00\x00"
+    else:
+        s = "\x65\xfe\x00\x0e\x00\x02\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x02\x00\x00\x00\x00\x54\x4c\x53\x00\x00\x00\x00\x00"
     retval = bytearray()
     retval.extend(map(ord, s))
     return retval
@@ -56,7 +59,10 @@ host_port = 5671
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host_addr, host_port))
 
-w = welcome()
+bbdo_version = "2.0.0"
+if len(sys.argv) > 2:
+    bbdo_version = sys.argv[2]
+w = welcome(bbdo_version)
 s.send(w)
 header = s.recv(16)
 chksum, size, typ, src, dst = get_header(header)

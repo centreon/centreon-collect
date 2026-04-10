@@ -21,6 +21,7 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/nebstructs.hh"

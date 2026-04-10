@@ -302,10 +302,10 @@ CBD_RELOAD_AND_FILTERS
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
@@ -400,10 +400,10 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # We check that output filters to rrd are set to "storage"
     ${content}    Create List
-    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    create endpoint TCP|GRPC for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files

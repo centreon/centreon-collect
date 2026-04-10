@@ -18,7 +18,7 @@ BRGC1
     Ctn Config Broker    central_map
     Ctn Config Broker    module
 
-    Log To Console    Compression set to
+    ${bbdo_version}    Ctn Broker Get Bbdo Version
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
@@ -28,7 +28,7 @@ BRGC1
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Ctn Run Reverse Bam    ${50}    ${0.2}
+    Ctn Run Reverse Bam    ${50}    ${0.2}    ${bbdo_version}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
@@ -50,6 +50,7 @@ BRCTS1
     Ctn Config Broker    central_map
     Ctn Config Broker    module
 
+    ${bbdo_version}    Ctn Broker Get Bbdo Version
     Ctn Broker Config Log    central    bbdo    info
     Ctn Broker Config Log    module0    bbdo    info
     ${start}    Get Current Date
@@ -59,7 +60,7 @@ BRCTS1
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    Ctn Run Reverse Bam    ${150}    ${10}
+    Ctn Run Reverse Bam    ${150}    ${10}    ${bbdo_version}
 
     Ctn Kindly Stop Broker
     Ctn Stop Engine
