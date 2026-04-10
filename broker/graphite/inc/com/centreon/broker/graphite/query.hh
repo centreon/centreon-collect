@@ -19,8 +19,8 @@
 #ifndef CCB_GRAPHITE_QUERY_HH
 #define CCB_GRAPHITE_QUERY_HH
 
-#include "com/centreon/broker/graphite/macro_cache.hh"
-
+#include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
+#include "internal.hh"
 namespace com::centreon::broker::graphite {
 
 /**
@@ -30,53 +30,24 @@ namespace com::centreon::broker::graphite {
  *  This class compiles a query for further uses, generating
  *  the query fast.
  */
-class query {
+class query : public http_tsdb::line_protocol_query {
  public:
-  enum data_type { metric, status };
-
   query(std::string const& naming_scheme,
         std::string const& escape_string,
         data_type type,
-        macro_cache const& cache);
+        const std::shared_ptr<spdlog::logger>& logger);
   ~query() = default;
 
   query(query const& other) = delete;
   query& operator=(query const& other) = delete;
 
-  std::string generate_metric(storage::pb_metric const& me);
-  std::string generate_status(storage::pb_status const& st);
+  std::string append_metric(storage::pb_metric const& me) const override;
+  std::string append_status(storage::pb_status const& st) const override;
 
  private:
-  // Compiled data.
-  std::vector<std::string> _compiled_naming_scheme;
-  std::vector<void (query::*)(io::data const&, std::ostream&)>
-      _compiled_getters;
-
   // Used for generation.
   std::string _escape_string;
-  size_t _naming_scheme_index;
-  data_type _type;
-
-  // Macro cache
-  macro_cache const* _cache;
-
-  void _compile_naming_scheme(std::string const& naming_scheme, data_type type);
-  std::string _escape(std::string const& str);
-  void _throw_on_invalid(data_type macro_type);
-
-  template <typename T, typename U, T(U::*member)>
-  void _get_member(io::data const& d, std::ostream& is);
-  void _get_string(io::data const& d, std::ostream& is);
-  void _get_dollar_sign(io::data const& d, std::ostream& is);
-  uint64_t _get_index_id(io::data const& d);
-  void _get_index_id(io::data const& d, std::ostream& is);
-  void _get_host(io::data const& d, std::ostream& is);
-  void _get_host_id(io::data const& d, std::ostream& is);
-  void _get_service(io::data const& d, std::ostream& is);
-  void _get_service_id(io::data const& d, std::ostream& is);
-  void _get_instance(io::data const& d, std::ostream& is);
-  void _get_metric_id(io::data const& d, std::ostream& is);
-  void _get_metric_name(io::data const& d, std::ostream& is);
+  void _escape(const std::string& str, std::ostream& is) const;
 };
 
 }  // namespace com::centreon::broker::graphite

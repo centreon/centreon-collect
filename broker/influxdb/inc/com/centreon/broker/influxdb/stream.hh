@@ -21,10 +21,7 @@
 
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
-#include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/io/stream.hh"
-
-#include "com/centreon/broker/persistent_cache.hh"
 
 namespace com::centreon::broker {
 
@@ -55,9 +52,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
-  // Cache
-  macro_cache _cache;
-
   /* Logger */
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -71,10 +65,9 @@ class stream : public io::stream {
          std::string const& db,
          uint32_t queries_per_transaction,
          std::string const& status_ts,
-         std::vector<column> const& status_cols,
+         std::vector<http_tsdb::column> const& status_cols,
          std::string const& metric_ts,
-         std::vector<column> const& metric_cols,
-         std::shared_ptr<persistent_cache> const& cache);
+         std::vector<http_tsdb::column> const& metric_cols);
 
   /**
    *  Destructor.

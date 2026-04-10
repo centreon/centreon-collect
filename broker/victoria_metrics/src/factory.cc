@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/victoria_metrics/factory.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/victoria_metrics/connector.hh"
 #include "com/centreon/common/pool.hh"
@@ -53,10 +55,21 @@ factory::factory()
     : http_tsdb::factory("victoria_metrics",
                          com::centreon::common::pool::io_context_ptr()) {}
 
+/**
+ * @brief Set the default values to the endpoint config read from cfg files
+ *
+ * @param cfg config to update
+ */
+void factory::set_default_values(config::endpoint& cfg) const {
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
+}
+
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
+    const std::map<std::string, std::string>& global_params [[maybe_unused]],
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> ) const {
+    std::shared_ptr<persistent_cache>) const {
   is_acceptor = false;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> conf(
@@ -79,6 +92,12 @@ io::endpoint* factory::new_endpoint(
   auto it = cfg.params.find("account_id");
   if (it != cfg.params.end()) {
     account_id = it->second;
+  }
+
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
   }
 
   return new connector(conf, account_id);

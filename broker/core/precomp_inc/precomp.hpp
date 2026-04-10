@@ -59,12 +59,12 @@
 #include <absl/container/flat_hash_set.h>
 #include <absl/hash/hash.h>
 #include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 
-// with this define boost::interprocess doesn't need Boost.DataTime
-#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 #include <boost/multi_index/ordered_index.hpp>
