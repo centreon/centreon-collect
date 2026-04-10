@@ -20,7 +20,6 @@
 #include <absl/strings/str_split.h>
 
 #include "bbdo/storage/index_mapping.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
@@ -305,8 +304,6 @@ void stream::_load_deleted_instances() {
  * @brief Load the unified_sql cache.
  */
 void stream::_load_caches() {
-  auto cache_ptr = cache::global_cache::instance_ptr();
-
   // Fill index cache.
 
   /* get deleted cache of instance ids => _cache_deleted_instance_id */
@@ -431,10 +428,6 @@ void stream::_load_caches() {
         _logger_sto->debug("unified_sql: loaded index {} of ({}, {})",
                            info.index_id, host_id, service_id);
         _index_cache[{host_id, service_id}] = std::move(info);
-
-        if (cache_ptr) {
-          cache_ptr->set_index_mapping(info.index_id, host_id, service_id);
-        }
 
         // Create the metric mapping.
         if (bbdo.major_v < 3) {
@@ -561,10 +554,6 @@ void stream::_load_caches() {
           info.type = res.value_as_str(13)[0] - '0';
           info.metric_mapping_sent = false;
           _metric_cache[{index_id, metric_name}] = info;
-          if (cache_ptr) {
-            cache_ptr->set_metric_info(metric_id, index_id, metric_name,
-                                       info.unit_name, info.min, info.max);
-          }
         }
       }
     } catch (std::exception const& e) {

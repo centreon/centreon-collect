@@ -267,6 +267,7 @@ database_config::database_config(
 
   // SSL/TLS configuration
   _ssl_enabled = false;
+  _ssl_verify_cert = true;
   found = cfg.params.find("db_ssl_enabled");
   if (found != cfg.params.end()) {
     if (!absl::SimpleAtob(found->second, &_ssl_enabled)) {

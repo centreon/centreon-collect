@@ -2,6 +2,7 @@
 Documentation       Centreon Broker and Engine start/stop tests
 
 Resource            ../resources/import.resource
+Library             ../resources/lua.py
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
@@ -703,3 +704,67 @@ BESSCTOWC
       Ctn Stop Engine
       Ctn Kindly Stop Broker    ${True}
     END
+
+
+HUGE_CONF
+    [Documentation]    Given a broker with 3 pollers, we wait that all engine are ready,
+    ...    Then once all data are saved in db, we stop broker, we start broker and we test cache content with a lua script. 
+    ...    We also check that we don't have cache error in broker logs
+    [Tags]    broker    start-stop    MON-195013
+    Ctn Config Engine    ${3}    ${5000}    ${20}    ${EMPTY}    ${False}
+    Ctn Add All Host_Groups    ${3}    ${10}
+    Ctn Add All Service Groups    ${3}    ${10}
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${3}
+    Ctn Broker Config Source Log    central    1
+    Ctn Config BBDO3    ${3}    3.1.0
+    Ctn Broker Config Output Set    central    central-broker-unified-sql   store_in_data_bin    no 
+    Ctn Clear Retention
+
+    @{random_services}    Ctn Get Random Services    ${10}
+    ${target_str}    Evaluate    ",".join(f"{h}:{s}" for h, s in $random_services)
+    ${lua_params}    Create Dictionary    name=target_services    type=string    value=${target_str}
+    Ctn Broker Config Add Lua Output    central    cache-huge    ${SCRIPTS}/dump_host_service.lua    ${lua_params}
+    Ctn Broker Config Output Set Json    central    cache-huge    filters    {"event": ["neb:ServiceStatus"]}
+
+    ${test_start}    Ctn Get Round Current Date
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    ${True}
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${3}
+    ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    4    120    HARD
+    Should Be True    ${result}    no service status for service_100000
+
+    FOR    ${try_index}    IN RANGE    2
+        Log To Console    round ${try_index}
+        Ctn Kindly Stop Broker    ${True}
+
+        Remove File    /tmp/test-huge-cache.log
+        Ctn Start Broker    ${True}
+        Ctn Process All Services Check Result With Metrics    ${try_index}    output ${try_index}    ${3}
+        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    160    ANY
+        Should Be True    ${result}    no service status for service_100000 after passive results
+
+        FOR    ${pair}    IN    @{random_services}
+            ${host_id}=    Set Variable    ${pair}[0]
+            ${service_id}=    Set Variable    ${pair}[1]
+            ${host_info}    Ctn Get Host Cache Info    /tmp/test-huge-cache.log    ${host_id}
+            Should Not Be Empty    ${host_info}    host_${host_id} not found in lua cache log
+            Should Be Equal As Strings    ${host_info["name"]}    host_${host_id}
+            Should Be Equal As Numbers    ${host_info["host_id"]}    ${host_id}
+            ${serv_info}    Ctn Get Service Cache Info    /tmp/test-huge-cache.log    ${service_id}    60
+            Should Not Be Empty    ${serv_info}    service_${service_id} not found in lua cache log
+            Should Be Equal As Strings    ${serv_info["description"]}    service_${service_id}
+            Should Be Equal As Strings    ${serv_info["host_name"]}    host_${host_id}
+            Should Be Equal As Numbers    ${serv_info["host_id"]}    ${host_id}
+            Should Be Equal As Numbers    ${serv_info["service_id"]}    ${service_id}
+        END
+    END
+
+    #cache error?
+    ${content}    Create List    error.*global_cache
+    ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${test_start}    ${content}    2
+    Should Not Be True    ${result[0]}    Some cache error in logs
+
+    [teardown]    Ctn Stop Engine Broker And Save Logs

@@ -38,13 +38,13 @@
 namespace asio = boost::asio;
 using namespace com::centreon;
 
-// with this define boost::interprocess doesn't need Boost.DataTime
-#define BOOST_DATE_TIME_NO_LIB 1
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
-
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/containers/vector.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -371,7 +371,6 @@ int main(int argc, char* argv[]) {
       }
       //  Unload endpoints.
       config::applier::deinit();
-      cache::global_cache::unload();
     }
   }
   // Standard exception.
@@ -385,6 +384,7 @@ int main(int argc, char* argv[]) {
     retval = EXIT_FAILURE;
   }
 
+  cache::global_cache::unload();
   SPDLOG_LOGGER_INFO(core_logger, "main: process {} pid:{} end exit_code:{}",
                      argv[0], getpid(), retval);
   g_io_context->stop();

@@ -1063,6 +1063,173 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_config_broker_graphite_output(port: int, metric_naming: str, status_naming: str):
+    """
+    Configure broker to add a graphite output. If some old graphite
+    outputs exist, they are removed.
+
+    Args:
+        metric_naming: .
+
+    *Example:*
+
+    | Config Broker Graphite Output |
+    """
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "graphite":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "graphite_output",
+        "type": "graphite",
+        "db_host": "localhost",
+        "db_port": f"{port}",
+        "db_user": "toto",
+        "db_password": "titi",
+        "metric_naming": metric_naming,
+        "status_naming": status_naming
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def ctn_config_broker_influxdb_output(
+    metrics_timeseries: str,
+    status_timeseries: str,
+    db_name: str = "centreon",
+    db_user: str = "toto",
+    db_password: str = "titi",
+    db_port: str = "8086",
+    queries_per_transaction: str = "1",
+):
+    """
+    Configure broker to add an influxdb output. If some old influxdb
+    outputs exist, they are removed.
+
+    Uses a comprehensive column set covering all supported macros:
+    host, service, instance as tags; value/min/max as number fields;
+    host_id, service_id, instance_id, index_id, host/service groups
+    and host/service tags as string fields.
+
+    Args:
+        metrics_timeseries: measurement name for metrics.
+        status_timeseries: measurement name for statuses.
+        db_name: InfluxDB database name.
+        db_user: InfluxDB username.
+        db_password: InfluxDB password.
+        db_port: InfluxDB TCP port.
+        queries_per_transaction: number of events per HTTP commit.
+
+    *Example:*
+
+    | Ctn Config Broker Influxdb Output | centreon_metric | centreon_status |
+    """
+    filename = "central-broker.json"
+
+    metrics_columns = [
+        {"name": "host", "value": "$HOST$", "is_tag": "yes", "type": "string"},
+        {"name": "service", "value": "$SERVICE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "instance", "value": "$INSTANCE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "metric", "value": "$METRIC$", "is_tag": "yes", "type": "string"},
+        {"name": "value", "value": "$VALUE$", "is_tag": "no", "type": "number"},
+        {"name": "min", "value": "$MIN$", "is_tag": "no", "type": "number"},
+        {"name": "max", "value": "$MAX$", "is_tag": "no", "type": "number"},
+        {"name": "host_id", "value": "$HOSTID$", "is_tag": "no", "type": "string"},
+        {"name": "service_id", "value": "$SERVICEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "instance_id", "value": "$INSTANCEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "index_id", "value": "$INDEXID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_groups", "value": "$HOSTGROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_groups", "value": "$SERVICE_GROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat", "value": "$HOST_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat_id", "value": "$HOST_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group", "value": "$HOST_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group_id", "value": "$HOST_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat", "value": "$SERV_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat_id", "value": "$SERV_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group", "value": "$SERV_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group_id", "value": "$SERV_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+    ]
+    status_columns = [
+        {"name": "host", "value": "$HOST$", "is_tag": "yes", "type": "string"},
+        {"name": "service", "value": "$SERVICE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "instance", "value": "$INSTANCE$",
+            "is_tag": "yes", "type": "string"},
+        {"name": "value", "value": "$VALUE$", "is_tag": "no", "type": "number"},
+        {"name": "host_id", "value": "$HOSTID$", "is_tag": "no", "type": "string"},
+        {"name": "service_id", "value": "$SERVICEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "instance_id", "value": "$INSTANCEID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "index_id", "value": "$INDEXID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_groups", "value": "$HOSTGROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_groups", "value": "$SERVICE_GROUP$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat", "value": "$HOST_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_cat_id", "value": "$HOST_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group", "value": "$HOST_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "host_tag_group_id", "value": "$HOST_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat", "value": "$SERV_TAG_CAT_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_cat_id", "value": "$SERV_TAG_CAT_ID$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group", "value": "$SERV_TAG_GROUP_NAME$",
+            "is_tag": "no", "type": "string"},
+        {"name": "serv_tag_group_id", "value": "$SERV_TAG_GROUP_ID$",
+            "is_tag": "no", "type": "string"},
+    ]
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "influxdb":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "influxdb_output",
+        "type": "influxdb",
+        "db_host": "localhost",
+        "db_port": db_port,
+        "db_user": db_user,
+        "db_password": db_password,
+        "db_name": db_name,
+        "queries_per_transaction": queries_per_transaction,
+        "metrics_timeseries": metrics_timeseries,
+        "status_timeseries": status_timeseries,
+        "metrics_column": metrics_columns,
+        "status_column": status_columns,
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
     """
     Configure broker to add an event_script output. If some old event_script
