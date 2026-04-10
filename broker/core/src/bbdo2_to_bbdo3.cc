@@ -38,9 +38,8 @@
 #include "neb.pb.h"
 #include "storage/metric_mapping.hh"
 
-#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 
-using namespace com::centreon::broker::neb;
 using namespace com::centreon::broker;
 
 #define s_pb(attrib) obj.set_##attrib(in.attrib);
@@ -416,7 +415,7 @@ static std::shared_ptr<io::data> _inherited_downtime_to_pb(
   return pb;
 }
 
-std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
+std::shared_ptr<io::data> com::centreon::broker::bbdo2_to_bbdo3(
     const std::shared_ptr<io::data>& d) {
   if (!d) {
     return d;

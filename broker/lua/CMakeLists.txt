@@ -22,8 +22,15 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/lua/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/lua/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/lua/test")
 include_directories(
-  "${INC_DIR}" "${PROJECT_SOURCE_DIR}/neb/inc" "${PROJECT_SOURCE_DIR}/bam/inc"
-  ${CMAKE_BINARY_DIR}/common/process_stat)
+  "${INC_DIR}" 
+  "${PROJECT_SOURCE_DIR}/neb/inc" 
+  "${PROJECT_SOURCE_DIR}/bam/inc" 
+  "${PROJECT_SOURCE_DIR}/core/cache/inc"
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  #to remove
+  /usr/include/lua5.3
+  )
+
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")
 
 # Storage module.
@@ -42,7 +49,6 @@ add_library(
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
   "${SRC_DIR}/luabinding.cc"
-  "${SRC_DIR}/macro_cache.cc"
   "${SRC_DIR}/main.cc"
   "${SRC_DIR}/stream.cc"
   # Headers.
@@ -54,7 +60,6 @@ add_library(
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/luabinding.hh"
-  "${INC_DIR}/macro_cache.hh"
   "${INC_DIR}/stream.hh")
 add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib process_stat
                  pb_open_telemetry_lib)
