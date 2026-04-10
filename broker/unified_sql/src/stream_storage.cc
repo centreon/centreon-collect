@@ -101,8 +101,8 @@ void stream::_unified_sql_process_pb_service_status(
 
   /* Index does not exist */
   uint64_t index_id = it_index_cache->second.index_id;
-  int32_t rrd_len = it_index_cache->second.rrd_retention;
   index_locked = it_index_cache->second.locked;
+  int32_t rrd_len = it_index_cache->second.rrd_retention;
   uint32_t interval = it_index_cache->second.interval * _interval_length;
   SPDLOG_LOGGER_DEBUG(
       _logger_sto,

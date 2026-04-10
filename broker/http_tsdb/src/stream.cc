@@ -345,7 +345,7 @@ static time_point _epoch = system_clock::from_time_t(0);
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
-                          const common::http::response_ptr& response) {
+                          const common::http::response_ptr&) {
   auto actu_stat_avg = [&]() -> void {
     if (request->get_connect_time() > _epoch &&
         request->get_send_time() > _epoch) {
