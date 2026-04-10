@@ -72,7 +72,7 @@ target_link_libraries(
 	  bbdo_storage
 	  nebbase
 	  pb_storage_lib
-          spdlog::spdlog)
+          fmt::fmt)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties(

@@ -23,7 +23,8 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/graphite/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
   ${CMAKE_BINARY_DIR}/common/process_stat
-  ${PROJECT_SOURCE_DIR}/storage/inc)
+  ${PROJECT_SOURCE_DIR}/storage/inc
+  ${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/graphite")
 
 # GRAPHITE module.

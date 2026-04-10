@@ -19,9 +19,9 @@
 #ifndef CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH
 #define CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
-#include "neb.pb.h"
 
 namespace com::centreon::broker {
 namespace cache {

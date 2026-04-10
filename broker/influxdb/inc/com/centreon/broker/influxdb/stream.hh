@@ -19,7 +19,6 @@
 #ifndef CCB_INFLUXDB_STREAM_HH
 #define CCB_INFLUXDB_STREAM_HH
 
-#include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/stream.hh"
 

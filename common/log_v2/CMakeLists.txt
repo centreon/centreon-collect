@@ -29,5 +29,5 @@ set_target_properties(log_v2 PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-target_link_libraries(log_v2 spdlog::spdlog stdc++fs gRPC::gpr
+target_link_libraries(log_v2 fmt::fmt stdc++fs gRPC::gpr
                       absl::raw_hash_set)

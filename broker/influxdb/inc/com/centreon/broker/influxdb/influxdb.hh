@@ -20,7 +20,6 @@
 #define CCB_INFLUXDB_INFLUXDB_HH
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
-#include "com/centreon/broker/influxdb/macro_cache.hh"
 
 namespace com::centreon::broker::influxdb {
 /**

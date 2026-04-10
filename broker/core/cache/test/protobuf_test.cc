@@ -21,8 +21,8 @@
 
 #include "protobuf_test_classes.hh"
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "neb.pb.h"
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -1000,11 +1000,6 @@ TEST_F(protobuf_test, instance_to_protobuf) {
   pb.set_end_time(rand() + 1);
   pb.set_start_time(rand() + 1);
   pb.set_version(random_string());
-  pb.set_engine_config_version(random_string());
-  pb.set_is_encryption_ready(rand() % 2);
-  pb.set_cma_cert_sha(random_string());
-  pb.set_cma_cert_cn(random_string());
-  pb.set_cma_cert_peremption(rand() + 1);
 
   auto file_map = simple_global_cache::load(file_path);
   instance* converted = file_map->file().construct<instance>("my_object")(
@@ -1205,24 +1200,6 @@ TEST_F(protobuf_test, agent_stats_to_protobuf) {
   auto file_map = simple_global_cache::load(file_path);
   agent_stats* converted = file_map->file().construct<agent_stats>("my_object")(
       pb, *file_map->_allocators);
-  ASSERT_PROTO_EQ(pb, converted);
-}
-
-TEST_F(protobuf_test, unknown_host_to_protobuf) {
-  srand(time(nullptr));
-  UnknownHost pb;
-  pb.set_poller_id(rand() + 1);
-  pb.set_host_name(random_string());
-  pb.set_host_template(random_string());
-  pb.set_os(random_string());
-  pb.set_os_version(random_string());
-  pb.set_incoming_ip(random_string());
-  for (int i = 1 + rand() % 2; i > 0; --i)
-    pb.add_ips(random_string());
-
-  auto file_map = simple_global_cache::load(file_path);
-  unknown_host* converted = file_map->file().construct<unknown_host>(
-      "my_object")(pb, *file_map->_allocators);
   ASSERT_PROTO_EQ(pb, converted);
 }
 

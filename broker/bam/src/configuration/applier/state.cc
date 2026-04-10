@@ -267,7 +267,6 @@ void applier::state::load_from_cache(persistent_cache& cache) {
         _ba_applier.apply_inherited_downtime(
             *std::static_pointer_cast<const pb_inherited_downtime>(
                 bbdo2_to_bbdo3(d)));
-        count_idt++;
         break;
       case pb_inherited_downtime::static_type(): {
         const pb_inherited_downtime& dwn =

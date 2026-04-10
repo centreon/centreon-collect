@@ -23,6 +23,7 @@
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "boost/interprocess/detail/segment_manager_helper.hpp"
@@ -39,7 +40,6 @@
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "common/log_v2/log_v2.hh"
-#include "neb.pb.h"
 
 #define UPDATE_FIELD(field)                   \
   if (to_update.field() != in.field()) {      \

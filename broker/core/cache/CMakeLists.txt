@@ -54,7 +54,7 @@ add_custom_command(
 
 
 target_precompile_headers(global_cache PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(global_cache  pb_common_lib process_stat)
+add_dependencies(global_cache pb_neb_lib process_stat)
 set_target_properties(global_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Testing.

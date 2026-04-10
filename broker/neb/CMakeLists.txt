@@ -119,7 +119,7 @@ add_dependencies(${NEB} nebbase)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} PRIVATE nebbase
-                      spdlog::spdlog)
+                      fmt::fmt)
 
 set_target_properties(
   ${NEB} PROPERTIES
@@ -172,7 +172,6 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       ${SRC_DIR}/set_log_data.cc
-      ${SRC_DIR}/bbdo2_to_bbdo3.cc
       # Actual tests
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc

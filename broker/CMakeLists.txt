@@ -379,7 +379,8 @@ target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
 target_include_directories(rokerbase
                            PRIVATE ${PROJECT_SOURCE_DIR}/core
-                           ${PROJECT_SOURCE_DIR}/bam/inc)
+                           ${PROJECT_SOURCE_DIR}/bam/inc
+                           ${CMAKE_BINARY_DIR}/bbdo)
 target_link_libraries(
   rokerbase PRIVATE
   sql

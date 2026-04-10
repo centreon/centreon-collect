@@ -19,10 +19,10 @@
 #ifndef CCB_VICTORIA_LINE_PROTOCOL_QUERY_HH
 #define CCB_VICTORIA_LINE_PROTOCOL_QUERY_HH
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
-#include "neb.pb.h"
 
 namespace com::centreon::broker::victoria_metrics {
 
