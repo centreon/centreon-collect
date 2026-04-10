@@ -480,6 +480,10 @@ def ctn_kill_engine():
 def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
+    ctn_clear_queues_memory()
+
+
+def ctn_clear_queues_memory():
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")

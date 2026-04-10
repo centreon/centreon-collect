@@ -27,8 +27,6 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/bam/inc" 
   "${PROJECT_SOURCE_DIR}/core/cache/inc"
   ${CMAKE_BINARY_DIR}/common/process_stat
-  #to remove
-  /usr/include/lua5.3
   )
 
 set(INC_DIR "${INC_DIR}/com/centreon/broker/lua")

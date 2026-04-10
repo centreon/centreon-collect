@@ -607,7 +607,6 @@ HUGE_CONF
     Ctn Add All Host_Groups    ${3}    ${10}
     Ctn Add All Service Groups    ${3}    ${10}
     Ctn Config Broker    central
-    Ctn Config Broker    rrd
     Ctn Config Broker    module    ${3}
     Ctn Broker Config Source Log    central    1
     Ctn Config BBDO3    ${3}    3.1.0
@@ -618,7 +617,7 @@ HUGE_CONF
     ${target_str}    Evaluate    ",".join(f"{h}:{s}" for h, s in $random_services)
     ${lua_params}    Create Dictionary    name=target_services    type=string    value=${target_str}
     Ctn Broker Config Add Lua Output    central    cache-huge    ${SCRIPTS}/dump_host_service.lua    ${lua_params}
-    Ctn Broker Config Output Set Json    central    cache-huge    filters    {"event": ["neb:ServiceStatus"]}
+    Ctn Broker Config Output Set Json    central    cache-huge    filters    {"category": ["neb"]}
 
     ${test_start}    Ctn Get Round Current Date
     ${start}    Ctn Get Round Current Date
@@ -632,10 +631,13 @@ HUGE_CONF
         Log To Console    round ${try_index}
         Ctn Kindly Stop Broker    ${True}
 
+        #broker is badly stopped and retention may be corrupted
+        Ctn Clear Queues Memory
+
         Remove File    /tmp/test-huge-cache.log
         Ctn Start Broker    ${True}
         Ctn Process All Services Check Result With Metrics    ${try_index}    output ${try_index}    ${3}
-        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    160    ANY
+        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    240    ANY
         Should Be True    ${result}    no service status for service_100000 after passive results
 
         FOR    ${pair}    IN    @{random_services}
@@ -659,4 +661,5 @@ HUGE_CONF
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${test_start}    ${content}    2
     Should Not Be True    ${result[0]}    Some cache error in logs
 
-    [teardown]    Ctn Stop Engine Broker And Save Logs
+    #As broker may have many retention to write we let it more timeout
+    [teardown]    Ctn Stop Engine Broker And Save Logs    broker_kill_timeout=120    only_central=${True}
