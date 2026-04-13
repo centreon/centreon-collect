@@ -16,15 +16,17 @@
  * For more information : contact@centreon.com
  */
 
+#include <boost/program_options.hpp>
+
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/embedded_perl.hh"
-#include "com/centreon/connector/perl/options.hh"
 #include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
+namespace po = boost::program_options;
 
 // Should be defined by build tools.
 #ifndef CENTREON_CONNECTOR_VERSION
@@ -45,34 +47,42 @@ int main(int argc, char** argv, char** env) {
 
   try {
     // Command line parsing.
-    options opts;
+    // Process all command line arguments.
+    po::options_description desc("Allowed options");
+    // clang-format off
+    desc.add_options()
+      ("help,h", "Print help and exit")
+      ("code,c", po::value<std::string>(), "Argument is some Perl code that will be executed by the embedded interpreter.")
+      ("debug,d","If this flag is specified, print all logs messages.")
+      ("version,v","Print software version and exit.")
+      ("log-file,l", po::value<std::string>(),"Specifies the log file (default: stderr).")
+      ("test-file,x", po::value<std::string>(),"Specifies the file used instead of stdin.");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+    po::notify(vm);
+      
     std::string test_file_path;
 
-    try {
-      opts.parse(argc - 1, argv + 1);
-    } catch (const exceptions::msg_fmt& e) {
-      std::cout << e.what() << std::endl << opts.usage() << std::endl;
-      return EXIT_FAILURE;
-    }
-    if (opts.get_argument("help").get_is_set()) {
-      std::cout << opts.help() << std::endl;
+    if (vm.count("help")) {
+      std::cout << desc << std::endl;
       return EXIT_SUCCESS;
-    } else if (opts.get_argument("version").get_is_set()) {
+    } else if (vm.count("version")) {
       std::cout << "Centreon Perl Connector " << CENTREON_CONNECTOR_VERSION
                 << std::endl;
       return EXIT_SUCCESS;
     }
-    if (opts.get_argument("test-file").get_is_set()) {
-      test_file_path = opts.get_argument("test-file").get_value();
+    if (vm.count("test-file")) {
+      test_file_path = vm["test-file"].as<std::string>();
     }
     // Set logging object.
-    if (opts.get_argument("log-file").get_is_set()) {
-      std::string filename(opts.get_argument("log-file").get_value());
+    if (vm.count("log-file")) {
+      std::string filename = vm["log-file"].as<std::string>();
       log::instance().switch_to_file(filename);
     } else
       log::instance().switch_to_stdout();
 
-    if (opts.get_argument("debug").get_is_set()) {
+    if (vm.count("debug")) {
       log::instance().set_level(spdlog::level::trace);
     } else {
       log::instance().set_level(spdlog::level::info);
@@ -97,8 +107,8 @@ int main(int argc, char** argv, char** env) {
 
     // Load Embedded Perl.
     embedded_perl::load(argc, argv, env,
-                        (opts.get_argument("code").get_is_set()
-                             ? opts.get_argument("code").get_value().c_str()
+                        (vm.count("code")
+                             ? vm["code"].as<std::string>().c_str()
                              : nullptr));
 
     // Program policy.
@@ -108,7 +118,7 @@ int main(int argc, char** argv, char** env) {
     io_context->run();
 
   } catch (const std::exception& e) {
-    log::core()->error(e.what());
+    std::cerr << "fail to start connector" << e.what() << std::endl;
   }
 
   // Deinitializations.

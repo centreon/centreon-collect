@@ -38,7 +38,6 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
   ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/options.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
   ${PROJECT_SOURCE_DIR}/perl/src/script.cc
@@ -51,7 +50,6 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/parser.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/options.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
   ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
@@ -64,6 +62,7 @@ target_link_libraries(centreon_connector_perl
   centreon_clib 
   ${PERL_LIBRARIES}
   pb_perl_connector_lib
+  Boost::program_options
   spdlog::spdlog
   fmt::fmt
   absl::any

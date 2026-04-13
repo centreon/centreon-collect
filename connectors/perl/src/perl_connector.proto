@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+
+package com.centreon.connector.perl;
+
+
+message Terminate {}
+
+message Execute {
+    string exe = 1;
+    repeated string args = 2;
+}
+
+message ToChild {
+    oneof content {
+        Terminate terminate = 1;
+        Execute execute = 2;
+    }
+}
+
+
+message Result {
+    int32 status = 1;
+    string stdout = 2;
+    string stderr = 3;
+}
+
+message FromChild {
+    oneof content {
+        Result result = 1;
+    }
+}

@@ -37,6 +37,10 @@ static std::string perl_connector = BUILD_PATH
     "/connectors/perl/"
     "centreon_connector_perl --debug --log-file=/tmp/connector.log";
 
+static std::string perl_connector_without_log = BUILD_PATH
+    "/connectors/perl/"
+    "centreon_connector_perl --debug";
+
 static constexpr const char cmd1[] =
     "2\x00"
     "4242\x00"
@@ -619,7 +623,7 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
 
   // Process.
   process::pointer p = std::make_shared<process>(
-      perl_connector + " --log-file /tmp/log_file", _io_context);
+      perl_connector_without_log + " --log-file /tmp/log_file", _io_context);
   p->start();
 
   // Write command.
