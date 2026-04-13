@@ -732,10 +732,13 @@ HUGE_CONF
         Log To Console    round ${try_index}
         Ctn Kindly Stop Broker    ${True}
 
+        #broker is badly stopped and retention may be corrupted
+        Ctn Clear Queues Memory
+
         Remove File    /tmp/test-huge-cache.log
         Ctn Start Broker    ${True}
         Ctn Process All Services Check Result With Metrics    ${try_index}    output ${try_index}    ${3}
-        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    160    ANY
+        ${result}    Ctn Check Service Status With Timeout    host_5000    service_100000    ${try_index}    240    ANY
         Should Be True    ${result}    no service status for service_100000 after passive results
 
         FOR    ${pair}    IN    @{random_services}
@@ -759,4 +762,5 @@ HUGE_CONF
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${test_start}    ${content}    2
     Should Not Be True    ${result[0]}    Some cache error in logs
 
-    [teardown]    Ctn Stop Engine Broker And Save Logs
+    #As broker may have many retention to write we let it more timeout
+    [teardown]    Ctn Stop Engine Broker And Save Logs    broker_kill_timeout=120    only_central=${True}

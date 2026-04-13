@@ -60,10 +60,8 @@ $current_dir = $pwd.ToString()
 #install recent version of 7zip needed by some packages
 Write-Host "install 7zip"
 
-#download 7zip
-Invoke-WebRequest -Uri "https://www.7-zip.org/a/7z2408-x64.msi" -OutFile "7z2408-x64.msi"
-#install 7zip
-Start-Process 'msiexec.exe' -ArgumentList '/I "7z2408-x64.msi" /qn' -Wait
+#download and install 7zip
+choco install 7zip -y
 
 #set builtin here in order to not impact linux compil
 add_builtin_to_vcpkg_json

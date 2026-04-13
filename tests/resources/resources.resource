@@ -114,7 +114,7 @@ Ctn Kindly Stop Broker
     ...    If only_central is set to True, only the central broker will be stopped.
     ...    If bbdo2 is set to True, the rrd broker will not be checked for RRD logs
     ...    since there are still bugs in this context.
-    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False    ${kill_timeout}=60
 
     #in some case tear down calls this function whereas broker has not been started
     ${b1_obj}    Get Process Object   b1
@@ -124,7 +124,7 @@ Ctn Kindly Stop Broker
     END
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
-    ${result}    Wait For Process    b1    timeout=60s
+    ${result}    Wait For Process    b1    timeout=${kill_timeout}
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Log To Console    "fail to stop central broker"
@@ -162,7 +162,7 @@ Ctn Kindly Stop Broker
     END
 
     IF    not ${only_central}
-        ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
+        ${result}    Wait For Process    b2    timeout=${kill_timeout}    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
             Log To Console    "fail to stop rrd broker"
@@ -290,14 +290,14 @@ Ctn Stop Engine
     END
 
 Ctn Stop Engine Broker And Save Logs
-    [Arguments]    ${only_central}=False    ${no_rrd_test}=False
+    [Arguments]    ${only_central}=False    ${no_rrd_test}=False    ${broker_kill_timeout}=60
     TRY
         Ctn Stop Engine
     EXCEPT
         Log    can't kindly stop engine
     END
     TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
+        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}    kill_timeout=${broker_kill_timeout}
     EXCEPT
         Log    Can't kindly stop Broker
     END
