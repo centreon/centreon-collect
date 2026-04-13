@@ -38,16 +38,11 @@ influxdb::influxdb(std::string const& user,
                    unsigned short port,
                    std::string const& db,
                    std::string const& status_ts,
-                   std::vector<column> const& status_cols,
+                   std::vector<http_tsdb::column> const& status_cols,
                    std::string const& metric_ts,
-                   std::vector<column> const& metric_cols,
-                   macro_cache const& cache,
+                   std::vector<http_tsdb::column> const& metric_cols,
                    const std::shared_ptr<spdlog::logger>& logger)
-    : _socket{_io_context},
-      _host(addr),
-      _port(port),
-      _cache(cache),
-      _logger{logger} {
+    : _socket{_io_context}, _host(addr), _port(port), _logger{logger} {
   // Try to connect to the server.
   _logger->debug("influxdb: connecting using 1.2 Line Protocol");
   _connect_socket();
@@ -70,7 +65,7 @@ void influxdb::clear() {
 void influxdb::write(storage::metric const& m) {
   storage::pb_metric converted;
   m.convert_to_pb(converted.mut_obj());
-  _query.append(_metric_query.generate_metric(converted));
+  _query.append(_metric_query.append_metric(converted));
 }
 
 /**
@@ -81,7 +76,7 @@ void influxdb::write(storage::metric const& m) {
 void influxdb::write(storage::status const& s) {
   storage::pb_status converted;
   s.convert_to_pb(converted.mut_obj());
-  _query.append(_status_query.generate_status(converted));
+  _query.append(_status_query.append_status(converted));
 }
 
 /**
@@ -90,7 +85,8 @@ void influxdb::write(storage::status const& s) {
  *  @param[in] m  The metric to write.
  */
 void influxdb::write(const storage::pb_metric& m) {
-  _query.append(_metric_query.generate_metric(m));
+  SPDLOG_LOGGER_TRACE(_logger, "append metric {}", m.obj().ShortDebugString());
+  _query.append(_metric_query.append_metric(m));
 }
 
 /**
@@ -99,7 +95,8 @@ void influxdb::write(const storage::pb_metric& m) {
  *  @param[in] s  The status to write.
  */
 void influxdb::write(const storage::pb_status& s) {
-  _query.append(_status_query.generate_status(s));
+  SPDLOG_LOGGER_TRACE(_logger, "append status {}", s.obj().ShortDebugString());
+  _query.append(_status_query.append_status(s));
 }
 
 /**
@@ -248,13 +245,14 @@ bool influxdb::_check_answer_string(std::string const& ans,
  *  @param[in] metric_ts    Name of the timeseries metric.
  *  @param[in] metric_cols  Column for the metrics.
  */
-void influxdb::_create_queries(std::string const& user,
-                               std::string const& passwd,
-                               std::string const& db,
-                               std::string const& status_ts,
-                               std::vector<column> const& status_cols,
-                               std::string const& metric_ts,
-                               std::vector<column> const& metric_cols) {
+void influxdb::_create_queries(
+    std::string const& user,
+    std::string const& passwd,
+    std::string const& db,
+    std::string const& status_ts,
+    std::vector<http_tsdb::column> const& status_cols,
+    std::string const& metric_ts,
+    std::vector<http_tsdb::column> const& metric_cols) {
   // Create POST HTTP header.
   std::string base_url;
   base_url.append("/write?u=")
@@ -267,8 +265,10 @@ void influxdb::_create_queries(std::string const& user,
   _post_header.append("POST ").append(base_url).append(" HTTP/1.0\n");
 
   // Create protocol objects.
-  _status_query = line_protocol_query(status_ts, status_cols,
-                                      line_protocol_query::status, _cache);
-  _metric_query = line_protocol_query(metric_ts, metric_cols,
-                                      line_protocol_query::metric, _cache);
+  _status_query = line_protocol_query(
+      status_ts, "", status_cols,
+      http_tsdb::line_protocol_query::data_type::status, _logger);
+  _metric_query = line_protocol_query(
+      metric_ts, "", metric_cols,
+      http_tsdb::line_protocol_query::data_type::metric, _logger);
 }

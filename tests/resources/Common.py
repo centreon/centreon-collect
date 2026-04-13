@@ -33,6 +33,7 @@ import psutil
 import random
 import shutil
 import string
+import socket
 from dateutil import parser
 from datetime import datetime, timedelta
 import pymysql.cursors
@@ -467,24 +468,28 @@ def ctn_stop_mysql():
 
 def ctn_stop_rrdcached():
     getoutput(
-        "kill -9 $(ps ax | ctn_grep '.usr.bin.rrdcached' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall  /usr/bin/rrdcached")
 
 
 def ctn_kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbwd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbwd")
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbd")
 
 
 def ctn_kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/centengine")
 
 
 def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
+    ctn_clear_queues_memory()
+
+
+def ctn_clear_queues_memory():
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
@@ -843,6 +848,8 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
+                        return True
+                    elif state_type == 'ANY':
                         return True
         time.sleep(1)
     return False
@@ -2647,3 +2654,42 @@ def update_json_field(filepath, path, value):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
     return data
+
+
+def ctn_create_tcp_server(port: int):
+
+    class tcp_server:
+        def __init__(self, port: int):
+            self.sock = socket.socket()
+            self.sock.bind(("0.0.0.0", port))
+            self.sock.listen(5)
+            self.conn = None
+
+        def accept(self, timeout: int):
+            self.sock.settimeout(timeout)
+            try:
+                self.conn, _ = self.sock.accept()
+            except socket.timeout:
+                return False
+            if self.conn is None:
+                return False
+            else:
+                return True
+
+        def receive(self, timeout: int):
+            self.conn.settimeout(timeout)
+            data = self.conn.recv(4096)
+            return data.decode()
+
+        def send(self, data: str):
+            self.conn.sendall(data.encode())
+
+        def close(self):
+            if self.conn is not None:
+                self.conn.close()
+            self.sock.close()
+
+        def __delete__(self, instance):
+            self.close()
+
+    return tcp_server(port)
