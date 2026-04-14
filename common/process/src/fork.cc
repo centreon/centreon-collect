@@ -17,6 +17,7 @@
  */
 
 #include <boost/process/v2/process.hpp>
+#include <optional>
 
 #include "com/centreon/common/process/detail/boost_process.hh"
 #include "com/centreon/common/process/fork.hh"
@@ -34,9 +35,6 @@ namespace com::centreon::common::detail {
  * this is the pattern used in do_fork() to hand the pipe ends to Boost.Asio
  * after the fork.
  *
- * Storing 0 for a closed or stolen fd relies on the convention that fd 0
- * (STDIN_FILENO) is never owned by this class; it is always redirected via
- * dup2 before any pipe object refers to it.
  */
 class pipe {
   /** _fd[0]: read end; _fd[1]: write end.  0 means closed/not owned. */
@@ -85,35 +83,6 @@ class pipe {
     return fd;
   }
 
-  /**
-   * @brief Redirect the write end to a standard file descriptor via dup2(2).
-   *
-   * Used in the child process to wire the pipe's write end onto STDOUT_FILENO
-   * or STDERR_FILENO.
-   *
-   * @param std_fd Target file descriptor (e.g. STDOUT_FILENO).
-   */
-  void write_fd_dup(int std_fd) {
-    if (::dup2(_fd[1], std_fd)) {
-      std::cerr << "dup2 on fd: " << std_fd << ": " << strerror(errno)
-                << std::endl;
-    }
-  }
-
-  /**
-   * @brief Redirect the read end to a standard file descriptor via dup2(2).
-   *
-   * Used in the child process to wire the pipe's read end onto STDIN_FILENO.
-   *
-   * @param std_fd Target file descriptor (e.g. STDIN_FILENO).
-   */
-  void read_fd_dup(int std_fd) {
-    if (::dup2(_fd[0], std_fd)) {
-      std::cerr << "dup2 on fd: " << std_fd << ": " << strerror(errno)
-                << std::endl;
-    }
-  }
-
   /** @brief Close both ends that are still owned. */
   void close() {
     if (_fd[0]) {
@@ -148,20 +117,31 @@ class pipe {
 /**
  * @brief Fork the current process and start the child.
  *
- * Creates three anonymous pipes (stdin, stdout, stderr), calls fork(2), then:
+ * Creates two or three anonymous pipes (stdin, stdout, and optionally stderr),
+ * calls fork(2), then:
  * - Parent side: takes ownership of the write end of stdin and the read ends
- *   of stdout/stderr, wraps the child PID in a boost::process handle, and
- *   starts async-wait for process termination.
- * - Child side: redirects STDIN/STDOUT/STDERR to the pipe ends via dup2(2),
- *   closes unused file descriptors, then calls _run() and exits.
+ *   of stdout (and stderr if @p use_stderr_pipe is true), wraps the child PID
+ *   in a boost::process handle, and starts async-wait for process termination.
+ *   When @p use_stderr_pipe is false no stderr pipe is created, and the child's
+ *   stderr is inherited from the parent process.
+ * - Child side: passes the raw pipe file descriptors to _run(); when
+ *   @p use_stderr_pipe is false, -1 is passed as the @c stderr_fd argument.
+ *   After _run() returns the child calls ::exit() with the return value.
+ *
+ * @param use_stderr_pipe When true a dedicated stderr pipe is created between
+ *        parent and child, and _on_stderr_read() will be called with the
+ *        child's stderr output.  When false no stderr pipe is allocated,
+ *        stderr_fd is -1 in _run(), and the child inherits the parent's stderr.
  *
  * @throws com::centreon::exceptions::msg_fmt if fork(2) fails.
  */
 template <bool use_mutex>
-void com::centreon::common::fork<use_mutex>::do_fork() {
+void com::centreon::common::fork<use_mutex>::do_fork(bool use_stderr_pipe) {
   detail::pipe stdin;
   detail::pipe stdout;
-  detail::pipe stderr;
+  std::unique_ptr<detail::pipe> stderr;
+  if (use_stderr_pipe)
+    stderr = std::make_unique<detail::pipe>();
 
   pid_t child = ::fork();
   if (child < 0) {
@@ -170,22 +150,32 @@ void com::centreon::common::fork<use_mutex>::do_fork() {
 
   if (child > 0) {  // parent
     this->_stdin_pipe.assign(stdin.steal_write_fd());
+    stdin.close_read();
     this->_stdout_pipe.assign(stdout.steal_read_fd());
-    this->_stderr_pipe.assign(stderr.steal_read_fd());
+    stdout.close_write();
+    if (use_stderr_pipe) {
+      this->_stderr_pipe.assign(stderr->steal_read_fd());
+      stderr->close_write();
+    }
     _proc = new detail::boost_process(
         boost::process::v2::basic_process<asio::io_context::executor_type>(
             this->_io_context->get_executor(), child));
     this->_async_wait_process_end();
+    this->_stdout_read();
+    if (use_stderr_pipe) {
+      this->_stderr_read();
+    }
     SPDLOG_LOGGER_DEBUG(_logger, "child started pid:{} ", child);
 
   } else {  // child
-    stdin.read_fd_dup(STDIN_FILENO);
-    stdout.write_fd_dup(STDOUT_FILENO);
-    stderr.write_fd_dup(STDERR_FILENO);
     stdin.close_write();
     stdout.close_read();
-    stderr.close_read();
-    ::exit(_run());
+    if (use_stderr_pipe) {
+      stderr->close_read();
+    }
+    int exit_code = _run(stdin.get_fd_to_read(), stdout.get_fd_to_write(),
+                         use_stderr_pipe ? stderr->get_fd_to_write() : -1);
+    ::exit(exit_code);
   }
 }
 

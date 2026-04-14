@@ -87,6 +87,7 @@ class child_process
     stdout_eof = 2,
     stderr_eof = 4,
     all_completed = 7,
+    stdout_process_completed = 3,
     handler_called = 8
   };
 
@@ -144,6 +145,9 @@ class child_process
         _stdout_pipe(*io_context),
         _stderr_pipe(*io_context),
         _stdin_pipe(*io_context) {}
+
+  child_process(const child_process&) = delete;
+  child_process& operator=(const child_process&) = delete;
 
   virtual ~child_process();
 

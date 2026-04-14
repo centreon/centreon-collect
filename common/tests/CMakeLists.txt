@@ -30,6 +30,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/aes256.cc
     engine_conf/expand_conf.cc
     file_test.cc
+    fork_test.cc
     grpc/grpc_test.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc

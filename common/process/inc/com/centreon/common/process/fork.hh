@@ -44,21 +44,34 @@ namespace com::centreon::common {
  */
 template <bool use_mutex = true>
 class fork : public child_process<use_mutex> {
+ protected:
+  using child_process<use_mutex>::_io_context;
   using child_process<use_mutex>::_logger;
   using child_process<use_mutex>::_proc;
 
- protected:
   /**
    * @brief Entry point executed in the child process after fork(2).
    *
    * Implement this method in a derived class to define what the child process
    * actually does.  The method runs in a freshly forked process; the parent
-   * is already unblocked at that point.  The return value is passed to
-   * ::exit(), so it becomes the process exit code visible to waitpid(2).
+   * is already unblocked at that point.  The three file descriptors are the
+   * raw pipe ends connected to the parent:
+   *  - @p stdin_fd  is the read end of the stdin pipe  (data written by the
+   *    parent arrives here);
+   *  - @p stdout_fd is the write end of the stdout pipe (data written here is
+   *    forwarded to the parent's stdout handler);
+   *  - @p stderr_fd is the write end of the stderr pipe (data written here is
+   *    forwarded to the parent's stderr handler).
    *
+   * The return value is passed to ::exit(), so it becomes the process exit code
+   * visible to waitpid(2).
+   *
+   * @param stdin_fd   Read end of the stdin pipe.
+   * @param stdout_fd  Write end of the stdout pipe.
+   * @param stderr_fd  Write end of the stderr pipe.
    * @return Exit code for the child process (0 = success, non-zero = error).
    */
-  virtual int _run() = 0;
+  virtual int _run(int stdin_fd, int stdout_fd, int stderr_fd) = 0;
 
  public:
   /**
@@ -74,19 +87,31 @@ class fork : public child_process<use_mutex> {
        const std::shared_ptr<spdlog::logger>& logger)
       : child_process<use_mutex>(io_context, logger) {}
 
+  fork(const fork&) = delete;
+  fork& operator=(const fork&) = delete;
+
   /**
    * @brief Fork the current process and start the child.
    *
-   * Creates three anonymous pipes (stdin, stdout, stderr), calls fork(2), then:
+   * Creates two or three anonymous pipes (stdin, stdout, and optionally stderr),
+   * calls fork(2), then:
    * - Parent side: takes ownership of the write end of stdin and the read ends
-   *   of stdout/stderr, wraps the child PID in a boost::process handle, and
-   *   starts async-wait for process termination.
-   * - Child side: redirects STDIN/STDOUT/STDERR to the pipe ends via dup2(2),
-   *   closes unused file descriptors, then calls _run() and exits.
+   *   of stdout (and stderr if @p use_stderr_pipe is true), wraps the child PID
+   *   in a boost::process handle, and starts async-wait for process termination.
+   *   When @p use_stderr_pipe is false no stderr pipe is created, and the child's
+   *   stderr is inherited from the parent process.
+   * - Child side: passes the raw pipe file descriptors to _run(); when
+   *   @p use_stderr_pipe is false, -1 is passed as the @c stderr_fd argument.
+   *   After _run() returns the child calls ::exit() with the return value.
+   *
+   * @param use_stderr_pipe When true a dedicated stderr pipe is created between
+   *        parent and child, and _on_stderr_read() will be called with the
+   *        child's stderr output.  When false no stderr pipe is allocated,
+   *        stderr_fd is -1 in _run(), and the child inherits the parent's stderr.
    *
    * @throws com::centreon::exceptions::msg_fmt if fork(2) fails.
    */
-  void do_fork();
+  void do_fork(bool use_stderr_pipe);
 };
 
 }  // namespace com::centreon::common

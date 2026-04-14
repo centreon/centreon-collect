@@ -221,7 +221,6 @@ template <bool use_mutex>
 void child_process<use_mutex>::_on_stdout_read(
     const boost::system::error_code& err,
     size_t nb_read) {
-  bool eof = false;
   std::string received;
   {
     detail::lock<use_mutex> l(&_protect);
@@ -236,7 +235,6 @@ void child_process<use_mutex>::_on_stdout_read(
             _proc->proc.handle().id(), err.value(), err.message());
       }
       _completion_flags.fetch_or(e_completion_flags::stdout_eof);
-      eof = true;
     } else {
       SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: read from stdout: {}",
                           _proc->proc.handle().id(),
@@ -246,13 +244,11 @@ void child_process<use_mutex>::_on_stdout_read(
   }
   if (!received.empty()) {
     _on_stdout_read(received);
-    {
-      detail::lock<use_mutex> l(&_protect);
-      _stdout_read();
-    }
   }
-
-  if (eof) {
+  if (!err) {
+    detail::lock<use_mutex> l(&_protect);
+    _stdout_read();
+  } else {
     _on_completion();
   }
 }
@@ -291,11 +287,11 @@ template <bool use_mutex>
 void child_process<use_mutex>::_on_stderr_read(
     const boost::system::error_code& err,
     size_t nb_read) {
-  bool eof = false;
   std::string received;
   {
     detail::lock<use_mutex> l(&_protect);
     if (err) {
+      _completion_flags.fetch_or(e_completion_flags::stderr_eof);
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
                             "pid:{} end read from stderr of process: {}",
@@ -305,8 +301,6 @@ void child_process<use_mutex>::_on_stderr_read(
             _logger, "pid:{} fail read from stderr of process: {} {}",
             _proc->proc.handle().id(), err.value(), err.message());
       }
-      _completion_flags.fetch_or(e_completion_flags::stderr_eof);
-      eof = true;
     } else {
       SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: read from stderr: {}",
                           _proc->proc.handle().id(),
@@ -317,13 +311,11 @@ void child_process<use_mutex>::_on_stderr_read(
 
   if (!received.empty()) {
     _on_stderr_read(received);
-    {
-      detail::lock<use_mutex> l(&_protect);
-      _stderr_read();
-    }
   }
-
-  if (eof) {
+  if (!err) {
+    detail::lock<use_mutex> l(&_protect);
+    _stderr_read();
+  } else {
     _on_completion();
   }
 }
@@ -336,7 +328,9 @@ void child_process<use_mutex>::_on_stderr_read(
  */
 template <bool use_mutex>
 void child_process<use_mutex>::_on_completion() {
-  unsigned expected = e_completion_flags::all_completed;
+  unsigned expected = _stderr_pipe.is_open()
+                          ? e_completion_flags::all_completed
+                          : e_completion_flags::stdout_process_completed;
   if (_completion_flags.compare_exchange_strong(
           expected, e_completion_flags::handler_called)) {
     _on_process_end();
