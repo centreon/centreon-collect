@@ -62,7 +62,7 @@ target_link_libraries(
   pb_remove_graph_message_lib
   pb_header_lib
   -Wl,--no-whole-archive
-  spdlog::spdlog)
+  fmt::fmt)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
 

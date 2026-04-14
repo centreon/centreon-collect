@@ -22,7 +22,11 @@ set(INC_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/inc/com/centreon/broker/http_tsdb")
 set(HTTP_INC_DIR "${CMAKE_SOURCE_DIR}/common/http/inc")
 set(SRC_DIR "src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/http_tsdb/test")
-include_directories(inc ${INC_DIR} ${HTTP_INC_DIR} ${CMAKE_BINARY_DIR}/common/process_stat)
+include_directories(inc 
+    ${INC_DIR} 
+    ${HTTP_INC_DIR} 
+    ${CMAKE_BINARY_DIR}/common/process_stat
+    ${PROJECT_SOURCE_DIR}/core/cache/inc)
 
 # Sources.
 set(SOURCES
@@ -59,5 +63,6 @@ if(WITH_TESTING)
         ${TESTS_SOURCES}
         ${TEST_DIR}/factory_test.cc
         ${TEST_DIR}/stream_test.cc
+        ${TEST_DIR}/column_test.cc
         PARENT_SCOPE)
 endif(WITH_TESTING)

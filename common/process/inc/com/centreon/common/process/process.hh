@@ -51,7 +51,7 @@ class mutex<false> {};
 template <>
 class lock<false> {
  public:
-  lock(mutex<false>* dummy_mut) {}
+  lock(mutex<false>*) {}
 };
 
 struct boost_process;

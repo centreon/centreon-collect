@@ -42,7 +42,7 @@ add_library("${TLS2}" SHARED
   "${INC_DIR}/stream.hh"
 )
 
-target_link_libraries("${TLS2}" PRIVATE crypto ssl spdlog::spdlog)
+target_link_libraries("${TLS2}" PRIVATE crypto ssl fmt::fmt)
 
 set_target_properties("${TLS2}" PROPERTIES PREFIX "")
 

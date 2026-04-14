@@ -99,11 +99,10 @@ class connection_ok : public connection_base {
     ++_request_counter;
   }
 
-  void _on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&&) override {}
 
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override {}
-  void receive_request(request_callback_type&& callback) override {}
+  void answer(const response_ptr&, answer_callback_type&&) override {}
+  void receive_request(request_callback_type&&) override {}
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };
@@ -272,11 +271,10 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void _on_accept(connect_callback_type&& callback) override {}
+  void _on_accept(connect_callback_type&&) override {}
 
-  void answer(const response_ptr& response,
-              answer_callback_type&& callback) override {}
-  void receive_request(request_callback_type&& callback) override {}
+  void answer(const response_ptr&, answer_callback_type&&) override {}
+  void receive_request(request_callback_type&&) override {}
 
   asio::ip::tcp::socket& get_socket() override { return _useless; }
 };

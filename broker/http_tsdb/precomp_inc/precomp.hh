@@ -45,9 +45,11 @@
 #include <boost/container/flat_set.hpp>
 #include <boost/exception/diagnostic_information.hpp>
 
-// with this define boost::interprocess doesn't need Boost.DataTime
-#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
+#include <boost/interprocess/containers/flat_map.hpp>
+#include <boost/interprocess/containers/flat_set.hpp>
 #include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 using system_clock = std::chrono::system_clock;

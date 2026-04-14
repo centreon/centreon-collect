@@ -17,55 +17,55 @@
  *
  */
 
-#include "com/centreon/broker/influxdb/column.hh"
+#include "com/centreon/broker/http_tsdb/column.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-TEST(InfluxDbColumn, Simple) {
-  influxdb::column col("host", "test", true, influxdb::column::string);
+TEST(http_tsdb_column_test, Simple) {
+  http_tsdb::column col("host", "test", true, http_tsdb::column::string);
 
   ASSERT_EQ(col.get_name(), "host");
   ASSERT_EQ(col.get_value(), "test");
-  ASSERT_EQ(col.get_type(), influxdb::column::string);
-  ASSERT_EQ(col.is_flag(), true);
+  ASSERT_EQ(col.get_type(), http_tsdb::column::string);
+  ASSERT_EQ(col.is_tag(), true);
 }
 
-TEST(InfluxDbColumn, DefaultCtor) {
-  influxdb::column col;
+TEST(http_tsdb_column_test, DefaultCtor) {
+  http_tsdb::column col;
 
   ASSERT_EQ(col.get_name(), "");
   ASSERT_EQ(col.get_value(), "");
-  ASSERT_EQ(col.get_type(), influxdb::column::number);
-  ASSERT_EQ(col.is_flag(), false);
+  ASSERT_EQ(col.get_type(), http_tsdb::column::number);
+  ASSERT_EQ(col.is_tag(), false);
 }
 
-TEST(InfluxDbColumn, CopyCtor) {
-  influxdb::column col("host", "test", true, influxdb::column::string);
-  influxdb::column col2{col};
+TEST(http_tsdb_column_test, CopyCtor) {
+  http_tsdb::column col("host", "test", true, http_tsdb::column::string);
+  http_tsdb::column col2{col};
 
   ASSERT_EQ(col2.get_name(), "host");
   ASSERT_EQ(col2.get_value(), "test");
-  ASSERT_EQ(col2.get_type(), influxdb::column::string);
-  ASSERT_EQ(col2.is_flag(), true);
+  ASSERT_EQ(col2.get_type(), http_tsdb::column::string);
+  ASSERT_EQ(col2.is_tag(), true);
 }
 
-TEST(InfluxDbColumn, Assign) {
-  influxdb::column col("host", "test", true, influxdb::column::string);
-  influxdb::column col2;
+TEST(http_tsdb_column_test, Assign) {
+  http_tsdb::column col("host", "test", true, http_tsdb::column::string);
+  http_tsdb::column col2;
 
   col2 = col;
 
   ASSERT_EQ(col2.get_name(), "host");
   ASSERT_EQ(col2.get_value(), "test");
-  ASSERT_EQ(col2.get_type(), influxdb::column::string);
-  ASSERT_EQ(col2.is_flag(), true);
+  ASSERT_EQ(col2.get_type(), http_tsdb::column::string);
+  ASSERT_EQ(col2.is_tag(), true);
 }
 
-TEST(InfluxDbColumn, ParseType) {
-  ASSERT_EQ(influxdb::column::parse_type("string"), influxdb::column::string);
-  ASSERT_EQ(influxdb::column::parse_type("number"), influxdb::column::number);
-  ASSERT_THROW(influxdb::column::parse_type("other"), msg_fmt);
+TEST(http_tsdb_column_test, ParseType) {
+  ASSERT_EQ(http_tsdb::column::parse_type("string"), http_tsdb::column::string);
+  ASSERT_EQ(http_tsdb::column::parse_type("number"), http_tsdb::column::number);
+  ASSERT_THROW(http_tsdb::column::parse_type("other"), msg_fmt);
 }
