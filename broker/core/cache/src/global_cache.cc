@@ -506,13 +506,14 @@ global_cache::pointer global_cache::load(
               ->_protect);  // mandatory only for _start_save_timer attribute
       conf_cache->_start_save_timer();
     }
-    _instance = pointer(new global_cache_data(
+    auto instance = pointer(new global_cache_data(
         io_context, file_path, e_cache_type::real_time, conf_cache, grow_step,
         nb_update_before_save, save_interval));
-    _instance->_open(initial_size, address);
+    instance->_open(initial_size, address);
     boost::unique_lock l(
-        _instance->_protect);  // mandatory only for _start_save_timer attribute
-    _instance->_start_save_timer();
+        instance->_protect);  // mandatory only for _start_save_timer attribute
+    instance->_start_save_timer();
+    _instance = instance;
   }
   return _instance;
 }

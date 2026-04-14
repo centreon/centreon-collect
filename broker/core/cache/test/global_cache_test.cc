@@ -194,10 +194,12 @@ TEST_F(global_cache_test, CanBeMoved) {
   mkstemp(temp_path);
   ::remove(temp_path);
 
+  std::cout << "dummy mapping at " << mapping_begin << std::endl;
   // use old map address to force global cache to use another one
   boost::interprocess::managed_mapped_file dummy2(
       interprocess::create_only, temp_path, 0x10000, mapping_begin);
 
+  std::cout << "new mapping" << std::endl;
   obj = global_cache::load(g_io_context, "/tmp/cache_test");
   mapping_begin = obj->get_address();
   std::cout << "third mapping at " << mapping_begin << std::endl;

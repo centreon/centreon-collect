@@ -263,9 +263,11 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
         {
-          std::optional<cache::host_serv_pair> host_serv =
-              cache::global_cache::instance_ptr()->get_host_serv_id(
-                  converted.index_id());
+          std::optional<cache::host_serv_pair> host_serv;
+          auto cache_instance = cache::global_cache::instance_ptr();
+          if (cache_instance) {
+            host_serv = cache_instance->get_host_serv_id(converted.index_id());
+          }
           if (!host_serv) {
             SPDLOG_LOGGER_ERROR(
                 _logger, "unable to find host_id service_id from index_id:{}",
