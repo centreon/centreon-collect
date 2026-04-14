@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@
 #ifndef CENTREON_COMMON_CHILD_PROCESS_HH
 #define CENTREON_COMMON_CHILD_PROCESS_HH
 
-#include "boost/asio/readable_pipe.hpp"
-#include "boost/asio/writable_pipe.hpp"
 namespace com::centreon::common {
 namespace detail {
 template <bool use_mutex>
