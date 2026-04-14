@@ -78,7 +78,7 @@ if(LEGACY_ENGINE)
   # Link target with libraries.
   target_link_libraries(enginerpc_legacy PRIVATE cerpc centreon_common
     process_stat
-                                                 spdlog::spdlog)
+                                                 fmt::fmt)
 else()
   # mod_enginerpc target.
   add_library(

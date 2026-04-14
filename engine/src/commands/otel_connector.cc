@@ -173,11 +173,11 @@ void otel_connector::update(const std::string& cmd_line) {
  * @param caller
  * @return uint64_t
  */
-uint64_t otel_connector::run(const std::string& processed_cmd,
-                             nagios_macros& macros,
-                             uint32_t timeout,
-                             const check_result::pointer& to_push_to_checker,
-                             const void* caller) {
+uint64_t otel_connector::run(const std::string&,
+                             nagios_macros&,
+                             uint32_t,
+                             const check_result::pointer&,
+                             const void*) {
   SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
   throw exceptions::msg_fmt("open telemetry services must be passive");
 }
@@ -192,10 +192,10 @@ uint64_t otel_connector::run(const std::string& processed_cmd,
  * @param timeout timeout in seconds
  * @param res check result
  */
-void otel_connector::run(const std::string& processed_cmd,
-                         nagios_macros& macros,
-                         uint32_t timeout,
-                         result& res) {
+void otel_connector::run(const std::string&,
+                         nagios_macros&,
+                         uint32_t,
+                         result&) {
   SPDLOG_LOGGER_ERROR(_logger, "open telemetry services must be passive");
   throw exceptions::msg_fmt("open telemetry services must be passive");
 }

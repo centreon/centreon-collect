@@ -25,12 +25,14 @@ include_directories(inc
   ${PROJECT_SOURCE_DIR}/http_tsdb/inc
   ${HTTP_INC_DIR}
   ${PROJECT_SOURCE_DIR}/neb/inc
+  ${PROJECT_SOURCE_DIR}/core/cache/inc
 )
 
 # Sources.
 set(SOURCES
   ${SRC_DIR}/connector.cc
   ${SRC_DIR}/factory.cc
+  ${SRC_DIR}/line_protocol_query.cc
   ${SRC_DIR}/request.cc
   ${SRC_DIR}/stream.cc
   ${SRC_DIR}/main.cc
@@ -57,7 +59,7 @@ target_link_libraries("${VICTORIA_METRICS}" PRIVATE
   http_tsdb
   centreon_http
   ctncrypto
-  bbdo_storage pb_storage_lib spdlog::spdlog)
+  bbdo_storage pb_storage_lib fmt::fmt)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.

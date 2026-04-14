@@ -51,7 +51,7 @@ set_target_properties("${SQL}" PROPERTIES
     PREFIX ""
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-  target_link_libraries("${SQL}" PRIVATE spdlog::spdlog)
+  target_link_libraries("${SQL}" PRIVATE fmt::fmt)
 target_precompile_headers(${SQL} PRIVATE precomp_inc/precomp.hpp)
 
 # Install rule.
