@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/engine/commands/connector.hh"
+#include <memory>
 
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/engine/commands/result.hh"
@@ -414,14 +415,18 @@ void connector::_connector_start_nolock() {
          proc = _process->weak_from_this()](const std::string_view& received) {
           auto sub_process = proc.lock();
           if (sub_process) {
-            me->_on_stdout_recv(sub_process, received);
+            me->_on_stdout_recv(
+                std::static_pointer_cast<common::process<true>>(sub_process),
+                received);
           }
         },
         [me = shared_from_this(),
          proc = _process->weak_from_this()](const std::string_view& received) {
           auto sub_process = proc.lock();
           if (sub_process) {
-            me->_on_stderr_recv(sub_process, received);
+            me->_on_stderr_recv(
+                std::static_pointer_cast<common::process<true>>(sub_process),
+                received);
           }
         },
         {

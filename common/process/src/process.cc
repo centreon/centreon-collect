@@ -34,30 +34,11 @@
 #include <boost/process/v2/process.hpp>
 #endif
 
+#include "com/centreon/common/process/detail/boost_process.hh"
+
 #pragma GCC diagnostic pop
 
-namespace proc = boost::process::v2;
-
 namespace com::centreon::common::detail {
-
-/**
- * @brief The only goal of this struct is to hide boost::process implementation
- * So, you will find a shared_ptr<boost_process> attribute in process class
- * I don't know why, but you can't define a unique_ptr of unknown struct in a
- * class attribute so, we use raw pointer instead
- *
- */
-struct boost_process {
-  boost_process(
-      boost::process::v2::basic_process<asio::io_context::executor_type>&&
-          proc_created)
-      : proc(std::move(proc_created)) {}
-
-  boost_process(const boost_process&) = delete;
-  boost_process& operator=(const boost_process&) = delete;
-
-  boost::process::v2::basic_process<asio::io_context::executor_type> proc;
-};
 
 #if defined(BOOST_PROCESS_V2_WINDOWS)
 
@@ -104,16 +85,12 @@ process<use_mutex>::process(
     bool use_setpgid,
     bool use_stdin,
     const process::shared_env& env)
-    : _args(args),
+    : child_process<use_mutex>(io_context, logger),
+      _args(args),
       _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
-      _logger(logger),
-      _io_context(io_context),
-      _timeout_timer(*io_context),
-      _stdout_pipe(*io_context),
-      _stderr_pipe(*io_context),
-      _stdin_pipe(*io_context) {}
+      _timeout_timer(*io_context) {}
 
 /**
  * @brief Construct a new process<use mutex>::process object
@@ -140,17 +117,13 @@ process<use_mutex>::process(
     bool use_setpgid,
     bool use_stdin,
     const process::shared_env& env)
-    : _args(parse_cmd_line(cmd_line)),
+    : child_process<use_mutex>(io_context, logger),
+      _args(parse_cmd_line(cmd_line)),
       _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
-      _logger(logger),
-      _io_context(io_context),
-      _timeout_timer(*io_context),
-      _stdout_pipe(*io_context),
-      _stderr_pipe(*io_context),
-      _stdin_pipe(*io_context) {
-  SPDLOG_LOGGER_TRACE(_logger, "create process {:p}",
+      _timeout_timer(*io_context) {
+  SPDLOG_LOGGER_TRACE(logger, "create process {:p}",
                       static_cast<const void*>(this));
 }
 
@@ -181,24 +154,6 @@ template <bool use_mutex>
 process<use_mutex>::~process() {
   SPDLOG_LOGGER_TRACE(_logger, "delete process {:p}",
                       static_cast<const void*>(this));
-  if (_proc) {
-    delete _proc;
-  }
-}
-
-/**
- * @brief returns pid of process, -1 otherwise
- *
- * @tparam use_mutex
- * @return int
- */
-template <bool use_mutex>
-int process<use_mutex>::get_pid() const {
-  detail::lock<use_mutex> l(&_protect);
-  if (_proc) {
-    return _proc->proc.id();
-  }
-  return -1;
 }
 
 /**
@@ -254,26 +209,22 @@ void process<use_mutex>::_start_process_nolock(
   SPDLOG_LOGGER_DEBUG(_logger, "start process: {}", *_args);
   _handler = std::move(handler);
 
-  if (_completion_flags) {
+  if (this->had_been_started()) {
     throw exceptions::msg_fmt(
         "this class must be used only one time for process: {}", *_args);
   }
 
   try {
     _create_process();
-    _proc->proc.async_wait(
-        [me = shared_from_this()](const boost::system::error_code& err,
-                                  int raw_exit_status) {
-          me->_on_process_end(err, raw_exit_status);
-        });
+    this->_async_wait_process_end();
     SPDLOG_LOGGER_DEBUG(_logger, "pid:{} process started: {}",
                         _proc->proc.handle().id(), *_args);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to start {}: {}", *_args, e.what());
     throw;
   }
-  _stdout_read();
-  _stderr_read();
+  this->_stdout_read();
+  this->_stderr_read();
 
   if (timeout.count()) {
     _timeout_timer.expires_after(timeout);
@@ -295,22 +246,21 @@ void process<use_mutex>::_create_process() {
   if (_env && !_env->env_buffer.empty()) {
     _proc = new detail::boost_process(
         boost::process::v2::basic_process<asio::io_context::executor_type>(
-            *_io_context, _args->get_exe_path(), _args->get_args(),
-            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                              _stderr_pipe},
+            *this->_io_context, _args->get_exe_path(), _args->get_args(),
+            boost::process::v2::process_stdio{
+                this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
             *_env, detail::create_no_window()));
   } else {
     _proc = new detail::boost_process(
         boost::process::v2::basic_process<asio::io_context::executor_type>(
-            *_io_context, _args->get_exe_path(), _args->get_args(),
-            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                              _stderr_pipe},
+            *this->_io_context, _args->get_exe_path(), _args->get_args(),
+            boost::process::v2::process_stdio{
+                this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
             detail::create_no_window()));
   }
   if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
                       // from child process will get an eof
-    boost::system::error_code ec;
-    _stdin_pipe.close(ec);
+    this->close_stdin();
   }
 }
 
@@ -326,152 +276,28 @@ void process<use_mutex>::_create_process() {
   char* const* env = (_env && !_env->env_buffer.empty())
                          ? const_cast<char* const*>(_env->env.data())
                          : nullptr;
-  _proc = new detail::boost_process(detail::spawnp(
-      *_io_context, _args, _use_setpgid,
-      proc::detail::process_input_binding(_stdin_pipe).fd,
-      proc::detail::process_output_binding(_stdout_pipe).fd,
-      proc::detail::process_error_binding(_stderr_pipe).fd, env));
+  this->_proc = new detail::boost_process(detail::spawnp(
+      *this->_io_context, _args, _use_setpgid,
+      boost::process::v2::detail::process_input_binding(this->_stdin_pipe).fd,
+      boost::process::v2::detail::process_output_binding(this->_stdout_pipe).fd,
+      boost::process::v2::detail::process_error_binding(this->_stderr_pipe).fd,
+      env));
   if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
-                      // from child process will get an eof
-    boost::system::error_code ec;
-    _stdin_pipe.close(ec);
+    // from child process will get an eof
+    this->close_stdin();
   }
 }
 
 #endif
 
-/**
- * @brief called when child process end
- *
- * @param err
- * @param raw_exit_status end status of the process
- */
 template <bool use_mutex>
-void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
-                                         int raw_exit_status) {
+void process<use_mutex>::_on_process_end() {
   {
     detail::lock<use_mutex> l(&_protect);
-    if (err) {
-      // due to a bug in boost::process, we don't take this error into account
-      // if we had terminated child process before
-      if (_terminated) {
-        _exit_code = _proc->proc.exit_code();
-      } else {
-        SPDLOG_LOGGER_ERROR(_logger, "pid:{} fail async_wait of {}: {}",
-                            _proc->proc.handle().id(), *_args, err.message());
-        _exit_code = -1;
-      }
-    } else {
-      if (_exit_status != e_exit_status::timeout) {
-        _exit_status = e_exit_status::normal;
-      }
-      _exit_code = proc::evaluate_exit_code(raw_exit_status);
-      SPDLOG_LOGGER_DEBUG(_logger, "pid:{} end of process {}, exit_code={}",
-                          _proc->proc.handle().id(), *_args, _exit_code);
-    }
+    _timeout_timer.cancel();
   }
-  _completion_flags.fetch_or(e_completion_flags::process_end);
-  _on_completion();
-}
-
-/**
- * @brief write some data to child process stdin, if a write is pending, data is
- * pushed to a queue
- *
- * @param data
- */
-template <bool use_mutex>
-void process<use_mutex>::_stdin_write(
-    const std::shared_ptr<std::string>& data) {
-  detail::lock<use_mutex> l(&_protect);
-  _stdin_write_no_lock(data);
-}
-
-/**
- * @brief asynchronously write some data to child process stdin, if a write is
- * pending, data is pushed to a queue
- *
- * @param data
- */
-template <bool use_mutex>
-void process<use_mutex>::_stdin_write_no_lock(
-    const std::shared_ptr<std::string>& data) {
-  if (!_proc) {
-    SPDLOG_LOGGER_ERROR(_logger, "stdin_write process {} not started", *_args);
-    throw exceptions::msg_fmt("stdin_write process {} not started", *_args);
-  }
-  if (_write_pending) {
-    _stdin_write_queue.push_back(data);
-  } else {
-    try {
-      _write_pending = true;
-      _stdin_pipe.async_write_some(
-          asio::buffer(*data),
-          [me = shared_from_this(), data](const boost::system::error_code& err,
-                                          size_t nb_written [[maybe_unused]]) {
-            detail::lock<use_mutex> l(&me->_protect);
-            me->_on_stdin_write(err);
-          });
-    } catch (const std::exception& e) {
-      _write_pending = false;
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "stdin_write process {} fail to write to stdin {}",
-                          *_args, e.what());
-    }
-  }
-}
-
-/**
- * @brief stdin write handler
- * if data remains in queue, we send them
- * if override process::on_stdin_write must be called
- *
- * @param err
- */
-template <bool use_mutex>
-void process<use_mutex>::_on_stdin_write(const boost::system::error_code& err) {
-  _write_pending = false;
-
-  if (err) {
-    if (err == asio::error::eof) {
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "on_stdin_write process {} fail to write to stdin {}",
-                          *_args, err.message());
-    } else {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "on_stdin_write process {} fail to write to stdin {}",
-                          *_args, err.message());
-    }
-    return;
-  }
-
-  if (!_stdin_write_queue.empty()) {
-    std::shared_ptr<std::string> to_send = _stdin_write_queue.front();
-    _stdin_write_queue.pop_front();
-    _stdin_write_no_lock(to_send);
-  }
-}
-
-/**
- * @brief asynchronous read from child process stdout
- *
- */
-template <bool use_mutex>
-void process<use_mutex>::_stdout_read() {
-  if (_proc) {
-    try {
-      _stdout_pipe.async_read_some(
-          asio::buffer(_stdout_read_buffer),
-          [me = shared_from_this()](const boost::system::error_code& err,
-                                    size_t nb_read) {
-            me->_on_stdout_read(err, nb_read);
-          });
-    } catch (const std::exception& e) {
-      asio::post(*_io_context, [me = shared_from_this()]() {
-        me->_on_stdout_read(std::make_error_code(std::errc::broken_pipe), 0);
-      });
-    }
-  }
+  _handler(*this, this->get_exit_code(), this->get_exit_status(), _stdout,
+           _stderr);
 }
 
 /**
@@ -483,68 +309,11 @@ void process<use_mutex>::_stdout_read() {
  * @param nb_read
  */
 template <bool use_mutex>
-void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
-                                         size_t nb_read) {
-  bool eof = false;
-  std::string received;
-  {
-    detail::lock<use_mutex> l(&_protect);
-    if (err) {
-      if (err == asio::error::eof || err == asio::error::broken_pipe) {
-        SPDLOG_LOGGER_DEBUG(_logger,
-                            "pid:{} end read from stdout of process {}: {}",
-                            _proc->proc.handle().id(), *_args, err.message());
-      } else {
-        SPDLOG_LOGGER_ERROR(
-            _logger, "pid:{} fail read from stdout of process {}: {} {}",
-            _proc->proc.handle().id(), *_args, err.value(), err.message());
-      }
-      _completion_flags.fetch_or(e_completion_flags::stdout_eof);
-      eof = true;
-    } else {
-      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stdout: {}",
-                          _proc->proc.handle().id(), *_args,
-                          std::string_view(_stdout_read_buffer, nb_read));
-      if (!_stdout_handler) {
-        _stdout.append(_stdout_read_buffer, nb_read);
-        _stdout_read();
-      } else {
-        received.assign(_stdout_read_buffer, nb_read);
-      }
-    }
-  }
-  if (!received.empty()) {
+void process<use_mutex>::_on_stdout_read(const std::string received) {
+  if (_stdout_handler) {
     _stdout_handler(received);
-    {
-      detail::lock<use_mutex> l(&_protect);
-      _stdout_read();
-    }
-  }
-
-  if (eof) {
-    _on_completion();
-  }
-}
-
-/**
- * @brief asynchronous read from child process stderr
- *
- */
-template <bool use_mutex>
-void process<use_mutex>::_stderr_read() {
-  if (_proc) {
-    try {
-      _stderr_pipe.async_read_some(
-          asio::buffer(_stderr_read_buffer),
-          [me = shared_from_this()](const boost::system::error_code& err,
-                                    size_t nb_read) {
-            me->_on_stderr_read(err, nb_read);
-          });
-    } catch (const std::exception& e) {
-      asio::post(*_io_context, [me = shared_from_this()]() {
-        me->_on_stderr_read(std::make_error_code(std::errc::broken_pipe), 0);
-      });
-    }
+  } else {
+    _stdout.append(received);
   }
 }
 
@@ -557,47 +326,11 @@ void process<use_mutex>::_stderr_read() {
  * @param nb_read
  */
 template <bool use_mutex>
-void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
-                                         size_t nb_read) {
-  bool eof = false;
-  std::string received;
-  {
-    detail::lock<use_mutex> l(&_protect);
-    if (err) {
-      if (err == asio::error::eof || err == asio::error::broken_pipe) {
-        SPDLOG_LOGGER_DEBUG(_logger,
-                            "pid:{} end read from stderr of process {}: {}",
-                            _proc->proc.handle().id(), *_args, err.message());
-      } else {
-        SPDLOG_LOGGER_ERROR(
-            _logger, "pid:{} fail read from stderr of process {}: {} {}",
-            _proc->proc.handle().id(), *_args, err.value(), err.message());
-      }
-      _completion_flags.fetch_or(e_completion_flags::stderr_eof);
-      eof = true;
-    } else {
-      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stderr: {}",
-                          _proc->proc.handle().id(), *_args,
-                          std::string_view(_stderr_read_buffer, nb_read));
-      if (!_stderr_handler) {
-        _stderr.append(_stderr_read_buffer, nb_read);
-        _stderr_read();
-      } else {
-        received.assign(_stderr_read_buffer, nb_read);
-      }
-    }
-  }
-
-  if (!received.empty()) {
+void process<use_mutex>::_on_stderr_read(const std::string received) {
+  if (_stderr_handler) {
     _stderr_handler(received);
-    {
-      detail::lock<use_mutex> l(&_protect);
-      _stderr_read();
-    }
-  }
-
-  if (eof) {
-    _on_completion();
+  } else {
+    _stderr.append(received);
   }
 }
 
@@ -609,53 +342,11 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
  */
 template <bool use_mutex>
 void process<use_mutex>::_on_timeout() {
-  detail::lock<use_mutex> l(&_protect);
-  _exit_status = e_exit_status::timeout;
-  if (_proc->proc.is_open()) {
+  if (this->is_alive()) {
     SPDLOG_LOGGER_ERROR(_logger, "pid:{} timeout process {} => kill",
-                        _proc->proc.handle().id(), *_args);
-    boost::system::error_code err;
-    _proc->proc.terminate(err);
-    _terminated = true;
-  }
-}
-
-/**
- * @brief called when process end or stdout/stderr eof.
- * Once process is ended and stdin and stdout also, we call handler
- *
- * @tparam use_mutex
- */
-template <bool use_mutex>
-void process<use_mutex>::_on_completion() {
-  unsigned expected = e_completion_flags::all_completed;
-  if (_completion_flags.compare_exchange_strong(
-          expected, e_completion_flags::handler_called)) {
-    {
-      detail::lock<use_mutex> l(&_protect);
-      _timeout_timer.cancel();
-    }
-    _handler(*this, _exit_code, _exit_status, _stdout, _stderr);
-  }
-}
-
-/**
- * @brief kill child process
- *
- */
-template <bool use_mutex>
-void process<use_mutex>::kill() {
-  detail::lock<use_mutex> l(&_protect);
-  if (_proc) {
-    auto child_pid = _proc->proc.handle().id();
-    SPDLOG_LOGGER_INFO(_logger, "pid:{} kill process {}", child_pid, *_args);
-    boost::system::error_code err;
-    _proc->proc.terminate(err);
-    _terminated = true;
-    if (err) {
-      SPDLOG_LOGGER_INFO(_logger, "pid:{} fail to kill {}: {}", child_pid,
-                         *_args, err.message());
-    }
+                        this->get_pid(), *_args);
+    this->_set_exit_status(e_exit_status::timeout);
+    this->kill();
   }
 }
 
