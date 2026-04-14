@@ -20,7 +20,10 @@
 #include <absl/crc/crc32c.h>
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/lua/connector.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -64,8 +67,8 @@ bool factory::has_endpoint(const config::endpoint& cfg,
  * @param cfg config to update
  */
 void factory::set_default_values(config::endpoint& cfg) const {
-  cfg.params["cache"] = "yes";
-  cfg.cache_enabled = true;
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
   // in order to detect script change, we calculate a checksum of lua script
   std::string script_path(find_param(cfg, "path"));
   std::stringstream script_content;
@@ -164,6 +167,13 @@ io::endpoint* factory::new_endpoint(
       }
     }
   }
+
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
+  }
+
   // Connector.
   auto c{std::make_unique<lua::connector>()};
   c->connect_to(filename, conf_map, cache);

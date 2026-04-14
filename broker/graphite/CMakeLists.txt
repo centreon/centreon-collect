@@ -23,7 +23,8 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/graphite/test")
 include_directories(
   ${INC_DIR} ${PROJECT_SOURCE_DIR}/neb/inc
   ${CMAKE_BINARY_DIR}/common/process_stat
-  ${PROJECT_SOURCE_DIR}/storage/inc)
+  ${PROJECT_SOURCE_DIR}/storage/inc
+  ${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/graphite")
 
 # GRAPHITE module.
@@ -39,16 +40,17 @@ add_library(
   "${SRC_DIR}/stream.cc"
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/query.cc"
-  "${SRC_DIR}/macro_cache.cc"
   # Headers.
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/stream.hh"
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/query.hh"
-  "${INC_DIR}/macro_cache.hh")
-target_link_libraries(
-  "${GRAPHITE}" PRIVATE bbdo_storage pb_storage_lib spdlog::spdlog)
-
+)
+target_link_libraries("${GRAPHITE}" 
+  http_tsdb
+  bbdo_storage 
+  pb_storage_lib 
+  fmt::fmt)
 target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")

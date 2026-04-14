@@ -1,28 +1,29 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/influxdb/factory.hh"
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
 
-#include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/influxdb/column.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/influxdb/connector.hh"
+#include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -66,8 +67,8 @@ bool factory::has_endpoint(const config::endpoint& cfg,
  * @param cfg config to update
  */
 void factory::set_default_values(config::endpoint& cfg) const {
-  cfg.params["cache"] = "yes";
-  cfg.cache_enabled = true;
+  cfg.params["cache"] = "no";
+  cfg.cache_enabled = false;
 }
 
 /**
@@ -79,10 +80,9 @@ void factory::set_default_values(config::endpoint& cfg) const {
  *
  *  @return Endpoint matching the given configuration.
  */
-io::endpoint* factory::new_endpoint(
-    config::endpoint& cfg,
-    bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache) const {
+io::endpoint* factory::new_endpoint(config::endpoint& cfg,
+                                    bool& is_acceptor,
+                                    std::shared_ptr<persistent_cache>) const {
   std::string user(find_param(cfg, "db_user"));
   std::string passwd(find_param(cfg, "db_password"));
   std::string addr(find_param(cfg, "db_host"));
@@ -135,41 +135,47 @@ io::endpoint* factory::new_endpoint(
 
   // Get status query.
   std::string status_timeseries{find_param(cfg, "status_timeseries")};
-  std::vector<column> status_column_list;
+  std::vector<http_tsdb::column> status_column_list;
   json const& status_columns = cfg.cfg["status_column"];
   if (status_columns.is_object())
-    status_column_list.push_back(column(
+    status_column_list.emplace_back(
         chk_str(status_columns["name"]), chk_str(status_columns["value"]),
         chk_bool(chk_str(status_columns["is_tag"])),
-        column::parse_type(chk_str(status_columns["type"]))));
+        http_tsdb::column::parse_type(chk_str(status_columns["type"])));
   else if (status_columns.is_array())
     for (json const& object : status_columns)
-      status_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+      status_column_list.emplace_back(
+          chk_str(object["name"]), chk_str(object["value"]),
+          chk_bool(chk_str(object["is_tag"])),
+          http_tsdb::column::parse_type(chk_str(object["type"])));
 
   // Get metric query.*/
   std::string metric_timeseries(find_param(cfg, "metrics_timeseries"));
-  std::vector<column> metric_column_list;
+  std::vector<http_tsdb::column> metric_column_list;
   json const& metric_columns = cfg.cfg["metrics_column"];
   if (metric_columns.is_object())
-    metric_column_list.push_back(column(
+    metric_column_list.emplace_back(
         chk_str(metric_columns["name"]), chk_str(metric_columns["value"]),
         chk_bool(chk_str(metric_columns["is_tag"])),
-        column::parse_type(chk_str(metric_columns["type"]))));
+        http_tsdb::column::parse_type(chk_str(metric_columns["type"])));
   else if (metric_columns.is_array())
     for (json const& object : metric_columns)
-      metric_column_list.push_back(
-          column(chk_str(object["name"]), chk_str(object["value"]),
-                 chk_bool(chk_str(object["is_tag"])),
-                 column::parse_type(chk_str(object["type"]))));
+      metric_column_list.emplace_back(
+          chk_str(object["name"]), chk_str(object["value"]),
+          chk_bool(chk_str(object["is_tag"])),
+          http_tsdb::column::parse_type(chk_str(object["type"])));
+
+  if (config::applier::state::loaded()) {  // false only happens in UTs
+    cache::global_cache::load(
+        com::centreon::common::pool::io_context_ptr(),
+        config::applier::state::instance().cache_dir() + ".cache.global");
+  }
 
   // Connector.
   std::unique_ptr<influxdb::connector> c(new influxdb::connector);
   c->connect_to(user, passwd, addr, port, db, queries_per_transaction,
                 status_timeseries, status_column_list, metric_timeseries,
-                metric_column_list, cache);
+                metric_column_list);
   is_acceptor = false;
   return c.release();
 }

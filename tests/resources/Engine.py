@@ -60,7 +60,7 @@ TIMEOUT = 30
 
 
 class EngineInstance:
-    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
+    def __init__(self, count: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
         self.last_service_id = 0
         self.hosts = []
         self.services = []
@@ -72,7 +72,7 @@ class EngineInstance:
         self.host_cmd = {}
         self.service_cmd = {}
         self.anomaly_detection_internal_id = 1
-        self.build_configs(hosts, srv_by_host, 0, custom_command)
+        self.build_configs(hosts, srv_by_host, 0, custom_command, check_active)
         makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
         makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
         makedirs(CONF_DIR, mode=0o777, exist_ok=True)
@@ -189,7 +189,7 @@ class EngineInstance:
                 "check_service_freshness=1\n"
                 "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
-    def _create_host(self):
+    def _create_host(self, check_active: bool = True):
         self.last_host_id += 1
         hid = self.last_host_id
         self.host_cmd[hid] = f"checkh{hid}"
@@ -200,23 +200,43 @@ class EngineInstance:
         c = q % 255
         q //= 255
         d = q % 255
+        check_active_value = 1
+        if not check_active:
+            check_active_value = 0
+
+        active_passive = ""
+        if not check_active_value:
+            active_passive = """    active_checks_enabled           1
+    passive_checks_enabled          1
+    """
 
         retval = {
-            "config": f"define host {{\n" f"    host_name                      host_{hid}\n    alias                          "
-            f"host_{hid}\n    address                        {a}.{b}.{c}.{d}\n    check_command                "
-            f"  checkh{hid}\n    check_period                   24x7\n    register                       1\n    "
-            f"_KEY{hid}                      VAL{hid}\n    _SNMPCOMMUNITY                 public\n    "
-            f"_SNMPVERSION                   2c\n    _HOST_ID                       {hid}\n}}\n",
+            "config": f"""define host {{
+    host_name                      host_{hid}
+    alias                          host_{hid}
+    address                        {a}.{b}.{c}.{d}
+    check_command                  checkh{hid}
+    check_period                   24x7
+    register                       1
+{active_passive}_KEY{hid}                      VAL{hid}
+    _SNMPCOMMUNITY                 public
+    _SNMPVERSION                   2c
+    _HOST_ID                       {hid}
+}}
+""",
             "hid": hid}
         return retval
 
-    def _create_service(self, host_id: int, cmd_ids):
+    def _create_service(self, host_id: int, cmd_ids, check_active: bool = True):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
-        self.service_cmd[service_id] = f"command_{command_id}"
+        self.service_cmd[service_id] = "command_{}".format(command_id)
+        check_active_value = 1
+        if not check_active:
+            check_active_value = 0
 
-        retval = f"""define service {{
+        return {"config": f"""define service {{
     host_name                       host_{host_id}
     service_description             service_{service_id}
     _SERVICE_ID                     {service_id}
@@ -226,12 +246,12 @@ class EngineInstance:
     check_interval                  5
     retry_interval                  5
     register                        1
-    active_checks_enabled           1
+    active_checks_enabled           {check_active_value}
     passive_checks_enabled          1
     _KEY_SERV{host_id}_{service_id}                VAL_SERV{service_id}
 }}
-"""
-        return retval, service_id
+""",
+            "sid": service_id}
 
     def create_service_with_custom_command(self, host_id: int, service_index_in_host: int):
         """
@@ -263,7 +283,7 @@ class EngineInstance:
             retval += "    _KO                             KO\n"
 
         retval += "}\n"
-        return retval, service_id
+        return {"config": retval, "sid": service_id}
 
     def ctn_create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         """
@@ -443,6 +463,62 @@ define command {
         logger.console(retval)
         return retval
 
+    def create_all_host_groups(self, nb_group_per_host: int, nb_group: int):
+        file_contents = {}  # instance_id => hostgroups.cfg content
+        groups = {}  # instance_id => group_id => members
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for host_id in range(1, self.last_host_id+1):
+            instance_id = (host_id + nb_host_per_instance -
+                           1) // nb_host_per_instance
+            for grp_index in range(nb_group_per_host):
+                group_id = (host_id+grp_index) % nb_group
+                if not instance_id in groups:
+                    groups[instance_id] = {}
+                if not group_id in groups[instance_id]:
+                    groups[instance_id][group_id] = []
+                groups[instance_id][group_id].append(host_id)
+
+        for instance_id, by_instance in groups.items():
+            if not instance_id in file_contents:
+                file_contents[instance_id] = ""
+            for group_id, members in by_instance.items():
+                sz_members = list(map(lambda x: f"host_{x}", members))
+                grp = engine.create_host_group(
+                    group_id + 1, sz_members)
+                file_contents[instance_id] += grp
+        for instance_id, file_content in file_contents.items():
+            with open(f"{ETC_ROOT}/centreon-engine/config{instance_id-1}/hostgroups.cfg", "a+") as f:
+                f.write(file_content)
+
+    def create_all_service_groups(self, nb_group_per_service: int, nb_group: int):
+        file_contents = {}  # instance_id => servicegroups.cfg content
+        groups = {}  # instance_id => group_id => members
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for service_id in range(1, self.last_service_id + 1):
+            host_id = (service_id - 1) // self.service_by_host + 1
+            instance_id = (host_id + nb_host_per_instance -
+                           1) // nb_host_per_instance
+            for grp_index in range(nb_group_per_service):
+                group_id = (service_id + grp_index) % nb_group
+                if not instance_id in groups:
+                    groups[instance_id] = {}
+                if not group_id in groups[instance_id]:
+                    groups[instance_id][group_id] = []
+                groups[instance_id][group_id].extend(
+                    [f"host_{host_id}", f"service_{service_id}"])
+
+        for instance_id, by_instance in groups.items():
+            if not instance_id in file_contents:
+                file_contents[instance_id] = ""
+            for group_id, members in by_instance.items():
+                grp = engine.create_service_group(group_id + 1, members)
+                file_contents[instance_id] += grp
+        for instance_id, file_content in file_contents.items():
+            with open(f"{ETC_ROOT}/centreon-engine/config{instance_id-1}/servicegroups.cfg", "a+") as f:
+                f.write(file_content)
+
     @staticmethod
     def create_contact_group(id, mbs):
         retval = """define contactgroup {{
@@ -492,13 +568,13 @@ define command {
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
     ;dependency_name               HD_test
-    execution_failure_criteria     n 
-    notification_failure_criteria  c 
-    inherits_parent                1 
-    dependent_host_name            {0} 
-    host_name                      {1} 
-    dependent_service_description  {2} 
-    service_description            {3} 
+    execution_failure_criteria     n
+    notification_failure_criteria  c
+    inherits_parent                1
+    dependent_host_name            {0}
+    host_name                      {1}
+    dependent_service_description  {2}
+    service_description            {3}
 
     }}
     """.format(dependenthost, host, dependentservice, service)
@@ -509,12 +585,12 @@ define command {
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define servicedependency {{
-    ;dependency_name               MSD_test 
-    execution_failure_criteria     n 
-    notification_failure_criteria  c 
-    inherits_parent                1 
-    dependent_servicegroup_name    {0} 
-    servicegroup_name              {1} 
+    ;dependency_name               MSD_test
+    execution_failure_criteria     n
+    notification_failure_criteria  c
+    inherits_parent                1
+    dependent_servicegroup_name    {0}
+    servicegroup_name              {1}
 
     }}
     """.format(dependentservicegroup, servicegroup)
@@ -525,12 +601,12 @@ define command {
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
-    ;dependency_name               HD_test2 
-    execution_failure_criteria     n 
-    notification_failure_criteria  d 
-    inherits_parent                1 
-    dependent_host_name            {0} 
-    host_name                      {1} 
+    ;dependency_name               HD_test2
+    execution_failure_criteria     n
+    notification_failure_criteria  d
+    inherits_parent                1
+    dependent_host_name            {0}
+    host_name                      {1}
 
     }}
     """.format(dependenthost, host)
@@ -541,12 +617,12 @@ define command {
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
             content = """define hostdependency {{
-    ;dependency_name               HD_test2 
-    execution_failure_criteria     n 
-    notification_failure_criteria  d 
-    inherits_parent                1 
-    dependent_hostgroup_name       {0} 
-    hostgroup_name                 {1} 
+    ;dependency_name               HD_test2
+    execution_failure_criteria     n
+    notification_failure_criteria  d
+    inherits_parent                1
+    dependent_hostgroup_name       {0}
+    hostgroup_name                 {1}
 
     }}
     """.format(dependenthostgrp, hostgrp)
@@ -594,7 +670,7 @@ passive_checks_enabled 1
 """
             ff.write(content)
 
-    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = ""):
+    def build_configs(self, hosts: int, services_by_host: int, debug_level=0, custom_command: str = "", check_active: bool = True):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
         r = 0
@@ -618,18 +694,21 @@ passive_checks_enabled 1
             with open(f"{config_dir}/hosts.cfg", "w") as f:
                 with open(f"{config_dir}/services.cfg", "w") as ff:
                     for i in range(1, nb_hosts + 1):
-                        h = self._create_host()
+                        h = self._create_host(check_active)
                         f.write(h["config"])
-                        self.hosts.append("host_{}".format(h["hid"]))
+                        hid = h["hid"]
+                        self.hosts.append("host_{}".format(hid))
                         for j in range(1, services_by_host + 1):
                             if (len(custom_command)) > 0:
-                                svc = self.create_service_with_custom_command(
+                                s = self.create_service_with_custom_command(
                                     h["hid"], j)
                             else:
-                                svc = self._create_service(
-                                    h["hid"], (inst * self.commands_count + 1, (inst + 1) * self.commands_count))
-                            ff.write(svc[0])
-                            self.services.append(f"service_{svc[1]}")
+                                s = self._create_service(h["hid"],
+                                                         (inst * self.commands_count + 1, (inst + 1) * self.commands_count), check_active)
+                            ff.write(s["config"])
+                            sid = s["sid"]
+                            self.services.append(
+                                f"service_{sid},host_{hid}")
 
             with open(f"{config_dir}/commands.cfg", "w") as f:
                 if (len(custom_command) > 0):
@@ -826,11 +905,21 @@ define contact {
             f.writelines(f"cfg_file={config_dir}/anomaly_detection.cfg\n")
             f.writelines(lines)
 
+    def process_all_services_check_result_with_metrics(self, state: int, output: str, metrics: int, metric_name: str = 'metric'):
+        nb_host_per_instance = (
+            self.last_host_id + self.instances - 1) // self.instances
+        for entry in self.services:
+            svc, hst = entry.split(",")
+            host_id = int(hst.split("_")[1])
+            instance_idx = (host_id - 1) // nb_host_per_instance
+            ctn_process_service_check_result_with_metrics(
+                hst, svc, state, output, metrics, f"config{instance_idx}", metric_name)
+
 
 engine = None
 
 
-def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = ""):
+def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_command: str = "", check_active: bool = True):
     """
     Configure all the necessary files for num instances of centengine.
 
@@ -838,10 +927,13 @@ def ctn_config_engine(num: int, hosts: int = 50, srv_by_host: int = 20, custom_c
         num (int): How many engine configurations to start
         hosts (int, optional): Defaults to 50.
         srv_by_host (int, optional): Defaults to 20.
-        sh_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        custom_command: if True, services will use check.sh instead of check.pl, services will have some extra macros
+        check_active: if false, all services and hosts will use only passive checks
     """
     global engine
-    engine = EngineInstance(num, hosts, srv_by_host, custom_command)
+    engine = EngineInstance(num, hosts, srv_by_host,
+                            custom_command, check_active)
+    return engine
 
 
 def ctn_get_engines_count():
@@ -1604,6 +1696,59 @@ def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
         f.write(engine.create_contact_group(id_contact_group, members))
 
 
+def ctn_add_all_host_groups(nb_group_per_host: int, nb_group: int):
+    """
+    Add host groups to all hosts
+    Args:
+        nb_group_per_host (int): number of groups for each host
+        nb_group (int)
+    """
+    engine.create_all_host_groups(nb_group_per_host, nb_group)
+
+
+def ctn_add_all_service_groups(nb_group_per_service: int, nb_group: int):
+    """
+    Add service groups to all services
+    Args:
+        nb_group_per_service (int): number of groups for each service
+        nb_group (int)
+    """
+    engine.create_all_service_groups(nb_group_per_service, nb_group)
+
+
+def ctn_process_all_services_check_result_with_metrics(state: int, output: str, metrics: int, metric_name: str = 'metric'):
+    """
+    Send a service check result with metrics for all services.
+    Args:
+        state (int): State of the check to set.
+        output (str): An output message for the check.
+        metrics (int): The number of metrics that should appear in the result.
+        metric_name (str): The base name of metrics. Defaults to 'metric'.
+    """
+    engine.process_all_services_check_result_with_metrics(
+        state, output, metrics, metric_name)
+
+
+def ctn_get_random_services(n: int):
+    """
+    Returns n randomly picked (host_id, service_id) tuples from engine services.
+
+    Args:
+        n (int): Number of services to pick.
+
+    Returns:
+        List of (host_id, service_id) tuples.
+    """
+    sample = random.sample(engine.services, min(n, len(engine.services)))
+    result = []
+    for entry in sample:
+        svc, hst = entry.split(",")
+        host_id = int(hst.split("_")[1])
+        service_id = int(svc.split("_")[1])
+        result.append((host_id, service_id))
+    return result
+
+
 def ctn_create_service(index: int, host_id: int, cmd_id: int):
     """
     Create a service on the engine instance index, on the host host_id, with the command cmd_id.
@@ -1621,9 +1766,17 @@ def ctn_create_service(index: int, host_id: int, cmd_id: int):
     """
     global engine
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
-        svc = engine._create_service(host_id, (1, cmd_id))
-        retval = svc[1]
-        f.write(svc[0])
+        svc = (engine._create_service(host_id, [1, cmd_id]))["config"]
+        lst = svc.split('\n')
+        good = [line for line in lst if "_SERVICE_ID" in line][0]
+        m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
+        if m is not None:
+            retval = int(m.group(1))
+        else:
+            raise Exception(
+                "Impossible to get the service id from '{}'".format(good))
+            m = 0
+        f.write(svc)
     return retval
 
 

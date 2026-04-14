@@ -18,8 +18,10 @@
  */
 
 #include "com/centreon/broker/http_tsdb/stream.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
@@ -261,9 +263,11 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
         {
-          const cache::host_serv_pair* host_serv =
-              cache::global_cache::instance_ptr()->get_host_serv_id(
-                  converted.index_id());
+          std::optional<cache::host_serv_pair> host_serv;
+          auto cache_instance = cache::global_cache::instance_ptr();
+          if (cache_instance) {
+            host_serv = cache_instance->get_host_serv_id(converted.index_id());
+          }
           if (!host_serv) {
             SPDLOG_LOGGER_ERROR(
                 _logger, "unable to find host_id service_id from index_id:{}",
@@ -343,7 +347,7 @@ static time_point _epoch = system_clock::from_time_t(0);
 void stream::send_handler(const boost::beast::error_code& err,
                           const std::string& detail,
                           const request::pointer& request,
-                          const common::http::response_ptr& response) {
+                          const common::http::response_ptr&) {
   auto actu_stat_avg = [&]() -> void {
     if (request->get_connect_time() > _epoch &&
         request->get_send_time() > _epoch) {

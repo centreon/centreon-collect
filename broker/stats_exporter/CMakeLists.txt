@@ -33,7 +33,7 @@ target_link_libraries(
   ${STATS_EXPORTER}
   PRIVATE
   ${CURL_LIBRARY_RELEASE}
-  spdlog::spdlog
+  fmt::fmt
   -L${OTLP_LIB_DIR}
   opentelemetry_version
   opentelemetry_exporter_otlp_grpc

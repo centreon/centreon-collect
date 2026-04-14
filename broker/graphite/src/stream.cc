@@ -44,8 +44,7 @@ stream::stream(std::string const& metric_naming,
                std::string const& db_password,
                std::string const& db_host,
                unsigned short db_port,
-               uint32_t queries_per_transaction,
-               std::shared_ptr<persistent_cache> const& cache)
+               uint32_t queries_per_transaction)
     : io::stream("graphite"),
       _metric_naming{metric_naming},
       _status_naming{status_naming},
@@ -58,11 +57,12 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _metric_query{_metric_naming, escape_string, query::metric, _cache},
-      _status_query{_status_naming, escape_string, query::status, _cache},
+      _metric_query{_metric_naming, escape_string, query::data_type::metric,
+                    log_v2::instance().get(log_v2::GRAPHITE)},
+      _status_query{_status_naming, escape_string, query::data_type::status,
+                    log_v2::instance().get(log_v2::GRAPHITE)},
       _socket{_io_context},
-      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
-      _cache{cache} {
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)} {
   _logger->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
@@ -165,9 +165,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   if (!validate(data, get_name()))
     return 0;
 
-  // Give the event to the cache.
-  _cache.write(data);
-
   // Process metric events.
   switch (data->type()) {
     case storage::metric::static_type():
@@ -217,7 +214,7 @@ bool stream::_process_metric(storage::metric const& me) {
  *  @param[in] me  The event to process.
  */
 bool stream::_process_metric(storage::pb_metric const& me) {
-  std::string to_append = _metric_query.generate_metric(me);
+  std::string to_append = _metric_query.append_metric(me);
   _query.append(to_append);
   return !to_append.empty();
 }
@@ -239,7 +236,7 @@ bool stream::_process_status(storage::status const& st) {
  *  @param[in] st  The status event.
  */
 bool stream::_process_status(storage::pb_status const& st) {
-  std::string to_append = _status_query.generate_status(st);
+  std::string to_append = _status_query.append_status(st);
   _query.append(to_append);
   return !to_append.empty();
 }

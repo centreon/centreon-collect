@@ -87,7 +87,7 @@ set_property(TARGET opentelemetry_base PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(opentelemetry_base PRIVATE precomp_inc/precomp.hh)
 target_link_libraries(
   opentelemetry_base
-  PRIVATE spdlog::spdlog pb_open_telemetry_lib protobuf::libprotobuf Boost::url
+  PRIVATE fmt::fmt pb_open_telemetry_lib protobuf::libprotobuf Boost::url
           Boost::program_options)
 add_dependencies(opentelemetry_base process_stat engine_rpc)
 
@@ -99,7 +99,7 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(
   opentelemetry
-  PRIVATE spdlog::spdlog
+  PRIVATE fmt::fmt
 	  opentelemetry_base
 	  pb_open_telemetry_lib
 	  protobuf::libprotobuf

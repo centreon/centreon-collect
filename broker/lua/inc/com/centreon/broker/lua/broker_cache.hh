@@ -19,8 +19,6 @@
 #ifndef CCB_LUA_BROKER_CACHE_HH
 #define CCB_LUA_BROKER_CACHE_HH
 
-#include "com/centreon/broker/lua/macro_cache.hh"
-
 extern "C" {
 #include "lauxlib.h"
 #include "lua.h"
@@ -38,9 +36,7 @@ namespace com::centreon::broker::lua {
  */
 class broker_cache {
  public:
-  static void broker_cache_reg(lua_State* L,
-                               macro_cache const& cache,
-                               uint32_t api_version);
+  static void broker_cache_reg(lua_State* L, uint32_t api_version);
 };
 
 }  // namespace com::centreon::broker::lua

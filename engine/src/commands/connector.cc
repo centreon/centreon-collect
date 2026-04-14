@@ -612,7 +612,6 @@ void connector::_recv_query_version(const std::string_view& data) {
   try {
     // Parse query version response to get major and minor
     // engine version supported by the connector.
-    unsigned length = data.size();
     unsigned major, minor;
     auto major_minor_sep = data.find('\0');
     if (major_minor_sep == std::string_view::npos) {

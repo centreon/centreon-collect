@@ -172,7 +172,7 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SRC ${SRC_COMMON} ${SRC_LINUX})
+  set(SRC ${SRC_COMMON} ${SRC_LINUX} ${SRC_PB_OTEL} )
 else()
   add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS})
@@ -207,6 +207,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++
     fmt::fmt
