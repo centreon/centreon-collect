@@ -558,7 +558,9 @@ sub pathway {
     if (defined($register_subnodes->{$target}->{dynamic})) {
         push @targets, keys %{$register_subnodes->{$target}->{dynamic}};
     }
-
+    use Data::Dumper;
+    $options{logger}->writeLogError("re nodes : " . Dumper($register_nodes));
+    $options{logger}->writeLogError("re SUB nodes : " . Dumper($register_subnodes));
     my $first_target;
     foreach (@targets) {
         if ($register_nodes->{$_}->{type} =~ /^(?:pull|wss|pullwss)$/ && !defined($register_nodes->{$_}->{identity})) {
@@ -1085,12 +1087,18 @@ sub register_nodes {
                 }
             }
         }
+        if ($node->{uuid} and !$register_nodes->{$node->{uuid}}) {
+            $register_nodes->{$node->{uuid}} = $register_nodes->{$node->{id}};
+        }
 
         # we update identity in all cases (already created or not)
+
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
         }
+        use Data::Dumper;
+        $options{logger}->writeLogInfo("[proxy-EVAN] node info after the identity thing : " . Dumper($register_nodes));
 
         $last_pong->{ $node->{id} } = 0 if (!defined($last_pong->{ $node->{id} }));
         if (!defined($synctime_nodes->{ $node->{id} })) {
@@ -1139,6 +1147,20 @@ sub register_nodes {
                 nodes => {}
             };
             $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is registered");
+        }
+        # now we link the uuid and the id of the node
+
+        if (!$constatus_ping->{$node->{uuid}}) {
+            $constatus_ping->{$node->{uuid}} = $constatus_ping->{$node->{id}};
+        }
+        if (!$last_pong->{$node->{uuid}}) {
+            $last_pong->{$node->{uuid}} = $last_pong->{$node->{id}};
+        }
+        if (!$synctime_nodes->{$node->{uuid}}) {
+            $synctime_nodes->{$node->{uuid}} = $synctime_nodes->{$node->{id}};
+        }
+        if (!$register_subnodes->{$node->{uuid}} and $register_subnodes->{$node->{uuid}}) {
+            $register_subnodes->{$node->{uuid}} = $register_subnodes->{$node->{id}};
         }
     }
 }

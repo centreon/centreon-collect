@@ -214,7 +214,7 @@ sub run {
     $daemon->inactivity_timeout(180);
 
     # now that httpserver is ready, we need to tell nodes module to send us the data of every nodes configured.
-    # there is now way for nodes module to wait on this module as it is optional, and if httpserver start after nodes, messages will be lost
+    # there is no way for nodes module to wait on this module as it is optional, and if httpserver start after nodes, messages will be lost
     # and httpserver will refuse connexion until nodes next retrival (30min)
     $self->send_internal_action({
         action => 'CENTREONNODESSYNC',
@@ -237,11 +237,15 @@ sub read_message_client {
 
         $connector->send_internal_action({
             action => 'PONG',
-            data => $data,
-            token => $token,
+            data   => $data,
+            token  => $token,
             target => ''
         });
         $connector->read_zmq_events();
+  #  }elsif ($options{data} =~ /^\[(?:REGISTERNODES)\]/){
+  #      # As we are on the httpserver module, this message comme from the poller.
+  #      # I still don't know why we transmit this message to the other modules on the central, as there is already nodes module to determine the poller list.
+  #      return;
     } elsif ($options{data} =~ /^\[(?:REGISTERNODES|UNREGISTERNODES|SYNCLOGS|SETLOGS)\]/) {
         return undef if ($options{data} !~ /^\[(.+?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)/ms);
 
@@ -266,6 +270,7 @@ If the message is valid, update the internal state to allow new nodes connect, a
 
 Return : 1 in case of failure, 0 in case of success
 =cut
+    use Data::Dumper;
 sub action_proxyaddnode {
     my ($self, %options) = @_;
     my $nodes = $options{data};
@@ -294,12 +299,19 @@ sub action_proxyaddnode {
             # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
         }
         $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
+        # we add the node with it's id as key
         $temp_nodes->{$node->{id}} = $node;
+        # then we make a reference, using the uuid as key and the same hashmap as a value.
+        # this allow to transparently use both id and uuid as key, without worrying about duplicate element.
+        $temp_nodes->{$node->{uuid}} = $temp_nodes->{$node->{id}};
+
     }
     # disconnect every node that don't exist anymore.
     for my $delete_node (keys %{$self->{nodes}}){
         next if $temp_nodes->{$delete_node};
 
+        $self->{logger}->writeLogInfo("[EVAN] trying to see node $delete_node, identities is : " . Dumper($self->{identities}));
+        $self->{logger}->writeLogInfo("[EVAN] temp_node : " . Dumper($temp_nodes));
         my $ws_id = $self->{identities}->{ $delete_node };
         $self->{ws_clients}->{ $ws_id }->{tx}->finish();
         $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore, disconnecting client " . $ws_id );
