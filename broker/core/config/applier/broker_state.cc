@@ -182,26 +182,55 @@ void broker_state::add_peer(uint64_t poller_id,
   assert(poller_id && !broker_name.empty());
   {
     absl::WriterMutexLock lck(&_connected_peers_m);
-    auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-    if (found == _connected_peers.end()) {
-      _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
-      _connected_peers[{poller_id, poller_name, broker_name}] =
-          peer{poller_id,   poller_name,
-               broker_name, time(nullptr),
-               peer_type,   extended_negotiation,
-               "",          engine_conf,
-               false,       true,
-               false};
-    } else {
+    const peer_key key{poller_id, poller_name, broker_name};
+
+    bool already_present = _engine_peers.count(key) ||
+                           _broker_peers.count(key) ||
+                           _unknown_peers.count(key);
+    if (already_present) {
       _logger->warn(
           "Poller '{}' with id {} already known as connected. Replacing it.",
           broker_name, poller_id);
-      found->second.connected_since = time(nullptr);
-      found->second.peer_type = peer_type;
-      found->second.extended_negotiation = extended_negotiation;
-      found->second.engine_conf = engine_conf;
-      found->second.available_conf_sent = false;
-      /* available_conf is already set. */
+    } else {
+      _logger->info("Poller '{}' with id {} connected", broker_name, poller_id);
+    }
+
+    /* For ENGINE reconnections, preserve the known engine_conf if the caller
+     * did not supply a new one. */
+    std::string effective_engine_conf = engine_conf;
+    if (effective_engine_conf.empty() && peer_type == common::ENGINE) {
+      auto it = _engine_peers.find(key);
+      if (it != _engine_peers.end())
+        effective_engine_conf = it->second.engine_conf;
+    }
+
+    /* Remove from all maps in case the peer type changed. */
+    _engine_peers.erase(key);
+    _broker_peers.erase(key);
+    _unknown_peers.erase(key);
+
+    switch (peer_type) {
+      case common::BROKER:
+        _broker_peers[key] = broker_peer{poller_id, poller_name, broker_name,
+                                         time(nullptr), extended_negotiation};
+        break;
+      case common::ENGINE:
+        _engine_peers[key] = engine_peer{poller_id,
+                                         poller_name,
+                                         broker_name,
+                                         time(nullptr),
+                                         extended_negotiation,
+                                         "",
+                                         effective_engine_conf,
+                                         false,
+                                         true,
+                                         false};
+        break;
+      default:
+        _unknown_peers[key] =
+            unknown_peer{poller_id,     poller_name, broker_name,
+                         time(nullptr), peer_type,   extended_negotiation};
+        break;
     }
   }
   if (extended_negotiation) {
@@ -259,14 +288,15 @@ bool broker_state::_feed_cache_and_wake_up_resources(uint64_t poller_id) {
   }
   if (poller_conf_lost) {
     /* Broker is unable to update the cache concerning this poller because
-     * no <ID>.prot file is present in the pollers configuration directory and
-     * no <ID>.lck file is present in the cache configuration directory. So,
-     * no known configuration and no new configuration for this poller.
+     * no <ID>.prot file is present in the pollers configuration directory
+     * and no <ID>.lck file is present in the cache configuration directory.
+     * So, no known configuration and no new configuration for this poller.
      * In that case, Broker sends an empty DiffState to the poller that
      * forces the poller to send its current configuration if it has one.
      */
     _logger->info(
-        "The configuration of poller {} seems lost or unknown, asking for it "
+        "The configuration of poller {} seems lost or unknown, asking for "
+        "it "
         "to the poller",
         poller_id);
     set_poller_engine_conf_unknown(poller_id, true);
@@ -306,8 +336,8 @@ uint32_t broker_state::_get_lck_file_if_exists(uint32_t poller_id) noexcept {
 }
 
 /**
- * @brief Called from a Broker. Set the engine configuration of a poller among
- * the list of connected peers.
+ * @brief Called from a Broker. Set the engine configuration of a poller
+ * among the list of connected peers.
  *
  * @param poller_id The poller ID.
  * @param engine_conf The new Engine configuration version.
@@ -317,16 +347,17 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
                                           const std::string& broker_name,
                                           const std::string& engine_conf) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found == _connected_peers.end()) {
+  const peer_key key{poller_id, poller_name, broker_name};
+  auto found = _engine_peers.find(key);
+  if (found == _engine_peers.end()) {
     _logger->info("Poller with id {} not found in connected peers", poller_id);
   } else {
+    auto& peer = found->second;
     _logger->info(
         "Poller with id {} available conf '{}' and current version changed "
         "from '{}' to '{}'",
-        poller_id, found->second.available_conf, found->second.engine_conf,
-        engine_conf);
-    found->second.engine_conf = engine_conf;
+        poller_id, peer.available_conf, peer.engine_conf, engine_conf);
+    peer.engine_conf = engine_conf;
   }
 }
 
@@ -336,18 +367,17 @@ void broker_state::set_poller_engine_conf(uint32_t poller_id,
  * at the next negotiation, asking it to send back its full configuration.
  *
  * @param poller_id The poller ID.
- * @param unknown true to mark the configuration as unknown, false otherwise.
+ * @param unknown true to mark the configuration as unknown, false
+ * otherwise.
  */
 void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
                                                   bool unknown) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
+  for (auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) == poller_id) {
       _logger->info("Poller with id {} engine conf is now {}", poller_id,
                     unknown ? "unknown" : "known");
-      lower->second.conf_unknown = unknown;
+      peer.conf_unknown = unknown;
     }
   }
 }
@@ -362,12 +392,9 @@ void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
  */
 bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      return !lower->second.conf_unknown;
-    }
+  for (const auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) == poller_id)
+      return !peer.conf_unknown;
   }
   return true;
 }
@@ -375,28 +402,24 @@ bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
 bool broker_state::poller_is_up_to_date(uint32_t poller_id,
                                         const std::string& poller_name) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, poller_name, ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id &&
-       lower->second.poller_name == poller_name;
-       ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      const auto& current_conf = lower->second.engine_conf;
-      const auto& available_conf = lower->second.available_conf;
-      _logger->debug(
-          "Poller '{}' with id {} current conf: '{}' - available conf '{}'",
-          lower->second.poller_name, poller_id, current_conf, available_conf);
-      /* Two cases are possible:
-       * - available_conf is empty: it means there is no new configuration
-       *   available for this poller. It is up to date if its current_conf is
-       *   not empty (it has already a configuration).
-       * - available_conf is not empty: it means there is a new configuration
-       *   available for this poller. It is up to date if its current_conf is
-       *   equal to available_conf.
-       */
-      return (available_conf.empty() && !current_conf.empty()) ||
-             (!available_conf.empty() && current_conf == available_conf);
-    }
+  for (const auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) != poller_id || std::get<1>(key) != poller_name)
+      continue;
+    const auto& current_conf = peer.engine_conf;
+    const auto& available_conf = peer.available_conf;
+    _logger->debug(
+        "Poller '{}' with id {} current conf: '{}' - available conf '{}'",
+        peer.poller_name, poller_id, current_conf, available_conf);
+    /* Two cases are possible:
+     * - available_conf is empty: it means there is no new configuration
+     *   available for this poller. It is up to date if its current_conf
+     * is not empty (it has already a configuration).
+     * - available_conf is not empty: it means there is a new
+     * configuration available for this poller. It is up to date if its
+     * current_conf is equal to available_conf.
+     */
+    return (available_conf.empty() && !current_conf.empty()) ||
+           (!available_conf.empty() && current_conf == available_conf);
   }
   _logger->warn("Poller with id {} and name '{}' not found", poller_id,
                 poller_name);
@@ -413,15 +436,16 @@ void broker_state::remove_peer(uint64_t poller_id,
                                const std::string& broker_name) {
   assert(poller_id && !broker_name.empty());
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto found = _connected_peers.find({poller_id, poller_name, broker_name});
-  if (found != _connected_peers.end()) {
+  const peer_key key{poller_id, poller_name, broker_name};
+  bool erased = _engine_peers.erase(key) || _broker_peers.erase(key) ||
+                _unknown_peers.erase(key);
+  if (erased) {
     _logger->info("Peer poller: '{}' - broker: '{}' with id {} disconnected",
                   poller_name, broker_name, poller_id);
-    _connected_peers.erase(found);
   } else {
     _logger->warn(
-        "Peer poller: '{}' - broker: '{}' with id {} and type '{}' not found "
-        "in connected peers",
+        "Peer poller: '{}' - broker: '{}' with id {} not found in connected "
+        "peers",
         poller_name, broker_name, poller_id);
   }
 }
@@ -433,36 +457,88 @@ void broker_state::remove_peer(uint64_t poller_id,
  */
 bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower)
-    if (lower->second.peer_type == common::ENGINE)
+  for (const auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) == poller_id)
       return true;
+  }
   return false;
 }
 
 /**
  * @brief Get the list of connected pollers.
  *
- * @return A vector of pairs containing the poller id and the poller name.
+ * @return A vector of engine_peers.
  */
-std::vector<broker_state::peer> broker_state::connected_peers() const {
+std::vector<broker_state::engine_peer> broker_state::connected_pollers() const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  std::vector<peer> retval;
-  for (auto it = _connected_peers.begin(); it != _connected_peers.end(); ++it)
-    retval.push_back(it->second);
+  std::vector<engine_peer> retval;
+  retval.reserve(_engine_peers.size());
+  for (const auto& [key, peer] : _engine_peers) {
+    retval.push_back(peer);
+  }
   return retval;
 }
 
 /**
- * @brief Check if all Engine peers, whose an available configuration has been
- * sent, acknowledged their configuration. If it is the case, Broker can prepare
- * the database for them.
+ * @brief Get the list of connected peers.
  *
- * This function is a "test-and-reset": if all ENGINE peers have acknowledged,
- * it resets all their conf_acknowledged flags to false before returning true.
- * This prevents two concurrent ack handlers from both entering the global diff
- * block when they check simultaneously under the same write lock.
+ * @return A vector of peers.
+ */
+std::vector<broker_state::peer> broker_state::connected_peers() const {
+  absl::ReaderMutexLock lck(&_connected_peers_m);
+  std::vector<peer> retval;
+  retval.reserve(_engine_peers.size() + _broker_peers.size() +
+                 _unknown_peers.size());
+  for (const auto& [key, ep] : _engine_peers) {
+    retval.emplace_back(peer{.peer = ep, .peer_type = common::ENGINE});
+  }
+  for (const auto& [key, bp] : _broker_peers) {
+    retval.emplace_back(
+        peer{.peer =
+                 engine_peer{
+                     .poller_id = bp.poller_id,
+                     .poller_name = bp.poller_name,
+                     .broker_name = bp.broker_name,
+                     .connected_since = bp.connected_since,
+                     .extended_negotiation = bp.extended_negotiation,
+                     .available_conf = "",
+                     .engine_conf = "",
+                     .available_conf_sent = false,
+                     .conf_acknowledged = false,
+                     .conf_unknown = false,
+                 },
+             .peer_type = common::BROKER});
+  }
+  for (const auto& [key, up] : _unknown_peers) {
+    retval.emplace_back(
+        peer{.peer =
+                 engine_peer{
+                     .poller_id = up.poller_id,
+                     .poller_name = up.poller_name,
+                     .broker_name = up.broker_name,
+                     .connected_since = up.connected_since,
+                     .extended_negotiation = up.extended_negotiation,
+                     .available_conf = "",
+                     .engine_conf = "",
+                     .available_conf_sent = false,
+                     .conf_acknowledged = false,
+                     .conf_unknown = false,
+                 },
+             .peer_type = up.peer_type});
+  }
+  return retval;
+}
+
+/**
+ * @brief Check if all Engine peers, whose an available configuration has
+ * been sent, acknowledged their configuration. If it is the case, Broker
+ * can prepare the database for them.
+ *
+ * This function is a "test-and-reset": if all ENGINE peers have
+ * acknowledged, it resets all their conf_acknowledged flags to false before
+ * returning true. This prevents two concurrent ack handlers from both
+ * entering the global diff block when they check simultaneously under the
+ * same write lock.
  *
  * @return True if all Engine peers acknowledged their configuration,
  * false otherwise.
@@ -472,10 +548,9 @@ bool broker_state::all_engine_peers_acknowledged() {
   bool retval = true;
   uint32_t engine_count = 0;
   uint32_t engine_good = 0;
-  for (const auto& peer : _connected_peers) {
-    if (peer.second.peer_type == common::ENGINE &&
-        peer.second.available_conf_sent) {
-      if (!peer.second.conf_acknowledged)
+  for (const auto& [key, peer] : _engine_peers) {
+    if (peer.available_conf_sent) {
+      if (!peer.conf_acknowledged)
         retval = false;
       else
         ++engine_good;
@@ -487,11 +562,9 @@ bool broker_state::all_engine_peers_acknowledged() {
   if (retval && engine_count > 0) {
     /* Reset all flags so that a concurrent or subsequent call won't
      * trigger a second global diff publication for the same round. */
-    for (auto& peer : _connected_peers) {
-      if (peer.second.peer_type == common::ENGINE) {
-        peer.second.conf_acknowledged = false;
-        peer.second.available_conf_sent = false;
-      }
+    for (auto& [key, peer] : _engine_peers) {
+      peer.conf_acknowledged = false;
+      peer.available_conf_sent = false;
     }
   }
   return retval && engine_count > 0;
@@ -515,7 +588,8 @@ void broker_state::_check_last_engine_conf() {
 
   /* Fallback: scan the directory for any .lck files that inotify may have
    * missed (e.g. when multiple rapid touch() calls overflow the inotify
-   * queue). This ensures that no configuration update is permanently lost. */
+   * queue). This ensures that no configuration update is permanently lost.
+   */
   if (!_cache_config_dir.empty()) {
     std::error_code scan_ec;
     std::filesystem::directory_iterator dir_it(_cache_config_dir, scan_ec);
@@ -559,7 +633,8 @@ void broker_state::_check_last_engine_conf() {
         cache_config_dir() / fmt::to_string(poller_id), ec);
     if (ec) {
       _logger->error(
-          "Cannot compute the Engine configuration version for poller '{}': "
+          "Cannot compute the Engine configuration version for poller "
+          "'{}': "
           "{}",
           poller_id, ec.message());
       continue;
@@ -701,77 +776,73 @@ void broker_state::_prepare_diff_for_poller(
     uint64_t poller_id,
     std::unique_ptr<engine::configuration::State>&& state) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      if (lower->second.engine_conf != state->config_version()) {
-        _logger->debug(
-            "Poller '{}' with id {} has a new configuration available (old: "
-            "'{}', new: '{}')",
-            lower->second.poller_name, poller_id, lower->second.engine_conf,
-            state->config_version());
-        std::filesystem::path previous_prot_conf =
-            pollers_config_dir() / fmt::format("{}.prot", poller_id);
-        std::fstream f(previous_prot_conf);
-        std::unique_ptr<engine::configuration::DiffState> diff_state;
-        std::string new_version = state->config_version();
-        if (f) {
-          /* There is a previous configuration */
-          auto previous_state =
-              std::make_unique<engine::configuration::State>();
-          previous_state->ParseFromIstream(&f);
-          /* If the known configuration by Broker is the same as the one sent
-           * by the poller, we can compute the diff. */
-          if (previous_state->config_version() == lower->second.engine_conf) {
-            diff_state = std::make_unique<engine::configuration::DiffState>();
-            auto previous_indexed_state =
-                engine::configuration::indexed_state(std::move(previous_state));
-            previous_indexed_state.diff_with_new_config(*state, _logger,
-                                                        diff_state.get());
-          } else {
-            /* Otherwise, we do as if there was no previous
-             * configuration, so the diff will be the whole new configuration.
-             */
-            _logger->warn(
-                "Poller '{}' with id {} has a new configuration available, but "
-                "the previous configuration is not the same as the one sent by "
-                "the poller (previous: '{}', new: '{}'). The diff will be the "
-                "whole new configuration.",
-                lower->second.poller_name, poller_id, lower->second.engine_conf,
-                state->config_version());
-            diff_state = std::make_unique<engine::configuration::DiffState>();
-            diff_state->set_allocated_state(state.release());
-          }
+  for (auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) != poller_id)
+      continue;
+    if (peer.engine_conf != state->config_version()) {
+      _logger->debug(
+          "Poller '{}' with id {} has a new configuration available "
+          "(old: '{}', new: '{}')",
+          peer.poller_name, poller_id, peer.engine_conf,
+          state->config_version());
+      std::filesystem::path previous_prot_conf =
+          pollers_config_dir() / fmt::format("{}.prot", poller_id);
+      std::fstream f(previous_prot_conf);
+      std::unique_ptr<engine::configuration::DiffState> diff_state;
+      std::string new_version = state->config_version();
+      if (f) {
+        /* There is a previous configuration */
+        auto previous_state = std::make_unique<engine::configuration::State>();
+        previous_state->ParseFromIstream(&f);
+        /* If the known configuration by Broker is the same as the one
+         * sent by the poller, we can compute the diff. */
+        if (previous_state->config_version() == peer.engine_conf) {
+          diff_state = std::make_unique<engine::configuration::DiffState>();
+          auto previous_indexed_state =
+              engine::configuration::indexed_state(std::move(previous_state));
+          previous_indexed_state.diff_with_new_config(*state, _logger,
+                                                      diff_state.get());
         } else {
-          /* No previous configuration */
+          /* Otherwise, we do as if there was no previous configuration,
+           * so the diff will be the whole new configuration. */
+          _logger->warn(
+              "Poller '{}' with id {} has a new configuration available, but "
+              "the previous configuration is not the same as the one sent by "
+              "the poller (previous: '{}', new: '{}'). The diff will be the "
+              "whole new configuration.",
+              peer.poller_name, poller_id, peer.engine_conf,
+              state->config_version());
           diff_state = std::make_unique<engine::configuration::DiffState>();
           diff_state->set_allocated_state(state.release());
         }
-        std::filesystem::path diff_prot_conf =
-            pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
-        std::ofstream df(diff_prot_conf);
-        if (df) {
-          diff_state->SerializeToOstream(&df);
-          df.close();
-
-          /* The new configuration to send to the poller is new-<poller-ID>.prot
-           * Once sent to it, this file must be renamed into <poller-ID>.prot
-           * and the diff file can be removed. */
-          lower->second.available_conf = new_version;
-          lower->second.available_conf_sent = false;
-        } else {
-          _logger->error(
-              "Cannot write the diff Engine protobuf configuration '{}': {}",
-              diff_prot_conf.string(), strerror(errno));
-        }
-        break;
       } else {
-        _logger->info(
-            "Poller '{}' with id {} already has the latest configuration "
-            "(conf: '{}')",
-            lower->second.poller_name, poller_id, lower->second.engine_conf);
+        /* No previous configuration */
+        diff_state = std::make_unique<engine::configuration::DiffState>();
+        diff_state->set_allocated_state(state.release());
       }
+      std::filesystem::path diff_prot_conf =
+          pollers_config_dir() / fmt::format("diff-{}.prot", poller_id);
+      std::ofstream df(diff_prot_conf);
+      if (df) {
+        diff_state->SerializeToOstream(&df);
+        df.close();
+
+        /* The new configuration to send to the poller is
+         * new-<poller-ID>.prot. Once sent to it, this file must be renamed
+         * into <poller-ID>.prot and the diff file can be removed. */
+        peer.available_conf = new_version;
+        peer.available_conf_sent = false;
+      } else {
+        _logger->error(
+            "Cannot write the diff Engine protobuf configuration '{}': {}",
+            diff_prot_conf.string(), strerror(errno));
+      }
+      break;
+    } else {
+      _logger->info(
+          "Poller '{}' with id {} already has the latest configuration "
+          "(conf: '{}')",
+          peer.poller_name, poller_id, peer.engine_conf);
     }
   }
 }
@@ -787,59 +858,50 @@ void broker_state::_prepare_diff_for_poller(
 bool broker_state::engine_peer_needs_update(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
   _logger->trace("engine_peer_needs_update called for poller id {}", poller_id);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      if (lower->second.available_conf_sent)
-        return false;
-
-      if (!lower->second.available_conf.empty() &&
-          lower->second.available_conf != lower->second.engine_conf) {
-        _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
-                       lower->second.available_conf, lower->second.engine_conf,
-                       poller_id);
-        return true;
-      }
+  for (const auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) != poller_id)
+      continue;
+    if (peer.available_conf_sent)
+      return false;
+    if (!peer.available_conf.empty() &&
+        peer.available_conf != peer.engine_conf) {
+      _logger->debug("Available conf: '{}', current conf: '{}' for poller {}",
+                     peer.available_conf, peer.engine_conf, poller_id);
+      return true;
     }
   }
   return false;
 }
 
 /**
- * @brief Acknowledge or not the poller engine peer configuration. When true,
- * the poller is well up to date. When false, broker has a new configuration
- * and the poller did not send any acknowledgement.
+ * @brief Acknowledge or not the poller engine peer configuration. When
+ * true, the poller is well up to date. When false, broker has a new
+ * configuration and the poller did not send any acknowledgement.
  *
  * @param poller_id
- * @param ack
  */
 void broker_state::acknowledge_engine_peer(uint64_t poller_id) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      lower->second.conf_acknowledged = true;
+  for (auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) == poller_id) {
+      peer.conf_acknowledged = true;
       break;
     }
   }
 }
 
 /**
- * @brief Called from Broker side when the new configuration has been sent to
- * the poller engine peer.
+ * @brief Called from Broker side when the new configuration has been sent
+ * to the poller engine peer.
  *
  * @param poller_id
  */
 void broker_state::set_available_conf_sent_to_engine_peer(uint32_t poller_id) {
   absl::WriterMutexLock lck(&_connected_peers_m);
-  auto lower = _connected_peers.lower_bound({poller_id, "", ""});
-  for (auto end = _connected_peers.end();
-       lower != end && lower->second.poller_id == poller_id; ++lower) {
-    if (lower->second.peer_type == common::ENGINE) {
-      lower->second.available_conf_sent = true;
-      lower->second.conf_acknowledged = false;
+  for (auto& [key, peer] : _engine_peers) {
+    if (std::get<0>(key) == poller_id) {
+      peer.available_conf_sent = true;
+      peer.conf_acknowledged = false;
       _logger->debug("New configuration sent to poller {}", poller_id);
       return;
     }

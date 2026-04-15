@@ -621,6 +621,42 @@ grpc::Status broker_impl::Aes256Decrypt(grpc::ServerContext* context
 }
 
 /**
+ * @brief Return the list of pollers currently connected to this Broker
+ * instance.
+ *
+ * @param context gRPC context (unused).
+ * @param request Unused.
+ * @param response A PeerList message populated with one Peer entry per
+ * connected peer.
+ *
+ * @return grpc::Status::OK
+ */
+grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const ::google::protobuf::Empty* request
+                                     [[maybe_unused]],
+                                     PeerList* response) {
+  /* The Broker gRPC service is only available on Broker instances
+   * with the Broker role. So it's safe to static_cast the state to
+   * broker_state.
+   */
+  config::applier::broker_state* broker_state =
+      static_cast<config::applier::broker_state*>(
+          &config::applier::state::instance());
+  for (auto& p : broker_state->connected_pollers()) {
+    auto peer = response->add_peers();
+    peer->set_id(p.poller_id);
+    peer->set_poller_name(p.poller_name);
+    peer->set_broker_name(p.broker_name);
+    peer->mutable_connected_since()->set_seconds(p.connected_since);
+    peer->set_engine_conf(p.engine_conf);
+    peer->set_available_conf(p.available_conf);
+    peer->set_type(common::ENGINE);
+  }
+  return grpc::Status::OK;
+}
+
+/**
  * @brief Return the list of peers currently connected to this Broker instance.
  *
  * @param context gRPC context (unused).
@@ -642,17 +678,15 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
   config::applier::broker_state* broker_state =
       static_cast<config::applier::broker_state*>(
           &config::applier::state::instance());
-  if (broker_state) {
-    for (auto& p : broker_state->connected_peers()) {
-      auto peer = response->add_peers();
-      peer->set_id(p.poller_id);
-      peer->set_poller_name(p.poller_name);
-      peer->set_broker_name(p.broker_name);
-      peer->mutable_connected_since()->set_seconds(p.connected_since);
-      peer->set_engine_conf(p.engine_conf);
-      peer->set_available_conf(p.available_conf);
-      peer->set_type(p.peer_type);
-    }
+  for (auto& p : broker_state->connected_peers()) {
+    auto peer = response->add_peers();
+    peer->set_id(p.peer.poller_id);
+    peer->set_poller_name(p.peer.poller_name);
+    peer->set_broker_name(p.peer.broker_name);
+    peer->mutable_connected_since()->set_seconds(p.peer.connected_since);
+    peer->set_engine_conf(p.peer.engine_conf);
+    peer->set_available_conf(p.peer.available_conf);
+    peer->set_type(p.peer_type);
   }
   return grpc::Status::OK;
 }
@@ -779,27 +813,48 @@ grpc::Status broker_impl::GetService(grpc::ServerContext* context
                         "Service cache is not enabled in this broker instance");
   uint64_t host_id = std::numeric_limits<uint64_t>::max();
   uint64_t service_id = std::numeric_limits<uint64_t>::max();
+  std::string hostname, description;
+  bool by_id = true;
   switch (request->host_case()) {
     case ServiceIdentifier::kHostName: {
+      hostname = request->host_name();
+      by_id = false;
     } break;
     case ServiceIdentifier::kHostId: {
       host_id = request->host_id();
     } break;
+    case ServiceIdentifier::HOST_NOT_SET:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Host must be specified by its ID or by its name");
   }
   switch (request->service_case()) {
     case ServiceIdentifier::kDescription: {
+      description = request->description();
+      by_id = false;
     } break;
     case ServiceIdentifier::kServiceId: {
       service_id = request->service_id();
     } break;
+    case ServiceIdentifier::SERVICE_NOT_SET:
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Service must be specified by its ID or by its name");
   }
 
-  if (host_id == std::numeric_limits<uint64_t>::max() ||
-      service_id == std::numeric_limits<uint64_t>::max()) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                        "Both host_id and service_id must be set");
+  std::shared_ptr<neb::pb_service> service;
+  if (by_id) {
+    if (host_id == std::numeric_limits<uint64_t>::max() ||
+        service_id == std::numeric_limits<uint64_t>::max()) {
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Both host_id and service_id must be set");
+    }
+    service = cache.service(host_id, service_id);
+  } else {
+    if (hostname.empty() || description.empty()) {
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "Both hostname and description must be set");
+    }
+    service = cache.service(hostname, description);
   }
-  auto service = cache.service(host_id, service_id);
   if (!service)
     return grpc::Status(
         grpc::StatusCode::NOT_FOUND,

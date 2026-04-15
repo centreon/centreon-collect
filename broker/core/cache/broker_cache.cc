@@ -1827,6 +1827,26 @@ std::vector<uint64_t> broker_cache::host_ids() const {
  * @return A shared pointer to the service, nullptr if not found.
  */
 std::shared_ptr<neb::pb_service> broker_cache::service(
+    const std::string& hostname,
+    const std::string& description) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto& index = _services.get<by_name>();
+  auto found = index.find(std::make_pair(hostname, description));
+  if (found == index.end())
+    return nullptr;
+  else
+    return *found;
+}
+
+/**
+ * @brief Get the service of the given host ID and service ID from the cache.
+ *
+ * @param host_id The host ID of the desired service.
+ * @param service_id The service ID of the desired service.
+ *
+ * @return A shared pointer to the service, nullptr if not found.
+ */
+std::shared_ptr<neb::pb_service> broker_cache::service(
     uint64_t host_id,
     uint64_t service_id) const {
   absl::ReaderMutexLock l{&_mutex};

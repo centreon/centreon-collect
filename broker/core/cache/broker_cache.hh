@@ -445,6 +445,9 @@ class broker_cache {
   std::shared_ptr<neb::pb_host> host(uint64_t host_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<uint64_t> host_ids() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_service> service(const std::string& hostname,
+                                           const std::string& description) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_service> service(uint64_t host_id,
                                            uint64_t service_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);

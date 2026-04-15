@@ -98,6 +98,7 @@ service Broker {
   rpc Aes256Decrypt(AesMessage) returns (GenericString) {}
 
   rpc GetPeers(google.protobuf.Empty) returns (PeerList) {}
+  rpc GetPollers(google.protobuf.Empty) returns (PeerList) {}
   rpc GetHostIds(google.protobuf.Empty) returns (IdsList) {}
   rpc GetHost(GenericNameOrIndex) returns (Host) {}
   rpc GetServiceIds(google.protobuf.Empty) returns (IdsPairsList) {}
