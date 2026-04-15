@@ -56,12 +56,6 @@ jobs:
       matrix:
         include:
           - package_extension: rpm
-            image: packaging-centreon-collect-alma8
-            distrib: el8
-            lua_version: 5.3
-            runner: ubuntu-24.04
-            arch: amd64
-          - package_extension: rpm
             image: packaging-centreon-collect-alma9
             distrib: el9
             lua_version: 5.4
@@ -111,11 +105,7 @@ jobs:
         run: |
           if [ "${{ matrix.package_extension }}" == "rpm" ]; then
             dnf install -y dnf-plugins-core
-            if [ "${{ matrix.distrib }}" == "el8" ]; then
-              dnf config-manager --set-enabled powertools
-            else
-              dnf config-manager --set-enabled crb
-            fi
+            dnf config-manager --set-enabled crb
             dnf install -y make gcc openssl openssl-devel libcurl-devel lua lua-devel
             cd lua-curl-src
             make
@@ -163,8 +153,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: el8
-            arch: amd64
           - distrib: el9
             arch: amd64
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
@@ -233,7 +221,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el9, bookworm]
 
     steps:
       - name: Checkout sources
