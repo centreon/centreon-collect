@@ -35,7 +35,7 @@ services:
       - poller-broker:/etc/centreon-broker
       - poller-centcmd:/var/lib/centreon-engine/rw
       - poller-centcache:/var/cache/centreon/
-      - poller-gorgone-keys:/var/lib/centreon-gorgone/
+      - poller-gorgone-data:/var/lib/centreon-gorgone/
 
 volumes:
   poller-etc:
@@ -44,4 +44,4 @@ volumes:
   poller-centcmd:
   poller-centlog:
   poller-centcache:
-  poller-gorgone-keys:
+  poller-gorgone-data:

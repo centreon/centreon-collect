@@ -169,7 +169,8 @@ RUN mkdir -p /etc/centreon/config.d/ \
              /var/lib/centreon/centcore/ \
              /var/lib/centreon-gorgone/.keys \
              /var/log/centreon-gorgone \
-             /var/lib/centreon-engine/rw && \
+             /var/lib/centreon-engine/rw \
+             /usr/local/lib/centreon-gorgone && \
     chown -R centreon-gorgone:centreon /etc/centreon/ && \
     chmod -R 775 /etc/centreon/ && \
     chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
@@ -204,10 +205,9 @@ COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
-COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /var/lib/centreon-gorgone/
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /usr/local/lib/centreon-gorgone/
 COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
 COPY --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
-COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/sudoersCentreon /etc/sudoers.d/centreon-docker
 COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/local/bin/gorgone_install_plugins.pl
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
 
@@ -233,8 +233,6 @@ RUN echo "=== Verification ===" && \
 # Set the working directory
 WORKDIR /etc/centreon-gorgone/
 
-USER centreon-gorgone
-
-ENTRYPOINT ["/var/lib/centreon-gorgone/container.sh"]
+ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
 CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug"]

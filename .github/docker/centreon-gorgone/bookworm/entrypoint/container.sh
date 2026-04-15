@@ -10,7 +10,7 @@ set -e
 
 # Run each startup script located in BASEDIR.
 # ls is required to ensure that the scripts are properly sorted by name.
-BASEDIR="/var/lib/centreon-gorgone/container.d"
+BASEDIR="/usr/local/lib/centreon-gorgone/container.d"
 for file in $(find "$BASEDIR" -maxdepth 1 -type f | xargs -n1 basename | sort); do
   case "$file" in
     *_background*)
