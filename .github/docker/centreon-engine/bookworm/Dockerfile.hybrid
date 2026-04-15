@@ -45,7 +45,8 @@ ARG STABILITY
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Create users and groups (must match current setup for compatibility)
-RUN groupadd -g 900 centreon && \
+RUN groupadd -g 33 www-data 2>/dev/null || true && \
+    groupadd -g 900 centreon && \
     useradd -u 900 -g centreon -m -r -d /var/spool/centreon -c "Centreon" -s /bin/bash centreon && \
     groupadd -g 901 centreon-engine && \
     useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -c "Centreon Engine" -s /bin/bash centreon-engine && \
@@ -57,6 +58,7 @@ RUN groupadd -g 900 centreon && \
     usermod -aG centreon-engine centreon-broker && \
     usermod -aG centreon-gorgone centreon-engine && \
     usermod -aG centreon centreon-engine && \
+    usermod -aG www-data centreon-engine && \
     usermod -aG sudo centreon-engine
 
 # Configure APT for optimal container usage
