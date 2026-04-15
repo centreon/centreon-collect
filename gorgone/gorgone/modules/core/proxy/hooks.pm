@@ -1017,6 +1017,8 @@ sub register_nodes {
     my (%options) = @_;
 
     return if (!defined($options{data}->{nodes}));
+    $options{logger}->writeLogInfo("[proxy-EVAN] msg registernode  : " . Dumper($options{data}->{nodes}));
+    $options{logger}->writeLogInfo("[proxy-EVAN] node info starting register nodes : " . Dumper($register_nodes));
 
     # send all data to proxy-httpserver, which manage pullwss nodes.
     # need to send the complete list in one message to be able to delete node when they are removed from the db.

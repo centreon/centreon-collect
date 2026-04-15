@@ -283,6 +283,11 @@ sub action_proxyaddnode {
     my $temp_nodes = {};
     for my $node (@{$nodes}){
         next if $node->{type} !~ /wss/;
+        if (!$node->{uuid}){
+            $self->{logger}->writeLogInfo("EVAN] Not uuid for the node $node->{id}, so this message might be the poller message, throwing it away.");
+            return;
+        }
+
         $node->{token} = $self->{vault}->get_secret($node->{token});
         my $ws_id = $self->{identities}->{ $node->{id} };
 
