@@ -56,9 +56,6 @@ jobs:
           - package_extension: rpm
             image: packaging-centreon-collect-alma9
             distrib: el9
-          - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
 
     runs-on: ubuntu-24.04
 
@@ -139,39 +136,8 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
-  deliver-deb:
-    runs-on: centreon-common
-    needs: [get-environment, package]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-
-    strategy:
-      matrix:
-        distrib: [bookworm]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Delivery
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: common
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   promote:
-    needs: [get-environment, deliver-deb, deliver-rpm]
+    needs: [get-environment, deliver-rpm]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -183,7 +149,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9, bookworm]
+        distrib: [el9]
 
     steps:
       - name: Checkout sources
@@ -203,7 +169,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    needs: [get-environment, deliver-rpm, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&
