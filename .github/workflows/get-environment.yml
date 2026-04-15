@@ -747,14 +747,13 @@ jobs:
             const alma9_mysql_8_0       = cfg('alma9',    'mysql:8.0');
             const alma8_mariadb_10_11   = cfg('alma8',    'mariadb:10.11');
             const bullseye_mariadb_10_11 = cfg('bullseye', 'mariadb:10.11');
-            const bookworm_mysql_8_4    = cfg('bookworm', 'mysql:8.4');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
             const trixie_mariadb_11_8   = cfg('trixie',   'mariadb:11.8');
             const jammy_mariadb_10_11   = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
 
             // --- Config sets ---
-            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0, bookworm_mysql_8_4];
+            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0];
             const cmaConfigs = [
               alma10_mariadb_10_11, alma9_mariadb_10_11, alma8_mariadb_10_11,
               bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
