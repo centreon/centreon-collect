@@ -31,6 +31,35 @@ Ready-to-use Compose stacks are in `docker/` at the repo root.
 
 Runs a Centreon poller: one `centengine` container and one `centpoller-gorgone` container connected to an existing central server.
 
+#### One-liner (no repo required)
+
+This is the intended deployment method. The Centreon GUI generates this command with the values pre-filled for your poller:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/centreon/centreon-collect/<TAG>/docker/poller/docker-compose.yml \
+  | POLLER_ID=<id> CENTRAL_ADDRESS=<central-ip> CENTRAL_PORT=443 GORGONE_TOKEN=<token> TAG=<tag> \
+    docker compose -f - up -d
+```
+
+Example:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/centreon/centreon-collect/25.10.0/docker/poller/docker-compose.yml \
+  | POLLER_ID=3 CENTRAL_ADDRESS=192.168.1.100 CENTRAL_PORT=443 GORGONE_TOKEN=my_secret_token TAG=25.10.0 \
+    docker compose -f - up -d
+```
+
+To update a running poller (no downtime for unchanged containers):
+
+```bash
+# Re-run the same command — Compose recreates only what changed
+curl -fsSL https://raw.githubusercontent.com/centreon/centreon-collect/25.10.1/docker/poller/docker-compose.yml \
+  | POLLER_ID=3 CENTRAL_ADDRESS=192.168.1.100 CENTRAL_PORT=443 GORGONE_TOKEN=my_secret_token TAG=25.10.1 \
+    docker compose -f - up -d
+```
+
+#### From repo (developers)
+
 ```bash
 cd docker/poller
 
@@ -46,6 +75,16 @@ docker compose up -d
 # 4. Follow logs
 docker compose logs -f
 ```
+
+#### Required environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `POLLER_ID` | Poller ID as defined in the Centreon central server |
+| `CENTRAL_ADDRESS` | IP or hostname of the central server |
+| `CENTRAL_PORT` | Gorgone port on the central server (default: `443`) |
+| `GORGONE_TOKEN` | Authentication token shared with the central server |
+| `TAG` | Image tag to pull (e.g. `25.10.0`, `latest`) |
 
 
 ---
