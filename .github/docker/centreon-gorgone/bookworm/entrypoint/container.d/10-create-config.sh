@@ -132,10 +132,6 @@ gorgone:
     pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
 
   modules:
-    - name: action
-      package: gorgone::modules::core::action::hooks
-      enable: true
-
     - name: engine
       package: gorgone::modules::centreon::engine::hooks
       enable: true
@@ -150,6 +146,8 @@ gorgone:
       address: ${CENTRAL_ADDRESS}
 
 EOF
+    chmod 775 /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+    rm -f /etc/centreon-gorgone/config.d/31-centreon-api.yaml
 
     echo "✓ Successfully created /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
     echo ""
