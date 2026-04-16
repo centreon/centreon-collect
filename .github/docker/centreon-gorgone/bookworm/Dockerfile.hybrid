@@ -203,6 +203,22 @@ COPY --from=centreon-perl-selected /centreon-modules/ /usr/share/perl5/centreon/
 COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /gorgone-config/ /etc/centreon-gorgone/
 
+# Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
+RUN ARCH=$(dpkg --print-architecture) && \
+    case "$ARCH" in \
+        amd64) GRPCURL_ARCH="x86_64" ;; \
+        arm64) GRPCURL_ARCH="arm64" ;; \
+        *) echo "Unsupported arch: $ARCH" && exit 1 ;; \
+    esac && \
+    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_${GRPCURL_ARCH}.tar.gz" \
+        | tar -xz -C /usr/local/bin/ grpcurl && \
+    chmod +x /usr/local/bin/grpcurl && \
+    mkdir -p /usr/share/centreon-engine/proto
+
+# Copy engine proto definitions for grpcurl (no reflection API on centengine)
+COPY --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
+COPY --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
+
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /usr/local/lib/centreon-gorgone/

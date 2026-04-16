@@ -96,7 +96,6 @@ RUN ARCH=$(dpkg --print-architecture) && \
 # Install ONLY runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-minimal \
-    python3.11-venv \
     libmariadb3 \
     libgnutls30 \
     libssl3 \
@@ -184,23 +183,15 @@ RUN echo "=== Verification ===" && \
     echo "=== Files verified ===" && \
     echo "Note: Binary version check skipped during build (will work at runtime)"
 
-# Pre-install Python API dependencies at build time (60-90s startup improvement)
-RUN python3 -m venv /opt/centreon/venv && \
-    /opt/centreon/venv/bin/pip install --no-cache-dir --upgrade pip && \
-    /opt/centreon/venv/bin/pip install --no-cache-dir \
-        fastapi==0.115.0 \
-        uvicorn==0.32.0 && \
-    chown -R centreon-engine:centreon-engine /opt/centreon/venv
-
-ENV PATH="/opt/centreon/venv/bin:$PATH"
-
-# Expose ports (same as current Dockerfile)
+# Expose ports
 # gRPC central-module
 EXPOSE 51003
-# grpc central-broker
+# gRPC central-broker
 EXPOSE 51001
-# grpc central-rrd
+# gRPC central-rrd
 EXPOSE 51002
+# gRPC engine management API (inter-container, no host mapping needed)
+EXPOSE 50003
 
 WORKDIR /var/lib/centreon-engine
 
@@ -208,4 +199,4 @@ USER centreon-engine
 
 ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
 
-CMD ["uvicorn", "api_control:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]

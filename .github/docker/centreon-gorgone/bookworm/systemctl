@@ -4,8 +4,33 @@
 SERVICE="$2"
 ACTION="$1"
 
+GRPCURL_OPTS="-plaintext -import-path /usr/share/centreon-engine/proto -proto engine.proto"
+ENGINE_GRPC_ADDR="${SERVICE}:50003"
+
 case "$SERVICE" in
-  centengine|cbd)
+  centengine)
+    case "$ACTION" in
+      reload)
+        # RESTART signal = SIGHUP equivalent (config reload, process stays up)
+        grpcurl $GRPCURL_OPTS \
+          -d '{"process": "RESTART"}' \
+          "$ENGINE_GRPC_ADDR" com.centreon.engine.Engine/SignalProcess
+        exit $?
+        ;;
+      restart)
+        # SHUTDOWN signal — Docker restart:always/unless-stopped brings the container back
+        grpcurl $GRPCURL_OPTS \
+          -d '{"process": "SHUTDOWN"}' \
+          "$ENGINE_GRPC_ADDR" com.centreon.engine.Engine/SignalProcess
+        exit $?
+        ;;
+      *)
+        echo "Unsupported action: $ACTION"
+        exit 1
+        ;;
+    esac
+    ;;
+  cbd)
     case "$ACTION" in
       restart|reload)
         curl -sf -X POST "http://$SERVICE:8000/$ACTION"
