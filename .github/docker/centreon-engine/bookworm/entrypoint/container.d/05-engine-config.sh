@@ -1,8 +1,9 @@
 #!/bin/sh
 
-# Ensure centengine gRPC listens on all interfaces for inter-container communication.
-# Centreon web export does not yet set rpc_listen_address, so we inject it here.
-# When the web export eventually includes it, this script becomes a no-op (sed replace).
+# Patch centengine.cfg for Docker operation.
+# rpc_listen_address is not yet exported by Centreon web — inject it here
+# so the gRPC API is reachable from other containers (gorgone).
+# Once the web export includes it, this becomes a no-op sed replace.
 CFG="/etc/centreon-engine/centengine.cfg"
 
 if [ -f "$CFG" ]; then

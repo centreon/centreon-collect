@@ -3,9 +3,6 @@
 touch /tmp/docker.ready
 echo "Centreon Engine is ready"
 
-# Forward the named pipe to Docker stdout — no file accumulation.
-# 00-init.sh creates the FIFO; this reader must start before exec so centengine
-# can open the write end without blocking.
-sed 's/^/[ENGINE-LOG] /' < /var/log/centreon-engine/centengine.log &
-
+# centengine logs directly to stdout (log_v2_logger=stdout set by 05-engine-config.sh)
+# so no tailing or piping needed — docker logs captures everything natively.
 exec "$@"

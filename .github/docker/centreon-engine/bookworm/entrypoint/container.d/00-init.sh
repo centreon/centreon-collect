@@ -2,11 +2,9 @@
 
 rm -f /tmp/docker.ready
 
-# Replace log file with a named pipe so centengine logs go directly to Docker stdout.
-# No file accumulation — Docker logging driver handles retention.
-LOG="/var/log/centreon-engine/centengine.log"
-rm -f "$LOG" 2>/dev/null || true
-mkfifo "$LOG"
+# log_v2_logger=stdout is set by 05-engine-config.sh, so centengine logs go to
+# Docker stdout directly — no log file used. Clear it anyway for clean restarts.
+> /var/log/centreon-engine/centengine.log 2>/dev/null || true
 rm -rf /var/log/centreon-engine/archives/* 2>/dev/null || true
 
 # Refresh apt package lists so plugins can be installed at runtime
