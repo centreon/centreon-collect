@@ -2,8 +2,11 @@
 
 rm -f /tmp/docker.ready
 
-# Clear log file and archives on each start — retention.dat and status.dat are kept by the volume
-> /var/log/centreon-engine/centengine.log 2>/dev/null || true
+# Replace log file with a named pipe so centengine logs go directly to Docker stdout.
+# No file accumulation — Docker logging driver handles retention.
+LOG="/var/log/centreon-engine/centengine.log"
+rm -f "$LOG" 2>/dev/null || true
+mkfifo "$LOG"
 rm -rf /var/log/centreon-engine/archives/* 2>/dev/null || true
 
 # Refresh apt package lists so plugins can be installed at runtime
