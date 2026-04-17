@@ -189,7 +189,7 @@ jobs:
             --workdir /test_collect \
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }} \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
+            ${{ matrix.feature }} ${{ inputs.database_type }} '${{ inputs.tests_params }}'
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
@@ -244,7 +244,6 @@ jobs:
       failure() &&
       ! contains(needs.*.result, 'cancelled')
     runs-on: ubuntu-24.04
-
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 

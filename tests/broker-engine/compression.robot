@@ -20,8 +20,15 @@ BECC1
     [Tags]    broker    engine    compression    tcp
     Ctn Config Engine    ${1}
     Ctn Config Broker    rrd
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
     FOR    ${comp1}    IN    @{choices}
+        IF    ${test_direct_grpc} and '${comp1}' == 'auto'
+            CONTINUE
+        END        
         FOR    ${comp2}    IN    @{choices}
+            IF    ${test_direct_grpc} and '${comp2}' == 'auto'
+                CONTINUE
+            END        
             Log To Console    Compression set to ${comp1} on central and to ${comp2} on module
             Ctn Config Broker    central
             Ctn Config Broker    module
