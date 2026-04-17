@@ -140,6 +140,8 @@ jobs:
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
     runs-on: centreon-common
+    outputs:
+      delivered_packages: ${{ steps.publish-rpms.outputs.delivered_packages }}
     strategy:
       matrix:
         include:
@@ -153,6 +155,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Publish RPM packages
+        id: publish-rpms
         uses: ./.github/actions/rpm-delivery
         with:
           module_name: libzmq
@@ -165,6 +168,29 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+
+  # Push build status to S3 for the release orchestrator
+  push-build-state:
+    needs: [get-environment, deliver-rpm]
+    # Run only for cloud testing builds after successful RPM delivery
+    if: |
+      needs.get-environment.outputs.is_cloud == 'true' &&
+      needs.get-environment.outputs.stability == 'testing'
+    runs-on: centreon-common
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0  # Full history needed for tag detection
+
+      - name: Push build status
+        uses: ./.github/actions/push-build-state
+        with:
+          component: libzmq
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
+          delivered_packages: ${{ needs.deliver-rpm.outputs.delivered_packages }}
 
   promote:
     needs: [get-environment, deliver-rpm]

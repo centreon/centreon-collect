@@ -1,0 +1,130 @@
+name: "push-build-state"
+description: "Push component build status JSON to the release orchestrator S3 bucket when a release-cloud POC tag is present"
+inputs:
+  component:
+    description: "Component name used in the file name and payload (e.g. centreon-collect)"
+    required: true
+  major_version:
+    description: "Major version (e.g. 25.09)"
+    required: true
+  minor_version:
+    description: "Minor version (e.g. 0)"
+    required: true
+  delivered_packages:
+    description: "Newline-separated list of delivered RPM filenames"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    # Find the most recent release-cloud-YYYYMMNN-AA.BB-pocZ tag for the current major version
+    - name: Detect release-cloud POC tag
+      id: detect-tag
+      env:
+        MAJOR_VERSION: ${{ inputs.major_version }}
+      shell: bash
+      run: |
+        set -eu
+        echo "[INFO] Searching for release-cloud POC tags matching version ${MAJOR_VERSION}"
+
+        git fetch --tags --force
+
+        # Find tags matching release-cloud-YYYYMMNN-AA.BB-pocZ for current major version
+        MATCHING_TAGS=$(git tag --list "release-cloud-*-${MAJOR_VERSION}-poc*" --sort=-creatordate 2>/dev/null || true)
+
+        if [[ -z "$MATCHING_TAGS" ]]; then
+          echo "[INFO] No matching release-cloud POC tags found"
+          echo "tag_found=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Use the most recent tag
+        TAG=$(echo "$MATCHING_TAGS" | head -n 1)
+        echo "[INFO] Most recent matching tag: $TAG"
+
+        # Validate tag format: release-cloud-YYYYMMNN-AA.BB-pocZ
+        if ! echo "$TAG" | grep -qP '^release-cloud-\d{8}-\d+\.\d+-poc\d+$'; then
+          echo "[WARN] Tag $TAG does not match expected format, skipping"
+          echo "tag_found=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        # Resolve the commit SHA the tag points to
+        COMMIT_SHA=$(git rev-list -n 1 "$TAG")
+        echo "[INFO] Tag $TAG points to commit $COMMIT_SHA"
+
+        # Verify the tag commit is reachable from a release-* or hotfix-* branch
+        BRANCHES=$(git branch -r --contains "$COMMIT_SHA" 2>/dev/null | grep -E 'origin/(release-|hotfix-)' || true)
+
+        if [[ -z "$BRANCHES" ]]; then
+          echo "[INFO] Tag $TAG commit is not on any release/hotfix branch, skipping"
+          echo "tag_found=false" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "[INFO] Tag $TAG is on branches: $(echo $BRANCHES | tr '\n' ' ')"
+        echo "tag_found=true" >> $GITHUB_OUTPUT
+        echo "tag_name=$TAG" >> $GITHUB_OUTPUT
+        echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+
+    # Build the component build status JSON file
+    - name: Build build status JSON
+      if: steps.detect-tag.outputs.tag_found == 'true'
+      id: build-json
+      uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+      env:
+        COMPONENT: ${{ inputs.component }}
+        MAJOR_VERSION: ${{ inputs.major_version }}
+        MINOR_VERSION: ${{ inputs.minor_version }}
+        COMMIT_SHA: ${{ steps.detect-tag.outputs.commit_sha }}
+        DELIVERED_PACKAGES: ${{ inputs.delivered_packages }}
+      with:
+        script: |
+          const fs = require('fs');
+
+          const component = process.env.COMPONENT;
+          const componentVersion = `${process.env.MAJOR_VERSION}.${process.env.MINOR_VERSION}`;
+          const commit = process.env.COMMIT_SHA;
+          const deliveredPackages = process.env.DELIVERED_PACKAGES || '';
+          // ISO 8601 timestamp without milliseconds (e.g. 2025-09-19T12:30:00Z)
+          const timestamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+          core.info(`[INFO] Building status file for component ${component} version ${componentVersion}`);
+
+          // Split newline-separated package list into a JSON array
+          const packages = deliveredPackages
+            .split('\n')
+            .map(p => p.trim())
+            .filter(p => p.length > 0);
+          core.info(`[INFO] Packages: ${JSON.stringify(packages)}`);
+
+          const buildStatus = {
+            component,
+            component_version: componentVersion,
+            commit,
+            packages,
+            status: 'success',
+            timestamp,
+          };
+
+          const fileName = `${component}-build-status.json`;
+          fs.writeFileSync(fileName, JSON.stringify(buildStatus, null, 2));
+
+          core.info('[INFO] Build status JSON:');
+          core.info(fs.readFileSync(fileName, 'utf-8'));
+
+          core.setOutput('file_name', fileName);
+
+    # Upload the build status JSON to the release-orchestrator S3 bucket
+    - name: Upload build status to S3
+      if: steps.detect-tag.outputs.tag_found == 'true'
+      shell: bash
+      env:
+        TAG_NAME: ${{ steps.detect-tag.outputs.tag_name }}
+        FILE_NAME: ${{ steps.build-json.outputs.file_name }}
+      run: |
+        set -eu
+        S3_PATH="s3://release-orchestrator/incoming/${TAG_NAME}/${FILE_NAME}"
+        echo "[INFO] Uploading ${FILE_NAME} to ${S3_PATH}"
+        aws s3 cp "${FILE_NAME}" "$S3_PATH"
+        echo "[INFO] Upload complete"
