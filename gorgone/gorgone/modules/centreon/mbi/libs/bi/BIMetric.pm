@@ -94,7 +94,7 @@ sub createTempTable {
 	my $db = $self->{"centstorage"};
 	$db->query({ query => "DROP TABLE IF EXISTS `".$self->{"tmpTable"}."`" });
 	my $query = "CREATE TABLE `".$self->{"tmpTable"}."` (";
-	$query .= "`metric_id` int(11) NOT NULL,`metric_name` varchar(255) NOT NULL,`metric_unit` char(32) DEFAULT NULL,";
+	$query .= "`metric_id` int(11) NOT NULL,`metric_name` varchar(1021) NOT NULL,`metric_unit` char(32) DEFAULT NULL,";
 	$query .= "`service_id` int(11) NOT NULL,`service_description` varchar(255) DEFAULT NULL,";
 	$query .= "`sc_id` int(11) DEFAULT NULL,`sc_name` varchar(255) DEFAULT NULL,";
 	$query .= "`host_id` int(11) DEFAULT NULL,`host_name` varchar(255) DEFAULT NULL,";
@@ -155,7 +155,7 @@ sub createTodayTable {
 	my $query = "CREATE TABLE `" . $self->{"today_table"} . "` (";
 	$query .= "`id` BIGINT(20) UNSIGNED NOT NULL,";
 	$query .= "`metric_id` BIGINT(20) UNSIGNED NOT NULL,";
-	$query .= "`metric_name` varchar(255) NOT NULL,";
+	$query .= "`metric_name` varchar(1021) NOT NULL,";
 	$query .= "`sc_id` int(11) NOT NULL,";
 	$query .= "`hg_id` int(11) NOT NULL,";
 	$query .= "`hc_id` int(11) NOT NULL,";
