@@ -101,11 +101,11 @@ static bool persist_ca_path_in_registry(
 }
 
 /**
- * @brief Import PEM CA certificate into Windows certificate store.
+ * @brief Import PEM CA certificate into Windows Local Machine certificate
+ * store.
  */
 static bool add_ca_to_windows_store(
     const std::string& ca_pem,
-    const std::string& service_name,
     const std::shared_ptr<spdlog::logger>& logger) {
   DWORD der_size = 0;
   if (!::CryptStringToBinaryA(ca_pem.c_str(), static_cast<DWORD>(ca_pem.size()),
@@ -137,31 +137,16 @@ static bool add_ca_to_windows_store(
     return false;
   }
 
-  const std::wstring service_root_store =
-      std::wstring(service_name.begin(), service_name.end()) + L"\\ROOT";
   HCERTSTORE cert_store = ::CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0,
-                                          CERT_SYSTEM_STORE_SERVICES |
+                                          CERT_SYSTEM_STORE_LOCAL_MACHINE |
                                               CERT_STORE_OPEN_EXISTING_FLAG |
                                               CERT_STORE_MAXIMUM_ALLOWED_FLAG,
-                                          service_root_store.c_str());
-  if (!cert_store) {
-    const DWORD error_code = ::GetLastError();
-    SPDLOG_LOGGER_WARN(
-        logger,
-        "Unable to open service ROOT store '{}' ({}), trying CurrentService "
-        "ROOT",
-        service_name, win_error_message(error_code));
-    cert_store = ::CertOpenStore(CERT_STORE_PROV_SYSTEM_W, 0, 0,
-                                 CERT_SYSTEM_STORE_CURRENT_SERVICE |
-                                     CERT_STORE_OPEN_EXISTING_FLAG |
-                                     CERT_STORE_MAXIMUM_ALLOWED_FLAG,
-                                 L"ROOT");
-  }
+                                          L"ROOT");
 
   if (!cert_store) {
     const DWORD error_code = ::GetLastError();
     SPDLOG_LOGGER_ERROR(logger,
-                        "Unable to open Windows service-scoped ROOT store: {}",
+                        "Unable to open Windows Local Machine ROOT store: {}",
                         win_error_message(error_code));
     ::CertFreeCertificateContext(cert_context);
     return false;
@@ -178,8 +163,7 @@ static bool add_ca_to_windows_store(
   } else {
     SPDLOG_LOGGER_INFO(
         logger,
-        "CA certificate added to Windows service-scoped ROOT certificate "
-        "store");
+        "CA certificate added to Windows Local Machine ROOT certificate store");
   }
 
   ::CertCloseStore(cert_store, 0);
@@ -187,20 +171,6 @@ static bool add_ca_to_windows_store(
   return add_status == TRUE;
 }
 
-/**
- * @brief Extract service name from registry path.
- *
- * Expected format: SOFTWARE\\Centreon\\<ServiceName>
- */
-static std::string extract_service_name_from_registry_key(
-    const std::string& registry_key) {
-  static const std::string k_prefix = "SOFTWARE\\Centreon\\";
-  if (registry_key.size() > k_prefix.size() &&
-      registry_key.compare(0, k_prefix.size(), k_prefix) == 0) {
-    return registry_key.substr(k_prefix.size());
-  }
-  return "CentreonMonitoringAgent";
-}
 #endif
 
 #if defined(__linux__)
@@ -342,13 +312,11 @@ static bool try_platform_direct_ca_persist(
     bool& done_without_file,
     const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {
 #if defined(_WIN32)
-  const std::string service_name =
-      extract_service_name_from_registry_key(config_reference);
-  done_without_file = add_ca_to_windows_store(ca_pem, service_name, logger);
+  done_without_file = add_ca_to_windows_store(ca_pem, logger);
   if (!done_without_file) {
     SPDLOG_LOGGER_WARN(
         logger,
-        "Unable to persist CA in Windows service-scoped certificate store; "
+        "Unable to persist CA in Windows Local Machine certificate store; "
         "fallback to file and registry persistence");
   }
   return true;
