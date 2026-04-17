@@ -1,5 +1,9 @@
 name: "rpm-delivery"
 description: "Deliver rpm packages"
+outputs:
+  delivered_packages:
+    description: "Newline-separated list of delivered RPM filenames"
+    value: ${{ steps.list-packages.outputs.delivered_packages }}
 inputs:
   module_name:
     description: "The package module name"
@@ -178,3 +182,23 @@ runs:
 
           curl -H "Authorization: Bearer $JF_ACCESS_TOKEN" -X POST "$JF_URL/artifactory/api/yum/$ROOT_REPO_PATH?path=/$VERSION/$DISTRIB/${REINDEX_STABILITY}/$ARCH&async=1"
         done
+
+    # Collect all delivered RPM filenames for downstream consumption
+    - name: List delivered packages
+      id: list-packages
+      shell: bash
+      run: |
+        PACKAGES=""
+        for ARCH in "noarch" "x86_64"; do
+          if [ -d "$ARCH" ] && [ "$(ls -A "$ARCH" 2>/dev/null)" ]; then
+            for f in "$ARCH"/*.rpm; do
+              PACKAGES="${PACKAGES}$(basename "$f")"$'\n'
+            done
+          fi
+        done
+        PACKAGES=$(echo "$PACKAGES" | sed '/^$/d')
+        echo "[INFO] Delivered RPM packages:"
+        echo "$PACKAGES"
+        echo "delivered_packages<<EOF" >> $GITHUB_OUTPUT
+        echo "$PACKAGES" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
