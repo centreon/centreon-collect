@@ -708,6 +708,73 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE
     Should Be True    ${result}    resources table not updated
 
 
+BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_FILTER_STATE
+    [Documentation]    Given a windows agent with native service check, 
+    ...    we filter on CentreonMonitoringAgent service and use warning-state and critical-state to trigger status changes
+    [Tags]    broker    engine    opentelemetry    MON-192525
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" != "WSL"    "This test is only for WSL"
+
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Set Services Passive       0    service_1
+    Ctn Engine Config Set Value    0    interval_length    5
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_interval    2
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    retry_interval    1
+
+    # filter on CentreonMonitoringAgent service which is running => OK
+    Ctn Engine Config Add Command    ${0}    otel_check   {"check": "service", "args": {"filter-name": "centreonmonitoringagent"}}    OTEL connector
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    0    120    HARD
+    Should Be True    ${result}    resources table not updated
+
+    # agent is running => warning-state: running triggers WARNING
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check2
+
+    Ctn Engine Config Add Command    ${0}    otel_check2   {"check": "service", "args": {"filter-name": "centreonmonitoringagent", "warning-state": "running"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    1    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+    # agent is running => critical-state: running triggers CRITICAL
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check3
+
+    Ctn Engine Config Add Command    ${0}    otel_check3   {"check": "service", "args": {"filter-name": "centreonmonitoringagent", "critical-state": "running"}}    OTEL connector
+
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Resource Status With Timeout    host_1    service_1    2    60    ANY
+    Should Be True    ${result}    resources table not updated
+
+
 BEOTEL_CENTREON_AGENT_CHECK_NATIVE_SERVICE_AUTO
     [Documentation]    Given a window agent with native service check, we check cma service with different configurations
     [Tags]    broker    engine    opentelemetry    MON-191652
