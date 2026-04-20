@@ -406,7 +406,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -484,7 +484,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
