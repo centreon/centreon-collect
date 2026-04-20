@@ -104,6 +104,10 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
         e->CopyFrom(he);
         fill_string_group(e->mutable_hosts(), n);
       }
+    } else {
+      /* No hostgroup: escalation targets host_name directly, pass through. */
+      resolved.emplace_back(std::make_unique<Hostescalation>());
+      resolved.back()->CopyFrom(he);
     }
   }
   s.clear_hostescalations();
