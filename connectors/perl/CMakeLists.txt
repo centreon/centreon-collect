@@ -66,6 +66,7 @@ target_link_libraries(centreon_connector_perl
   centreon_clib 
   ${PERL_LIBRARIES}
   pb_perl_connector_lib
+  protobuf::libprotobuf
   Boost::program_options
   Boost::process
   spdlog::spdlog

@@ -176,7 +176,7 @@ TEST_F(process_test, stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("hello{}\n", ii));
     expected += fmt::format("receive hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -197,7 +197,7 @@ TEST_F(process_test, shell_stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("echo hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("echo hello{}\n", ii));
     expected += fmt::format("hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));

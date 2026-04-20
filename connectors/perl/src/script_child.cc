@@ -15,9 +15,11 @@
  *
  * For more information : contact@centreon.com
  */
+
+#include "connectors/perl/src/perl_connector.pb.h"
+
 #include <EXTERN.h>
 #include <perl.h>
-#include <filesystem>
 
 #include "com/centreon/connector/perl/script_child.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -132,7 +134,8 @@ script_child::script_child(const std::shared_ptr<asio::io_context> io_context,
                            const std::string& additional_code)
     : com::centreon::common::fork<false>(io_context, logger),
       _script_path(script_path),
-      _additional_code(additional_code) {}
+      _additional_code(additional_code),
+      _minute_timer(*_io_context) {}
 
 script_child::~script_child() {
   SPDLOG_LOGGER_INFO(_logger, "cleaning up Embedded Perl");
@@ -144,48 +147,45 @@ script_child::~script_child() {
   }
 }
 
-void script_child::_write_loader_to_disk(
+std::string script_child::_write_loader_to_disk(
     const std::string_view& additional_code) {
-  if (_loader_path.empty()) {
-    char script_path[_SCRIPT_PATH.length() + 1];
-    strcpy(script_path, _SCRIPT_PATH.data());
-    int script_fd = mkstemp(script_path);
-    if (script_fd < 0) {
-      char const* msg(strerror(errno));
-      throw exceptions::msg_fmt(
-          "could not create temporary file for loader {}: {}", script_path,
-          msg);
-    }
-
-    std::list<std::string_view> contents;
-    contents.push_back(_LOADER_SCRIPT);
-    if (!additional_code.empty()) {
-      contents.push_back(additional_code);
-      contents.push_back("\n");
-    }
-
-    for (const std::string_view content : contents) {
-      size_t len = content.length();
-      size_t offset = 0;
-      while (len > 0) {
-        ssize_t wb(write(script_fd, content.data() + offset, len));
-        if (wb <= 0) {
-          char const* msg(strerror(errno));
-          close(script_fd);
-          unlink(script_path);
-          throw exceptions::msg_fmt("could not write embedded script {}: {}",
-                                    script_path, msg);
-        }
-        len -= wb;
-        offset += wb;
-      }
-    }
-
-    _loader_path = script_path;
+  char script_path[_SCRIPT_PATH.length() + 1];
+  strcpy(script_path, _SCRIPT_PATH.data());
+  int script_fd = mkstemp(script_path);
+  if (script_fd < 0) {
+    char const* msg(strerror(errno));
+    throw exceptions::msg_fmt(
+        "could not create temporary file for loader {}: {}", script_path, msg);
   }
+
+  std::list<std::string_view> contents;
+  contents.push_back(_LOADER_SCRIPT);
+  if (!additional_code.empty()) {
+    contents.push_back(additional_code);
+    contents.push_back("\n");
+  }
+
+  for (const std::string_view content : contents) {
+    size_t len = content.length();
+    size_t offset = 0;
+    while (len > 0) {
+      ssize_t wb(write(script_fd, content.data() + offset, len));
+      if (wb <= 0) {
+        char const* msg(strerror(errno));
+        close(script_fd);
+        unlink(script_path);
+        throw exceptions::msg_fmt("could not write embedded script {}: {}",
+                                  script_path, msg);
+      }
+      len -= wb;
+      offset += wb;
+    }
+  }
+
+  return script_path;
 }
 
-void script_child::_compile_script() {
+void script_child::_compile_script(const std::string& loader_path) {
   SPDLOG_LOGGER_INFO(_logger, "loading Embedded Perl interpreter");
 
   if (!(my_perl = perl_alloc())) {
@@ -198,7 +198,7 @@ void script_child::_compile_script() {
   // Parse embedded script.
   const char* embedding[2];
   embedding[0] = "";
-  embedding[1] = _loader_path.c_str();
+  embedding[1] = loader_path.c_str();
   if (perl_parse(my_perl, &xs_init, sizeof(embedding) / sizeof(*embedding),
                  (char**)embedding, nullptr)) {
     SPDLOG_LOGGER_ERROR(_logger, "could not parse embedded Perl script");
@@ -250,17 +250,27 @@ void script_child::_load_check_script() {
 }
 
 int script_child::_run(int stdin_fd, int stdout_fd, int stderr_fd) {
+  _endpoint = std::make_unique<endpoint>(_io_context, _logger, false, stdin_fd,
+                                         stdout_fd, stderr_fd);
+  std::string loader_path;
   try {
-    _write_loader_to_disk(_additional_code);
+    loader_path = _write_loader_to_disk(_additional_code);
   } catch (const std::exception& e) {
+    _global_error = e.what();
   }
-  try {
-    _compile_script();
-  } catch (const std::exception& e) {
+  if (_global_error.empty()) {
+    try {
+      _compile_script(loader_path);
+    } catch (const std::exception& e) {
+      _global_error = e.what();
+    }
   }
-  try {
-    _load_check_script();
-  } catch (const std::exception& e) {
+  if (_global_error.empty()) {
+    try {
+      _load_check_script();
+    } catch (const std::exception& e) {
+      _global_error = e.what();
+    }
   }
   _io_context->run();
   return 0;

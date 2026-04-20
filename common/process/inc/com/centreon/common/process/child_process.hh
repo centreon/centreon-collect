@@ -169,7 +169,7 @@ class child_process
   bool is_alive() const;
 
   template <typename string_class>
-  void write_to_stdin(const string_class& content);
+  void write_to_child_stdin(const string_class& content);
 
   void close_stdin() {
     boost::system::error_code ec;
@@ -188,7 +188,8 @@ class child_process
  */
 template <bool use_mutex>
 template <typename string_class>
-void child_process<use_mutex>::write_to_stdin(const string_class& content) {
+void child_process<use_mutex>::write_to_child_stdin(
+    const string_class& content) {
   _stdin_write(std::make_shared<std::string>(content));
 }
 

@@ -687,7 +687,7 @@ void connector::_send_query_execute_nolock(const std::string& cmdline,
   oss << "2" << '\0' << command_id << '\0' << timeout << '\0'
       << start.to_seconds() << '\0' << cmdline << _query_ending;
 
-  _process->write_to_stdin(oss.str());
+  _process->write_to_child_stdin(oss.str());
 }
 
 /**
@@ -696,7 +696,7 @@ void connector::_send_query_execute_nolock(const std::string& cmdline,
 void connector::_send_query_quit_nolock() {
   SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_quit");
   std::string query("4\0", 2);
-  _process->write_to_stdin(query);
+  _process->write_to_child_stdin(query);
 }
 
 /**
@@ -706,7 +706,7 @@ void connector::_send_query_version_nolock() {
   SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_version");
   std::string query("0");
   query.append(_query_ending);
-  _process->write_to_stdin(query);
+  _process->write_to_child_stdin(query);
 }
 
 /**

@@ -52,8 +52,8 @@ namespace com::centreon::common {
  *
  * pipe to stdin is optional because some windows scripts may fails if they do
  * not manage stdin
- * You can write to stdin with write_to_stdin method. writes are non blocking,
- * buffered and thread safe.
+ * You can write to stdin with write_to_child_stdin method. writes are non
+ * blocking, buffered and thread safe.
  *
  * Example:
  * @code {.cpp}

@@ -231,7 +231,7 @@ TEST_F(fork_test, stderr_capture) {
 }
 
 /**
- * Data sent by the parent via write_to_stdin() is echoed back verbatim on
+ * Data sent by the parent via write_to_child_stdin() is echoed back verbatim on
  * stdout once the child's stdin is closed.
  */
 TEST_F(fork_test, stdin_echo) {
@@ -241,7 +241,7 @@ TEST_F(fork_test, stdin_echo) {
   std::string expected;
   for (int i = 0; i < 5; ++i) {
     std::string line = fmt::format("line{}\n", i);
-    proc->write_to_stdin(line);
+    proc->write_to_child_stdin(line);
     expected += line;
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(200));

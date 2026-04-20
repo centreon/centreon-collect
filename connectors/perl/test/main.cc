@@ -27,6 +27,9 @@ using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
+std::shared_ptr<asio::io_context> g_io_context(
+    std::make_shared<asio::io_context>());
+
 /**
  *  Tester entry point.
  *
@@ -39,6 +42,9 @@ int main(int argc, char* argv[], char** env) {
   log::instance().set_level(spdlog::level::trace);
   log::instance().switch_to_stdout();
   log::instance().add_pid_to_log();
+  auto worker{asio::make_work_guard(*g_io_context)};
+  std::thread asio_thread([]() { g_io_context->run(); });
+
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
   PERL_SYS_INIT3(&argc, &argv, &env);
@@ -54,6 +60,10 @@ int main(int argc, char* argv[], char** env) {
 
   // Unload.
   embedded_perl::unload();
+
+  g_io_context->stop();
+  asio_thread.join();
+  spdlog::shutdown();
 
   return ret;
 }

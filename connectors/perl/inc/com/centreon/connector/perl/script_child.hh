@@ -19,7 +19,9 @@
 #ifndef CCCP_SCRIPT_CHILD_HH
 #define CCCP_SCRIPT_CHILD_HH
 
+#include <boost/asio/system_timer.hpp>
 #include "com/centreon/common/process/fork.hh"
+#include "com/centreon/connector/perl/endpoint.hh"
 
 struct STRUCT_SV;
 
@@ -27,15 +29,17 @@ namespace com::centreon::connector::perl {
 class script_child : public com::centreon::common::fork<false> {
   const std::string _script_path;
   const std::string _additional_code;
-  std::string _loader_path;
   std::filesystem::file_time_type _check_script_mtime;
   STRUCT_SV* _check_script_handle = nullptr;
+  std::unique_ptr<endpoint> _endpoint;
+  std::string _global_error;
+  asio::system_timer _minute_timer;
 
   int _run(int stdin_fd, int stdout_fd, int stderr_fd) override;
 
-  void _compile_script();
+  void _compile_script(const std::string& loader_path);
   void _load_check_script();
-  void _write_loader_to_disk(const std::string_view& additional_code);
+  std::string _write_loader_to_disk(const std::string_view& additional_code);
 
  public:
   script_child(const std::shared_ptr<asio::io_context> io_context,
