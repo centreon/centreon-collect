@@ -20,7 +20,9 @@
 add_custom_command(OUTPUT "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc"
   COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc")
 
-include_directories(${PROJECT_SOURCE_DIR}/perl/inc/ ${CMAKE_BINARY_DIR}/connectors/perl)
+include_directories(${PROJECT_SOURCE_DIR}/perl/inc/ 
+  ${CMAKE_BINARY_DIR}/connectors/perl
+  ${CMAKE_SOURCE_DIR}/common/process/inc )
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 add_library(pb_perl_connector_lib src/perl_connector.proto)
@@ -35,12 +37,14 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
   ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/endpoint.cc
   ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
   ${PROJECT_SOURCE_DIR}/perl/src/script.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
 
   # Headers.
@@ -63,6 +67,7 @@ target_link_libraries(centreon_connector_perl
   ${PERL_LIBRARIES}
   pb_perl_connector_lib
   Boost::program_options
+  Boost::process
   spdlog::spdlog
   fmt::fmt
   absl::any

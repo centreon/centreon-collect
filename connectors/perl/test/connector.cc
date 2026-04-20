@@ -425,6 +425,12 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   process::pointer p = std::make_shared<process>(perl_connector, _io_context);
   p->start();
 
+  script_path =
+      "/usr/lib/centreon/plugins//centreon_linux_snmp.pl "
+      "--plugin=os::linux::snmp::plugin --mode=memory --hostname=127.0.0.1 "
+      "--snmp-version='2c' --snmp-community='public'  --warning-usage='80' "
+      "--critical-usage='90' --force-64bits-counters";
+
   // Write command.
   std::ostringstream oss;
   oss.write(cmd1, sizeof(cmd1) - 1);

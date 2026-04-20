@@ -91,6 +91,7 @@ if(WITH_TESTING)
     ut_connector PRIVATE
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
+    Boost::process
     ${PERL_LIBRARIES}
     fmt::fmt
     spdlog::spdlog

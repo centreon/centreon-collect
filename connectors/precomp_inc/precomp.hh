@@ -23,6 +23,7 @@
 #include <chrono>
 #include <cstdio>
 #include <ctime>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <list>
@@ -34,6 +35,7 @@
 #include <string>
 
 #include <boost/asio.hpp>
+#include <boost/process/v2/process.hpp>
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>

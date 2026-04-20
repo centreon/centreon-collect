@@ -57,6 +57,7 @@ add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(
   centreon_connector_ssh
   centreon_clib
+  Boost::process
   spdlog::spdlog
   fmt::fmt
   ssh2
