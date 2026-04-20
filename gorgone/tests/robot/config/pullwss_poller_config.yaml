@@ -1,6 +1,6 @@
 gorgone:
   gorgonecore:
-    id: secret_token
+    id: 2-UUID
   modules:
     - name: pullwss
       package: "gorgone::modules::core::pullwss::hooks"

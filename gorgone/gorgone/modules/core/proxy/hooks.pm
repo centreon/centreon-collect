@@ -52,16 +52,19 @@ use constant NAME => 'proxy';
 use constant EVENTS => [
     { event => 'PROXYREADY' },
     { event => 'REMOTECOPY', uri => '/remotecopy', method => 'POST' },
-    { event => 'SETLOGS' }, # internal. Shouldn't be used by third party clients
-    { event => 'PONG' }, # internal. Shouldn't be used by third party clients
-    { event => 'REGISTERNODES' }, # internal. Shouldn't be used by third party clients
-    { event => 'UNREGISTERNODES' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYADDNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYDELNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PROXYADDSUBNODE' }, # internal. Shouldn't be used by third party clients
-    { event => 'PONGRESET' }, # internal. Shouldn't be used by third party clients
     { event => 'PROXYCLOSECONNECTION' },
-    { event => 'PROXYSTOPREADCHANNEL' }
+    { event => 'PROXYSTOPREADCHANNEL' },
+    # internal. Shouldn't be used by third party clients
+    { event => 'SETLOGS' },
+    { event => 'PONG' },
+    { event => 'REGISTERNODES' }, # msg from a poller when authenticating
+    { event => 'REGISTERNODESFROMDB' }, # msg from nodes module with a list of node taken from db.
+    { event => 'UNREGISTERNODES' },
+    { event => 'PROXYADDNODE' },
+    { event => 'PROXYDELNODE' },
+    { event => 'PROXYADDSUBNODE' },
+    { event => 'PONGRESET' },
+
 ];
 
 my $config_core;
@@ -186,7 +189,10 @@ sub routing {
         register_nodes(%options, data => $data);
         return undef;
     }
-
+    if ($options{action} eq 'REGISTERNODESFROMDB') {
+        register_nodes_from_db(%options, data => $data);
+        return undef;
+    }
     if ($options{action} eq 'PROXYREADY') {
         if (defined($data->{pool_id})) {
             $pools->{ $data->{pool_id} }->{ready} = 1;
@@ -1010,13 +1016,24 @@ sub register_subnodes {
     }
 }
 
+sub register_nodes {
+    my (%options) = @_;
+        return if (!defined($options{data}->{nodes}));
+
+    foreach my $node (@{$options{data}->{nodes}}) {
+        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
+            $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
+            $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
+        }
+    }
+}
 # 'pull' type:
 #    - it does a REGISTERNODES without subnodes (if it already exist, no new entry created, otherwise create an entry). We save the uniq identity
 #    - PING done by proxy and with PONG we get subnodes
-sub register_nodes {
+sub register_nodes_from_db {
     my (%options) = @_;
 
-    return if (!defined($options{data}->{nodes}));
+    return if (!defined($options{data}->{nodes}) or !$options{data}->{nodes});
     $options{logger}->writeLogInfo("[proxy-EVAN] msg registernode  : " . Dumper($options{data}->{nodes}));
     $options{logger}->writeLogInfo("[proxy-EVAN] node info starting register nodes : " . Dumper($register_nodes));
 
@@ -1070,7 +1087,10 @@ sub register_nodes {
         }
 
         if ($prevail == 0) {
-            $register_nodes->{ $node->{id} } = $node;
+            if ( !$register_nodes->{ $node->{id} }){
+                $register_nodes->{ $node->{id} } = $node;
+            }
+
             if (defined($node->{nodes})) {
                 foreach my $subnode (@{$node->{nodes}}) {
                     $register_subnodes->{ $subnode->{id} } = { static => {}, dynamic => {} } if (!defined($register_subnodes->{ $subnode->{id} }));
@@ -1090,15 +1110,10 @@ sub register_nodes {
             }
         }
         if ($node->{uuid} and !$register_nodes->{$node->{uuid}}) {
+            $options{logger}->writeLogInfo("[proxy-EVAN] updating the register_nodes uuid");
             $register_nodes->{$node->{uuid}} = $register_nodes->{$node->{id}};
         }
 
-        # we update identity in all cases (already created or not)
-
-        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
-            $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
-            $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
-        }
         use Data::Dumper;
         $options{logger}->writeLogInfo("[proxy-EVAN] node info after the identity thing : " . Dumper($register_nodes));
 

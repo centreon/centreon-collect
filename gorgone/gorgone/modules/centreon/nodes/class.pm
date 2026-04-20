@@ -170,7 +170,7 @@ sub action_centreonnodessync {
                 address => $node->{ns_ip_address},
                 ssh_port => $node->{gorgone_port},
                 ssh_username => $self->{config}->{ssh_username},
-                uuid => $node->{gorgone_auth_token} // "",
+                uuid => $node->{id} . "-UUID",
                 token => $node->{gorgone_auth_token} // "",
             };
         } elsif($node->{gorgone_communication_type} == 3) {
@@ -180,14 +180,14 @@ sub action_centreonnodessync {
                 # Letting address and port for consistency and if in the future we want to validate source ip/port
                 address => $node->{ns_ip_address},
                 port => $node->{gorgone_port},
-                uuid => $node->{gorgone_auth_token} // "",
+                uuid => $node->{id} . "-UUID",
                 token => $node->{gorgone_auth_token} // "",
             };
         } elsif($node->{gorgone_communication_type} == 4) {
             push @$register_nodes, {
                 id    => $node->{id},
                 type  => 'pullwss',
-                uuid => $node->{gorgone_auth_token} // "",
+                uuid => $node->{id} . "-UUID",
                 token => $node->{gorgone_auth_token} // "",
             };
         } else{ # value 1 and unknown is zmq push
@@ -196,7 +196,7 @@ sub action_centreonnodessync {
                 type => 'push_zmq',
                 address => $node->{ns_ip_address},
                 port => $node->{gorgone_port},
-                uuid => $node->{gorgone_auth_token} // "",
+                uuid => $node->{id} . "-UUID",
                 token => $node->{gorgone_auth_token} // "",
             };
         }
@@ -224,7 +224,7 @@ sub action_centreonnodessync {
 
 
     $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id } }) if (defined($core_id));
-    $self->send_internal_action({ action => 'REGISTERNODES', data => { nodes => $register_nodes } });
+    $self->send_internal_action({ action => 'REGISTERNODESFROMDB', data => { nodes => $register_nodes } });
     $self->send_internal_action({ action => 'UNREGISTERNODES', data => { nodes => $unregister_nodes } });
 
     $self->{logger}->writeLogDebug("[nodes] Finish resync");
