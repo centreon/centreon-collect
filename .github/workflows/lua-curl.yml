@@ -233,7 +233,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-rpm]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -244,8 +244,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        # distrib: [el9, el10, bookworm, trixie]
-        distrib: [el10, trixie]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
@@ -265,7 +264,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    needs: [get-environment, deliver-rpm, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&

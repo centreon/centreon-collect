@@ -341,6 +341,26 @@ void mysql_column::set_null_str(size_t row) {
 }
 
 /**
+ * @brief Get the at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_STRING.
+ *
+ * @param row The row where to extract value
+ * @return std::optional<std::string_view> false if null
+ */
+std::optional<std::string_view> mysql_column::get_value_str(size_t row) const {
+  std::vector<char*>* vector = static_cast<std::vector<char*>*>(_vector);
+  if (!vector)
+    return {};
+  assert(row < vector->size());
+  if (_indicator[row] == STMT_INDICATOR_NULL) {
+    return {};
+  } else {
+    return std::string_view((*vector)[row], _length[row]);
+  }
+}
+
+/**
  * @brief Return true if the column is of type STMT_INDICATOR_NULL. In other
  * words, this function is useful after a SELECT when we fetch the result line
  * by line. It allows us to know if the value is NULL.
@@ -489,6 +509,17 @@ void mysql_column::_push_value_bool(bool value) {
 void mysql_column::_push_null_bool() {
   _push_null_tiny();
 }
+/**
+ * @brief Get the at the row specified (we start at
+ * index 0). This method can only be called when the content type is
+ * MYSQL_TYPE_TINY.
+ *
+ * @param row The row where to extract value
+ * @return std::optional<char> false if null
+ */
+std::optional<char> mysql_column::get_value_bool(size_t row) const {
+  return get_value_tiny(row);
+}
 
 #define SET_VALUE(ftype, vtype)                                              \
   void mysql_column::set_null_##ftype(size_t row) {                          \
@@ -531,6 +562,17 @@ void mysql_column::_push_null_bool() {
     _length.push_back(0);                                                    \
     vector->push_back({});                                                   \
     ++_row_count;                                                            \
+  }                                                                          \
+  std::optional<vtype> mysql_column::get_value_##ftype(size_t row) const {   \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (!vector)                                                             \
+      return {};                                                             \
+    assert(row < vector->size());                                            \
+    if (_indicator[row] == STMT_INDICATOR_NULL) {                            \
+      return {};                                                             \
+    } else {                                                                 \
+      return (*vector)[row];                                                 \
+    }                                                                        \
   }
 
 #define SET_VALUE_CHECK(ftype, vtype)                                        \
@@ -577,6 +619,17 @@ void mysql_column::_push_null_bool() {
     _length.push_back(0);                                                    \
     vector->push_back({});                                                   \
     ++_row_count;                                                            \
+  }                                                                          \
+  std::optional<vtype> mysql_column::get_value_##ftype(size_t row) const {   \
+    std::vector<vtype>* vector = static_cast<std::vector<vtype>*>(_vector);  \
+    if (!vector)                                                             \
+      return {};                                                             \
+    assert(row < vector->size());                                            \
+    if (_indicator[row] == STMT_INDICATOR_NULL) {                            \
+      return {};                                                             \
+    } else {                                                                 \
+      return (*vector)[row];                                                 \
+    }                                                                        \
   }
 
 SET_VALUE(i32, int32_t)

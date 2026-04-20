@@ -31,7 +31,6 @@ include_directories(
 # NEB sources.
 set(NEB_SOURCES
     ${SRC_DIR}/acknowledgement.cc
-    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
@@ -103,18 +102,19 @@ target_precompile_headers(cbmod REUSE_FROM nebbase)
 target_link_libraries(
   cbmod
   PRIVATE fmt::fmt
-          -Wl,--whole-archive
-          rokerbase
-          process_stat
-          centreon_common
-          nebbase
-          -Wl,--no-whole-archive
-	  pb_bam_lib
-	  pb_storage_lib
-          multiplexing
-          pb_common_lib
-          pb_neb_lib
-          pb_header_lib)
+  -Wl,--whole-archive
+  rokerbase
+  process_stat
+  centreon_common
+  nebbase
+  Boost::thread
+  -Wl,--no-whole-archive
+  pb_bam_lib
+  pb_storage_lib
+  multiplexing
+  pb_common_lib
+  pb_neb_lib
+  pb_header_lib)
 
 get_property(
   CBMOD_DEFINES
@@ -128,7 +128,6 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       # Actual tests
-      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc

@@ -39,6 +39,7 @@ include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
+include_directories("${PROJECT_SOURCE_DIR}/core/cache/inc")
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
 include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
@@ -104,6 +105,7 @@ add_executable(
 
 set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 
+
 target_link_libraries(
   ut_broker
   PRIVATE
@@ -118,6 +120,7 @@ target_link_libraries(
           nlohmann_json::nlohmann_json
           multiplexing
           ${TESTS_LIBRARIES}
+          Boost::thread
           GTest::gtest
           GTest::gtest_main
           GTest::gmock
