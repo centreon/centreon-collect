@@ -1209,8 +1209,9 @@ sub run {
         );
     } elsif ($self->{centreontrapd_config}->{mode} == 1) {
         $self->{logger}->writeLogInfo('Mode: poller');
+
         # If the sqlite database file does not exist, we create it and set permissions to 0664 to allow centreon-gorgone to update it
-        if ( ! -e $self->{centreontrapd_config}->{centreon_db} and $self->{centreontrapd_config}->{centreon_db} =~ /=(.*)/) {
+        if ( $self->{centreontrapd_config}->{centreon_db} =~ /=(.*)/ and defined($1) and $1 ne '' and ! -e $1) {
             open my $sdb_file, '>', $1 or die "Can't open the file $1: $!\n";
             close $sdb_file;
             chmod 0664, $1 or die "Can't change permissions on $1: $!\n";
