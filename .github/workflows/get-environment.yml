@@ -755,7 +755,7 @@ jobs:
             const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
 
             // --- Config sets ---
-            const configs = [alma10_mysql_8_4, alma10_mariadb_11_8];
+            const configs = [alma9_mysql_8_0, alma10_mariadb_11_8];
             const cmaConfigs = [
               alma10_mariadb_11_8, alma9_mariadb_10_11, alma8_mariadb_10_11,
               bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
