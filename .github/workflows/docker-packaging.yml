@@ -40,24 +40,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - runner: centreon-collect
-          #   distrib: alma8
-          # - runner: centreon-collect
-          #   distrib: alma9
+          - runner: centreon-collect
+            distrib: alma8
+          - runner: centreon-collect
+            distrib: alma9
           - runner: centreon-collect
             distrib: alma10
           - runner: centreon-collect
             distrib: trixie
           - runner: centreon-collect-arm64
             distrib: trixie
-          # - runner: centreon-collect
-          #   distrib: bookworm
-          # - runner: centreon-collect-arm64
-          #   distrib: bookworm
-          # - runner: centreon-collect
-          #   distrib: bullseye
-          # - runner: centreon-collect-arm64
-          #   distrib: bullseye
+          - runner: centreon-collect
+            distrib: bookworm
+          - runner: centreon-collect-arm64
+            distrib: bookworm
+          - runner: centreon-collect
+            distrib: bullseye
+          - runner: centreon-collect-arm64
+            distrib: bullseye
           - runner: centreon-collect
             distrib: jammy
           - runner: centreon-collect-arm64

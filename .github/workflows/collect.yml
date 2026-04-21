@@ -233,9 +233,9 @@ jobs:
       - name: Compile centreon-collect
         run: |
           CMAKE="cmake"
-          # if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
-          #   CMAKE="cmake3"
-          # fi
+          if [[ "${{ matrix.operating_system }}" == "alma9" ]]; then
+            CMAKE="cmake3"
+          fi
 
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:$PATH
