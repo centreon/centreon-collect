@@ -37,6 +37,16 @@ services:
       - poller-centcache:/var/cache/centreon/
       - poller-gorgone-data:/var/lib/centreon-gorgone/
 
+  centreon-vmware:
+    <<: *defaults
+    image: docker.centreon.com/centreon/connector-vmware:fth-docker-vmware
+    container_name: centreon-vmware
+    hostname: centreon-vmware
+    restart: always
+    volumes:
+      - poller-etc:/etc/centreon/
+      - vmware-logs:/var/log/centreon/
+
 volumes:
   poller-etc:
   poller-engine:
@@ -45,3 +55,4 @@ volumes:
   poller-centlog:
   poller-centcache:
   poller-gorgone-data:
+  vmware-logs:
