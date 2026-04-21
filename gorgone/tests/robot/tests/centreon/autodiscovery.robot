@@ -17,6 +17,7 @@ check autodiscovery ${communication_mode}
     Test Service Disco
     # host discovery command is constructed by php which honor vault himself.
     Test Host disco    ${poller}
+    # This should always be last as the autodiscovery module will DIE trying to parse the output of the injection.
     Test Service Disco don't interpret bash    ${central}
 
     Examples:    communication_mode   --
