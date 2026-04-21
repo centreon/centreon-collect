@@ -19,9 +19,13 @@
 #ifndef CCCP_SCRIPT_CHILD_HH
 #define CCCP_SCRIPT_CHILD_HH
 
+#include <boost/asio/readable_pipe.hpp>
 #include <boost/asio/system_timer.hpp>
+#include <boost/asio/writable_pipe.hpp>
+#include <boost/system/detail/error_code.hpp>
 #include "com/centreon/common/process/fork.hh"
-#include "com/centreon/connector/perl/endpoint.hh"
+#include "com/centreon/connector/perl/protocol.hh"
+#include "connectors/perl/src/perl_connector.pb.h"
 
 struct STRUCT_SV;
 
@@ -31,15 +35,19 @@ class script_child : public com::centreon::common::fork<false> {
   const std::string _additional_code;
   std::filesystem::file_time_type _check_script_mtime;
   STRUCT_SV* _check_script_handle = nullptr;
-  std::unique_ptr<endpoint> _endpoint;
+  protocol _protocol;
   std::string _global_error;
   asio::system_timer _minute_timer;
+  std::unique_ptr<asio::writable_pipe> _child_stdout;
 
   int _run(int stdin_fd, int stdout_fd, int stderr_fd) override;
 
   void _compile_script(const std::string& loader_path);
   void _load_check_script();
   std::string _write_loader_to_disk(const std::string_view& additional_code);
+
+  void _start_minute_timer();
+  void _minute_timer_handler();
 
  public:
   script_child(const std::shared_ptr<asio::io_context> io_context,
@@ -51,6 +59,8 @@ class script_child : public com::centreon::common::fork<false> {
   script_child& operator=(const script_child&) = delete;
 
   ~script_child();
+
+  void write_mess_to_child_stdin(const ConnectorMess& mess);
 };
 }  // namespace com::centreon::connector::perl
 #endif

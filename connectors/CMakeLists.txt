@@ -59,12 +59,12 @@ if(WITH_TESTING)
     ut_connector
     # Core sources
     ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/endpoint.cc
     ${PROJECT_SOURCE_DIR}/common/src/log.cc
     ${PROJECT_SOURCE_DIR}/common/src/result.cc
     ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
     ${PROJECT_SOURCE_DIR}/common/src/parser.cc
     ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
     ${PROJECT_SOURCE_DIR}/perl/src/script.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
@@ -73,10 +73,10 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
     # Test sources.
-    ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
     ${PROJECT_SOURCE_DIR}/perl/test/embedded_perl.cc
-    ${PROJECT_SOURCE_DIR}/perl/test/endpoint_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/protocol_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/buffer_handle.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/checks.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/connector.cc

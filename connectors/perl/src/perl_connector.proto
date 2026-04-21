@@ -3,8 +3,9 @@ syntax = "proto3";
 
 package com.centreon.connector.perl;
 
-
-message Terminate {}
+message GlobalError {
+    string error = 1;
+}
 
 message Execute {
     uint64 check_id = 1;
@@ -42,7 +43,7 @@ message ScriptError {
 
 message ConnectorMess {
     oneof content {
-        Terminate terminate = 1;
+        GlobalError have_to_terminate = 1;
         Execute execute = 2;
         Result result = 3;
         ScriptChildStats script_child_stat = 4;

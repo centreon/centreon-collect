@@ -20,6 +20,11 @@
 
 #include <EXTERN.h>
 #include <perl.h>
+#include <boost/asio/writable_pipe.hpp>
+#include <boost/system/detail/error_code.hpp>
+#include <chrono>
+#include <memory>
+#include <system_error>
 
 #include "com/centreon/connector/perl/script_child.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -250,8 +255,8 @@ void script_child::_load_check_script() {
 }
 
 int script_child::_run(int stdin_fd, int stdout_fd, int stderr_fd) {
-  _endpoint = std::make_unique<endpoint>(_io_context, _logger, false, stdin_fd,
-                                         stdout_fd, stderr_fd);
+  _child_stdout =
+      std::make_unique<asio::writable_pipe>(*_io_context, stdout_fd);
   std::string loader_path;
   try {
     loader_path = _write_loader_to_disk(_additional_code);
@@ -272,6 +277,43 @@ int script_child::_run(int stdin_fd, int stdout_fd, int stderr_fd) {
       _global_error = e.what();
     }
   }
+  if (!_global_error.empty()) {
+    ConnectorMess error;
+    error.mutable_have_to_terminate()->set_error(_global_error);
+    _protocol.send(*_child_stdout, error);
+    return -1;
+  }
   _io_context->run();
   return 0;
+}
+
+void script_child::write_mess_to_child_stdin(const ConnectorMess& mess) {
+  auto buff = _protocol.serialize(mess);
+  write_to_child_stdin(
+      std::string(reinterpret_cast<const char*>(buff.get()), buff->len));
+}
+
+void script_child::_start_minute_timer() {
+  _minute_timer.expires_after(std::chrono::minutes(1));
+  _minute_timer.async_wait(
+      [this, me = shared_from_this()](const boost::system::error_code& err) {
+        if (!err) {
+          _minute_timer_handler();
+        }
+      });
+}
+
+void script_child::_minute_timer_handler() {
+  std::error_code err;
+  auto check_script_mtime = std::filesystem::last_write_time(_script_path, err);
+  if (!err &&
+      check_script_mtime != _check_script_mtime) {  // script updated => reload
+    ConnectorMess error;
+    error.mutable_have_to_terminate()->set_error(
+        fmt::format("{} updated, need to reload", _script_path));
+    _protocol.async_send(*_child_stdout, error,
+                         [](const boost::system::error_code&) {});
+  }
+
+  _start_minute_timer();
 }
