@@ -104,11 +104,14 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
         e->CopyFrom(he);
         fill_string_group(e->mutable_hosts(), n);
       }
-    } else {
+    } else if (he.hosts().data().size() > 0) {
       /* No hostgroup: escalation targets host_name directly, pass through. */
       resolved.emplace_back(std::make_unique<Hostescalation>());
       resolved.back()->CopyFrom(he);
-    }
+    } else
+      throw engine_error()
+          << "Could not expand host escalation: neither hostgroups nor hosts "
+             "are defined";
   }
   s.clear_hostescalations();
   for (auto& e : resolved)
