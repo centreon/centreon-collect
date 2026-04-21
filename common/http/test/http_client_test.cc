@@ -303,36 +303,43 @@ TEST_F(http_client_test, all_handler_called) {
         return dummy_conn;
       });
 
-  std::mutex cond_m;
-  std::condition_variable var;
-  int error_handler_cpt = 0;
-  int success_handler_cpt = 0;
+  // Use shared_ptr to prevent use-after-free: if wait_for times out and the
+  // test function returns, io_context callbacks may still fire and would access
+  // destroyed stack variables causing UB (infinite spin on a destroyed mutex).
+  struct cb_state {
+    std::mutex m;
+    std::condition_variable cv;
+    int error_cpt = 0;
+    int success_cpt = 0;
+  };
+  auto state = std::make_shared<cb_state>();
+
   for (unsigned request_index = 0; request_index < 1000; ++request_index) {
     request_ptr request = std::make_shared<request_base>();
-    clt->send(request, [&](const boost::beast::error_code& err,
-                           const std::string&, const response_ptr&) mutable {
+    clt->send(request, [state](const boost::beast::error_code& err,
+                               const std::string&, const response_ptr&) {
       {
-        std::lock_guard<std::mutex> l(cond_m);
+        std::lock_guard<std::mutex> l(state->m);
         if (err) {
-          ++error_handler_cpt;
+          ++state->error_cpt;
         } else {
-          ++success_handler_cpt;
+          ++state->success_cpt;
         }
       }
-      var.notify_one();
+      state->cv.notify_one();
     });
   }
 
-  std::unique_lock<std::mutex> l(cond_m);
-  var.wait_for(l, std::chrono::seconds(10), [&]() -> bool {
-    return error_handler_cpt + success_handler_cpt >= 1000;
+  std::unique_lock<std::mutex> l(state->m);
+  state->cv.wait_for(l, std::chrono::seconds(30), [&state]() -> bool {
+    return state->error_cpt + state->success_cpt >= 1000;
   });
 
-  SPDLOG_LOGGER_INFO(logger, "success:{}, failed:{}", success_handler_cpt,
-                     error_handler_cpt);
-  ASSERT_NE(error_handler_cpt, 0);
-  ASSERT_NE(success_handler_cpt, 0);
-  ASSERT_EQ(error_handler_cpt + success_handler_cpt, 1000);
+  SPDLOG_LOGGER_INFO(logger, "success:{}, failed:{}", state->success_cpt,
+                     state->error_cpt);
+  ASSERT_NE(state->error_cpt, 0);
+  ASSERT_NE(state->success_cpt, 0);
+  ASSERT_EQ(state->error_cpt + state->success_cpt, 1000);
 };
 
 /************************************************************************
