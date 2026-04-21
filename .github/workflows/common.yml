@@ -55,18 +55,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - package_extension: rpm
-          #   image: packaging-centreon-collect-alma9
-          #   distrib: el9
           - package_extension: rpm
             image: packaging-centreon-collect-alma9
             distrib: el9
           - package_extension: rpm
             image: packaging-centreon-collect-alma10
             distrib: el10
-          # - package_extension: deb
-          #   image: packaging-centreon-collect-bookworm
-          #   distrib: bookworm
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
@@ -130,8 +124,7 @@ jobs:
 
     strategy:
       matrix:
-        # distrib: [el9, el10]
-        distrib: [el10]
+        distrib: [el9, el10]
 
     steps:
       - name: Checkout sources

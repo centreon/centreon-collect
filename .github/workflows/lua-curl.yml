@@ -55,43 +55,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - package_extension: rpm
-          #   image: packaging-centreon-collect-alma9
-          #   distrib: el9
-          #   lua_version: 5.4
-          #   runner: ubuntu-24.04
-          #   arch: amd64
+          - package_extension: rpm
+            image: packaging-centreon-collect-alma9
+            distrib: el9
+            lua_version: 5.4
+            runner: ubuntu-24.04
+            arch: amd64
           - package_extension: rpm
             image: packaging-centreon-collect-alma10
             distrib: el10
             lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
-          # - package_extension: deb
-          #   image: packaging-centreon-collect-bookworm
-          #   distrib: bookworm
-          #   lua_version: 5.3
-          #   runner: ubuntu-24.04
-          #   arch: amd64
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
             lua_version: 5.3
             runner: ubuntu-24.04
             arch: amd64
-
-          # - package_extension: deb
-          #   image: packaging-centreon-collect-ubuntu-jammy
-          #   distrib: jammy
-          #   lua_version: 5.3
-          #   runner: ubuntu-24.04
-          #   arch: amd64
-          # - package_extension: deb
-          #   image: packaging-centreon-collect-bookworm-arm64
-          #   distrib: bookworm
-          #   lua_version: 5.3
-          #   runner: ubuntu-24.04-arm
-          #   arch: arm64
           - package_extension: deb
             image: packaging-centreon-collect-trixie-arm64
             distrib: trixie
@@ -172,8 +153,8 @@ jobs:
     strategy:
       matrix:
         include:
-          # - distrib: el9
-          #   arch: amd64
+          - distrib: el9
+            arch: amd64
           - distrib: el10
             arch: amd64
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
@@ -209,8 +190,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # - distrib: bookworm
-          #   arch: amd64
           - distrib: trixie
             arch: amd64
 

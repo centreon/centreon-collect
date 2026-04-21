@@ -317,7 +317,7 @@ jobs:
               console.log(`Determining stability for refName: ${refName}`);
 
               switch (true) {
-                case /(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)|(^MON-195353-add-deb13-el10$)/.test(refName):
+                case /(^develop$)|(^dev-\d{2}\.\d{2}\.x$)|(^prepare-release-cloud.*)/.test(refName):
                   console.log(`Matched 'unstable' pattern`);
                   return 'unstable';
                 case /(^release.+)|(^hotfix.+)/.test(refName):
@@ -742,27 +742,26 @@ jobs:
             // --- OS/database combinations ---
             const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
 
-            const alma10_mariadb_11_8  = cfg('alma10',   'mariadb:11.8');
-            // alma10 + mariadb 10.11 for compat only with current cma
-            const alma10_mariadb_10_11  = cfg('alma10',   'mariadb:10.11');
-            const alma10_mysql_8_4      = cfg('alma10',   'mysql:8.4');
-            const alma9_mariadb_10_11   = cfg('alma9',    'mariadb:10.11');
-            const alma9_mysql_8_0       = cfg('alma9',    'mysql:8.0');
-            const alma8_mariadb_10_11   = cfg('alma8',    'mariadb:10.11');
+            const alma10_mysql_8_4       = cfg('alma10',   'mysql:8.4');
+            const alma10_mariadb_11_8    = cfg('alma10',   'mariadb:11.8');
+            const alma9_mariadb_10_11    = cfg('alma9',    'mariadb:10.11');
+            const alma9_mysql_8_0        = cfg('alma9',    'mysql:8.0');
+            const alma8_mariadb_10_11    = cfg('alma8',    'mariadb:10.11');
             const bullseye_mariadb_10_11 = cfg('bullseye', 'mariadb:10.11');
             const bookworm_mariadb_10_11 = cfg('bookworm', 'mariadb:10.11');
-            const trixie_mariadb_11_8   = cfg('trixie',   'mariadb:11.8');
-            const trixie_mysql_8_4      = cfg('trixie',   'mysql:8.4');
-            const jammy_mariadb_10_11   = cfg('jammy',    'mariadb:10.11');
-            const noble_mariadb_10_11   = cfg('noble',    'mariadb:10.11');
+            const trixie_mariadb_11_8    = cfg('trixie',   'mariadb:11.8');
+            const trixie_mysql_8_4       = cfg('trixie',   'mysql:8.4');
+            const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
+            const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
 
             // --- Config sets ---
-            const configs = [alma9_mariadb_10_11, alma9_mysql_8_0, alma10_mariadb_11_8, alma10_mysql_8_4, trixie_mariadb_11_8, trixie_mysql_8_4];
+            const configs = [alma10_mysql_8_4, alma10_mariadb_11_8];
             const cmaConfigs = [
-              alma10_mariadb_10_11, trixie_mariadb_11_8
+              alma10_mariadb_11_8, alma9_mariadb_10_11, alma8_mariadb_10_11,
+              bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
+              jammy_mariadb_10_11, noble_mariadb_10_11
             ];
-            // const cloud = alma9_mysql_8_0;
-            const cloud = alma10_mysql_8_4;
+            const cloud = alma9_mysql_8_0;
 
             // --- Nightly rotation (cycles through configs on working days) ---
             const getDailyConfig = (configs) => {
@@ -779,7 +778,6 @@ jobs:
             };
 
             // --- Build base matrix ---
-            // const main = isCloud ? cloud : alma9_mariadb_10_11;
             const main = isCloud ? cloud : alma10_mariadb_11_8;
             const activeConfig = isNightly ? getDailyConfig(configs) : main;
 

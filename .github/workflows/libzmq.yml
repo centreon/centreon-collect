@@ -42,9 +42,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - image: packaging-centreon-collect-alma9
-          #   distrib: el9
-          #   arch: amd64
+          - image: packaging-centreon-collect-alma9
+            distrib: el9
+            arch: amd64
           - image: packaging-centreon-collect-alma10
             distrib: el10
             arch: amd64
@@ -94,9 +94,9 @@ jobs:
     strategy:
       matrix:
         include:
-          # - image: packaging-alma9
-          #   distrib: el9
-          #   arch: amd64
+          - image: packaging-alma9
+            distrib: el9
+            arch: amd64
           - image: packaging-alma10
             distrib: el10
             arch: amd64
@@ -154,7 +154,6 @@ jobs:
             distrib: trixie
             runner: ubuntu-24.04
             arch: amd64
-
           # - image: packaging-nfpm-jammy
           #   distrib: jammy
           #   runner: ubuntu-24.04
@@ -222,8 +221,8 @@ jobs:
     strategy:
       matrix:
         include:
-          # - distrib: el9
-          #   arch: amd64
+          - distrib: el9
+            arch: amd64
           - distrib: el10
             arch: amd64
 
@@ -260,8 +259,6 @@ jobs:
     strategy:
       matrix:
         include:
-          # - distrib: bookworm
-          #   arch: amd64
           - distrib: trixie
             arch: amd64
 

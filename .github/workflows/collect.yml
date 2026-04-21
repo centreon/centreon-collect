@@ -370,8 +370,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # distrib: [alma9]
-        distrib: [alma10]
+        distrib: [alma9]
 
     name: dockerize centreon-poller-${{ matrix.distrib }}
 
@@ -517,8 +516,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - distrib: el9
-          #   arch: amd64
+          - distrib: el9
+            arch: amd64
           - distrib: el10
             arch: amd64
 
@@ -559,10 +558,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - distrib: bookworm
-          #   arch: amd64
-          # - distrib: bookworm
-          #   arch: arm64
           - distrib: trixie
             arch: amd64
           - distrib: trixie
