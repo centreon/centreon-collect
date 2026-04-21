@@ -414,9 +414,6 @@ sub saas_delete_metrics {
             $self->{logger}->writeLogDebug(
                 "[anomalydetection] -class- saas: metric '$self->{centreon_metrics}->{$_}->{service_id}/$self->{centreon_metrics}->{$_}->{metric_name}' deleted"
             );
-
-            next if (!defined($result->{message}) ||
-                $result->{message} !~ /machine learning request id is not found/i);
         }
 
         push @$delete_ids, $_;
