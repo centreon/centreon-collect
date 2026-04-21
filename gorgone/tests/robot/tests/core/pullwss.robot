@@ -35,31 +35,31 @@ check ${id} poller get disconnected if token change in DB.
 
 
 #pullwss use token from DB or conf
-#    [Documentation]    check a central honor the token in the yaml configuration
-#    # by default robot don't set a global token in the configuration file, so let's do it manually to change the configuration to set an empty token, and add the token in the db for the poller.
-#    # this is a copy paste from Setup Two Gorgone Instances with a sed to change configuration
-#    [Setup]    Start Central With Token In Yaml    secret_token
-#
-#    [Template]    Run A Poller
-#    secret_token_db    secret_token_db    True
-#    secret_token_db    secret_token    False
-#    secret_token_db    secret_token_wrong    False
-#    ${EMPTY}           ${EMPTY}    False
-#    ${EMPTY}           secret_token    True
-#    ${EMPTY}    secret_token_wrong    False
-#    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
-#
-#pullwss use token from DB conf token empty
-#    [Setup]    Start Central With Token In Yaml    ${EMPTY}
-#
-#    [Template]    Run A Poller
-#    secret_token_db    secret_token_db       True
-#    secret_token_db    secret_token          False
-#    secret_token_db    secret_token_wrong    False
-#    ${EMPTY}           ${EMPTY}              False
-#    ${EMPTY}           secret_token          False
-#    ${EMPTY}           secret_token_wrong    False
-#    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
+    [Documentation]    check a central honor the token in the yaml configuration
+    # by default robot don't set a global token in the configuration file, so let's do it manually to change the configuration to set an empty token, and add the token in the db for the poller.
+    # this is a copy paste from Setup Two Gorgone Instances with a sed to change configuration
+    [Setup]    Start Central With Token In Yaml    secret_token
+
+    [Template]    Run A Poller
+    secret_token_db    secret_token_db    True
+    secret_token_db    secret_token    False
+    secret_token_db    secret_token_wrong    False
+    ${EMPTY}           ${EMPTY}    False
+    ${EMPTY}           secret_token    True
+    ${EMPTY}    secret_token_wrong    False
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
+
+pullwss use token from DB conf token empty
+    [Setup]    Start Central With Token In Yaml    ${EMPTY}
+
+    [Template]    Run A Poller
+    secret_token_db    secret_token_db       True
+    secret_token_db    secret_token          False
+    secret_token_db    secret_token_wrong    False
+    ${EMPTY}           ${EMPTY}              False
+    ${EMPTY}           secret_token          False
+    ${EMPTY}           secret_token_wrong    False
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
 *** Keywords ***
 Run A Poller
