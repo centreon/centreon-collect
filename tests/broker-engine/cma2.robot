@@ -1023,6 +1023,14 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"critical-status": "size > 1k"} }
     ...    OTEL connector
 
+    Ctn Engine Config Add Command    ${0}    agent_files_check_warning2
+    ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"warning-status": "count > 0"} }
+    ...    OTEL connector
+
+    Ctn Engine Config Add Command    ${0}    agent_files_check_critical2
+    ...    {"check":"files", "args":{ "path": "C:\\\\Windows","pattern": "*.dll","max-depth": 0,"critical-status": "count > 1", "warning-status" : "count > 0"} }
+    ...    OTEL connector
+
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Clear Metrics
@@ -1061,6 +1069,18 @@ BEOTEL_CENTREON_AGENT_CHECK_FILES
     ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
     Should Be True    ${result[0]}    resources table not updated for service_1
 
+    Log To Console    service_1 must be warning
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_warning2
+    Ctn Reload Engine
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    1    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
+
+    Log To Console    service_1 must be critical
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    agent_files_check_critical2
+    Ctn Reload Engine
+
+    ${result}     Ctn Check Service Status With Timeout Rt    host_1    service_1    2    60    ANY
+    Should Be True    ${result[0]}    resources table not updated for service_1
 
 BEOTEL_CENTREON_AGENT_TOKEN
         [Documentation]    Scenario: Validate agent connection with valid JWT token
@@ -2156,7 +2176,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     ${echo_command}    Ctn Echo Command    "OK - 127.0.0.1: rta 0,010ms, lost 0%|rta=0,010ms;200,000;500,000;0; pl=0%;40;80;; rtmax=0,035ms;;;; rtmin=0,003ms;;;;"
     Ctn Engine Config Add Command    ${0}    otel_check_icmp   ${echo_command}    OTEL connector
 
-    ${token1}    Ctn Create Jwt Token    ${10}
+    ${token1}    Ctn Create Jwt Token    ${15}
 
     Ctn Add Token Agent Otl Server   0    0    ${token1}
 
@@ -2204,7 +2224,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
 
     Ctn Kindly Stop Agent
 
-    ${token2}    Ctn Create Jwt Token    ${10}
+    ${token2}    Ctn Create Jwt Token    ${15}
 
     ${otl_path}    Ctn Get Engine Conf Path   0
     ${agent_path}    Ctn Get Agent Conf Path
@@ -2578,6 +2598,74 @@ BEOTEL_CENTREON_AGENT_CMD_DATABASE
 
     ${result}    Ctn Check Commandline Host With Timeout Rt    host_1    120   ${echo_command}
     Should Be True    ${result}    command line not found in db
+
+
+BEOTEL_CENTREON_AGENT_UNKNOWN_HOST
+    [Documentation]    Given an engine configured, a broker with event_script output
+    ...    We connect a CMA with an hostname unknown from engine configuration, 
+    ...    we expect that broker will call the script with the new agent infos
+    ...    Then we add unknown host to engine config and we wait for a check result
+    [Tags]    broker    engine    opentelemetry    MON-192486
+    ${run_env}       Ctn Run Env
+    Ctn Config Engine    ${1}    ${2}    ${2}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4319},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+
+    Ctn Engine Config Set Value    0    log_level_checks    trace
+    Ctn Engine Config Add Command    ${0}    cpu_check   {"check": "cpu_percentage"}    OTEL connector
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    cpu_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_interval    1
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    retry_interval    1
+
+    Ctn Clear Metrics
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Broker Event Script Output    neb:UnknownHost    ${SCRIPTS}/event_script_test.sh
+    Ctn Config Centreon Agent
+    IF    "${run_env}" != "WSL"
+        Ctn Config Centreon Agent Set Value    host    We_dont_know_me
+        Ctn Config Centreon Agent Set Value    endpoint    localhost:4319
+    END
+    Ctn Broker Config Log    central    event_script    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Retention
+
+    Remove File    /tmp/event_script_test.log
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}    4319
+    
+    Wait Until Created    /tmp/event_script_test.log    timeout=180s
+
+    Sleep    1
+
+    ${re}    Catenate    ^.*{"pollerId":"1","hostName":"We_dont_know_me","hostTemplate":"OS-.*-Centreon-Monitoring-Agent-custom","os":".*","osVersion":".*","ips":\[.*"\],"incomingIp":".*"}$
+
+    ${content}    Grep File    /tmp/event_script_test.log    pattern=${re}    regexp=${True}
+    Should Be True    len("""${content}""") > 100    /tmp/event_script_test.log is not as expected
+    Sleep    5
+
+    Ctn Engine Config Rename Host    ${0}    host_1    We_dont_know_me
+    Ctn Engine Config Set Value In Services    ${0}    service_1    host_name    We_dont_know_me
+    Ctn Engine Config Set Value In Services    ${0}    service_2    host_name    We_dont_know_me
+
+    Ctn Reload Engine
+
+    ${result}     Ctn Check Service Resource Status With Timeout    We_dont_know_me    service_2    0    90    HARD
+    Should Be True    ${result}    resources table not updated for service_2@We_dont_know_me
 
 
 

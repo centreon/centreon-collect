@@ -112,10 +112,15 @@ config::config(const std::string& registry_key) {
   _private_key_file = get_sz_reg_or_default("private_key", "");
   _ca_certificate_file = get_sz_reg_or_default("ca_certificate", "");
   _ca_name = get_sz_reg_or_default("ca_name", "");
+  _ca_fingerprint = get_sz_reg_or_default("fingerprint", "");
   _host = get_sz_reg_or_default("host", "");
   if (_host.empty()) {
     _host = boost::asio::ip::host_name();
   }
+
+  _host_template = get_sz_reg_or_default(
+      "host_template", "OS-Windows-Centreon-Monitoring-Agent-custom");
+
   _reverse_connection = get_bool("reversed_grpc_streaming");
   _second_max_reconnect_backoff =
       get_unsigned("second_max_reconnect_backoff", 60);

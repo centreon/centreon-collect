@@ -24,12 +24,17 @@
 #include "com/centreon/common/http/http_config.hh"
 #include "com/centreon/common/http/https_connection.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 #include "common/vault/vault_access.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using com::centreon::common::log_v2::log_v2;
 using namespace com::centreon::common::http;
+
+extern std::shared_ptr<com::centreon::common::crypto::aes256>
+    credentials_decrypt;
 
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
@@ -58,7 +63,9 @@ database_config::database_config()
       _connections_count(1),
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
-      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {}
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)},
+      _ssl_enabled(false),
+      _ssl_verify_cert(true) {}
 
 /**
  *  Constructor.
@@ -101,7 +108,9 @@ database_config::database_config(const std::string& type,
       _max_commit_delay(max_commit_delay),
       _category(SHARED),
       _extension_directory(DEFAULT_MARIADB_EXTENSION_DIR),
-      _config_logger{log_v2::instance().get(log_v2::CONFIG)} {}
+      _config_logger{log_v2::instance().get(log_v2::CONFIG)},
+      _ssl_enabled(false),
+      _ssl_verify_cert(true) {}
 
 /**
  *  Build a database configuration from a configuration set.
@@ -113,45 +122,6 @@ database_config::database_config(
     const std::map<std::string, std::string>& global_params)
     : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
       _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
-  std::string env_file;
-  {
-    auto found = global_params.find("env_file");
-    if (found != global_params.end()) {
-      env_file = found->second;
-      _config_logger->debug("Env file '{}' used.", env_file);
-    } else {
-      env_file = "/usr/share/centreon/.env";
-      _config_logger->debug(
-          "No env_file provided in Broker configuration, default one used.");
-    }
-  }
-  std::string vault_file;
-  {
-    auto found = global_params.find("vault_configuration");
-    if (found != global_params.end()) {
-      vault_file = found->second;
-      _config_logger->debug("Vault configuration file '{}' used.", vault_file);
-    } else {
-      _config_logger->debug(
-          "No vault configuration file provided in Broker configuration.");
-    }
-  }
-  bool verify_peer = true;
-  {
-    auto found = global_params.find("verify_vault_peer");
-    if (found != global_params.end()) {
-      if (absl::SimpleAtob(found->second, &verify_peer)) {
-        _config_logger->debug("Verify Vault peer {}.",
-                              verify_peer ? "enabled" : "disabled");
-      } else {
-        _config_logger->debug("Verification of Vault peer enabled by default.");
-        verify_peer = true;
-      }
-    } else {
-      _config_logger->debug("Verification of Vault peer enabled by default.");
-    }
-  }
-
   // db_type
   auto found = cfg.params.find("db_type");
   if (found != cfg.params.end())
@@ -202,16 +172,32 @@ database_config::database_config(
   if (found != cfg.params.end())
     _password = found->second;
 
-  try {
-    common::vault::vault_access vault(env_file, vault_file, verify_peer,
-                                      _config_logger);
-    _password = vault.decrypt(_password);
-    _config_logger->info("Database password get from Vault configuration");
-  } catch (const std::exception& e) {
-    constexpr std::string_view password_prefix("secret::hashicorp_vault::");
-    std::string_view password_header(_password.data(), password_prefix.size());
-    if (password_header == password_prefix)
+  // has to decrypt cmd_line
+  if (!_password.compare(0, 9, "encrypt::")) {
+    if (!credentials_decrypt) {
+      SPDLOG_LOGGER_ERROR(_config_logger,
+                          "encrypted password but no decrypt enabled");
+      throw std::invalid_argument("encrypted password but no decrypt enabled");
+    }
+    try {
+      _password =
+          credentials_decrypt->decrypt(std::string_view(_password).substr(9));
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_config_logger, "No usable encrypted password: {}",
+                          e.what());
+      throw msg_fmt("No usable encrypted password: {}", e.what());
+    }
+  } else if (common::vault::vault_access::is_vault_prefixed(_password)) {
+    try {
+      _password =
+          common::vault::vault_access::load(global_params, _config_logger)
+              ->decrypt(_password);
+      _config_logger->info(
+          "Database password obtained from Vault configuration");
+    } catch (const std::exception& e) {
       _config_logger->error("No usable Vault configuration: {}", e.what());
+      throw msg_fmt("No usable Vault configuration: {}", e.what());
+    }
   }
 
   // db_name
@@ -278,6 +264,71 @@ database_config::database_config(
   if (found != cfg.params.end()) {
     _extension_directory = found->second;
   }
+
+  // SSL/TLS configuration
+  _ssl_enabled = false;
+  _ssl_verify_cert = true;
+  found = cfg.params.find("db_ssl_enabled");
+  if (found != cfg.params.end()) {
+    if (!absl::SimpleAtob(found->second, &_ssl_enabled)) {
+      _config_logger->error(
+          "db_ssl_enabled must be a boolean, got '{}'. Defaulting to false.",
+          found->second);
+      _ssl_enabled = false;
+    }
+  }
+  _ssl_verify_cert = true;
+  if (_ssl_enabled) {
+    _config_logger->info("SSL/TLS enabled for database connection");
+
+    found = cfg.params.find("db_ssl_ca");
+    if (found != cfg.params.end()) {
+      _ssl_ca = found->second;
+      if (!_ssl_ca.empty()) {
+        _config_logger->info("SSL/TLS CA certificate: {}", _ssl_ca);
+      }
+    }
+
+    found = cfg.params.find("db_ssl_cert");
+    if (found != cfg.params.end()) {
+      _ssl_cert = found->second;
+      if (!_ssl_cert.empty()) {
+        _config_logger->info("SSL/TLS client certificate: {}", _ssl_cert);
+      }
+    }
+
+    found = cfg.params.find("db_ssl_key");
+    if (found != cfg.params.end()) {
+      _ssl_key = found->second;
+      if (!_ssl_key.empty()) {
+        _config_logger->info("SSL/TLS client key configured");
+      }
+    }
+
+    // TLS version configuration (default to TLSv1.2,TLSv1.3)
+    _tls_version = "TLSv1.2,TLSv1.3";
+    found = cfg.params.find("db_tls_version");
+    if (found != cfg.params.end()) {
+      _tls_version = found->second;
+      if (!_tls_version.empty()) {
+        _config_logger->info("TLS version: {}", _tls_version);
+      }
+    }
+
+    // SSL certificate verification (default to true for security)
+    found = cfg.params.find("db_ssl_verify_cert");
+    if (found != cfg.params.end()) {
+      if (!absl::SimpleAtob(found->second, &_ssl_verify_cert)) {
+        _config_logger->error(
+            "db_ssl_verify_cert must be a boolean, got '{}'. Defaulting to "
+            "true.",
+            found->second);
+        _ssl_verify_cert = true;
+      }
+      _config_logger->info("SSL certificate verification: {}",
+                           _ssl_verify_cert ? "enabled" : "disabled");
+    }
+  }
 }
 
 /**
@@ -317,7 +368,11 @@ bool database_config::operator==(database_config const& other) const {
                 _name == other._name &&
                 _queries_per_transaction == other._queries_per_transaction &&
                 _connections_count == other._connections_count &&
-                _max_commit_delay == other._max_commit_delay};
+                _max_commit_delay == other._max_commit_delay &&
+                _ssl_enabled == other._ssl_enabled &&
+                _ssl_ca == other._ssl_ca && _ssl_cert == other._ssl_cert &&
+                _ssl_key == other._ssl_key &&
+                _ssl_verify_cert == other._ssl_verify_cert};
     if (!retval) {
       auto logger = log_v2::instance().get(log_v2::SQL);
       if (_type != other._type)
@@ -619,6 +674,11 @@ void database_config::_internal_copy(database_config const& other) {
   _connections_count = other._connections_count;
   _max_commit_delay = other._max_commit_delay;
   _extension_directory = other._extension_directory;
+  _ssl_enabled = other._ssl_enabled;
+  _ssl_ca = other._ssl_ca;
+  _ssl_cert = other._ssl_cert;
+  _ssl_key = other._ssl_key;
+  _ssl_verify_cert = other._ssl_verify_cert;
 }
 
 /**

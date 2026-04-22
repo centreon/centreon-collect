@@ -19,7 +19,7 @@
 #ifndef CCB_PROCESSING_FAILOVER_HH
 #define CCB_PROCESSING_FAILOVER_HH
 
-#include <climits>
+#include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
@@ -53,13 +53,14 @@ class failover : public endpoint {
   _running_state _state ABSL_GUARDED_BY(_state_m);
   mutable absl::Mutex _state_m;
   std::shared_ptr<spdlog::logger> _logger;
+  unsigned _max_retry_delay;
 
   void _run();
 
  public:
   failover(std::shared_ptr<io::endpoint> endp,
            std::shared_ptr<multiplexing::muxer> mux,
-           std::string const& name);
+           const config::endpoint& cfg);
   failover(failover const& other) = delete;
   failover& operator=(failover const& other) = delete;
   ~failover();

@@ -41,7 +41,9 @@ class config {
   std::string _private_key_file;
   std::string _ca_certificate_file;
   std::string _ca_name;
+  std::string _ca_fingerprint;
   std::string _host;
+  std::string _host_template;
   bool _reverse_connection;
   unsigned _second_max_reconnect_backoff;
   unsigned _max_message_length;
@@ -100,7 +102,9 @@ class config {
     return _ca_certificate_file;
   }
   const std::string& get_ca_name() const { return _ca_name; }
+  const std::string& get_ca_fingerprint() const { return _ca_fingerprint; }
   const std::string& get_host() const { return _host; }
+  const std::string& get_host_template() const { return _host_template; }
   bool use_reverse_connection() const { return _reverse_connection; }
   unsigned get_second_max_reconnect_backoff() const {
     return _second_max_reconnect_backoff;

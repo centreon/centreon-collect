@@ -189,6 +189,9 @@
 #define MACRO_POLLERID 161
 #define MACRO_X_COUNT 162  // size of macro_x[] array
 
+// Maximum recursion depth for macros within custom macros
+#define MAX_CUSTOM_MACRO_RECURSION_DEPTH 2
+
 // Macro Cleaning Options
 #define STRIP_ILLEGAL_MACRO_CHARS 1
 #define ESCAPE_MACRO_CHARS 2
@@ -202,7 +205,8 @@ class nagios_macros {
         service_ptr{nullptr},
         servicegroup_ptr{nullptr},
         contact_ptr{nullptr},
-        contactgroup_ptr{nullptr} {};
+        contactgroup_ptr{nullptr},
+        custom_macro_recursion_depth{0} {};
 
   std::array<std::string, MACRO_X_COUNT> x;
   std::array<std::string, MAX_COMMAND_ARGUMENTS> argv;
@@ -217,6 +221,7 @@ class nagios_macros {
   com::centreon::engine::map_customvar custom_host_vars;
   com::centreon::engine::map_customvar custom_service_vars;
   com::centreon::engine::map_customvar custom_contact_vars;
+  int custom_macro_recursion_depth;
 };
 
 #endif /* !CCE_MACROS_DEFINES_HH_ */

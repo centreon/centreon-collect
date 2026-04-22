@@ -468,7 +468,6 @@ void process<use_mutex>::_stdout_read() {
           });
     } catch (const std::exception& e) {
       asio::post(*_io_context, [me = shared_from_this()]() {
-        detail::lock<use_mutex> l(&me->_protect);
         me->_on_stdout_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }
@@ -508,14 +507,18 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
                           std::string_view(_stdout_read_buffer, nb_read));
       if (!_stdout_handler) {
         _stdout.append(_stdout_read_buffer, nb_read);
+        _stdout_read();
       } else {
         received.assign(_stdout_read_buffer, nb_read);
       }
-      _stdout_read();
     }
   }
   if (!received.empty()) {
     _stdout_handler(received);
+    {
+      detail::lock<use_mutex> l(&_protect);
+      _stdout_read();
+    }
   }
 
   if (eof) {
@@ -539,7 +542,6 @@ void process<use_mutex>::_stderr_read() {
           });
     } catch (const std::exception& e) {
       asio::post(*_io_context, [me = shared_from_this()]() {
-        detail::lock<use_mutex> l(&me->_protect);
         me->_on_stderr_read(std::make_error_code(std::errc::broken_pipe), 0);
       });
     }
@@ -574,20 +576,24 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
       _completion_flags.fetch_or(e_completion_flags::stderr_eof);
       eof = true;
     } else {
-      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stdout: {}",
-                          *_args, _proc->proc.handle().id(),
+      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: {} read from stderr: {}",
+                          _proc->proc.handle().id(), *_args,
                           std::string_view(_stderr_read_buffer, nb_read));
       if (!_stderr_handler) {
         _stderr.append(_stderr_read_buffer, nb_read);
+        _stderr_read();
       } else {
         received.assign(_stderr_read_buffer, nb_read);
       }
-      _stderr_read();
     }
   }
 
   if (!received.empty()) {
     _stderr_handler(received);
+    {
+      detail::lock<use_mutex> l(&_protect);
+      _stderr_read();
+    }
   }
 
   if (eof) {

@@ -33,6 +33,7 @@ namespace grpc {
 class factory : public io::factory {
   io::endpoint* _new_endpoint_bbdo_cs(
       com::centreon::broker::config::endpoint& cfg,
+      const std::map<std::string, std::string>& global_params,
       bool& is_acceptor) const;
 
  public:

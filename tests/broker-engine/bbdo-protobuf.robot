@@ -13,6 +13,12 @@ Test Teardown       Ctn Save Logs If Failed
 BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -33,6 +39,12 @@ BEPBBEE1
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
     [Tags]    broker    engine    protobuf    bbdo
+
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    module

@@ -29,6 +29,8 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
 endif()
 
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
+#with this define boost::interprocess doesn't need Boost.DataTime
+add_definitions("-DBOOST_DATE_TIME_NO_LIB=1")
 
 option(WITH_LIBCXX "compiles and link cbd with clang++/libc++")
 
@@ -84,6 +86,7 @@ include_directories(
   "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
+  "${PROJECT_SOURCE_DIR}/core/cache/inc"
   "${PROJECT_SOURCE_DIR}/core/sql/inc"
   ${CMAKE_BINARY_DIR}/common/engine_conf
   "${MARIADB_INCLUDE_DIRS}")
@@ -319,14 +322,14 @@ target_link_libraries(pb_broker_lib
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 add_subdirectory(core/bbdo)
+add_subdirectory(core/cache)
 
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
+    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
-    ${SRC_DIR}/cache/global_cache.cc
-    ${SRC_DIR}/cache/global_cache_data.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -386,10 +389,12 @@ set_target_properties(rokerbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase pb_broker_lib pb_bbdo_lib pb_extcmd_lib pb_neb_lib process_stat)
 target_include_directories(rokerbase
-                           PRIVATE ${PROJECT_SOURCE_DIR}/core)
+                           PRIVATE ${PROJECT_SOURCE_DIR}/core
+                           ${PROJECT_SOURCE_DIR}/bam/inc)
 target_link_libraries(
   rokerbase PRIVATE
   sql
+  global_cache
   bbdo_bbdo
   pb_broker_lib
   bbdo
@@ -398,6 +403,7 @@ target_link_libraries(
   pb_common_lib
   pb_extcmd_lib
   pb_open_telemetry_lib
+  pb_header_lib
   process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -420,11 +426,16 @@ target_link_libraries(
   roker
   multiplexing
   centreon_common
+  centreon_process
+  pb_neb_lib
+  pb_bam_lib
+  pb_storage_lib
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive
   gRPC::grpc++
   protobuf::libprotobuf
+  Boost::thread
   -Wl,--no-whole-archive
   spdlog::spdlog
   z
@@ -450,7 +461,9 @@ if (ONLY_ROBOT_CMA)
   add_broker_module(NEB ON)
   add_broker_module(RRD ON)
   add_broker_module(UNIFIED_SQL ON)
+  add_broker_module(TLS ON)
   add_broker_module(TCP ON)
+  add_broker_module(EVENT_SCRIPT ON)
 else()
   # Generator module.
   add_broker_module(GENERATOR OFF)
@@ -469,6 +482,7 @@ else()
   add_broker_module(DUMP OFF)
   add_broker_module(GRPC ON)
   add_broker_module(VICTORIA_METRICS ON)
+  add_broker_module(EVENT_SCRIPT ON)
   add_subdirectory(http_tsdb)
 endif()
 
@@ -561,7 +575,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/bbdo/category.cc
     ${TEST_DIR}/bbdo/output.cc
     ${TEST_DIR}/bbdo/read.cc
-    ${TEST_DIR}/cache/global_cache_test.cc
     ${TEST_DIR}/compression/stream/memory_stream.hh
     ${TEST_DIR}/compression/stream/read.cc
     ${TEST_DIR}/compression/stream/write.cc
@@ -587,6 +600,7 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
     ${TEST_DIR}/processing/feeder.cc
     ${TEST_DIR}/time/timerange.cc
     ${TEST_DIR}/rpc/brokerrpc.cc
+    ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
     ${TEST_DIR}/exceptions.cc
     ${TEST_DIR}/io.cc
   )

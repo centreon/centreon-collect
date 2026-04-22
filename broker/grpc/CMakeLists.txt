@@ -25,6 +25,7 @@ include_directories(${MODULE_DIR}/inc
   ${SRC_DIR} 
   ${CMAKE_SOURCE_DIR}/bbdo
   ${CMAKE_SOURCE_DIR}/common 
+  ${CMAKE_SOURCE_DIR}/common/vault 
   ${CMAKE_SOURCE_DIR}/common/grpc/inc)
 
 # Sources.

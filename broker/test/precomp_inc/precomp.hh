@@ -63,10 +63,14 @@
 
 #include <boost/asio.hpp>
 
-// with this define boost::interprocess doesn't need Boost.DataTime
-#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/allocators/private_node_allocator.hpp>
+#include <boost/interprocess/containers/flat_map.hpp>
+#include <boost/interprocess/containers/flat_set.hpp>
 #include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 

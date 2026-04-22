@@ -85,6 +85,7 @@ class acceptor : public io::endpoint,
 
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
+  void stats(nlohmann::json& tree) override;
 
   std::shared_ptr<io::stream> open() override;
   bool is_ready() const override;

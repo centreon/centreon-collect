@@ -18,16 +18,13 @@
 
 #include "com/centreon/broker/multiplexing/engine.hh"
 
-#include <absl/synchronization/mutex.h>
-#include <unistd.h>
+#include "bbdo/neb.pb.h"
 
-#include <cassert>
-
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/common/defer.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -304,6 +301,7 @@ engine::engine(const std::shared_ptr<spdlog::logger>& logger)
       _unprocessed_events{0u},
       _center{config::applier::state::instance().center()},
       _stats{_center->register_engine()},
+      _io_context(common::pool::instance().io_context_ptr()),
       _sending_to_subscribers{false},
       _logger{logger} {
   _center->update(&EngineStats::set_mode, _stats, EngineStats::NOT_STARTED);
@@ -359,6 +357,9 @@ class callback_caller {
       if (_callback) {
         _callback();
       }
+      // if data has arrived during sending => send
+      asio::post(*_parent->_io_context,
+                 [me = _parent]() { me->_send_to_subscribers(nullptr); });
     }
   }
 };
@@ -378,10 +379,6 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
   bool expected = false;
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
-    // sending  => we will try later
-    common::defer(com::centreon::common::pool::io_context_ptr(),
-                  std::chrono::milliseconds(100),
-                  [me = _instance]() { me->_send_to_subscribers(nullptr); });
     return false;
   }
   // Now we continue and _sending_to_subscribers is true.
@@ -398,6 +395,10 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       _sending_to_subscribers.compare_exchange_strong(expected, false);
       return false;
     }
+    if (_state != state::running) {
+      _sending_to_subscribers.store(false);
+      return false;
+    }
 
     SPDLOG_LOGGER_TRACE(
         _logger, "engine::_send_to_subscribers send {} events to {} muxers",
@@ -405,6 +406,15 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
+
+    // we first write data to cache because output may need it
+    auto cache_to_feed = cache::global_cache::instance_ptr();
+    if (cache_to_feed) {
+      for (const auto& evt : *kiew) {
+        cache_to_feed->write(evt);
+      }
+    }
+
     // completion object
     // it will be destroyed at the end of the scope of this function and at
     // the end of lambdas posted
@@ -422,23 +432,23 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       } else {
         std::shared_ptr<muxer> mux_to_publish_in_asio = mux.lock();
         if (mux_to_publish_in_asio) {
-          asio::post(com::centreon::common::pool::io_context(),
-                     [kiew, mux_to_publish_in_asio, cb, logger = _logger]() {
-                       try {
-                         mux_to_publish_in_asio->publish(*kiew);
-                       }  // pool threads protection
-                       catch (const std::exception& ex) {
-                         SPDLOG_LOGGER_ERROR(
-                             logger, "publish caught exception: {}", ex.what());
-                       } catch (...) {
-                         SPDLOG_LOGGER_ERROR(
-                             logger, "publish caught unknown exception");
-                       }
-                     });
+          asio::post(*_io_context, [kiew, mux_to_publish_in_asio, cb,
+                                    logger = _logger]() {
+            try {
+              mux_to_publish_in_asio->publish(*kiew);
+            }  // pool threads protection
+            catch (const std::exception& ex) {
+              SPDLOG_LOGGER_ERROR(logger, "publish caught exception: {}",
+                                  ex.what());
+            } catch (...) {
+              SPDLOG_LOGGER_ERROR(logger, "publish caught unknown exception");
+            }
+          });
         }
       }
     }
   }
+
   if (first_muxer) {
     _center->update(&EngineStats::set_processed_events, _stats,
                     static_cast<uint32_t>(kiew->size()));

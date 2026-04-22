@@ -21,13 +21,27 @@
 #include <comdef.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+/**
+ * @brief Get message of ::GetLastError()
+ *
+ * @return std::string
+ */
 std::string com::centreon::agent::get_last_error_as_string() {
   // Get the error message ID, if any.
   DWORD error_message_id = ::GetLastError();
   if (error_message_id == 0) {
     return std::string();  // No error message has been recorded
   }
+  return error_as_string(error_message_id);
+}
 
+/**
+ * @brief Get message of error_message_id
+ *
+ * @param error_message_id
+ * @return std::string
+ */
+std::string com::centreon::agent::error_as_string(DWORD error_message_id) {
   LPSTR message_buffer = nullptr;
 
   // Ask Win32 to give us the string version of that message ID.

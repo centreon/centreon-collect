@@ -39,13 +39,16 @@ include_directories(${PROJECT_SOURCE_DIR}/stats/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
+include_directories("${PROJECT_SOURCE_DIR}/core/cache/inc")
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/src)
 include_directories(${CMAKE_SOURCE_DIR}/common/http/inc)
+include_directories(${CMAKE_SOURCE_DIR}/common/process/inc)
 include_directories(${CMAKE_SOURCE_DIR}/common/grpc/inc)
 include_directories(${CMAKE_SOURCE_DIR}/common/log_v2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
 include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
+include_directories(${PROJECT_SOURCE_DIR}/event_script/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
@@ -102,12 +105,14 @@ add_executable(
 
 set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 
+
 target_link_libraries(
   ut_broker
   PRIVATE
           roker
 	  -Wl,--whole-archive
           rokerbase
+          centreon_process
 	  -Wl,--no-whole-archive
           conflictmgr
           centreon_common
@@ -115,6 +120,7 @@ target_link_libraries(
           nlohmann_json::nlohmann_json
           multiplexing
           ${TESTS_LIBRARIES}
+          Boost::thread
           GTest::gtest
           GTest::gtest_main
           GTest::gmock

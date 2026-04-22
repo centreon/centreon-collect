@@ -17,6 +17,7 @@
  */
 #include "com/centreon/engine/broker.hh"
 #include <openssl/x509.h>
+#include <spdlog/common.h>
 #include "broker/core/bbdo/internal.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/comment.hh"
@@ -1957,7 +1958,7 @@ static void forward_pb_external_command(int type,
           if (host_id != 0) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(host_id);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -1994,7 +1995,7 @@ static void forward_pb_external_command(int type,
           if (p.first && p.second) {
             // Fill custom variable.
             auto cvs = std::make_shared<neb::pb_custom_variable_status>();
-            com::centreon::broker::CustomVariable& data = cvs->mut_obj();
+            com::centreon::broker::CustomVariableStatus& data = cvs->mut_obj();
             data.set_host_id(p.first);
             data.set_modified(true);
             data.set_name(split_iter->data(), split_iter->length());
@@ -3450,7 +3451,7 @@ static void set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     le_obj.set_output(ait->data(), ait->size());
   } else if (typ == "EXTERNAL COMMAND") {
     test_fail("acknowledge type");
-    auto& data = *ait;
+    std::string_view data = *ait;
     ++ait;
     if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
       le_obj.set_msg_type(
@@ -3678,7 +3679,12 @@ static void forward_log(const char* data, time_t entry_time) {
  */
 static void forward_pb_log(const char* data, time_t entry_time) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  if (neb_logger->level() == spdlog::level::trace) {
+    SPDLOG_LOGGER_TRACE(neb_logger, "callbacks: generating pb log event {}",
+                        data);
+  } else {
+    SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating pb log event");
+  }
 
   try {
     // In/Out variables.
@@ -4852,5 +4858,18 @@ void broker_agent_stats(nebstruct_agent_stats_data& stats) {
     to_fill->set_nb_agent(cumul_data.nb_agent);
   }
 
+  cbm->write(to_send);
+}
+
+/**
+ * @brief called by opentelemetry module when an unknown agent connects to
+ * engine
+ *
+ * @param event
+ */
+void broker_agent_unknown_host(
+    const com::centreon::broker::UnknownHost& event) {
+  auto to_send = std::make_shared<neb::pb_unknown_host>(event);
+  to_send->mut_obj().set_poller_id(cbm->poller_id());
   cbm->write(to_send);
 }

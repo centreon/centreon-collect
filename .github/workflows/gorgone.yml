@@ -114,10 +114,10 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: centreon/centreon
           path: centreon
@@ -161,7 +161,7 @@ jobs:
 
       - name: Upload logs as artifacts if tests failed
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
           name: centreon-collect-perl-unit-tests-${{ matrix.operating_system }}
           path: ./lastlog.jsonl
@@ -194,7 +194,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Parse distrib name
         id: parse-distrib
@@ -263,10 +263,10 @@ jobs:
       project: gorgone-testing
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Login to registry
-        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef # v3.6.0
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
@@ -299,7 +299,7 @@ jobs:
         shell: bash
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
@@ -324,7 +324,7 @@ jobs:
         shell: bash
 
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           repository: centreon/centreon
           path: centreon
@@ -333,10 +333,10 @@ jobs:
             centreon/www/install/createTables.sql
             centreon/www/install/createTablesCentstorage.sql
 
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
 
       - name: Docker build and push
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         env:
           DOCKER_BUILD_CHECKS_ANNOTATIONS: false
           DOCKER_BUILD_SUMMARY: false
@@ -369,7 +369,7 @@ jobs:
         shell: bash
 
       - name: Store docker image in cache
-        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
         with:
           path: ./docker-image
           key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
@@ -409,7 +409,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
@@ -436,11 +436,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9]
+        distrib: [el9]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Delivery
         uses: ./.github/actions/rpm-delivery
@@ -456,41 +456,8 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
-  deliver-deb:
-    runs-on: centreon-common
-    needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
-
-    strategy:
-      fail-fast: false
-      matrix:
-        distrib: [bookworm]  # No ubuntu in 24.10, 24.11 or later for now
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-
-      - name: Delivery
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
   promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
+    needs: [get-environment, deliver-rpm]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -503,11 +470,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el8, el9, bookworm]
+        distrib: [el9]
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
@@ -523,7 +490,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
+    needs: [get-environment, deliver-rpm, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&

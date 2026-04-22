@@ -28,6 +28,7 @@
 
 #include "config.hh"
 #include "drive_size.hh"
+#include "grpc_ca_bootstrap.hh"
 #include "streaming_client.hh"
 #include "streaming_server.hh"
 
@@ -74,26 +75,6 @@ static void signal_handler(const boost::system::error_code& error,
     }
     _signals.async_wait(signal_handler);
   }
-}
-
-static std::string read_file(const std::string& file_path) {
-  if (file_path.empty()) {
-    return {};
-  }
-  try {
-    std::ifstream file(file_path);
-    if (file.is_open()) {
-      std::stringstream ss;
-      ss << file.rdbuf();
-      file.close();
-      return ss.str();
-    } else {
-      SPDLOG_LOGGER_ERROR(g_logger, "fail to open {}", file_path);
-    }
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(g_logger, "fail to read {}: {}", file_path, e.what());
-  }
-  return "";
 }
 
 int main(int argc, char* argv[]) {
@@ -184,11 +165,12 @@ int main(int argc, char* argv[]) {
 
     grpc_conf = std::make_shared<com::centreon::common::grpc::grpc_config>(
         conf.get_endpoint(), conf.get_security_mode(),
-        read_file(conf.get_public_cert_file()),
-        read_file(conf.get_private_key_file()),
-        read_file(conf.get_ca_certificate_file()), conf.get_ca_name(), true, 30,
-        conf.get_second_max_reconnect_backoff(), conf.get_max_message_length(),
-        conf.get_token(), conf.get_trusted_tokens());
+        read_file_content(conf.get_public_cert_file(), g_logger),
+        read_file_content(conf.get_private_key_file(), g_logger),
+        read_file_content(conf.get_ca_certificate_file(), g_logger),
+        conf.get_ca_name(), true, 30, conf.get_second_max_reconnect_backoff(),
+        conf.get_max_message_length(), conf.get_token(),
+        conf.get_trusted_tokens(), conf.get_ca_fingerprint());
 
   } catch (const std::exception& e) {
     SPDLOG_CRITICAL("fail to parse input params: {}", e.what());
@@ -199,12 +181,16 @@ int main(int argc, char* argv[]) {
 
   set_grpc_logger();
 
+  bootstrap_ca_from_fingerprint_if_needed(conf, argv[1], grpc_conf, g_logger);
+
   if (conf.use_reverse_connection()) {
-    _streaming_server = streaming_server::load(g_io_context, g_logger,
-                                               grpc_conf, conf.get_host());
+    _streaming_server =
+        streaming_server::load(g_io_context, g_logger, grpc_conf,
+                               conf.get_host(), conf.get_host_template());
   } else {
-    _streaming_client = streaming_client::load(g_io_context, g_logger,
-                                               grpc_conf, conf.get_host());
+    _streaming_client =
+        streaming_client::load(g_io_context, g_logger, grpc_conf,
+                               conf.get_host(), conf.get_host_template());
   }
 
   if (!conf.use_encryption()) {

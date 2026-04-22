@@ -38,7 +38,7 @@ BAWORST_ACK
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -88,7 +88,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -105,7 +105,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is UNKNOWN - At least one KPI is in an UNKNOWN state: KPI Service host_16/service_303 is in UNKNOWN state
+    ...    BA: 1 - test - UNKNOWN: At least one KPI is in an UNKNOWN state: KPI Service host_16/service_303 is in UNKNOWN state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -122,7 +122,7 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - At least one KPI is in a WARNING state: KPI Service host_16/service_303 is in WARNING state
+    ...    BA: 1 - test - WARNING: At least one KPI is in a WARNING state: KPI Service host_16/service_303 is in WARNING state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -146,14 +146,14 @@ BAWORST
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers
@@ -175,7 +175,7 @@ BAWORST
     # check broker stats
     ${res}    Ctn Get Broker Stats
     ...    central
-    ...    1: 127.0.0.1:[0-9]+
+    ...    1:\\s*(?:127.0.0.1:[0-9]+|ipv6:.*:[0-9]+)
     ...    10
     ...    endpoint central-broker-master-input
     ...    peers
@@ -225,7 +225,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - All KPIs are in an OK state
+    ...    BA: 1 - test - OK: All KPIs are in an OK state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -243,7 +243,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -264,7 +264,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -282,7 +282,7 @@ BAWORST2
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
+    ...    BA: 1 - test - CRITICAL: At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -308,7 +308,7 @@ BABEST_SERVICE_CRITICAL
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - At least one KPI is in an OK state
+    ...    BA: 1 - test - OK: At least one KPI is in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -325,7 +325,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - At least one KPI is in an OK state
+    ...    BA: 1 - test - OK: At least one KPI is in an OK state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -341,7 +341,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is UNKNOWN - All KPIs are in an UNKNOWN state or worse (WARNING or CRITICAL)
+    ...    BA: 1 - test - UNKNOWN: All KPIs are in an UNKNOWN state or worse (WARNING or CRITICAL)
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -357,7 +357,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - All KPIs are in a WARNING state or worse (CRITICAL)
+    ...    BA: 1 - test - WARNING: All KPIs are in a WARNING state or worse (CRITICAL)
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -373,7 +373,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - All KPIs are in a CRITICAL state
+    ...    BA: 1 - test - CRITICAL: All KPIs are in a CRITICAL state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -411,7 +411,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_302 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_302 (impact: 40)|BA_Level=60;35;20;0;100
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -423,7 +423,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 40)|BA_Level=30;35;20;0;100
+    ...    BA: 1 - test - WARNING: Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 40)|BA_Level=30;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -445,7 +445,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI Service host_16/service_303 (impact: 40), KPI Service host_16/service_302 (impact: 40)|BA_Level=20;35;20;0;100
+    ...    BA: 1 - test - CRITICAL: Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI Service host_16/service_303 (impact: 40), KPI Service host_16/service_302 (impact: 40)|BA_Level=20;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -458,7 +458,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_303 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_303 (impact: 40)|BA_Level=60;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -482,7 +482,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
+    ...    BA: 1 - test - OK: Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -509,7 +509,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 0% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=0%;49;67;0;100
+    ...    BA: 1 - test - OK: 0% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=0%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -527,7 +527,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 33% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=33%;49;67;0;100
+    ...    BA: 1 - test - OK: 33% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=33%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -551,7 +551,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - 66% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=66%;49;67;0;100
+    ...    BA: 1 - test - WARNING: 66% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=66%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -581,7 +581,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - 100% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=100%;49;67;0;100
+    ...    BA: 1 - test - CRITICAL: 100% of KPIs are in a CRITICAL state (warn: 49 - crit: 67)|BA_Level=100%;49;67;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -608,7 +608,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 0 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=0;2;3;0;3
+    ...    BA: 1 - test - OK: 0 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=0;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -627,7 +627,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - 1 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=1;2;3;0;3
+    ...    BA: 1 - test - OK: 1 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=1;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -651,7 +651,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The test BA is not in WARNING as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - 2 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=2;2;3;0;3
+    ...    BA: 1 - test - WARNING: 2 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=2;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -685,7 +685,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Ctn Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - 3 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=3;2;3;0;3
+    ...    BA: 1 - test - CRITICAL: 3 out of 3 KPIs are in a CRITICAL state (warn: 2 - crit: 3)|BA_Level=3;2;3;0;3
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 

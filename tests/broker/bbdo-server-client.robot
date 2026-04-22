@@ -265,7 +265,7 @@ BSCSSTG2
     ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    encrypted connection    write: buff:    write done: buff:
+    ${content}    Create List    encrypted connection    write:    write done:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker
@@ -330,6 +330,10 @@ BSCSSTG3
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
     Ctn Config Engine    ${1}
     Ctn Config Broker    central
     Ctn Config Broker    rrd
@@ -439,10 +443,77 @@ BSCSSGA2
     Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    receive: buff
+    ${content}    Create List    receive:
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    If the authorization token is the same on both side, no issue
     Ctn Kindly Stop Broker
+
+
+BSCSSGA3
+    [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. The authorization token is retrieved from the vault on the server side.
+    [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    vault    MON-196931
+    Ctn Start Vault
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker Bbdo Input    central    bbdo_server    5669    grpc
+    Ctn Config Broker Bbdo Output    central    bbdo_client    5670    grpc    localhost
+    Ctn Config Broker Bbdo Input    rrd    bbdo_server    5670    grpc
+    Ctn Broker Config Log    central    config    off
+    Ctn Broker Config Log    central    core    off
+    Ctn Broker Config Log    rrd    core    off
+    Ctn Broker Config Log    rrd    grpc    trace
+    Ctn Broker Config Flush Log    central    0
+    Ctn Broker Config Flush Log    rrd    0
+    Ctn Start Broker
+
+    ${encrypted_role_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    12345678-1234-1234-1234-123456789abc
+    ${encrypted_secret_id}    Ctn Aes Encrypt    51001    ${AppSecret}    ${Salt}    abcdef01-abcd-abcd-abcd-abcdef012345
+
+    Ctn Kindly Stop Broker
+
+    Ctn Broker Config Input Set    rrd    central-rrd-master-input    authorization
+    ...    secret::hashicorp_vault::johndoe/data/configuration/broker/08cb1f88-fc16-4d77-b27c-a97b2d5a1597::central-broker-master-unified-sql_db_password
+    Ctn Broker Config Output Set    central    centreon-broker-master-rrd    authorization    centreon
+    Ctn Broker Config Add Item    rrd    vault_configuration    /tmp/vault.json
+    Ctn Broker Config Add Item    rrd    env_file    /tmp/env_file
+    Ctn Broker Config Add Item    rrd    verify_vault_peer    no
+
+    ${vault_content}    Catenate    SEPARATOR=\n
+    ...    {
+    ...      "name": "my_vault",
+    ...      "url": "localhost",
+    ...      "port": 4443,
+    ...      "root_path": "john-doe",
+    ...      "secret_id": "${encrypted_secret_id}",
+    ...      "role_id": "${encrypted_role_id}",
+    ...      "salt": "${Salt}"
+    ...    }
+
+    Create File    /tmp/vault.json    ${vault_content}
+
+    ${env_file}    Catenate    SEPARATOR=\n
+    ...    APP_SECRET= ${AppSecret}
+
+    Create File    /tmp/env_file    ${env_file}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+
+    ${content}    Create List    Authorization obtained from Vault configuration
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the authorization token found in the vault.
+
+    ${content}    Create List    accepted receive:
+    ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    Should Be True    ${result}    If the authorization token is the same on both sides, no issue.
+
+    Ctn Kindly Stop Broker
+    Ctn Stop Vault
+
+
+*** Variables ***
+${Salt}        U2FsdA==
+${AppSecret}   SGVsbG8gd29ybGQsIGRvZywgY2F0LCBwdXBwaWVzLgo=
 
 
 *** Keywords ***

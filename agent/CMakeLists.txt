@@ -131,6 +131,7 @@ set( SRC_COMMON
   ${SRC_DIR}/check.cc
   ${SRC_DIR}/check_exec.cc
   ${SRC_DIR}/drive_size.cc
+  ${SRC_DIR}/grpc_ca_bootstrap.cc
   ${SRC_DIR}/check_health.cc
   ${SRC_DIR}/log.cc
   ${SRC_DIR}/opentelemetry/proto/collector/metrics/v1/metrics_service.grpc.pb.cc
@@ -173,7 +174,7 @@ configure_file("${INCLUDE_DIR}/version.hh.in"
 
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  set(SRC ${SRC_COMMON} ${SRC_LINUX} )
+  set(SRC ${SRC_COMMON} ${SRC_LINUX} ${SRC_PB_OTEL} )
 else()
   add_compile_options("/wd5232")
   set(SRC ${SRC_COMMON} ${SRC_WINDOWS} ${SRC_PB_OTEL})
@@ -214,7 +215,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
-    pb_open_telemetry_lib
     ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++
@@ -237,6 +237,7 @@ else()
     fmt::fmt
     pdh
     taskschd
+    Crypt32
     Version.lib)
 
   if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")

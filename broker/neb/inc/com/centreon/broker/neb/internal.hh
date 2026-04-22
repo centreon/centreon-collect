@@ -66,7 +66,7 @@ using pb_custom_variable =
     io::protobuf<CustomVariable,
                  make_type(io::neb, neb::de_pb_custom_variable)>;
 using pb_custom_variable_status =
-    io::protobuf<CustomVariable,
+    io::protobuf<CustomVariableStatus,
                  make_type(io::neb, neb::de_pb_custom_variable_status)>;
 
 using pb_host_check =
@@ -118,6 +118,9 @@ using pb_otl_metrics = io::protobuf<
 
 using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
+
+using pb_unknown_host =
+    io::protobuf<UnknownHost, make_type(io::neb, neb::de_pb_unknown_host)>;
 
 }  // namespace neb
 

@@ -25,7 +25,8 @@ if(WITH_TESTING)
 
   include_directories(
     ${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc ${MODULE_DIR_OTL}/inc
-    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc)
+    ${CMAKE_SOURCE_DIR}/bbdo ${CMAKE_SOURCE_DIR}/common/http/inc
+    ${CMAKE_SOURCE_DIR}/common/crypto)
 
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
@@ -117,6 +118,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/enginerpc/pbenginerpc.cc
       ${TESTS_DIR}/helper.cc
       ${TESTS_DIR}/macros/pbmacro.cc
+      ${TESTS_DIR}/macros/pbmacro_custom_recursive.cc
       ${TESTS_DIR}/macros/pbmacro_hostname.cc
       ${TESTS_DIR}/macros/pbmacro_service.cc
       ${TESTS_DIR}/external_commands/pbanomalydetection.cc
@@ -134,6 +136,7 @@ if(WITH_TESTING)
       ${TESTS_DIR}/notifications/service_downtime_notification_test.cc
       ${TESTS_DIR}/opentelemetry/agent_check_result_builder_test.cc
       ${TESTS_DIR}/opentelemetry/agent_reverse_client_test.cc
+      ${TESTS_DIR}/opentelemetry/certificate_service_test.cc
       ${TESTS_DIR}/opentelemetry/grpc_config_test.cc
       ${TESTS_DIR}/opentelemetry/host_serv_extractor_test.cc
       ${TESTS_DIR}/opentelemetry/open_telemetry_test.cc

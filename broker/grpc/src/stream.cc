@@ -119,10 +119,12 @@ std::mutex stream<bireactor_class>::_instances_m;
  */
 template <class bireactor_class>
 stream<bireactor_class>::stream(const grpc_config::pointer& conf,
-                                const std::string_view& class_name)
+                                const std::string_view& class_name,
+                                const std::string& peer)
     : io::stream("GRPC"),
       _conf(conf),
       _class_name(class_name),
+      _peer(peer),
       _logger{log_v2::instance().get(log_v2::GRPC)} {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
@@ -341,17 +343,24 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (_conf->get_grpc_serialized() &&
       std::dynamic_pointer_cast<io::protobuf_base>(d)) {  // no bbdo serialize
     to_send = create_event_with_data(d);
+    // As some internal events have not to be sent on wire, we log an info
+    // message instead of an errror
+    if (!to_send) {
+      SPDLOG_LOGGER_INFO(_logger, "Unable to serialize {}", *d);
+    }
   } else {
     to_send = std::make_shared<event_with_data>();
     std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
     to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
                                                  raw_src->_buffer.end());
   }
-  {
-    std::lock_guard l(_write_m);
-    _write_queue.push(to_send);
+  if (to_send) {
+    {
+      std::lock_guard l(_write_m);
+      _write_queue.push(to_send);
+    }
+    start_write();
   }
-  start_write();
   return 0;
 }
 

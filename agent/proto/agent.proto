@@ -33,6 +33,11 @@ service ReversedAgentService {
   rpc Import(stream MessageToAgent) returns (stream MessageFromAgent) {}
 }
 
+// Dedicated service for CA certificate retrieval
+service CACertificateService {
+  rpc GetCACertificate(CACertificateRequest) returns (CACertificateResponse) {}
+}
+
 // Message sent to agent reversed connection or not
 message MessageToAgent {
   oneof content {
@@ -67,6 +72,8 @@ message AgentInfo {
   string os = 3;  // can be alma, windows, etc
   string os_version = 4;
   bool encryption_ready = 5;  // true if agent is able to receive encrypted commands
+  string host_template = 6; // type of host such windows sql server, web server .....
+  repeated string ips = 7;  //ips of the host
 }
 
 // Agent configuration sent by Engine
@@ -109,4 +116,14 @@ message Service {
 message ForceCheck {
   uint64 host_id = 1;
   uint64 serv_id = 2;
+}
+
+// Request to get CA root certificate from engine
+message CACertificateRequest {
+}
+
+// Response containing CA root certificate
+message CACertificateResponse {
+  // CA certificate in PEM format
+  string certificate_pem = 1;
 }
