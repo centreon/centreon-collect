@@ -249,6 +249,20 @@ void broker_cache::merge(
       }
     }
   }
+
+  /* Work on tags */
+  if (section_enabled(CACHE_TAGS)) {
+    for (const engine::configuration::Tag& tag : state.tags()) {
+      auto pb = std::make_shared<neb::pb_tag>();
+      auto& obj = pb->mut_obj();
+      obj.set_id(tag.key().id());
+      obj.set_type(static_cast<TagType>(tag.key().type()));
+      obj.set_name(tag.tag_name());
+      obj.set_poller_id(state.poller_id());
+      obj.set_action(Tag_Action_ADD);
+      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+    }
+  }
 }
 
 /**
@@ -377,7 +391,7 @@ void broker_cache::apply(
 
   /* Work on hostgroups */
   auto feed_hostgroup = [&](const engine::configuration::Hostgroup& hg,
-                            bool add) {
+                            bool add) ABSL_NO_THREAD_SAFETY_ANALYSIS {
     auto& hg_index = _hostgroups.get<by_id>();
     auto found = hg_index.find(hg.hostgroup_id());
     bool inserted = false;
@@ -590,7 +604,7 @@ void broker_cache::apply(
 
   /* Work on servicegroups */
   auto feed_servicegroup = [&](const engine::configuration::Servicegroup& sg,
-                               bool add) {
+                               bool add) ABSL_NO_THREAD_SAFETY_ANALYSIS {
     auto& sg_index = _servicegroups;
     auto found = sg_index.find(sg.servicegroup_id());
     if (found == sg_index.end()) {
@@ -697,6 +711,33 @@ void broker_cache::apply(
         _severities.erase(std::make_pair(id, Severity_Type_HOST));
         continue;
       }
+    }
+  }
+
+  /* Work on tags */
+  if (section_enabled(CACHE_TAGS)) {
+    for (const engine::configuration::Tag& tag : diff.tags().added()) {
+      auto pb = std::make_shared<neb::pb_tag>();
+      auto& obj = pb->mut_obj();
+      obj.set_id(tag.key().id());
+      obj.set_type(static_cast<TagType>(tag.key().type()));
+      obj.set_name(tag.tag_name());
+      obj.set_poller_id(diff.poller_id());
+      obj.set_action(Tag_Action_ADD);
+      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+    }
+    for (const engine::configuration::Tag& tag : diff.tags().modified()) {
+      auto pb = std::make_shared<neb::pb_tag>();
+      auto& obj = pb->mut_obj();
+      obj.set_id(tag.key().id());
+      obj.set_type(static_cast<TagType>(tag.key().type()));
+      obj.set_name(tag.tag_name());
+      obj.set_poller_id(diff.poller_id());
+      obj.set_action(Tag_Action_MODIFY);
+      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+    }
+    for (const engine::configuration::KeyType& key : diff.tags().removed()) {
+      _tags.erase(std::make_pair(key.id(), static_cast<TagType>(key.type())));
     }
   }
 }
@@ -1582,17 +1623,6 @@ void broker_cache::update_severity(
 }
 
 /**
- * @brief Set the database ID for a severity entry identified by its config ID
- * and type. If the entry does not exist yet in the cache (e.g. loaded from the
- * database at startup before the configuration events arrive), a stub entry is
- * created so the db_id is not lost.
- *
- * @param config_id The severity configuration ID.
- * @param type The severity type (0=service, 1=host).
- * @param db_id The auto-increment database ID to store.
- */
-
-/**
  * @brief Return a snapshot of all severities currently held in the cache.
  *
  * @return A copy of the internal severities map, keyed by (config_id, type).
@@ -1602,6 +1632,147 @@ absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
 broker_cache::severities() const {
   absl::ReaderMutexLock lck{&_mutex};
   return _severities;
+}
+
+/**
+ * @brief Update a tag in the cache from a NEB event.
+ *
+ * @param evt The pb_tag event (ADD, MODIFY or DELETE).
+ */
+void broker_cache::update_tag(const std::shared_ptr<neb::pb_tag>& evt) {
+  if (!section_enabled(CACHE_TAGS))
+    return;
+  auto& obj = evt->obj();
+  auto key = std::make_pair(obj.id(), obj.type());
+  absl::WriterMutexLock lck{&_mutex};
+  if (obj.action() == Tag_Action_DELETE)
+    _tags.erase(key);
+  else
+    _tags.insert_or_assign(key, evt);
+}
+
+/**
+ * @brief Get a tag by its id and type.
+ *
+ * @param tag_id The tag id.
+ * @param type   The tag type.
+ * @return A shared pointer to the pb_tag, or nullptr if not found.
+ */
+std::shared_ptr<neb::pb_tag> broker_cache::get_tag(uint64_t tag_id,
+                                                   TagType type) const {
+  absl::ReaderMutexLock lck{&_mutex};
+  auto it = _tags.find({tag_id, type});
+  return it != _tags.end() ? it->second : nullptr;
+}
+
+/**
+ * @brief Get the sorted list of tag IDs of a given type for a host.
+ *
+ * @param host_id The host ID.
+ * @param type    The tag type to filter on.
+ * @return Sorted vector of tag IDs.
+ */
+std::vector<uint64_t> broker_cache::host_tag_ids(uint64_t host_id,
+                                                 TagType type) const {
+  absl::ReaderMutexLock lck{&_mutex};
+  std::vector<uint64_t> result;
+  auto it = _hosts.get<by_id>().find(host_id);
+  if (it == _hosts.get<by_id>().end())
+    return result;
+  for (const auto& t : (*it)->obj().tags()) {
+    if (t.type() == type)
+      result.push_back(t.id());
+  }
+  std::sort(result.begin(), result.end());
+  return result;
+}
+
+/**
+ * @brief Get the sorted list of tag names of a given type for a host.
+ * Names are sorted by ascending tag ID to match global_cache ordering.
+ *
+ * @param host_id The host ID.
+ * @param type    The tag type to filter on.
+ * @return Vector of tag names sorted by tag ID.
+ */
+std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
+                                                      TagType type) const {
+  absl::ReaderMutexLock lck{&_mutex};
+  std::vector<std::pair<uint64_t, std::string>> pairs;
+  auto it = _hosts.get<by_id>().find(host_id);
+  if (it == _hosts.get<by_id>().end())
+    return {};
+  for (const auto& t : (*it)->obj().tags()) {
+    if (t.type() != type)
+      continue;
+    auto tag_it = _tags.find({t.id(), type});
+    if (tag_it != _tags.end())
+      pairs.emplace_back(t.id(), tag_it->second->obj().name());
+  }
+  std::sort(pairs.begin(), pairs.end());
+  std::vector<std::string> result;
+  result.reserve(pairs.size());
+  for (auto& p : pairs)
+    result.push_back(std::move(p.second));
+  return result;
+}
+
+/**
+ * @brief Get the sorted list of tag IDs of a given type for a service.
+ *
+ * @param host_id    The host ID.
+ * @param service_id The service ID.
+ * @param type       The tag type to filter on.
+ * @return Sorted vector of tag IDs.
+ */
+std::vector<uint64_t> broker_cache::service_tag_ids(uint64_t host_id,
+                                                    uint64_t service_id,
+                                                    TagType type) const {
+  absl::ReaderMutexLock lck{&_mutex};
+  std::vector<uint64_t> result;
+  auto& index = _services.get<by_id>();
+  auto it = index.find(std::make_pair(host_id, service_id));
+  if (it == index.end())
+    return result;
+  for (const auto& t : (*it)->obj().tags()) {
+    if (t.type() == type)
+      result.push_back(t.id());
+  }
+  std::sort(result.begin(), result.end());
+  return result;
+}
+
+/**
+ * @brief Get the sorted list of tag names of a given type for a service.
+ * Names are sorted by ascending tag ID to match global_cache ordering.
+ *
+ * @param host_id    The host ID.
+ * @param service_id The service ID.
+ * @param type       The tag type to filter on.
+ * @return Vector of tag names sorted by tag ID.
+ */
+std::vector<std::string> broker_cache::service_tag_names(uint64_t host_id,
+                                                         uint64_t service_id,
+                                                         TagType type) const {
+  absl::ReaderMutexLock lck{&_mutex};
+  std::vector<std::pair<uint64_t, std::string>> pairs;
+  auto& index = _services.get<by_id>();
+  auto it = index.find(std::make_pair(host_id, service_id));
+  if (it == index.end())
+    return {};
+  for (const auto& t : (*it)->obj().tags()) {
+    if (t.type() != type)
+      continue;
+    auto tag_it = _tags.find({t.id(), type});
+    if (tag_it != _tags.end())
+      pairs.emplace_back(t.id(), tag_it->second->obj().name());
+  }
+  std::sort(pairs.begin(), pairs.end());
+  std::vector<std::string> result;
+  result.reserve(pairs.size());
+  for (auto& p : pairs)
+    result.push_back(std::move(p.second));
+  return result;
 }
 
 void broker_cache::set_db_id_for_severity(uint64_t config_id,
@@ -2199,6 +2370,9 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
       break;
     case make_type(io::neb, neb::de_pb_severity):
       update_severity(std::static_pointer_cast<neb::pb_severity>(evt));
+      break;
+    case make_type(io::neb, neb::de_pb_tag):
+      update_tag(std::static_pointer_cast<neb::pb_tag>(evt));
       break;
     default:
       break;

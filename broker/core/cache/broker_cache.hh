@@ -311,6 +311,7 @@ class broker_cache {
     CACHE_METRIC_MAPPINGS = 1 << 4,
     CACHE_SEVERITIES = 1 << 5,
     CACHE_BAM = 1 << 6,
+    CACHE_TAGS = 1 << 7,
     CACHE_ALL = 0xFFFFFFFF,
   };
 
@@ -361,6 +362,11 @@ class broker_cache {
    * value is the struct severity defined earlier (fields are level and ID) */
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, severity> _severities
       ABSL_GUARDED_BY(_mutex);
+
+  /* Key for tags is {tag_id, tag_type}, value is the tag name. */
+  absl::flat_hash_map<std::pair<uint64_t, TagType>,
+                      std::shared_ptr<neb::pb_tag>>
+      _tags ABSL_GUARDED_BY(_mutex);
 
   /* BAM relations from BA to BV */
   absl::btree_set<std::pair<uint64_t, uint64_t>> _dimension_ba_bv_relations
@@ -484,6 +490,22 @@ class broker_cache {
   uint32_t severity(uint64_t host_id, uint64_t service_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   void update_severity(const std::shared_ptr<neb::pb_severity>& evt)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  void update_tag(const std::shared_ptr<neb::pb_tag>& evt)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::shared_ptr<neb::pb_tag> get_tag(uint64_t tag_id, TagType type) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> host_tag_ids(uint64_t host_id, TagType type) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<std::string> host_tag_names(uint64_t host_id, TagType type) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> service_tag_ids(uint64_t host_id,
+                                        uint64_t service_id,
+                                        TagType type) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<std::string> service_tag_names(uint64_t host_id,
+                                             uint64_t service_id,
+                                             TagType type) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   void set_db_id_for_severity(uint64_t config_id, uint32_t type, uint64_t db_id)
       ABSL_LOCKS_EXCLUDED(_mutex);

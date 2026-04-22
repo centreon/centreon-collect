@@ -40,9 +40,8 @@ namespace asio = boost::asio;
 
 #include "common/log_v2/log_v2.hh"
 
-#include "broker/core/config/applier/init.hh"
 #include "broker/core/brokerrpc/brokerrpc.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/config/applier/init.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/common/pool.hh"
@@ -306,7 +305,6 @@ int main(int argc, char* argv[]) {
       }
       //  Unload endpoints.
       config::applier::deinit();
-      cache::global_cache::unload();
     }
   }
   // Standard exception.

@@ -293,8 +293,6 @@ add_subdirectory(core/bbdo)
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
-    ${SRC_DIR}/cache/global_cache.cc
-    ${SRC_DIR}/cache/global_cache_data.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -527,7 +525,6 @@ if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
       ${TEST_DIR}/bbdo/category.cc
       ${TEST_DIR}/bbdo/output.cc
       ${TEST_DIR}/bbdo/read.cc
-      ${TEST_DIR}/cache/global_cache_test.cc
       ${TEST_DIR}/compression/stream/memory_stream.hh
       ${TEST_DIR}/compression/stream/read.cc
       ${TEST_DIR}/compression/stream/write.cc

@@ -20,7 +20,8 @@
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
+#include "broker/core/cache/broker_cache.hh"
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 
@@ -260,16 +261,16 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
         {
-          const cache::host_serv_pair* host_serv =
-              cache::global_cache::instance_ptr()->get_host_serv_id(
+          auto index_mapping =
+              config::applier::state::instance().cache().get_index_mapping(
                   converted.index_id());
-          if (!host_serv) {
+          if (!index_mapping) {
             SPDLOG_LOGGER_ERROR(
                 _logger, "unable to find host_id service_id from index_id:{}",
                 converted.index_id());
           } else {
-            converted.set_host_id(host_serv->first);
-            converted.set_service_id(host_serv->second);
+            converted.set_host_id(index_mapping->obj().host_id());
+            converted.set_service_id(index_mapping->obj().service_id());
           }
         }
         if (converted.service_id()) {

@@ -68,4 +68,7 @@ message IndexMapping {
 message MetricMapping {
   uint64 index_id = 1;
   uint64 metric_id = 2;
+  double min = 3;
+  double max = 4;
+  string uom = 5;
 }

@@ -21,9 +21,9 @@
 
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
+#include "neb.pb.h"
 
 namespace com::centreon::broker {
 
@@ -93,7 +93,7 @@ class line_protocol_query {
   void _get_service(io::data const& d,
                     unsigned& string_index,
                     std::ostream& is) const;
-  cache::host_serv_pair _get_service_id(io::data const& d) const;
+  std::pair<uint64_t, uint64_t> _get_service_id(io::data const& d) const;
   void _get_service_id(io::data const& d,
                        unsigned& string_index,
                        std::ostream& is) const;
@@ -112,10 +112,6 @@ class line_protocol_query {
   void _get_max(io::data const& d,
                 unsigned& string_index,
                 std::ostream& is) const;
-
-  void _get_resource_id(io::data const& d,
-                        unsigned& string_index,
-                        std::ostream& is) const;
 
   void _get_tag_host_id(io::data const& d,
                         TagType tag_type,
@@ -198,8 +194,6 @@ class line_protocol_query {
   void _get_status_time(io::data const& d,
                         unsigned& string_index,
                         std::ostream& is) const;
-
-  const cache::metric_info* _get_metric_info(io::data const& d) const;
 
   // Compiled data.
   std::vector<std::pair<data_getter, data_escaper> > _compiled_getters;
