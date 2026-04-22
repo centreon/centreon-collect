@@ -66,7 +66,9 @@ TEST_F(vault_test, httpsConnection) {
   asio::ip::tcp::resolver resolver(*g_io_context);
   std::string_view server_name("localhost");
   std::string_view server_port("4443");
-  const auto results = resolver.resolve(server_name, server_port);
+  // Resolve 127.0.0.1 directly to avoid systems where "localhost" resolves
+  // to [::1] (IPv6) while the server only listens on 0.0.0.0 (IPv4).
+  const auto results = resolver.resolve("127.0.0.1", server_port);
   ASSERT_FALSE(results.empty()) << "One endpoint expected at least on "
                                 << server_name << ':' << server_port;
   http_config::pointer client_conf = std::make_shared<http_config>(
@@ -119,6 +121,6 @@ TEST_F(vault_test, httpsConnection) {
   } catch (const std::exception& e) {
     p->kill();
     FAIL() << "HTTPS vault server error: " << e.what()
-           << " (check that perl-HTTP-Daemon-SSL is installed)";
+           << " (vault-server.py stdout may contain more details)";
   }
 }

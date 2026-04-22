@@ -2,18 +2,19 @@
 """
 Minimal HTTPS server simulating a HashiCorp Vault approle login endpoint.
 Requires only standard library modules (ssl, http.server, json, subprocess).
+All diagnostic output goes to stdout so the test framework can capture it.
 """
+print("vault-server.py: starting", flush=True)
+
 import json
-import socket
 import ssl
 import subprocess
 import sys
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
-class HTTPServerV6(HTTPServer):
-    """HTTPServer variant that listens on IPv6 (dual-stack on most Linux systems)."""
-    address_family = socket.AF_INET6
+def log(msg):
+    print(msg, flush=True)
 
 
 class VaultHandler(BaseHTTPRequestHandler):
@@ -68,8 +69,10 @@ class VaultHandler(BaseHTTPRequestHandler):
             self.wfile.write(b"Not found")
 
 
-def main():
+try:
     pem_file = "/tmp/vault.pem"
+
+    log("vault-server.py: generating certificate")
     result = subprocess.run(
         [
             "openssl", "req", "-new", "-x509", "-newkey", "rsa:2048",
@@ -78,20 +81,26 @@ def main():
         ],
         capture_output=True,
     )
+    log(f"vault-server.py: openssl returned {result.returncode}")
     if result.returncode != 0:
-        print(f"openssl failed: {result.stderr.decode()}", file=sys.stderr)
+        log(f"openssl stderr: {result.stderr.decode()}")
         sys.exit(1)
 
+    log("vault-server.py: creating SSL context")
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+
+    log("vault-server.py: loading cert chain")
     ctx.load_cert_chain(pem_file)
 
-    # Bind on :: so the server accepts both IPv4 (127.0.0.1) and IPv6 ([::1])
-    server = HTTPServerV6(("::", 4443), VaultHandler)
+    log("vault-server.py: binding on 0.0.0.0:4443")
+    server = HTTPServer(("0.0.0.0", 4443), VaultHandler)
+
+    log("vault-server.py: wrapping socket with SSL")
     server.socket = ctx.wrap_socket(server.socket, server_side=True)
-    print("Vault HTTPS server started on port 4443", flush=True)
+
+    log("vault-server.py: ready, serving forever")
     server.serve_forever()
 
-
-if __name__ == "__main__":
-    main()
+except Exception as e:
+    log(f"vault-server.py: ERROR: {type(e).__name__}: {e}")
+    sys.exit(1)
