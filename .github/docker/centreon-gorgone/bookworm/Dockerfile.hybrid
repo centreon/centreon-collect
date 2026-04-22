@@ -125,6 +125,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libcrypt-urandom-perl \
     libnet-ssleay-perl \
     libzmq-ffi-perl \
+    libzmq-constants-perl \
     rrdtool \
     curl \
     openssl \

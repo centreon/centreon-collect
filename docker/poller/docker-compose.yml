@@ -41,12 +41,13 @@ services:
 
   centreon-vmware:
     <<: *defaults
-    image: docker.centreon.com/centreon/connector-vmware:fth-docker-vmware
+    image: connector-vmware:local
     container_name: centreon-vmware
     hostname: centreon-vmware
     restart: always
     volumes:
       - poller-etc:/etc/centreon/
+      - poller-engine:/etc/centreon-engine:ro
 
 volumes:
   poller-etc:

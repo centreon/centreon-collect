@@ -101,6 +101,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     zlib1g \
     monitoring-plugins-basic \
+    libzmq-constants-perl \
     sudo \
     ca-certificates \
     wget \
