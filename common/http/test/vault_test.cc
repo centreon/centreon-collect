@@ -51,32 +51,20 @@ class vault_test : public ::testing::Test {
 
 TEST_F(vault_test, httpsConnection) {
   auto p = std::make_shared<process<false>>(
-      g_io_context, _logger, "/usr/bin/python3 " HTTP_TEST_DIR "/vault-server.py",
+      g_io_context, _logger, "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl",
       true, false, nullptr);
   p->start_process(
-      [logger = _logger](const process<false>&, int exit_code,
-                         int, /*exit status*/
-                         const std::string& out, const std::string& err) {
-        if (!out.empty())
-          SPDLOG_LOGGER_INFO(logger, "vault-server stdout: {}", out);
-        if (!err.empty())
-          SPDLOG_LOGGER_ERROR(logger, "vault-server stderr: {}", err);
-        if (exit_code != 0)
-          SPDLOG_LOGGER_ERROR(logger, "vault-server exited with code {}",
-                              exit_code);
-      },
+      [](const process<false>&, int /*exit_code*/, int,    /*exit status*/
+         const std::string& /*stdout*/, const std::string& /*stderr*/
+      ) {},
       {});
 
-  // Use shared_ptr so the promise outlives the test function if callbacks fire
-  // late (e.g. after a retry delay when the vault server fails to start).
-  auto p_promise = std::make_shared<std::promise<std::string>>();
-  std::future<std::string> future = p_promise->get_future();
+  std::promise<std::string> promise;
+  std::future<std::string> future = promise.get_future();
   asio::ip::tcp::resolver resolver(*g_io_context);
   std::string_view server_name("localhost");
   std::string_view server_port("4443");
-  // Resolve 127.0.0.1 directly to avoid systems where "localhost" resolves
-  // to [::1] (IPv6) while the server only listens on 0.0.0.0 (IPv4).
-  const auto results = resolver.resolve("127.0.0.1", server_port);
+  const auto results = resolver.resolve(server_name, server_port);
   ASSERT_FALSE(results.empty()) << "One endpoint expected at least on "
                                 << server_name << ':' << server_port;
   http_config::pointer client_conf = std::make_shared<http_config>(
@@ -100,35 +88,21 @@ TEST_F(vault_test, httpsConnection) {
                             "abababab-abab-abab-abab-abababababab",
                             "abababab-abab-abab-abab-abababababab");
   req->content_length(req->body().length());
-  client->send(req, [logger = _logger, p_promise](
+  std::string resp;
+  client->send(req, [logger = _logger, &promise](
                         const boost::beast::error_code& err,
                         const std::string& detail [[maybe_unused]],
                         const response_ptr& response) mutable {
     logger->info("We are at the callback");
-    if (err) {
+    if (err)
       logger->error("Error from http server: {}", err.message());
-      try {
-        p_promise->set_exception(std::make_exception_ptr(
-            std::runtime_error(err.message())));
-      } catch (...) {
-      }
-    } else {
-      try {
-        p_promise->set_value(response->body());
-      } catch (...) {
-      }
-    }
+    else
+      promise.set_value(response->body());
   });
-  try {
-    nlohmann::json js = nlohmann::json::parse(future.get());
-    p->kill();
-    ASSERT_EQ(js["auth"]["client_token"],
-              std::string_view("hvs."
-                               "key that does not exist"))
-        << "No result received from https server";
-  } catch (const std::exception& e) {
-    p->kill();
-    FAIL() << "HTTPS vault server error: " << e.what()
-           << " (vault-server.py stdout may contain more details)";
-  }
+  nlohmann::json js = nlohmann::json::parse(future.get());
+  p->kill();
+  ASSERT_EQ(js["auth"]["client_token"],
+            std::string_view("hvs."
+                             "key that does not exist"))
+      << "No result received from https server after 20s";
 }

@@ -88,7 +88,7 @@ Here is another practical example:
 void do_stuff() {
   /* process must be a shared_ptr. */
   auto p = std::make_shared<process<false>>(g_io_context, _logger,
-                            "/usr/bin/python3 " HTTP_TEST_DIR "/vault-server.py");
+                            "/usr/bin/perl " HTTP_TEST_DIR "/vault-server.pl");
 
   /* Here the process is started. */
   p->start_process(false);
