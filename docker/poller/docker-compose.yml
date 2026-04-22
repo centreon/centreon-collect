@@ -25,6 +25,8 @@ services:
       CENTRAL_ADDRESS: "${CENTRAL_ADDRESS}"
       CENTRAL_PORT: "${CENTRAL_PORT:-443}"
       GORGONE_TOKEN: "${GORGONE_TOKEN}"
+      WEB_API_USERNAME: "${WEB_API_USERNAME}"
+      WEB_API_PASSWORD: "${WEB_API_PASSWORD}"
     image: docker.centreon.com/centreon/centreon-gorgone-bookworm:${TAG:-latest}
     container_name: centpoller-gorgone
     hostname: centgorgone
@@ -45,7 +47,6 @@ services:
     restart: always
     volumes:
       - poller-etc:/etc/centreon/
-      - vmware-logs:/var/log/centreon/
 
 volumes:
   poller-etc:
@@ -55,4 +56,3 @@ volumes:
   poller-centlog:
   poller-centcache:
   poller-gorgone-data:
-  vmware-logs:
