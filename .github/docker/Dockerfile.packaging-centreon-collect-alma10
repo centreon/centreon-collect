@@ -56,6 +56,7 @@ dnf install --best -y \
     mariadb \
     mariadb-connector-c-devel \
     ninja-build \
+    openssl \
     openssl-devel \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
