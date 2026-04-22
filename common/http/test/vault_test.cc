@@ -54,9 +54,17 @@ TEST_F(vault_test, httpsConnection) {
       g_io_context, _logger, "/usr/bin/python3 " HTTP_TEST_DIR "/vault-server.py",
       true, false, nullptr);
   p->start_process(
-      [](const process<false>&, int /*exit_code*/, int,    /*exit status*/
-         const std::string& /*stdout*/, const std::string& /*stderr*/
-      ) {},
+      [logger = _logger](const process<false>&, int exit_code,
+                         int, /*exit status*/
+                         const std::string& out, const std::string& err) {
+        if (!out.empty())
+          SPDLOG_LOGGER_INFO(logger, "vault-server stdout: {}", out);
+        if (!err.empty())
+          SPDLOG_LOGGER_ERROR(logger, "vault-server stderr: {}", err);
+        if (exit_code != 0)
+          SPDLOG_LOGGER_ERROR(logger, "vault-server exited with code {}",
+                              exit_code);
+      },
       {});
 
   // Use shared_ptr so the promise outlives the test function if callbacks fire

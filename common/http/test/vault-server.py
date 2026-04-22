@@ -70,27 +70,33 @@ class VaultHandler(BaseHTTPRequestHandler):
 
 
 try:
-    pem_file = "/tmp/vault.pem"
+    key_file = "/tmp/vault-key.pem"
+    cert_file = "/tmp/vault-cert.pem"
 
     log("vault-server.py: generating certificate")
-    result = subprocess.run(
-        [
-            "openssl", "req", "-new", "-x509", "-newkey", "rsa:2048",
-            "-nodes", "-keyout", pem_file, "-out", pem_file,
-            "-days", "365", "-subj", "/CN=localhost",
-        ],
-        capture_output=True,
-    )
-    log(f"vault-server.py: openssl returned {result.returncode}")
-    if result.returncode != 0:
+    # Use -noenc (OpenSSL 3.x) with a fallback to -nodes (OpenSSL 1.x).
+    for noenc_flag in ("-noenc", "-nodes"):
+        result = subprocess.run(
+            [
+                "openssl", "req", "-new", "-x509", "-newkey", "rsa:2048",
+                noenc_flag, "-keyout", key_file, "-out", cert_file,
+                "-days", "365", "-subj", "/CN=localhost",
+            ],
+            capture_output=True,
+        )
+        log(f"vault-server.py: openssl {noenc_flag} returned {result.returncode}")
+        if result.returncode == 0:
+            break
         log(f"openssl stderr: {result.stderr.decode()}")
+    if result.returncode != 0:
+        log("vault-server.py: openssl failed with both -noenc and -nodes")
         sys.exit(1)
 
     log("vault-server.py: creating SSL context")
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 
     log("vault-server.py: loading cert chain")
-    ctx.load_cert_chain(pem_file)
+    ctx.load_cert_chain(certfile=cert_file, keyfile=key_file)
 
     log("vault-server.py: binding on 0.0.0.0:4443")
     server = HTTPServer(("0.0.0.0", 4443), VaultHandler)
