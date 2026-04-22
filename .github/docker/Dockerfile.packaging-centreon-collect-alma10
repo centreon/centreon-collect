@@ -60,6 +60,7 @@ dnf install --best -y \
     openssl-devel \
     perl-HTTP-Daemon-SSL \
     perl-JSON \
+    perl-Sys-Hostname \
     python3 \
     rrdtool-devel \
     zlib-devel
