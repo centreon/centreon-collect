@@ -1033,6 +1033,40 @@ def ctn_config_broker_victoria_output():
         f.write(json.dumps(conf, indent=2))
 
 
+def ctn_config_broker_event_script_output(allowed_event: str, script_path: str):
+    """
+    Configure broker to add an event_script output. If some old event_script
+    outputs exist, they are removed.
+    Args:
+        allowed_event (str): event added in filter
+
+    """
+    import os
+    filename = "central-broker.json"
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "event_script":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "event_script",
+        "type": "event_script",
+        "script_path": script_path,
+        "timeout": "30",
+        "managed_event_ttl": "3600",
+        "filters": {
+            "event": [
+                allowed_event
+            ]
+        }
+    })
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
 def ctn_broker_config_add_item(name, key, value):
     """
     Add an item to the broker configuration

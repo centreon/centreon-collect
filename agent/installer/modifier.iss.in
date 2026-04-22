@@ -77,10 +77,10 @@ var
   AgentInstanceLabel: TNewStaticText;
   AgentInstanceComboBox: TNewComboBox;
 
-  HostLabel, PollerLabel: TNewStaticText;
-  HostNameEdit, PollerEndpointEdit: TNewEdit;
+  HostLabel, HostTemplateLabel, PollerLabel: TNewStaticText;
+  HostNameEdit, HostTemplateEdit, PollerEndpointEdit: TNewEdit;
   PollerInitiatedCheckBox: TNewCheckBox;
-  HostInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
+  HostInfoBitmapImage, HostTemplateInfoBitmapImage, PollerInfoBitmapImage, PollerInitiatedInfoBitmapImage:TBitmapImage;
   HostWarningBitmapImage, PollerWarningBitmapImage:TBitmapImage;
   
   LogTypeLabel, LogLeveLabel, LogFileLabel, MaxFileLabel, MaxNumberLabel, CustomCheckLabel: TNewStaticText;
@@ -110,6 +110,8 @@ procedure BitmapImageOnClick(Sender: TObject);
 begin
   if Sender = HostInfoBitmapImage then
     MsgBox('The name of the host as defined in the Centreon interface.', mbInformation, MB_OK)
+  else if Sender = HostTemplateInfoBitmapImage then
+    MsgBox('The host template applied to the host in Centreon.', mbInformation, MB_OK)
   else if Sender = PollerInfoBitmapImage then begin
     if PollerInitiatedCheckBox.Checked then
       MsgBox('Interface and port on which the agent will accept connections from the poller. 0.0.0.0 means all interfaces.', mbInformation, MB_OK)
@@ -513,6 +515,11 @@ begin
   else
     HostNameEdit.Text := GetWindowsHostName;
 
+  if RegQueryStringValue(RootKey, BaseKey, 'host_template', StrValue) then
+    HostTemplateEdit.Text := StrValue
+  else
+    HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
   if RegQueryStringValue(RootKey, BaseKey, 'endpoint', StrValue) then
     PollerEndpointEdit.Text := StrValue;
 
@@ -579,6 +586,7 @@ begin
 
   // Strings
   RegWriteStringValue(RootKey, BaseKey, 'host', HostNameEdit.Text);
+  RegWriteStringValue(RootKey, BaseKey, 'host_template', HostTemplateEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'endpoint', PollerEndpointEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'log_file', LogFileEdit.Text);
   RegWriteStringValue(RootKey, BaseKey, 'custom_check_file', CustomCheckEdit.Text);
@@ -650,6 +658,8 @@ begin
   ReadAgentRegistryValues(AgentInstanceComboBox.Text);
   if ExpandConstant('{param:host|}') <> '' then
     HostNameEdit.Text := ExpandConstant('{param:host|}');
+  if ExpandConstant('{param:hosttemplate|}') <> '' then
+    HostTemplateEdit.Text := ExpandConstant('{param:hosttemplate|}');
   if ExpandConstant('{param:endpoint|}') <> '' then
     PollerEndpointEdit.Text := ExpandConstant('{param:endpoint|}');
 
@@ -914,11 +924,37 @@ begin
   HostWarningBitmapImage.ShowHint := True;
   HostWarningBitmapImage.Hide;
 
+  // ──── Host Template
+
+  HostTemplateLabel := TNewStaticText.Create(ConfigPage);
+  HostTemplateLabel.Parent := ConfigPage.Surface;
+  HostTemplateLabel.Top := HostLabel.Top + ScaleY(30);
+  HostTemplateLabel.Caption := 'Host template:';
+
+  HostTemplateEdit := TNewEdit.Create(ConfigPage);
+  HostTemplateEdit.Parent := ConfigPage.Surface;
+  HostTemplateEdit.Top := HostTemplateLabel.Top - ScaleY(3);
+  HostTemplateEdit.Left := HostNameEdit.Left;
+  HostTemplateEdit.Width := ConfigPage.SurfaceWidth div 2;
+  HostTemplateEdit.Text := 'OS-Windows-Centreon-Monitoring-Agent-custom';
+
+  HostTemplateInfoBitmapImage := TBitmapImage.Create(ConfigPage);
+  HostTemplateInfoBitmapImage.Bitmap.LoadFromFile(Infobmp);
+  HostTemplateInfoBitmapImage.Parent := ConfigPage.Surface;
+  HostTemplateInfoBitmapImage.Top := HostTemplateLabel.Top- ScaleY(3);
+  HostTemplateInfoBitmapImage.Left := HostTemplateEdit.Left + HostTemplateEdit.Width + ScaleX(4);
+  HostTemplateInfoBitmapImage.Center := True;
+  HostTemplateInfoBitmapImage.Width := 24;
+  HostTemplateInfoBitmapImage.Height := 24;
+  HostTemplateInfoBitmapImage.Stretch := True;
+  HostTemplateInfoBitmapImage.Cursor := crHand;
+  HostTemplateInfoBitmapImage.OnClick := @BitmapImageOnClick;
+
   // ──── Poller Endpoint
 
   PollerLabel := TNewStaticText.Create(ConfigPage);
   PollerLabel.Parent := ConfigPage.Surface;
-  PollerLabel.Top := HostLabel.Top + ScaleY(30);
+  PollerLabel.Top := HostTemplateLabel.Top + ScaleY(30);
   PollerLabel.Caption := 'Poller endpoint:';
 
   PollerEndpointEdit := TNewEdit.Create(ConfigPage);
@@ -1401,6 +1437,15 @@ begin
     OnServiceChange(AgentInstanceComboBox);
   end;
   
+end;
+
+// Keep a taller height only while the ConfigPage is active.
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = ConfigPage.ID then
+    WizardForm.ClientHeight := 600
+  else
+    WizardForm.ClientHeight := 570;
 end;
 
 { ────────────────────────────────────────────────────────────────────── }

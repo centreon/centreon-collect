@@ -158,7 +158,6 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-common
       - centreon-perl-libs-common
       - bzip2
       - initscripts
@@ -204,7 +203,6 @@ overrides:
 
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
-      - centreon-common
       - centreon-perl-libs-common
       - libdatetime-perl
       - libtime-parsedate-perl

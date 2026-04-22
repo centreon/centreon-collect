@@ -574,17 +574,40 @@ void parser::_parse_endpoint(const json& elem,
       else  // Output.
         member = &endpoint::write_filters;
       (e.*member).clear();
-      if (it.value().is_object() && it.value()["category"].is_array())
-        for (auto& cat : it.value()["category"])
-          (e.*member).insert(cat.get<std::string>());
-      else if (it.value().is_object() && it.value()["category"].is_string())
-        (e.*member).insert(it.value()["category"].get<std::string>());
-      else if (it.value().is_string() && it.value().get<std::string>() == "all")
+      const auto& filter_obj = it.value();
+      if (filter_obj.is_string() && filter_obj.get<std::string>() == "all") {
         (e.*member).insert("all");
-      else
+      } else if (!filter_obj.is_object()) {
         throw msg_fmt(
             "config parser: cannot parse key "
-            "'filters':  value is invalid");
+            "'filters':  value is not an object");
+      }
+
+      if (filter_obj.contains("category")) {
+        const auto& category = filter_obj["category"];
+        if (category.is_array())
+          for (auto& cat : category)
+            (e.*member).insert(cat.get<std::string>());
+        else if (category.is_string())
+          (e.*member).insert(category.get<std::string>());
+        else
+          throw msg_fmt(
+              "config parser: cannot parse key "
+              "'filters':  value is invalid");
+      }
+      if (filter_obj.contains("event")) {
+        const auto& event = filter_obj["event"];
+        if (event.is_array())
+          for (auto& cat : event)
+            (e.*member).insert(cat.get<std::string>());
+        else if (event.is_string())
+          (e.*member).insert(event.get<std::string>());
+        else
+          throw msg_fmt(
+              "config parser: cannot parse key "
+              "'filters':  value is invalid");
+      }
+
     } else if (it.key() == "cache") {
       auto cc = check_and_read<bool>(elem, "cache");
       e.cache_enabled = cc ? cc.value() : false;
@@ -614,6 +637,8 @@ void parser::_parse_endpoint(const json& elem,
         module = "70-influxdb.so";
       else if (e.type == "victoria_metrics")
         module = "70-victoria_metrics.so";
+      else if (e.type == "event_script")
+        module = "80-event_script.so";
       else if (e.type == "grpc")
         module = "50-grpc.so";
       else if (e.type == "bbdo_server" || e.type == "bbdo_client") {

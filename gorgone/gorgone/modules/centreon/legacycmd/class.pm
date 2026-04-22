@@ -664,13 +664,28 @@ sub action_addimporttaskwithparent {
 
     my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
         $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+
+    my $worker_token = $self->generate_token();
+
+    $self->send_internal_action({
+        action => 'ADDLISTENER',
+        data => [
+            {
+                identity => 'gorgone-legacycmd',
+                event => 'POSTIMPORTTASK',
+                token => $worker_token,
+                timeout => 300
+            }
+        ]
+    });
+
     my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
         $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
     $self->send_internal_action({
         action => 'COMMAND',
-        token => $options{token},
+        token => $worker_token,
         data => {
-            logging => $options{data}->{logging},
+            logging => 1,
             content => [
                 {
                     command => $cmd
@@ -679,6 +694,25 @@ sub action_addimporttaskwithparent {
             parameters => { no_fork => 1 }
         }
     });
+
+
+
+    return 0;
+}
+
+sub action_postimporttask {
+    my ($self, %options) = @_;
+
+    return 0 if ($options{data}->{code} != GORGONE_ACTION_FINISH_OK);
+
+    $self->{logger}->writeLogDebug('[legacycmd] triggering nodesync and cbd reload after import task completion');
+
+    $self->send_internal_action({
+        action => 'CENTREONNODESSYNC',
+        token => $self->generate_token(),
+        data => {}
+    });
+
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},

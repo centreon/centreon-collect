@@ -119,6 +119,9 @@ using pb_otl_metrics = io::protobuf<
 using pb_agent_stats =
     io::protobuf<AgentStats, make_type(io::neb, neb::de_pb_agent_stats)>;
 
+using pb_unknown_host =
+    io::protobuf<UnknownHost, make_type(io::neb, neb::de_pb_unknown_host)>;
+
 }  // namespace neb
 
 namespace storage {

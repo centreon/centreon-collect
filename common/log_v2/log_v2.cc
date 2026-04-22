@@ -69,7 +69,8 @@ constexpr std::array<std::string_view, log_v2::LOGGER_SIZE> logger_name{
     "comments",
     "macros",
     "runtime",
-    "otl"};
+    "otl",
+    "event_script"};
 
 /**
  * @brief this function is passed to grpc in order to log grpc layer's events to
