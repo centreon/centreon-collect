@@ -386,6 +386,8 @@ void client::_retry(const boost::beast::error_code& error,
                     [me = shared_from_this(), request]() {
                       me->_send_or_push(request, true);
                     });
+      // freed connection can be used for queued requests during the retry delay
+      _send_first_queue_request();
     } else {  // to many error => callback with error
       to_call = request;
     }

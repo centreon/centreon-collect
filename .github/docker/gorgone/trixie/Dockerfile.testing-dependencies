@@ -85,6 +85,8 @@ apt-get install -y \
   libxml-simple-perl \
   libzmq-ffi-perl
 
+echo -e '[client]\nssl=false\n[mysql]\nssl=false' > /etc/mysql/conf.d/disable-ssl.cnf
+
 apt-get clean
 rm -rf /var/lib/apt/lists/*
 
