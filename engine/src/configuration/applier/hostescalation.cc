@@ -18,9 +18,6 @@
  */
 
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
-#include <spdlog/spdlog.h>
-#include <fstream>
-#include <string>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
