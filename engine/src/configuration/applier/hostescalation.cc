@@ -80,8 +80,8 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
   std::list<std::unique_ptr<Hostescalation> > resolved;
   for (auto& he : *s.mutable_hostescalations()) {
     if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<std::string_view> host_names;
-      for (auto& hname : he.hosts().data())
+      absl::flat_hash_set<std::string> host_names;
+      for (const auto& hname : he.hosts().data())
         host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {
         auto found_hg =
@@ -104,7 +104,24 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
         e->CopyFrom(he);
         fill_string_group(e->mutable_hosts(), n);
       }
-    }
+    } else if (he.hosts().data().size() > 0) {
+      absl::flat_hash_set<std::string> host_names;
+      for (const auto& hname : he.hosts().data())
+        host_names.emplace(hname);
+
+      he.mutable_hostgroups()->clear_data();
+      he.mutable_hosts()->clear_data();
+
+      for (auto& host : host_names) {
+        resolved.emplace_back(std::make_unique<Hostescalation>());
+        auto& e = resolved.back();
+        e->CopyFrom(he);
+        e->mutable_hosts()->add_data(host);
+      }
+    } else
+      throw engine_error()
+          << "Could not expand host escalation: neither hostgroups nor hosts "
+             "are defined";
   }
   s.clear_hostescalations();
   for (auto& e : resolved)
