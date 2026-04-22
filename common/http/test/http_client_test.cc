@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <random>
 
 #include "defer.hh"
 
@@ -227,7 +228,8 @@ class connection_bagot : public connection_base {
   void shutdown() override { _state = e_not_connected; }
 
   void connect(connect_callback_type&& callback) override {
-    _fail_stage = fail_stage(rand() % 3);
+    static thread_local std::mt19937 rng(std::random_device{}());
+    _fail_stage = fail_stage(rng() % 3);
     SPDLOG_LOGGER_DEBUG(_logger, "connection_bagot connect {:p} _fail_stage={}",
                         static_cast<void*>(this),
                         static_cast<uint32_t>(_fail_stage));
@@ -259,8 +261,9 @@ class connection_bagot : public connection_base {
         });
       } else {
         asio::post(*_io_context, [me = this, cb = std::move(callback)]() {
+          static thread_local std::mt19937 rng(std::random_device{}());
           auto resp = std::make_shared<response_type>();
-          bool keep_alive = rand() & 0x01;
+          bool keep_alive = rng() & 0x01;
           SPDLOG_LOGGER_DEBUG(me->_logger, "{:p} keepalive={}",
                               static_cast<void*>(me), keep_alive);
           resp->keep_alive(keep_alive);
@@ -380,8 +383,9 @@ class connection_retry : public connection_bagot {
       });
     } else {
       asio::post(*_io_context, [me = this, cb = std::move(callback)]() {
+        static thread_local std::mt19937 rng(std::random_device{}());
         auto resp = std::make_shared<response_type>();
-        bool keep_alive = rand() & 0x01;
+        bool keep_alive = rng() & 0x01;
         SPDLOG_LOGGER_DEBUG(me->_logger, "{:p} keepalive={}",
                             static_cast<void*>(me), keep_alive);
         resp->keep_alive(keep_alive);
