@@ -12,6 +12,7 @@
 - ^mkdir
 - ^/usr/share/centreon/(www/modules/centreon-autodiscovery-server/script|bin)/run_save_discovered_host
 - ^/usr/share/centreon/bin/centreon -u \"centreon-gorgone\" -p \S+ -w -o CentreonWorker -a processQueue$
+- ^/usr/share/centreon/bin/centreon -u \"centreon-gorgone\" -p \S+ -w -o CentreonWorker -a processQueue --commandTimeout \d+$
 - ^/usr/bin/php (-q )?/usr/share/centreon/cron/[\w,\s.-]+ >> /var/log/centreon-gorgone/[\w,\s.-]+\s+2>&1$
 - ^/usr/bin/php -q /usr/share/centreon/www/modules/centreon-bi-server/tools/purgeArchivesFiles\.php >> /var/log/centreon-gorgone/centreon-bi-archive-retention\.log 2>&1$
 - ^/usr/share/centreon/cron/eventReportBuilder --config=/etc/centreon/conf\.pm >> /var/log/centreon-gorgone/eventReportBuilder\.log 2>&1$
