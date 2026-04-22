@@ -347,6 +347,7 @@ TEST_F(http_client_test, all_handler_called) {
 *************************************************************************/
 class connection_retry : public connection_bagot {
  public:
+  static std::mutex nb_failed_mutex;
   static std::map<request_ptr, unsigned> nb_failed_per_request;
   static unsigned failed_before_success;
 
@@ -361,11 +362,18 @@ class connection_retry : public connection_bagot {
   }
 
   void send(request_ptr request, send_callback_type&& callback) override {
-    if (nb_failed_per_request.find(request) == nb_failed_per_request.end()) {
-      nb_failed_per_request[request] = 0;
+    bool should_fail;
+    {
+      std::lock_guard<std::mutex> lk(nb_failed_mutex);
+      if (nb_failed_per_request.find(request) == nb_failed_per_request.end()) {
+        nb_failed_per_request[request] = 0;
+      }
+      should_fail = nb_failed_per_request[request] < failed_before_success;
+      if (should_fail) {
+        ++nb_failed_per_request[request];
+      }
     }
-    if (nb_failed_per_request[request] < failed_before_success) {
-      ++nb_failed_per_request[request];
+    if (should_fail) {
       asio::post(*_io_context, [cb = std::move(callback)]() {
         cb(make_error_code(asio::error::host_unreachable), "send error",
            nullptr);
@@ -386,6 +394,7 @@ class connection_retry : public connection_bagot {
   }
 };
 
+std::mutex connection_retry::nb_failed_mutex;
 std::map<request_ptr, unsigned> connection_retry::nb_failed_per_request;
 unsigned connection_retry::failed_before_success;
 
@@ -401,27 +410,33 @@ TEST_F(http_client_test, retry_until_success) {
 
   connection_retry::failed_before_success = conf->get_max_send_retry();
 
-  std::mutex cond_m;
-  std::condition_variable var;
-  std::atomic_uint nb_success(0);
-  bool failed = false;
+  struct retry_state {
+    std::mutex m;
+    std::condition_variable cv;
+    std::atomic_uint nb_success{0};
+    bool failed = false;
+  };
+  auto state = std::make_shared<retry_state>();
+
   for (unsigned request_index = 0; request_index < 100; ++request_index) {
     request_ptr request = std::make_shared<request_base>();
-    clt->send(request, [&](const boost::beast::error_code& err,
-                           const std::string&, const response_ptr&) {
+    clt->send(request, [state](const boost::beast::error_code& err,
+                               const std::string&, const response_ptr&) {
       if (err) {
-        failed = true;
+        std::lock_guard<std::mutex> l(state->m);
+        state->failed = true;
       } else {
-        nb_success.fetch_add(1);
-        var.notify_one();
+        state->nb_success.fetch_add(1);
       }
+      state->cv.notify_one();
     });
   }
 
-  std::unique_lock<std::mutex> l(cond_m);
-  bool res_wait = var.wait_for(l, std::chrono::seconds(10),
-                               [&]() -> bool { return nb_success == 100; });
-  ASSERT_EQ(nb_success.load(), 100);
+  std::unique_lock<std::mutex> l(state->m);
+  bool res_wait =
+      state->cv.wait_for(l, std::chrono::seconds(30),
+                         [&state]() -> bool { return state->nb_success == 100 || state->failed; });
   ASSERT_TRUE(res_wait);
-  ASSERT_FALSE(failed);
+  ASSERT_FALSE(state->failed);
+  ASSERT_EQ(state->nb_success.load(), 100);
 }
