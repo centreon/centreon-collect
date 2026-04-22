@@ -34,7 +34,7 @@ apt-get -y install \
 
 apt-get clean
 
-echo -e '[mysqld]\nskip_ssl' > /etc/mysql/mariadb.conf.d/99-disable-ssl.cnf
+echo -e '[mysqld]\nskip_ssl\n[client]\nssl=false' > /etc/mysql/mariadb.conf.d/99-disable-ssl.cnf
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
