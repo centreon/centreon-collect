@@ -268,7 +268,6 @@ void client::_on_sent(const boost::beast::error_code& error,
                       const cb_request::pointer& request,
                       const response_ptr& response,
                       connection_base::pointer conn) {
-  cb_request::pointer to_call;
   if (error) {  // error => shutdown and _retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to send request",
                         static_cast<void*>(conn.get()));
@@ -279,12 +278,6 @@ void client::_on_sent(const boost::beast::error_code& error,
       _not_connected_conns.insert(conn);
     }
     _retry(error, detail, request, response);
-    if (to_call) {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "too many send request error => callback with error");
-      to_call->callback(error, detail, response);
-    }
-
   } else {
     if (_logger->level() == spdlog::level::trace) {
       SPDLOG_LOGGER_TRACE(_logger, "response received for {} on {:p}",

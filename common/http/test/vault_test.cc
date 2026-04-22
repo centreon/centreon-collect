@@ -59,8 +59,10 @@ TEST_F(vault_test, httpsConnection) {
       ) {},
       {});
 
-  std::promise<std::string> promise;
-  std::future<std::string> future = promise.get_future();
+  // Use shared_ptr so the promise outlives the test function if callbacks fire
+  // late (e.g. after a retry delay when the vault server fails to start).
+  auto p_promise = std::make_shared<std::promise<std::string>>();
+  std::future<std::string> future = p_promise->get_future();
   asio::ip::tcp::resolver resolver(*g_io_context);
   std::string_view server_name("localhost");
   std::string_view server_port("4443");
@@ -88,21 +90,35 @@ TEST_F(vault_test, httpsConnection) {
                             "abababab-abab-abab-abab-abababababab",
                             "abababab-abab-abab-abab-abababababab");
   req->content_length(req->body().length());
-  std::string resp;
-  client->send(req, [logger = _logger, &promise](
+  client->send(req, [logger = _logger, p_promise](
                         const boost::beast::error_code& err,
                         const std::string& detail [[maybe_unused]],
                         const response_ptr& response) mutable {
     logger->info("We are at the callback");
-    if (err)
+    if (err) {
       logger->error("Error from http server: {}", err.message());
-    else
-      promise.set_value(response->body());
+      try {
+        p_promise->set_exception(std::make_exception_ptr(
+            std::runtime_error(err.message())));
+      } catch (...) {
+      }
+    } else {
+      try {
+        p_promise->set_value(response->body());
+      } catch (...) {
+      }
+    }
   });
-  nlohmann::json js = nlohmann::json::parse(future.get());
-  p->kill();
-  ASSERT_EQ(js["auth"]["client_token"],
-            std::string_view("hvs."
-                             "key that does not exist"))
-      << "No result received from https server after 20s";
+  try {
+    nlohmann::json js = nlohmann::json::parse(future.get());
+    p->kill();
+    ASSERT_EQ(js["auth"]["client_token"],
+              std::string_view("hvs."
+                               "key that does not exist"))
+        << "No result received from https server";
+  } catch (const std::exception& e) {
+    p->kill();
+    FAIL() << "HTTPS vault server error: " << e.what()
+           << " (check that perl-HTTP-Daemon-SSL is installed)";
+  }
 }
