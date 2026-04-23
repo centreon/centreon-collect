@@ -38,6 +38,7 @@ services:
       - poller-centcmd:/var/lib/centreon-engine/rw
       - poller-centcache:/var/cache/centreon/
       - poller-gorgone-data:/var/lib/centreon-gorgone/
+      - poller-snmp-traps:/etc/snmp/centreon_traps
 
   centreon-vmware:
     <<: *defaults
@@ -49,6 +50,40 @@ services:
       - poller-etc:/etc/centreon/
       - poller-engine:/etc/centreon-engine:ro
 
+  snmptrapd:
+    <<: *defaults
+    image: docker.centreon.com/centreon/centreon-snmptrapd-bookworm:${TAG:-latest}
+    container_name: centpoller-snmptrapd
+    hostname: snmptrapd
+    restart: always
+    environment:
+      TZ: "${TZ:-America/Toronto}"
+      DEBUG: "${DEBUG:-false}"
+      SNMP_COMMUNITY: "${SNMP_COMMUNITY:-public}"
+    volumes:
+      - poller-snmp-spool:/var/spool/centreontrapd
+    ports:
+      - "162:162/udp"
+    cap_add:
+      - NET_BIND_SERVICE
+
+  centreontrapd:
+    <<: *defaults
+    image: docker.centreon.com/centreon/centreon-centreontrapd-bookworm:${TAG:-latest}
+    container_name: centpoller-centreontrapd
+    hostname: centreontrapd
+    restart: always
+    environment:
+      TZ: "${TZ:-America/Toronto}"
+      DEBUG: "${DEBUG:-false}"
+      TRAP_SDB_PATH: /etc/snmp/centreon_traps/centreontrapd.sdb
+    volumes:
+      - poller-snmp-spool:/var/spool/centreontrapd
+      - poller-snmp-traps:/etc/snmp/centreon_traps
+      - poller-centcmd:/var/lib/centreon-engine/rw
+    depends_on:
+      - snmptrapd
+
 volumes:
   poller-etc:
   poller-engine:
@@ -57,3 +92,5 @@ volumes:
   poller-centlog:
   poller-centcache:
   poller-gorgone-data:
+  poller-snmp-spool:
+  poller-snmp-traps:
