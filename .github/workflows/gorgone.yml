@@ -91,7 +91,7 @@ jobs:
 
     services:
       mariadb:
-        image: mariadb:10.11
+        image: mariadb:11.8
         ports:
           - 3306
         env:
@@ -436,7 +436,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9]
+        distrib: [el9, el10]
 
     steps:
       - name: Checkout sources
@@ -456,8 +456,41 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
+  deliver-deb:
+    runs-on: centreon-common
+    needs: [get-environment, unit-test-perl, robot-test, changes]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.changes.outputs.trigger_delivery == 'true' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]  # No ubuntu in 24.10, 24.11 or later for now
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Delivery
+        uses: ./.github/actions/deb-delivery
+        with:
+          module_name: gorgone
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
   promote:
-    needs: [get-environment, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -470,7 +503,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        distrib: [el9]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
@@ -490,7 +523,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, promote]
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&

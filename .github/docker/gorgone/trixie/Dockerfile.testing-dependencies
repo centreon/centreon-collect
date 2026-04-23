@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM debian:trixie
 
 ARG VERSION=25.10
 ARG IS_CLOUD=0
@@ -28,7 +28,7 @@ apt-get update
 # Install Robotframework and test dependency
 apt-get install -y locales lsb-release libcurl4-openssl-dev curl wget gnupg2 \
   apt-transport-https zstd python3 python3-dev python3-pip ca-certificates \
-  software-properties-common jq mariadb-client iproute2 procps lsof
+  jq mariadb-client iproute2 procps lsof
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8
 
@@ -42,11 +42,7 @@ apt-get install -y nodejs
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} SHELL="$(which bash)" sh -
 source ~/.bashrc
 cd /usr/local/src
-pnpm install \
-  --frozen-lockfile \
-  --config.trustPolicy=no-downgrade \
-  --config.minimumReleaseAge=2880 \
-  --config.blockExoticSubdeps=true
+pnpm install --frozen-lockfile
 
 VERSION_CODENAME=\$(
   . /etc/os-release
@@ -88,6 +84,8 @@ apt-get install -y \
   libssh-session-perl \
   libxml-simple-perl \
   libzmq-ffi-perl
+
+echo -e '[client]\nssl=false\n[mysql]\nssl=false' > /etc/mysql/conf.d/disable-ssl.cnf
 
 apt-get clean
 rm -rf /var/lib/apt/lists/*

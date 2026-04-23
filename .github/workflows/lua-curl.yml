@@ -61,6 +61,24 @@ jobs:
             lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
+          - package_extension: rpm
+            image: packaging-centreon-collect-alma10
+            distrib: el10
+            lua_version: 5.4
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: packaging-centreon-collect-trixie
+            distrib: trixie
+            lua_version: 5.3
+            runner: ubuntu-24.04
+            arch: amd64
+          - package_extension: deb
+            image: packaging-centreon-collect-trixie-arm64
+            distrib: trixie
+            lua_version: 5.3
+            runner: ubuntu-24.04-arm
+            arch: arm64
 
     runs-on: ${{ matrix.runner }}
 
@@ -137,6 +155,8 @@ jobs:
         include:
           - distrib: el9
             arch: amd64
+          - distrib: el10
+            arch: amd64
     name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
@@ -157,8 +177,42 @@ jobs:
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
+  deliver-deb:
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    needs: [get-environment, package]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - distrib: trixie
+            arch: amd64
+
+    name: deliver ${{ matrix.distrib }} ${{ matrix.arch }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/deb-delivery
+        with:
+          module_name: lua-curl
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-environment.outputs.major_version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-lua-curl-${{ matrix.distrib }}-${{ matrix.arch }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          release_type: ${{ needs.get-environment.outputs.release_type }}
+          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+
   promote:
-    needs: [get-environment, deliver-rpm]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
@@ -169,7 +223,7 @@ jobs:
     runs-on: centreon-common
     strategy:
       matrix:
-        distrib: [el9]
+        distrib: [el9, el10, trixie]
 
     steps:
       - name: Checkout sources
@@ -189,7 +243,7 @@ jobs:
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
   set-skip-label:
-    needs: [get-environment, deliver-rpm, promote]
+    needs: [get-environment, deliver-rpm, deliver-deb, promote]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
       ! cancelled() &&

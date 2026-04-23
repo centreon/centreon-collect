@@ -66,6 +66,11 @@ jobs:
             dockerfile: centreon-collect-mysql-alma9-test
             image: centreon-collect-mysql-alma9-test
           - runner: centreon-collect
+            distrib: alma10
+            database: mysql
+            dockerfile: centreon-collect-mysql-alma10-test
+            image: centreon-collect-mysql-alma10-test
+          - runner: centreon-collect
             distrib: bookworm
             database: mariadb
           - runner: centreon-collect-arm64
