@@ -38,7 +38,11 @@ curl -fsSL https://rpm.nodesource.com/setup_24.x | bash - && \
 curl -fsSL https://get.pnpm.io/install.sh | env PNPM_VERSION=${PNPM_VERSION} sh -
 source ~/.bashrc
 cd /usr/local/src
-pnpm install --frozen-lockfile
+pnpm install \
+  --frozen-lockfile \
+  --config.trustPolicy=no-downgrade \
+  --config.minimumReleaseAge=2880 \
+  --config.blockExoticSubdeps=true
 
 dnf install -y \
   "perl-Libssh-Session" \
