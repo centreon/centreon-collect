@@ -19,7 +19,7 @@
 #ifndef CCB_INFLUXDB_CONNECTOR_HH
 #define CCB_INFLUXDB_CONNECTOR_HH
 
-#include "com/centreon/broker/influxdb/column.hh"
+#include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
@@ -42,10 +42,9 @@ class connector : public io::endpoint {
                   std::string const& db,
                   uint32_t queries_per_transaction,
                   std::string const& status_ts,
-                  std::vector<column> const& status_cols,
+                  std::vector<http_tsdb::column> const& status_cols,
                   std::string const& metric_ts,
-                  std::vector<column> const& metric_cols,
-                  std::shared_ptr<persistent_cache> const& cache);
+                  std::vector<http_tsdb::column> const& metric_cols);
   std::shared_ptr<io::stream> open() override;
 
  private:
@@ -56,10 +55,9 @@ class connector : public io::endpoint {
   std::string _db;
   uint32_t _queries_per_transaction;
   std::string _status_ts;
-  std::vector<column> _status_cols;
+  std::vector<http_tsdb::column> _status_cols;
   std::string _metric_ts;
-  std::vector<column> _metric_cols;
-  std::shared_ptr<persistent_cache> _cache;
+  std::vector<http_tsdb::column> _metric_cols;
 };
 
 }  // namespace com::centreon::broker::influxdb

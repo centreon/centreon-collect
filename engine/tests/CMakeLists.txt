@@ -168,7 +168,7 @@ if(WITH_TESTING)
       PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
               ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
 
-    target_precompile_headers(ut_engine REUSE_FROM cce_core)
+    target_precompile_headers(ut_engine PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
     set_target_properties(
       ut_engine rpc_client_engine bin_connector_test_run
@@ -307,7 +307,7 @@ if(WITH_TESTING)
       PRIVATE ${MODULE_DIR_OTL}/src ${CMAKE_SOURCE_DIR}/common/grpc/inc
               ${CMAKE_SOURCE_DIR}/agent/inc ${CMAKE_SOURCE_DIR}/agent/src)
 
-    target_precompile_headers(ut_engine REUSE_FROM cce_core)
+    target_precompile_headers(ut_engine PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
     set_target_properties(
       ut_engine rpc_client_engine bin_connector_test_run

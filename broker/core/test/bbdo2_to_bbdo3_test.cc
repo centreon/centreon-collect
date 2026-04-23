@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include <boost/preprocessor/seq/for_each.hpp>
 
-#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
@@ -59,7 +59,7 @@ TEST(bbdo2_to_bbdo3, instance) {
   bbdo2->program_end = bbdo2->program_start + 3600;
   bbdo2->pid = rand();
 
-  std::shared_ptr<io::data> bbdo_3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo_3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo_3, nullptr);
   ASSERT_EQ(bbdo_3->type(), neb::pb_instance::static_type());
@@ -205,7 +205,7 @@ TEST(bbdo2_to_bbdo3, host) {
   bbdo2->statusmap_image = "erzitozev;ez";
   bbdo2->timezone = "zeiofi;c";
 
-  std::shared_ptr<io::data> bbdo_3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo_3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo_3, nullptr);
   ASSERT_EQ(bbdo_3->type(), neb::pb_host::static_type());
@@ -250,7 +250,7 @@ TEST(bbdo2_to_bbdo3, host_group) {
 
   fill_group(*bbdo2);
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_host_group::static_type());
@@ -272,7 +272,7 @@ TEST(bbdo2_to_bbdo3, host_group_member) {
 
   fill_group_member(*bbdo2);
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_host_group_member::static_type());
@@ -298,7 +298,7 @@ TEST(bbdo2_to_bbdo3, host_status) {
   bbdo2->last_time_unreachable = time(nullptr) + 200;
   bbdo2->last_time_up = time(nullptr) + 300;
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_host_status::static_type());
@@ -343,7 +343,7 @@ TEST(bbdo2_to_bbdo3, service) {
   bbdo2->stalk_on_unknown = rand() % 2;
   bbdo2->stalk_on_warning = rand() % 2;
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_service::static_type());
@@ -390,7 +390,7 @@ TEST(bbdo2_to_bbdo3, service_group) {
 
   fill_group(*bbdo2);
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_service_group::static_type());
@@ -412,7 +412,7 @@ TEST(bbdo2_to_bbdo3, service_group_member) {
 
   fill_group_member(*bbdo2);
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_service_group_member::static_type());
@@ -437,7 +437,7 @@ TEST(bbdo2_to_bbdo3, service_status) {
   fill_host_service_status(*bbdo2);
   fill_service_status(*bbdo2);
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_service_status::static_type());
@@ -478,7 +478,7 @@ TEST(bbdo2_to_bbdo3, custom_variable) {
   bbdo2->update_time = time(nullptr);
   bbdo2->value = "zefzefer";
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), neb::pb_custom_variable::static_type());
@@ -502,7 +502,7 @@ TEST(bbdo2_to_bbdo3, index_mapping) {
   bbdo2->host_id = rand();
   bbdo2->service_id = rand();
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), storage::pb_index_mapping::static_type());
@@ -522,7 +522,7 @@ TEST(bbdo2_to_bbdo3, metric_mapping) {
   bbdo2->index_id = rand();
   bbdo2->metric_id = rand();
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), storage::pb_metric_mapping::static_type());
@@ -547,7 +547,7 @@ TEST(bbdo2_to_bbdo3, dimension_ba_event) {
   bbdo2->sla_duration_crit = static_cast<double>(rand()) / RAND_MAX;
   bbdo2->sla_duration_warn = static_cast<double>(rand()) / RAND_MAX;
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), bam::pb_dimension_ba_event::static_type());
@@ -569,7 +569,7 @@ TEST(bbdo2_to_bbdo3, dimension_ba_bv_relation_event) {
   bbdo2->ba_id = rand();
   bbdo2->bv_id = rand();
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(),
@@ -592,7 +592,7 @@ TEST(bbdo2_to_bbdo3, dimension_bv_event) {
   bbdo2->bv_name = "Test ba name";
   bbdo2->bv_description = "Test ba description";
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), bam::pb_dimension_bv_event::static_type());
@@ -611,7 +611,7 @@ TEST(bbdo2_to_bbdo3, dimension_truncate_table_signal) {
   bbdo2->destination_id = rand();
   bbdo2->source_id = rand();
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(),
@@ -633,7 +633,7 @@ TEST(bbdo2_to_bbdo3, inherited_downtime) {
   bbdo2->ba_id = rand();
   bbdo2->in_downtime = rand() % 2;
 
-  std::shared_ptr<io::data> bbdo3 = neb::bbdo2_to_bbdo3(bbdo2);
+  std::shared_ptr<io::data> bbdo3 = bbdo2_to_bbdo3(bbdo2);
 
   ASSERT_NE(bbdo3, nullptr);
   ASSERT_EQ(bbdo3->type(), bam::pb_inherited_downtime::static_type());

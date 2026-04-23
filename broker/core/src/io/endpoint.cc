@@ -48,8 +48,8 @@ endpoint::endpoint(endpoint const& other)
     : _is_acceptor(other._is_acceptor),
       _stream_mandatory_filter{other._stream_mandatory_filter},
       _stream_forbidden_filter{other._stream_forbidden_filter},
-      _from(other._from),
-      _io_context(other._io_context) {}
+      _io_context(other._io_context),
+      _from(other._from) {}
 
 /**
  *  Set the lower layer endpoint object of this endpoint.

@@ -127,8 +127,8 @@ stream<bireactor_class>::stream(
     : io::stream("GRPC"),
       _conf(conf),
       _class_name(class_name),
-      _logger{logger},
-      _io_context(io_context) {
+      _io_context(io_context),
+      _logger{logger} {
   SPDLOG_LOGGER_DEBUG(_logger, "create {} this={:p}", _class_name,
                       static_cast<const void*>(this));
 }

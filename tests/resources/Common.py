@@ -33,6 +33,7 @@ import psutil
 import shutil
 import random
 import string
+import socket
 from dateutil import parser
 from datetime import datetime, timedelta
 import pymysql.cursors
@@ -461,24 +462,28 @@ def ctn_stop_mysql():
 
 def ctn_stop_rrdcached():
     getoutput(
-        "kill -9 $(ps ax | ctn_grep '.usr.bin.rrdcached' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall  /usr/bin/rrdcached")
 
 
 def ctn_kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbwd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbwd")
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/cbd")
 
 
 def ctn_kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
+        "killall -SIGKILL /usr/sbin/centengine")
 
 
 def ctn_clear_retention():
     getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
+    ctn_clear_queues_memory()
+
+
+def ctn_clear_queues_memory():
     getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
     getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
@@ -838,6 +843,8 @@ def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, stat
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
                         return True
                     elif state_type != 'HARD' and int(result[0]['state_type']) == 0:
+                        return True
+                    elif state_type == 'ANY':
                         return True
         time.sleep(1)
     return False
@@ -2411,3 +2418,106 @@ def ctn_create_jwt_token(exp_s: int, secret: str = "centreon"):
         payload["exp"] = None
     logger.console(payload)
     return jwt.encode(payload, secret, algorithm="HS256")
+
+
+def ctn_randint(lower: int, higher: int):
+    """
+    ctn_randint
+    just call ranom.randint and retruns result
+    """
+    return random.randint(lower, higher)
+
+
+def update_json_field(filepath, path, value):
+    """
+    Update a nested JSON field using dot notation.
+    Supports dict keys and list indexes.
+    Example: centreon_agent.reverse_connections.0.encryption
+    """
+    keys = path.split(".")
+
+    # Load JSON
+    with open(filepath, "r", encoding="utf8") as f:
+        data = json.load(f)
+
+    current = data
+
+    for i, key in enumerate(keys[:-1]):
+        # Determine if this key is a list index
+        if isinstance(current, list):
+            try:
+                key = int(key)
+            except ValueError:
+                raise ValueError(
+                    f"Expected list index at '{key}', got non-number")
+
+            # Auto-expand list if needed
+            while key >= len(current):
+                current.append({})
+            current = current[key]
+
+        # Dictionary path
+        else:
+            if key not in current or not isinstance(current[key], (dict, list)):
+                current[key] = {}    # auto-create dict by default
+            current = current[key]
+
+    # Final key
+    final_key = keys[-1]
+
+    # Last hop: list or dict?
+    if isinstance(current, list):
+        try:
+            final_key = int(final_key)
+        except ValueError:
+            raise ValueError(f"Expected list index at '{final_key}'")
+        while final_key >= len(current):
+            current.append(None)
+        current[final_key] = value
+    else:
+        current[final_key] = value
+
+    # Save
+    with open(filepath, "w", encoding="utf8") as f:
+        json.dump(data, f, indent=4, ensure_ascii=False)
+
+    return data
+
+
+def ctn_create_tcp_server(port: int):
+
+    class tcp_server:
+        def __init__(self, port: int):
+            self.sock = socket.socket()
+            self.sock.bind(("0.0.0.0", port))
+            self.sock.listen(5)
+            self.conn = None
+
+        def accept(self, timeout: int):
+            self.sock.settimeout(timeout)
+            try:
+                self.conn, _ = self.sock.accept()
+            except socket.timeout:
+                return False
+            if self.conn is None:
+                return False
+            else:
+                return True
+
+        def receive(self, timeout: int):
+            self.conn.settimeout(timeout)
+            data = self.conn.recv(4096)
+            return data.decode()
+
+        def send(self, data: str):
+            self.conn.sendall(data.encode())
+
+        def close(self):
+            if self.conn is not None:
+                self.conn.close()
+            self.sock.close()
+
+        def __delete__(self, instance):
+            self.close()
+
+    return tcp_server(port)

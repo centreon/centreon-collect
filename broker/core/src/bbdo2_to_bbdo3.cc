@@ -23,6 +23,7 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/neb.pb.h"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
@@ -35,12 +36,10 @@
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/neb/service_status.hh"
-#include "neb.pb.h"
 #include "storage/metric_mapping.hh"
 
-#include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
+#include "com/centreon/broker/bbdo2_to_bbdo3.hh"
 
-using namespace com::centreon::broker::neb;
 using namespace com::centreon::broker;
 
 #define s_pb(attrib) obj.set_##attrib(in.attrib);
@@ -416,7 +415,7 @@ static std::shared_ptr<io::data> _inherited_downtime_to_pb(
   return pb;
 }
 
-std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
+std::shared_ptr<io::data> com::centreon::broker::bbdo2_to_bbdo3(
     const std::shared_ptr<io::data>& d) {
   if (!d) {
     return d;

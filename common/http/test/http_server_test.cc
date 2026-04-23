@@ -180,7 +180,7 @@ template <class connection_class>
 void session_test<connection_class>::wait_for_request() {
   connection_class::receive_request(
       [me = shared_from_this()](const boost::beast::error_code& err,
-                                const std::string& detail,
+                                const std::string&,
                                 const std::shared_ptr<request_type>& request) {
         if (err) {
           SPDLOG_LOGGER_DEBUG(me->_logger,

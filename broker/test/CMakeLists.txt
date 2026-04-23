@@ -104,6 +104,7 @@ add_executable(
 
 set_property(TARGET ut_broker PROPERTY ENABLE_EXPORTS ON)
 
+
 target_link_libraries(
   ut_broker
   PRIVATE
@@ -112,7 +113,8 @@ target_link_libraries(
           rokerbase
 	  -Wl,--no-whole-archive
           multiplexing
-	  ${TESTS_LIBRARIES}
+          ${TESTS_LIBRARIES}
+          Boost::thread
           GTest::gtest
           GTest::gtest_main
           GTest::gmock

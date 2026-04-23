@@ -31,7 +31,6 @@ include_directories(
 # NEB sources.
 set(NEB_SOURCES
     ${SRC_DIR}/acknowledgement.cc
-    ${SRC_DIR}/bbdo2_to_bbdo3.cc
     ${SRC_DIR}/check.cc
     ${SRC_DIR}/comment.cc
     ${SRC_DIR}/custom_variable.cc
@@ -120,7 +119,7 @@ add_dependencies(${NEB} nebbase)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(${NEB} PRIVATE nebbase
-                      spdlog::spdlog)
+                      fmt::fmt)
 
 set_target_properties(
   ${NEB} PROPERTIES
@@ -155,6 +154,7 @@ target_link_libraries("${CBMOD}" PRIVATE
   -Wl,--whole-archive
   rokerbase
   protobuf::libprotobuf
+  Boost::thread
   -Wl,--no-whole-archive
 )
 
@@ -173,9 +173,7 @@ if(WITH_TESTING)
   set(TESTS_SOURCES
       ${TESTS_SOURCES}
       ${SRC_DIR}/set_log_data.cc
-      ${SRC_DIR}/bbdo2_to_bbdo3.cc
       # Actual tests
-      ${TEST_DIR}/bbdo2_to_bbdo3_test.cc
       ${TEST_DIR}/custom_variable.cc
       ${TEST_DIR}/custom_variable_status.cc
       ${TEST_DIR}/host.cc
