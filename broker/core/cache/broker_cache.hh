@@ -360,8 +360,9 @@ class broker_cache {
 
   /* Key for severities is {severity_id, severity_type},
    * value is the struct severity defined earlier (fields are level and ID) */
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, severity> _severities
-      ABSL_GUARDED_BY(_mutex);
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                      std::pair<severity, absl::flat_hash_set<uint64_t>>>
+      _severities ABSL_GUARDED_BY(_mutex);
 
   /* Key for tags is {tag_id, tag_type}.
    * Value is the pb_tag plus the set of poller IDs that define this tag.
@@ -513,6 +514,8 @@ class broker_cache {
   void set_db_id_for_severity(uint64_t config_id, uint32_t type, uint64_t db_id)
       ABSL_LOCKS_EXCLUDED(_mutex);
   void erase_severity(uint64_t config_id, uint32_t type)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  bool has_severity(uint64_t config_id, uint32_t type) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   uint64_t get_db_id_for_severity(uint64_t severity_id, uint32_t type)
       ABSL_LOCKS_EXCLUDED(_mutex);

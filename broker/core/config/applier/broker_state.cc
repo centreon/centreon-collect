@@ -666,9 +666,6 @@ void broker_state::_check_last_engine_conf() {
             pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
         std::ofstream f(last_prot_conf);
         if (f) {
-          // FIXME DBO
-          assert(state->hosts_size());
-
           state->SerializeToOstream(&f);
           f.close();
           std::filesystem::path lck_file =

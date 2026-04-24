@@ -233,8 +233,10 @@ void indexed_state::_index(const State& state) {
                         std::make_unique<Connector>(conn));
   }
   for (auto& sev : state.severities()) {
-    _severities.emplace(std::make_pair(sev.key().id(), sev.key().type()),
-                        std::make_unique<Severity>(sev));
+    _severities.emplace(
+        std::make_tuple(sev.key().id(), (uint32_t)sev.key().type(),
+                        state.poller_id()),
+        std::make_unique<Severity>(sev));
   }
   for (auto& tag : state.tags()) {
     _tags.emplace(std::make_tuple(tag.key().id(), (uint32_t)tag.key().type(),
@@ -320,7 +322,8 @@ void indexed_state::_index(State* state) {
   while (!state->severities().empty()) {
     Severity* severity = state->mutable_severities()->ReleaseLast();
     _severities.emplace(
-        std::make_pair(severity->key().id(), severity->key().type()),
+        std::make_tuple(severity->key().id(), (uint32_t)severity->key().type(),
+                        state->poller_id()),
         std::unique_ptr<Severity>(severity));
   }
   while (!state->tags().empty()) {
@@ -424,14 +427,18 @@ void indexed_state::diff_with_new_config(
       result->mutable_connectors());
 
   /* Diff on severities */
-  _diff<Severity, DiffSeverity, std::pair<uint64_t, uint32_t>, KeyType>(
+  _diff<Severity, DiffSeverity, std::tuple<uint64_t, uint32_t, uint32_t>,
+        SeverityKeyWithPoller>(
       new_state.mutable_severities(), _severities, logger,
-      [](Severity* obj) {
-        return std::make_pair(obj->key().id(), obj->key().type());
+      [poller_id = new_state.poller_id()](Severity* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       },
-      [](KeyType* key_type, const std::pair<uint64_t, uint32_t>& key) {
-        key_type->set_id(key.first);
-        key_type->set_type(key.second);
+      [](SeverityKeyWithPoller* key_type,
+         const std::tuple<uint64_t, uint32_t, uint32_t>& key) {
+        key_type->set_id(std::get<0>(key));
+        key_type->set_type(std::get<1>(key));
+        key_type->set_poller_id(std::get<2>(key));
       },
       result->mutable_severities());
 

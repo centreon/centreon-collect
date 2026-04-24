@@ -99,11 +99,17 @@ void broker_cache::merge(
   if (section_enabled(CACHE_SEVERITIES)) {
     for (const engine::configuration::Severity& sev : state.severities()) {
       auto key = std::make_pair(sev.key().id(), sev.key().type());
+      uint64_t poller_id =
+          sev.poller_id() != 0 ? sev.poller_id() : state.poller_id();
       auto it = _severities.find(key);
-      if (it != _severities.end())
-        it->second.level = sev.level();  // preserve existing db_id
-      else
-        _severities.insert({key, {sev.level(), 0}});
+      if (it != _severities.end()) {
+        it->second.first.level = sev.level();  // preserve existing db_id
+        it->second.second.insert(poller_id);
+      } else {
+        _severities.insert(
+            {key,
+             {{sev.level(), 0}, absl::flat_hash_set<uint64_t>{poller_id}}});
+      }
     }
   }
 
@@ -252,21 +258,22 @@ void broker_cache::merge(
 
   /* Work on tags */
   if (section_enabled(CACHE_TAGS)) {
-    uint64_t pid = state.poller_id();
     for (const engine::configuration::Tag& tag : state.tags()) {
       auto pb = std::make_shared<neb::pb_tag>();
       auto& obj = pb->mut_obj();
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(pid);
+      uint64_t tag_pid =
+          tag.poller_id() != 0 ? tag.poller_id() : state.poller_id();
+      obj.set_poller_id(tag_pid);
       obj.set_action(Tag_Action_ADD);
       auto key = std::make_pair(obj.id(), obj.type());
       auto [it, inserted] = _tags.emplace(
-          key, std::make_pair(pb, absl::flat_hash_set<uint64_t>{pid}));
+          key, std::make_pair(pb, absl::flat_hash_set<uint64_t>{tag_pid}));
       if (!inserted) {
         it->second.first = pb;
-        it->second.second.insert(pid);
+        it->second.second.insert(tag_pid);
       }
     }
   }
@@ -308,28 +315,66 @@ void broker_cache::apply(
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
+    _logger->debug(
+        "apply(): {} severities added {} severities modified {} "
+        "severities removed",
+        diff.severities().added_size(), diff.severities().modified_size(),
+        diff.severities().removed_size());
     for (const engine::configuration::Severity& sev :
          diff.severities().added()) {
       auto key = std::make_pair(sev.key().id(), sev.key().type());
       auto it = _severities.find(key);
-      if (it != _severities.end())
-        it->second.level = sev.level();  // preserve existing db_id
-      else
-        _severities.insert({key, {sev.level(), 0}});
+      if (it != _severities.end()) {
+        it->second.first.level = sev.level();  // preserve existing db_id
+        it->second.second.insert(sev.poller_id());
+        _logger->debug(
+            "apply() severity added (id={} type={} level={} poller_id={}): set "
+            "now has {} pollers",
+            sev.key().id(), sev.key().type(), sev.level(), sev.poller_id(),
+            it->second.second.size());
+      } else {
+        _severities.insert({key,
+                            {{sev.level(), 0},
+                             absl::flat_hash_set<uint64_t>{sev.poller_id()}}});
+        _logger->debug(
+            "apply() severity added (id={} type={} level={} poller_id={}): new "
+            "entry",
+            sev.key().id(), sev.key().type(), sev.level(), sev.poller_id());
+      }
     }
     for (const engine::configuration::Severity& sev :
          diff.severities().modified()) {
       auto key = std::make_pair(sev.key().id(), sev.key().type());
       auto it = _severities.find(key);
-      if (it != _severities.end())
-        it->second.level = sev.level();  // preserve existing db_id
-      else
-        _severities.insert({key, {sev.level(), 0}});
+      if (it != _severities.end()) {
+        it->second.first.level = sev.level();  // preserve existing db_id
+        it->second.second.insert(sev.poller_id());
+      } else {
+        _severities.insert({key,
+                            {{sev.level(), 0},
+                             absl::flat_hash_set<uint64_t>{sev.poller_id()}}});
+      }
     }
-    for (const engine::configuration::KeyType& key :
+    for (const engine::configuration::SeverityKeyWithPoller& key :
          diff.severities().removed()) {
       auto sev_key = std::make_pair(key.id(), key.type());
-      _severities.erase(sev_key);
+      auto it = _severities.find(sev_key);
+      if (it != _severities.end()) {
+        auto before_size = it->second.second.size();
+        it->second.second.erase(key.poller_id());
+        auto after_size = it->second.second.size();
+        _logger->debug(
+            "apply() severity removed (id={} type={} poller_id={}): set "
+            "size {} -> {}",
+            key.id(), key.type(), key.poller_id(), before_size, after_size);
+        if (it->second.second.empty())
+          _severities.erase(it);
+      } else {
+        _logger->debug(
+            "apply() severity removed (id={} type={} poller_id={}): NOT "
+            "FOUND in cache",
+            key.id(), key.type(), key.poller_id());
+      }
     }
   }
 
@@ -341,9 +386,9 @@ void broker_cache::apply(
                           hgp.group_name(), hgp.poller_id());
       if (auto hg = hg_by_name.find(hgp.group_name()); hg != hg_by_name.end()) {
         /* Removing a hostgroup is coming from a poller, but the hostgroup can
-         * be shared between several pollers. So we can only break links between
-         * hostgroup and hosts sharing the same poller. And if and only if the
-         * hostgroup is empty, we can also remove it. */
+         * be shared between several pollers. So we can only break links
+         * between hostgroup and hosts sharing the same poller. And if and
+         * only if the hostgroup is empty, we can also remove it. */
         auto& host_by_hostgroup = _host_hostgroups.get<by_hostgroup>();
         auto [lower, upper] =
             host_by_hostgroup.equal_range(hg->first->obj().hostgroup_id());
@@ -372,8 +417,8 @@ void broker_cache::apply(
   }
 
   /* Work on hosts */
-  /* hosts_by_id is declared outside the guard because it is also needed by the
-   * "Removing hosts" block later in this function. */
+  /* hosts_by_id is declared outside the guard because it is also needed by
+   * the "Removing hosts" block later in this function. */
   auto& hosts_by_id = _hosts.get<by_id>();
 
   if (section_enabled(CACHE_HOSTS)) {
@@ -409,7 +454,8 @@ void broker_cache::apply(
       obj.set_hostgroup_id(hg.hostgroup_id());
       obj.set_name(hg.hostgroup_name());
       obj.set_enabled(true);
-      /* Hostgroups are linked to several pollers, so we set poller_id to 0. */
+      /* Hostgroups are linked to several pollers, so we set poller_id to 0.
+       */
       obj.set_poller_id(0);
       obj.set_alias(hg.alias());
       std::tie(found, inserted) = hg_index.emplace(
@@ -481,9 +527,9 @@ void broker_cache::apply(
                           sgp.group_name(), sgp.poller_id());
       if (auto sg_it = sg_index.find(sgp.group_name());
           sg_it != sg_index.end()) {
-        /* If the servicegroup is still in the cache, we have to remove all the
-         * members of the servicegroup from the cache, because we don't know if
-         * they are still members or not. */
+        /* If the servicegroup is still in the cache, we have to remove all
+         * the members of the servicegroup from the cache, because we don't
+         * know if they are still members or not. */
         auto& indexed_by_servicegroup =
             _service_servicegroups.get<by_servicegroup>();
         auto [lower, upper] = indexed_by_servicegroup.equal_range(
@@ -495,8 +541,8 @@ void broker_cache::apply(
               _services.find(std::make_pair(lower->host_id, lower->service_id));
           if (svc_it != _services.end()) {
             /* Here comes the optimization, we only look for the poller_id if
-             * the host_id changed, because services are ordered by host_id and
-             * then by service_id. */
+             * the host_id changed, because services are ordered by host_id
+             * and then by service_id. */
             if (lower->host_id != old_host_id) {
               old_host_id = lower->host_id;
               auto host_it = _hosts.find(lower->host_id);
@@ -516,8 +562,8 @@ void broker_cache::apply(
         auto& set = const_cast<absl::flat_hash_set<uint64_t>&>(sg_it->second);
         set.erase(sgp.poller_id());
         if (set.empty()) {
-          /* If no poller needs this servicegroup anymore, we can remove it from
-           * the cache. */
+          /* If no poller needs this servicegroup anymore, we can remove it
+           * from the cache. */
           sg_index.erase(sg_it);
         }
       }
@@ -593,8 +639,8 @@ void broker_cache::apply(
       }
     }
 
-    /* Severities that are not used anymore by any service or anomaly detection
-     * can be removed from the cache. */
+    /* Severities that are not used anymore by any service or anomaly
+     * detection can be removed from the cache. */
     auto& index_by_severity = _services.get<by_severity>();
     for (uint64_t id : removed_service_severity_ids) {
       auto [lower, upper] = index_by_severity.equal_range(id);
@@ -638,9 +684,9 @@ void broker_cache::apply(
     }
     if (!add) {
       /* If it's not an addition, we have to remove the previous members of
-       * this poller's contribution to the servicegroup from the cache, because
-       * we don't know if they are still members or not. Members from other
-       * pollers must be preserved. */
+       * this poller's contribution to the servicegroup from the cache,
+       * because we don't know if they are still members or not. Members from
+       * other pollers must be preserved. */
       auto& indexed_by_servicegroup =
           _service_servicegroups.get<by_servicegroup>();
       auto [lower, upper] = indexed_by_servicegroup.equal_range(
@@ -729,15 +775,14 @@ void broker_cache::apply(
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(tag.poller_id());
       obj.set_action(Tag_Action_ADD);
+      uint64_t pid = tag.poller_id();
       auto key = std::make_pair(obj.id(), obj.type());
       auto [it, inserted] = _tags.emplace(
-          key,
-          std::make_pair(pb, absl::flat_hash_set<uint64_t>{tag.poller_id()}));
+          key, std::make_pair(pb, absl::flat_hash_set<uint64_t>{pid}));
       if (!inserted) {
         it->second.first = pb;
-        it->second.second.insert(tag.poller_id());
+        it->second.second.insert(pid);
       }
     }
     for (const engine::configuration::Tag& tag : diff.tags().modified()) {
@@ -746,15 +791,14 @@ void broker_cache::apply(
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(tag.poller_id());
       obj.set_action(Tag_Action_MODIFY);
+      uint64_t pid = tag.poller_id();
       auto key = std::make_pair(obj.id(), obj.type());
       auto [it, inserted] = _tags.emplace(
-          key,
-          std::make_pair(pb, absl::flat_hash_set<uint64_t>{tag.poller_id()}));
+          key, std::make_pair(pb, absl::flat_hash_set<uint64_t>{pid}));
       if (!inserted) {
         it->second.first = pb;
-        it->second.second.insert(tag.poller_id());
+        it->second.second.insert(pid);
       }
     }
     for (const engine::configuration::TagKeyWithPoller& tp :
@@ -787,22 +831,23 @@ void broker_cache::apply(
 /**
  * @brief Fill a Host protobuf object from a configuration Host object.
  *
- * In centralized configuration mode, individual Host objects inside a protobuf
- * State message do not carry their own `poller_id` field — only the enclosing
- * State message has its `poller_id` set. The `poller_id_hint` parameter is
- * therefore used as a fallback when `cfg.poller_id()` is zero (which is always
- * the case in the `merge()` path). The resulting `instance_id` field on the
- * cached Host object is critical: it is used by the group-link removal logic in
- * `apply()` to identify which service/host-group associations belong to a given
- * poller and should be cleaned up when that poller removes a group.
+ * In centralized configuration mode, individual Host objects inside a
+ * protobuf State message do not carry their own `poller_id` field — only the
+ * enclosing State message has its `poller_id` set. The `poller_id_hint`
+ * parameter is therefore used as a fallback when `cfg.poller_id()` is zero
+ * (which is always the case in the `merge()` path). The resulting
+ * `instance_id` field on the cached Host object is critical: it is used by
+ * the group-link removal logic in `apply()` to identify which
+ * service/host-group associations belong to a given poller and should be
+ * cleaned up when that poller removes a group.
  *
  * @param obj             The protobuf Host object to fill
  * @param cfg             The configuration Host object to use as source
  * @param poller_id_hint  Fallback poller id used when cfg.poller_id() == 0.
  *                        Pass state.poller_id() from the enclosing State when
  *                        calling from merge(), or leave at 0 when the host
- *                        object already carries its own poller_id (apply() path
- *                        after indexed_diff_state sets it).
+ *                        object already carries its own poller_id (apply()
+ * path after indexed_diff_state sets it).
  */
 void broker_cache::_fill_host(Host* obj,
                               const engine::configuration::Host& cfg,
@@ -861,8 +906,8 @@ void broker_cache::_fill_host(Host* obj,
 /**
  * @brief Fill common service fields from a configuration object.
  *
- * @tparam ConfigType The configuration type (pb_service or pb_anomaly_detection
- * configuration).
+ * @tparam ConfigType The configuration type (pb_service or
+ * pb_anomaly_detection configuration).
  * @param obj The Service protobuf object to fill.
  * @param cfg The source configuration object.
  */
@@ -1649,10 +1694,13 @@ void broker_cache::update_severity(
   auto& obj = evt->obj();
   absl::WriterMutexLock lck{&_mutex};
   auto it = _severities.find({obj.id(), obj.type()});
-  if (it != _severities.end())
-    it->second.level = obj.level();  // preserve existing db id
-  else
-    _severities.insert({{obj.id(), obj.type()}, {obj.level(), 0}});
+  if (it != _severities.end()) {
+    it->second.first.level = obj.level();  // preserve existing db id
+    it->second.second.insert(obj.poller_id());
+  } else
+    _severities.insert(
+        {{obj.id(), obj.type()},
+         {{obj.level(), 0}, absl::flat_hash_set<uint64_t>{obj.poller_id()}}});
 }
 
 /**
@@ -1663,15 +1711,20 @@ void broker_cache::update_severity(
 absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
                     struct broker_cache::severity>
 broker_cache::severities() const {
+  absl::flat_hash_map<std::pair<uint64_t, uint32_t>,
+                      struct broker_cache::severity>
+      retval;
   absl::ReaderMutexLock lck{&_mutex};
-  return _severities;
+  for (auto& [key, val] : _severities)
+    retval.emplace(key, val.first);
+
+  return retval;
 }
 
 /**
  * @brief Return a snapshot of all tags currently held in the cache.
  *
  * @return A copy of the internal tags map, keyed by (tag_id, tag_type).
- * Each value is the pb_tag plus the set of poller IDs that reference it.
  */
 absl::flat_hash_map<
     std::pair<uint64_t, TagType>,
@@ -1692,21 +1745,14 @@ void broker_cache::update_tag(const std::shared_ptr<neb::pb_tag>& evt) {
   auto& obj = evt->obj();
   auto key = std::make_pair(obj.id(), obj.type());
   absl::WriterMutexLock lck{&_mutex};
-  if (obj.action() == Tag_Action_DELETE) {
+  if (obj.action() == Tag_Action_DELETE)
+    _tags.erase(key);
+  else {
     auto it = _tags.find(key);
-    if (it != _tags.end()) {
-      it->second.second.erase(obj.poller_id());
-      if (it->second.second.empty())
-        _tags.erase(it);
-    }
-  } else {
-    auto [it, inserted] = _tags.emplace(
-        key,
-        std::make_pair(evt, absl::flat_hash_set<uint64_t>{obj.poller_id()}));
-    if (!inserted) {
+    if (it != _tags.end())
       it->second.first = evt;
-      it->second.second.insert(obj.poller_id());
-    }
+    else
+      _tags.emplace(key, std::make_pair(evt, absl::flat_hash_set<uint64_t>{}));
   }
 }
 
@@ -1842,11 +1888,12 @@ void broker_cache::set_db_id_for_severity(uint64_t config_id,
   absl::WriterMutexLock lck{&_mutex};
   auto it = _severities.find({config_id, type});
   if (it != _severities.end())
-    it->second.db_id = db_id;
+    it->second.first.db_id = db_id;
   else
     // Entry may not exist yet (e.g. loaded from DB at startup before config
     // events arrive): create a stub entry so the db_id is not lost.
-    _severities.insert({{config_id, type}, {0, db_id}});
+    _severities.insert(
+        {{config_id, type}, {{0, db_id}, absl::flat_hash_set<uint64_t>{}}});
 }
 
 /**
@@ -1865,6 +1912,13 @@ void broker_cache::erase_severity(uint64_t config_id, uint32_t type) {
   _severities.erase({config_id, type});
 }
 
+bool broker_cache::has_severity(uint64_t config_id, uint32_t type) const {
+  if (!section_enabled(CACHE_SEVERITIES))
+    return false;
+  absl::ReaderMutexLock lck{&_mutex};
+  return _severities.contains({config_id, type});
+}
+
 /**
  * @brief Get the database auto-increment ID for a severity identified by its
  * config ID and type.
@@ -1878,7 +1932,7 @@ uint64_t broker_cache::get_db_id_for_severity(uint64_t severity_id,
   absl::ReaderMutexLock lck{&_mutex};
   auto it = _severities.find({severity_id, type});
   if (it != _severities.end())
-    return it->second.db_id;
+    return it->second.first.db_id;
   else {
     SPDLOG_LOGGER_WARN(_logger,
                        "Attempt to get severity ID for severity with key ({}, "
@@ -2485,7 +2539,7 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
       if (severity_id) {
         auto severity_it = _severities.find({severity_id, Severity_Type_HOST});
         if (severity_it != _severities.end())
-          return severity_it->second.level;
+          return severity_it->second.first.level;
       } else
         throw exceptions::msg_fmt("Host {} has no severity set", host_id);
     } else {
@@ -2503,7 +2557,7 @@ uint32_t broker_cache::severity(uint64_t host_id, uint64_t service_id) const {
         auto severity_it =
             _severities.find({severity_id, Severity_Type_SERVICE});
         if (severity_it != _severities.end())
-          return severity_it->second.level;
+          return severity_it->second.first.level;
       } else
         throw exceptions::msg_fmt("Service ({}, {}) has no severity set",
                                   host_id, service_id);

@@ -291,20 +291,20 @@ void luabinding::_init_script(
           using T = std::decay_t<decltype(v)>;
           if constexpr (std::is_same_v<T, int32_t> ||
                         std::is_same_v<T, uint32_t>) {
-            lua_pushstring(_L, name.c_str());
+            lua_pushlstring(_L, name.c_str(), name.size());
             lua_pushinteger(_L, static_cast<lua_Integer>(v));
             lua_rawset(_L, -3);
           } else if constexpr (std::is_same_v<T, int64_t> ||
                                std::is_same_v<T, uint64_t>) {
-            lua_pushstring(_L, name.c_str());
+            lua_pushlstring(_L, name.c_str(), name.size());
             lua_pushinteger(_L, static_cast<lua_Integer>(v));
             lua_rawset(_L, -3);
           } else if constexpr (std::is_same_v<T, double>) {
-            lua_pushstring(_L, name.c_str());
+            lua_pushlstring(_L, name.c_str(), name.size());
             lua_pushnumber(_L, v);
             lua_rawset(_L, -3);
           } else if constexpr (std::is_same_v<T, std::string>) {
-            lua_pushstring(_L, name.c_str());
+            lua_pushlstring(_L, name.c_str(), name.size());
             lua_pushstring(_L, v.c_str());
             lua_rawset(_L, -3);
           }

@@ -544,6 +544,11 @@ Ctn Wait For Engine Configuration To Be Applied
     ${result}    Ctn Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
     Should Be True    ${result[0]}    The broker must receive a diff state ack from pollers in range [${idx_start}, ${idx_end}].
 
+    #Lck files should disappear
+    FOR    ${idx}    IN RANGE    ${idx_start}    ${idx_end}
+        Wait Until Keyword Succeeds    30 sec    2 sec    File Should Not Exist    ${VarRoot}/lib/centreon/config/${poller_id}.lck
+    END
+
 Ctn Start Agent
     ${run_env}    Ctn Run Env
 

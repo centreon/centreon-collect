@@ -48,11 +48,14 @@ class indexed_diff_state {
       _modified_connectors;
   absl::flat_hash_set<std::string> _removed_connectors;
 
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>
       _added_severities;
-  absl::flat_hash_map<std::pair<uint64_t, uint32_t>, std::unique_ptr<Severity>>
+  absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,
+                      std::unique_ptr<Severity>>
       _modified_severities;
-  absl::flat_hash_set<std::pair<uint64_t, uint32_t>> _removed_severities;
+  absl::flat_hash_set<std::tuple<uint64_t, uint32_t, uint32_t>>
+      _removed_severities;
 
   /* Key is (id, type, poller_id) so each poller's contribution is distinct. */
   absl::flat_hash_map<std::tuple<uint64_t, uint32_t, uint32_t>,

@@ -897,12 +897,27 @@ message Servicegroup {
   uint32 poller_id = 10;
 }
 
+/**
+ * @brief Key identifying a severity in a specific poller's configuration.
+ *
+ * id and type together identify the severity; poller_id scopes the key to one
+ * poller so that per-poller removals do not collide when the same severity is
+ * shared across pollers.
+ */
+/* Ignore */
+message SeverityKeyWithPoller {
+  uint64 id = 1;
+  uint32 type = 2;
+  uint32 poller_id = 3;
+}
+
 /* Ignore */
 message DiffSeverity {
   /* Added severities */
   repeated Severity added = 1;
-  /* Removed severities given by there key in the old list. */
-  repeated KeyType removed = 2;
+  /* Removed severities given by their key (id, type, poller_id) in the old
+   * list. */
+  repeated SeverityKeyWithPoller removed = 2;
   /* Modified severities */
   repeated Severity modified = 3;
 }
@@ -914,6 +929,7 @@ message Severity {
   uint32 level = 3;
   uint64 icon_id = 4;
   string severity_name = 5;
+  uint32 poller_id = 6;
 }
 
 /* Ignore */

@@ -3835,6 +3835,125 @@ def ctn_check_tags_empty_with_timeout(port: int, timeout=TIMEOUT):
     return False
 
 
+def ctn_check_severities_empty_with_timeout(port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until no severity entry remains, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the cache is empty before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == 0:
+            return True
+        logger.console(
+            f"Severities still in cache: "
+            f"{[(e.config_id, e.type, e.level) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_severities_count_with_timeout(port: int, expected_count: int,
+                                             timeout=TIMEOUT):
+    """
+    Poll the Broker cache until exactly expected_count severity entries are
+    present, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_count: The expected number of severity entries.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count matches before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_severities(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == int(expected_count):
+            return True
+        logger.console(
+            f"Expected {expected_count} severities, "
+            f"got {len(entries)}: "
+            f"{[(e.config_id, e.type, e.level) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_tags_count_with_timeout(port: int, expected_count: int,
+                                      timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns exactly expected_count entries,
+    or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_count: The expected number of tag entries.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the tag count matches before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == int(expected_count):
+            return True
+        logger.console(
+            f"Expected {expected_count} tags, got {len(entries)}: "
+            f"{[(e.id, e.type, e.name) for e in entries]}"
+        )
+        time.sleep(1)
+    return False
+
+
+def ctn_check_tags_names_with_timeout(port: int, expected_names,
+                                      timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns entries whose name set exactly
+    matches expected_names, or timeout.
+
+    Args:
+        port: The gRPC port to use.
+        expected_names: A list (or set) of expected tag name strings.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the name set matches before timeout, False otherwise.
+    """
+    expected = set(expected_names)
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        actual = {e.name for e in entries}
+        if actual == expected:
+            return True
+        logger.console(
+            f"Expected tag names {sorted(expected)}, got {sorted(actual)}"
+        )
+        time.sleep(1)
+    return False
+
+
 def ctn_clear_broker_cache():
     """
     Clear the Broker cache.

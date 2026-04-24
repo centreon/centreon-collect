@@ -166,3 +166,204 @@ BECNTAG1
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
+
+
+BECNTAG2
+    [Documentation]    Feature: Tag rename is reflected in the Broker gRPC cache
+    ...
+    ...    Background:
+    ...        Given 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+    ...        And 4 tags (id=1, one per TagType) initially named tag1..tag4 on every poller
+    ...        And tags assigned to all hosts and services
+    ...
+    ...    Scenario: Tag names are updated in the broker cache after rename on all pollers
+    ...        Given the initial state has 20 tagged hosts and 400 tagged services
+    ...        When all 4 pollers rename their tags to tag11..tag14 (same ids, new names)
+    ...        Then broker GetTags returns exactly the 4 entries with the new names
+    ...        And GetHostsByTag with the new HOSTGROUP name returns all 20 hosts
+    ...        And GetServicesByTag with the new SERVICEGROUP name returns all 400 services
+    [Tags]    broker    engine    cache    tags
+
+    Ctn Config Centralized Engine    ${4}    ${20}    ${20}
+
+    ${all_host_ids}    Ctn Get Host Ids For Pollers    0    1    2    3
+
+    FOR    ${i}    IN RANGE    4
+        Ctn Create Tags File    ${i}    ${4}
+        Ctn Config Engine Add Cfg File    ${i}    tags.cfg
+        Ctn Add Tags To All Hosts    ${i}    group_tags    1
+        Ctn Add Tags To All Hosts    ${i}    category_tags    1
+        Ctn Add Tags To All Services    ${i}    group_tags    1
+        Ctn Add Tags To All Services    ${i}    category_tags    1
+    END
+
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${4}
+    Ctn Config BBDO3    ${4}
+    Ctn Broker Config Log    central    cache    debug
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+
+    # Verify initial state: hosts are reachable by the original tag names
+    ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${all_host_ids}    60
+    Should Be True    ${result}    Initial state: wrong host set with HOSTGROUP tag 'tag2'
+
+    # Rename: recreate tags.cfg with offset=11 (tag11..tag14) on every poller, then notify
+    Log To Console    Renaming tags to tag11..tag14 on all pollers
+    FOR    ${i}    IN RANGE    4
+        Ctn Create Tags File    ${i}    ${4}    ${11}
+        Ctn Notify Broker Of Engine Config Change    ${i}
+    END
+
+    # GetTags must reflect the new names
+    ${new_names}    Create List    tag11    tag12    tag13    tag14
+    ${result}    Ctn Check Tags Names With Timeout    51001    ${new_names}    60
+    Should Be True    ${result}    Tag names were not updated to tag11..tag14 in broker cache
+
+    # Hosts and services must still be reachable via the renamed tags
+    ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag12    ${1}    ${all_host_ids}    60
+    Should Be True    ${result}    Renamed tag: wrong host set with HOSTGROUP tag 'tag12'
+    ${result}    Ctn Check Services By Tag With Timeout    51001    tag11    ${0}    ${all_host_ids}    ${400}    60
+    Should Be True    ${result}    Renamed tag: wrong service set with SERVICEGROUP tag 'tag11'
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+BECNTAG3
+    [Documentation]    Feature: GetTags gRPC returns correct content while tags are active
+    ...
+    ...    Background:
+    ...        Given 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+    ...        And 4 tags (id=1, one per TagType) named tag1..tag4 on every poller
+    ...        And tags assigned to all hosts and services
+    ...
+    ...    Scenario: GetTags returns 4 entries with the correct names while tags are active
+    ...        When Broker and Engine are started and synchronized
+    ...        Then GetTags returns exactly 4 entries
+    ...        And the entry names are exactly {tag1, tag2, tag3, tag4}
+    [Tags]    broker    engine    cache    tags
+
+    Ctn Config Centralized Engine    ${4}    ${20}    ${20}
+
+    FOR    ${i}    IN RANGE    4
+        Ctn Create Tags File    ${i}    ${4}
+        Ctn Config Engine Add Cfg File    ${i}    tags.cfg
+        Ctn Add Tags To All Hosts    ${i}    group_tags    1
+        Ctn Add Tags To All Hosts    ${i}    category_tags    1
+        Ctn Add Tags To All Services    ${i}    group_tags    1
+        Ctn Add Tags To All Services    ${i}    category_tags    1
+    END
+
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${4}
+    Ctn Config BBDO3    ${4}
+    Ctn Broker Config Log    central    cache    debug
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+
+    # GetTags must return exactly 4 entries (one per TagType) with the expected names
+    ${result}    Ctn Check Tags Count With Timeout    51001    4    60
+    Should Be True    ${result}    GetTags should return exactly 4 entries when all pollers have tags
+
+    ${expected_names}    Create List    tag1    tag2    tag3    tag4
+    ${result}    Ctn Check Tags Names With Timeout    51001    ${expected_names}    60
+    Should Be True    ${result}    GetTags entries should be named tag1..tag4
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker
+
+
+BECNTAG4
+    [Documentation]    Feature: Broker cache is repopulated after broker restart with tags active
+    ...
+    ...    Background:
+    ...        Given 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+    ...        And 4 tags (id=1, one per TagType) named tag1..tag4 assigned to all hosts/services
+    ...
+    ...    Scenario: After broker restart, GetTags and GetHostsByTag return correct data
+    ...        Given broker and engine are started and synchronized
+    ...        And GetTags returns 4 entries before broker stops
+    ...        When broker is stopped and restarted (engine keeps running)
+    ...        Then GetTags returns the same 4 entries after restart
+    ...        And GetHostsByTag returns all 20 expected hosts
+    ...        And GetServicesByTag returns all 400 expected services
+    [Tags]    broker    engine    cache    tags
+
+    Ctn Config Centralized Engine    ${4}    ${20}    ${20}
+
+    ${all_host_ids}    Ctn Get Host Ids For Pollers    0    1    2    3
+
+    FOR    ${i}    IN RANGE    4
+        Ctn Create Tags File    ${i}    ${4}
+        Ctn Config Engine Add Cfg File    ${i}    tags.cfg
+        Ctn Add Tags To All Hosts    ${i}    group_tags    1
+        Ctn Add Tags To All Hosts    ${i}    category_tags    1
+        Ctn Add Tags To All Services    ${i}    group_tags    1
+        Ctn Add Tags To All Services    ${i}    category_tags    1
+    END
+
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config Broker    module    ${4}
+    Ctn Config BBDO3    ${4}
+    Ctn Broker Config Log    central    cache    debug
+    Ctn Broker Config Log    central    config    debug
+    Ctn Broker Config Log    central    bbdo    debug
+    Ctn Clear Retention
+    Ctn Clear Prot Files
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Start Engine    newGeneration=True
+    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+
+    # Verify cache is correct before restart
+    ${result}    Ctn Check Tags Count With Timeout    51001    4    60
+    Should Be True    ${result}    Pre-restart: GetTags should return exactly 4 entries
+
+    ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${all_host_ids}    60
+    Should Be True    ${result}    Pre-restart: wrong host set with HOSTGROUP tag 'tag2'
+
+    # Stop broker only; engine keeps running
+    Log To Console    Stopping broker
+    Ctn Kindly Stop Broker
+
+    # Restart broker; engine reconnects and re-sends configuration
+    Log To Console    Restarting broker
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    newGeneration=True
+    Ctn Wait For Engine Configuration To Be Applied    ${start}    ${0}    ${4}
+
+    # Cache must be fully repopulated after restart
+    ${result}    Ctn Check Tags Count With Timeout    51001    4    60
+    Should Be True    ${result}    Post-restart: GetTags should return exactly 4 entries
+
+    ${expected_names}    Create List    tag1    tag2    tag3    tag4
+    ${result}    Ctn Check Tags Names With Timeout    51001    ${expected_names}    60
+    Should Be True    ${result}    Post-restart: GetTags should return entries with names tag1..tag4
+
+    ${result}    Ctn Check Hosts By Tag With Timeout    51001    tag2    ${1}    ${all_host_ids}    60
+    Should Be True    ${result}    Post-restart: wrong host set with HOSTGROUP tag 'tag2'
+
+    ${result}    Ctn Check Services By Tag With Timeout    51001    tag1    ${0}    ${all_host_ids}    ${400}    60
+    Should Be True    ${result}    Post-restart: wrong service set with SERVICEGROUP tag 'tag1'
+
+    Ctn Stop Engine
+    Ctn Kindly Stop Broker

@@ -571,7 +571,8 @@ define command {{
         logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
-    def create_severities(self, idx: int, nb: int, offset: int):
+    def create_severities(self, idx: int, nb: int, offset: int,
+                          level_offset: int = 0):
         """
         Create a severities.cfg file.
 
@@ -580,6 +581,7 @@ define command {{
             nb: The number of severities.
             offset: an integer used to name the severity "severityXXX" where XXX
             is the severity ID + offset.
+            level_offset: shifts the cyclic level formula (i+level_offset)%5+1.
         """
         conf_dir = self.get_config_dir(idx)
         config_file = f"{conf_dir}/severities.cfg"
@@ -587,7 +589,7 @@ define command {{
             content = ""
             typ = ["service", "host"]
             for i in range(nb):
-                level = i % 5 + 1
+                level = (i + level_offset) % 5 + 1
                 content += f"""define severity {{
     id                     {i + 1}
     severity_name          severity{i + offset}
@@ -3130,16 +3132,69 @@ def ctn_schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centr
         f.write(cmd)
 
 
-def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
+def ctn_create_severities_file(poller: int, nb: int, offset: int = 1,
+                               level_offset: int = 0):
     """
     Create a severities.cfg file for a poller.
 
     Args:
         poller (int): Index of the poller.
         nb (int): number of severities.
-        offset (int, optional): Defaults to 1.
+        offset (int, optional): name offset — severity names become
+            severity{i+offset}. Defaults to 1.
+        level_offset (int, optional): shifts the cyclic level formula
+            (i+level_offset)%5+1. Defaults to 0.
     """
-    engine.create_severities(poller, nb, offset)
+    engine.create_severities(poller, nb, offset, level_offset)
+
+
+def ctn_add_severity_to_all_hosts(poller: int, severity_id: int):
+    """
+    Add severity_id to ALL host definitions in hosts.cfg for the given poller.
+
+    Inserts a ``severity_id`` line after every ``_HOST_ID`` entry so that
+    every host on the poller carries the specified severity.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        severity_id (int): The severity ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_HOST_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    severity_id                     {severity_id}\n")
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
+        ff.writelines(new_lines)
+
+
+def ctn_add_severity_to_all_services(poller: int, severity_id: int):
+    """
+    Add severity_id to ALL service definitions in services.cfg for the given
+    poller.
+
+    Inserts a ``severity_id`` line after every ``_SERVICE_ID`` entry so that
+    every service on the poller carries the specified severity.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        severity_id (int): The severity ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_SERVICE_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    severity_id                     {severity_id}\n")
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
+        ff.writelines(new_lines)
 
 
 def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str, type: str = "service"):

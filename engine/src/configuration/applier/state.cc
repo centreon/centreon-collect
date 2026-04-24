@@ -1548,12 +1548,16 @@ void applier::state::_apply_diff_conf(
 
   // Apply severities.
   _apply_ng<configuration::applier::severity, DiffSeverity,
-            std::pair<uint64_t, uint32_t>, Severity, KeyType>(
+            std::tuple<uint64_t, uint32_t, uint32_t>, Severity,
+            SeverityKeyWithPoller>(
       *diff.mutable_severities(), pb_indexed_config.mut_severities(),
       [](const Severity& obj) {
-        return std::make_pair(obj.key().id(), obj.key().type());
+        return std::make_tuple(obj.key().id(), obj.key().type(),
+                               (uint32_t)obj.poller_id());
       },
-      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+      [](const SeverityKeyWithPoller& key) {
+        return std::make_tuple(key.id(), key.type(), (uint32_t)key.poller_id());
+      });
 
   // Apply tags.
   _apply_ng<configuration::applier::tag, DiffTag,
