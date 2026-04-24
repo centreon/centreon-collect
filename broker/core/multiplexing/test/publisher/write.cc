@@ -40,8 +40,7 @@ class PublisherWrite : public testing::Test {
     config::applier::init<com::centreon::broker::config::applier::broker_state>(
         "", 0, "test_broker", 0);
     log_v2::instance().get(log_v2::CORE)->set_level(spdlog::level::trace);
-    config::applier::state::instance().initialize_cache(
-        log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().initialize_cache();
   }
 
   void TearDown() override { config::applier::deinit(); }

@@ -41,7 +41,7 @@ class InfluxDBLineProtoQuery : public ::testing::Test {
       config::applier::init<
           com::centreon::broker::config::applier::broker_state>(
           "", 0, "test_broker", 0);
-      config::applier::state::instance().clear_cache(logger);
+      config::applier::state::instance().clear_cache();
     } catch (std::exception const& e) {
       (void)e;
     }

@@ -34,8 +34,7 @@ class CentreonBrokerEnvironment : public testing::Environment {
   void SetUp() override {
     com::centreon::broker::config::applier::state::load<
         com::centreon::broker::config::applier::broker_state>("");
-    com::centreon::broker::config::applier::state::instance().initialize_cache(
-        log_v2::instance().get(log_v2::CORE));
+    com::centreon::broker::config::applier::state::instance().initialize_cache();
     com::centreon::broker::io::protocols::load();
     com::centreon::broker::io::events::load();
   }
