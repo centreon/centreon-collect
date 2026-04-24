@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <unistd.h>
 #include <cstring>
+#include <memory>
 
 #include "com/centreon/connector/perl/protocol.hh"
 
@@ -41,8 +42,7 @@ class ProtocolTest : public ::testing::Test {
   static ConnectorMess make_execute(uint64_t id = 1) {
     ConnectorMess msg;
     auto* ex = msg.mutable_execute();
-    ex->set_check_id(id);
-    ex->set_exe("/usr/lib/nagios/plugins/check_ping");
+    ex->set_cmd_id(id);
     ex->add_args("-H");
     ex->add_args("127.0.0.1");
     return msg;
@@ -51,7 +51,7 @@ class ProtocolTest : public ::testing::Test {
   static ConnectorMess make_result(uint64_t id = 1, int32_t status = 0) {
     ConnectorMess msg;
     auto* res = msg.mutable_result();
-    res->set_check_id(id);
+    res->set_cmd_id(id);
     res->set_status(status);
     return msg;
   }
@@ -95,7 +95,7 @@ class ProtocolTest : public ::testing::Test {
 /**
  * @brief Execute message survives a send → recv round-trip.
  *
- * Checks that every field (check_id, exe, args) is faithfully preserved after
+ * Checks that every field (cmd_id, exe, args) is faithfully preserved after
  * serialisation, wire transfer, and deserialisation.
  */
 TEST_F(ProtocolTest, SendRecvExecute) {
@@ -111,8 +111,7 @@ TEST_F(ProtocolTest, SendRecvExecute) {
   ASSERT_FALSE(ec) << "recv: " << ec.message();
 
   ASSERT_TRUE(received.has_execute());
-  EXPECT_EQ(received.execute().check_id(), 42u);
-  EXPECT_EQ(received.execute().exe(), "/usr/lib/nagios/plugins/check_ping");
+  EXPECT_EQ(received.execute().cmd_id(), 42u);
   ASSERT_EQ(received.execute().args_size(), 2);
   EXPECT_EQ(received.execute().args(0), "-H");
   EXPECT_EQ(received.execute().args(1), "127.0.0.1");
@@ -134,7 +133,7 @@ TEST_F(ProtocolTest, SendRecvResult) {
   ASSERT_FALSE(ec) << "recv: " << ec.message();
 
   ASSERT_TRUE(received.has_result());
-  EXPECT_EQ(received.result().check_id(), 99u);
+  EXPECT_EQ(received.result().cmd_id(), 99u);
   EXPECT_EQ(received.result().status(), 2);
 }
 
@@ -155,7 +154,7 @@ TEST_F(ProtocolTest, SendRecvMultipleOrdered) {
     ConnectorMess received;
     ASSERT_FALSE(proto.recv(pipe.rp, received)) << "recv #" << i;
     ASSERT_TRUE(received.has_execute());
-    EXPECT_EQ(received.execute().check_id(), static_cast<uint64_t>(i));
+    EXPECT_EQ(received.execute().cmd_id(), static_cast<uint64_t>(i));
   }
 }
 
@@ -210,8 +209,9 @@ TEST_F(ProtocolTest, RecvEmptyFrameReturnsProtocolError) {
  */
 TEST_F(ProtocolTest, OnRecvEmptyString) {
   protocol proto;
-  auto result = proto.on_recv("");
-  EXPECT_TRUE(result.empty());
+  std::vector<ConnectorMess> received;
+  proto.on_recv("", received);
+  EXPECT_TRUE(received.empty());
 }
 
 /**
@@ -222,7 +222,8 @@ TEST_F(ProtocolTest, OnRecvIncompleteHeader) {
   protocol proto;
   // Feed sizeof(size_t) - 1 bytes — not enough for a complete length header.
   std::string short_buf(sizeof(size_t) - 1, '\x01');
-  auto result = proto.on_recv(short_buf);
+  std::vector<ConnectorMess> result;
+  proto.on_recv(short_buf, result);
   EXPECT_TRUE(result.empty());
 }
 
@@ -238,7 +239,8 @@ TEST_F(ProtocolTest, OnRecvTruncatedFrame) {
   constexpr size_t claimed_len = 100;
   std::string data(20, '\x00');
   std::memcpy(data.data(), &claimed_len, sizeof(size_t));
-  auto result = proto.on_recv(data);
+  std::vector<ConnectorMess> result;
+  proto.on_recv(data, result);
   EXPECT_TRUE(result.empty());
 }
 
@@ -246,7 +248,7 @@ TEST_F(ProtocolTest, OnRecvTruncatedFrame) {
  * @brief on_recv decodes a fully-framed ConnectorMess and returns it with all
  *        fields intact.
  *
- * Builds a Result message with every sub-field populated (check_id, status,
+ * Builds a Result message with every sub-field populated (cmd_id, status,
  * stdout, stderr, AfterFirstCheck, AfterLastCheck), serialises it into the
  * length-prefixed wire format used by the protocol, feeds it to on_recv, and
  * verifies that the returned vector contains exactly one message whose fields
@@ -258,7 +260,7 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   // Build a fully-populated Result message.
   ConnectorMess sent;
   auto* res = sent.mutable_result();
-  res->set_check_id(77);
+  res->set_cmd_id(77);
   res->set_status(1);
   res->set_stdout("PING OK - Packet loss = 0%");
   res->set_stderr("some warning");
@@ -279,12 +281,13 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   std::memcpy(frame.data(), &packet_len, sizeof(size_t));
   frame += payload;
 
-  auto result = proto.on_recv(frame);
+  std::vector<ConnectorMess> result;
+  proto.on_recv(frame, result);
 
   ASSERT_EQ(result.size(), 1u);
   const ConnectorMess& got = result[0];
   ASSERT_TRUE(got.has_result());
-  EXPECT_EQ(got.result().check_id(), 77u);
+  EXPECT_EQ(got.result().cmd_id(), 77u);
   EXPECT_EQ(got.result().status(), 1);
   EXPECT_EQ(got.result().stdout(), "PING OK - Packet loss = 0%");
   EXPECT_EQ(got.result().stderr(), "some warning");
@@ -314,15 +317,15 @@ TEST_F(ProtocolTest, AsyncSendRecvExecute) {
   absl::Mutex recv_mu;
   bool recv_done = false;
   boost::system::error_code recv_ec;
-  ConnectorMess received;
+  std::shared_ptr<ConnectorMess> received;
 
-  proto.async_recv(pipe.rp,
-                   [&](const boost::system::error_code& ec, ConnectorMess msg) {
-                     absl::MutexLock l(&recv_mu);
-                     recv_ec = ec;
-                     received = std::move(msg);
-                     recv_done = true;
-                   });
+  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
+                                const std::shared_ptr<ConnectorMess>& msg) {
+    absl::MutexLock l(&recv_mu);
+    recv_ec = ec;
+    received = msg;
+    recv_done = true;
+  });
 
   absl::Mutex send_mu;
   bool send_done = false;
@@ -347,12 +350,11 @@ TEST_F(ProtocolTest, AsyncSendRecvExecute) {
   }
   ASSERT_FALSE(recv_ec) << "async_recv: " << recv_ec.message();
 
-  ASSERT_TRUE(received.has_execute());
-  EXPECT_EQ(received.execute().check_id(), 42u);
-  EXPECT_EQ(received.execute().exe(), "/usr/lib/nagios/plugins/check_ping");
-  ASSERT_EQ(received.execute().args_size(), 2);
-  EXPECT_EQ(received.execute().args(0), "-H");
-  EXPECT_EQ(received.execute().args(1), "127.0.0.1");
+  ASSERT_TRUE(received->has_execute());
+  EXPECT_EQ(received->execute().cmd_id(), 42u);
+  ASSERT_EQ(received->execute().args_size(), 2);
+  EXPECT_EQ(received->execute().args(0), "-H");
+  EXPECT_EQ(received->execute().args(1), "127.0.0.1");
 }
 
 /**
@@ -365,15 +367,15 @@ TEST_F(ProtocolTest, AsyncSendRecvResult) {
   absl::Mutex recv_mu;
   bool recv_done = false;
   boost::system::error_code recv_ec;
-  ConnectorMess received;
+  std::shared_ptr<ConnectorMess> received;
 
-  proto.async_recv(pipe.rp,
-                   [&](const boost::system::error_code& ec, ConnectorMess msg) {
-                     absl::MutexLock l(&recv_mu);
-                     recv_ec = ec;
-                     received = std::move(msg);
-                     recv_done = true;
-                   });
+  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
+                                const std::shared_ptr<ConnectorMess>& msg) {
+    absl::MutexLock l(&recv_mu);
+    recv_ec = ec;
+    received = msg;
+    recv_done = true;
+  });
 
   absl::Mutex send_mu;
   bool send_done = false;
@@ -398,9 +400,9 @@ TEST_F(ProtocolTest, AsyncSendRecvResult) {
   }
   ASSERT_FALSE(recv_ec) << "async_recv: " << recv_ec.message();
 
-  ASSERT_TRUE(received.has_result());
-  EXPECT_EQ(received.result().check_id(), 99u);
-  EXPECT_EQ(received.result().status(), 2);
+  ASSERT_TRUE(received->has_result());
+  EXPECT_EQ(received->result().cmd_id(), 99u);
+  EXPECT_EQ(received->result().status(), 2);
 }
 
 /**
@@ -417,12 +419,12 @@ TEST_F(ProtocolTest, AsyncRecvOnClosedPipeReturnsError) {
   bool done = false;
   boost::system::error_code result_ec;
 
-  proto.async_recv(pipe.rp,
-                   [&](const boost::system::error_code& ec, ConnectorMess) {
-                     absl::MutexLock l(&mu);
-                     result_ec = ec;
-                     done = true;
-                   });
+  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
+                                const std::shared_ptr<ConnectorMess>&) {
+    absl::MutexLock l(&mu);
+    result_ec = ec;
+    done = true;
+  });
 
   absl::MutexLock l(&mu);
   mu.Await(absl::Condition(&done));
@@ -447,12 +449,12 @@ TEST_F(ProtocolTest, AsyncRecvEmptyFrameReturnsProtocolError) {
   bool done = false;
   boost::system::error_code result_ec;
 
-  proto.async_recv(pipe.rp,
-                   [&](const boost::system::error_code& ec, ConnectorMess) {
-                     absl::MutexLock l(&mu);
-                     result_ec = ec;
-                     done = true;
-                   });
+  proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
+                                const std::shared_ptr<ConnectorMess>&) {
+    absl::MutexLock l(&mu);
+    result_ec = ec;
+    done = true;
+  });
 
   absl::MutexLock l(&mu);
   mu.Await(absl::Condition(&done));
@@ -496,7 +498,7 @@ TEST_F(ProtocolTest, AsyncSendQueuesMultiple) {
     ConnectorMess received;
     ASSERT_FALSE(proto.recv(pipe.rp, received)) << "recv #" << i;
     ASSERT_TRUE(received.has_execute());
-    EXPECT_EQ(received.execute().check_id(), static_cast<uint64_t>(i));
+    EXPECT_EQ(received.execute().cmd_id(), static_cast<uint64_t>(i));
   }
 }
 
@@ -514,7 +516,7 @@ TEST_F(ProtocolTest, AsyncRoundTrip) {
   absl::Mutex mu;
   bool done = false;
   boost::system::error_code final_ec;
-  ConnectorMess received_msg;
+  std::shared_ptr<ConnectorMess> received_msg;
 
   proto.async_send(
       pipe.wp, make_execute(77), [&](const boost::system::error_code& send_ec) {
@@ -524,20 +526,20 @@ TEST_F(ProtocolTest, AsyncRoundTrip) {
           done = true;
           return;
         }
-        proto.async_recv(pipe.rp, [&](const boost::system::error_code& recv_ec,
-                                      ConnectorMess msg) {
-          absl::MutexLock l(&mu);
-          final_ec = recv_ec;
-          received_msg = std::move(msg);
-          done = true;
-        });
+        proto.async_recv(pipe.rp,
+                         [&](const boost::system::error_code& recv_ec,
+                             const std::shared_ptr<ConnectorMess>& msg) {
+                           absl::MutexLock l(&mu);
+                           final_ec = recv_ec;
+                           received_msg = msg;
+                           done = true;
+                         });
       });
 
   absl::MutexLock l(&mu);
   mu.Await(absl::Condition(&done));
 
   ASSERT_FALSE(final_ec) << "round-trip: " << final_ec.message();
-  ASSERT_TRUE(received_msg.has_execute());
-  EXPECT_EQ(received_msg.execute().check_id(), 77u);
-  EXPECT_EQ(received_msg.execute().exe(), "/usr/lib/nagios/plugins/check_ping");
+  ASSERT_TRUE(received_msg->has_execute());
+  EXPECT_EQ(received_msg->execute().cmd_id(), 77u);
 }

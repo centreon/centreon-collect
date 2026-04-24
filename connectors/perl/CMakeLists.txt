@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2015,2017-2019 Centreon
+# Copyright 2011-2015,2017-2019,2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
   ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
   ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
@@ -63,7 +64,10 @@ add_executable(centreon_connector_perl
 
 add_dependencies(centreon_connector_perl centreon_clib)
 target_link_libraries(centreon_connector_perl 
-  centreon_clib 
+  centreon_clib
+  centreon_process_no_crypto
+  #centreon_common
+  #ctncrypto
   ${PERL_LIBRARIES}
   pb_perl_connector_lib
   protobuf::libprotobuf
@@ -71,6 +75,7 @@ target_link_libraries(centreon_connector_perl
   Boost::process
   spdlog::spdlog
   fmt::fmt
+  OpenSSL::SSL
   absl::any
   absl::log
   absl::base

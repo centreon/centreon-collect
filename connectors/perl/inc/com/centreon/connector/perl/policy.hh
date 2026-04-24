@@ -1,5 +1,5 @@
 /*
-** Copyright 2022 Centreon
+** Copyright 2026 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,34 +20,25 @@
 #define CCCP_POLICY_HH
 
 #include "com/centreon/connector/ipolicy.hh"
-#include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/reporter.hh"
+#include "script_child.hh"
+#include "src/perl_connector.pb.h"
 
 namespace com::centreon::connector::perl {
 
-/**
- *  @class policy policy.hh "com/centreon/connector/perl/policy.hh"
- *  @brief Software policy.
- *
- *  Wraps software policy within a class.
- */
 class policy : public com::centreon::connector::policy_interface {
-  using pid_to_check_map = std::map<pid_t, checks::check::pointer>;
-  pid_to_check_map _checks;
+  absl::flat_hash_map<std::string, std::shared_ptr<script_child>> _scripts;
   reporter::pointer _reporter;
   shared_io_context _io_context;
-  asio::system_timer _second_timer, _end_timer;
+  std::string _additional_loader_code;
 
-  policy(const shared_io_context& io_context);
-  void start(const std::string& test_cmd_file);
+  policy(const shared_io_context& io_context,
+         const std::string& additional_loader_code);
+  void _start(const std::string& test_cmd_file);
 
-  void on_sigchild();
-
-  void start_end_timer(bool final);
-  void start_second_timer();
-
-  void wait_pid();
+  void _from_script_child(const std::string& script_path,
+                          const ConnectorMess& from_script_mess);
 
  public:
   policy(policy const& p) = delete;
@@ -59,6 +50,7 @@ class policy : public com::centreon::connector::policy_interface {
   }
 
   static void create(const shared_io_context& io_context,
+                     const std::string& additional_loader_code,
                      const std::string& test_cmd_file);
 
   void on_eof() override;
@@ -74,4 +66,4 @@ class policy : public com::centreon::connector::policy_interface {
 
 }  // namespace com::centreon::connector::perl
 
-#endif  // !CCCP_POLICY_HH
+#endif

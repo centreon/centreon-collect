@@ -3,6 +3,7 @@ project(connectors CXX)
 
 set(CONNECTOR_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 

@@ -68,7 +68,7 @@ class async_receive_impl : std::enable_shared_from_this<async_receive_impl> {
               const boost::system::error_code err = {},
               size_t = 0) {
     if (err) {
-      self.complete(err, {});
+      self.complete(err, std::shared_ptr<ConnectorMess>());
       return;
     }
     switch (_state) {
@@ -84,7 +84,7 @@ class async_receive_impl : std::enable_shared_from_this<async_receive_impl> {
         if (_data_len == 0) {
           self.complete(boost::system::errc::make_error_code(
                             boost::system::errc::protocol_error),
-                        {});
+                        std::shared_ptr<ConnectorMess>());
           return;
         }
         _data_buff = std::make_unique<unsigned char[]>(_data_len);
@@ -94,13 +94,14 @@ class async_receive_impl : std::enable_shared_from_this<async_receive_impl> {
         break;
       default:
         try {
-          ConnectorMess received;
-          received.ParseFromArray(_data_buff.get(), _data_len);
+          std::shared_ptr<ConnectorMess> received =
+              std::make_shared<ConnectorMess>();
+          received->ParseFromArray(_data_buff.get(), _data_len);
           self.complete({}, received);
         } catch (const std::exception& e) {
           self.complete(boost::system::errc::make_error_code(
                             boost::system::errc::protocol_error),
-                        {});
+                        std::shared_ptr<ConnectorMess>());
         }
     }
   }
@@ -155,27 +156,29 @@ class protocol {
 
   /// Parse a single framed message from @p buff; returns the number of bytes
   /// consumed (0 if the buffer is incomplete).
-  static size_t _parse(const void* buff, size_t len, ConnectorMess& mess);
+  static size_t _parse(const void* buff, size_t len, ConnectorMess& to_parse);
 
   void _on_send(asio::writable_pipe& out_pipe,
                 const boost::system::error_code& err);
 
  public:
-  /// Serialize @p mess into a heap-allocated proto_buffer ready to be sent.
+  /// Serialize @p to_serialize into a heap-allocated proto_buffer ready to be
+  /// sent.
   static std::shared_ptr<proto_buffer> serialize(
-      const ::google::protobuf::Message& mess);
+      const ::google::protobuf::Message& to_serialize);
 
   boost::system::error_code send(asio::writable_pipe& out_pipe,
-                                 const ConnectorMess& mess);
+                                 const ConnectorMess& to_send);
 
   boost::system::error_code recv(asio::readable_pipe& in_pipe,
                                  ConnectorMess& received);
 
-  std::vector<ConnectorMess> on_recv(const std::string& raw_data);
+  void on_recv(const std::string& raw_data,
+               std::vector<ConnectorMess>& received);
 
   template <class send_handler_type>
   void async_send(asio::writable_pipe& out_pipe,
-                  const ConnectorMess& mess,
+                  const ConnectorMess& to_send,
                   send_handler_type&& handler);
 
   template <typename handler_type>
@@ -184,9 +187,9 @@ class protocol {
 
 template <class send_handler_type>
 void protocol::async_send(asio::writable_pipe& out_pipe,
-                          const ConnectorMess& mess,
+                          const ConnectorMess& mess_to_send,
                           send_handler_type&& handler) {
-  auto to_send = serialize(mess);
+  auto to_send = serialize(mess_to_send);
   if (_write_pending) {
     _write_queue.emplace_back(to_send, std::move(handler));
   } else {
@@ -207,8 +210,9 @@ void protocol::async_recv(asio::readable_pipe& stream, handler_type&& handler) {
   // referenced through a shared_ptr captured by value.
   std::shared_ptr<detail::async_receive_impl> async_receiver =
       std::make_shared<detail::async_receive_impl>(stream);
-  asio::async_compose<handler_type, void(const boost::system::error_code,
-                                         const ConnectorMess&)>(
+  asio::async_compose<handler_type,
+                      void(const boost::system::error_code,
+                           const std::shared_ptr<ConnectorMess>&)>(
       [async_receiver](auto& self, const boost::system::error_code& error = {},
                        std::size_t nb_receive = 0) mutable {
         async_receiver->handle(self, error, nb_receive);

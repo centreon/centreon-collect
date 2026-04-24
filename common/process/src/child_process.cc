@@ -20,7 +20,6 @@
 
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/detail/boost_process.hh"
-#include "com/centreon/common/process/process.hh"
 
 using namespace com::centreon::common;
 

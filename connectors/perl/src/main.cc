@@ -18,8 +18,12 @@
 
 #include <boost/program_options.hpp>
 
+#include "connectors/perl/src/perl_connector.pb.h"
+
+#include <EXTERN.h>
+#include <perl.h>
+
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -92,28 +96,29 @@ int main(int argc, char** argv, char** env) {
                       CENTREON_CONNECTOR_VERSION);
 
     shared_io_context io_context(std::make_shared<asio::io_context>());
-    checks::shared_signal_set signal_handler(std::make_shared<asio::signal_set>(
-        *io_context, SIGTERM, SIGINT, SIGPIPE));
+    // checks::shared_signal_set signal_handler(std::make_shared<asio::signal_set>(
+    //     *io_context, SIGTERM, SIGINT, SIGPIPE));
 
-    signal_handler->async_wait(
-        [io_context](const boost::system::error_code&, int signal_number) {
-          if (signal_number == SIGPIPE) {
-            log::core()->info("SIGPIPE received");
-            return;
-          }
-          log::core()->info("termination request received {}", signal_number);
-          io_context->stop();
-        });
+    // signal_handler->async_wait(
+    //     [io_context](const boost::system::error_code&, int signal_number) {
+    //       if (signal_number == SIGPIPE) {
+    //         log::core()->info("SIGPIPE received");
+    //         return;
+    //       }
+    //       log::core()->info("termination request received {}", signal_number);
+    //       io_context->stop();
+    //     });
 
-    // Load Embedded Perl.
-    embedded_perl::load(argc, argv, env,
-                        (vm.count("code")
-                             ? vm["code"].as<std::string>().c_str()
-                             : nullptr));
+    // // Load Embedded Perl.
+    // embedded_perl::load(argc, argv, env,
+    //                     (vm.count("code")
+    //                          ? vm["code"].as<std::string>().c_str()
+    //                          : nullptr));
 
     // Program policy.
     // Program policy.
-    policy::create(io_context, test_file_path);
+    policy::create(io_context, vm.count("code")
+                              ? vm["code"].as<std::string>():"",test_file_path);
 
     io_context->run();
 
@@ -122,7 +127,7 @@ int main(int argc, char** argv, char** env) {
   }
 
   // Deinitializations.
-  embedded_perl::unload();
+  //embedded_perl::unload();
 
   log::core()->info("bye");
 

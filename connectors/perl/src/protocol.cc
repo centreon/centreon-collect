@@ -151,9 +151,9 @@ boost::system::error_code protocol::recv(asio::readable_pipe& in_pipe,
  * @throws com::centreon::exceptions::msg_fmt if a complete frame cannot be
  *         parsed as a valid protobuf message.
  */
-std::vector<ConnectorMess> protocol::on_recv(const std::string& raw_data) {
+void protocol::on_recv(const std::string& raw_data,
+                       std::vector<ConnectorMess>& received) {
   _recv_buffer += raw_data;
-  std::vector<ConnectorMess> ret;
   size_t offset = 0;
   while (true) {
     size_t remaining = _recv_buffer.size() - offset;
@@ -172,7 +172,7 @@ std::vector<ConnectorMess> protocol::on_recv(const std::string& raw_data) {
                                data_len)) {
         throw exceptions::msg_fmt("fail to decode protobuf message");
       }
-      ret.push_back(std::move(mess));
+      received.push_back(std::move(mess));
     } catch (const exceptions::msg_fmt& e) {
       throw;
     } catch (const std::exception& e) {
@@ -182,5 +182,4 @@ std::vector<ConnectorMess> protocol::on_recv(const std::string& raw_data) {
     offset += packet_len;
   }
   _recv_buffer.erase(0, offset);
-  return ret;
 }

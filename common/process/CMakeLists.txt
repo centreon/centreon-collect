@@ -43,3 +43,14 @@ target_precompile_headers(centreon_process REUSE_FROM centreon_common)
 target_link_libraries(centreon_process INTERFACE Boost::process)
 
 set_property(TARGET centreon_process PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+
+add_library(
+  centreon_process_no_crypto STATIC
+  ${SOURCES})
+
+target_precompile_headers(centreon_process_no_crypto REUSE_FROM centreon_common)
+target_link_libraries(centreon_process_no_crypto INTERFACE Boost::process)
+
+set_property(TARGET centreon_process_no_crypto PROPERTY POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(centreon_process_no_crypto PUBLIC -DPROCESS_NO_CRYPTO=1)

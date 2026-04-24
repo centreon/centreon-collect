@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,13 @@
  *
  * For more information : contact@centreon.com
  */
+#include <absl/strings/ascii.h>
 
-#include "com/centreon/connector/perl/policy.hh"
+#include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/connector/log.hh"
+#include "com/centreon/connector/perl/policy.hh"
+#include "com/centreon/connector/perl/script_child.hh"
+#include "src/perl_connector.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
@@ -26,68 +30,21 @@ using namespace com::centreon::connector::perl;
 /**
  *  Default constructor.
  */
-policy::policy(const shared_io_context& io_context)
+policy::policy(const shared_io_context& io_context,
+               const std::string& additional_loader_code)
     : _reporter(reporter::create(io_context)),
       _io_context(io_context),
-      _second_timer(*io_context),
-      _end_timer(*io_context) {}
+      _additional_loader_code(additional_loader_code) {}
 
 void policy::create(const shared_io_context& io_context,
+                    const std::string& additional_loader_code,
                     const std::string& test_cmd_file) {
-  std::shared_ptr<policy> ret(new policy(io_context));
-  ret->start(test_cmd_file);
+  std::shared_ptr<policy> ret(new policy(io_context, additional_loader_code));
+  ret->_start(test_cmd_file);
 }
 
-void policy::start(const std::string& test_cmd_file) {
+void policy::_start(const std::string& test_cmd_file) {
   orders::parser::create(_io_context, shared_from_this(), test_cmd_file);
-  checks::shared_signal_set signal(
-      std::make_shared<asio::signal_set>(*_io_context, SIGCHLD));
-  signal->async_wait([me = shared_from_this(), this](
-                         const boost::system::error_code& err, int) {
-    if (!err) {
-      wait_pid();
-    }
-  });
-  start_second_timer();
-}
-
-/**
- * @brief sometimes asio::signal_set miss signal so this timer checks forgotten
- * childs
- *
- */
-void policy::start_second_timer() {
-  _second_timer.expires_after(std::chrono::seconds(1));
-  _second_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        if (!err) {
-          me->wait_pid();
-          me->start_second_timer();
-        }
-      });
-}
-
-/**
- * @brief get child exit status
- *
- */
-void policy::wait_pid() {
-  siginfo_t child_info;
-  child_info.si_pid = 0;
-  while (!waitid(P_ALL, 0, &child_info, WNOHANG | WEXITED)) {
-    if (!child_info.si_pid) {  // no exited child
-      break;
-    }
-    pid_to_check_map::iterator ended = _checks.find(child_info.si_pid);
-    if (ended == _checks.end()) {
-      log::core()->error("pid {} inconnu", child_info.si_pid);
-      child_info.si_pid = 0;
-      continue;
-    }
-    ended->second->set_exit_code(child_info.si_status);
-    _checks.erase(ended);
-    child_info.si_pid = 0;
-  }
 }
 
 /**
@@ -128,17 +85,51 @@ void policy::on_execute(
     uint64_t cmd_id,
     const time_point& timeout,
     const std::shared_ptr<com::centreon::connector::orders::options>& opt) {
-  checks::check::pointer check = std::make_shared<checks::check>(
-      cmd_id, *opt, timeout, _reporter, _io_context);
-
-  try {
-    pid_t child = check->execute();
-    if (child > 0) {
-      _checks[child] = check;
-    }
-  } catch (const std::exception& e) {
-    _reporter->send_result({cmd_id, -1, e.what()});
+  // first extract executable
+  std::string script_path = *opt;
+  size_t first_space = script_path.find(' ');
+  if (first_space != std::string_view::npos) {
+    script_path = script_path.substr(0, first_space);
   }
+  absl::StripAsciiWhitespace(&script_path);
+
+  auto script = _scripts.find(script_path);
+  if (script == _scripts.end()) {
+    script =
+        _scripts
+            .emplace(
+                script_path,
+                std::make_shared<script_child>(
+                    _io_context, log::core(), script_path,
+                    [weak_me = weak_from_this()](const std::string& script_path,
+                                                 const ConnectorMess& mess) {
+                      auto me = weak_me.lock();
+                      if (me) {
+                        std::static_pointer_cast<policy>(me)
+                            ->_from_script_child(script_path, mess);
+                      }
+                    },
+                    [weak_me =
+                         weak_from_this()](const std::string& script_path) {
+                      auto me = weak_me.lock();
+                      if (me) {
+                        std::static_pointer_cast<policy>(me)->_scripts.erase(
+                            script_path);
+                      }
+                    },
+                    _additional_loader_code))
+            .first;
+    script->second->do_fork(false);
+  }
+
+  ConnectorMess order;
+  auto execute = order.mutable_execute();
+  execute->set_cmd_id(cmd_id);
+  com::centreon::common::process_args cmd_line(*opt);
+  for (const auto& arg : cmd_line.get_args()) {
+    execute->add_args(arg);
+  }
+  script->second->write_mess_to_child_stdin(order);
 }
 
 /**
@@ -147,31 +138,6 @@ void policy::on_execute(
 void policy::on_quit() {
   // Exiting.
   log::core()->info("quit request received");
-  start_end_timer(false);
-}
-
-/**
- * @brief before stop io_context, we wait after all checks end
- *
- */
-void policy::start_end_timer(bool final) {
-  _end_timer.expires_after(std::chrono::milliseconds(10));
-  _end_timer.async_wait([me = shared_from_this(),
-                         final](const boost::system::error_code& err) {
-    if (!err) {
-      log::core()->trace("{} checks remaining", checks::check::get_nb_check());
-      if (checks::check::get_nb_check()) {
-        me->start_end_timer(false);
-      } else {
-        if (final) {
-          me->_io_context->stop();
-        } else {  // a last delay to allow reporter to write everything on
-                  // stdout
-          me->start_end_timer(true);
-        }
-      }
-    }
-  });
 }
 
 /**
@@ -183,3 +149,6 @@ void policy::on_version() {
       "monitoring engine requested protocol version, sending 1.0");
   _reporter->send_version(1, 0);
 }
+
+void policy::_from_script_child(const std::string& script_path,
+                                const ConnectorMess& from_script_mess) {}
