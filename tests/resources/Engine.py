@@ -3482,6 +3482,59 @@ def ctn_add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
         ff.writelines(lines)
 
 
+def ctn_add_tags_to_all_hosts(poller: int, tag_type: str, tag_id: str):
+    """
+    Add a tag line to ALL host definitions in hosts.cfg for the given poller.
+
+    Inserts a ``tag_type tag_id`` line after every ``_HOST_ID`` entry so that
+    all hosts on the poller carry the specified tag.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tag_type (str): One of ``group_tags`` (HOSTGROUP) or
+            ``category_tags`` (HOSTCATEGORY).
+        tag_id (str): The tag ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_HOST_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    {tag_type}                     {tag_id}\n")
+    with open(f"{conf_dir}/hosts.cfg", "w") as ff:
+        ff.writelines(new_lines)
+
+
+def ctn_add_tags_to_all_services(poller: int, tag_type: str, tag_id: str):
+    """
+    Add a tag line to ALL service definitions in services.cfg for the given
+    poller.
+
+    Inserts a ``tag_type tag_id`` line after every ``_SERVICE_ID`` entry so
+    that all services on the poller carry the specified tag.
+
+    Args:
+        poller (int): Index of the poller to work with.
+        tag_type (str): One of ``group_tags`` (SERVICEGROUP) or
+            ``category_tags`` (SERVICECATEGORY).
+        tag_id (str): The tag ID to assign.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    with open(f"{conf_dir}/services.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*_SERVICE_ID\s+\d+")
+    new_lines = []
+    for line in lines:
+        new_lines.append(line)
+        if r.match(line):
+            new_lines.append(f"    {tag_type}                     {tag_id}\n")
+    with open(f"{conf_dir}/services.cfg", "w") as ff:
+        ff.writelines(new_lines)
+
+
 def ctn_remove_severities_from_services(poller: int):
     """
     Remove severities from services on a poller.
@@ -3541,38 +3594,147 @@ def ctn_add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
         ff.writelines(lines)
 
 
-def ctn_remove_tags_from_services(poller: int, type: str):
+def _remove_tag_types_from_cfg(conf_dir: str, tag_types: list):
     """
-    Remove tags from services.
+    Remove ``define tag { ... }`` blocks whose ``type`` field matches any of
+    the given type names from tags.cfg.
+
+    Args:
+        conf_dir (str): Path to the poller configuration directory.
+        tag_types (list): Tag type names to remove (e.g. ["hostgroup",
+                          "hostcategory"]).
+    """
+    tags_cfg = f"{conf_dir}/tags.cfg"
+    try:
+        with open(tags_cfg, "r") as ff:
+            lines = ff.readlines()
+    except FileNotFoundError:
+        return
+
+    type_re = re.compile(
+        r"^\s*type\s+(" + "|".join(re.escape(t) for t in tag_types) + r")\s*$"
+    )
+    block_begin = re.compile(r"^\s*define tag\s*\{")
+    block_end = re.compile(r"^\s*\}")
+
+    result = []
+    i = 0
+    while i < len(lines):
+        if block_begin.match(lines[i]):
+            block = [lines[i]]
+            j = i + 1
+            while j < len(lines) and not block_end.match(lines[j]):
+                block.append(lines[j])
+                j += 1
+            if j < len(lines):
+                block.append(lines[j])  # closing brace
+            if any(type_re.match(l) for l in block):
+                i = j + 1  # skip entire block
+                continue
+            result.extend(block)
+            i = j + 1
+        else:
+            result.append(lines[i])
+            i += 1
+
+    with open(tags_cfg, "w") as ff:
+        ff.writelines(result)
+
+
+def ctn_remove_tags_from_services(poller: int, type: str="all"):
+    """
+    Remove tags from services and the corresponding tag definitions from
+    tags.cfg.
 
     Args:
         poller (int): Index of the poller to work with.
-        type (str): The tag type among group_tags or category_tags.
+        type (str): The tag type among "all", "group_tags" or "category_tags".
     """
     conf_dir = engine.get_config_dir(poller)
     with open(f"{conf_dir}/services.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
+    if type == "all":
+        r = re.compile(r"^\s*(group_tags|category_tags)\s+")
+    else:
+        r = re.compile(rf"^\s*{type}\s*[0-9,]+$")
     lines = [line for line in lines if not r.match(line)]
     with open(f"{conf_dir}/services.cfg", "w") as ff:
         ff.writelines(lines)
 
+    tag_types = []
+    if type in ("all", "group_tags"):
+        tag_types.append("servicegroup")
+    if type in ("all", "category_tags"):
+        tag_types.append("servicecategory")
+    if tag_types:
+        _remove_tag_types_from_cfg(conf_dir, tag_types)
 
-def ctn_remove_tags_from_hosts(poller: int, type: str):
+
+def ctn_remove_tags_from_hosts(poller: int, type: str="all"):
     """
-    Remove tags from hosts.
+    Remove tags from hosts and the corresponding tag definitions from
+    tags.cfg.
 
     Args:
         poller (int): Index of the poller to work with.
-        type (str): The tag type among group_tags or category_tags.
+        type (str): The tag type among all, group_tags or category_tags.
     """
     conf_dir = engine.get_config_dir(poller)
     with open(f"{conf_dir}/hosts.cfg", "r") as ff:
         lines = ff.readlines()
-    r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
+    if type == "all":
+        r = re.compile(r"^\s*(group_tags|category_tags)\s+")
+    else:
+        r = re.compile(rf"^\s*{type}\s*[0-9,]+$")
     lines = [line for line in lines if not r.match(line)]
     with open(f"{conf_dir}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
+
+    tag_types = []
+    if type in ("all", "group_tags"):
+        tag_types.append("hostgroup")
+    if type in ("all", "category_tags"):
+        tag_types.append("hostcategory")
+    if tag_types:
+        _remove_tag_types_from_cfg(conf_dir, tag_types)
+
+
+def ctn_get_host_ids_for_poller(poller: int) -> list:
+    """
+    Read hosts.cfg for the given poller and return a sorted list of
+    ``_HOST_ID`` integer values.
+
+    Args:
+        poller (int): Index of the poller to work with.
+
+    Returns:
+        Sorted list of host ID integers defined in that poller's hosts.cfg.
+    """
+    conf_dir = engine.get_config_dir(poller)
+    r = re.compile(r"^\s*_HOST_ID\s+(\d+)")
+    ids = []
+    with open(f"{conf_dir}/hosts.cfg", "r") as ff:
+        for line in ff:
+            m = r.match(line)
+            if m:
+                ids.append(int(m.group(1)))
+    return sorted(ids)
+
+
+def ctn_get_host_ids_for_pollers(*pollers) -> list:
+    """
+    Return a sorted list of all ``_HOST_ID`` values across the given pollers.
+
+    Args:
+        *pollers: Poller indices (integers or Robot Framework string integers).
+
+    Returns:
+        Sorted list of host ID integers.
+    """
+    result = []
+    for p in pollers:
+        result.extend(ctn_get_host_ids_for_poller(int(p)))
+    return sorted(result)
 
 
 def ctn_add_parent_to_host(poller: int, host: str, parent_host: str):

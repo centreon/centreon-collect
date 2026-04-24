@@ -3431,6 +3431,207 @@ def ctn_get_servicegroup(port: int, servicegroup_id: int, timeout=TIMEOUT):
         time.sleep(1)
     return None
 
+def ctn_get_hosts_by_tag(port: int, tag_name: str, tag_type: int,
+                         timeout=TIMEOUT):
+    """
+    Return all hosts in the Broker cache that carry a given tag.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of Host protobuf objects, or None if the gRPC server is not
+        reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.TagIdentifier()
+            ref.name = tag_name
+            ref.type = tag_type
+            try:
+                res = stub.GetHostsByTag(ref)
+                return list(res.hosts)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_get_services_by_tag(port: int, tag_name: str, tag_type: int,
+                            timeout=TIMEOUT):
+    """
+    Return all services in the Broker cache that carry a given tag.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        A list of Service protobuf objects, or None if the gRPC server is not
+        reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.TagIdentifier()
+            ref.name = tag_name
+            ref.type = tag_type
+            try:
+                res = stub.GetServicesByTag(ref)
+                return list(res.services)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_hosts_by_tag_count_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_count: int,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the number of hosts carrying a given tag
+    equals expected_count, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_count: The expected number of hosts with the tag.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        hosts = ctn_get_hosts_by_tag(port, tag_name, tag_type, timeout=5)
+        if hosts is not None and len(hosts) == expected_count:
+            return True
+        time.sleep(1)
+    logger.console(f"Expected {expected_count} hosts with tag {tag_name} (type {tag_type}), but got {len(hosts) if hosts is not None else 'None'}")
+    return False
+
+
+def ctn_check_services_by_tag_count_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_count: int,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the number of services carrying a given tag
+    equals expected_count, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_count: The expected number of services with the tag.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        services = ctn_get_services_by_tag(
+            port, tag_name, tag_type, timeout=5)
+        if services is not None and len(services) == expected_count:
+            return True
+        time.sleep(1)
+    return False
+
+
+def ctn_check_hosts_by_tag_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_host_ids,
+        timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the set of host IDs carrying a given tag
+    matches expected_host_ids exactly, or until timeout.
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value (0=SERVICEGROUP, 1=HOSTGROUP,
+                  2=SERVICECATEGORY, 3=HOSTCATEGORY).
+        expected_host_ids: Iterable of expected host_id integers.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    expected = set(int(h) for h in expected_host_ids)
+    limit = time.time() + timeout
+    hosts = None
+    while time.time() < limit:
+        hosts = ctn_get_hosts_by_tag(port, tag_name, tag_type, timeout=5)
+        if hosts is not None:
+            got = set(h.host_id for h in hosts)
+            if got == expected:
+                return True
+        time.sleep(1)
+    got = set(h.host_id for h in hosts) if hosts is not None else None
+    logger.console(
+        f"Expected host IDs {sorted(expected)} for tag '{tag_name}' "
+        f"(type {tag_type}), but got {sorted(got) if got is not None else 'None'}")
+    return False
+
+
+def ctn_check_services_by_tag_with_timeout(
+        port: int, tag_name: str, tag_type: int, expected_host_ids,
+        expected_count: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until the services carrying a given tag satisfy:
+      - total count == expected_count
+      - every returned service has host_id in expected_host_ids
+
+    Args:
+        port: The gRPC port to use.
+        tag_name: The tag name to search for.
+        tag_type: The TagType integer value.
+        expected_host_ids: Iterable of host_id integers that should own the
+                           services (pass an empty list when expected_count==0).
+        expected_count: The expected total number of tagged services.
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the condition is met before timeout, False otherwise.
+    """
+    expected_hosts = set(int(h) for h in expected_host_ids)
+    expected_count = int(expected_count)
+    limit = time.time() + timeout
+    services = None
+    while time.time() < limit:
+        services = ctn_get_services_by_tag(port, tag_name, tag_type, timeout=5)
+        if services is not None and len(services) == expected_count:
+            if expected_count == 0 or all(s.host_id in expected_hosts for s in services):
+                return True
+        time.sleep(1)
+    got_count = len(services) if services is not None else 'None'
+    spurious = (
+        sorted({s.host_id for s in services} - expected_hosts)
+        if services is not None else None
+    )
+    logger.console(
+        f"Expected {expected_count} services with tag '{tag_name}' "
+        f"(type {tag_type}) on hosts {sorted(expected_hosts)}, "
+        f"but got {got_count} services; unexpected host IDs: {spurious}")
+    return False
+
+
 def ctn_check_service_severity_in_cache_with_timeout(
         port: int, host_id: int, service_id: int, expected_severity_id,
         timeout=TIMEOUT):
@@ -3573,6 +3774,63 @@ def ctn_check_severity_db_id_in_cache_with_timeout(
             None)
         if found is not None and found.db_id != 0:
             return True
+        time.sleep(1)
+    return False
+
+
+def ctn_get_tags(port: int, timeout=TIMEOUT):
+    """
+    Return all tags currently held in the Broker cache via gRPC GetTags.
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        A list of TagEntry objects (with id, type, name and poller_ids fields),
+        or None if the gRPC server is not reachable.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetTags(empty_pb2.Empty())
+                return list(res.entries)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_tags_empty_with_timeout(port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker cache until GetTags returns an empty list, or timeout.
+
+    This verifies that all tags have been removed from the cache (no orphan
+    tags remain after all pollers have removed their tag definitions).
+
+    Args:
+        port: The gRPC port to use.
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the tag list is empty before timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        entries = ctn_get_tags(port, timeout=5)
+        if entries is None:
+            time.sleep(1)
+            continue
+        if len(entries) == 0:
+            return True
+        logger.console(
+            f"Tags still in cache: "
+            f"{[(e.id, e.type, e.name, list(e.poller_ids)) for e in entries]}"
+        )
         time.sleep(1)
     return False
 
