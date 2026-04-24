@@ -252,15 +252,22 @@ void broker_cache::merge(
 
   /* Work on tags */
   if (section_enabled(CACHE_TAGS)) {
+    uint64_t pid = state.poller_id();
     for (const engine::configuration::Tag& tag : state.tags()) {
       auto pb = std::make_shared<neb::pb_tag>();
       auto& obj = pb->mut_obj();
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(state.poller_id());
+      obj.set_poller_id(pid);
       obj.set_action(Tag_Action_ADD);
-      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+      auto key = std::make_pair(obj.id(), obj.type());
+      auto [it, inserted] = _tags.emplace(
+          key, std::make_pair(pb, absl::flat_hash_set<uint64_t>{pid}));
+      if (!inserted) {
+        it->second.first = pb;
+        it->second.second.insert(pid);
+      }
     }
   }
 }
@@ -722,9 +729,16 @@ void broker_cache::apply(
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(diff.poller_id());
+      obj.set_poller_id(tag.poller_id());
       obj.set_action(Tag_Action_ADD);
-      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+      auto key = std::make_pair(obj.id(), obj.type());
+      auto [it, inserted] = _tags.emplace(
+          key,
+          std::make_pair(pb, absl::flat_hash_set<uint64_t>{tag.poller_id()}));
+      if (!inserted) {
+        it->second.first = pb;
+        it->second.second.insert(tag.poller_id());
+      }
     }
     for (const engine::configuration::Tag& tag : diff.tags().modified()) {
       auto pb = std::make_shared<neb::pb_tag>();
@@ -732,12 +746,26 @@ void broker_cache::apply(
       obj.set_id(tag.key().id());
       obj.set_type(static_cast<TagType>(tag.key().type()));
       obj.set_name(tag.tag_name());
-      obj.set_poller_id(diff.poller_id());
+      obj.set_poller_id(tag.poller_id());
       obj.set_action(Tag_Action_MODIFY);
-      _tags.insert_or_assign(std::make_pair(obj.id(), obj.type()), pb);
+      auto key = std::make_pair(obj.id(), obj.type());
+      auto [it, inserted] = _tags.emplace(
+          key,
+          std::make_pair(pb, absl::flat_hash_set<uint64_t>{tag.poller_id()}));
+      if (!inserted) {
+        it->second.first = pb;
+        it->second.second.insert(tag.poller_id());
+      }
     }
-    for (const engine::configuration::KeyType& key : diff.tags().removed()) {
-      _tags.erase(std::make_pair(key.id(), static_cast<TagType>(key.type())));
+    for (const engine::configuration::TagKeyWithPoller& tp :
+         diff.tags().removed()) {
+      auto key = std::make_pair(tp.id(), static_cast<TagType>(tp.type()));
+      auto it = _tags.find(key);
+      if (it != _tags.end()) {
+        it->second.second.erase(tp.poller_id());
+        if (it->second.second.empty())
+          _tags.erase(it);
+      }
     }
   }
 }
@@ -822,6 +850,11 @@ void broker_cache::_fill_host(Host* obj,
   obj->set_stalk_on_unreachable(
       cfg.stalking_options() &
       engine::configuration::ActionHostOn::action_hst_unreachable);
+  for (const auto& tag : cfg.tags()) {
+    auto* t = obj->add_tags();
+    t->set_id(tag.first());
+    t->set_type(static_cast<TagType>(tag.second()));
+  }
   obj->set_instance_id(pid);
 }
 
@@ -1635,6 +1668,20 @@ broker_cache::severities() const {
 }
 
 /**
+ * @brief Return a snapshot of all tags currently held in the cache.
+ *
+ * @return A copy of the internal tags map, keyed by (tag_id, tag_type).
+ * Each value is the pb_tag plus the set of poller IDs that reference it.
+ */
+absl::flat_hash_map<
+    std::pair<uint64_t, TagType>,
+    std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
+broker_cache::tags() const {
+  absl::ReaderMutexLock lck{&_mutex};
+  return _tags;
+}
+
+/**
  * @brief Update a tag in the cache from a NEB event.
  *
  * @param evt The pb_tag event (ADD, MODIFY or DELETE).
@@ -1645,10 +1692,22 @@ void broker_cache::update_tag(const std::shared_ptr<neb::pb_tag>& evt) {
   auto& obj = evt->obj();
   auto key = std::make_pair(obj.id(), obj.type());
   absl::WriterMutexLock lck{&_mutex};
-  if (obj.action() == Tag_Action_DELETE)
-    _tags.erase(key);
-  else
-    _tags.insert_or_assign(key, evt);
+  if (obj.action() == Tag_Action_DELETE) {
+    auto it = _tags.find(key);
+    if (it != _tags.end()) {
+      it->second.second.erase(obj.poller_id());
+      if (it->second.second.empty())
+        _tags.erase(it);
+    }
+  } else {
+    auto [it, inserted] = _tags.emplace(
+        key,
+        std::make_pair(evt, absl::flat_hash_set<uint64_t>{obj.poller_id()}));
+    if (!inserted) {
+      it->second.first = evt;
+      it->second.second.insert(obj.poller_id());
+    }
+  }
 }
 
 /**
@@ -1662,7 +1721,7 @@ std::shared_ptr<neb::pb_tag> broker_cache::get_tag(uint64_t tag_id,
                                                    TagType type) const {
   absl::ReaderMutexLock lck{&_mutex};
   auto it = _tags.find({tag_id, type});
-  return it != _tags.end() ? it->second : nullptr;
+  return it != _tags.end() ? it->second.first : nullptr;
 }
 
 /**
@@ -1707,7 +1766,7 @@ std::vector<std::string> broker_cache::host_tag_names(uint64_t host_id,
       continue;
     auto tag_it = _tags.find({t.id(), type});
     if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second->obj().name());
+      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;
@@ -1765,7 +1824,7 @@ std::vector<std::string> broker_cache::service_tag_names(uint64_t host_id,
       continue;
     auto tag_it = _tags.find({t.id(), type});
     if (tag_it != _tags.end())
-      pairs.emplace_back(t.id(), tag_it->second->obj().name());
+      pairs.emplace_back(t.id(), tag_it->second.first->obj().name());
   }
   std::sort(pairs.begin(), pairs.end());
   std::vector<std::string> result;

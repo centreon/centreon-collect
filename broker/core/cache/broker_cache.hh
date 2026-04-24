@@ -363,9 +363,12 @@ class broker_cache {
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, severity> _severities
       ABSL_GUARDED_BY(_mutex);
 
-  /* Key for tags is {tag_id, tag_type}, value is the tag name. */
-  absl::flat_hash_map<std::pair<uint64_t, TagType>,
-                      std::shared_ptr<neb::pb_tag>>
+  /* Key for tags is {tag_id, tag_type}.
+   * Value is the pb_tag plus the set of poller IDs that define this tag.
+   * The tag is removed only when no poller references it anymore. */
+  absl::flat_hash_map<
+      std::pair<uint64_t, TagType>,
+      std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
       _tags ABSL_GUARDED_BY(_mutex);
 
   /* BAM relations from BA to BV */
@@ -515,6 +518,10 @@ class broker_cache {
       ABSL_LOCKS_EXCLUDED(_mutex);
   absl::flat_hash_map<std::pair<uint64_t, uint32_t>, struct severity>
   severities() const ABSL_LOCKS_EXCLUDED(_mutex);
+  absl::flat_hash_map<
+      std::pair<uint64_t, TagType>,
+      std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
+  tags() const ABSL_LOCKS_EXCLUDED(_mutex);
   void update_dimension_ba_bv_relation(
       const std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>& rel)
       ABSL_LOCKS_EXCLUDED(_mutex);

@@ -1556,13 +1556,17 @@ void applier::state::_apply_diff_conf(
       [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
 
   // Apply tags.
-  _apply_ng<configuration::applier::tag, DiffTag, std::pair<uint64_t, uint32_t>,
-            Tag, KeyType>(
+  _apply_ng<configuration::applier::tag, DiffTag,
+            std::tuple<uint64_t, uint32_t, uint32_t>, Tag, TagKeyWithPoller>(
       *diff.mutable_tags(), pb_indexed_config.mut_tags(),
       [](const Tag& obj) {
-        return std::make_pair(obj.key().id(), obj.key().type());
+        return std::make_tuple(obj.key().id(), (uint32_t)obj.key().type(),
+                               (uint32_t)obj.poller_id());
       },
-      [](const KeyType& key) { return std::make_pair(key.id(), key.type()); });
+      [](const TagKeyWithPoller& key) {
+        return std::make_tuple(key.id(), (uint32_t)key.type(),
+                               (uint32_t)key.poller_id());
+      });
 
   // Apply hosts and hostgroups.
   _apply_ng<configuration::applier::host, DiffHost, uint64_t, Host>(

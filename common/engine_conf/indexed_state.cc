@@ -237,7 +237,8 @@ void indexed_state::_index(const State& state) {
                         std::make_unique<Severity>(sev));
   }
   for (auto& tag : state.tags()) {
-    _tags.emplace(std::make_pair(tag.key().id(), tag.key().type()),
+    _tags.emplace(std::make_tuple(tag.key().id(), (uint32_t)tag.key().type(),
+                                  state.poller_id()),
                   std::make_unique<Tag>(tag));
   }
   for (auto& contact : state.contacts()) {
@@ -324,7 +325,8 @@ void indexed_state::_index(State* state) {
   }
   while (!state->tags().empty()) {
     Tag* tag = state->mutable_tags()->ReleaseLast();
-    _tags.emplace(std::make_pair(tag->key().id(), tag->key().type()),
+    _tags.emplace(std::make_tuple(tag->key().id(), (uint32_t)tag->key().type(),
+                                  state->poller_id()),
                   std::unique_ptr<Tag>(tag));
   }
   while (!state->contacts().empty()) {
@@ -433,15 +435,19 @@ void indexed_state::diff_with_new_config(
       },
       result->mutable_severities());
 
-  /* Diff on tags */
-  _diff<Tag, DiffTag, std::pair<uint64_t, uint32_t>, KeyType>(
+  /* Diff on tags — key includes poller_id so each poller's tag is distinct. */
+  _diff<Tag, DiffTag, std::tuple<uint64_t, uint32_t, uint32_t>,
+        TagKeyWithPoller>(
       new_state.mutable_tags(), _tags, logger,
-      [](Tag* obj) {
-        return std::make_pair(obj->key().id(), obj->key().type());
+      [poller_id = new_state.poller_id()](Tag* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       },
-      [](KeyType* key_type, const std::pair<uint64_t, uint32_t>& key) {
-        key_type->set_id(key.first);
-        key_type->set_type(key.second);
+      [](TagKeyWithPoller* key_type,
+         const std::tuple<uint64_t, uint32_t, uint32_t>& key) {
+        key_type->set_id(std::get<0>(key));
+        key_type->set_type(std::get<1>(key));
+        key_type->set_poller_id(std::get<2>(key));
       },
       result->mutable_tags());
 

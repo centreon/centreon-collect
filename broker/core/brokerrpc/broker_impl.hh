@@ -171,6 +171,18 @@ class broker_impl final : public Broker::Service {
                            const ::google::protobuf::Empty* request,
                            TopologyResponse* response) override;
 
+  grpc::Status GetHostsByTag(grpc::ServerContext* context,
+                             const TagIdentifier* request,
+                             HostList* response) override;
+
+  grpc::Status GetServicesByTag(grpc::ServerContext* context,
+                                const TagIdentifier* request,
+                                ServiceList* response) override;
+
+  grpc::Status GetTags(grpc::ServerContext* context,
+                       const ::google::protobuf::Empty* request,
+                       TagList* response) override;
+
  public:
   broker_impl();
 };

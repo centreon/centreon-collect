@@ -20,6 +20,7 @@
 #include "broker/core/brokerrpc/broker_impl.hh"
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
+#include <algorithm>
 
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
@@ -1037,6 +1038,99 @@ grpc::Status broker_impl::GetSeverities(grpc::ServerContext* context
     entry->set_type(static_cast<Severity::Type>(key.second));
     entry->set_level(sev.level);
     entry->set_db_id(sev.db_id);
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return all hosts that carry a given tag in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request A TagIdentifier with the tag name and type.
+ * @param response A HostList populated with one Host entry per matching host.
+ *
+ * @return grpc::Status::OK, or UNAVAILABLE if the host/tag cache is disabled.
+ */
+grpc::Status broker_impl::GetHostsByTag(grpc::ServerContext* context
+                                        [[maybe_unused]],
+                                        const TagIdentifier* request,
+                                        HostList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_HOSTS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Host cache is not enabled in this broker instance");
+  TagType tag_type = request->type();
+  const std::string& tag_name = request->name();
+  for (uint64_t host_id : cache.host_ids()) {
+    auto names = cache.host_tag_names(host_id, tag_type);
+    if (std::find(names.begin(), names.end(), tag_name) != names.end()) {
+      auto host = cache.host(host_id);
+      if (host)
+        response->add_hosts()->CopyFrom(host->obj());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return all services that carry a given tag in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request A TagIdentifier with the tag name and type.
+ * @param response A ServiceList populated with one Service entry per matching
+ * service.
+ *
+ * @return grpc::Status::OK, or UNAVAILABLE if the service/tag cache is
+ * disabled.
+ */
+grpc::Status broker_impl::GetServicesByTag(grpc::ServerContext* context
+                                           [[maybe_unused]],
+                                           const TagIdentifier* request,
+                                           ServiceList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Service cache is not enabled in this broker instance");
+  TagType tag_type = request->type();
+  const std::string& tag_name = request->name();
+  for (const auto& [host_id, service_id] : cache.service_ids()) {
+    auto names = cache.service_tag_names(host_id, service_id, tag_type);
+    if (std::find(names.begin(), names.end(), tag_name) != names.end()) {
+      auto svc = cache.service(host_id, service_id);
+      if (svc)
+        response->add_services()->CopyFrom(svc->obj());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Return all tags currently held in the broker cache.
+ *
+ * @param context gRPC context (unused).
+ * @param request Empty.
+ * @param response A TagList with one TagEntry per cached tag. Each entry
+ * carries the tag ID, type, name and the IDs of pollers that reference it.
+ *
+ * @return grpc::Status::OK, or UNAVAILABLE if the tag cache is disabled.
+ */
+grpc::Status broker_impl::GetTags(grpc::ServerContext* context [[maybe_unused]],
+                                  const ::google::protobuf::Empty* request
+                                  [[maybe_unused]],
+                                  TagList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  if (!cache.section_enabled(cache::broker_cache::CACHE_TAGS))
+    return grpc::Status(grpc::StatusCode::UNAVAILABLE,
+                        "Tag cache is not enabled in this broker instance");
+  auto tag_map = cache.tags();
+  response->mutable_entries()->Reserve(tag_map.size());
+  for (const auto& [key, val] : tag_map) {
+    auto* entry = response->add_entries();
+    entry->set_id(key.first);
+    entry->set_type(key.second);
+    entry->set_name(val.first->obj().name());
+    for (uint64_t pid : val.second)
+      entry->add_poller_ids(pid);
   }
   return grpc::Status::OK;
 }

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -714,6 +714,13 @@ message PairGroupPoller {
 }
 
 /* Ignore */
+message TagKeyWithPoller {
+  uint64 id = 1;
+  uint32 type = 2;
+  uint32 poller_id = 3;
+}
+
+/* Ignore */
 message DiffHostgroup {
   /* Added hostgroups */
   repeated Hostgroup added = 1;
@@ -919,8 +926,8 @@ message HostServiceId {
 message DiffTag {
   /* Added tags */
   repeated Tag added = 1;
-  /* Removed tags given by there key in the old list. */
-  repeated KeyType removed = 2;
+  /* Removed tags given by their key (id, type, poller_id) in the old list. */
+  repeated TagKeyWithPoller removed = 2;
   /* Modified tags */
   repeated Tag modified = 3;
 }
@@ -930,6 +937,7 @@ message Tag {
   Object obj = 1;
   KeyType key = 2;  //  - Default value: 0, -1
   string tag_name = 3;
+  uint32 poller_id = 4;
 }
 
 /* Ignore */

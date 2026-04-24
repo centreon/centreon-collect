@@ -80,10 +80,12 @@ class database_configurator {
   void _add_hosts_mariadb(
       const ::google::protobuf::RepeatedPtrField<engine::configuration::Host>&
           lst);
-  void _del_tags_mariadb(const ::google::protobuf::RepeatedPtrField<
-                         com::centreon::engine::configuration::KeyType>& keys);
-  void _del_tags_mysql(const ::google::protobuf::RepeatedPtrField<
-                       com::centreon::engine::configuration::KeyType>& keys);
+  void _del_tags_mariadb(
+      const ::google::protobuf::RepeatedPtrField<
+          com::centreon::engine::configuration::TagKeyWithPoller>& keys);
+  void _del_tags_mysql(
+      const ::google::protobuf::RepeatedPtrField<
+          com::centreon::engine::configuration::TagKeyWithPoller>& keys);
   void _del_hostgroups(
       const ::google::protobuf::RepeatedPtrField<
           com::centreon::engine::configuration::PairGroupPoller>& keys);
@@ -147,14 +149,12 @@ class database_configurator {
   void _add_hostgroups_mysql(const ::google::protobuf::RepeatedPtrField<
                                  engine::configuration::Hostgroup>& lst,
                              bool is_modification = false);
-  void _add_servicegroups_mariadb(
-      const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Servicegroup>& lst,
-      bool is_modification = false);
-  void _add_servicegroups_mysql(
-      const ::google::protobuf::RepeatedPtrField<
-          engine::configuration::Servicegroup>& lst,
-      bool is_modification = false);
+  void _add_servicegroups_mariadb(const ::google::protobuf::RepeatedPtrField<
+                                      engine::configuration::Servicegroup>& lst,
+                                  bool is_modification = false);
+  void _add_servicegroups_mysql(const ::google::protobuf::RepeatedPtrField<
+                                    engine::configuration::Servicegroup>& lst,
+                                bool is_modification = false);
   void _add_host_parents_mariadb(const ::google::protobuf::RepeatedPtrField<
                                      engine::configuration::Host>& lst,
                                  const action& act);

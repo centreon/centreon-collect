@@ -86,13 +86,16 @@ void indexed_diff_state::add_diff_state(
           return std::make_pair(proto_key.id(), proto_key.type());
         });
 
-    _add_diff_message<DiffTag, Tag, std::pair<uint64_t, uint32_t>, KeyType>(
+    _add_diff_message<DiffTag, Tag, std::tuple<uint64_t, uint32_t, uint32_t>,
+                      TagKeyWithPoller>(
         diff_state.mutable_tags(), _added_tags, _modified_tags, _removed_tags,
-        [](Tag* obj) {
-          return std::make_pair(obj->key().id(), obj->key().type());
+        [poller_id = diff_state.poller_id()](Tag* obj) {
+          obj->set_poller_id(poller_id);
+          return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
         },
-        [](const KeyType& proto_key) {
-          return std::make_pair(proto_key.id(), proto_key.type());
+        [](const TagKeyWithPoller& proto_key) {
+          return std::make_tuple(proto_key.id(), proto_key.type(),
+                                 proto_key.poller_id());
         });
 
     _add_diff_message<DiffContact, Contact, std::string>(
@@ -239,10 +242,11 @@ void indexed_diff_state::add_state(
       "state",
       _added_severities.size(), _modified_severities.size());
 
-  _add_message<Tag, std::pair<uint64_t, uint32_t>>(
+  _add_message<Tag, std::tuple<uint64_t, uint32_t, uint32_t>>(
       state.mutable_tags(), _added_tags, _modified_tags, _removed_tags,
-      [](Tag* obj) {
-        return std::make_pair(obj->key().id(), obj->key().type());
+      [poller_id = state.poller_id()](Tag* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       });
 
   _add_message<Contact, std::string>(
@@ -376,10 +380,11 @@ void indexed_diff_state::add_state(
       "state",
       _added_severities.size(), _modified_severities.size());
 
-  _add_message_copy<Tag, std::pair<uint64_t, uint32_t>>(
+  _add_message_copy<Tag, std::tuple<uint64_t, uint32_t, uint32_t>>(
       state.tags(), _added_tags, _modified_tags, _removed_tags,
-      [](Tag* obj) {
-        return std::make_pair(obj->key().id(), obj->key().type());
+      [poller_id = state.poller_id()](Tag* obj) {
+        obj->set_poller_id(poller_id);
+        return std::make_tuple(obj->key().id(), obj->key().type(), poller_id);
       });
 
   _add_message_copy<Contact, std::string>(
@@ -391,12 +396,12 @@ void indexed_diff_state::add_state(
       _removed_contactgroups,
       [](Contactgroup* obj) { return obj->contactgroup_name(); });
 
-  _add_message_copy<Host, uint64_t>(
-      state.hosts(), _added_hosts, _modified_hosts, _removed_hosts,
-      [poller_id = state.poller_id()](Host* obj) {
-        obj->set_poller_id(poller_id);
-        return obj->host_id();
-      });
+  _add_message_copy<Host, uint64_t>(state.hosts(), _added_hosts,
+                                    _modified_hosts, _removed_hosts,
+                                    [poller_id = state.poller_id()](Host* obj) {
+                                      obj->set_poller_id(poller_id);
+                                      return obj->host_id();
+                                    });
 
   logger->debug("There are {} added hosts", _added_hosts.size());
 
@@ -623,9 +628,10 @@ void indexed_diff_state::release_diff_state(DiffState& state) {
     state.mutable_tags()->mutable_modified()->AddAllocated(v.release());
   state.mutable_tags()->clear_removed();
   for (const auto& k : _removed_tags) {
-    auto key = state.mutable_tags()->add_removed();
-    key->set_id(k.first);
-    key->set_type(k.second);
+    auto* key = state.mutable_tags()->add_removed();
+    key->set_id(std::get<0>(k));
+    key->set_type(std::get<1>(k));
+    key->set_poller_id(std::get<2>(k));
   }
 
   state.mutable_contacts()->clear_added();
