@@ -15,7 +15,7 @@ apt-get -y install \
     git \
     libhttp-daemon-ssl-perl \
     libjson-perl \
-    liblua5.3 \
+    liblua5.4 \
     libmariadb3 \
     locales \
     mariadb-server \

@@ -70,13 +70,13 @@ jobs:
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
-            lua_version: 5.3
+            lua_version: 5.4
             runner: ubuntu-24.04
             arch: amd64
           - package_extension: deb
             image: packaging-centreon-collect-trixie-arm64
             distrib: trixie
-            lua_version: 5.3
+            lua_version: 5.4
             runner: ubuntu-24.04-arm
             arch: arm64
 
