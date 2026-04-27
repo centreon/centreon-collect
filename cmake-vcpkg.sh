@@ -200,6 +200,11 @@ elif [ -r /etc/issue ] ; then
   fi
 
   if [[ "$maj" == "Debian" ]] || [[ "$maj" == "Ubuntu" ]]; then
+    if [[ "$maj" == "Debian" ]] && ([[ "$version" == "13" ]] || [[ "$version" =~ "trixie" ]]); then
+      lua_pkg="liblua5.4-dev"
+    else
+      lua_pkg="liblua5.3-dev"
+    fi
     pkgs=(
       cmake
       g++
@@ -208,7 +213,7 @@ elif [ -r /etc/issue ] ; then
       libcurl4-openssl-dev
       libgcrypt20-dev
       libgnutls28-dev
-      liblua5.3-dev
+      $lua_pkg
       libmariadb-dev
       libperl-dev
       librrd-dev
