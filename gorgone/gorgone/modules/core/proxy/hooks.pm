@@ -275,8 +275,7 @@ sub routing {
 
             # We put the good time to get
             my $ctime = $synctime_nodes->{$target}->{ctime};
-            my $last_id = $synctime_nodes->{$target}->{last_id};
-            $options{frame}->setData({ ctime => $ctime, last_id => $last_id });
+            $options{frame}->setData({ ctime => $ctime });
             $options{frame}->setRawData();
             # if total_msg is -1 it mean the query was already sent but no response was received yet.
             # if total_msg is > 0 it mean we received the first part of the response and waiting for the rest of it.
@@ -663,17 +662,9 @@ sub setlogs {
             $options{logger}->writeLogError("[proxy] setlogs() could not add_history(). Logs are still available on remote host if needed.");
             last;
         }
-        if ($node_status->{ctime}  < $_->{ctime}) {
-            $node_status->{ctime}  = $_->{ctime};
-            $node_status->{last_id} = $_->{id}
-        }
+        $node_status->{ctime}  = $_->{ctime} if ($node_status->{ctime}  < $_->{ctime});
     }
-    if ($status == 0 &&
-        update_sync_time(
-            dbh => $options{dbh},
-            id => $options{data}->{data}->{id},
-            ctime => $node_status->{ctime},
-            last_id => $node_status->{last_id} ) == 0) {
+    if ($status == 0 && update_sync_time(dbh => $options{dbh}, id => $options{data}->{data}->{id}, ctime => $node_status->{ctime} ) == 0) {
         $status = $options{dbh}->commit();
         if ($status == -1) {
             $options{logger}->writeLogError("[proxy] setlogs() error updating the lastupdate time. Logs are still available on remote host if needed.");
@@ -772,8 +763,8 @@ sub update_sync_time {
     return 0 if ($options{ctime} == 0);
 
     my ($status) = $options{dbh}->query({
-            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`, `last_id`) VALUES (?, ?, ?)",
-            bind_values => [$options{id}, $options{ctime}, $options{last_id} // '']
+            query => "REPLACE INTO gorgone_synchistory (`id`, `ctime`) VALUES (?, ?)",
+            bind_values => [$options{id}, $options{ctime}]
         }
     );
     return $status;
@@ -790,7 +781,6 @@ sub get_sync_time {
     $synctime_nodes->{$options{node_id}}->{synctime_error} = 0;
     if (my $row = $sth->fetchrow_hashref()) {
         $synctime_nodes->{ $row->{id} }->{ctime} = $row->{ctime};
-        $synctime_nodes->{ $row->{id} }->{last_id} = $row->{last_id};
         delete($synctime_nodes->{ $row->{id} }->{total_msg});
         $synctime_nodes->{ $row->{id} }->{in_progress_time} = -1;
     }
@@ -950,7 +940,18 @@ sub unregister_nodes {
         my $prevail = 0;
         $prevail = 1  if (defined($prevails->{ $node->{id} }));
 
-        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/ && $prevail == 1) {
+        if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{type} =~ /^(?:pull|wss|pullwss)$/) {
+            if ($register_nodes->{ $node->{id} }->{type} =~ /^(?:wss|pullwss)$/) {
+                $options{gorgone}->send_internal_message(
+                    identity => "gorgone-proxy-httpserver",
+                    action => "PROXYDELNODE",
+                    json_encode => 1,
+                    data => $node,
+                    token => $options{token},
+                );
+            } elsif ($register_nodes->{ $node->{id} }->{type} =~ /^(?:pull)$/) {
+                # @TODO send to pull process here.
+            }
             $register_nodes->{ $node->{id} }->{identity} = undef;
         }
 
@@ -1005,6 +1006,16 @@ sub register_nodes {
 
     return if (!defined($options{data}->{nodes}));
 
+    # send all data to proxy-httpserver, which manage pullwss nodes.
+    # need to send the complete list in one message to be able to delete node when they are removed from the db.
+    # on plateform which don't have this module, the message should be thrown away
+    $options{gorgone}->send_internal_message(
+        identity    => "gorgone-proxy-httpserver",
+        action      => "PROXYADDNODE",
+        json_encode => 1,
+        data        => $options{data}->{nodes},
+        token       => $options{token},
+    );
     foreach my $node (@{$options{data}->{nodes}}) {
         my ($new_node, $prevail) = (1, 0);
 
@@ -1104,6 +1115,7 @@ sub register_nodes {
                 );
             }
         }
+
         if ($new_node == 1) {
             $constatus_ping->{ $node->{id} } = {
                 type => $node->{type},

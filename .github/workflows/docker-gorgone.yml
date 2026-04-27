@@ -1,0 +1,145 @@
+name: docker-gorgone
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+jobs:
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
+    with:
+      version_file: .version.centreon-gorgone
+
+  package:
+    needs: [get-environment]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package_extension: deb
+            image: packaging-centreon-collect-bookworm
+            distrib: bookworm
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
+      credentials:
+        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+    name: package ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set package version and paths according to distrib
+        run: |
+          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+            PERL_VENDORLIB="/usr/share/perl5"
+          else
+            PERL_VENDORLIB="/usr/share/perl5/vendor_perl"
+          fi
+          echo "PERL_VENDORLIB=$PERL_VENDORLIB" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Generate selinux binaries
+        if: ${{ matrix.package_extension == 'rpm' }}
+        run: |
+          cd gorgone/selinux
+          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" centreon-gorgoned.te
+          make -f /usr/share/selinux/devel/Makefile
+        shell: bash
+
+      - name: Remove selinux packaging files on debian
+        if: ${{ matrix.package_extension == 'deb' }}
+        run: rm -f gorgone/packaging/*-selinux.yaml
+        shell: bash
+
+      - name: Package
+        uses: ./.github/actions/package
+        with:
+          nfpm_file_pattern: "gorgone/packaging/*.yaml perl-libs/packaging/*.yaml"
+          module_name: "centreon-gorgone"
+          distrib: ${{ matrix.distrib }}
+          package_extension: ${{ matrix.package_extension }}
+          major_version: ${{ needs.get-environment.outputs.major_version }}
+          minor_version: ${{ needs.get-environment.outputs.minor_version }}
+          release: ${{ needs.get-environment.outputs.release }}
+          arch: all
+          commit_hash: ${{ github.sha }}
+          cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+          stability: ${{ needs.get-environment.outputs.stability }}
+          upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
+
+  dockerize:
+    needs: [get-environment, package]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [bookworm]
+    name: dockerize centreon-gorgone-${{ matrix.operating_system }}
+    env:
+      project: centreon-gorgone
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - name: Parse distrib name
+        id: parse-distrib
+        uses: ./.github/actions/parse-distrib
+        with:
+          distrib: ${{ matrix.operating_system }}
+
+      - name: get cached gorgone and perl-libs package
+        uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+          key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.parse-distrib.outputs.distrib_family || steps.parse-distrib.outputs.distrib_name }}
+          fail-on-cache-miss: true
+
+      - run: |
+          mkdir packages-centreon
+          mv *.${{ steps.parse-distrib.outputs.package_extension }} packages-centreon/
+        shell: bash
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Docker build and push
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          context: .
+          file: .github/docker/centreon-gorgone/${{ matrix.operating_system }}/Dockerfile.hybrid
+          build-args: |
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
+            "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "STABILITY=${{ needs.get-environment.outputs.stability }}"
+          platforms: linux/amd64,linux/arm64
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+          secrets: |
+            "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
+            "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"

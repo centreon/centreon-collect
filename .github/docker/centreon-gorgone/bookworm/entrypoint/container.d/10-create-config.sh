@@ -1,0 +1,157 @@
+#!/bin/sh
+set -e
+TYPE="${TYPE:-central}"
+
+if [ "$TYPE" = "central" ]; then
+    echo "=== Generating Gorgone Configuration for Central ==="
+    echo ""
+
+    # Sanity check: Database config should be available (handled by 05-fetch-etcd-config.sh)
+    if [ ! -f /etc/centreon/config.d/10-database.yaml ]; then
+      echo "ERROR: Database config not found at /etc/centreon/config.d/10-database.yaml"
+      echo "This should have been handled by 05-fetch-etcd-config.sh"
+      exit 1
+    fi
+
+    if [ ! -r /etc/centreon/config.d/10-database.yaml ]; then
+      echo "ERROR: Database config file exists but is not readable!"
+      ls -l /etc/centreon/config.d/10-database.yaml
+      echo "Current user: $(whoami)"
+      exit 1
+    fi
+
+    echo "✓ Database config available and readable"
+    echo ""
+
+    # Show database config permissions for debugging
+    if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+      echo "Debug: Database config file permissions:"
+      ls -l /etc/centreon/config.d/10-database.yaml
+      echo ""
+    fi
+
+    # Generate Gorgone configuration
+    # Note: Gorgone is built to automatically read /etc/centreon/config.d/10-database.yaml
+    cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+name: gorgoned-Central
+description: Configuration for remote server Central
+gorgone:
+  gorgonecore:
+    privkey: "/var/lib/centreon-gorgone/.keys/rsakey.priv.pem"
+    pubkey: "/var/lib/centreon-gorgone/.keys/rsakey.pub.pem"
+    id: 1
+
+  modules:
+    - name: httpserver
+      package: "gorgone::modules::core::httpserver::hooks"
+      enable: true
+      address: "0.0.0.0"
+      port: "8085"
+      ssl: false
+      auth:
+        enabled: false
+      allowed_hosts:
+        enabled: true
+        subnets:
+          - 0.0.0.0/0
+    - name: cron
+      package: "gorgone::modules::core::cron::hooks"
+      enable: true
+      cron: !include cron.d/*.yaml
+    - name: nodes
+      package: "gorgone::modules::centreon::nodes::hooks"
+      enable: true
+    - name: proxy
+      package: "gorgone::modules::core::proxy::hooks"
+      enable: true
+    - name: legacycmd
+      package: "gorgone::modules::centreon::legacycmd::hooks"
+      enable: true
+      cmd_dir: "/var/lib/centreon/centcore/"
+      cmd_file: "/var/lib/centreon/centcore.cmd"
+      cache_dir: "/var/cache/centreon"
+      cache_dir_trap: "/etc/snmp/centreon_traps"
+      remote_dir: "/var/cache/centreon/config/remote-data/"
+    - name: engine
+      package: "gorgone::modules::centreon::engine::hooks"
+      enable: true
+      command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
+    - name: statistics
+      package: "gorgone::modules::centreon::statistics::hooks"
+      enable: true
+      broker_cache_dir: "/var/cache/centreon/broker-stats/"
+      cron:
+        - id: broker_stats
+          timespec: "*/5 * * * *"
+          action: BROKERSTATS
+          parameters:
+            timeout: 10
+        - id: engine_stats
+          timespec: "*/5 * * * *"
+          action: ENGINESTATS
+          parameters:
+            timeout: 10
+
+EOF
+
+    # Verify the gorgoned config was created successfully
+    if [ ! -f /etc/centreon-gorgone/config.d/40-gorgoned.yaml ]; then
+      echo "ERROR: Failed to create /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+      exit 1
+    fi
+
+    echo "✓ Successfully created /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+    echo ""
+
+    # Show centreon-gorgone directory structure for debugging
+    if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
+      echo "Debug: Gorgone config files:"
+      ls -l /etc/centreon-gorgone/config.d/
+      echo ""
+    fi
+
+elif [ "$TYPE" = "poller" ]; then
+    echo "=== Generating Gorgone Configuration for Poller ==="
+    echo ""
+
+    POLLER_ID="${POLLER_ID:-2}"
+    CENTRAL_ADDRESS="${CENTRAL_ADDRESS:?ERROR: CENTRAL_ADDRESS env var must be set for poller mode}"
+    CENTRAL_PORT="${CENTRAL_PORT:-8086}"
+    GORGONE_TOKEN="${GORGONE_TOKEN:-}"
+
+    echo "Poller ID      : $POLLER_ID"
+    echo "Central address: $CENTRAL_ADDRESS:$CENTRAL_PORT"
+
+    cat <<EOF > /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+name: poller-${POLLER_ID}
+description: Poller configuration
+gorgone:
+  gorgonecore:
+    id: ${POLLER_ID}
+    privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
+    pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
+
+  modules:
+    - name: engine
+      package: gorgone::modules::centreon::engine::hooks
+      enable: true
+      command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
+
+    - name: pullwss
+      package: "gorgone::modules::core::pullwss::hooks"
+      enable: true
+      ssl: false
+      port: ${CENTRAL_PORT}
+      token: ${GORGONE_TOKEN}
+      address: ${CENTRAL_ADDRESS}
+
+EOF
+    chmod 775 /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+    rm -f /etc/centreon-gorgone/config.d/31-centreon-api.yaml
+
+    echo "✓ Successfully created /etc/centreon-gorgone/config.d/40-gorgoned.yaml"
+    echo ""
+fi
+
+echo "✓ Gorgone configuration generation complete"
+echo ""

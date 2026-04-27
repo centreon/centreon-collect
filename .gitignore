@@ -1,5 +1,9 @@
-# ingore local env files
+# ignore local env files
 .env.local
+docker/**/.env
+
+# Local .deb packages for Docker dev builds
+packages-centreon/
 
 *.pb.cc
 *.pb.h

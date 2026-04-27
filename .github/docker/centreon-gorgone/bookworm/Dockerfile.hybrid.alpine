@@ -1,0 +1,245 @@
+# Build arg to select gorgone Perl source: false=use .deb (production), true=use local repo (dev/test)
+ARG USE_SOURCE_GORGONE=false
+
+#############################################
+# Stage 1: Extract files from .deb packages
+#############################################
+FROM debian:12-slim AS extractor
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    dpkg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Extract .deb packages (mounted via --mount during build)
+RUN --mount=type=bind,source=packages-centreon,target=/packages \
+    mkdir -p /extracted && \
+    cd /packages && \
+    for deb in centreon-gorgone*.deb centreon-perl*.deb; do \
+        echo "Extracting $deb..."; \
+        dpkg-deb -x "$deb" /extracted/; \
+    done && \
+    echo "=== Extracted binaries ===" && \
+    ls -lah /extracted/usr/bin/ || true && \
+    echo "=== Extracted Perl modules ===" && \
+    ls -lah /extracted/usr/share/perl5/ || true && \
+    echo "=== Extracted configs ===" && \
+    ls -lah /extracted/etc/centreon-gorgone/ || true
+
+#############################################
+# Stage 2: Alpine Builder - Compile missing Perl modules
+#############################################
+FROM alpine:3.22 AS builder-alpine
+
+# Install build dependencies for Perl XS modules
+RUN apk add --no-cache \
+    build-base \
+    perl \
+    perl-dev \
+    perl-app-cpanminus \
+    zeromq-dev \
+    libffi-dev \
+    libssh-dev \
+    curl-dev
+
+# Install Perl XS modules NOT available in Alpine packages
+RUN cpanm --notest \
+    ExtUtils::PkgConfig \
+    FFI::Platypus \
+    ZMQ::FFI \
+    Digest::MD5::File \
+    Schedule::Cron \
+    Net::Curl \
+    Libssh::Session \
+    Crypt::OpenSSL::AES \
+    Net::SSH::Any \
+    Mojo::IOLoop::Signal
+
+#############################################
+# Stage 2b/2c: Gorgone Perl source selector
+# USE_SOURCE_GORGONE=false → extract from .deb (production default)
+# USE_SOURCE_GORGONE=true  → copy from local repo source (dev/testing)
+#############################################
+FROM scratch AS gorgone-perl-false
+COPY --from=extractor /extracted/usr/share/perl5/gorgone /gorgone-modules/
+
+FROM scratch AS gorgone-perl-true
+COPY gorgone/gorgone/ /gorgone-modules/
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgone-perl-${USE_SOURCE_GORGONE} AS gorgone-perl-selected
+
+#############################################
+# Stage 2d/2e: Centreon Perl libs selector
+#############################################
+FROM scratch AS centreon-perl-false
+COPY --from=extractor /extracted/usr/share/perl5/centreon /centreon-modules/
+
+FROM scratch AS centreon-perl-true
+COPY perl-libs/lib/centreon/ /centreon-modules/
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM centreon-perl-${USE_SOURCE_GORGONE} AS centreon-perl-selected
+
+#############################################
+# Stage 2f/2g: Gorgone config selector
+#############################################
+FROM scratch AS gorgone-config-false
+COPY --from=extractor /extracted/etc/centreon-gorgone/ /gorgone-config/
+
+FROM scratch AS gorgone-config-true
+COPY gorgone/packaging/configuration/config.yaml /gorgone-config/config.yaml
+COPY gorgone/packaging/configuration/action.yaml /gorgone-config/config.d/39-action.yaml
+COPY gorgone/packaging/configuration/whitelist.conf.d/ /gorgone-config/config.d/whitelist.conf.d/
+
+ARG USE_SOURCE_GORGONE=false
+# hadolint ignore=DL3006
+FROM gorgone-config-${USE_SOURCE_GORGONE} AS gorgone-config-selected
+
+#############################################
+# Stage 3: Runtime - Minimal Alpine image
+#############################################
+FROM alpine:3.22 AS gorgone
+
+ENV TYPE=
+
+ARG VERSION
+ARG IS_CLOUD
+ARG STABILITY
+
+# Create users and groups (Alpine style)
+# Change www-data GID from 82 to 33 to match Debian (for compatibility)
+RUN delgroup www-data && \
+    addgroup -g 33 www-data && \
+    adduser -u 33 -G www-data -s /sbin/nologin -D -H www-data && \
+    addgroup -g 900 centreon && \
+    adduser -u 900 -G centreon -h /var/spool/centreon -s /bin/bash -D -g "Centreon" centreon && \
+    addgroup -g 901 centreon-engine && \
+    adduser -u 901 -G centreon-engine -h /var/lib/centreon-engine -s /bin/bash -D -g "Centreon Engine" centreon-engine && \
+    addgroup -g 902 centreon-broker && \
+    adduser -u 902 -G centreon-broker -h /var/lib/centreon-broker -s /bin/bash -D -g "Centreon Broker" centreon-broker && \
+    addgroup -g 903 centreon-gorgone && \
+    adduser -u 903 -G centreon-gorgone -h /var/lib/centreon-gorgone -s /bin/bash -D -g "Centreon Gorgone" centreon-gorgone && \
+    addgroup centreon-gorgone centreon && \
+    addgroup centreon-gorgone www-data && \
+    addgroup centreon-gorgone centreon-engine && \
+    addgroup centreon-gorgone centreon-broker
+
+# Install runtime dependencies from Alpine packages
+RUN apk add --no-cache \
+    perl \
+    perl-dbi \
+    perl-dbd-mysql \
+    perl-dbd-sqlite \
+    perl-json-xs \
+    perl-yaml-xs \
+    perl-xml-simple \
+    perl-http-daemon \
+    perl-digest-md5 \
+    perl-crypt-urandom \
+    perl-rrd \
+    perl-class-dbi \
+    perl-ev \
+    perl-net-ssleay \
+    perl-cryptx \
+    perl-hash-merge \
+    perl-json \
+    perl-mojolicious \
+    perl-io-socket-ssl \
+    rrdtool \
+    curl \
+    libcurl \
+    openssl \
+    libssh2 \
+    libssh \
+    zeromq \
+    libffi \
+    mariadb-connector-c \
+    sqlite-libs \
+    gnutls \
+    sudo \
+    iputils \
+    shadow \
+    bash \
+    wget \
+    tzdata \
+    ca-certificates \
+    su-exec && \
+    rm -rf /var/cache/apk/*
+
+# Create directory structure
+RUN mkdir -p /etc/centreon/config.d/ \
+             /etc/centreon-gorgone/config.d \
+             /var/cache/centreon/ \
+             /var/lib/centreon/centcore/ \
+             /var/lib/centreon-gorgone/.keys \
+             /var/log/centreon-gorgone \
+             /var/lib/centreon-engine/rw && \
+    chown -R centreon-gorgone:centreon /etc/centreon/ && \
+    chmod -R 775 /etc/centreon/ && \
+    chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
+    chmod -R 775 /etc/centreon-gorgone/ && \
+    chown centreon:centreon /var/cache/centreon && \
+    chmod 775 /var/cache/centreon && \
+    touch /var/lib/centreon/centcore.cmd && \
+    chown -R centreon-gorgone:centreon /var/lib/centreon/ && \
+    chmod -R 775 /var/lib/centreon/ && \
+    chown -R centreon-engine:centreon-engine /var/lib/centreon-engine && \
+    chmod 775 /var/lib/centreon-engine/rw && \
+    chown -R centreon-gorgone:centreon-gorgone \
+              /var/lib/centreon-gorgone \
+              /var/log/centreon-gorgone && \
+    chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone && \
+    chmod 755 /var/lib/centreon-gorgone/.keys && \
+    rm -f /bin/systemctl
+
+# Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
+
+# Gorgone binaries
+COPY --from=extractor --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+
+# Perl modules (centreon-gorgone and centreon-perl) - use Alpine's vendor_perl path
+# gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
+COPY --from=gorgone-perl-selected /gorgone-modules/ /usr/share/perl5/vendor_perl/gorgone/
+COPY --from=centreon-perl-selected /centreon-modules/ /usr/share/perl5/vendor_perl/centreon/
+
+# Copy compiled Perl XS modules from Alpine builder (musl libc compatible)
+COPY --from=builder-alpine /usr/local/lib/perl5 /usr/local/lib/perl5
+COPY --from=builder-alpine /usr/local/share/perl5 /usr/local/share/perl5
+
+# Configuration files
+COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
+     /gorgone-config/ /etc/centreon-gorgone/
+
+# Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /var/lib/centreon-gorgone/
+COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
+COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
+
+# Update Perl library paths for Alpine vendor_perl + compiled modules
+ENV PERL5LIB=/usr/local/lib/perl5/site_perl:/usr/local/share/perl5/site_perl:/usr/share/perl5/vendor_perl
+ENV USE_ETCD=false \
+    ETCD_HOST=etcd \
+    ETCD_PORT=2379 \
+    CONFIG_DIR=/etc/centreon/config.d \
+    MAX_RETRIES=10 \
+    RETRY_DELAY=2 \
+    CONFIG_WAIT_TIMEOUT=300
+
+# Verify critical files exist and Perl syntax
+RUN echo "=== Verification ===" && \
+    ls -lah /usr/bin/gorgoned && \
+    ls -lah /usr/share/perl5/vendor_perl/gorgone/ && \
+    ls -lah /usr/share/perl5/vendor_perl/centreon/ && \
+    ls -lah /etc/centreon-gorgone/ && \
+    perl -c /usr/bin/gorgoned && \
+    echo "=== Files verified ==="
+
+# Set the working directory
+WORKDIR /etc/centreon-gorgone/
+
+ENTRYPOINT ["/var/lib/centreon-gorgone/container.sh"]
+
+CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug"]

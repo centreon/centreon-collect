@@ -18,10 +18,6 @@
 
 [Unit]
 Description=Centreon Broker watchdog
-PartOf=centreon.service
-After=centreon.service
-ReloadPropagatedFrom=centreon.service
-After=mariadb.service
 
 [Service]
 ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/cbwd @PREFIX_BROKER_CONF@/watchdog.json
@@ -31,5 +27,4 @@ User=centreon-broker
 UMask=0002
 
 [Install]
-WantedBy=centreon.service
-
+WantedBy=multi-user.target

@@ -18,10 +18,6 @@
 
 [Unit]
 Description=Centreon Engine
-PartOf=centreon.service
-After=centreon.service
-ReloadPropagatedFrom=centreon.service
-After=cbd.service
 
 [Service]
 ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengine.cfg
@@ -30,5 +26,4 @@ Type=simple
 User=centreon-engine
 
 [Install]
-WantedBy=centreon.service
-
+WantedBy=multi-user.target

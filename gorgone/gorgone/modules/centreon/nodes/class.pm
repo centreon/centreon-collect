@@ -134,11 +134,11 @@ sub action_centreonnodessync {
     }
 
     $request = "
-        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type
+        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, gorgone_auth_token
         FROM nagios_server
         WHERE ns_activate = '1'
     ";
-    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 2);
+    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 1, keys => 'id');
     if ($status == -1) {
         $self->{resync_time} = 10;
         $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot find nodes configuration' });
@@ -149,34 +149,49 @@ sub action_centreonnodessync {
     my $core_id;
     my $register_temp = {};
     my $register_nodes = [];
-    foreach (@$datas) {
-        if ($_->[2] == 1) {
-            $core_id = $_->[0];
+    foreach my $node (values %$datas) {
+        if ($node->{localhost} == 1) {
+            $core_id = $node->{id};
             next;
         }
 
         # remote_server_use_as_proxy = 1 means: pass through the remote. otherwise directly.
-        if (defined($_->[5]) && $_->[5] =~ /\d+/ && $_->[6] == 1) {
-            $register_subnodes->{$_->[5]} = [] if (!defined($register_subnodes->{$_->[5]}));
-            unshift @{$register_subnodes->{$_->[5]}}, { id => $_->[0], pathscore => 1 };
+        if (defined($node->{remote_id}) && $node->{remote_id} =~ /\d+/ && $node->{remote_server_use_as_proxy} == 1) {
+            $register_subnodes->{$node->{remote_id}} = [] if (!defined($register_subnodes->{$node->{remote_id}}));
+            unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, pathscore => 1 };
             next;
         }
-        $self->{register_nodes}->{$_->[0]} = 1;
-        $register_temp->{$_->[0]} = 1;
-        if ($_->[7] == 2) {
+        $self->{register_nodes}->{$node->{id}} = 1;
+        $register_temp->{$node->{id}} = 1;
+        if ($node->{gorgone_communication_type} == 2) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
                 type => 'push_ssh',
-                address => $_->[3],
-                ssh_port => $_->[4],
+                address => $node->{ns_ip_address},
+                ssh_port => $node->{gorgone_port},
                 ssh_username => $self->{config}->{ssh_username}
             };
-        } else {
+        } elsif($node->{gorgone_communication_type} == 3) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
+                type => 'pull', # this is ZMQ where node is initiating connection.
+                # Letting address and port for consistency and if in the future we want to validate source ip/port
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port},
+                token => $node->{gorgone_auth_token} // "",
+            };
+        } elsif($node->{gorgone_communication_type} == 4) {
+            push @$register_nodes, {
+                id    => $node->{id},
+                type  => 'pullwss',
+                token => $node->{gorgone_auth_token} // "",
+            };
+        } else{ # value 1 and unknown is zmq push
+            push @$register_nodes, {
+                id => $node->{id},
                 type => 'push_zmq',
-                address => $_->[3],
-                port => $_->[4]
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port}
             };
         }
     }
@@ -195,6 +210,12 @@ sub action_centreonnodessync {
             $_->{nodes} = $register_subnodes->{ $_->{id} };
         }
     }
+    $self->{logger}->writeLogInfo(sprintf(
+        "[nodes] retrieved %s nodes from DB, %s new and %s to delete. Sending to other gorgone modules",
+        scalar( keys %$datas),
+        scalar(@$register_nodes),
+        scalar(@$unregister_nodes)));
+
 
     $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id } }) if (defined($core_id));
     $self->send_internal_action({ action => 'REGISTERNODES', data => { nodes => $register_nodes } });
