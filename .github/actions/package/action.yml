@@ -100,7 +100,8 @@ runs:
           DIRNAME=$(dirname $FILE)
           BASENAME=$(basename $FILE)
           if [ -f $DIRNAME/env/.env.${{ inputs.distrib }} ]; then
-            source $DIRNAME/env/.env.${{ inputs.distrib }}
+            echo "Loading environment variables from $DIRNAME/env/.env.${{ inputs.distrib }}"
+            . $DIRNAME/env/.env.${{ inputs.distrib }}
           fi
           cd $DIRNAME
           sed -i "s/@COMMIT_HASH@/${{ inputs.commit_hash }}/g" $BASENAME
