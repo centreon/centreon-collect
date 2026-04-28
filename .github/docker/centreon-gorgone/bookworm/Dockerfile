@@ -73,7 +73,15 @@ FROM gorgone-config-${USE_SOURCE_GORGONE} AS gorgone-config-selected
 #############################################
 FROM debian:12-slim AS gorgone
 
-ENV TYPE=
+# Documented image contract — values are normally injected via docker compose / -e flags.
+# Declared here so `docker inspect` lists them and `docker exec -it ... bash` sees them.
+ENV TYPE= \
+    UUID= \
+    NAME= \
+    POLLER_TOKEN= \
+    CENTRAL_URL= \
+    APP_SECRET= \
+    SALT=
 
 ARG VERSION
 ARG IS_CLOUD

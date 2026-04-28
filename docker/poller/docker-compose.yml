@@ -1,0 +1,37 @@
+x-defaults: &defaults
+  environment:
+    TZ: "${TZ:-UTC}"
+    DEBUG: "${DEBUG:-false}"
+
+services:
+  gorgone:
+    <<: *defaults
+    image: "docker.centreon.com/centreon/centreon-gorgone-bookworm:${TAG:-latest}"
+    container_name: centpoller-gorgone
+    hostname: centgorgone
+    restart: always
+    environment:
+      TZ: "${TZ:-UTC}"
+      DEBUG: "${DEBUG:-false}"
+      TYPE: poller
+      UUID: "${UUID}"
+      NAME: "${NAME}"
+      POLLER_TOKEN: "${POLLER_TOKEN}"
+      CENTRAL_URL: "${CENTRAL_URL}"
+      APP_SECRET: "${APP_SECRET}"
+      SALT: "${SALT}"
+    volumes:
+      - poller-etc:/etc/centreon/
+      - poller-engine:/etc/centreon-engine
+      - poller-broker:/etc/centreon-broker
+      - poller-centcmd:/var/lib/centreon-engine/rw
+      - poller-centcache:/var/cache/centreon/
+      - poller-gorgone-data:/var/lib/centreon-gorgone/
+
+volumes:
+  poller-etc:
+  poller-engine:
+  poller-broker:
+  poller-centcmd:
+  poller-centcache:
+  poller-gorgone-data:
