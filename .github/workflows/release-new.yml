@@ -1,5 +1,7 @@
 ---
 name: release-new
+run-name:
+  format('{0} {1} of branch {2} (release number {3})', inputs.release_scope, inputs.release_type, inputs.release_branch, inputs.release_number)
 
 on:
   workflow_dispatch:
