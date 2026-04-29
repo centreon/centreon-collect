@@ -1213,7 +1213,6 @@ sub run {
         # If the sqlite database file does not exist, we create it and set permissions to 0664 to allow centreon-gorgone to update it
         if ( $self->{centreontrapd_config}->{centreon_db} =~ /=(.*)/ and defined($1) and $1 ne '' and ! -e $1) {
             open my $sdb_file, '>', $1 or die "Can't open the file $1: $!\n";
-            close $sdb_file;
             chmod 0664, $1 or die "Can't change permissions on $1: $!\n";
         }
         $self->{cdb} = centreon::common::db->new(
