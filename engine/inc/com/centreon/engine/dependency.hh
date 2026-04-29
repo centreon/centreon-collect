@@ -58,9 +58,9 @@ class dependency {
   void set_contains_circular_path(bool contains_circular_path);
   virtual bool get_fail_on(int state) const = 0;
 
-  virtual bool operator==(dependency const& obj) throw();
-  bool operator!=(dependency const& obj) throw();
-  virtual bool operator<(dependency const& obj) throw();
+  virtual bool operator==(dependency const& obj) noexcept;
+  bool operator!=(dependency const& obj) noexcept;
+  virtual bool operator<(dependency const& obj) noexcept;
   size_t internal_key() const;
 
   com::centreon::engine::timeperiod* dependency_period_ptr;
