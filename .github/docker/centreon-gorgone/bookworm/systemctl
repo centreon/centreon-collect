@@ -5,7 +5,7 @@ SERVICE="$2"
 ACTION="$1"
 
 GRPCURL_OPTS="-plaintext -import-path /usr/share/centreon-engine/proto -proto engine.proto"
-ENGINE_GRPC_ADDR="${SERVICE}:50003"
+ENGINE_GRPC_ADDR="${SERVICE}:50155"
 
 case "$SERVICE" in
   centengine)
