@@ -79,7 +79,7 @@ Source: {#InfoIcon}; Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
 [Run]
-Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}"; Flags: runhidden; Components: agent
+Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}"; Flags: runhidden; Components: agent; Check: not IsUpgradeInstall
 Filename: "sc.exe"; Parameters: "{code:GetScDescriptionParams}"; Flags: runhidden; Components: agent
 Filename: "sc.exe"; Parameters: "start {code:GetInstanceArgs}"; Flags: runhidden; Components: agent
 
@@ -143,6 +143,12 @@ var
   PluginVer : String;
   PluginSrc : String;
   Fingerprint : String;
+
+  // --- Mode choice (install vs upgrade when instances already exist) ---
+  ModeChoicePage: TWizardPage;
+  ModeInstallRadio, ModeUpgradeRadio: TNewRadioButton;
+  InstanceArgsComboBox: TNewComboBox;
+  IsUpgradeMode: Boolean;
 
   // --- Selective uninstall ---
   AgentsCheckList: TNewCheckListBox;
@@ -620,11 +626,11 @@ begin
 end;
 
 // Reads Centreon Monitoring Agent configuration values from the Windows registry and populates the installer UI fields accordingly.
-// For each expected registry value under 'SOFTWARE\Centreon\CentreonMonitoringAgent', attempts to read the value:
+// For each expected registry value under 'SOFTWARE\Centreon\<ServiceName>', attempts to read the value:
 //   - If found, sets the corresponding UI control (edit box, combo box, or checkbox) with the value.
 //   - If not found for 'host', uses the current Windows host name as a fallback.
 // Handles both string and DWORD registry values, converting as needed for UI controls.
-procedure ReadAgentRegistryValues;
+procedure ReadAgentRegistryValues(ServiceName: string);
 var
   RootKey: Integer;
   BaseKey: String;
@@ -632,7 +638,7 @@ var
   DwordValue: DWORD;
 begin
   RootKey := HKEY_LOCAL_MACHINE;
-  BaseKey := 'SOFTWARE\Centreon\CentreonMonitoringAgent';
+  BaseKey := 'SOFTWARE\Centreon\' + ServiceName;
 
   if RegQueryStringValue(RootKey, BaseKey, 'host', StrValue) then
     HostNameEdit.Text := StrValue
@@ -692,6 +698,17 @@ begin
 
   if RegQueryDWordValue(RootKey, BaseKey, 'reversed_grpc_streaming', DwordValue) then
     PollerInitiatedCheckBox.Checked := (DwordValue <> 0);
+end;
+
+// Fires when the user picks a different instance in upgrade mode.
+// Syncs InstanceArgsEdit and pre-fills all config fields from the selected instance's registry values.
+procedure OnUpgradeInstanceChange(Sender: TObject);
+begin
+  if InstanceArgsComboBox.ItemIndex < 0 then Exit;
+  InstanceArgsEdit.Text := InstanceArgsComboBox.Text;
+  ReadAgentRegistryValues(InstanceArgsComboBox.Text);
+  OnPollerInitiatedToggle(PollerInitiatedCheckBox);
+  OnLogTypeChange(LogTypeComboBox);
 end;
 
 // Writes Centreon Monitoring Agent configuration values to the Windows registry.
@@ -1068,8 +1085,9 @@ end;
 // Initializes the Centreon Agent installer wizard, configuring custom pages and UI elements for agent setup.
 procedure InitializeWizard;
 var
-Infobmp: String;
-WarningBmp: String;
+  Infobmp: String;
+  WarningBmp: String;
+  i: Integer;
 begin
 
 // ── Wizard config
@@ -1085,7 +1103,31 @@ begin
   Infobmp := ExpandConstant('{tmp}\info_icon.bmp');
   ExtractTemporaryFile('warning_icon.bmp');
   WarningBmp := ExpandConstant('{tmp}\warning_icon.bmp');
-  // ── Config page 
+  // ── Load installed instance list (needed to decide whether to show mode page)
+  LoadAgentRegistryKeys;
+  IsUpgradeMode := False;
+
+  // ── Mode choice page (visible only when at least one instance is already installed)
+  ModeChoicePage := CreateCustomPage(wpLicense,
+    'Installation Mode',
+    'One or more agent instances are already installed. Choose how to proceed.');
+
+  ModeInstallRadio := TNewRadioButton.Create(ModeChoicePage);
+  ModeInstallRadio.Parent := ModeChoicePage.Surface;
+  ModeInstallRadio.Top := ScaleY(20);
+  ModeInstallRadio.Left := ScaleX(10);
+  ModeInstallRadio.Width := ModeChoicePage.SurfaceWidth - ScaleX(20);
+  ModeInstallRadio.Caption := 'Install – add a new agent instance (new configuration)';
+  ModeInstallRadio.Checked := True;
+
+  ModeUpgradeRadio := TNewRadioButton.Create(ModeChoicePage);
+  ModeUpgradeRadio.Parent := ModeChoicePage.Surface;
+  ModeUpgradeRadio.Top := ModeInstallRadio.Top + ScaleY(50);
+  ModeUpgradeRadio.Left := ModeInstallRadio.Left;
+  ModeUpgradeRadio.Width := ModeInstallRadio.Width;
+  ModeUpgradeRadio.Caption := 'Upgrade – update binaries and configuration of an existing instance';
+
+  // ── Config page
   ConfigPage := CreateCustomPage(wpSelectComponents, 'Centreon Agent Configuration', 'Please provide the required information to connect agent.');
 
   // ──── Service Name
@@ -1124,7 +1166,20 @@ begin
   InstanceWarningBitmapImage.Cursor := crHand;
   InstanceWarningBitmapImage.ShowHint := True;
   InstanceWarningBitmapImage.Hide;
-  
+
+  // Combo box used instead of InstanceArgsEdit in upgrade mode
+  InstanceArgsComboBox := TNewComboBox.Create(ConfigPage);
+  InstanceArgsComboBox.Parent := ConfigPage.Surface;
+  InstanceArgsComboBox.Top := InstanceArgsEdit.Top;
+  InstanceArgsComboBox.Width := InstanceArgsEdit.Width;
+  InstanceArgsComboBox.Style := csDropDownList;
+  for i := 0 to GetArrayLength(AgentNames) - 1 do
+    InstanceArgsComboBox.Items.Add(AgentNames[i]);
+  if InstanceArgsComboBox.Items.Count > 0 then
+    InstanceArgsComboBox.ItemIndex := 0;
+  InstanceArgsComboBox.OnChange := @OnUpgradeInstanceChange;
+  InstanceArgsComboBox.Hide;
+
   // ──── Host Name
 
   HostLabel := TNewStaticText.Create(ConfigPage);
@@ -1673,9 +1728,16 @@ begin
   CommonNameInfoBitmapImage.Hide;
 
   DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), SetupMessage(msgPreparingDesc), nil);
-  ReadAgentRegistryValues;
+  ReadAgentRegistryValues('CentreonMonitoringAgent');
   LoadSilentParameters;
 
+end;
+
+// Returns True when the current run is an upgrade of an existing instance.
+// Used by the [Run] section to skip 'sc create' for already-registered services.
+function IsUpgradeInstall: Boolean;
+begin
+  Result := IsUpgradeMode;
 end;
 
 // Determines whether a wizard page should be skipped based on its PageID.
@@ -1684,7 +1746,10 @@ end;
 // Returns True to skip the page, False otherwise.
 function ShouldSkipPage(PageID: Integer): Boolean;
 begin
-  if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
+  if PageID = ModeChoicePage.ID then
+    // Show only when instances are already installed
+    Result := GetArrayLength(AgentNames) = 0
+  else if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
     Result := not WizardIsComponentSelected('agent')
   else if PageID = DownloadPage.ID then
     Result := not WizardIsComponentSelected('plugins')
@@ -1696,7 +1761,13 @@ end;
 procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = ConfigPage.ID then
-    WizardForm.ClientHeight := 600
+  begin
+    WizardForm.ClientHeight := 600;
+    // In upgrade mode, reload config if the selected instance changed since last visit
+    if IsUpgradeMode and (InstanceArgsComboBox.ItemIndex >= 0) and
+       (InstanceArgsComboBox.Text <> InstanceArgsEdit.Text) then
+      OnUpgradeInstanceChange(nil);
+  end
   else
     WizardForm.ClientHeight := 570;
 end;
@@ -1768,6 +1839,15 @@ begin
     OnLogTypeChange(LogTypeComboBox);
     Result := True;
   end else if CurPageID = ConfigPage.ID then begin
+    // In upgrade mode, if the user changed the instance combo while on this page,
+    // reload registry values and stay on the page so the updated fields are visible.
+    if IsUpgradeMode and (InstanceArgsComboBox.Text <> InstanceArgsEdit.Text) then
+    begin
+      OnUpgradeInstanceChange(nil);
+      Result := False;
+      Exit;
+    end;
+
     // disable all warnings
     HostWarningBitmapImage.Hide;
     PollerWarningBitmapImage.Hide;
@@ -1830,37 +1910,68 @@ begin
         EncryptionComboBox.Items.Insert(1, 'Insecure TLS');
     end;
 
-    if (InstanceArgsEdit.Text = '') then begin
-      if IsSilentMode then
-      begin
-        LogToStdOutFile('Agent instance name is empty. This field is required.');
-        ExitProcess(1);
+    if not IsUpgradeMode then
+    begin
+      if (InstanceArgsEdit.Text = '') then begin
+        if IsSilentMode then
+        begin
+          LogToStdOutFile('Agent instance name is empty. This field is required.');
+          ExitProcess(1);
+        end;
+        MsgBox('Please enter the Agent instance name. This field cannot be left empty.', mbError, MB_OK);
+        InstanceWarningBitmapImage.Hint := 'Please enter the Agent instance name. This field cannot be left empty.';
+        InstanceWarningBitmapImage.Show;
+        Result := False;
+        exit;
+      end
+      else if ServiceAlreadyExist(InstanceArgsEdit.Text) then begin
+        if IsSilentMode then
+        begin
+          LogToStdOutFile('Agent instance already exists: ' + InstanceArgsEdit.Text);
+          ExitProcess(1);
+        end;
+        MsgBox('Invalid Agent instance. Already used', mbError, MB_OK);
+        InstanceWarningBitmapImage.Hint := 'Invalid Agent instance. Already used';
+        InstanceWarningBitmapImage.Show;
+        Result := False;
+        exit;
       end;
-      MsgBox('Please enter the Agent instance name. This field cannot be left empty.', mbError, MB_OK);
-      InstanceWarningBitmapImage.Hint := 'Please enter the Agent instance name. This field cannot be left empty.';
-      InstanceWarningBitmapImage.Show;
-      Result := False;
-      exit;
-    end
-    else if ServiceAlreadyExist(InstanceArgsEdit.Text) then begin
-      if IsSilentMode then
-      begin
-        LogToStdOutFile('Agent instance already exists: ' + InstanceArgsEdit.Text);
-        ExitProcess(1);
-      end;
-      MsgBox('Invalid Agent instance. Already used', mbError, MB_OK);
-      InstanceWarningBitmapImage.Hint := 'Invalid Agent instance. Already used';
-      InstanceWarningBitmapImage.Show;
-      Result := False;
-      exit;
     end;
 
     // apply the change to ui
     OnEncryptionChange(EncryptionComboBox);
 
     Result := True;
-  end 
-  else if CurPageID = EncryptionPage.ID then begin
+  end else if CurPageID = ModeChoicePage.ID then begin
+    IsUpgradeMode := ModeUpgradeRadio.Checked;
+    if IsUpgradeMode then
+    begin
+      // Switch instance field to a combo box populated with existing instances
+      InstanceArgsEdit.Hide;
+      InstanceInfoBitmapImage.Hide;
+      InstanceWarningBitmapImage.Hide;
+      InstanceArgsComboBox.Left := InstanceArgsEdit.Left;
+      InstanceArgsComboBox.Show;
+      // Pre-fill from the first (currently selected) instance
+      if InstanceArgsComboBox.ItemIndex >= 0 then
+      begin
+        InstanceArgsEdit.Text := InstanceArgsComboBox.Text;
+        ReadAgentRegistryValues(InstanceArgsComboBox.Text);
+        OnPollerInitiatedToggle(PollerInitiatedCheckBox);
+        OnLogTypeChange(LogTypeComboBox);
+        OnEncryptionChange(EncryptionComboBox);
+      end;
+    end
+    else
+    begin
+      // Restore the plain edit for a fresh install
+      InstanceArgsComboBox.Hide;
+      InstanceArgsEdit.Show;
+      InstanceInfoBitmapImage.Show;
+      InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
+    end;
+    Result := True;
+  end else if CurPageID = EncryptionPage.ID then begin
     PublicCertWarningBitmapImage.Hide;
     PrivateKeyWarningBitmapImage.Hide;
     CaWarningBitmapImage.Hide;
@@ -1933,8 +2044,17 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Key: string;
+  rc: Integer;
 begin
-  if CurStep = ssPostInstall then
+  if CurStep = ssPreInstall then
+  begin
+    // Stop the existing service before binaries are overwritten so that
+    // Windows does not lock the executable file during the file copy.
+    if IsUpgradeMode and WizardIsComponentSelected('agent') then
+      Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + GetInstanceArgs(''),
+           '', SW_HIDE, ewWaitUntilTerminated, rc);
+  end
+  else if CurStep = ssPostInstall then
   begin
     Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{' + '{#AppId}' + '}_is1';
 
