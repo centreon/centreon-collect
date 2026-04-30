@@ -79,9 +79,9 @@ Source: {#InfoIcon}; Flags: dontcopy
 Source: {#WarningIcon}; Flags: dontcopy
 
 [Run]
-Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}"; Flags: runhidden; Components: agent; Check: not IsUpgradeInstall
-Filename: "sc.exe"; Parameters: "{code:GetScDescriptionParams}"; Flags: runhidden; Components: agent
-Filename: "sc.exe"; Parameters: "start {code:GetInstanceArgs}"; Flags: runhidden; Components: agent
+Filename: "sc.exe"; Parameters: "{code:GetScCreateParams}"; Flags: runhidden; Components: agent; Check: not IsUpgradeInstall and not IsUpdateOnlyInstall
+Filename: "sc.exe"; Parameters: "{code:GetScDescriptionParams}"; Flags: runhidden; Components: agent; Check: not IsUpdateOnlyInstall
+Filename: "sc.exe"; Parameters: "start {code:GetInstanceArgs}"; Flags: runhidden; Components: agent; Check: not IsUpdateOnlyInstall
 
 
 [Code]
@@ -149,6 +149,7 @@ var
   ModeInstallRadio, ModeUpgradeRadio: TNewRadioButton;
   InstanceArgsComboBox: TNewComboBox;
   IsUpgradeMode: Boolean;
+  IsUpdateOnly: Boolean;
 
   // --- Selective uninstall ---
   AgentsCheckList: TNewCheckListBox;
@@ -892,7 +893,7 @@ end;
 // Only executes if installer is running in silent mode.
 procedure LoadSilentParameters;
 begin
-  if not IsSilentMode then Exit;
+  if not IsSilentMode or IsUpdateOnly then Exit;
   InstanceArgsEdit.Text := ExpandConstant('{param:agentinstance|}');
   if InstanceArgsEdit.Text = '' then
     InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
@@ -954,7 +955,7 @@ var
   Pluginsrc_p: string;
   EncryptionEnabled,PollerInitiatedEnabled: Boolean;
 begin
-  if not IsSilentMode then
+  if not IsSilentMode or IsUpdateOnly then
   begin
     Result := True;
     Exit;
@@ -1069,6 +1070,7 @@ end;
 function InitializeSetup(): Boolean;
 begin
   PluginSrc := 'auto';
+  IsUpdateOnly := CmdLineParamExists('/UPDATEONLY');
   // ── Silent mode
    if CmdLineParamExists('/VERSION') then
   begin
@@ -1079,7 +1081,7 @@ begin
   Result := CheckSilentParameterValidity;
 
   if not Result then
-  ExitProcess(1)  
+  ExitProcess(1)
 end;
 
 // Initializes the Centreon Agent installer wizard, configuring custom pages and UI elements for agent setup.
@@ -1740,6 +1742,11 @@ begin
   Result := IsUpgradeMode;
 end;
 
+function IsUpdateOnlyInstall: Boolean;
+begin
+  Result := IsUpdateOnly;
+end;
+
 // Determines whether a wizard page should be skipped based on its PageID.
 // Skips Config and Encryption pages if 'agent' component is not selected.
 // Skips Download page if 'plugins' component is not selected.
@@ -1750,7 +1757,7 @@ begin
     // Show only when instances are already installed
     Result := GetArrayLength(AgentNames) = 0
   else if (PageID = ConfigPage.ID) or (PageID = EncryptionPage.ID) then
-    Result := not WizardIsComponentSelected('agent')
+    Result := IsUpdateOnly or not WizardIsComponentSelected('agent')
   else if PageID = DownloadPage.ID then
     Result := not WizardIsComponentSelected('plugins')
   else
@@ -1786,7 +1793,7 @@ begin
   // The wpReady represents the "Ready to Install" page
   // in the Inno Setup wizard, where the user confirms the installation.
   if CurPageID = wpReady then begin
-    if WizardIsComponentSelected('agent') then
+    if WizardIsComponentSelected('agent') and not IsUpdateOnly then
       WriteAgentRegistryValues;
     if WizardIsComponentSelected('plugins') then begin
       DownloadPage.Clear;
@@ -2044,18 +2051,31 @@ end;
 procedure CurStepChanged(CurStep: TSetupStep);
 var
   Key: string;
-  rc: Integer;
+  rc, i: Integer;
 begin
   if CurStep = ssPreInstall then
   begin
-    // Stop the existing service before binaries are overwritten so that
-    // Windows does not lock the executable file during the file copy.
-    if IsUpgradeMode and WizardIsComponentSelected('agent') then
+    // Stop service(s) before binaries are overwritten to avoid file locking.
+    if IsUpdateOnly and WizardIsComponentSelected('agent') then
+    begin
+      for i := 0 to GetArrayLength(AgentNames) - 1 do
+        Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + AgentNames[i],
+             '', SW_HIDE, ewWaitUntilTerminated, rc);
+    end
+    else if IsUpgradeMode and WizardIsComponentSelected('agent') then
       Exec(ExpandConstant('{sys}\sc.exe'), 'stop ' + GetInstanceArgs(''),
            '', SW_HIDE, ewWaitUntilTerminated, rc);
   end
   else if CurStep = ssPostInstall then
   begin
+    // Restart all instances after a binary-only update.
+    if IsUpdateOnly and WizardIsComponentSelected('agent') then
+    begin
+      for i := 0 to GetArrayLength(AgentNames) - 1 do
+        Exec(ExpandConstant('{sys}\sc.exe'), 'start ' + AgentNames[i],
+             '', SW_HIDE, ewWaitUntilTerminated, rc);
+    end;
+
     Key := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\{' + '{#AppId}' + '}_is1';
 
     // point Modify to your modify exe in {app}
