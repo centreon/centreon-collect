@@ -240,7 +240,7 @@ jobs:
         shell: powershell
 
       - name: Cache monitoring agent
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -587,7 +587,7 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Restore cache monitoring agent
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
