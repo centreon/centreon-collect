@@ -1975,7 +1975,8 @@ begin
       InstanceArgsComboBox.Hide;
       InstanceArgsEdit.Show;
       InstanceInfoBitmapImage.Show;
-      InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
+      if not IsSilentMode then
+        InstanceArgsEdit.Text := ProposeServiceName('CentreonMonitoringAgent');
     end;
     Result := True;
   end else if CurPageID = EncryptionPage.ID then begin
