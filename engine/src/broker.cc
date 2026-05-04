@@ -1158,6 +1158,7 @@ static void forward_pb_service(int type,
     // Search host ID and service ID.
     srv.set_host_id(es->host_id());
     srv.set_service_id(es->service_id());
+    srv.set_instance_id(cbm->poller_id());
     if (srv.host_id() && srv.service_id())
       SPDLOG_LOGGER_DEBUG(neb_logger,
                           "callbacks: service ({}, {}) has a severity id {}",

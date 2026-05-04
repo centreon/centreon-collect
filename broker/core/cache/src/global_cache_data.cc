@@ -465,6 +465,17 @@ void global_cache_data::_process_pb_host(
         _set_dirty_and_increment_modif();
       }
     } else {
+      if (in.instance_id() != 0 && exist->second.first &&
+          exist->second.first->instance_id() != 0 &&
+          in.instance_id() != exist->second.first->instance_id()) {
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
+            "cache: ignoring stale deletion of host {} from poller {} "
+            "(currently owned by poller {})",
+            in.host_id(), in.instance_id(),
+            exist->second.first->instance_id());
+        return;
+      }
       if (exist->second.first) {
         _file->get_segment_manager()->destroy_ptr(exist->second.first.get());
       }
@@ -800,6 +811,17 @@ void global_cache_data::_process_pb_service(
         _set_dirty_and_increment_modif();
       }
     } else {
+      if (in.instance_id() != 0 && exist->second.first &&
+          exist->second.first->instance_id() != 0 &&
+          in.instance_id() != exist->second.first->instance_id()) {
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
+            "cache: ignoring stale deletion of service ({},{}) from poller {} "
+            "(currently owned by poller {})",
+            in.host_id(), in.service_id(), in.instance_id(),
+            exist->second.first->instance_id());
+        return;
+      }
       if (exist->second.first) {
         _file->get_segment_manager()->destroy_ptr(exist->second.first.get());
       }

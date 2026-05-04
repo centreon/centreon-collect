@@ -1042,3 +1042,86 @@ TEST_F(global_cache_test, EnumerateServiceGroup) {
   obj.reset();
   global_cache::unload();
 }
+
+TEST_F(global_cache_test, HostMovedBetweenPollers) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  // Initial add on poller 10.
+  auto host1 = std::make_shared<neb::pb_host>();
+  host1->mut_obj().set_host_id(1);
+  host1->mut_obj().set_name("host_1");
+  host1->mut_obj().set_instance_id(10);
+  host1->mut_obj().set_enabled(true);
+  obj->write(host1);
+
+  // New poller 20 sends addition first (re-config finished on new side).
+  auto host2 = std::make_shared<neb::pb_host>();
+  host2->mut_obj().set_host_id(1);
+  host2->mut_obj().set_name("host_1");
+  host2->mut_obj().set_instance_id(20);
+  host2->mut_obj().set_enabled(true);
+  obj->write(host2);
+
+  // Old poller 10 sends its stale deletion (re-config still finishing).
+  auto host_del = std::make_shared<neb::pb_host>();
+  host_del->mut_obj().set_host_id(1);
+  host_del->mut_obj().set_instance_id(10);
+  host_del->mut_obj().set_enabled(false);
+  obj->write(host_del);
+
+  // Host must still be present, owned by poller 20.
+  global_cache::lock l;
+  const cache::host* h = obj->get_host(1, l);
+  ASSERT_NE(h, nullptr);
+  ASSERT_EQ(h->instance_id(), 20);
+}
+
+TEST_F(global_cache_test, ServiceMovedBetweenPollers) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  // Need a host entry so get_service can find it.
+  auto host1 = std::make_shared<neb::pb_host>();
+  host1->mut_obj().set_host_id(1);
+  host1->mut_obj().set_enabled(true);
+  obj->write(host1);
+
+  // Initial add on poller 10.
+  auto svc1 = std::make_shared<neb::pb_service>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(2);
+  svc1->mut_obj().set_description("svc_2");
+  svc1->mut_obj().set_instance_id(10);
+  svc1->mut_obj().set_enabled(true);
+  obj->write(svc1);
+
+  // New poller 20 sends addition first.
+  auto svc2 = std::make_shared<neb::pb_service>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_description("svc_2");
+  svc2->mut_obj().set_instance_id(20);
+  svc2->mut_obj().set_enabled(true);
+  obj->write(svc2);
+
+  // Old poller 10 sends stale deletion.
+  auto svc_del = std::make_shared<neb::pb_service>();
+  svc_del->mut_obj().set_host_id(1);
+  svc_del->mut_obj().set_service_id(2);
+  svc_del->mut_obj().set_instance_id(10);
+  svc_del->mut_obj().set_enabled(false);
+  obj->write(svc_del);
+
+  // Service must still be present, owned by poller 20.
+  global_cache::lock l;
+  const cache::service* s = obj->get_service(1, 2, l);
+  ASSERT_NE(s, nullptr);
+  ASSERT_EQ(s->instance_id(), 20);
+}
