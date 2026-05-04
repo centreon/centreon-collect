@@ -97,6 +97,12 @@ broker/compile_commands.json
 broker/grpc/grpc_stream.proto
 broker/grpc/src/grpc_bridge.cc
 
+#generated 
+broker/core/cache/inc/com/centreon/broker/cache/protobuf.hh
+broker/core/cache/src/protobuf.cc
+broker/core/cache/test/protobuf_test_classes.cc
+broker/core/cache/test/protobuf_test_classes.hh
+
 
 # clib
 clib/inc/com/centreon/clib/version.hh
