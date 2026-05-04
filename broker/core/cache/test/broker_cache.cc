@@ -36,10 +36,12 @@ class BrokerCacheTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    std::filesystem::remove(".cache");
-    config::applier::state::load<config::applier::broker_state>("unittest");
     _logger = spdlog::default_logger();
+
+    config::applier::state::load<config::applier::broker_state>("unittest");
     _cache = std::make_unique<broker_cache>(_logger);
+    _cache->enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override {}
   void publish_hosts(uint32_t from, uint32_t to, uint64_t poller_id = 1);

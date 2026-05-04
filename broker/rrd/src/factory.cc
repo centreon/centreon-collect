@@ -158,6 +158,46 @@ io::endpoint* factory::new_endpoint(
       ignore_update_errors = true;
   }
 
+  // Retention buffer point-count threshold per batch (default 144 = 12h at
+  // 1 pt/5min).
+  uint32_t retention_max_pending_points = 144;
+  {
+    auto it = cfg.params.find("retention_buffer_max_pending_points");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_max_pending_points)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_max_pending_points' for "
+          "endpoint '{}', using default (144)",
+          cfg.name);
+    }
+  }
+
+  // Retention buffer max number of rotated files (default 5).
+  uint32_t retention_max_files = 5;
+  {
+    auto it = cfg.params.find("retention_buffer_max_files");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_max_files)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_max_files' for "
+          "endpoint '{}', using default (5)",
+          cfg.name);
+    }
+  }
+
+  // Retention buffer orphan cleanup interval (seconds, default 3600).
+  uint32_t retention_orphan_interval = 3600;
+  {
+    auto it = cfg.params.find("retention_buffer_orphan_interval");
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &retention_orphan_interval)) {
+      logger->error(
+          "factory: cannot parse 'retention_buffer_orphan_interval' for "
+          "endpoint '{}', using default (3600)",
+          cfg.name);
+    }
+  }
+
   // Create endpoint.
   std::unique_ptr<rrd::connector> endp{std::make_unique<rrd::connector>()};
   if (write_metrics)
@@ -172,6 +212,9 @@ io::endpoint* factory::new_endpoint(
   endp->set_write_metrics(write_metrics);
   endp->set_write_status(write_status);
   endp->set_ignore_update_errors(ignore_update_errors);
+  endp->set_retention_max_pending_points(retention_max_pending_points);
+  endp->set_retention_max_files(retention_max_files);
+  endp->set_retention_orphan_interval(retention_orphan_interval);
   is_acceptor = false;
   return endp.release();
 }

@@ -42,6 +42,8 @@ class graphiteQuery : public ::testing::Test {
         com::centreon::broker::config::applier::broker_state>("unittest");
     config::applier::state::instance().initialize_cache(
         log_v2::instance().get(log_v2::CORE));
+    config::applier::state::instance().cache().enable_section(
+        com::centreon::broker::cache::broker_cache::CACHE_ALL);
   }
   void TearDown() override { config::applier::state::unload(); }
 };

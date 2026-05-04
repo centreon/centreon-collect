@@ -42,6 +42,11 @@ class connector : public io::endpoint {
   bool _write_metrics;
   bool _write_status;
 
+  // Retention buffer configuration
+  uint32_t _retention_max_pending_points;  // point-count threshold per batch
+  uint32_t _retention_max_files;           // max rotated files before forced merge
+  uint32_t _retention_orphan_interval;     // seconds before orphan cleanup
+
  public:
   connector();
   connector(const connector&) = delete;
@@ -56,6 +61,9 @@ class connector : public io::endpoint {
   void set_status_path(std::string const& status_path);
   void set_write_metrics(bool write_metrics) noexcept;
   void set_write_status(bool write_status) noexcept;
+  void set_retention_max_pending_points(uint32_t n) noexcept;
+  void set_retention_max_files(uint32_t n) noexcept;
+  void set_retention_orphan_interval(uint32_t seconds) noexcept;
 };
 }  // namespace rrd
 

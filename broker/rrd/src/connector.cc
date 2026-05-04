@@ -50,7 +50,10 @@ connector::connector()
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true) {}
+      _write_status(true),
+      _retention_max_pending_points(144),
+      _retention_max_files(5),
+      _retention_orphan_interval(3600) {}
 
 /**
  *  Connect.
@@ -58,19 +61,26 @@ connector::connector()
  *  @return Stream object.
  */
 std::shared_ptr<io::stream> connector::open() {
+  retention_config ret_cfg;
+  ret_cfg.metrics_dir = _metrics_path;
+  ret_cfg.status_dir = _status_path;
+  ret_cfg.max_pending_points = _retention_max_pending_points;
+  ret_cfg.max_files = _retention_max_files;
+  ret_cfg.orphan_interval = _retention_orphan_interval;
+
   std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
     retval.reset(new stream<cached<asio::local::stream_protocol::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_local, _write_metrics, _write_status));
+        _cached_local, ret_cfg, _write_metrics, _write_status));
   else if (_cached_port)
     retval.reset(new stream<cached<asio::ip::tcp::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,
-        _cached_port, _write_metrics, _write_status));
+        _cached_port, ret_cfg, _write_metrics, _write_status));
   else
     retval.reset(new stream<lib>(_metrics_path, _status_path, _cache_size,
-                                 _ignore_update_errors, _write_metrics,
-                                 _write_status));
+                                 _ignore_update_errors, ret_cfg,
+                                 _write_metrics, _write_status));
   return retval;
 }
 
@@ -145,6 +155,36 @@ void connector::set_write_metrics(bool write_metrics) noexcept {
  */
 void connector::set_write_status(bool write_status) noexcept {
   _write_status = write_status;
+}
+
+/**
+ *  Set the maximum combined point count (metrics + statuses) before a batch
+ *  rotation is triggered.
+ *
+ *  @param[in] n  Point-count threshold (default 144 = 12 h at 1 pt / 5 min).
+ */
+void connector::set_retention_max_pending_points(uint32_t n) noexcept {
+  _retention_max_pending_points = n;
+}
+
+/**
+ *  Set the maximum number of rotated retention files per metric before a
+ *  forced partial merge is triggered.
+ *
+ *  @param[in] n  Maximum number of rotated files (default 5).
+ */
+void connector::set_retention_max_files(uint32_t n) noexcept {
+  _retention_max_files = n;
+}
+
+/**
+ *  Set the inactivity interval after which a metric's retention buffer is
+ *  considered an orphan and cleaned up.
+ *
+ *  @param[in] seconds  Interval in seconds (default 3600).
+ */
+void connector::set_retention_orphan_interval(uint32_t seconds) noexcept {
+  _retention_orphan_interval = seconds;
 }
 
 /**************************************

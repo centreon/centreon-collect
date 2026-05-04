@@ -57,6 +57,18 @@ state::state(common::PeerType peer_type,
       _logger{logger} {}
 
 /**
+ * @brief Useful in unit tests to set a custom cache directory. The cache
+ * directory is used to store the cache on disk, and to load it at startup. It
+ * is also used to store the configuration cache when centralized configuration
+ * is enabled.
+ *
+ * @param cache_dir The cache directory to set.
+ */
+void state::set_cache_dir(const std::filesystem::path& cache_dir) {
+  _cache_dir = cache_dir;
+}
+
+/**
  *  Apply a configuration state.
  *
  *  @param[in] s       State to apply.

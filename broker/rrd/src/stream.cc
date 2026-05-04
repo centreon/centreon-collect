@@ -78,6 +78,7 @@ stream<lib>::stream(std::string const& metrics_path,
                     std::string const& status_path,
                     uint32_t cache_size,
                     bool ignore_update_errors,
+                    retention_config retention_cfg,
                     bool write_metrics,
                     bool write_status)
     : io::stream("RRD"),
@@ -87,7 +88,10 @@ stream<lib>::stream(std::string const& metrics_path,
       _write_metrics(write_metrics),
       _write_status(write_status),
       _backend(!metrics_path.empty() ? metrics_path : status_path, cache_size),
-      _logger{log_v2::instance().get(log_v2::RRD)} {}
+      _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
+      _logger{log_v2::instance().get(log_v2::RRD)} {
+  _retention.init();
+}
 
 /**
  *  Local socket constructor.
@@ -109,6 +113,7 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
     uint32_t cache_size,
     bool ignore_update_errors,
     std::string const& local,
+    retention_config retention_cfg,
     bool write_metrics,
     bool write_status)
     : io::stream("RRD"),
@@ -118,8 +123,10 @@ stream<cached<asio::local::stream_protocol::socket>>::stream(
       _write_metrics(write_metrics),
       _write_status(write_status),
       _backend(metrics_path, cache_size),
+      _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
       _logger{log_v2::instance().get(log_v2::RRD)} {
   _backend.connect_local(local);
+  _retention.init();
 }
 
 /**
@@ -141,6 +148,7 @@ stream<cached<asio::ip::tcp::socket>>::stream(std::string const& metrics_path,
                                               uint32_t cache_size,
                                               bool ignore_update_errors,
                                               unsigned short port,
+                                              retention_config retention_cfg,
                                               bool write_metrics,
                                               bool write_status)
     : io::stream("RRD"),
@@ -149,8 +157,11 @@ stream<cached<asio::ip::tcp::socket>>::stream(std::string const& metrics_path,
       _status_path(status_path),
       _write_metrics(write_metrics),
       _write_status(write_status),
-      _backend(metrics_path, cache_size) {
+      _backend(metrics_path, cache_size),
+      _retention(std::move(retention_cfg), log_v2::instance().get(log_v2::RRD)),
+      _logger{log_v2::instance().get(log_v2::RRD)} {
   _backend.connect_remote("localhost", port);
+  _retention.init();
 }
 }  // namespace com::centreon::broker::rrd
 
@@ -177,6 +188,8 @@ bool stream<T>::read(std::shared_ptr<io::data>& d, time_t deadline) {
 template <typename T>
 void stream<T>::update() {
   _backend.clean();
+  if (_retention.enabled())
+    _retention.cleanup_orphans(static_cast<uint64_t>(std::time(nullptr)));
 }
 
 /**
@@ -252,7 +265,29 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                                   m.metric_id(), m.value_type(), v);
               break;
           }
-          _backend.update(m.time(), v);
+          const uint32_t step = m.interval() ? m.interval() : 60;
+          if (!_retention.enabled() ||
+              static_cast<time_t>(m.time()) >=
+                  std::time(nullptr) - static_cast<time_t>(step)) {
+            // Current data → write directly to the RRD backend.
+            _backend.update(m.time(), v);
+            if (_retention.enabled()) {
+              // Track earliest current point for junction detection (Step 3).
+              auto [it, inserted] =
+                  _metric_earliest_current.try_emplace(m.metric_id(), m.time());
+              if (!inserted && m.time() < it->second)
+                it->second = m.time();
+            }
+          } else {
+            // Old (backfill) data → retention buffer only; bypass RRD backend.
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "RRD: metric {} t={} is old (step={}s) → retention buffer",
+                m.metric_id(), m.time(), step);
+            if (_retention.write_metric(m.metric_id(), m.time(), m.value(),
+                                        step))
+              _do_metric_merge(m.metric_id(), metric_path);
+          }
         } else
           // Cache value.
           it->second.push_back(d);
@@ -316,7 +351,27 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
                                   e->metric_id, e->value_type, v);
               break;
           }
-          _backend.update(e->time, v);
+          const uint32_t step = e->interval ? e->interval : 60;
+          if (!_retention.enabled() ||
+              static_cast<time_t>(e->time) >=
+                  std::time(nullptr) - static_cast<time_t>(step)) {
+            _backend.update(e->time, v);
+            if (_retention.enabled()) {
+              auto [it, inserted] = _metric_earliest_current.try_emplace(
+                  e->metric_id, static_cast<uint64_t>(e->time));
+              if (!inserted && static_cast<uint64_t>(e->time) < it->second)
+                it->second = static_cast<uint64_t>(e->time);
+            }
+          } else {
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "RRD: metric {} t={} is old (step={}s) → retention buffer",
+                e->metric_id, e->time, step);
+            if (_retention.write_metric(e->metric_id, e->time, e->value, step))
+              _do_metric_merge(
+                  e->metric_id,
+                  fmt::format("{}{}.rrd", _metrics_path, e->metric_id));
+          }
         } else
           // Cache value.
           it->second.push_back(d);
@@ -362,7 +417,26 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               value = "U";
               break;
           }
-	  _backend.update(s.time(), value);
+          const uint32_t step = s.interval() ? s.interval() : 60;
+          if (!_retention.enabled() ||
+              static_cast<time_t>(s.time()) >=
+                  std::time(nullptr) - static_cast<time_t>(step)) {
+            _backend.update(s.time(), value);
+            if (_retention.enabled()) {
+              auto [it, inserted] =
+                  _status_earliest_current.try_emplace(s.index_id(), s.time());
+              if (!inserted && s.time() < it->second)
+                it->second = s.time();
+            }
+          } else {
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "RRD: status {} t={} is old (step={}s) → retention buffer",
+                s.index_id(), s.time(), step);
+            if (_retention.write_status(s.index_id(), s.time(), s.state(),
+                                        step))
+              _do_status_merge(s.index_id(), status_path);
+          }
         } else
           // Cache value.
           it->second.push_back(d);
@@ -407,7 +481,27 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
               value = "U";
               break;
           }
-	  _backend.update(e->time, value);
+          const uint32_t step = e->interval ? e->interval : 60;
+          if (!_retention.enabled() ||
+              static_cast<time_t>(e->time) >=
+                  std::time(nullptr) - static_cast<time_t>(step)) {
+            _backend.update(e->time, value);
+            if (_retention.enabled()) {
+              auto [it, inserted] = _status_earliest_current.try_emplace(
+                  e->index_id, static_cast<uint64_t>(e->time));
+              if (!inserted && static_cast<uint64_t>(e->time) < it->second)
+                it->second = static_cast<uint64_t>(e->time);
+            }
+          } else {
+            SPDLOG_LOGGER_DEBUG(
+                _logger,
+                "RRD: status {} t={} is old (step={}s) → retention buffer",
+                e->index_id, e->time, step);
+            if (_retention.write_status(e->index_id, e->time, e->state, step))
+              _do_status_merge(
+                  e->index_id,
+                  fmt::format("{}{}.rrd", _status_path, e->index_id));
+          }
         } else
           // Cache value.
           it->second.push_back(d);
@@ -505,12 +599,18 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
+        if (_retention.enabled())
+          _retention.remove_metric(m);
+        _metric_earliest_current.erase(m);
       }
       for (auto& i : e->obj().index_ids()) {
         std::string path{fmt::format("{}{}.rrd", _status_path, i)};
         /* File removed */
         SPDLOG_LOGGER_INFO(_logger, "RRD: removing {} file", path);
         _backend.remove(path);
+        if (_retention.enabled())
+          _retention.remove_status(i);
+        _status_earliest_current.erase(i);
       }
     } break;
     case storage::remove_graph::static_type(): {
@@ -531,14 +631,129 @@ int stream<T>::write(std::shared_ptr<io::data> const& d) {
       if (it != cache.end())
         cache.erase(it);
 
-      // Remove file.
+      // Remove file and retention buffer.
       _backend.remove(path);
+      if (e->is_index) {
+        if (_retention.enabled())
+          _retention.remove_status(e->id);
+        _status_earliest_current.erase(e->id);
+      } else {
+        if (_retention.enabled())
+          _retention.remove_metric(e->id);
+        _metric_earliest_current.erase(e->id);
+      }
     } break;
     default:
       _logger->warn("RRD: unknown BBDO message received of type {}", d->type());
   }
 
   return 1;
+}
+
+/**
+ * @brief Merge the metric retention buffer into the RRD file.
+ *
+ * Reads all buffered (time, value) pairs and replays them into the backend.
+ * Points that are already in the RRD are silently rejected by librrd/rrdcached.
+ * On success, clears the buffer.
+ *
+ * @param metric_id  The metric identifier.
+ * @param rrd_path   Absolute path to the metric's .rrd file.
+ */
+template <typename T>
+void stream<T>::_do_metric_merge(uint64_t metric_id,
+                                 const std::string& rrd_path) {
+  SPDLOG_LOGGER_INFO(_logger,
+                     "RRD: merging retention buffer for metric {} into '{}'",
+                     metric_id, rrd_path);
+
+  auto pts = _retention.get_metric_merge_points(metric_id);
+  if (pts.empty()) {
+    _retention.metric_merge_done(metric_id);
+    return;
+  }
+
+  try {
+    _backend.open(rrd_path);
+  } catch (const exceptions::open&) {
+    SPDLOG_LOGGER_WARN(
+        _logger,
+        "RRD: metric {} RRD file '{}' not found during merge — skipping",
+        metric_id, rrd_path);
+    _retention.metric_merge_done(metric_id);
+    return;
+  }
+
+  // Build batch of "time:value" strings and replay into the backend.
+  std::deque<std::string> batch;
+  for (const auto& [t, v] : pts)
+    batch.emplace_back(fmt::format("{}:{:f}", t, v));
+
+  _backend.update(batch);
+  _retention.metric_merge_done(metric_id);
+  _metric_earliest_current.erase(metric_id);
+  SPDLOG_LOGGER_INFO(_logger,
+                     "RRD: retention merge for metric {} done ({} points)",
+                     metric_id, pts.size());
+}
+
+/**
+ * @brief Merge the status retention buffer into the RRD file.
+ *
+ * @param index_id   The status index identifier.
+ * @param rrd_path   Absolute path to the status .rrd file.
+ */
+template <typename T>
+void stream<T>::_do_status_merge(uint64_t index_id,
+                                 const std::string& rrd_path) {
+  SPDLOG_LOGGER_INFO(_logger,
+                     "RRD: merging retention buffer for status {} into '{}'",
+                     index_id, rrd_path);
+
+  auto pts = _retention.get_status_merge_points(index_id);
+  if (pts.empty()) {
+    _retention.status_merge_done(index_id);
+    return;
+  }
+
+  try {
+    _backend.open(rrd_path);
+  } catch (const exceptions::open&) {
+    SPDLOG_LOGGER_WARN(
+        _logger,
+        "RRD: status {} RRD file '{}' not found during merge — skipping",
+        index_id, rrd_path);
+    _retention.status_merge_done(index_id);
+    return;
+  }
+
+  // Status → string conversion (same as normal write path).
+  std::deque<std::string> batch;
+  for (const auto& [t, state] : pts) {
+    const char* v;
+    switch (state) {
+      case 0:
+        v = "100";
+        break;
+      case 1:
+        v = "75";
+        break;
+      case 2:
+        v = "0";
+        break;
+      default:
+        v = "U";
+        break;
+    }
+    batch.emplace_back(fmt::format("{}:{}", t, v));
+  }
+
+  _backend.update(batch);
+  _retention.status_merge_done(index_id);
+  _status_earliest_current.erase(index_id);
+  SPDLOG_LOGGER_INFO(_logger,
+                     "RRD: retention merge for status {} done ({} points)",
+                     index_id, pts.size());
 }
 
 /**
