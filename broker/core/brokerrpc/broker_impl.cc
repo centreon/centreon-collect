@@ -1040,3 +1040,49 @@ grpc::Status broker_impl::GetSeverities(grpc::ServerContext* context
   }
   return grpc::Status::OK;
 }
+
+grpc::Status broker_impl::GetTopology(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const ::google::protobuf::Empty* request
+                                      [[maybe_unused]],
+                                      TopologyResponse* response) {
+  /* The Broker gRPC service is only available on Broker instances
+   * with the Broker role. So it's safe to static_cast the state to
+   * broker_state.
+   */
+  config::applier::broker_state* broker_state =
+      static_cast<config::applier::broker_state*>(
+          &config::applier::state::instance());
+  for (auto& p : broker_state->connected_peers()) {
+    switch (p.peer_type) {
+      case common::BROKER: {
+        auto* entry = response->add_direct_brokers();
+        entry->set_poller_id(p.peer.poller_id);
+        entry->set_broker_name(p.peer.broker_name);
+      } break;
+      case common::ENGINE: {
+        uint64_t via_remote = p.peer.via_remote;
+        if (via_remote) {
+          auto remote =
+              std::find_if(response->mutable_direct_brokers()->begin(),
+                           response->mutable_direct_brokers()->end(),
+                           [via_remote](const auto& b) {
+                             return b.poller_id() == via_remote;
+                           });
+          if (remote != response->mutable_direct_brokers()->end()) {
+            auto* poller = remote->add_pollers();
+            poller->set_poller_id(p.peer.poller_id);
+            poller->set_poller_name(p.peer.poller_name);
+            break;
+          }
+        }
+        auto* poller = response->add_direct_pollers();
+        poller->set_poller_id(p.peer.poller_id);
+        poller->set_poller_name(p.peer.poller_name);
+      } break;
+      default:
+        break;
+    }
+  }
+  return grpc::Status::OK;
+}

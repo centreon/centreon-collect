@@ -147,6 +147,49 @@ service Broker {
    * severity, with its config ID, type, level and database ID.
    */
   rpc GetSeverities(google.protobuf.Empty) returns (SeverityList) {}
+
+  /**
+   * @brief Return the topology of the broker, including all pollers, brokers
+   * and their connections. The returned TopologyResponse message contains a
+   * list of all peers (pollers and brokers).
+   *
+   * There is a missing point in the TopologyResponse, if the connection to a
+   * poller is established through several brokers, the response is partial
+   * because only the direct connection is described. To have a complete view of
+   * the topology, clients may need to call GetTopology on each broker to gather
+   * all connections and build the full topology graph.
+   *
+   * For example, if P is a poller and B1, B2 and B3 are brokers, with the
+   * following connections: P -> B1 -> B2 -> B3, GetTopology called on B3 will
+   * see P as a peer with a connection to B2, but it will not see the
+   * connections from P to B1 and from B1 to B2. Broker doesn't store all the
+   * connections to pollers, it only knows about its direct connections.
+   *
+   * @param google.protobuf.Empty The request message is empty, as no parameters
+   * are needed to retrieve the topology information.
+   *
+   * @return TopologyResponse A message containing the list of peers (pollers
+   * and brokers) and their details, representing the topology of the broker
+   * system. Each peer includes information such as ID, name, type, connection
+   * time and configuration details.
+   */
+  rpc GetTopology(google.protobuf.Empty) returns (TopologyResponse) {}
+}
+
+message PollerEntry {
+  uint64 poller_id = 1;
+  string poller_name = 2;
+}
+
+message BrokerEntry {
+  uint64 poller_id = 1;
+  string broker_name = 2;
+  repeated PollerEntry pollers = 3;
+}
+
+message TopologyResponse {
+  repeated BrokerEntry direct_brokers = 1;
+  repeated PollerEntry direct_pollers = 2;
 }
 
 message PeerList {

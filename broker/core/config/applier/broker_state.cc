@@ -224,7 +224,8 @@ void broker_state::add_peer(uint64_t poller_id,
                                          effective_engine_conf,
                                          false,
                                          true,
-                                         false};
+                                         false,
+                                         0u};
         break;
       default:
         _unknown_peers[key] =
@@ -489,9 +490,6 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
   std::vector<peer> retval;
   retval.reserve(_engine_peers.size() + _broker_peers.size() +
                  _unknown_peers.size());
-  for (const auto& [key, ep] : _engine_peers) {
-    retval.emplace_back(peer{.peer = ep, .peer_type = common::ENGINE});
-  }
   for (const auto& [key, bp] : _broker_peers) {
     retval.emplace_back(
         peer{.peer =
@@ -509,6 +507,9 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                  },
              .peer_type = common::BROKER});
   }
+  for (const auto& [key, ep] : _engine_peers) {
+    retval.emplace_back(peer{.peer = ep, .peer_type = common::ENGINE});
+  }
   for (const auto& [key, up] : _unknown_peers) {
     retval.emplace_back(
         peer{.peer =
@@ -523,6 +524,7 @@ std::vector<broker_state::peer> broker_state::connected_peers() const {
                      .available_conf_sent = false,
                      .conf_acknowledged = false,
                      .conf_unknown = false,
+                     .via_remote = 0u,
                  },
              .peer_type = up.peer_type});
   }
