@@ -164,19 +164,22 @@ jobs:
         with:
           github-token: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
           script: |
+            core.info(`Checking release-management team membership for: ${context.actor}`);
             try {
               const { data } = await github.rest.teams.getMembershipForUserInOrg({
                 org: 'centreon',
                 team_slug: 'release-management',
                 username: context.actor,
               });
+              core.info(`API response: state=${data.state}, role=${data.role}`);
               if (data.state !== 'active') {
-                core.setFailed(`User ${context.actor} is NOT an active member of the release-management team. Cannot use rebuild-release label.`);
+                core.setFailed(`[state-check] User ${context.actor} membership state is "${data.state}" (expected "active"). Cannot use rebuild-release label.`);
               } else {
-                core.info(`User ${context.actor} is authorized to use rebuild-release label.`);
+                core.info(`[authorized] User ${context.actor} is an active member of release-management. Proceeding.`);
               }
             } catch (e) {
-              core.setFailed(`User ${context.actor} is NOT in the release-management team. Cannot use rebuild-release label.`);
+              core.info(`[api-error] HTTP status: ${e.status ?? 'unknown'} — ${e.message}`);
+              core.setFailed(`[api-error] Cannot verify team membership for ${context.actor}: ${e.message}. Check that CENTREON_TECHNIQUE_PAT has read:org scope.`);
             }
 
       - name: Checkout sources (current branch)
