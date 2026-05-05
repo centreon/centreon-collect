@@ -50,7 +50,7 @@ BESS6_${label}
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Connection between Engine and Broker not established
 
-    # While we not get two peers connected, we recheck the peers list
+    # While we don't get two peers connected, we recheck the peers list
     ${count}    Set Variable    0
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51001
@@ -94,7 +94,7 @@ BESS6_${label}
 
     Should Be Equal As Integers    ${count}    2    Two peers should be connected to the central broker.
 
-    # While we not get two peers connected, we recheck the peers list
+    # While we don't get two peers connected, we recheck the peers list
     FOR    ${idx}    IN RANGE    0    20
         ${result}    Ctn Get Peers    51002
         Log To Console    ${result}
