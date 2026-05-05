@@ -159,14 +159,19 @@ jobs:
         if: contains(steps.has_skip_label.outputs.labels, 'rebuild-release')
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
+          github-token: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
           script: |
             try {
-              await github.rest.teams.getMembershipForUserInOrg({
+              const { data } = await github.rest.teams.getMembershipForUserInOrg({
                 org: 'centreon',
                 team_slug: 'release-management',
                 username: context.actor,
               });
-              core.info(`User ${context.actor} is authorized to use rebuild-release label.`);
+              if (data.state !== 'active') {
+                core.setFailed(`User ${context.actor} is NOT an active member of the release-management team. Cannot use rebuild-release label.`);
+              } else {
+                core.info(`User ${context.actor} is authorized to use rebuild-release label.`);
+              }
             } catch (e) {
               core.setFailed(`User ${context.actor} is NOT in the release-management team. Cannot use rebuild-release label.`);
             }
