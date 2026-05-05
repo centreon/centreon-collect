@@ -37,8 +37,8 @@ struct tmp_dir {
   fs::path status;
 
   tmp_dir() {
-    fs::path base = fs::temp_directory_path() /
-                    fmt::format("rrd_ret_test_{}", ::getpid());
+    fs::path base =
+        fs::temp_directory_path() / fmt::format("rrd_ret_test_{}", ::getpid());
     metrics = base / "metrics";
     status = base / "status";
     fs::create_directories(metrics);
@@ -71,10 +71,10 @@ struct tmp_dir {
 };
 
 retention_config make_config(const fs::path& metrics_dir,
-                            const fs::path& status_dir,
-                            uint32_t max_pending_points = 1024 * 1024,
-                            uint32_t max_files = 5,
-                            uint32_t orphan_interval = 3600) {
+                             const fs::path& status_dir,
+                             uint32_t max_pending_points = 1024 * 1024,
+                             uint32_t max_files = 5,
+                             uint32_t orphan_interval = 3600) {
   retention_config cfg;
   cfg.metrics_dir = metrics_dir;
   cfg.status_dir = status_dir;
@@ -151,7 +151,8 @@ TEST(RetentionManagerTest, MetricMergeDoneClearsFiles) {
   tmp_dir tmp;
   // max_pending_points=1 forces rotation on every write, so files land on disk.
   retention_manager rm(
-      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1), test_logger());
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
   rm.init();
 
   rm.write_metric(1, 500, 1.0, 60);
@@ -189,7 +190,8 @@ TEST(RetentionManagerTest, RotationCreatesRotatedFile) {
   tmp_dir tmp;
   // max_pending_points=1 so rotation happens after the first record.
   retention_manager rm(
-      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1), test_logger());
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
   rm.init();
 
   rm.write_metric(5, 1000, 1.0, 60);
@@ -211,7 +213,8 @@ TEST(RetentionManagerTest, RotationCreatesRotatedFile) {
 TEST(RetentionManagerTest, RotationPreservesAllPoints) {
   tmp_dir tmp;
   retention_manager rm(
-      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1), test_logger());
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
   rm.init();
 
   const int N = 10;
@@ -253,7 +256,8 @@ TEST(RetentionManagerTest, MergeTriggeredOnFileCountLimit) {
 TEST(RetentionManagerTest, RemoveMetricDeletesFiles) {
   tmp_dir tmp;
   retention_manager rm(
-      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1), test_logger());
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
   rm.init();
 
   rm.write_metric(20, 1000, 5.0, 60);
@@ -266,7 +270,8 @@ TEST(RetentionManagerTest, RemoveMetricDeletesFiles) {
 TEST(RetentionManagerTest, RemoveStatusDeletesFiles) {
   tmp_dir tmp;
   retention_manager rm(
-      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1), test_logger());
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
   rm.init();
 
   rm.write_status(21, 1000, 1, 300);
@@ -314,7 +319,8 @@ TEST(RetentionManagerTest, InitRecoversRotatedAndCurrentFiles) {
 
   {
     // Use max_pending_points=1 to force rotation.
-    retention_manager rm(make_config(tmp.metrics, tmp.status, 1), test_logger());
+    retention_manager rm(make_config(tmp.metrics, tmp.status, 1),
+                         test_logger());
     rm.init();
     for (int i = 0; i < 5; ++i)
       rm.write_metric(31, static_cast<uint64_t>(1000 + i * 60),
@@ -323,7 +329,8 @@ TEST(RetentionManagerTest, InitRecoversRotatedAndCurrentFiles) {
   }
 
   {
-    retention_manager rm(make_config(tmp.metrics, tmp.status, 1), test_logger());
+    retention_manager rm(make_config(tmp.metrics, tmp.status, 1),
+                         test_logger());
     rm.init();
     auto pts = rm.get_metric_merge_points(31);
     ASSERT_EQ(pts.size(), 5u);
@@ -338,7 +345,8 @@ TEST(RetentionManagerTest, InitRecoversRotatedAndCurrentFiles) {
 
 TEST(RetentionManagerTest, CleanupOrphansRemovesInactiveMetrics) {
   tmp_dir tmp;
-  // max_pending_points=1 forces rotation so the file lands on disk; orphan_interval=10s
+  // max_pending_points=1 forces rotation so the file lands on disk;
+  // orphan_interval=10s
   retention_manager rm(make_config(tmp.metrics, tmp.status, 1, 5, 10),
                        test_logger());
   rm.init();
@@ -346,8 +354,9 @@ TEST(RetentionManagerTest, CleanupOrphansRemovesInactiveMetrics) {
   rm.write_metric(50, 1000, 1.0, 60);
   EXPECT_GT(tmp.count_metric_files("50"), 0u);
 
-  // Simulate the metric being inactive: call cleanup with now = last_activity + 11
-  // We don't have direct access to last_activity_time, so we use a large now.
+  // Simulate the metric being inactive: call cleanup with now = last_activity +
+  // 11 We don't have direct access to last_activity_time, so we use a large
+  // now.
   uint64_t far_future = static_cast<uint64_t>(std::time(nullptr)) + 3600;
   rm.cleanup_orphans(far_future);
 
@@ -357,7 +366,8 @@ TEST(RetentionManagerTest, CleanupOrphansRemovesInactiveMetrics) {
 
 TEST(RetentionManagerTest, CleanupOrphansKeepsRecentMetrics) {
   tmp_dir tmp;
-  // max_pending_points=1 forces rotation so the file lands on disk; orphan_interval=3600s
+  // max_pending_points=1 forces rotation so the file lands on disk;
+  // orphan_interval=3600s
   retention_manager rm(make_config(tmp.metrics, tmp.status, 1, 5, 3600),
                        test_logger());
   rm.init();
@@ -409,4 +419,106 @@ TEST(RetentionManagerTest, DisabledWhenDirEmpty) {
   rm.init();
   EXPECT_FALSE(rm.write_metric(1, 1000, 1.0, 60));
   EXPECT_TRUE(rm.get_metric_merge_points(1).empty());
+}
+
+// ---------------------------------------------------------------------------
+// _read_status_points::read_file is exercised
+// ---------------------------------------------------------------------------
+
+/**
+ * With max_pending_points=1, every write triggers rotation: each point lands
+ * in a separate on-disk .prot file.  get_status_merge_points() then calls
+ * _read_status_points() which calls read_file() for every rotated file.
+ */
+TEST(RetentionManagerTest, StatusReadFileFromRotatedFiles) {
+  tmp_dir tmp;
+  retention_manager rm(
+      make_config(tmp.metrics, tmp.status, /*max_pending_points=*/1),
+      test_logger());
+  rm.init();
+
+  rm.write_status(60, 1000, 0, 300);  // OK
+  rm.write_status(60, 1300, 1, 300);  // WARN
+  rm.write_status(60, 1600, 2, 300);  // CRIT
+
+  // At least two rotated files must be on disk so read_file is actually called.
+  ASSERT_GE(tmp.count_status_files("60"), 2u);
+
+  auto pts = rm.get_status_merge_points(60);
+  ASSERT_EQ(pts.size(), 3u);
+  EXPECT_EQ(pts[0].first, 1000u);
+  EXPECT_EQ(pts[0].second, 0u);
+  EXPECT_EQ(pts[1].first, 1300u);
+  EXPECT_EQ(pts[1].second, 1u);
+  EXPECT_EQ(pts[2].first, 1600u);
+  EXPECT_EQ(pts[2].second, 2u);
+}
+
+/**
+ * Simulate a graceful shutdown and restart: the destructor flushes the pending
+ * batch to the current file ({id}.prot).  After restart, init() recovers that
+ * file and get_status_merge_points() calls read_file() on it.
+ */
+TEST(RetentionManagerTest, StatusReadFileAfterGracefulShutdown) {
+  tmp_dir tmp;
+  const auto cfg = make_config(tmp.metrics, tmp.status);
+
+  // Session 1: write, then destroy (graceful-shutdown flush).
+  {
+    retention_manager rm(cfg, test_logger());
+    rm.init();
+    rm.write_status(61, 2000, 0, 300);
+    rm.write_status(61, 2300, 1, 300);
+  }
+
+  ASSERT_GT(tmp.count_status_files("61"), 0u);
+
+  // Session 2: init() recovers the current file; get_status_merge_points()
+  // calls read_file() on it.
+  {
+    retention_manager rm(cfg, test_logger());
+    rm.init();
+
+    auto pts = rm.get_status_merge_points(61);
+    ASSERT_EQ(pts.size(), 2u);
+    EXPECT_EQ(pts[0].first, 2000u);
+    EXPECT_EQ(pts[0].second, 0u);
+    EXPECT_EQ(pts[1].first, 2300u);
+    EXPECT_EQ(pts[1].second, 1u);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// check_status_junction returning true
+// ---------------------------------------------------------------------------
+
+/**
+ * check_status_junction() must return true when the last buffered status
+ * timestamp plus the step is >= the earliest current-data timestamp, i.e. the
+ * buffer has caught up with the live stream.
+ *
+ *   last_retention_time + step >= earliest_current_time
+ */
+TEST(RetentionManagerTest, CheckStatusJunctionReturnsTrue) {
+  tmp_dir tmp;
+  retention_manager rm(make_config(tmp.metrics, tmp.status), test_logger());
+  rm.init();
+
+  const uint64_t step = 300;
+  const uint64_t t1 = 5000;
+
+  // Write a status point → sets last_retention_time = t1, step = step.
+  rm.write_status(70, t1, 0, step);
+
+  // Exactly at the junction boundary: t1 + step == earliest_current_time.
+  EXPECT_TRUE(rm.check_status_junction(70, t1 + step));
+
+  // One second inside the boundary: buffer has already passed ect.
+  EXPECT_TRUE(rm.check_status_junction(70, t1 + step - 1));
+
+  // One second beyond: buffer has not caught up yet.
+  EXPECT_FALSE(rm.check_status_junction(70, t1 + step + 1));
+
+  // earliest_current_time == 0 is the "unknown" sentinel → always false.
+  EXPECT_FALSE(rm.check_status_junction(70, 0));
 }

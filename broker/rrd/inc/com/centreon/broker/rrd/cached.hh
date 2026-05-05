@@ -40,6 +40,8 @@ class cached : public backend {
   lib _lib;
   T _socket;
   std::string _filename;
+  /// Serialises socket access between the write thread and the merge thread.
+  absl::Mutex _socket_m;
 
  public:
   cached(std::filesystem::path tmpl_path, uint32_t cache_size)
@@ -51,7 +53,7 @@ class cached : public backend {
    *
    * @param filename Path to the RRD file.
    */
-  void open(const std::string& filename) {
+  void open(const std::string& filename) override {
     // Close previous file.
     this->close();
 
@@ -79,7 +81,7 @@ class cached : public backend {
             time_t from,
             uint32_t step,
             short value_type = 0,
-            bool without_cache = false) {
+            bool without_cache = false) override {
     // Close previous file.
     this->close();
 
@@ -95,7 +97,7 @@ class cached : public backend {
   /**
    * @brief Close the current RRD file.
    */
-  void close() {
+  void close() override {
     _filename.clear();
     _batch = false;
   }
@@ -103,14 +105,14 @@ class cached : public backend {
   /**
    * @brief Clera the template cache.
    */
-  void clean() { _lib.clean(); }
+  void clean() override { _lib.clean(); }
 
   /**
    *  Remove the RRD file.
    *
    *  @param[in] filename Path to the RRD file.
    */
-  void remove(std::string const& filename) {
+  void remove(std::string const& filename) override {
     // Build rrdcached command.
     _logger->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
@@ -132,6 +134,7 @@ class cached : public backend {
    *  @param[in] command Command to send.
    */
   void _send_to_cached(const std::string& command) {
+    absl::MutexLock lk(&_socket_m);
     boost::system::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
@@ -185,7 +188,7 @@ class cached : public backend {
   /**
    *  Initiates the bulk load of multiple commands.
    */
-  void begin() {
+  void begin() override {
     // Send BATCH command to rrdcached.
     _batch = true;
     _send_to_cached("BATCH\n");
@@ -246,7 +249,7 @@ class cached : public backend {
   /**
    *  Commit current transaction.
    */
-  void commit() {
+  void commit() override {
     if (_batch) {
       // Send a . on the line to indicate that transaction is over.
       _batch = false;
@@ -260,7 +263,7 @@ class cached : public backend {
    *  @param[in] t     Timestamp of value.
    *  @param[in] value Associated value.
    */
-  void update(time_t t, std::string const& value) {
+  void update(time_t t, std::string const& value) override {
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
 
@@ -277,7 +280,7 @@ class cached : public backend {
     }
   }
 
-  void update(const std::deque<std::string>& pts) {
+  void update(const std::deque<std::string>& pts) override {
     _logger->debug("RRD: updating file '{}' with {} values", _filename,
                    pts.size());
 
