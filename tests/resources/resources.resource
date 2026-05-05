@@ -273,9 +273,17 @@ Ctn Start Engine
 	    END
         ELSE
 	    IF    ${with_extended_conf}
-                Start Process    /usr/sbin/centengine    --extended-config\=/tmp/centengine_extend.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		IF    ${with_centreon_engine_user}
+		    Start Process    su    -    centreon-engine    -c    /usr/sbin/centengine --extended-config\=/tmp/centengine_extend.json ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		ELSE
+                    Start Process    /usr/sbin/centengine    --extended-config\=/tmp/centengine_extend.json    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		END
 	    ELSE
-                Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		IF    ${with_centreon_engine_user}
+                    Start Process    su    -    centreon-engine    -c    /usr/sbin/centengine ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+		ELSE
+                    Start Process    /usr/sbin/centengine    ${conf}    alias=${alias}    stdout=${log}/centengine-stdout.log    stderr=${log}/centengine-stderr.log
+	    	END
 	    END
         END
     END
