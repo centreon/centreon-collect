@@ -25,6 +25,7 @@ class broker_stream : public stream {
   config::applier::broker_state& _state;
 
  protected:
+  void _send_diff_state_for_poller(uint64_t poller_id);
   void _handle_bbdo_event(const std::shared_ptr<io::data>& d) override;
 
  public:

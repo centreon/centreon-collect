@@ -648,7 +648,6 @@ grpc::Status broker_impl::GetPollers(grpc::ServerContext* context
     auto peer = response->add_peers();
     peer->set_id(p.poller_id);
     peer->set_poller_name(p.poller_name);
-    peer->set_broker_name(p.broker_name);
     peer->mutable_connected_since()->set_seconds(p.connected_since);
     peer->set_engine_conf(p.engine_conf);
     peer->set_available_conf(p.available_conf);
@@ -681,12 +680,12 @@ grpc::Status broker_impl::GetPeers(grpc::ServerContext* context
           &config::applier::state::instance());
   for (auto& p : broker_state->connected_peers()) {
     auto peer = response->add_peers();
-    peer->set_id(p.peer.poller_id);
-    peer->set_poller_name(p.peer.poller_name);
-    peer->set_broker_name(p.peer.broker_name);
-    peer->mutable_connected_since()->set_seconds(p.peer.connected_since);
-    peer->set_engine_conf(p.peer.engine_conf);
-    peer->set_available_conf(p.peer.available_conf);
+    peer->set_id(p.poller_id);
+    peer->set_poller_name(p.poller_name);
+    peer->set_broker_name(p.broker_name);
+    peer->mutable_connected_since()->set_seconds(p.connected_since);
+    peer->set_engine_conf(p.engine_conf);
+    peer->set_available_conf(p.available_conf);
     peer->set_type(p.peer_type);
   }
   return grpc::Status::OK;
@@ -1151,11 +1150,11 @@ grpc::Status broker_impl::GetTopology(grpc::ServerContext* context
     switch (p.peer_type) {
       case common::BROKER: {
         auto* entry = response->add_direct_brokers();
-        entry->set_poller_id(p.peer.poller_id);
-        entry->set_broker_name(p.peer.broker_name);
+        entry->set_poller_id(p.poller_id);
+        entry->set_broker_name(p.broker_name);
       } break;
       case common::ENGINE: {
-        uint64_t via_remote = p.peer.via_remote;
+        uint64_t via_remote = p.via_remote;
         if (via_remote) {
           auto remote =
               std::find_if(response->mutable_direct_brokers()->begin(),
@@ -1165,14 +1164,14 @@ grpc::Status broker_impl::GetTopology(grpc::ServerContext* context
                            });
           if (remote != response->mutable_direct_brokers()->end()) {
             auto* poller = remote->add_pollers();
-            poller->set_poller_id(p.peer.poller_id);
-            poller->set_poller_name(p.peer.poller_name);
+            poller->set_poller_id(p.poller_id);
+            poller->set_poller_name(p.poller_name);
             break;
           }
         }
         auto* poller = response->add_direct_pollers();
-        poller->set_poller_id(p.peer.poller_id);
-        poller->set_poller_name(p.peer.poller_name);
+        poller->set_poller_id(p.poller_id);
+        poller->set_poller_name(p.poller_name);
       } break;
       default:
         break;

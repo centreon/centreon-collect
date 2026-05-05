@@ -229,6 +229,10 @@ events::events() : _logger{log_v2::instance().get(log_v2::CONFIG)} {
                  &bbdo::pb_diff_state::operations);
   register_event(bbdo::pb_diff_state_ack::static_type(), "DiffStateAck",
                  &bbdo::pb_diff_state_ack::operations);
+  register_event(bbdo::pb_config_request::static_type(), "ConfigRequest",
+                 &bbdo::pb_config_request::operations);
+  register_event(bbdo::pb_config_revoke::static_type(), "ConfigRevoke",
+                 &bbdo::pb_config_revoke::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,
