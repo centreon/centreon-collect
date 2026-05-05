@@ -179,6 +179,11 @@ jobs:
                 triggerUnitTesting = false;
                 triggerE2eTesting = false;
               }
+              if (labels.includes('rebuild-release')) {
+                core.info('Label rebuild-release found: skipping all tests, keeping packaging and delivery only');
+                triggerUnitTesting = false;
+                triggerE2eTesting = false;
+              }
             } catch (e) {
               core.warning(`Could not parse labels: ${e}`);
             }
