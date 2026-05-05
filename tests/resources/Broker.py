@@ -141,7 +141,81 @@ config = {
         }}
     }}
 }}""",
-
+    "relay": """{{
+    "centreonBroker": {{
+        "broker_id": {0},
+        "broker_name": "{1}",
+        "poller_id": {2},
+        "poller_name": "Central",
+        "module_directory": "/usr/share/centreon/lib/centreon-broker",
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
+        "event_queue_max_size": 100000,
+        "command_file": "{3}/lib/centreon-broker/command.sock",
+        "cache_directory": "{3}/lib/centreon-broker",
+        "log": {{
+            "log_pid": "yes",
+            "log_source": "no",
+            "flush_period": 0,
+            "directory": "{3}/log/centreon-broker/",
+            "filename": "",
+            "max_size": 0,
+            "loggers": {{
+                "core": "info",
+                "config": "error",
+                "sql": "error",
+                "processing": "error",
+                "perfdata": "error",
+                "bbdo": "error",
+                "tcp": "debug",
+                "tls": "error",
+                "lua": "error",
+                "bam": "error",
+                "grpc": "debug"
+            }}
+        }},
+        "input": [
+            {{
+                "name": "central-broker-master-input",
+                "port": "5669",
+                "buffering_timeout": "0",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }}
+        ],
+        "output": [
+            {{
+                "name": "centreon-broker-output",
+                "port": "5672",
+                "buffering_timeout": "0",
+                "host": "127.0.0.1",
+                "retry_interval": "5",
+                "protocol": "bbdo",
+                "tls": "no",
+                "negotiation": "yes",
+                "one_peer_retention_mode": "no",
+                "compression": "no",
+                "type": "ipv4"
+            }}
+        ],
+        "stats": [
+            {{
+                "type": "stats",
+                "name": "{1}-stats",
+                "json_fifo": "{3}/lib/centreon-broker/{1}-stats.json"
+            }}
+        ],
+        "grpc": {{
+            "port": 51001
+        }},
+        "bbdo_version": "3.1.0"
+    }}
+}}""",
     "module": """{{
     "centreonBroker": {{
         "broker_id": {0},
@@ -387,6 +461,54 @@ def _apply_conf(name, callback):
     callback(conf)
 
 
+def ctn_config_relay(broker_id: int, poller_id: int, stream: str):
+    """
+    Configure a relay broker instance for test. Write the configuration files.
+    Its name is "relay_{broker_id}".
+
+    Args:
+        broker_id (int): the broker ID.
+        poller_id (int): the poller ID.
+        stream (str): The list from the poller to the central of dictionaries
+        {name = "str", input = int, output = int}.
+    """
+    Common.ctn_set_bbdo2(True)
+    makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
+    makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
+    makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
+    makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
+    makedirs(f"{VAR_ROOT}/lib/centreon-broker/", mode=0o777, exist_ok=True)
+
+    broker_name = f"relay-broker-{broker_id}"
+    key = "relay"
+    name = f"relay{broker_id}"
+
+    buf = config[key].format(broker_id, broker_name, poller_id, VAR_ROOT)
+    conf = json.loads(buf)
+
+    current_configs[name] = conf
+
+    logger.console(f"stream: {stream}")
+    lst = json.loads(stream)
+    for d in lst:
+        logger.console(f"d content: {d}")
+        if d['name'] in current_configs:
+            logger.console(f"Found broker {d['name']} in current_configs")
+            conf = current_configs[d['name']]
+            if 'input' in d:
+                logger.console('input')
+                inp = conf['centreonBroker']['input']
+                if len(inp) == 1:
+                    inp[0]['port'] = f"{d['input']}"
+            if 'output' in d:
+                logger.console('output')
+                out = conf['centreonBroker']['output']
+                if len(out) == 1:
+                    out[0]['port'] = f"{d['output']}"
+        else:
+            logger.console(f"Broker {d['name']} not found in current_configs")
+
+
 def ctn_config_broker(name: str, poller_inst: int = 1):
     """
     Configure a broker instance for test. Write the configuration files.
@@ -535,6 +657,8 @@ def ctn_broker_config_flush(is_broker: bool=True):
                 filename = "central-broker.json"
             elif name == 'rrd':
                 filename = "central-rrd.json"
+            elif name.startswith("relay"):
+                filename = f"relay-broker-{name[5:]}.json"
             else:
                 continue
             logger.console(f"Writing broker (broker) configuration for {name}")
@@ -2600,6 +2724,68 @@ def ctn_remove_poller_by_id(port, idx, timeout=TIMEOUT):
                 break
             except Exception:
                 logger.console("gRPC server not ready")
+
+
+def ctn_get_broker_topology(port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Call the GetTopology gRPC endpoint on the central broker and return the
+    TopologyResponse.
+
+    Args:
+        port (int): the gRPC port (default 51001).
+        timeout (int): max seconds to retry if the server is not ready.
+
+    Returns:
+        A TopologyResponse proto object, or None on failure.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        try:
+            with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+                stub = broker_pb2_grpc.BrokerStub(channel)
+                return stub.GetTopology(empty_pb2.Empty())
+        except Exception as e:
+            logger.console(f"GetTopology not ready: {e}")
+            time.sleep(1)
+    return None
+
+
+def ctn_check_broker_topology(relay_poller_id, engine_poller_ids,
+                               port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Verify the topology returned by GetTopology: a relay with the given
+    poller_id must appear in direct_brokers, with engine_poller_ids as its
+    direct pollers.
+
+    Args:
+        relay_poller_id: expected relay broker poller_id (int or str).
+        engine_poller_ids: expected engine poller_ids behind that relay (list).
+        port (int): the gRPC port.
+        timeout (int): seconds to retry.
+
+    Returns:
+        True if the topology matches, False otherwise.
+    """
+    relay_id = int(relay_poller_id)
+    expected = set(int(x) for x in engine_poller_ids)
+    limit = time.time() + timeout
+    while time.time() < limit:
+        topo = ctn_get_broker_topology(port, timeout=5)
+        if topo is None:
+            time.sleep(1)
+            continue
+        for broker_entry in topo.direct_brokers:
+            if broker_entry.poller_id == relay_id:
+                found_ids = {p.poller_id for p in broker_entry.pollers}
+                if expected.issubset(found_ids):
+                    return True
+        logger.console(
+            f"Topology not yet matching: relay={relay_id}, "
+            f"expected={expected}, "
+            f"got brokers={[(b.poller_id, [p.poller_id for p in b.pollers]) for b in topo.direct_brokers]}"
+        )
+        time.sleep(1)
+    return False
 
 
 def ctn_check_poller_disabled_in_database(poller_id: int, timeout: int, in_resources: bool = False):

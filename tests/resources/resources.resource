@@ -114,6 +114,30 @@ Ctn Start Broker
         Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2    stdout=${BROKER_LOG}/central-rrd-stdout.log    stderr=${BROKER_LOG}/central-rrd-stderr.log
     END
 
+Ctn Start Relay
+    [Arguments]    ${broker_id}
+    Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/relay-broker-${broker_id}.json    alias=r${broker_id}    stderr=${BROKER_LOG}/relay-broker-${broker_id}-stderr.log    stdout=${BROKER_LOG}/relay-broker-${broker_id}-stdout.log
+
+Ctn Stop Relay
+    [Arguments]    ${broker_id}
+    Send Signal To Process    SIGTERM    r${broker_id}
+    ${result}    Wait For Process    r${broker_id}    timeout=60s
+    # In case of process not stopping
+    IF    "${result}" == "${None}"
+	Log To Console    fail to stop relay${broker_id} broker
+	Ctn Save Logs
+	Ctn Dump Process    r${broker_id}    /usr/sbin/cbd    broker-relay-${broker_id}
+	Send Signal To Process    SIGKILL    r${broker_id}
+	Fail    Relay Broker not correctly stopped (coredump generated)
+    ELSE
+	IF    ${result.rc} != 0
+	    Ctn Save Logs
+	    # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
+	    Ctn Coredump Info    r${broker_id}    /usr/sbin/cbd    broker-relay-${broker_id}
+	    Should Be Equal As Integers    ${result.rc}    0    Relay Broker not correctly stopped
+	END
+    END
+
 Ctn Restart Broker
     [Arguments]    ${only_central}=False
     Ctn Kindly Stop Broker    ${only_central}
