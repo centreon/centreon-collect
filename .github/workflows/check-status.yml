@@ -111,6 +111,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
+    secrets: inherit
 
   check-cherry-pick:
     needs: [get-environment, check-status]

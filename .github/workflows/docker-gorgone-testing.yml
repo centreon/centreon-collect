@@ -28,6 +28,7 @@ jobs:
     needs: [dependency-scan]
     if: github.repository == 'centreon/centreon-collect'
     uses: ./.github/workflows/get-environment.yml
+    secrets: inherit
 
   dockerize:
     needs: [get-environment]

@@ -44,6 +44,7 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       labels: ${{ inputs.labels || '' }}
+    secrets: inherit
 
   package:
     needs: [get-environment]

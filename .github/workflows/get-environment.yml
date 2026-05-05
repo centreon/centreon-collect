@@ -12,6 +12,9 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      CENTREON_TECHNIQUE_PAT:
+        required: false
     outputs:
       latest_major_version:
         description: "latest major version"

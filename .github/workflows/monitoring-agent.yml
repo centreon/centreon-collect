@@ -73,6 +73,7 @@ jobs:
       version_file: CMakeLists.txt
       nightly_manual_trigger: ${{ inputs.nightly_manual_trigger || false }}
       labels: ${{ inputs.labels || '' }}
+    secrets: inherit
 
   get-aws-environment:
     uses: ./.github/workflows/get-aws-environment.yml
