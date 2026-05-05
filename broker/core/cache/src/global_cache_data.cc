@@ -472,8 +472,7 @@ void global_cache_data::_process_pb_host(
             _logger,
             "cache: ignoring stale deletion of host {} from poller {} "
             "(currently owned by poller {})",
-            in.host_id(), in.instance_id(),
-            exist->second.first->instance_id());
+            in.host_id(), in.instance_id(), exist->second.first->instance_id());
         return;
       }
       if (exist->second.first) {
