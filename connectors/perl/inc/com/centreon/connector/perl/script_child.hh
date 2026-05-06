@@ -26,6 +26,13 @@
 
 namespace com::centreon::connector::perl {
 
+/**
+ * @brief Comparator that orders ConnectorMess by ascending execute timeout.
+ *
+ * Used as the key comparator for the _execute_queue btree_multiset so that
+ * requests closest to their deadline are dispatched first when an idle
+ * check_child becomes available.
+ */
 struct timeout_connector_mess_compare {
   bool operator()(const std::shared_ptr<ConnectorMess>& left,
                   const std::shared_ptr<ConnectorMess>& right) const {
@@ -33,6 +40,28 @@ struct timeout_connector_mess_compare {
   }
 };
 
+/**
+ * @brief Forked process that owns a compiled Perl interpreter and manages a
+ *        pool of check_child workers for a single check script.
+ *
+ * The class inherits fork<false> and operates on two distinct sides:
+ *
+ *   - **Parent side** (main process after fork) — compiles the loader and the
+ *     check script into the embedded Perl interpreter, then communicates with
+ *     the child via protobuf messages over stdin/stdout pipes. Callbacks
+ *     (_parent_read_handler, _parent_end_child_handler) propagate results and
+ *     end-of-life events back to the owning policy.
+ *
+ *   - **Child side** (inside the forked process) — runs an asio event loop
+ *     that dispatches incoming execute requests to idle check_child workers,
+ *     queues excess requests ordered by timeout, and forwards results to the
+ *     main process. A one-minute timer watches for script file modifications
+ *     and triggers a reload by sending a have_to_terminate message.
+ *
+ * One script_child instance corresponds to exactly one Perl script file. The
+ * owning policy creates a new instance whenever the script is updated or the
+ * child exits unexpectedly.
+ */
 class script_child : public com::centreon::common::fork<false> {
   const std::string _script_path;
   const std::string _additional_code;

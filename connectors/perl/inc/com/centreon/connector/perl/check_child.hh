@@ -25,6 +25,27 @@
 #include "connectors/perl/src/perl_connector.pb.h"
 
 namespace com::centreon::connector::perl {
+
+/**
+ * @brief Forked worker that executes a single Perl check script on behalf of
+ *        a script_child instance.
+ *
+ * The class sits on top of fork<false> and owns both sides of the
+ * parent/child boundary:
+ *
+ *   - **Parent side** — receives protobuf results from the child's stdout
+ *     pipe via _on_stdout_read(), notifies the owner through the registered
+ *     callbacks, and tracks whether a check is currently in flight
+ *     (_running).
+ *
+ *   - **Child side** — _run() drives a synchronous request-reply loop:
+ *     read an execute request from the parent, invoke the compiled Perl
+ *     subroutine through _check_script_handle, and write the result back.
+ *
+ * A check_child is considered *idle* when is_running() returns false;
+ * script_child uses this flag to dispatch new requests without creating
+ * unnecessary processes.
+ */
 class check_child : public com::centreon::common::fork<false> {
   protocol _protocol;
 

@@ -29,6 +29,17 @@ using namespace com::centreon::connector::perl;
  *    parent side
  *************************************************************************/
 
+/**
+ * @brief Called by the parent when data arrives on the child's stdout pipe.
+ *
+ * Decodes one or more protobuf messages and forwards them to the registered
+ * handler. Marks the check as no longer running as soon as a result message
+ * is received. On decode failure the already-decoded messages are still
+ * forwarded before the child is killed, so callers always get a consistent
+ * view of partial results.
+ *
+ * @param received Raw bytes read from the child stdout pipe.
+ */
 void check_child::_on_stdout_read(const std::string received) {
   std::vector<ConnectorMess> decoded;
 
@@ -53,6 +64,12 @@ void check_child::_on_stdout_read(const std::string received) {
   }
 }
 
+/**
+ * @brief Called by the parent when the child process exits (normal or abnormal).
+ *
+ * Delegates cleanup to the registered end-child handler so the owning policy
+ * can remove this instance from its active-children map.
+ */
 void check_child::_on_process_end() {
   _parent_end_child_handler(get_pid());
 }
@@ -61,8 +78,31 @@ void check_child::_on_process_end() {
  *    child side
  *************************************************************************/
 
+/**
+ * @brief Snapshot the child process's current resource usage.
+ *
+ * Reads resident memory, thread count and open file descriptor count.
+ * Called after the first check completes to establish a baseline; subsequent
+ * calls let the policy detect leaks or excessive growth and decide whether to
+ * recycle the process.
+ *
+ * @return A load struct populated with the current measurements.
+ */
 check_child::load check_child::measure_load() {}
 
+/**
+ * @brief Entry point executed in the forked child process.
+ *
+ * Wraps the raw file descriptors into Asio pipes and drives a synchronous
+ * request-reply loop: read an execute request from the parent, run the
+ * embedded Perl script, write the result back. The loop exits cleanly on a
+ * terminate message or on a pipe error (parent died), allowing the OS to
+ * reclaim the process without leaking resources.
+ *
+ * @param stdin_fd   File descriptor connected to the parent's write end.
+ * @param stdout_fd  File descriptor connected to the parent's read end.
+ * @return 0 on clean exit.
+ */
 int check_child::_run(int stdin_fd, int stdout_fd, int) {
   asio::readable_pipe child_stdin(*_io_context, stdin_fd);
   asio::writable_pipe child_stdout(*_io_context, stdout_fd);

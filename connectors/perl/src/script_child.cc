@@ -139,6 +139,12 @@ sub run_file {
 
 constexpr std::string_view _SCRIPT_PATH = "/tmp/centreon_connector_perl.XXXXXX";
 
+/**
+ * @brief Destroy the script_child object and shut down the Perl interpreter.
+ *
+ * Forces a full Perl destruction level so global cleanup hooks (END blocks,
+ * destructors) are run before freeing the interpreter memory.
+ */
 script_child::~script_child() {
   SPDLOG_LOGGER_INFO(_logger, "cleaning up Embedded Perl");
   if (my_perl) {
@@ -149,6 +155,18 @@ script_child::~script_child() {
   }
 }
 
+/**
+ * @brief Write the embedded loader script to a temporary file on disk.
+ *
+ * Combines the built-in _LOADER_SCRIPT with any @p additional_code and writes
+ * the result to a unique temp file created via mkstemp. The file is used as
+ * the argv[1] argument when parsing the Perl interpreter in _compile_script().
+ *
+ * @param additional_code  Optional Perl code appended after the loader body.
+ * @return Absolute path to the temporary file.
+ * @throws com::centreon::exceptions::msg_fmt if the file cannot be created or
+ *         written.
+ */
 std::string script_child::_write_loader_to_disk(
     const std::string_view& additional_code) {
   char script_path[_SCRIPT_PATH.length() + 1];
@@ -187,6 +205,18 @@ std::string script_child::_write_loader_to_disk(
   return script_path;
 }
 
+/**
+ * @brief Allocate and initialise the embedded Perl interpreter.
+ *
+ * Parses the loader script written by _write_loader_to_disk() so that the
+ * Embed::Persistent package is available for subsequent eval_file calls.
+ * PL_origalen is set to 1 to prevent Perl from reusing argv memory, and
+ * PERL_EXIT_DESTRUCT_END ensures END blocks run at interpreter destruction.
+ *
+ * @param loader_path  Path to the temporary loader script on disk.
+ * @throws com::centreon::exceptions::msg_fmt if the interpreter cannot be
+ *         allocated or the script cannot be parsed.
+ */
 void script_child::_compile_script(const std::string& loader_path) {
   SPDLOG_LOGGER_INFO(_logger, "loading Embedded Perl interpreter");
 
@@ -210,6 +240,18 @@ void script_child::_compile_script(const std::string& loader_path) {
   perl_run(my_perl);
 }
 
+/**
+ * @brief Compile the user-provided check script via the embedded Perl interpreter.
+ *
+ * Reads the script file, calls Embed::Persistent::eval_file to compile it into
+ * an anonymous subroutine, and stores the resulting code reference in
+ * _check_script_handle. Also records the file mtime so _minute_timer_handler
+ * can detect later modifications and trigger a reload.
+ *
+ * @throws com::centreon::exceptions::msg_fmt if the file cannot be read,
+ *         eval_file returns no handle, or the Perl ERRSV is set after
+ *         compilation.
+ */
 void script_child::_load_check_script() {
   // load check script
   std::filesystem::file_time_type check_script_mtime;
@@ -248,12 +290,29 @@ void script_child::_load_check_script() {
   _check_script_handle = handle;
 }
 
+/**
+ * @brief Serialize a protobuf message and write it synchronously to the child's stdin.
+ *
+ * Used by the parent process to send execute or terminate requests to this
+ * script_child instance.
+ *
+ * @param to_send  Message to serialize and forward.
+ */
 void script_child::write_mess_to_child_stdin(const ConnectorMess& to_send) {
   auto buff = _protocol.serialize(to_send);
   write_to_child_stdin(
       std::string(reinterpret_cast<const char*>(buff.get()), buff->len));
 }
 
+/**
+ * @brief Called by the parent when data arrives on this child's stdout pipe.
+ *
+ * Decodes one or more protobuf messages and forwards each one to the
+ * registered parent handler. On decode failure the child is killed first so
+ * the parent is not left waiting for a result that will never come.
+ *
+ * @param raw_data  Raw bytes read from the child stdout pipe.
+ */
 void script_child::_on_stdout_read(const std::string raw_data) {
   std::vector<ConnectorMess> received;
 
@@ -274,6 +333,12 @@ void script_child::_on_stdout_read(const std::string raw_data) {
   }
 }
 
+/**
+ * @brief Called by the parent when this child process exits.
+ *
+ * Notifies the owning policy so it can remove this instance from its
+ * active-children map and stop dispatching requests to it.
+ */
 void script_child::_on_process_end() {
   _parent_end_child_handler(_script_path);
 }
@@ -282,6 +347,19 @@ void script_child::_on_process_end() {
  *    child side
  *************************************************************************/
 
+/**
+ * @brief Entry point executed in the forked child process.
+ *
+ * Initialises the Perl interpreter in three steps: write the loader to disk,
+ * compile it, then compile the check script. Any failure is reported back to
+ * the parent via a have_to_terminate message before the process exits with -1.
+ * On success, the stdin pipe is opened, the minute timer is armed, the process
+ * name is set to the script basename, and the asio event loop is started.
+ *
+ * @param stdin_fd   File descriptor for commands received from the parent.
+ * @param stdout_fd  File descriptor for results sent back to the parent.
+ * @return 0 on clean exit, -1 if initialisation failed.
+ */
 int script_child::_run(int stdin_fd, int stdout_fd, int) {
   _child_stdout =
       std::make_unique<asio::writable_pipe>(*_io_context, stdout_fd);
@@ -322,6 +400,12 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
   return 0;
 }
 
+/**
+ * @brief Post an async read on the child stdin pipe.
+ *
+ * Each call consumes exactly one incoming message; the completion handler
+ * (_on_stdin_receive) re-posts another read to keep the loop alive.
+ */
 void script_child::read_from_main_process_stdin() {
   _protocol.async_recv(*_child_stdin,
                        [me = shared_from_this()](
@@ -331,6 +415,12 @@ void script_child::read_from_main_process_stdin() {
                        });
 }
 
+/**
+ * @brief Arm the one-minute periodic timer.
+ *
+ * Called once after initialisation and re-armed at the end of each
+ * _minute_timer_handler invocation to provide a recurring check.
+ */
 void script_child::_start_minute_timer() {
   _minute_timer.expires_after(std::chrono::minutes(1));
   _minute_timer.async_wait(
@@ -341,6 +431,14 @@ void script_child::_start_minute_timer() {
       });
 }
 
+/**
+ * @brief Fired every minute to detect check script modifications.
+ *
+ * Compares the current mtime of the script file against the mtime recorded
+ * at load time. If the file has changed, sends a have_to_terminate message to
+ * the parent so it can restart this child with the updated script.
+ * The timer is re-armed unconditionally at the end.
+ */
 void script_child::_minute_timer_handler() {
   std::error_code err;
   auto check_script_mtime = std::filesystem::last_write_time(_script_path, err);
@@ -356,6 +454,20 @@ void script_child::_minute_timer_handler() {
   _start_minute_timer();
 }
 
+/**
+ * @brief Dispatch a message received from the main process.
+ *
+ * For execute requests: forwards to the first idle check_child. If none is
+ * idle and the request forbids creating a new child, the request is queued
+ * ordered by timeout; otherwise a new check_child is forked. For
+ * have_to_terminate requests: kills the target check_child immediately or
+ * sends it a graceful terminate message. Always re-posts a read at the end
+ * to keep the stdin loop alive.
+ *
+ * @param err                    Asio error code; non-zero means the pipe is
+ *                               broken and the io_context is stopped.
+ * @param from_main_process_mess Message received from the main process.
+ */
 void script_child::_on_stdin_receive(
     const boost::system::error_code& err,
     const std::shared_ptr<ConnectorMess>& from_main_process_mess) {
@@ -435,6 +547,16 @@ void script_child::_on_stdin_receive(
   read_from_main_process_stdin();
 }
 
+/**
+ * @brief Handle a message received from a check_child worker.
+ *
+ * On result: removes the pid from the pending map, forwards the result to
+ * the main process, prunes timed-out queued requests, and immediately
+ * dispatches the oldest queued request to the now-idle child if one exists.
+ *
+ * @param pid               PID of the check_child that sent the message.
+ * @param from_child_script Message sent by the check_child.
+ */
 void script_child::_from_child_script_receive(
     int pid,
     const ConnectorMess& from_child_script) {
@@ -469,6 +591,16 @@ void script_child::_from_child_script_receive(
   }
 }
 
+/**
+ * @brief Called when sending an execute request to a check_child fails.
+ *
+ * Kills the offending child and removes it from the active-children map.
+ * The pending request is implicitly abandoned; _on_child_script_end will
+ * generate an unknown-status result for it when the child exits.
+ *
+ * @param pid   PID of the check_child that could not receive the request.
+ * @param mess  The execute request that failed to be sent (unused here).
+ */
 void script_child::_on_execute_send_error(
     int pid,
     const std::shared_ptr<ConnectorMess>& mess) {
@@ -477,6 +609,16 @@ void script_child::_on_execute_send_error(
   _check_childs.erase(to_kill);
 }
 
+/**
+ * @brief Called when a check_child process exits.
+ *
+ * Removes the child from the active map. If a check was still pending for
+ * this pid (i.e. the child died before sending a result), synthesizes an
+ * unknown-status result and forwards it to the main process so the check
+ * does not hang indefinitely.
+ *
+ * @param pid  PID of the check_child that exited.
+ */
 void script_child::_on_child_script_end(int pid) {
   _check_childs.erase(pid);
 
@@ -496,6 +638,14 @@ void script_child::_on_child_script_end(int pid) {
   }
 }
 
+/**
+ * @brief Asynchronously send a protobuf message to the main process via stdout.
+ *
+ * Stops the io_context on write error so the child exits cleanly rather than
+ * looping on a broken pipe.
+ *
+ * @param to_send  Message to serialize and send.
+ */
 void script_child::_send_to_main_process(const ConnectorMess& to_send) {
   _protocol.async_send(
       *_child_stdout, to_send,
