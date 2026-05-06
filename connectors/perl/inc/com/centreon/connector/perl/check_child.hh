@@ -48,6 +48,7 @@ namespace com::centreon::connector::perl {
  */
 class check_child : public com::centreon::common::fork<false> {
   protocol _protocol;
+  const std::string _script_path;
 
   // parent side
   bool _running = false;
@@ -69,7 +70,7 @@ class check_child : public com::centreon::common::fork<false> {
   };
 
   void* _check_script_handle = nullptr;
-  load _after_first_check_load;
+  std::optional<load> _after_first_check_load;
 
   static load measure_load();
 
@@ -80,6 +81,7 @@ class check_child : public com::centreon::common::fork<false> {
   template <typename read_handler, typename end_handler>
   check_child(const std::shared_ptr<asio::io_context> io_context,
               const std::shared_ptr<spdlog::logger>& logger,
+              const std::string& script_path,
               void* check_script_handle,
               read_handler&& readhandler,
               end_handler&& endhandler);
@@ -100,10 +102,12 @@ class check_child : public com::centreon::common::fork<false> {
 template <typename read_handler, typename end_handler>
 check_child::check_child(const std::shared_ptr<asio::io_context> io_context,
                          const std::shared_ptr<spdlog::logger>& logger,
+                         const std::string& script_path,
                          void* check_script_handle,
                          read_handler&& readhandler,
                          end_handler&& endhandler)
     : com::centreon::common::fork<false>(io_context, logger),
+      _script_path(script_path),
       _parent_read_handler(readhandler),
       _parent_end_child_handler(endhandler),
       _check_script_handle(check_script_handle) {}

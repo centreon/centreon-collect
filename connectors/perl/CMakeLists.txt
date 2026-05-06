@@ -38,13 +38,11 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
   ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/script.cc
   ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
 
@@ -67,12 +65,14 @@ target_link_libraries(centreon_connector_perl
   centreon_clib
   centreon_process_no_crypto
   centreon_file_system
+  process_stat
   #ctncrypto
   ${PERL_LIBRARIES}
   pb_perl_connector_lib
   protobuf::libprotobuf
   Boost::program_options
   Boost::process
+  re2::re2
   spdlog::spdlog
   fmt::fmt
   OpenSSL::SSL

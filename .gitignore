@@ -77,6 +77,10 @@ agent/inc/com/centreon/agent/version.hh
 bbdo/*_accessor.hh
 
 # broker
+broker/core/cache/inc/com/centreon/broker/cache/protobuf.hh
+broker/core/cache/src/protobuf.cc
+broker/core/cache/test/protobuf_test_classes.cc
+broker/core/cache/test/protobuf_test_classes.hh
 broker/core/sql/inc/com/centreon/broker/sql/table_max_size.hh
 broker/core/inc/com/centreon/broker/vars.hh
 broker/core/inc/com/centreon/broker/version.hh

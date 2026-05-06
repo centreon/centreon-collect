@@ -12,13 +12,13 @@ message Execute {
     uint64 cmd_id = 1;
     repeated string args = 2; // command arguments without script path
     bool no_child_create = 3; //if true and all child_script are running, we does not create a new child_script
-    uint64 timeout = 4;
+    int64 timeout = 4;
 }
 
 
 message CheckChildStatistics {
     uint64 used_memory = 1;
-    uint32 opened_fd = 2;
+    uint32 nb_opened_fd = 2;
     uint32 nb_threads = 3;
 }
 
@@ -26,17 +26,10 @@ message Result {
     uint64 cmd_id = 1;
     int32 status = 2;
     string stdout = 3;
-    string stderr = 4;
-    CheckChildStatistics AfterFirstCheck = 5;
-    CheckChildStatistics AfterLastCheck = 6;
+    CheckChildStatistics AfterFirstCheck = 4;
+    CheckChildStatistics AfterLastCheck = 5;
 }
 
-
-message ScriptError {
-    string embedded_file_write_error = 1;
-    string embedded_file_compilation_error = 2;
-    string check_script_error = 3;
-}
 
 message Terminate {
     uint64 pid = 1;

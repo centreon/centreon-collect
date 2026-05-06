@@ -30,9 +30,8 @@
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
 
-STRUCT_SV truc;
 // Perl interpreter object.
-static PerlInterpreter* my_perl(nullptr);
+PerlInterpreter* my_perl(nullptr);
 // Allow module loading.
 EXTERN_C void xs_init(pTHX);
 
@@ -80,7 +79,7 @@ package $package;
 
 BEGIN {
     *CORE::GLOBAL::exit = sub {
-        print "\\n\\nEXIT:", \$_[0], "\\n";
+        print STDERR "SCRIPT_EXIT_CODE:", \$_[0], "\\n";
         die "EXIT \$_[0]\n";
     };
 }
@@ -377,7 +376,7 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
   if (!_global_error.empty()) {
     ConnectorMess error;
     error.mutable_have_to_terminate()->set_error(_global_error);
-    auto [[maybe_unused]] dummy = _protocol.send(*_child_stdout, error);
+    auto dummy [[maybe_unused]] = _protocol.send(*_child_stdout, error);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     return -1;
   }
@@ -491,7 +490,7 @@ void script_child::_on_stdin_receive(
       _execute_queue.emplace(from_main_process_mess);
     } else {
       std::shared_ptr<check_child> new_child = std::make_shared<check_child>(
-          _io_context, _logger, _check_script_handle,
+          _io_context, _logger, _script_path, _check_script_handle,
           [weak_me = weak_from_this()](int pid,
                                        const ConnectorMess& from_check_child) {
             auto me = weak_me.lock();

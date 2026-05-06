@@ -263,14 +263,13 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   res->set_cmd_id(77);
   res->set_status(1);
   res->set_stdout("PING OK - Packet loss = 0%");
-  res->set_stderr("some warning");
   auto* after_first = res->mutable_afterfirstcheck();
   after_first->set_used_memory(1024);
-  after_first->set_opened_fd(5);
+  after_first->set_nb_opened_fd(5);
   after_first->set_nb_threads(2);
   auto* after_last = res->mutable_afterlastcheck();
   after_last->set_used_memory(2048);
-  after_last->set_opened_fd(7);
+  after_last->set_nb_opened_fd(7);
   after_last->set_nb_threads(3);
 
   // Produce a wire frame: [ size_t packet_len ][ serialised protobuf bytes ]
@@ -290,12 +289,11 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   EXPECT_EQ(got.result().cmd_id(), 77u);
   EXPECT_EQ(got.result().status(), 1);
   EXPECT_EQ(got.result().stdout(), "PING OK - Packet loss = 0%");
-  EXPECT_EQ(got.result().stderr(), "some warning");
   EXPECT_EQ(got.result().afterfirstcheck().used_memory(), 1024u);
-  EXPECT_EQ(got.result().afterfirstcheck().opened_fd(), 5u);
+  EXPECT_EQ(got.result().afterfirstcheck().nb_opened_fd(), 5u);
   EXPECT_EQ(got.result().afterfirstcheck().nb_threads(), 2u);
   EXPECT_EQ(got.result().afterlastcheck().used_memory(), 2048u);
-  EXPECT_EQ(got.result().afterlastcheck().opened_fd(), 7u);
+  EXPECT_EQ(got.result().afterlastcheck().nb_opened_fd(), 7u);
   EXPECT_EQ(got.result().afterlastcheck().nb_threads(), 3u);
 }
 

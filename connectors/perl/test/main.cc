@@ -21,11 +21,11 @@
 #include <perl.h>
 
 #include "com/centreon/connector/log.hh"
-#include "com/centreon/connector/perl/embedded_perl.hh"
+// #include "com/centreon/connector/perl/embedded_perl.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
-using namespace com::centreon::connector::perl;
+// using namespace com::centreon::connector::perl;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -47,19 +47,19 @@ int main(int argc, char* argv[], char** env) {
 
   // GTest initialization.
   testing::InitGoogleTest(&argc, argv);
-  PERL_SYS_INIT3(&argc, &argv, &env);
-  embedded_perl::load(argc, argv, env);
+  // PERL_SYS_INIT3(&argc, &argv, &env);
+  // embedded_perl::load(argc, argv, env);
   // Run all tests.
   int ret = RUN_ALL_TESTS();
 
-  PL_perl_destruct_level = 1;
-  perl_destruct(my_perl);
-  perl_free(my_perl);
-  PERL_SYS_TERM();
-  my_perl = nullptr;
+  // PL_perl_destruct_level = 1;
+  // perl_destruct(my_perl);
+  // perl_free(my_perl);
+  // PERL_SYS_TERM();
+  // my_perl = nullptr;
 
   // Unload.
-  embedded_perl::unload();
+  // embedded_perl::unload();
 
   g_io_context->stop();
   asio_thread.join();

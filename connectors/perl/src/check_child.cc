@@ -16,13 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
+#include <re2/re2.h>
+
 #include "com/centreon/connector/perl/check_child.hh"
 
 #include <EXTERN.h>
 #include <perl.h>
+#include <boost/system/detail/error_code.hpp>
 
 #include "common/inc/com/centreon/common/process_stat.hh"
 #include "src/perl_connector.pb.h"
+
+extern PerlInterpreter* my_perl;
 
 using namespace com::centreon::connector::perl;
 
@@ -115,6 +120,24 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
   asio::readable_pipe child_stdin(*_io_context, stdin_fd);
   asio::writable_pipe child_stdout(*_io_context, stdout_fd);
 
+  // we redirect stdout output of perl script to a pipe
+  int stdout_pipe_fd[2];
+  if (pipe(stdout_pipe_fd)) {
+    return -1;
+  }
+  fcntl(stdout_pipe_fd[0], F_SETPIPE_SZ, 0x100000);  // 1 MiB
+  dup2(stdout_pipe_fd[1], STDOUT_FILENO);
+  close(stdout_pipe_fd[1]);
+  int stderr_pipe_fd[2];
+  if (pipe(stderr_pipe_fd)) {
+    return -1;
+  }
+  dup2(stderr_pipe_fd[1], STDOUT_FILENO);
+  close(stderr_pipe_fd[1]);
+
+  dSP;
+  SPAGAIN;
+
   while (1) {
     ConnectorMess received;
     boost::system::error_code err = _protocol.recv(child_stdin, received);
@@ -125,6 +148,76 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
       break;
     }
     if (received.has_execute()) {
+      ENTER;
+      SAVETMPS;
+      PUSHMARK(SP);
+      XPUSHs(reinterpret_cast<SV*>(_check_script_handle));
+      XPUSHs(sv_2mortal(newSVpv(_script_path.c_str(), 0)));
+      for (const auto& arg : received.execute().args()) {
+        XPUSHs(sv_2mortal(newSVpv(arg.c_str(), 0)));
+      }
+      PUTBACK;
+      call_pv("Embed::Persistent::run_file", G_DISCARD);
+      SPAGAIN; /* rafraichit le pointeur de pile  */
+      LEAVE;
+
+      struct pollfd pfd[2];
+      pfd[0].fd = stdout_pipe_fd[0];
+      pfd[0].events = POLLIN;
+      pfd[1].fd = stderr_pipe_fd[0];
+      pfd[1].events = POLLIN;
+
+      ConnectorMess result;
+      auto res = result.mutable_result();
+
+      int poll_ret;
+      char buffer[4096];
+      size_t nb_read;
+      bool stdout_received = false;
+      bool stderr_received = false;
+      bool status_decoded = false;
+      // we wait 1000ms to receive first stdout and stderr datas
+      while ((poll_ret = poll(
+                  pfd, 2, (stdout_received && stderr_received) ? 10 : 1000))) {
+        if (pfd[0].revents & POLLIN) {
+          nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
+          res->mutable_stdout()->append(buffer, nb_read);
+          stdout_received = true;
+        }
+        if (pfd[1].revents & POLLIN) {
+          nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
+          static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)");
+          int exit_status = -1;
+          if (re2::RE2::PartialMatch(std::string_view(buffer, nb_read),
+                                     exit_code_pattern, &exit_status)) {
+            res->set_status(exit_status);
+            status_decoded = true;
+          }
+          stderr_received = true;
+        }
+      }
+      if (!status_decoded) {
+        res->set_status(3);  // UNKNOWN
+        res->set_stdout("script status no decoded " + res->stdout());
+      }
+      load new_load = measure_load();
+      if (!_after_first_check_load) {
+        *_after_first_check_load = new_load;
+      }
+      res->mutable_afterfirstcheck()->set_nb_threads(
+          _after_first_check_load->nb_thread);
+      res->mutable_afterfirstcheck()->set_nb_opened_fd(
+          _after_first_check_load->nb_opened_fd);
+      res->mutable_afterfirstcheck()->set_used_memory(
+          _after_first_check_load->used_memory);
+      res->mutable_afterlastcheck()->set_nb_threads(new_load.nb_thread);
+      res->mutable_afterlastcheck()->set_nb_opened_fd(new_load.nb_opened_fd);
+      res->mutable_afterlastcheck()->set_used_memory(new_load.used_memory);
+      boost::system::error_code send_error =
+          _protocol.send(child_stdout, result);
+      if (send_error) {
+        break;
+      }
     }
   }
 

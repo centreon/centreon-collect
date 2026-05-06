@@ -98,3 +98,70 @@ TEST(TestParser, with_file_error) {
   ASSERT_TRUE(ec);
   ASSERT_EQ(hash, "");
 }
+
+TEST(DirContent, empty_dir) {
+  system("rm -rf /tmp/test_dir_content && mkdir -p /tmp/test_dir_content");
+  auto result = dir_content("/tmp/test_dir_content", false);
+  ASSERT_TRUE(result.empty());
+}
+
+TEST(DirContent, empty_dir_recursive) {
+  system("rm -rf /tmp/test_dir_content && mkdir -p /tmp/test_dir_content");
+  auto result = dir_content("/tmp/test_dir_content", true);
+  ASSERT_TRUE(result.empty());
+}
+
+TEST(DirContent, nonRecursive_returns_top_level_files_only) {
+  system(
+      "rm -rf /tmp/test_dir_content && mkdir -p /tmp/test_dir_content && "
+      "touch /tmp/test_dir_content/a.txt && "
+      "touch /tmp/test_dir_content/b.txt && "
+      "mkdir -p /tmp/test_dir_content/sub && "
+      "touch /tmp/test_dir_content/sub/nested.txt");
+  auto result = dir_content("/tmp/test_dir_content", false);
+  result.sort();
+  ASSERT_EQ(result.size(), 2u);
+  auto it = result.begin();
+  ASSERT_EQ(*it, "/tmp/test_dir_content/a.txt");
+  ++it;
+  ASSERT_EQ(*it, "/tmp/test_dir_content/b.txt");
+}
+
+TEST(DirContent, recursive_includes_subdir_files) {
+  system(
+      "rm -rf /tmp/test_dir_content && mkdir -p /tmp/test_dir_content && "
+      "touch /tmp/test_dir_content/top.txt && "
+      "mkdir -p /tmp/test_dir_content/sub && "
+      "touch /tmp/test_dir_content/sub/nested.txt");
+  auto result = dir_content("/tmp/test_dir_content", true);
+  result.sort();
+  ASSERT_EQ(result.size(), 2u);
+  auto it = result.begin();
+  ASSERT_EQ(*it, "/tmp/test_dir_content/sub/nested.txt");
+  ++it;
+  ASSERT_EQ(*it, "/tmp/test_dir_content/top.txt");
+}
+
+TEST(DirContent, recursive_deep_nesting) {
+  system(
+      "rm -rf /tmp/test_dir_content && mkdir -p /tmp/test_dir_content && "
+      "touch /tmp/test_dir_content/root.txt && "
+      "mkdir -p /tmp/test_dir_content/a/b/c && "
+      "touch /tmp/test_dir_content/a/b/c/deep.txt && "
+      "touch /tmp/test_dir_content/a/mid.txt");
+  auto result = dir_content("/tmp/test_dir_content", true);
+  result.sort();
+  ASSERT_EQ(result.size(), 3u);
+  auto it = result.begin();
+  ASSERT_EQ(*it, "/tmp/test_dir_content/a/b/c/deep.txt");
+  ++it;
+  ASSERT_EQ(*it, "/tmp/test_dir_content/a/mid.txt");
+  ++it;
+  ASSERT_EQ(*it, "/tmp/test_dir_content/root.txt");
+}
+
+TEST(DirContent, nonexistent_dir_throws) {
+  system("rm -rf /tmp/test_dir_content_noexist");
+  ASSERT_THROW(dir_content("/tmp/test_dir_content_noexist", false),
+               std::exception);
+}

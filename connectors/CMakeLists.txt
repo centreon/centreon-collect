@@ -59,14 +59,12 @@ if(WITH_TESTING)
   add_executable(
     ut_connector
     # Core sources
-    ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
     ${PROJECT_SOURCE_DIR}/common/src/log.cc
     ${PROJECT_SOURCE_DIR}/common/src/result.cc
     ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
     ${PROJECT_SOURCE_DIR}/common/src/parser.cc
     ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/script.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
@@ -75,7 +73,6 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
     # Test sources.
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
-    ${PROJECT_SOURCE_DIR}/perl/test/embedded_perl.cc
     ${PROJECT_SOURCE_DIR}/perl/test/protocol_test.cc
     ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/buffer_handle.cc
@@ -94,13 +91,16 @@ if(WITH_TESTING)
     ut_connector PRIVATE
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
+    process_stat
     pb_perl_connector_lib
     protobuf::libprotobuf
     Boost::process
+    re2::re2
     ${PERL_LIBRARIES}
     fmt::fmt
     spdlog::spdlog
     ssh2
+    OpenSSL::SSL
     absl::any absl::log absl::base absl::bits
     absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
     )
