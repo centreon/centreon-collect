@@ -602,10 +602,20 @@ sub execute_cmd {
         if (!defined($self->{clapi_password})) {
             return (-1, 'need centreon clapi password to execute STARTWORKER command');
         }
+        my $task_timeout;
+        # need to send to clapi the timeout that gorgone is using from the action module
+        foreach my $module (@{$self->{config_core}->{modules}}) {
+            if ($module->{package} eq 'gorgone::modules::core::action::hooks') {
+                $task_timeout = $module->{command_timeout};
+                last
+            }
+        }
+        $task_timeout ||= 60;
+
         my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
             $connector->{config}->{centreon_dir} : '/usr/share/centreon';
         my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+            $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue --commandTimeout '.$task_timeout;
         $self->send_internal_action({
             action => 'COMMAND',
             target => undef,
@@ -615,6 +625,7 @@ sub execute_cmd {
                 content => [
                     {
                         command => $cmd,
+                        timeout => $task_timeout,
                         metadata => {
                             centcore_cmd => 'STARTWORKER'
                         }
@@ -638,7 +649,7 @@ sub action_addimporttaskwithparent {
             token => $options{token},
             logging => $options{data}->{logging},
             data => {
-                message => "expected parent_id task ID, found '" . $options{data}->{content}->{parent_id} . "'",
+                message => "expected parent_id task ID",
             }
         );
         return -1;
@@ -662,10 +673,20 @@ sub action_addimporttaskwithparent {
         return -1;
     }
 
-    my $centreon_dir = (defined($connector->{config}->{centreon_dir})) ?
-        $connector->{config}->{centreon_dir} : '/usr/share/centreon';
+    my $task_timeout;
+    foreach my $module (@{$self->{config_core}->{modules}}) {
+        # need to send to clapi the timeout that gorgone is using from the action module
+        if ($module->{package} eq 'gorgone::modules::core::action::hooks') {
+            $task_timeout = $module->{command_timeout};
+            last
+        }
+    }
+
+    $task_timeout ||= 60;
+
+    my $centreon_dir = $connector->{config}->{centreon_dir} // '/usr/share/centreon';
     my $cmd = $centreon_dir . '/bin/centreon -u "' . $self->{clapi_user} . '" -p "' .
-        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue';
+        $self->{clapi_password} . '" -w -o CentreonWorker -a processQueue --commandTimeout '.$task_timeout;
     $self->send_internal_action({
         action => 'COMMAND',
         token => $options{token},
@@ -673,7 +694,8 @@ sub action_addimporttaskwithparent {
             logging => $options{data}->{logging},
             content => [
                 {
-                    command => $cmd
+                    command => $cmd,
+                    timeout => $task_timeout,
                 }
             ],
             parameters => { no_fork => 1 }
