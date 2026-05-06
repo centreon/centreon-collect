@@ -197,6 +197,10 @@ TestWhiteList
 *** Keywords ***
 Ctn Prepare ssh
     [Documentation]    in order to test ssh connector, we need to create a user, his password and his Keyword
+    ${rc}    Run And Return Rc    pidof sshd
+    IF    ${rc} != 0
+        Run    /usr/sbin/sshd
+    END
     Run    useradd -m -d /home/testconnssh testconnssh
     Remove File    ~testconnssh/.ssh/authorized_keys
     Remove File    ~testconnssh/.ssh/id_rsa

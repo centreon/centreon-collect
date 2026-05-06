@@ -215,6 +215,10 @@ CBLBD
 ...    ${SPACE}${SPACE}value: "error"
 ...    }
 ...    level {
+...    ${SPACE}${SPACE}key: "cache"
+...    ${SPACE}${SPACE}value: "error"
+...    }
+...    level {
 ...    ${SPACE}${SPACE}key: "bbdo"
 ...    ${SPACE}${SPACE}value: "error"
 ...    }

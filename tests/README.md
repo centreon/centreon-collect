@@ -1636,11 +1636,53 @@ Here is the list of the currently implemented tests:
      * **GIVEN** all tags have been removed from all pollers
      * **WHEN** GetTags gRPC is called
      * **THEN** the broker tag cache returns an empty list (no orphan tags remain)
-10. **BECPN0**: **FEATURE:** Parent-Child Host Dependency Management
+10. **BECNTAG2**: **FEATURE:** Tag rename is reflected in the Broker gRPC cache
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** 4 tags (id=1, one per TagType) initially named tag1..tag4 on every poller
+     * **AND** tags assigned to all hosts and services
+
+     **SCENARIO:** Tag names are updated in the broker cache after rename on all pollers
+
+     * **GIVEN** the initial state has 20 tagged hosts and 400 tagged services
+     * **WHEN** all 4 pollers rename their tags to tag11..tag14 (same ids, new names)
+     * **THEN** broker GetTags returns exactly the 4 entries with the new names
+     * **AND** GetHostsByTag with the new HOSTGROUP name returns all 20 hosts
+     * **AND** GetServicesByTag with the new SERVICEGROUP name returns all 400 services
+11. **BECNTAG3**: **FEATURE:** GetTags gRPC returns correct content while tags are active
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** 4 tags (id=1, one per TagType) named tag1..tag4 on every poller
+     * **AND** tags assigned to all hosts and services
+
+     **SCENARIO:** GetTags returns 4 entries with the correct names while tags are active
+     * **WHEN** Broker and Engine are started and synchronized
+     * **THEN** GetTags returns exactly 4 entries
+     * **AND** the entry names are exactly {tag1, tag2, tag3, tag4}
+12. **BECNTAG4**: **FEATURE:** Broker cache is repopulated after broker restart with tags active
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** 4 tags (id=1, one per TagType) named tag1..tag4 assigned to all hosts/services
+
+     **SCENARIO:** After broker restart, GetTags and GetHostsByTag return correct data
+
+     * **GIVEN** broker and engine are started and synchronized
+     * **AND** GetTags returns 4 entries before broker stops
+     * **WHEN** broker is stopped and restarted (engine keeps running)
+     * **THEN** GetTags returns the same 4 entries after restart
+     * **AND** GetHostsByTag returns all 20 expected hosts
+     * **AND** GetServicesByTag returns all 400 expected services
+13. **BECPN0**: **FEATURE:** Parent-Child Host Dependency Management
      As a monitoring administrator
      I want child host checks to be queued when parent hosts are down
      So that unnecessary checks are avoided
-11. **BECPN1**: **FEATURE:** Parent Host Deletion Management
+14. **BECPN1**: **FEATURE:** Parent Host Deletion Management
      As a monitoring administrator
      I want parent-child relationships to be cleaned up when parent hosts are deleted
      So that orphaned relationships don't exist in the system
@@ -1654,7 +1696,7 @@ Here is the list of the currently implemented tests:
      * **AND** I notify Broker about that change in the engine configuration
      * **THEN** host_2 should have no parent hosts
      * **AND** the parent-child relationship should be removed from the database
-12. **BECPN2**: **FEATURE:** Child Host Deletion Management
+15. **BECPN2**: **FEATURE:** Child Host Deletion Management
      As a monitoring administrator
      I want parent-child relationships to be cleaned up when child hosts are deleted
      So that orphaned relationships don't exist in the system
@@ -1668,7 +1710,7 @@ Here is the list of the currently implemented tests:
      * **AND** I notify Broker of a change in the engine configuration
      * **THEN** host_1 should have no child hosts
      * **AND** the parent-child relationship should be removed from the database
-13. **BECSS1**: **SCENARIO:** Broker sends configuration to engine in new generation
+16. **BECSS1**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (broker first)
@@ -1676,7 +1718,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-14. **BECSS2**: **SCENARIO:** Broker sends configuration to engine in new generation
+17. **BECSS2**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (broker first)
@@ -1684,7 +1726,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-15. **BECSS3**: **SCENARIO:** Broker sends configuration to engine in new generation
+18. **BECSS3**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (engine first)
@@ -1692,7 +1734,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-16. **BECSS4**: **SCENARIO:** Broker sends configuration to engine in new generation
+19. **BECSS4**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (engine first)
@@ -1700,8 +1742,8 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (broker first)
-17. **BECSSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
-18. **BECSS_CRYPTED_GRPC1**: **SCENARIO:** Repeated start/stop cycles with gRPC and mutual TLS in centralized configuration mode
+20. **BECSSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
+21. **BECSS_CRYPTED_GRPC1**: **SCENARIO:** Repeated start/stop cycles with gRPC and mutual TLS in centralized configuration mode
 
      * **GIVEN** a centralized Engine configuration with gRPC and server-side TLS encryption
      * **WHEN** Broker and Engine are started for the first time
@@ -1713,12 +1755,12 @@ Here is the list of the currently implemented tests:
      * **THEN** both reload from their cached configuration files (.prot for Broker, state.prot for Engine)
      * **AND** no new configuration is exchanged
      * **AND** the database consistently shows 50 enabled hosts and 1000 enabled services
-19. **BECSS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
-20. **BECSS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
-21. **BECSS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
-22. **BECSS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
-23. **BECSS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
-24. **BECSS_GRPC1**: **SCENARIO:** Broker sends configuration to engine in new generation
+22. **BECSS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
+23. **BECSS_CRYPTED_REVERSED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
+24. **BECSS_CRYPTED_REVERSED_GRPC2**: Start-Stop grpc version Broker/Engine only engine server crypted
+25. **BECSS_CRYPTED_REVERSED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted
+26. **BECSS_ENGINE_DELETE_HOST**: once engine and cbd started, stop and restart cbd, delete an host and reload engine, cbd mustn't core
+27. **BECSS_GRPC1**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (broker first)
@@ -1726,7 +1768,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-25. **BECSS_GRPC2**: **SCENARIO:** Broker sends configuration to engine in new generation
+28. **BECSS_GRPC2**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (broker first)
@@ -1734,7 +1776,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-26. **BECSS_GRPC3**: **SCENARIO:** Broker sends configuration to engine in new generation
+29. **BECSS_GRPC3**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (engine first)
@@ -1742,7 +1784,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (engine first)
-27. **BECSS_GRPC4**: **SCENARIO:** Broker sends configuration to engine in new generation
+30. **BECSS_GRPC4**: **SCENARIO:** Broker sends configuration to engine in new generation
 
      * **GIVEN** an engine configuration is provided to the broker
      * **AND** the broker and engine are started in new generation (engine first)
@@ -1750,8 +1792,8 @@ Here is the list of the currently implemented tests:
      * **WHEN** the broker detects the configuration for the engine
      * **THEN** the broker sends the configuration to the engine
      * **THEN** both broker and engine are stopped (broker first)
-28. **BECSS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
-29. **BECTAG1**: **FEATURE:** Tag Management between Engine and Broker
+31. **BECSS_GRPC_COMPRESS1**: Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped last compression activated
+32. **BECTAG1**: **FEATURE:** Tag Management between Engine and Broker
      As a Centreon administrator
      I want to configure tags in Engine
      So that Broker stores them correctly in centreon_storage.tags table
@@ -1790,20 +1832,20 @@ Here is the list of the currently implemented tests:
      * **AND** Unused tags should be implicitly removed
      * **AND** Configuration file should match database content
      * **AND** Tag IDs should be consistent with new range
-30. **CANO_CFG_SENSITIVITY_SAVED**: 
+33. **CANO_CFG_SENSITIVITY_SAVED**: 
      * **GIVEN** an anomaly detection service is configured with a specific sensitivity value in configuration
      * **AND** the threshold file contains prediction data with sensitivity parameters
      * **WHEN** the engine and broker are started and then stopped
      * **THEN** the configuration-based sensitivity value should be persisted in the retention data
      because CFG sensitivity parameters are properly saved during retention processing
-31. **CANO_DT1**: 
+34. **CANO_DT1**: 
      * **GIVEN** an anomaly detection service is configured with a dependent service relationship
      * **AND** both services are running normally
      * **WHEN** a downtime is scheduled on the dependent service
      * **THEN** the dependent service should enter downtime state
      * **AND** the anomaly detection service should automatically inherit the downtime
      because anomaly detection services inherit downtime from their dependent services
-32. **CANO_DT2**: 
+35. **CANO_DT2**: 
      * **GIVEN** an anomaly detection service is configured with a dependent service relationship
      * **AND** both services are running normally
      * **WHEN** a downtime is scheduled on the dependent service
@@ -1811,7 +1853,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** the downtime is deleted from the dependent service
      * **THEN** the anomaly detection service should automatically exit downtime
      because anomaly detection downtime should follow its dependent service downtime state
-33. **CANO_DT3**: 
+36. **CANO_DT3**: 
      * **GIVEN** an anomaly detection service is configured with a dependent service relationship
      * **AND** both services are running normally
      * **WHEN** a downtime is scheduled on the dependent service
@@ -1819,56 +1861,56 @@ Here is the list of the currently implemented tests:
      * **WHEN** the downtime is deleted from the anomaly detection service
      * **THEN** the dependent service should remain in its original downtime state
      because deleting downtime on anomaly detection should not affect dependent service downtimes
-34. **CANO_DT4**: **SCENARIO:** Removing downtime from service keeps it on anomaly detection
+37. **CANO_DT4**: **SCENARIO:** Removing downtime from service keeps it on anomaly detection
 
      * **GIVEN** an anomaly detection is attached to a service
      * **AND** a downtime is set on both the service and the anomaly detection
      * **WHEN** the downtime is removed from the service
      * **THEN** the downtime should still be present on the anomaly detection
-35. **CANO_EXTCMD_SENSITIVITY_SAVED**: 
+38. **CANO_EXTCMD_SENSITIVITY_SAVED**: 
      * **GIVEN** an anomaly detection service is configured with threshold data
      * **AND** the service is running with initial sensitivity parameters
      * **WHEN** an external command updates the anomaly sensitivity value
      * **AND** the engine and broker are stopped
      * **THEN** the updated sensitivity value should be persisted in the retention data
      because external command sensitivity changes are properly saved during retention processing
-36. **CANO_JSON_SENSITIVITY_NOT_SAVED**: 
+39. **CANO_JSON_SENSITIVITY_NOT_SAVED**: 
      * **GIVEN** an anomaly detection service is configured with threshold data including sensitivity
      * **AND** the threshold file contains prediction data with a specific sensitivity value
      * **WHEN** the engine and broker are started and then stopped
      * **THEN** the sensitivity value should not be persisted in the retention data
      because JSON sensitivity parameters are not saved during retention processing
-37. **CANO_NOFILE**: 
+40. **CANO_NOFILE**: 
      * **GIVEN** an anomaly detection service is configured for metric monitoring
      * **AND** the threshold configuration file is missing from the system
      * **WHEN** the service processes a check result with critical state
      * **THEN** the anomaly detection service must transition to UNKNOWN state
      because it cannot determine thresholds without the configuration file
-38. **CANO_OUT_LOWER_THAN_LIMIT**: 
+41. **CANO_OUT_LOWER_THAN_LIMIT**: 
      * **GIVEN** an anomaly detection service is configured with valid threshold data
      * **AND** the threshold file contains lower and upper limits for the metric
      * **WHEN** a service check provides performance data below the lower threshold limit
      * **THEN** the anomaly detection service must transition to CRITICAL state
      because the metric value indicates an anomalous condition requiring attention
-39. **CANO_OUT_UPPER_THAN_LIMIT**: 
+42. **CANO_OUT_UPPER_THAN_LIMIT**: 
      * **GIVEN** an anomaly detection service is configured with valid threshold data
      * **AND** the threshold file contains lower and upper limits for the metric
      * **WHEN** a service check provides performance data above the upper threshold limit
      * **THEN** the anomaly detection service must transition to CRITICAL state
      because the metric value indicates an anomalous condition requiring attention
-40. **CANO_TOO_OLD_FILE**: 
+43. **CANO_TOO_OLD_FILE**: 
      * **GIVEN** an anomaly detection service is configured with metric monitoring
      * **AND** a threshold file exists but contains outdated prediction data
      * **WHEN** the service processes a check result with performance data
      * **THEN** the anomaly detection service must transition to UNKNOWN state
      because the threshold data is too old to be reliable for current predictions
-41. **CAOUTLU1**: 
+44. **CAOUTLU1**: 
      * **GIVEN** an anomaly detection service is configured with valid threshold data using BBDO3 protocol
      * **AND** the threshold file contains lower and upper limits for the metric
      * **WHEN** a service check provides performance data above the upper threshold limit
      * **THEN** the anomaly detection service must transition to CRITICAL state
      * **AND** the resources table should contain SERVICE, HOST and ANOMALY_DETECTION type entries
-42. **CBEUDHOSTS**: 
+45. **CBEUDHOSTS**: 
      * **GIVEN** a Centreon platform with 3 pollers configured
      * **AND** 50 hosts distributed across pollers (17+17+16)
      * **AND** initially 20 services per host
@@ -1880,9 +1922,46 @@ Here is the list of the currently implemented tests:
      * **AND** poller 2 should monitor exactly (17 hosts × services) + 17 hosts
      * **AND** poller 3 should monitor exactly (16 hosts × services) + 16 hosts
      * **AND** the load balancing should remain stable during scaling
-43. **Centralized_Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-44. **Centralized_Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-45. **RENAME_PARENT**: **FEATURE:** Parent Host Rename Management
+46. **CCCRC1**: 
+     * **GIVEN** a topology Poller1 -> Relay1 -> central cbd
+     * **WHEN** Engine connects to the relay
+     * **THEN** the relay sends a ConfigRequest to the central for poller 1
+     * **AND** the central logs the receipt of that ConfigRequest.
+47. **CCCRC2**: 
+     * **GIVEN** a topology Poller1 -> Relay3 -> central cbd
+     * **AND** a poller configuration is pre-created before starting the central broker
+     * **WHEN** the central processes the configuration and the relay sends a ConfigRequest
+     * **THEN** the central sends a non-unknown DiffState to the relay.
+48. **CCCRC3**: 
+     * **GIVEN** a topology Poller1 -> Relay3 -> central cbd
+     * **AND** a poller configuration is pre-created before starting the central broker
+     * **WHEN** Engine connects through the relay and the central sends a DiffState
+     * **THEN** the relay forwards the DiffState to Engine
+     * **AND** the relay forwards the DiffStateAck back to the central.
+49. **CCCRC4**: 
+     * **GIVEN** a topology Poller1 -> Relay3 -> central cbd
+     * **AND** a poller configuration is pre-created before starting central
+     * **WHEN** Engine connects and gets the initial config via relay
+     * **AND** PHP pushes a new config for poller 1 (5 extra hosts)
+     * **THEN** the central sends a new DiffState to the relay
+     * **AND** the central receives a new DiffStateAck.
+50. **CCCRC5**: 
+     * **GIVEN** Engine initially connected to central via Relay3 (poller_id=4)
+     * **WHEN** Engine migrates to Relay4 (poller_id=5)
+     * **THEN** the central sends ConfigRevoke to Relay3
+     * **AND** serves the configuration to Engine via Relay4.
+51. **CCCRC6**: 
+     * **GIVEN** Engine connected via Relay3 with initial config established
+     * **WHEN** the central is stopped cleanly and a new config is pushed during the outage
+     * **THEN** after the central restarts, the relay reconnects and the new DiffState
+     is forwarded to Engine via the relay, and central receives a new DiffStateAck.
+52. **CCCRC7**: 
+     * **GIVEN** Engine connected via Relay3 with initial config established
+     * **WHEN** GetTopology is called on the central gRPC endpoint
+     * **THEN** the response contains Relay3 as a direct broker with poller 1 as its poller.
+53. **Centralized_Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+54. **Centralized_Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+55. **RENAME_PARENT**: **FEATURE:** Parent Host Rename Management
      As a monitoring administrator
      I want parent-child relationships to be maintained when parent hosts are renamed
      So that dependencies remain intact after configuration changes
@@ -2358,9 +2437,6 @@ Here is the list of the currently implemented tests:
      * **WHEN** centengine is started in verification mode, it does not log in its file.
 136. **VERIFY_CONF**: Scenario Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
 
-### Migration
-1. **MIGRATION**: Migration bbdo2 with sql/storage to bbdo2 with unified_sql and then to bbdo3 with unified_sql and then to bbdo2 with unified_sql and then to bbdo2 with sql/storage
-
 ### Severities
 1. **BECSEV1**: **FEATURE:** Severity Management between Engine and Broker
      As a Centreon administrator
@@ -2421,17 +2497,86 @@ Here is the list of the currently implemented tests:
      * **AND** LAST_INSERT_ID() returns 0 for all rows, potentially overwriting db_ids in cache with 0
      * **THEN** severity db_ids should still be non-zero in broker cache
      * **AND** services should still have correct severity_id in the resources table
-4. **BESEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
-5. **BESEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
-6. **BETUHSEV1**: Hosts have severities provided by templates.
-7. **BETUSEV1**: Services have severities provided by templates.
-8. **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
-9. **BEUHSEV2**: Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
-10. **BEUSEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
-11. **BEUSEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
-12. **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
-13. **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
-14. **CBESEV1**: **SCENARIO:** Severities stored in database when Broker starts first (centralized)
+4. **BECSEV4**: **FEATURE:** Severity presence in Broker gRPC cache with centralized configuration
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers are configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** each poller defines 2 severities: id=1/SERVICE/level=1 and id=2/HOST/level=2
+     * **AND** severity 1 is assigned to all services, severity 2 to all hosts
+     * **AND** Broker and Engine are started in centralized (BBDO3) mode
+
+     **SCENARIO:** Phase 1 — All pollers active
+     * **THEN** the broker gRPC cache contains severity (1, SERVICE, level=1)
+     * **AND** the broker gRPC cache contains severity (2, HOST, level=2)
+
+     **SCENARIO:** Phase 2 — Severity removed from poller 3
+     * **WHEN** severities are removed from poller 3 and broker is notified
+     * **THEN** the broker cache STILL contains severity (1, SERVICE) (pollers 0-2 have it)
+     * **AND** the broker cache STILL contains severity (2, HOST)
+
+     **SCENARIO:** Phase 3 — Severity removed from poller 2
+     * **WHEN** severities are removed from poller 2 and broker is notified
+     * **THEN** the broker cache STILL contains severity (1, SERVICE) (pollers 0-1 have it)
+     * **AND** the broker cache STILL contains severity (2, HOST)
+
+     **SCENARIO:** Phase 4 — Severity removed from all remaining pollers
+     * **WHEN** severities are removed from pollers 0 and 1 and broker is notified
+     * **THEN** the broker cache contains 0 severities
+
+     **SCENARIO:** Phase 5 — Severity cache is empty (no orphan entries)
+     * **THEN** GetSeverities returns an empty list
+5. **BECSEV5**: **FEATURE:** Severity level change is reflected in the Broker gRPC cache
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** each poller defines severity id=1 (SERVICE, level=1) and id=2 (HOST, level=2)
+     * **AND** severities assigned to all hosts and services
+
+     **SCENARIO:** Severity levels are updated in the broker cache after modification
+
+     * **GIVEN** the initial state has severity (1, SERVICE, level=1) and (2, HOST, level=2)
+     * **WHEN** all 4 pollers update their severities to level=4 (SERVICE) and level=5 (HOST)
+     * **THEN** broker GetSeverities returns (1, SERVICE, level=4) and (2, HOST, level=5)
+6. **BECSEV6**: **FEATURE:** GetSeverities gRPC returns correct content while severities are active
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** each poller defines severity id=1 (SERVICE, level=1) and id=2 (HOST, level=2)
+     * **AND** severities assigned to all hosts and services
+
+     **SCENARIO:** GetSeverities returns 2 entries with correct metadata when all pollers are active
+     * **WHEN** Broker and Engine are started and synchronized
+     * **THEN** GetSeverities returns exactly 2 entries
+     * **AND** severity (1, SERVICE, level=1) is present
+     * **AND** severity (2, HOST, level=2) is present
+7. **BECSEV7**: **FEATURE:** Broker cache is repopulated after broker restart with severities active
+
+     **BACKGROUND:**
+
+     * **GIVEN** 4 pollers configured with 5 hosts each (20 total) and 20 services per host
+     * **AND** each poller defines severity id=1 (SERVICE, level=1) and id=2 (HOST, level=2)
+     * **AND** severities assigned to all hosts and services
+
+     **SCENARIO:** After broker restart, GetSeverities returns correct data
+
+     * **GIVEN** broker and engine are started and synchronized
+     * **AND** GetSeverities returns 2 entries before broker stops
+     * **WHEN** broker is stopped and restarted (engine keeps running)
+     * **THEN** GetSeverities returns the same 2 entries after restart
+8. **BESEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
+9. **BESEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
+10. **BETUHSEV1**: Hosts have severities provided by templates.
+11. **BETUSEV1**: Services have severities provided by templates.
+12. **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
+13. **BEUHSEV2**: Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
+14. **BEUSEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
+15. **BEUSEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
+16. **BEUSEV3**: Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
+17. **BEUSEV4**: Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
+18. **CBESEV1**: **SCENARIO:** Severities stored in database when Broker starts first (centralized)
 
      * **GIVEN** Engine is configured with centralized setup and 20 severities
      * **AND** Broker components (central, rrd, module) are configured
@@ -2439,7 +2584,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** Broker is started before Engine
      * **THEN** severity20 should be of level 5 with icon_id 1
      * **AND** severity1 should be of level 1 with icon_id 5
-15. **CBESEV2**: **SCENARIO:** Severities stored in database when Engine starts first (centralized)
+19. **CBESEV2**: **SCENARIO:** Severities stored in database when Engine starts first (centralized)
 
      * **GIVEN** Engine is configured with centralized setup and 20 severities
      * **AND** Broker components (central, rrd, module) are configured
@@ -2447,7 +2592,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** Engine is started before Broker
      * **THEN** severity20 should be of level 5 with icon_id 1
      * **AND** severity1 should be of level 1 with icon_id 5
-16. **CBETUHSEV1**: 
+20. **CBETUHSEV1**: 
      * **GIVEN** hosts on two pollers using templates that define severities
      (template_1: severity 2 on poller 0, severity 6 on poller 1;
      template_2: severity 4 on poller 0, severity 10 on poller 1),
@@ -2456,7 +2601,7 @@ Here is the list of the currently implemented tests:
      * **AND** host 5 should have severity_id=4
      * **AND** host 31 should have severity_id=6
      * **AND** host 33 should have severity_id=10.
-17. **CBETUSEV1**: **SCENARIO:** Service severities inherited from templates via unified SQL (centralized)
+21. **CBETUSEV1**: **SCENARIO:** Service severities inherited from templates via unified SQL (centralized)
 
      * **GIVEN** Engine is configured with centralized setup across 2 pollers and 20 severities each
      * **AND** service templates with severity assignments are configured
@@ -2466,7 +2611,7 @@ Here is the list of the currently implemented tests:
      * **AND** services inheriting template_2 on poller 1 should have severity_id=3
      * **AND** services inheriting template_1 on poller 2 should have severity_id=3
      * **AND** services inheriting template_2 on poller 2 should have severity_id=5
-18. **CBEUHSEV1**: 
+22. **CBEUHSEV1**: 
      * **GIVEN** four hosts with a severity added,
      * **WHEN** we remove the severity from host 1
      * **AND** we change severity 10 to severity 8 for host 3,
@@ -2474,7 +2619,7 @@ Here is the list of the currently implemented tests:
      * **AND** host 4 should still have severity_id=10
      * **AND** host 3 should have severity_id=8
      * **AND** host 1 should have no severity.
-19. **CBEUHSEV2**: 
+23. **CBEUHSEV2**: 
      * **GIVEN** seven hosts configured with severities on two pollers,
      * **WHEN** we remove severities from hosts on the first poller
      * **AND** we change host 28's severity from 16 to 14 on the second poller,
@@ -2482,7 +2627,7 @@ Here is the list of the currently implemented tests:
      * **AND** host 27 should still have severity_id=18
      * **AND** host 28 should have severity_id=14
      * **AND** hosts 3, 4 and 5 on the first poller should have no severity.
-20. **CBEUSEV1**: **SCENARIO:** Severities stored via unified SQL when Broker starts first (centralized)
+24. **CBEUSEV1**: **SCENARIO:** Severities stored via unified SQL when Broker starts first (centralized)
 
      * **GIVEN** Engine is configured with centralized setup and 20 severities
      * **AND** Broker is configured with unified SQL output and BBDO3
@@ -2490,7 +2635,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** Broker is started before Engine
      * **THEN** severity20 should be of level 5 with icon_id 1
      * **AND** severity1 should be of level 1 with icon_id 5
-21. **CBEUSEV2**: **SCENARIO:** Severities stored via unified SQL when Engine starts first (centralized)
+25. **CBEUSEV2**: **SCENARIO:** Severities stored via unified SQL when Engine starts first (centralized)
 
      * **GIVEN** Engine is configured with centralized setup and 20 severities
      * **AND** Broker is configured with unified SQL output and BBDO3
@@ -2498,7 +2643,7 @@ Here is the list of the currently implemented tests:
      * **WHEN** Engine is started before Broker
      * **THEN** severity20 should be of level 5 with icon_id 1
      * **AND** severity1 should be of level 1 with icon_id 5
-22. **CBEUSEV3**: **SCENARIO:** Service severity removal and change via unified SQL (centralized)
+26. **CBEUSEV3**: **SCENARIO:** Service severity removal and change via unified SQL (centralized)
 
      * **GIVEN** Engine is configured with centralized setup and 20 severities
      * **AND** Broker is configured with unified SQL output and BBDO3
@@ -2509,7 +2654,7 @@ Here is the list of the currently implemented tests:
      * **AND** Engine and Broker are reloaded
      * **THEN** service (1, 3) should have severity_id=7
      * **AND** service (1, 1) should have no severity
-23. **CBEUSEV4**: **SCENARIO:** Severity removal across two pollers via unified SQL (centralized)
+27. **CBEUSEV4**: **SCENARIO:** Severity removal across two pollers via unified SQL (centralized)
 
      * **GIVEN** Engine is configured with centralized setup across 2 pollers and 20 severities each
      * **AND** severity 19 is assigned to services 2,4 on poller 1 and services 501,502 on poller 2
@@ -2595,4 +2740,4 @@ Here is the list of the currently implemented tests:
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-788 tests currently implemented.
+801 tests currently implemented.

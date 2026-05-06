@@ -99,7 +99,6 @@ CTest6Hosts
     ...    $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n foo=$HOSTADDRESS$"
     ...    SSH Connector
     ${run_env}    Ctn Run Env
-    Log To Console    @@@@@@@@@@@@@@@@@@@@@ ${run_env} @@@@@@@@@@@@@@@@@@@@@
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    _USER    testconnssh
     Ctn Engine Config Replace Value In Hosts    ${0}    host_1    check_command    ssh_linux_snmp
     Ctn Engine Config Set Value In Hosts    ${0}    host_1    _IDENTITYFILE    /home/testconnssh/.ssh/id_rsa
@@ -222,6 +221,10 @@ CTestWhiteList
 *** Keywords ***
 Ctn Prepare ssh
     [Documentation]    in order to test ssh connector, we need to create a user, his password and his Keyword
+    ${rc}    Run And Return Rc    pidof sshd
+    IF    ${rc} != 0
+        Run    /usr/sbin/sshd
+    END
     Run    useradd -m -d /home/testconnssh testconnssh
     Remove File    ~testconnssh/.ssh/authorized_keys
     Remove File    ~testconnssh/.ssh/id_rsa
