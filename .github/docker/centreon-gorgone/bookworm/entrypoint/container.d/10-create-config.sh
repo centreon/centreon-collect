@@ -26,7 +26,7 @@ elif [ "$TYPE" = "poller" ]; then
     echo "=== Generating Gorgone Configuration for Poller ==="
     echo ""
 
-    UUID="${UUID:?ERROR: UUID env var must be set for poller mode}"
+    UID="${UID:?ERROR: UID env var must be set for poller mode}"
     NAME="${NAME:?ERROR: NAME env var must be set for poller mode}"
     POLLER_TOKEN="${POLLER_TOKEN:?ERROR: POLLER_TOKEN env var must be set for poller mode}"
     CENTRAL_URL="${CENTRAL_URL:?ERROR: CENTRAL_URL env var must be set for poller mode}"
@@ -37,7 +37,7 @@ elif [ "$TYPE" = "poller" ]; then
     CENTRAL_PORT=$(echo "$CENTRAL_HOSTPORT" | cut -s -d: -f2)
     CENTRAL_PORT="${CENTRAL_PORT:-8086}"
 
-    echo "Poller UUID    : $UUID"
+    echo "Poller UID    : $UID"
     echo "Poller name    : $NAME"
     echo "Central address: $CENTRAL_HOST:$CENTRAL_PORT"
 
@@ -46,7 +46,7 @@ name: ${NAME}
 description: Poller configuration
 gorgone:
   gorgonecore:
-    id: ${UUID}
+    id: ${UID}
     privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
     pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
 
