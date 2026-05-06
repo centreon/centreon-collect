@@ -29,7 +29,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/base64.cc
     crypto/aes256.cc
     engine_conf/expand_conf.cc
-    file_test.cc
+    file_system_test.cc
     fork_test.cc
     grpc/grpc_test.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
@@ -116,6 +116,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_http
             centreon_process
             centreon_grpc
+            centreon_file_system
             engine_conf
             log_v2
             gRPC::grpc++

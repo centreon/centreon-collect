@@ -17,15 +17,11 @@
  */
 
 #include <sys/prctl.h>
-#include <boost/system/detail/error_code.hpp>
-#include <chrono>
-#include <filesystem>
-#include <memory>
-#include <thread>
 
 #include "com/centreon/connector/perl/check_child.hh"
 #include "com/centreon/connector/perl/script_child.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/inc/com/centreon/common/file_system.hh"
 #include "src/perl_connector.pb.h"
 
 #include <EXTERN.h>
@@ -114,12 +110,8 @@ EOSUB
 
 sub run_file {
   # Fetch arguments.
-  my ($filename, $handle, $args) = @_;
-
-  # Parse arguments.
-  my @parsed_args = ("$filename");
-  push(@parsed_args, parse_line('\s+', 0, $args));
-
+  my ($handle, @parsed_args) = @_ ;
+  
   # Run subroutine.
   print "Run subroutine";
   my $res;
@@ -241,7 +233,8 @@ void script_child::_compile_script(const std::string& loader_path) {
 }
 
 /**
- * @brief Compile the user-provided check script via the embedded Perl interpreter.
+ * @brief Compile the user-provided check script via the embedded Perl
+ * interpreter.
  *
  * Reads the script file, calls Embed::Persistent::eval_file to compile it into
  * an anonymous subroutine, and stores the resulting code reference in
@@ -258,10 +251,7 @@ void script_child::_load_check_script() {
   std::string file_content;
   try {
     check_script_mtime = std::filesystem::last_write_time(_script_path);
-    std::ifstream file(_script_path);
-    file_content.reserve(std::filesystem::file_size(_script_path));
-    file_content.assign(std::istreambuf_iterator<char>(file),
-                        std::istreambuf_iterator<char>());
+    file_content = common::read_file_content(_script_path);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "could not load check script {}",
                         _script_path);
@@ -291,7 +281,8 @@ void script_child::_load_check_script() {
 }
 
 /**
- * @brief Serialize a protobuf message and write it synchronously to the child's stdin.
+ * @brief Serialize a protobuf message and write it synchronously to the child's
+ * stdin.
  *
  * Used by the parent process to send execute or terminate requests to this
  * script_child instance.

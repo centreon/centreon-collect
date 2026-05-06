@@ -21,6 +21,7 @@
 #include <EXTERN.h>
 #include <perl.h>
 
+#include "common/inc/com/centreon/common/process_stat.hh"
 #include "src/perl_connector.pb.h"
 
 using namespace com::centreon::connector::perl;
@@ -65,7 +66,8 @@ void check_child::_on_stdout_read(const std::string received) {
 }
 
 /**
- * @brief Called by the parent when the child process exits (normal or abnormal).
+ * @brief Called by the parent when the child process exits (normal or
+ * abnormal).
  *
  * Delegates cleanup to the registered end-child handler so the owning policy
  * can remove this instance from its active-children map.
@@ -88,7 +90,13 @@ void check_child::_on_process_end() {
  *
  * @return A load struct populated with the current measurements.
  */
-check_child::load check_child::measure_load() {}
+check_child::load check_child::measure_load() {
+  common::process_stat stats(getpid());
+
+  return load{.used_memory = stats.res_size(),
+              .nb_thread = stats.num_threads(),
+              .nb_opened_fd = stats.opened_fds()};
+}
 
 /**
  * @brief Entry point executed in the forked child process.

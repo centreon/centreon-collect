@@ -1,5 +1,5 @@
 /**
- * Copyright 2024 Centreon
+ * Copyright 2024,2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,10 @@
  *
  * For more information : contact@centreon.com
  */
+#include <dirent.h>
 
-#include "file.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "file_system.hh"
 
 namespace com::centreon::common {
 
@@ -103,4 +104,62 @@ std::string hash_directory(const std::filesystem::path& dir_path,
   }
   return retval;
 }
+
+static void _dir_content_impl(const std::filesystem::path& dir_path,
+                              bool recursive,
+                              std::list<std::filesystem::path>& result) {
+  constexpr size_t buf_size = 65536;
+  char buf[buf_size];
+
+  int fd = open(dir_path.c_str(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+  if (fd < 0)
+    throw exceptions::msg_fmt("Can't open directory '{}': {}",
+                              dir_path.string(), strerror(errno));
+
+  for (;;) {
+    long nread = syscall(SYS_getdents64, fd, buf, buf_size);
+    if (nread < 0) {
+      close(fd);
+      throw exceptions::msg_fmt("getdents64 failed on '{}': {}",
+                                dir_path.string(), strerror(errno));
+    }
+    if (nread == 0)
+      break;
+
+    for (long pos = 0; pos < nread;) {
+      auto* entry = reinterpret_cast<struct dirent64*>(buf + pos);
+      pos += entry->d_reclen;
+
+      std::string_view name(entry->d_name);
+      if (name == "." || name == "..")
+        continue;
+
+      std::filesystem::path entry_path = dir_path / name;
+
+      if (entry->d_type == DT_DIR) {
+        if (recursive)
+          _dir_content_impl(entry_path, true, result);
+      } else {
+        result.push_back(std::move(entry_path));
+      }
+    }
+  }
+
+  close(fd);
+}
+/**
+ *  Fill a path list with the files listed in the directory.
+ *
+ * @param path The directory path
+ *
+ * @return a list of names.
+ */
+std::list<std::filesystem::path> dir_content(
+    const std::filesystem::path& dir_path,
+    bool recursive) {
+  std::list<std::filesystem::path> result;
+  _dir_content_impl(dir_path, recursive, result);
+  return result;
+}
+
 }  // namespace com::centreon::common

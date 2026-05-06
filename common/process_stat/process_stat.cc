@@ -19,23 +19,11 @@
 
 #include <boost/exception/errinfo_file_name.hpp>
 #include <boost/throw_exception.hpp>
+#include "file_system.hh"
 
 #include "process_stat.hh"
 
 using namespace com::centreon::common;
-
-static auto read_file = [](const std::string& file_path) -> std::string {
-  std::ifstream file(file_path);
-  if (file.is_open()) {
-    std::stringstream ss;
-    ss << file.rdbuf();
-    file.close();
-    return ss.str();
-  } else {
-    BOOST_THROW_EXCEPTION(process_stat::exception()
-                          << boost::errinfo_file_name(file_path));
-  }
-};
 
 static auto extract_io_value = [](const std::string_view& label_value,
                                   const std::string& file_path) -> uint64_t {
@@ -71,13 +59,14 @@ static auto extract_io_value = [](const std::string_view& label_value,
 process_stat::process_stat(pid_t process_id)
     : _pid(process_id),
       _num_threads(0),
+      _opened_fds(0),
       _query_read_bytes(0),
       _query_write_bytes(0),
       _real_read_bytes(0),
       _real_write_bytes(0) {
   std::string proc_path = fmt::format("/proc/{}/", process_id);
   std::string file_path(proc_path + "cmdline");
-  _cmdline = read_file(file_path);
+  _cmdline = common::read_file_content(file_path);
   // there are \0 between arguments
   for (auto& chr : _cmdline) {
     if (!chr) {
@@ -87,7 +76,7 @@ process_stat::process_stat(pid_t process_id)
 
   file_path = proc_path;
   file_path += "io";
-  std::string file_content = read_file(file_path);
+  std::string file_content = common::read_file_content(file_path);
   auto io_lines = absl::StrSplit(file_content, '\n');
   for (const auto line : io_lines) {
     if (line.length() < 2) {
@@ -111,7 +100,7 @@ process_stat::process_stat(pid_t process_id)
 
   file_path = proc_path;
   file_path += "stat";
-  file_content = read_file(file_path);
+  file_content = common::read_file_content(file_path);
   auto stat_fields = absl::StrSplit(file_content, ' ');
   auto field_iter = stat_fields.begin();
   std::advance(field_iter, 13);
@@ -138,7 +127,7 @@ process_stat::process_stat(pid_t process_id)
 
   // statm file
   file_path.push_back('m');
-  file_content = read_file(file_path);
+  file_content = common::read_file_content(file_path);
   stat_fields = absl::StrSplit(file_content, ' ');
   unsigned page_size = getpagesize();
   field_iter = stat_fields.begin();
@@ -150,4 +139,8 @@ process_stat::process_stat(pid_t process_id)
   ++field_iter;
   absl::SimpleAtoi(*field_iter, &value);
   _shared_size = value * page_size;
+
+  // file descriptors
+  std::list<std::filesystem::path> fds = dir_content(proc_path + "fd", false);
+  _opened_fds = fds.size() > 0 ? fds.size() - 1 : 0;
 }

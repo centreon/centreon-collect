@@ -56,6 +56,7 @@ if(WITH_TESTING)
     -Wl,--whole-archive
     log_v2 
     centreon_grpc
+    centreon_file_system
     gRPC::grpc++
     stdc++fs
     -Wl,--no-whole-archive
@@ -204,6 +205,7 @@ if(WITH_TESTING)
     cce_core
     log_v2
     opentelemetry
+    centreon_file_system
     ctncrypto
     gRPC::grpc++
     Boost::program_options

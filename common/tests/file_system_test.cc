@@ -17,7 +17,7 @@
 
 #include <gtest/gtest.h>
 
-#include "file.hh"
+#include "file_system.hh"
 
 using namespace com::centreon::common;
 

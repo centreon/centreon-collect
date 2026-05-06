@@ -19,7 +19,7 @@
 #include "parser.hh"
 #include <absl/strings/match.h>
 #include "anomalydetection_helper.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "command_helper.hh"
 #include "common/engine_conf/state.pb.h"

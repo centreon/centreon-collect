@@ -120,6 +120,7 @@ target_link_libraries(
           nlohmann_json::nlohmann_json
           multiplexing
           ${TESTS_LIBRARIES}
+          centreon_file_system
           Boost::thread
           GTest::gtest
           GTest::gtest_main

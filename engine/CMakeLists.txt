@@ -541,6 +541,7 @@ target_link_libraries(
   cce_core
   centreon_common
   centreon_process
+  centreon_file_system
   ctncrypto
   Boost::url
   gRPC::grpc++

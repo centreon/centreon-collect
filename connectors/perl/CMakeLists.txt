@@ -66,7 +66,7 @@ add_dependencies(centreon_connector_perl centreon_clib)
 target_link_libraries(centreon_connector_perl 
   centreon_clib
   centreon_process_no_crypto
-  #centreon_common
+  centreon_file_system
   #ctncrypto
   ${PERL_LIBRARIES}
   pb_perl_connector_lib

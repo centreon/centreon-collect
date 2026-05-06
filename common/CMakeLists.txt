@@ -39,7 +39,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
       ${SRC_DIR}/pool.cc
       ${SRC_DIR}/rapidjson_helper.cc
       ${SRC_DIR}/utf8.cc
-      ${SRC_DIR}/file.cc
       ${SRC_DIR}/threshold.cc
       )
 else()
@@ -61,6 +60,7 @@ set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(file_system)
   add_subdirectory(http)
   add_subdirectory(vault)
   add_subdirectory(process_stat)
