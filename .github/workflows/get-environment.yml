@@ -12,6 +12,9 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      CENTREON_TECHNIQUE_PAT:
+        required: false
     outputs:
       latest_major_version:
         description: "latest major version"
@@ -154,6 +157,30 @@ jobs:
             core.setOutput('labels', labels);
 
             return hasSkipLabel;
+
+      - name: Check rebuild-release authorization
+        if: contains(steps.has_skip_label.outputs.labels, 'rebuild-release')
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          github-token: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
+          script: |
+            core.info(`Checking release-management team membership for: ${context.actor}`);
+            try {
+              const { data } = await github.rest.teams.getMembershipForUserInOrg({
+                org: 'centreon',
+                team_slug: 'release-management',
+                username: context.actor,
+              });
+              core.info(`API response: state=${data.state}, role=${data.role}`);
+              if (data.state !== 'active') {
+                core.setFailed(`[state-check] User ${context.actor} membership state is "${data.state}" (expected "active"). Cannot use rebuild-release label.`);
+              } else {
+                core.info(`[authorized] User ${context.actor} is an active member of release-management. Proceeding.`);
+              }
+            } catch (e) {
+              core.info(`[api-error] HTTP status: ${e.status ?? 'unknown'} — ${e.message}`);
+              core.setFailed(`[api-error] Cannot verify team membership for ${context.actor}: ${e.message}. Check that CENTREON_TECHNIQUE_PAT has read:org scope.`);
+            }
 
       - name: Checkout sources (current branch)
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
