@@ -60,7 +60,7 @@ add_library(
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh")
 add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib process_stat
-                 pb_open_telemetry_lib)
+                 pb_open_telemetry_lib global_cache)
 
 target_link_libraries(
   "${LUA}"
