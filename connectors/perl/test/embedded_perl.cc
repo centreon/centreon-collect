@@ -21,31 +21,36 @@
 
 #include <gtest/gtest.h>
 
+#include <unistd.h>
+#include <fstream>
+
 #include "com/centreon/connector/perl/embedded_perl.hh"
-#include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
 
 static shared_io_context io_context(std::make_shared<asio::io_context>());
 
+static std::string make_temp_path() {
+  char tmpl[] = "/tmp/centreon_XXXXXX";
+  int fd = mkstemp(tmpl);
+  if (fd < 0)
+    throw std::runtime_error(strerror(errno));
+  close(fd);
+  return tmpl;
+}
+
 TEST(EmbeddedPerl, RunSimple1) {
   // Return value.
   int retval(EXIT_FAILURE);
 
   // Write simple Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   ASSERT_NO_THROW({
-    com::centreon::io::file_stream fs;
-    fs.open(script_path.c_str(), "w");
-    char const* data("exit 42;\n");
-    unsigned int size(strlen(data));
-    unsigned int rb(1);
-    do {
-      rb = fs.write(data, size);
-      size -= rb;
-      data += rb;
-    } while ((rb > 0) && (size > 0));
+    {
+      std::ofstream fs(script_path);
+      fs << "exit 42;\n";
+    }
 
     // Compile and execute script.
     int fds[3];
@@ -65,23 +70,16 @@ TEST(EmbeddedPerl, RunSimple1) {
 
 TEST(EmbeddedPerl, RunSimple2) {
   // Write simple Perl script.
-  std::string script_path(com::centreon::io::file_stream::temp_path());
+  std::string script_path = make_temp_path();
   ASSERT_NO_THROW({
-    com::centreon::io::file_stream fs;
-    fs.open(script_path.c_str(), "w");
+    {
+      std::ofstream fs(script_path);
+      fs << "my $x;\n"
+            "my $y = 40;\n"
+            "$x = 2;\n"
+            "exit $x + $y;\n";
+    }
     std::cout << script_path << std::endl;
-    char const* data(
-        "my $x;\n"
-        "my $y = 40;\n"
-        "$x = 2;\n"
-        "exit $x + $y;\n");
-    unsigned int size(strlen(data));
-    unsigned int rb(1);
-    do {
-      rb = fs.write(data, size);
-      size -= rb;
-      data += rb;
-    } while ((rb > 0) && (size > 0));
 
     // Compile and execute script.
     int fds[3];
