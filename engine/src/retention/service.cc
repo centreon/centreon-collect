@@ -21,11 +21,9 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
 using com::centreon::engine::map_customvar;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
 
 #define SETTER(type, method) \
@@ -1176,11 +1174,6 @@ bool service::_set_last_state_change(time_t value) {
 bool service::_set_last_time_critical(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service last time "
-           "critical cannot be in the future "
-           "(bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Service last time "
         "critical cannot be in the future "
@@ -1200,9 +1193,6 @@ bool service::_set_last_time_critical(time_t value) {
 bool service::_set_last_time_ok(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service last time ok cannot be in the future (bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Service last time ok cannot be in the future (bad value: {})",
         value);
@@ -1220,11 +1210,6 @@ bool service::_set_last_time_ok(time_t value) {
 bool service::_set_last_time_unknown(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service last time "
-           "unknown cannot be in the future "
-           "(bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Service last time "
         "unknown cannot be in the future "
@@ -1244,11 +1229,6 @@ bool service::_set_last_time_unknown(time_t value) {
 bool service::_set_last_time_warning(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Service last time "
-           "warning cannot be in the future "
-           "(bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Service last time "
         "warning cannot be in the future "

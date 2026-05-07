@@ -20,14 +20,12 @@
 #include "com/centreon/common/process/process.hh"
 #include "com/centreon/engine/commands/environment.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "opentelemetry/proto/collector/metrics/v1/metrics_service.pb.h"
 
 using namespace com::centreon::common;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
 /**
@@ -197,7 +195,7 @@ static void _build_macrosx_environment(
     nagios_macros& macros,
     boost::process::v2::process_environment& env) {
   bool use_large_installation_tweaks =
-    pb_indexed_config.state().use_large_installation_tweaks();
+      pb_indexed_config.state().use_large_installation_tweaks();
   std::string key;
   for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
@@ -236,7 +234,8 @@ static std::vector<std::pair<std::string, std::string>> _empty_args;
  */
 void _build_environment_macros(nagios_macros& macros,
                                boost::process::v2::process_environment& env) {
-  bool enable_environment_macros = pb_indexed_config.state().enable_environment_macros();
+  bool enable_environment_macros =
+      pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
@@ -264,8 +263,6 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
                      uint32_t timeout,
                      const check_result::pointer& to_push_to_checker,
                      const void* caller) {
-  engine_logger(dbg_commands, basic)
-      << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 
@@ -396,8 +393,6 @@ void raw_v2::run(const std::string& processed_cmd,
                  nagios_macros& macros,
                  uint32_t timeout,
                  result& res) {
-  engine_logger(dbg_commands, basic)
-      << "raw_v2::run: cmd='" << processed_cmd << "', timeout=" << timeout;
   SPDLOG_LOGGER_TRACE(commands_logger, "raw_v2::run: cmd='{}', timeout={}",
                       processed_cmd, timeout);
 

@@ -22,7 +22,6 @@
 
 #include "com/centreon/engine/globals.hh"
 
-#include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
@@ -118,17 +117,6 @@ unsigned int soft_state_dependencies(false);
 unsigned int use_large_installation_tweaks(false);
 uint32_t instance_heartbeat_interval(30);
 unsigned long cached_host_check_horizon(15);
-unsigned long logging_options(
-    logging::log_runtime_error | logging::log_runtime_warning |
-    logging::log_verification_error | logging::log_verification_warning |
-    logging::log_config_error | logging::log_config_warning |
-    logging::log_process_info | logging::log_host_notification |
-    logging::log_service_notification | logging::log_event_handler |
-    logging::log_external_command | logging::log_passive_check |
-    logging::log_host_up | logging::log_host_down |
-    logging::log_host_unreachable | logging::log_service_ok |
-    logging::log_service_warning | logging::log_service_unknown |
-    logging::log_service_critical | logging::log_info_message);
 unsigned long modified_host_process_attributes(MODATTR_NONE);
 unsigned long modified_service_process_attributes(MODATTR_NONE);
 unsigned long next_event_id(1);

@@ -21,11 +21,9 @@
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
 
 using com::centreon::engine::map_customvar;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
@@ -1097,9 +1095,6 @@ bool host::_set_last_state_change(time_t value) {
 bool host::_set_last_time_down(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time down cannot be in the future (bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time down cannot be in the future (bad value: {})",
         value);
@@ -1117,10 +1112,6 @@ bool host::_set_last_time_down(time_t value) {
 bool host::_set_last_time_unreachable(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time unreachable cannot be in the future (bad "
-           "value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time unreachable cannot be in the future (bad "
         "value: {})",
@@ -1139,9 +1130,6 @@ bool host::_set_last_time_unreachable(time_t value) {
 bool host::_set_last_time_up(time_t value) {
   time_t now = time(nullptr);
   if (value > now) {
-    engine_logger(log_verification_error, basic)
-        << "Warning: Host last time up cannot be in the future (bad value: "
-        << value << ")";
     config_logger->warn(
         "Warning: Host last time up cannot be in the future (bad value: {})",
         value);

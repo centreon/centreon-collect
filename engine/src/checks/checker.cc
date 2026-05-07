@@ -25,7 +25,6 @@
 #include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
@@ -33,7 +32,6 @@
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::checks;
 
 checker* checker::_instance = nullptr;
@@ -78,10 +76,8 @@ void checker::clear() noexcept {
  *  Reap and process all results received by execution process.
  */
 void checker::reap() {
-  engine_logger(dbg_functions, basic) << "checker::reap";
   SPDLOG_LOGGER_TRACE(functions_logger, "checker::reap()");
 
-  engine_logger(dbg_checks, basic) << "Starting to reap check results.";
   SPDLOG_LOGGER_TRACE(checks_logger, "Starting to reap check results.");
 
   // Time to start reaping.
@@ -119,8 +115,6 @@ void checker::reap() {
     while (!_to_reap.empty()) {
       // Get result host or service check.
       ++reaped_checks;
-      engine_logger(dbg_checks, basic)
-          << "Found a check result (#" << reaped_checks << ") to handle...";
       SPDLOG_LOGGER_TRACE(checks_logger,
                           "Found a check result (#{}) to handle...",
                           reaped_checks);
@@ -132,17 +126,11 @@ void checker::reap() {
         service* svc = static_cast<service*>(result->get_notifier());
         try {
           // Check if the service exists.
-          engine_logger(dbg_checks, more)
-              << "Handling check result for service " << svc->host_id() << "/"
-              << svc->service_id() << "...";
           SPDLOG_LOGGER_DEBUG(checks_logger,
                               "Handling check result for service {}/{}...",
                               svc->host_id(), svc->service_id());
           svc->handle_async_check_result(*result);
         } catch (std::exception const& e) {
-          engine_logger(log_runtime_warning, basic)
-              << "Check result queue errors for service " << svc->host_id()
-              << "/" << svc->service_id() << " : " << e.what();
           SPDLOG_LOGGER_WARN(runtime_logger,
                              "Check result queue errors for service {}/{} : {}",
                              svc->host_id(), svc->service_id(), e.what());
@@ -153,16 +141,11 @@ void checker::reap() {
         host* hst = static_cast<host*>(result->get_notifier());
         try {
           // Process the check result->
-          engine_logger(dbg_checks, more)
-              << "Handling check result for host " << hst->host_id() << "...";
           SPDLOG_LOGGER_DEBUG(checks_logger,
                               "Handling check result for host {}...",
                               hst->host_id());
           hst->handle_async_check_result_3x(*result);
         } catch (std::exception const& e) {
-          engine_logger(log_runtime_error, basic)
-              << "Check result queue errors for " << "host " << hst->host_id()
-              << " : " << e.what();
           runtime_logger->error("Check result queue errors for host {} : {}",
                                 hst->host_id(), e.what());
         }
@@ -173,9 +156,6 @@ void checker::reap() {
       time(&current_time);
       // Maximum Check Result Reaper Time is set to 30
       if (current_time - reaper_start_time > max_check_reaper_time) {
-        engine_logger(dbg_checks, basic)
-            << "Breaking out of check result reaper: "
-            << "max reaper time exceeded";
         SPDLOG_LOGGER_TRACE(
             checks_logger,
             "Breaking out of check result reaper: max reaper time exceeded");
@@ -184,8 +164,6 @@ void checker::reap() {
 
       // Caught signal, need to break.
       if (sigshutdown) {
-        engine_logger(dbg_checks, basic)
-            << "Breaking out of check result reaper: signal encountered";
         SPDLOG_LOGGER_TRACE(
             checks_logger,
             "Breaking out of check result reaper: signal encountered");
@@ -195,8 +173,6 @@ void checker::reap() {
   }
 
   // Reaping finished.
-  engine_logger(dbg_checks, basic)
-      << "Finished reaping " << reaped_checks << " check results";
   SPDLOG_LOGGER_TRACE(checks_logger, "Finished reaping {} check results",
                       reaped_checks);
 }
@@ -215,10 +191,6 @@ void checker::run_sync(host* hst,
                        int check_options,
                        int use_cached_result,
                        unsigned long check_timestamp_horizon) {
-  engine_logger(dbg_functions, basic)
-      << "checker::run: hst=" << hst << ", check_options=" << check_options
-      << ", use_cached_result=" << use_cached_result
-      << ", check_timestamp_horizon=" << check_timestamp_horizon;
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "checker::run: hst={:p}, check_options={}"
                       ", use_cached_result={}"
@@ -233,8 +205,6 @@ void checker::run_sync(host* hst,
     throw engine_error() << "Attempt to run synchronous active check on host '"
                          << hst->name() << "' with no check command";
 
-  engine_logger(dbg_checks, basic)
-      << "** Run sync check of host '" << hst->name() << "'...";
   SPDLOG_LOGGER_TRACE(checks_logger, "** Run sync check of host '{}'...",
                       hst->name());
 
@@ -242,7 +212,6 @@ void checker::run_sync(host* hst,
   if (!hst->verify_check_viability(check_options, nullptr, nullptr)) {
     if (check_result_code)
       *check_result_code = hst->get_current_state();
-    engine_logger(dbg_checks, basic) << "Host check is not viable at this time";
     SPDLOG_LOGGER_TRACE(checks_logger, "Host check is not viable at this time");
     return;
   }
@@ -260,8 +229,6 @@ void checker::run_sync(host* hst,
          check_timestamp_horizon)) {
       if (check_result_code)
         *check_result_code = hst->get_current_state();
-      engine_logger(dbg_checks, more)
-          << "* Using cached host state: " << hst->get_current_state();
       SPDLOG_LOGGER_DEBUG(checks_logger, "* Using cached host state: {}",
                           static_cast<uint32_t>(hst->get_current_state()));
 
@@ -273,8 +240,6 @@ void checker::run_sync(host* hst,
   }
 
   // Checking starts.
-  engine_logger(dbg_checks, more)
-      << "* Running actual host check: old state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(checks_logger,
                       "* Running actual host check: old state={}",
                       static_cast<uint32_t>(hst->get_current_state()));
@@ -324,8 +289,6 @@ void checker::run_sync(host* hst,
     *check_result_code = hst->get_current_state();
 
   // Synchronous check is done.
-  engine_logger(dbg_checks, more)
-      << "* Sync host check done: new state=" << hst->get_current_state();
   SPDLOG_LOGGER_DEBUG(checks_logger, "* Sync host check done: new state={}",
                       static_cast<uint32_t>(hst->get_current_state()));
 
@@ -360,14 +323,11 @@ checker::~checker() noexcept {
  */
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
-  engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
   SPDLOG_LOGGER_TRACE(functions_logger, "checker::finished: res={}", res);
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
   if (it_id == _waiting_check_result.end()) {
-    engine_logger(log_runtime_warning, basic)
-        << "command ID '" << res.command_id << "' not found";
     SPDLOG_LOGGER_WARN(runtime_logger, "command ID '{}' not found",
                        res.command_id);
     return;
@@ -428,7 +388,6 @@ void checker::wait_completion(e_completion_filter filter) {
  * host::state_down).
  */
 com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
-  engine_logger(dbg_functions, basic) << "checker::_execute_sync: hst=" << hst;
   SPDLOG_LOGGER_TRACE(functions_logger, "checker::_execute_sync: hst={:p}",
                       (void*)hst);
 
@@ -439,8 +398,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     throw engine_error() << "Attempt to run synchronous active check on host '"
                          << hst->name() << "' with no check command";
 
-  engine_logger(dbg_checks, basic)
-      << "** Executing sync check of host '" << hst->name() << "'...";
   SPDLOG_LOGGER_TRACE(checks_logger, "** Executing sync check of host '{}'...",
                       hst->name());
 
@@ -477,14 +434,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                     processed_cmd.c_str());
 
   // Debug messages.
-  engine_logger(dbg_commands, more)
-      << "Raw host check command: "
-      << hst->get_check_command_ptr()->get_command_line();
   SPDLOG_LOGGER_TRACE(commands_logger, "Raw host check command: {}",
                       hst->get_check_command_ptr()->get_command_line());
 
-  engine_logger(dbg_commands, more)
-      << "Processed host check command: " << processed_cmd;
   SPDLOG_LOGGER_TRACE(commands_logger, "Processed host check command: {}",
                       processed_cmd);
 
@@ -529,9 +481,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     } catch (std::exception const& e) {
       run_failure("(Execute command failed)");
 
-      engine_logger(log_runtime_warning, basic)
-          << "Error: Synchronous host check command execution failed: "
-          << e.what();
       SPDLOG_LOGGER_WARN(
           runtime_logger,
           "Error: Synchronous host check command execution failed: {}",
@@ -559,10 +508,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              host_check_timeout);
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Host check command '" << processed_cmd << "' for host '"
-        << hst->name() << "' timed out after " << host_check_timeout
-        << " seconds";
     SPDLOG_LOGGER_WARN(
         runtime_logger,
         "Warning: Host check command '{}' for host '{}' timed out after {} "
@@ -617,8 +562,6 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                     tmp_processed_cmd);
 
   // Termination.
-  engine_logger(dbg_checks, basic)
-      << "** Sync host check done: state=" << return_result;
   SPDLOG_LOGGER_TRACE(checks_logger, "** Sync host check done: state={}",
                       static_cast<uint32_t>(return_result));
   return return_result;

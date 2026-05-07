@@ -22,7 +22,6 @@ add_executable(ut_clib
   ${PROJECT_SOURCE_DIR}/test/process.cc
   ${PROJECT_SOURCE_DIR}/test/io.cc
   ${PROJECT_SOURCE_DIR}/test/library.cc
-  ${PROJECT_SOURCE_DIR}/test/logging.cc
   ${PROJECT_SOURCE_DIR}/test/main.cc
   ${PROJECT_SOURCE_DIR}/test/misc.cc
   ${PROJECT_SOURCE_DIR}/test/timestamp.cc

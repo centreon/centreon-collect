@@ -21,13 +21,11 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 
 /******************************************************************/
 /********************** MACRO GRAB FUNCTIONS **********************/
@@ -387,8 +385,6 @@ int grab_standard_hostgroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED HOSTGROUP MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED HOSTGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -468,8 +464,6 @@ int grab_standard_servicegroup_macro_r(nagios_macros* mac,
       break;
 
     default:
-      engine_logger(dbg_macros, basic) << "UNHANDLED SERVICEGROUP MACRO #"
-                                       << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED SERVICEGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -558,8 +552,6 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
     } break;
 
     default:
-      engine_logger(dbg_macros, basic)
-          << "UNHANDLED CONTACT MACRO #" << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED CONTACT MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;
@@ -620,8 +612,6 @@ int grab_standard_contactgroup_macro(
       break;
 
     default:
-      engine_logger(dbg_macros, basic) << "UNHANDLED CONTACTGROUP MACRO #"
-                                       << macro_type << "! THIS IS A BUG!";
       macros_logger->trace("UNHANDLED CONTACTGROUP MACRO #{}! THIS IS A BUG!",
                            macro_type);
       return ERROR;

@@ -22,15 +22,11 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "com/centreon/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
-using namespace com::centreon::logging;
 
 /**
  *  Apply new configuration.
@@ -446,8 +442,6 @@ void applier::scheduler::_calculate_host_inter_check_delay(
  *  Calculate host scheduling params.
  */
 void applier::scheduler::_calculate_host_scheduling_params() {
-  engine_logger(dbg_events, most)
-      << "Determining host scheduling parameters...";
   events_logger->debug("Determining host scheduling parameters...");
 
   // get current time.
@@ -479,8 +473,6 @@ void applier::scheduler::_calculate_host_scheduling_params() {
           static_cast<unsigned long>(hst.check_interval());
     } else {
       hst.set_should_be_scheduled(false);
-      engine_logger(dbg_events, more)
-          << "Host " << hst.name() << " should not be scheduled.";
       events_logger->debug("Host {} should not be scheduled.", hst.name());
     }
 
@@ -770,7 +762,6 @@ void applier::scheduler::_remove_misc_event(timed_event*& evt) {
  */
 void applier::scheduler::_schedule_host_events(
     std::vector<com::centreon::engine::host*> const& hosts) {
-  engine_logger(dbg_events, most) << "Scheduling host checks...";
   events_logger->debug("Scheduling host checks...");
 
   // get current time.
@@ -783,12 +774,10 @@ void applier::scheduler::_schedule_host_events(
   for (unsigned int i(0); i < end; ++i) {
     com::centreon::engine::host& hst(*hosts[i]);
 
-    engine_logger(dbg_events, most) << "Host '" << hst.name() << "'";
     events_logger->debug("Host '{}'", hst.name());
 
     // skip hosts that shouldn't be scheduled.
     if (!hst.get_should_be_scheduled()) {
-      engine_logger(dbg_events, most) << "Host check should not be scheduled.";
       events_logger->debug("Host check should not be scheduled.");
       continue;
     }
@@ -798,9 +787,6 @@ void applier::scheduler::_schedule_host_events(
         (time_t)(now + (mult_factor * scheduling_info.host_inter_check_delay)));
 
     time_t time = hst.get_next_check();
-    engine_logger(dbg_events, most)
-        << "Preferred Check Time: " << hst.get_next_check() << " --> "
-        << my_ctime(&time);
     events_logger->debug("Preferred Check Time: {} --> {}",
                          hst.get_next_check(), my_ctime(&time));
 
@@ -817,9 +803,6 @@ void applier::scheduler::_schedule_host_events(
     }
 
     time = hst.get_next_check();
-    engine_logger(dbg_events, most)
-        << "Actual Check Time: " << hst.get_next_check() << " --> "
-        << my_ctime(&time);
     events_logger->debug("Actual Check Time: {} --> {}", hst.get_next_check(),
                          my_ctime(&time));
 
@@ -868,8 +851,6 @@ void applier::scheduler::_schedule_host_events(
   }
 
   // Schedule acknowledgement expirations.
-  engine_logger(dbg_events, most)
-      << "Scheduling host acknowledgement expirations...";
   events_logger->debug("Scheduling host acknowledgement expirations...");
   for (int i(0), end(hosts.size()); i < end; ++i)
     if (hosts[i]->problem_has_been_acknowledged())
@@ -883,7 +864,6 @@ void applier::scheduler::_schedule_host_events(
  */
 void applier::scheduler::_schedule_service_events(
     std::vector<engine::service*> const& services) {
-  engine_logger(dbg_events, most) << "Scheduling service checks...";
   events_logger->debug("Scheduling service checks...");
 
   // get current time.
@@ -976,8 +956,6 @@ void applier::scheduler::_schedule_service_events(
   }
 
   // Schedule acknowledgement expirations.
-  engine_logger(dbg_events, most)
-      << "Scheduling service acknowledgement expirations...";
   events_logger->debug("Scheduling service acknowledgement expirations...");
   for (engine::service* s : services)
     if (s->problem_has_been_acknowledged())

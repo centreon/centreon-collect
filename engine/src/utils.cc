@@ -40,7 +40,6 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
@@ -49,7 +48,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
-using namespace com::centreon::engine::logging;
 
 /******************************************************************/
 /******************** SYSTEM COMMAND FUNCTIONS ********************/
@@ -63,7 +61,6 @@ int my_system_r(nagios_macros* mac,
                 double* exectime,
                 std::string& output,
                 unsigned int max_output_length) {
-  engine_logger(dbg_functions, basic) << "my_system_r()";
   functions_logger->trace("my_system_r()");
 
   // initialize return variables.
@@ -75,7 +72,6 @@ int my_system_r(nagios_macros* mac,
     return service::state_ok;
   }
 
-  engine_logger(dbg_commands, more) << "Running command '" << cmd << "'...";
   SPDLOG_LOGGER_DEBUG(commands_logger, "Running command '{}'...", cmd);
 
   timeval start_time = timeval();
@@ -98,11 +94,6 @@ int my_system_r(nagios_macros* mac,
     output = res.output;
   int result(res.exit_code);
 
-  engine_logger(dbg_commands, more)
-      << com::centreon::logging::setprecision(3)
-      << "Execution time=" << *exectime
-      << " sec, early timeout=" << *early_timeout << ", result=" << result
-      << ", output=" << output;
   SPDLOG_LOGGER_DEBUG(
       commands_logger,
       "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
@@ -131,7 +122,6 @@ int get_raw_command_line_r(nagios_macros* mac,
   unsigned int x = 0;
   int escaped = false;
 
-  engine_logger(dbg_functions, basic) << "get_raw_command_line_r()";
   functions_logger->trace("get_raw_command_line_r()");
 
   /* clear the argv macros */
@@ -142,8 +132,6 @@ int get_raw_command_line_r(nagios_macros* mac,
     return ERROR;
   }
 
-  engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
-      << "Raw Command Input: " << cmd_ptr->get_command_line();
   SPDLOG_LOGGER_DEBUG(commands_logger, "Raw Command Input: {}",
                       cmd_ptr->get_command_line());
 
@@ -187,8 +175,6 @@ int get_raw_command_line_r(nagios_macros* mac,
     }
   }
 
-  engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
-      << "Expanded Command Output: " << full_command;
   SPDLOG_LOGGER_DEBUG(commands_logger, "Expanded Command Output: {}",
                       full_command);
 

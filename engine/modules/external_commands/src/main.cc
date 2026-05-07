@@ -21,13 +21,11 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/engine/nebmodules.hh"
 #include "com/centreon/engine/nebstructs.hh"
 
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine;
 
 // Specify the event broker API version.
@@ -100,12 +98,8 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
     shutdown_command_file_worker_thread();
     close_command_file();
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "external command runtime error `" << e.what() << "'.";
     runtime_logger->error("external command runtime error '{}'.", e.what());
   } catch (...) {
-    engine_logger(log_runtime_error, basic)
-        << "external command runtime error `unknown'";
     runtime_logger->error("external command runtime error `unknown'");
   }
   return (0);
@@ -147,10 +141,6 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
   try {
     // Open the command file (named pipe) for reading.
     if (open_command_file() != OK) {
-      engine_logger(log_process_info | log_runtime_error, basic)
-          << "Bailing out due to errors encountered while trying to "
-          << "initialize the external command file ... "
-          << "(PID=" << getpid() << ")";
       process_logger->info(
           "Bailing out due to errors encountered while trying to initialize "
           "the external command file ... (PID={})",
@@ -164,13 +154,9 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
       throw(engine_error() << "register callback failed");
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "external command runtime error `" << e.what() << "'.";
     runtime_logger->error("external command runtime error '{}'.", e.what());
     return (1);
   } catch (...) {
-    engine_logger(log_runtime_error, basic)
-        << "external command runtime error `unknown'.";
     runtime_logger->error("external command runtime error `unknown'.");
     return (1);
   }

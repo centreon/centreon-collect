@@ -29,12 +29,10 @@
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::downtimes;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::retention;
 
 /**
@@ -47,7 +45,6 @@ using namespace com::centreon::engine::retention;
  */
 std::ostream& dump::comment(std::ostream& os,
                             com::centreon::engine::comment const& obj) {
-  engine_logger(dbg_functions, basic) << "dump::comment()";
   functions_logger->trace("dump::comment()");
   char const* host_name;
   char const* service_description;
@@ -108,7 +105,6 @@ std::ostream& dump::comment(std::ostream& os,
  *  @return The output stream.
  */
 std::ostream& dump::comments(std::ostream& os) {
-  engine_logger(dbg_functions, basic) << "dump::comments()";
   functions_logger->trace("dump::comments()");
   for (comment_map::iterator it(comment::comments.begin()),
        end(comment::comments.end());
@@ -219,7 +215,6 @@ std::ostream& dump::notifications(
  *  @return The output stream.
  */
 std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
-  engine_logger(dbg_functions, basic) << "dump::scheduled_downtime()";
   functions_logger->trace("dump::scheduled_downtime()");
   obj.retention(os);
   return os;
@@ -233,7 +228,6 @@ std::ostream& dump::scheduled_downtime(std::ostream& os, downtime const& obj) {
  *  @return The output stream.
  */
 std::ostream& dump::downtimes(std::ostream& os) {
-  engine_logger(dbg_functions, basic) << "dump::downtimes()";
   functions_logger->trace("dump::downtimes()");
   for (auto obj = downtimes::downtime_manager::instance()
                       .get_scheduled_downtimes()
@@ -576,7 +570,6 @@ bool dump::save(std::string const& path) {
 
     ret = true;
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic) << e.what();
     runtime_logger->error(e.what());
   }
 

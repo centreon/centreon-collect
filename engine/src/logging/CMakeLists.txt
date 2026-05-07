@@ -26,17 +26,8 @@ set(
   FILES
   ${FILES}
 
-  # Sources.
-  "${SRC_DIR}/broker.cc"
-  "${SRC_DIR}/debug_file.cc"
-  # "${SRC_DIR}/dumpers.cc"
-
   # Headers.
-  "${INC_DIR}/logger.hh"
-  "${INC_DIR}/broker.hh"
-  "${INC_DIR}/debug_file.hh"
   "${INC_DIR}/broker_sink.hh"
-  # "${INC_DIR}/dumpers.hh"
 
   PARENT_SCOPE
 )

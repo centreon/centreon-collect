@@ -32,7 +32,6 @@
 #include "com/centreon/engine/downtimes/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/statusdata.hh"
 
@@ -60,9 +59,6 @@ int xsddefault_initialize_status_data() {
     if ((xsddefault_status_log_fd =
              open(status_file.c_str(), O_WRONLY | O_CREAT,
                   S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
-      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
-          << "Error: Unable to open status data file '" << status_file
-          << "': " << strerror(errno);
       runtime_logger->error("Error: Unable to open status data file '{}': {}",
                             status_file, strerror(errno));
       return ERROR;
@@ -103,8 +99,6 @@ int xsddefault_save_status_data() {
   int used_external_command_buffer_slots(0);
   int high_external_command_buffer_slots(0);
 
-  engine_logger(engine::logging::dbg_functions, engine::logging::basic)
-      << "save_status_data()";
   functions_logger->trace("save_status_data()");
 
   bool check_external_commands =
@@ -760,9 +754,6 @@ int xsddefault_save_status_data() {
       (fsync(xsddefault_status_log_fd) == -1) ||
       (lseek(xsddefault_status_log_fd, 0, SEEK_SET) == (off_t)-1)) {
     char const* msg(strerror(errno));
-    engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
-        << "Error: Unable to update status data file '" << status_file
-        << "': " << msg;
     runtime_logger->error("Error: Unable to update status data file '{}': {}",
                           status_file, msg);
     return ERROR;
@@ -776,9 +767,6 @@ int xsddefault_save_status_data() {
     ssize_t wb(write(xsddefault_status_log_fd, data_ptr, size));
     if (wb <= 0) {
       char const* msg(strerror(errno));
-      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
-          << "Error: Unable to update status data file '" << status_file
-          << "': " << msg;
       runtime_logger->error("Error: Unable to update status data file '{}': {}",
                             status_file, msg);
       return ERROR;

@@ -22,7 +22,6 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "state.pb.h"
 
 using namespace com::centreon::engine::configuration;

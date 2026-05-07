@@ -24,7 +24,6 @@
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timerange.hh"
@@ -32,7 +31,6 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 timeperiod_map timeperiod::timeperiods;
@@ -45,8 +43,6 @@ timeperiod_map timeperiod::timeperiods;
 timeperiod::timeperiod(const configuration::Timeperiod& obj)
     : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
   if (_name.empty() || _alias.empty()) {
-    engine_logger(log_config_error, basic)
-        << "Error: Name or alias for timeperiod is NULL";
     config_logger->error("Error: Name or alias for timeperiod is NULL");
     throw engine_error() << "Could not register time period '" << _name << "'";
   }
@@ -778,7 +774,6 @@ static bool _timerange_to_time_t(const timerange& trange,
  *  @return true on success, false on failure.
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
-  engine_logger(dbg_functions, basic) << "check_time_against_period()";
   functions_logger->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
@@ -806,8 +801,6 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
  */
 bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
-  engine_logger(dbg_functions, basic)
-      << "check_time_against_period_for_notif()";
   functions_logger->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
@@ -832,8 +825,6 @@ bool check_time_against_period_for_notif(time_t test_time,
 void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       time_t* invalid_time,
                                                       bool notif_timeperiod) {
-  engine_logger(dbg_functions, basic)
-      << "get_next_invalid_time_per_timeperiod()";
   functions_logger->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
@@ -1018,7 +1009,6 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
 void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
-  engine_logger(dbg_functions, basic) << "get_next_valid_time_per_timeperiod()";
   functions_logger->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
@@ -1145,7 +1135,6 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
 void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
-  engine_logger(dbg_functions, basic) << "get_next_valid_time()";
   functions_logger->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
@@ -1178,9 +1167,6 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
 
   // Check for illegal characters in timeperiod name.
   if (contains_illegal_object_chars(_name.c_str())) {
-    engine_logger(log_verification_error, basic)
-        << "Error: The name of time period '" << _name
-        << "' contains one or more illegal characters.";
     config_logger->error(
         "Error: The name of time period '{}' contains one or more illegal "
         "characters.",
@@ -1196,10 +1182,6 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
         timeperiod::timeperiods.find(it->first)};
 
     if (found == timeperiod::timeperiods.end()) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Excluded time period '" << it->first
-          << "' specified in timeperiod '" << _name
-          << "' is not defined anywhere!";
       config_logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",

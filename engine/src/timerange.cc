@@ -19,24 +19,18 @@
 #include "com/centreon/engine/timerange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 timerange::timerange(uint64_t start, uint64_t end) {
   // Make sure we have the data we need.
   if (start > 86400) {
-    engine_logger(log_config_error, basic)
-        << "Error: Start time " << start << " is not valid for timeperiod";
     config_logger->error("Error: Start time {} is not valid for timeperiod",
                          start);
     throw engine_error() << "Could not create timerange "
                          << "start '" << start << "' end '" << end << "'";
   }
   if (end > 86400) {
-    engine_logger(log_config_error, basic)
-        << "Error: End time " << end << " is not valid for timeperiod";
     config_logger->error("Error: End time {} is not valid for timeperiod", end);
     throw engine_error() << "Could not create timerange "
                          << "start '" << start << "' end '" << end << "'";

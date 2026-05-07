@@ -20,11 +20,9 @@
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/my_lock.hh"
 #include "com/centreon/engine/version.hh"
 
-using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::commands;
 
 // #define DEBUG_CONFIG
@@ -78,8 +76,6 @@ connector::connector(const std::string& connector_name,
   bool enable_environment_macros =
       pb_indexed_config.state().enable_environment_macros();
   if (enable_environment_macros) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector does not enable environment macros";
     runtime_logger->warn(
         "Warning: Connector does not enable environment macros");
   }
@@ -116,9 +112,6 @@ uint64_t connector::run(const std::string& processed_cmd,
                         uint32_t timeout,
                         const check_result::pointer& to_push_to_checker,
                         const void* caller) {
-  engine_logger(dbg_commands, basic)
-      << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
-      << "', timeout=" << timeout;
   commands_logger->trace("connector::run: connector='{}', cmd='{}', timeout={}",
                          _name, processed_cmd, timeout);
 
@@ -135,7 +128,6 @@ uint64_t connector::run(const std::string& processed_cmd,
   info->timeout = timeout;
   info->waiting_result = false;
 
-  engine_logger(dbg_commands, basic) << "connector::run: id=" << command_id;
   commands_logger->trace("connector::run: id={}", command_id);
   try {
     {
@@ -158,13 +150,9 @@ uint64_t connector::run(const std::string& processed_cmd,
       _queries[command_id] = info;
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command success: id=" << command_id;
     commands_logger->trace("connector::run: start command success: id={}",
                            command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command failed: id=" << command_id;
     commands_logger->trace("connector::run: start command failed: id={}",
                            command_id);
     throw;
@@ -186,9 +174,6 @@ void connector::run(const std::string& processed_cmd,
                     result& res) {
   (void)macros;
 
-  engine_logger(dbg_commands, basic)
-      << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
-      << "', timeout=" << timeout;
   commands_logger->trace("connector::run: connector='{}', cmd='{}', timeout={}",
                          _name, processed_cmd, timeout);
 
@@ -200,7 +185,6 @@ void connector::run(const std::string& processed_cmd,
   info->timeout = timeout;
   info->waiting_result = true;
 
-  engine_logger(dbg_commands, basic) << "connector::run: id=" << command_id;
   commands_logger->trace("connector::run: id={}", command_id);
 
   try {
@@ -223,13 +207,9 @@ void connector::run(const std::string& processed_cmd,
       _queries[command_id] = info;
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command success: id=" << command_id;
     commands_logger->trace("connector::run: start command success: id={}",
                            command_id);
   } catch (...) {
-    engine_logger(dbg_commands, basic)
-        << "connector::run: start command failed: id=" << command_id;
     commands_logger->trace("connector::run: start command failed: id={}",
                            command_id);
     throw;
@@ -283,8 +263,6 @@ void connector::data_is_available(process& p) noexcept {
       nullptr};
 
   try {
-    engine_logger(dbg_commands, basic)
-        << "connector::data_is_available: process=" << (void*)&p;
     commands_logger->trace("connector::data_is_available: process={}",
                            (void*)&p);
 
@@ -310,9 +288,6 @@ void connector::data_is_available(process& p) noexcept {
         }
       }
 
-      engine_logger(dbg_commands, basic)
-          << "connector::data_is_available: responses.size="
-          << responses.size();
       commands_logger->trace("connector::data_is_available: responses.size={}",
                              responses.size());
     }
@@ -322,18 +297,11 @@ void connector::data_is_available(process& p) noexcept {
       char const* data = str.c_str();
       char* endptr(nullptr);
       uint32_t id(strtol(data, &endptr, 10));
-      engine_logger(dbg_commands, basic)
-          << "connector::data_is_available: request id=" << id;
       commands_logger->trace("connector::data_is_available: request id={}", id);
 
       // Invalid query.
       if (data == endptr || id >= tab_recv_query.size() ||
           !tab_recv_query[id]) {
-        engine_logger(log_runtime_warning, basic)
-            << "Warning: Connector '" << _name
-            << "' "
-               "received bad request ID: "
-            << id;
         runtime_logger->warn(
             "Warning: Connector '{}' received bad request ID: {}", _name, id);
         // Valid query, so execute it.
@@ -341,8 +309,6 @@ void connector::data_is_available(process& p) noexcept {
         (this->*tab_recv_query[id])(endptr + 1);
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "' error: " << e.what();
     runtime_logger->warn("Warning: Connector '{}' error: {}", _name, e.what());
   }
 }
@@ -364,7 +330,6 @@ void connector::data_is_available_err(process& p) noexcept {
  */
 void connector::finished(process& p) noexcept {
   try {
-    engine_logger(dbg_commands, basic) << "connector::finished: process=" << &p;
     commands_logger->trace("connector::finished: process={}", (void*)&p);
 
     UNIQUE_LOCK(lock, _lock);
@@ -382,9 +347,6 @@ void connector::finished(process& p) noexcept {
     }
 
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: Connector '" << _name
-        << "' termination routine failed: " << e.what();
     runtime_logger->error(
         "Error: Connector '{}' termination routine failed: {}", _name,
         e.what());
@@ -398,8 +360,6 @@ void connector::stop_connector() {
   try {
     _connector_close();
   } catch (const std::exception& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: could not stop connector properly: " << e.what();
     runtime_logger->error("Error: could not stop connector properly: {}",
                           e.what());
   }
@@ -415,8 +375,6 @@ void connector::_connector_close() {
   if (!_is_running)
     return;
 
-  engine_logger(dbg_commands, basic)
-      << "connector::_connector_close: process=" << &_process;
   commands_logger->trace("connector::_connector_close: process={:p}",
                          (void*)&_process);
   // Set variable to dosn't restart connector.
@@ -441,8 +399,6 @@ void connector::_connector_close() {
   if (is_timeout || !_query_quit_ok) {
     _process.kill();
     if (is_timeout) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Cannot close connector '" << _name << "': Timeout";
       runtime_logger->warn("Warning: Cannot close connector '{}': Timeout",
                            _name);
     }
@@ -457,8 +413,6 @@ void connector::_connector_close() {
  *  Start connection with the process.
  */
 void connector::_connector_start() {
-  engine_logger(dbg_commands, basic)
-      << "connector::_connector_start: process=" << &_process;
   commands_logger->trace("connector::_connector_start: process={:p}",
                          (void*)&_process);
   {
@@ -500,15 +454,10 @@ void connector::_connector_start() {
     _is_running = true;
   }
 
-  engine_logger(log_info_message, basic)
-      << "Connector '" << _name << "' has started";
   runtime_logger->info("Connector '{}' has started", _name);
 
   {
     LOCK_GUARD(lock, _lock);
-    engine_logger(dbg_commands, basic)
-        << "connector::_connector_start: resend queries: queries.size="
-        << _queries.size();
     commands_logger->trace(
         "connector::_connector_start: resend queries: queries.size={}",
         _queries.size());
@@ -541,7 +490,6 @@ std::string connector::_query_ending() noexcept {
  */
 void connector::_recv_query_error(char const* data) {
   try {
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_error";
     commands_logger->trace("connector::_recv_query_error");
     char* endptr(nullptr);
     int code(strtol(data, &endptr, 10));
@@ -553,26 +501,18 @@ void connector::_recv_query_error(char const* data) {
     switch (code) {
         // Information message.
       case 0:
-        engine_logger(log_info_message, basic)
-            << "Info: Connector '" << _name << "': " << message;
         runtime_logger->info("Info: Connector '{}': {}", _name, message);
         break;
         // Warning message.
       case 1:
-        engine_logger(log_runtime_warning, basic)
-            << "Warning: Connector '" << _name << "': " << message;
         runtime_logger->warn("Warning: Connector '{}': {}", _name, message);
         break;
         // Error message.
       case 2:
-        engine_logger(log_runtime_error, basic)
-            << "Error: Connector '" << _name << "': " << message;
         runtime_logger->error("Error: Connector '{}': {}", _name, message);
         break;
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
     runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
   }
 }
@@ -584,7 +524,6 @@ void connector::_recv_query_error(char const* data) {
  */
 void connector::_recv_query_execute(char const* data) {
   try {
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_execute";
     commands_logger->trace("connector::_recv_query_execute");
     // Get query informations.
     char* endptr(nullptr);
@@ -602,8 +541,6 @@ void connector::_recv_query_execute(char const* data) {
     char const* std_err(endptr + 1);
     char const* std_out(std_err + strlen(std_err) + 1);
 
-    engine_logger(dbg_commands, basic)
-        << "connector::_recv_query_execute: id=" << command_id;
     commands_logger->trace("connector::_recv_query_execute: id={}", command_id);
     std::shared_ptr<query_info> info;
     {
@@ -613,10 +550,6 @@ void connector::_recv_query_execute(char const* data) {
       std::unordered_map<uint64_t, std::shared_ptr<query_info> >::iterator it(
           _queries.find(command_id));
       if (it == _queries.end()) {
-        engine_logger(dbg_commands, basic)
-            << "recv query failed: command_id(" << command_id
-            << ") "
-               "not found into queries";
         commands_logger->trace(
             "recv query failed: command_id({}) not found into queries",
             command_id);
@@ -652,24 +585,6 @@ void connector::_recv_query_execute(char const* data) {
       res.output = (is_executed ? std_out : std_err);
     }
 
-    engine_logger(dbg_commands, basic) << "connector::_recv_query_execute: "
-                                          "id="
-                                       << command_id
-                                       << ", "
-                                          "start_time="
-                                       << res.start_time.to_mseconds()
-                                       << ", "
-                                          "end_time="
-                                       << res.end_time.to_mseconds()
-                                       << ", "
-                                          "exit_code="
-                                       << res.exit_code
-                                       << ", "
-                                          "exit_status="
-                                       << res.exit_status
-                                       << ", "
-                                          "output='"
-                                       << res.output << "'";
     commands_logger->trace(
         "connector::_recv_query_execute: "
         "id={}, {}",
@@ -688,8 +603,6 @@ void connector::_recv_query_execute(char const* data) {
       _cv_query.notify_all();
     }
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
     runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
   }
 }
@@ -701,7 +614,6 @@ void connector::_recv_query_execute(char const* data) {
  */
 void connector::_recv_query_quit(char const* data) {
   (void)data;
-  engine_logger(dbg_commands, basic) << "connector::_recv_query_quit";
   commands_logger->trace("connector::_recv_query_quit");
   LOCK_GUARD(lock, _lock);
   _query_quit_ok = true;
@@ -714,7 +626,6 @@ void connector::_recv_query_quit(char const* data) {
  *  @param[in] data  Has version of engine to use with the connector.
  */
 void connector::_recv_query_version(char const* data) {
-  engine_logger(dbg_commands, basic) << "connector::_recv_query_version";
   commands_logger->trace("connector::_recv_query_version");
   bool version_ok(false);
   try {
@@ -729,10 +640,6 @@ void connector::_recv_query_version(char const* data) {
       data = endptr + 1;
     }
 
-    engine_logger(dbg_commands, basic)
-        << "connector::_recv_query_version: "
-           "major="
-        << version[0] << ", minor=" << version[1];
     commands_logger->trace(
         "connector::_recv_query_version: "
         "major={}, minor={}",
@@ -743,8 +650,6 @@ void connector::_recv_query_version(char const* data) {
          version[1] <= CENTREON_ENGINE_VERSION_MINOR))
       version_ok = true;
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
     runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
   }
 
@@ -766,18 +671,6 @@ void connector::_send_query_execute(const std::string& cmdline,
                                     uint64_t command_id,
                                     timestamp const& start,
                                     uint32_t timeout) {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_execute: "
-                                        "id="
-                                     << command_id
-                                     << ", "
-                                        "cmd='"
-                                     << cmdline
-                                     << "', "
-                                        "start="
-                                     << start.to_seconds()
-                                     << ", "
-                                        "timeout="
-                                     << timeout;
   commands_logger->trace(
       "connector::_send_query_execute: "
       "id={}, "
@@ -796,7 +689,6 @@ void connector::_send_query_execute(const std::string& cmdline,
  *  Send query quit. To ask connector to quit properly.
  */
 void connector::_send_query_quit() {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_quit";
   commands_logger->trace("connector::_send_query_quit");
   std::string query("4\0", 2);
   _process.write(query + _query_ending());
@@ -806,7 +698,6 @@ void connector::_send_query_quit() {
  *  Send query verion. To ask connector version.
  */
 void connector::_send_query_version() {
-  engine_logger(dbg_commands, basic) << "connector::_send_query_version";
   commands_logger->trace("connector::_send_query_version");
   std::string query("0\0", 2);
   query.append(_query_ending());
@@ -852,8 +743,6 @@ void connector::_run_restart() {
   try {
     _connector_start();
   } catch (std::exception const& e) {
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Connector '" << _name << "': " << e.what();
     runtime_logger->warn("Warning: Connector '{}': {}", _name, e.what());
 
     std::unordered_map<uint64_t, std::shared_ptr<query_info> > tmp_queries;
@@ -880,24 +769,6 @@ void connector::_run_restart() {
       res.start_time = info->start_time;
       res.output = "(Failed to execute command with connector '" + _name + "')";
 
-      engine_logger(dbg_commands, basic) << "connector::_recv_query_execute: "
-                                            "id="
-                                         << command_id
-                                         << ", "
-                                            "start_time="
-                                         << res.start_time.to_mseconds()
-                                         << ", "
-                                            "end_time="
-                                         << res.end_time.to_mseconds()
-                                         << ", "
-                                            "exit_code="
-                                         << res.exit_code
-                                         << ", "
-                                            "exit_status="
-                                         << res.exit_status
-                                         << ", "
-                                            "output='"
-                                         << res.output << "'";
       commands_logger->trace(
           "connector::_recv_query_execute: "
           "id={}, "

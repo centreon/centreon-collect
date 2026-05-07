@@ -19,12 +19,10 @@
  */
 
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::logging;
 
 /*
  * replace macros in notification commands with their values,
@@ -42,7 +40,6 @@ int process_macros_r(nagios_macros* mac,
   int free_macro = false;
   int macro_options = 0;
 
-  engine_logger(dbg_functions, basic) << "process_macros_r()";
   functions_logger->trace("process_macros_r()");
 
   output_buffer = "";
@@ -50,9 +47,6 @@ int process_macros_r(nagios_macros* mac,
   if (input_buffer.empty())
     return ERROR;
 
-  engine_logger(dbg_macros, more) << "**** BEGIN MACRO PROCESSING ***********\n"
-                                     "Processing: '"
-                                  << input_buffer << "'";
   macros_logger->trace("**** BEGIN MACRO PROCESSING **** Processing: '{}'",
                        input_buffer);
 
@@ -82,29 +76,18 @@ int process_macros_r(nagios_macros* mac,
           result = grab_macro_value_r(mac, token, token_resolved,
                                       &clean_options, &free_macro);
 
-          engine_logger(dbg_macros, most)
-              << "  Processed '" << token << "', To '" << token_resolved
-              << "', Clean Options: " << clean_options
-              << ", Free: " << free_macro;
           macros_logger->trace(
               "  Processed '{}', To '{}', Clean Options: {}, Free: {}", token,
               token_resolved, clean_options, free_macro);
 
           /* an error occurred - we couldn't parse the macro, so continue on */
           if (result == ERROR) {
-            engine_logger(dbg_macros, basic)
-                << " WARNING: An error occurred processing macro '" << token
-                << "'!";
             macros_logger->trace(
                 " WARNING: An error occurred processing macro '{}'!", token);
           }
 
           /* insert macro */
           if (!token_resolved.empty()) {
-            engine_logger(dbg_macros, most)
-                << "  Processed '" << token
-                << "', Clean Options: " << clean_options
-                << ", Free: " << free_macro;
             macros_logger->trace(
                 "  Processed '{}', Clean Options: {}, Free: {}", token,
                 clean_options, free_macro);
@@ -112,10 +95,6 @@ int process_macros_r(nagios_macros* mac,
             /* include any cleaning options passed back to us */
             macro_options = (options | clean_options);
 
-            engine_logger(dbg_macros, most)
-                << "  Cleaning options: global=" << options
-                << ", local=" << clean_options
-                << ", effective=" << macro_options;
             macros_logger->trace(
                 "  Cleaning options: global={}, local={}, effective={}",
                 options, clean_options, macro_options);
@@ -131,10 +110,6 @@ int process_macros_r(nagios_macros* mac,
                 if (!cleaned_macro.empty()) {
                   output_buffer.append(cleaned_macro);
 
-                  engine_logger(dbg_macros, basic)
-                      << "  Cleaned macro.  Running output ("
-                      << output_buffer.length() << "): '" << output_buffer
-                      << "'";
                   macros_logger->trace(
                       "  Cleaned macro.  Running output ({}): '{}'",
                       output_buffer.length(), output_buffer);
@@ -145,9 +120,6 @@ int process_macros_r(nagios_macros* mac,
                * buffer */
               output_buffer.append(token_resolved);
 
-              engine_logger(dbg_macros, basic)
-                  << "  Uncleaned macro.  Running output ("
-                  << output_buffer.length() << "): '" << output_buffer << "'";
               macros_logger->trace(
                   "  Uncleaned macro.  Running output ({}): '{}'",
                   output_buffer.length(), output_buffer);
@@ -155,9 +127,6 @@ int process_macros_r(nagios_macros* mac,
 
             /* free memory if necessary (if we URL encoded the macro or we were
              * told to do so by grab_macro_value()) */
-            engine_logger(dbg_macros, basic)
-                << "  Just finished macro.  Running output ("
-                << output_buffer.length() << "): '" << output_buffer << "'";
             macros_logger->trace(
                 "  Just finished macro.  Running output ({}): '{}'",
                 output_buffer.length(), output_buffer);
@@ -171,9 +140,6 @@ int process_macros_r(nagios_macros* mac,
     }
   }
 
-  engine_logger(dbg_macros, more) << "  Done.  Final output: '" << output_buffer
-                                  << "'\n"
-                                     "**** END MACRO PROCESSING *************";
   macros_logger->trace(
       "  Done.  Final output: '{}' **** END MACRO PROCESSING ****",
       output_buffer);

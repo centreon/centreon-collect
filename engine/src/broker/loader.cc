@@ -23,13 +23,11 @@
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::exceptions;
 using namespace com::centreon::engine::broker;
-using namespace com::centreon::engine::logging;
 
 /**
  *  Add a new module.
@@ -66,7 +64,7 @@ bool loader::loaded(const std::filesystem::path& filename) const {
   for (const auto& module : _modules) {
     std::error_code ec;
     if (std::filesystem::equivalent(module->get_filename(), filename, ec))
-        return true;
+      return true;
     else if (ec)
       runtime_logger->error("Error: Could not check module '{}' loading: {}",
                             filename.filename().string(), ec.message());
@@ -170,8 +168,6 @@ void loader::unload_modules() {
       (*it)->close();
     } catch (...) {
     }
-    engine_logger(dbg_eventbroker, basic)
-        << "Module '" << (*it)->get_filename() << "' unloaded successfully.";
     eventbroker_logger->trace("Module '{}' unloaded successfully.",
                               (*it)->get_filename());
   }
