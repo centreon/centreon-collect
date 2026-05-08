@@ -262,6 +262,8 @@ Ctn Start Engine
         EXCEPT
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
+        ${grpc_port}    Evaluate    ${idx} + 50001
+        Ctn Wait For Port Free    ${grpc_port}
         IF    ${with_centreon_engine_user}
             Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END

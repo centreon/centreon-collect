@@ -135,7 +135,7 @@ BAWORST
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}    Query
     ...    SELECT acknowledged, downtime, in_downtime, current_status FROM mod_bam WHERE name='test'
-    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)
+    Should Be Equal As Strings    ${output}    ((0.0, 0.0, 0, 2),)    Unexpected BA state: ${output}
 
     Disconnect From Database
 

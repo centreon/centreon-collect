@@ -203,6 +203,26 @@ def ctn_wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int
     return False
 
 
+def ctn_wait_for_port_free(port: int, timeout: int = 30):
+    """Wait until no process is listening on the given port.
+
+    Args:
+        port: The TCP port to check.
+        timeout: Timeout in seconds.
+    Returns:
+        True if the port is free before the timeout, False otherwise.
+    """
+    port = int(port)
+    limit = time.time() + timeout
+    r = re.compile(rf"[:\[]{port}\s")
+    while time.time() < limit:
+        out = getoutput("ss -tlnp")
+        if not any(r.search(line) for line in out.split('\n')):
+            return True
+        time.sleep(0.5)
+    return False
+
+
 def ctn_get_date(d: str, agent_format: bool = False):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
