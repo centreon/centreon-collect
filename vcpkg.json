@@ -16,6 +16,7 @@
     "boost-flyweight",
     "rapidjson",
     "gtest",
+    "benchmark",
     {
       "name": "libssh2",
       "platform": "linux"
