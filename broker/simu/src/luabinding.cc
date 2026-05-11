@@ -17,6 +17,8 @@
  */
 
 #include "com/centreon/broker/simu/luabinding.hh"
+
+#include <absl/container/btree_map.h>
 #include <cassert>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/lua/broker_log.hh"
@@ -36,7 +38,7 @@ using namespace com::centreon::broker::simu;
  *  @param[in] conf_params A hash table with user parameters
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, variant> const& conf_params,
+                       absl::btree_map<std::string, variant> const& conf_params,
                        const std::shared_ptr<spdlog::logger>& logger)
     : _logger(logger), _lua_script(lua_script), _total(0) {
   size_t pos(lua_script.find_last_of('/'));
@@ -129,7 +131,7 @@ void luabinding::_load_script() {
  *
  */
 void luabinding::_init_script(
-    std::map<std::string, variant> const& conf_params) {
+    absl::btree_map<std::string, variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
   for (const auto& [name, val] : conf_params) {
@@ -211,7 +213,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
   d.reset();
   lua_pushnil(_L);  // push nil, so lua_next removes it from stack and puts (k,
                     // v) on stack
-  std::map<std::string, variant> map;
+  absl::btree_map<std::string, variant> map;
   while (lua_next(_L, -2) != 0) {  // -2, because we have table at -1
     if (lua_isstring(_L, -2)) {    // only store stuff with string keys
       char const* key(lua_tostring(_L, -2));
@@ -219,8 +221,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
         map.insert({key, variant(lua_toboolean(_L, -1))});
 #if LUA53
       else if (lua_isinteger(_L, -1))
-        map.insert(
-            {key, variant(static_cast<int64_t>(lua_tointeger(_L, -1)))});
+        map.insert({key, variant(static_cast<int64_t>(lua_tointeger(_L, -1)))});
       else if (lua_isnumber(_L, -1))
         map.insert({key, variant(lua_tonumber(_L, -1))});
 #else
@@ -318,8 +319,7 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
               break;
             case mapping::source::SHORT:
               current_entry->set_short(
-                  *t,
-                  static_cast<short>(std::get<int64_t>(it->second)));
+                  *t, static_cast<short>(std::get<int64_t>(it->second)));
               break;
             case mapping::source::STRING:
               current_entry->set_string(*t, get_as_string(it->second));

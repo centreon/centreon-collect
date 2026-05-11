@@ -16,15 +16,25 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_WATCHDOG_PRECOMP_HH
-#define CC_WATCHDOG_PRECOMP_HH
+#ifndef CC_TCP_PRECOMP_HH
+#define CC_TCP_PRECOMP_HH
 
-#include <ctime>
-#include <fstream>
-#include <iostream>
-#include <limits>
-#include <map>
+#include <condition_variable>
+#include <list>
+#include <queue>
 #include <set>
 #include <string>
+#include <thread>
+#include <unordered_map>
 
-#endif
+#include <absl/container/btree_map.h>
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/match.h>
+
+#include <boost/asio.hpp>
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/ranges.h>
+#include <spdlog/spdlog.h>
+
+#endif  // CC_TCP_PRECOMP_HH

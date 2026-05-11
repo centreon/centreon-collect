@@ -71,14 +71,14 @@ using request_callback_type =
  *
  */
 using tcp_keep_alive_interval =
-    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>;
+    boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPINTVL>;
 
 /**
  * @brief this option set the delay after the first keepalive will be sent
  *
  */
 using tcp_keep_alive_idle =
-    asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
+    boost::asio::detail::socket_option::integer<IPPROTO_TCP, TCP_KEEPIDLE>;
 
 /**
  * @brief this little class add statistics time points to request_type
@@ -123,14 +123,14 @@ using request_ptr = std::shared_ptr<request_base>;
  */
 class connection_base : public std::enable_shared_from_this<connection_base> {
  protected:
-  asio::ip::tcp::endpoint _peer;
+  boost::asio::ip::tcp::endpoint _peer;
 
   // this atomic uint is used to atomically modify object state
   std::atomic_uint _state;
   // http keepalive expiration
   time_point _keep_alive_end;
 
-  std::shared_ptr<asio::io_context> _io_context;
+  std::shared_ptr<boost::asio::io_context> _io_context;
   std::shared_ptr<spdlog::logger> _logger;
 
   // asio socket are not thread safe
@@ -155,7 +155,7 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   using pointer = std::shared_ptr<connection_base>;
 
-  connection_base(const std::shared_ptr<asio::io_context>& io_context,
+  connection_base(const std::shared_ptr<boost::asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,
                   const http_config::pointer& conf)
       : _state(e_not_connected),
@@ -194,10 +194,10 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
 
   void gest_keepalive(const response_ptr& response);
 
-  virtual asio::ip::tcp::socket& get_socket() = 0;
+  virtual boost::asio::ip::tcp::socket& get_socket() = 0;
 
-  asio::ip::tcp::endpoint& get_peer() { return _peer; }
-  const asio::ip::tcp::endpoint& get_peer() const { return _peer; }
+  boost::asio::ip::tcp::endpoint& get_peer() { return _peer; }
+  const boost::asio::ip::tcp::endpoint& get_peer() const { return _peer; }
 
   virtual void add_keep_alive_to_server_response(
       const response_ptr& response) const;
@@ -211,7 +211,7 @@ class connection_base : public std::enable_shared_from_this<connection_base> {
  *
  */
 using ssl_ctx_initializer =
-    std::function<void(asio::ssl::context& ctx, const http_config::pointer&)>;
+    std::function<void(boost::asio::ssl::context& ctx, const http_config::pointer&)>;
 
 /**
  * @brief this functor is used by client and server to create needed connection
@@ -231,7 +231,7 @@ class http_connection : public connection_base {
   boost::beast::tcp_stream _socket;
 
  protected:
-  http_connection(const std::shared_ptr<asio::io_context>& io_context,
+  http_connection(const std::shared_ptr<boost::asio::io_context>& io_context,
                   const std::shared_ptr<spdlog::logger>& logger,
                   const http_config::pointer& conf,
                   const ssl_ctx_initializer& ssl_initializer = nullptr);
@@ -258,7 +258,7 @@ class http_connection : public connection_base {
         connection_base::shared_from_this());
   }
 
-  static pointer load(const std::shared_ptr<asio::io_context>& io_context,
+  static pointer load(const std::shared_ptr<boost::asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
                       const ssl_ctx_initializer& ssl_initializer = nullptr);
@@ -275,7 +275,7 @@ class http_connection : public connection_base {
               answer_callback_type&& callback) override;
   void receive_request(request_callback_type&& callback) override;
 
-  asio::ip::tcp::socket& get_socket() override;
+  boost::asio::ip::tcp::socket& get_socket() override;
 };
 
 }  // namespace com::centreon::common::http

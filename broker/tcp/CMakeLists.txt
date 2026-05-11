@@ -43,7 +43,7 @@ set_target_properties("${TCP}" PROPERTIES PREFIX ""
 )
 add_dependencies("${TCP}" process_stat pb_common_lib)
 target_link_libraries("${TCP}" spdlog::spdlog)
-target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${TCP} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.
 if (WITH_TESTING)

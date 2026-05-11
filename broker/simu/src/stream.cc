@@ -17,6 +17,8 @@
  */
 #include "com/centreon/broker/simu/stream.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
@@ -31,7 +33,7 @@ using namespace com::centreon::broker::simu;
  *  @param[in] port                    port
  */
 stream::stream(std::string const& lua_script,
-               std::map<std::string, variant> const& conf_params,
+               absl::btree_map<std::string, variant> const& conf_params,
                const std::shared_ptr<spdlog::logger>& logger)
     : io::stream("simu"), _logger(logger) {
   _luabinding = new luabinding(lua_script, conf_params, _logger);

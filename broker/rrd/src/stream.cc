@@ -37,6 +37,8 @@
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/common/perfdata.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 

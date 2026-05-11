@@ -20,7 +20,6 @@
 #define CCB_IO_STREAM_HH
 
 #include <nlohmann/json.hpp>
-
 #include "com/centreon/broker/io/data.hh"
 
 namespace com::centreon::broker::io {

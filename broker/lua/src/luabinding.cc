@@ -57,7 +57,7 @@ static int l_pairs(lua_State* L) {
  *  @param[in] cache the persistent cache.
  */
 luabinding::luabinding(std::string const& lua_script,
-                       std::map<std::string, variant> const& conf_params)
+                       absl::btree_map<std::string, variant> const& conf_params)
     : _L{nullptr},
       _filter{false},
       _flush{false},
@@ -282,7 +282,7 @@ void luabinding::_load_script(const std::string& lua_script) {
  *
  */
 void luabinding::_init_script(
-    std::map<std::string, variant> const& conf_params) {
+    absl::btree_map<std::string, variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
   for (const auto& [name, val] : conf_params) {

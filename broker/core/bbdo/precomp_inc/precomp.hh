@@ -19,9 +19,14 @@
 #ifndef CC_CORE_BBDO_PRECOMP_HH
 #define CC_CORE_BBDO_PRECOMP_HH
 
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 #include <deque>
 #include <list>
+
+#include <absl/container/btree_map.h>
+#include <absl/strings/match.h>
+#include <absl/strings/str_split.h>
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #endif /* !CC_CORE_BBDO_PRECOMP_HH */

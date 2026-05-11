@@ -19,6 +19,8 @@
 #ifndef CCB_LUA_CONNECTOR_HH
 #define CCB_LUA_CONNECTOR_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 
@@ -37,12 +39,12 @@ class connector : public io::endpoint {
   ~connector();
   connector& operator=(connector const&) = delete;
   void connect_to(std::string const& lua_script,
-                  std::map<std::string, variant> const& cfg_params);
+                  absl::btree_map<std::string, variant> const& cfg_params);
   std::shared_ptr<io::stream> open() override;
 
  private:
   std::string _lua_script;
-  std::map<std::string, variant> _conf_params;
+  absl::btree_map<std::string, variant> _conf_params;
 };
 
 }  // namespace com::centreon::broker::lua

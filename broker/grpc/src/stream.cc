@@ -27,6 +27,8 @@
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;

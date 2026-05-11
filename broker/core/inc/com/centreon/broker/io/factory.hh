@@ -19,6 +19,8 @@
 #ifndef CCB_IO_FACTORY_HH
 #define CCB_IO_FACTORY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
@@ -54,7 +56,7 @@ class factory {
   virtual bool has_endpoint(config::endpoint& cfg, io::extension* ext) = 0;
   virtual endpoint* new_endpoint(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
+      const absl::btree_map<std::string, std::string>& global_params,
       bool& is_acceptor) const = 0;
   virtual std::shared_ptr<stream> new_stream(
       std::shared_ptr<stream> substream,

@@ -16,26 +16,26 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_TLS_PRECOMP_HH
-#define CC_TLS_PRECOMP_HH
+#ifndef CC_STATS_EXPORTER_PRECOMP_HH
+#define CC_STATS_EXPORTER_PRECOMP_HH
 
 #include <condition_variable>
+#include <ctime>
+#include <deque>
+#include <future>
+#include <limits>
 #include <list>
-#include <queue>
-#include <set>
 #include <string>
 #include <thread>
 #include <unordered_map>
 
 #include <absl/container/btree_map.h>
+#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
 
-namespace asio = boost::asio;
-
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #endif

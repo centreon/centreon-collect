@@ -19,6 +19,8 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
+#include <absl/container/btree_map.h>
+
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "common/log_v2/config.hh"
@@ -47,7 +49,7 @@ class state {
   int _event_queue_max_size;
   std::string _module_dir;
   std::list<std::string> _module_list;
-  std::map<std::string, std::string> _params;
+  absl::btree_map<std::string, std::string> _params;
   int _poller_id;
   std::string _poller_name;
   size_t _pool_size;
@@ -130,8 +132,8 @@ class state {
   std::list<std::string>& module_list() noexcept;
   void add_module(std::string module);
   std::list<std::string> const& module_list() const noexcept;
-  std::map<std::string, std::string>& params() noexcept;
-  const std::map<std::string, std::string>& params() const noexcept;
+  absl::btree_map<std::string, std::string>& params() noexcept;
+  const absl::btree_map<std::string, std::string>& params() const noexcept;
   void poller_id(int id) noexcept;
   int poller_id() const noexcept;
   void pool_size(int size) noexcept;

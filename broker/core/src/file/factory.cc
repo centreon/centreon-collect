@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/file/factory.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -55,7 +57,8 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   // Find path to the file.
   std::string filename;

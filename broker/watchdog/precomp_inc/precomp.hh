@@ -16,28 +16,18 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CC_SIMU_PRECOMP_HH
-#define CC_SIMU_PRECOMP_HH
+#ifndef CC_WATCHDOG_PRECOMP_HH
+#define CC_WATCHDOG_PRECOMP_HH
 
-#include <condition_variable>
 #include <ctime>
-#include <deque>
-#include <future>
+#include <fstream>
+#include <iostream>
 #include <limits>
-#include <list>
+#include <map>
+#include <set>
 #include <string>
-#include <thread>
-#include <unordered_map>
 
 #include <absl/container/btree_map.h>
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
-
-#include <boost/asio.hpp>
-
-namespace asio = boost::asio;
-
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
+#include <nlohmann/json.hpp>
 
 #endif

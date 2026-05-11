@@ -59,7 +59,7 @@ connector::~connector() {}
  */
 void connector::connect_to(
     const std::string& lua_script,
-    const std::map<std::string, variant>& cfg_params) {
+    const absl::btree_map<std::string, variant>& cfg_params) {
   _conf_params = cfg_params;
   _lua_script = lua_script;
 }

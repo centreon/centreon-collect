@@ -32,6 +32,8 @@
 #include "com/centreon/broker/rrd/lib.hh"
 #include "com/centreon/broker/rrd/retention_manager.hh"
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker {
 
 namespace rrd {

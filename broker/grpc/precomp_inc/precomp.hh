@@ -36,8 +36,6 @@
 
 #include <boost/asio.hpp>
 
-namespace asio = boost::asio;
-
 #include <grpc/grpc.h>
 #include <grpcpp/alarm.h>
 #include <grpcpp/channel.h>
@@ -47,17 +45,14 @@ namespace asio = boost::asio;
 #include <grpcpp/impl/codegen/client_callback.h>
 #include <grpcpp/security/credentials.h>
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/match.h>
 
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-using system_clock = std::chrono::system_clock;
-using time_point = system_clock::time_point;
-using duration = system_clock::duration;
-using unique_lock = std::unique_lock<std::mutex>;
-using lock_guard = std::lock_guard<std::mutex>;
 
 #endif  // CCB_GRPC_PRECOMP_HH

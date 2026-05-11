@@ -17,8 +17,6 @@
  *
  */
 
-#include <absl/strings/match.h>
-
 #include "grpc_stream.grpc.pb.h"
 
 #include "com/centreon/broker/grpc/factory.hh"
@@ -83,7 +81,8 @@ static std::string read_file(const std::string& path) {
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client")
     return _new_endpoint_bbdo_cs(cfg, is_acceptor);

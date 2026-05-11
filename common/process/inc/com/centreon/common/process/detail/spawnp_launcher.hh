@@ -24,8 +24,8 @@
 
 namespace com::centreon::common::detail {
 
-boost::process::v2::basic_process<asio::io_context::executor_type> spawnp(
-    asio::io_context& io_context,
+boost::process::v2::basic_process<boost::asio::io_context::executor_type> spawnp(
+    boost::asio::io_context& io_context,
     const process_args::pointer& args,
     bool use_setpgid,
     int stdin_fd,

@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
+#include <absl/container/btree_map.h>
 #include <gtest/gtest.h>
 #include <com/centreon/broker/stats/parser.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
@@ -123,7 +124,8 @@ class fact : public io::factory {
 
   io::endpoint* new_endpoint(
       config::endpoint& cfg [[maybe_unused]],
-      const std::map<std::string, std::string>& global_params [[maybe_unused]],
+      const absl::btree_map<std::string, std::string>& global_params
+      [[maybe_unused]],
       bool& is_acceptor) const override {
     endp* p{new endp()};
     is_acceptor = true;

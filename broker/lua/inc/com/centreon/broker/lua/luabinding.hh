@@ -20,6 +20,9 @@
 #define CCB_LUA_LUABINDING_HH
 
 #include <variant>
+
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/data.hh"
 
 extern "C" {
@@ -110,12 +113,12 @@ class luabinding {
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
-  void _init_script(std::map<std::string, variant> const& conf_params);
+  void _init_script(absl::btree_map<std::string, variant> const& conf_params);
   void _update_lua_path(std::string const& path);
 
  public:
   luabinding(std::string const& lua_script,
-             std::map<std::string, variant> const& conf_params);
+             absl::btree_map<std::string, variant> const& conf_params);
   luabinding(luabinding const&) = delete;
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;

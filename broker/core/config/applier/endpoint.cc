@@ -95,8 +95,9 @@ endpoint::~endpoint() {
  *
  *  @param[in] endpoints  Endpoints configuration objects.
  */
-void endpoint::apply(std::list<config::endpoint> const& endpoints,
-                     const std::map<std::string, std::string>& global_params) {
+void endpoint::apply(
+    std::list<config::endpoint> const& endpoints,
+    const absl::btree_map<std::string, std::string>& global_params) {
   // Log messages.
   SPDLOG_LOGGER_INFO(_logger, "endpoint applier: loading configuration");
 
@@ -427,7 +428,7 @@ void endpoint::unload() {
  */
 processing::failover* endpoint::_create_failover(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const absl::btree_map<std::string, std::string>& global_params,
     std::shared_ptr<multiplexing::muxer> mux,
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
@@ -503,12 +504,12 @@ processing::failover* endpoint::_create_failover(
  */
 std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const absl::btree_map<std::string, std::string>& global_params,
     bool& is_acceptor) {
   // Create endpoint object.
   std::shared_ptr<io::endpoint> endp;
   int level{0};
-  for (std::map<std::string, io::protocols::protocol>::const_iterator
+  for (absl::btree_map<std::string, io::protocols::protocol>::const_iterator
            it = io::protocols::instance().begin(),
            end = io::protocols::instance().end();
        it != end; ++it) {
@@ -530,9 +531,9 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
   // Create remaining objects.
   while (level <= 7) {
     // Browse protocol list.
-    std::map<std::string, io::protocols::protocol>::const_iterator it(
+    absl::btree_map<std::string, io::protocols::protocol>::const_iterator it(
         io::protocols::instance().begin());
-    std::map<std::string, io::protocols::protocol>::const_iterator end(
+    absl::btree_map<std::string, io::protocols::protocol>::const_iterator end(
         io::protocols::instance().end());
     while (it != end) {
       if ((it->second.osi_from == level) &&
@@ -568,7 +569,7 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(
  *  @param[out] to_delete     Endpoints that should be deleted.
  */
 void endpoint::_diff_endpoints(
-    const std::map<config::endpoint, processing::endpoint*>& current,
+    const absl::btree_map<config::endpoint, processing::endpoint*>& current,
     const std::list<config::endpoint>& new_endpoints,
     std::list<config::endpoint>& to_create,
     std::list<config::endpoint>& to_delete) {

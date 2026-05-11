@@ -285,7 +285,8 @@ void availability_thread::_build_daily_availabilities(int thread_id,
   _mysql->run_query_and_get_result(query, std::move(promise), thread_id);
 
   // Create a builder for each ba_id and associated timeperiod_id.
-  std::map<std::pair<uint32_t, uint32_t>, std::unique_ptr<availability_builder>>
+  absl::btree_map<std::pair<uint32_t, uint32_t>,
+                  std::unique_ptr<availability_builder>>
       builders;
   try {
     database::mysql_result res(future.get());

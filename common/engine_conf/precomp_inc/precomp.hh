@@ -20,8 +20,12 @@
 #ifndef CCE_ENGINE_CONF_PRECOMP_HH
 #define CCE_ENGINE_CONF_PRECOMP_HH
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/match.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include <fmt/ranges.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <spdlog/fmt/ostr.h>

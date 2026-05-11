@@ -36,13 +36,14 @@ namespace applier {
  */
 class modules {
   std::shared_ptr<spdlog::logger> _logger;
-  std::map<std::string, std::unique_ptr<handle>> _handles;
+  absl::btree_map<std::string, std::unique_ptr<handle>> _handles;
   mutable std::mutex _m_modules;
 
   bool _check_module(const std::string& name, void* h) noexcept;
 
  public:
-  typedef std::map<std::string, std::unique_ptr<handle>>::iterator iterator;
+  typedef absl::btree_map<std::string, std::unique_ptr<handle>>::iterator
+      iterator;
 
   modules(const std::shared_ptr<spdlog::logger>& logger) : _logger(logger) {}
   ~modules() noexcept = default;

@@ -26,7 +26,7 @@ add_library(broker_cache STATIC
   broker_cache.cc
 )
 
-target_precompile_headers(broker_cache PRIVATE ../precomp_inc/precomp.hpp)
+target_precompile_headers(broker_cache PRIVATE ../precomp_inc/precomp.hh)
 set_target_properties(broker_cache PROPERTIES
     POSITION_INDEPENDENT_CODE ON
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")

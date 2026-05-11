@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 
+#include <absl/container/btree_map.h>
 #include <fmt/format.h>
 #include <cfloat>
 #include <cmath>
@@ -33,6 +34,8 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
+
+namespace asio = boost::asio;
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -107,7 +110,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d,
           ids_str)};
       logger->trace("Metric rebuild: Executed query << {} >>", query);
       ms.run_query_and_get_result(query, std::move(promise), conn);
-      std::map<uint64_t, metric_info> ret_inter;
+      absl::btree_map<uint64_t, metric_info> ret_inter;
       std::list<int64_t> mids;
       auto start_rebuild = std::make_shared<storage::pb_rebuild_message>();
       start_rebuild->mut_obj().set_state(RebuildMessage_State_START);

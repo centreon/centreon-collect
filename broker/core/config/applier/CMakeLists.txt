@@ -32,7 +32,7 @@ add_library(broker_applier_state STATIC
 
 target_compile_definitions(broker_applier_state PRIVATE BROKER_COMPILATION)
 
-target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp.hpp)
+target_precompile_headers(broker_applier_state PRIVATE ../../precomp_inc/precomp.hh)
 
 set_target_properties(broker_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -53,7 +53,7 @@ add_library(cbmod_applier_state STATIC
 
 target_compile_definitions(cbmod_applier_state PRIVATE CBMOD_COMPILATION)
 
-target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.hpp)
+target_precompile_headers(cbmod_applier_state PRIVATE ../../precomp_inc/precomp.hh)
 
 set_target_properties(cbmod_applier_state PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

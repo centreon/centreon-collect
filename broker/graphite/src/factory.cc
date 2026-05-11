@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/graphite/factory.hh"
-#include <absl/strings/match.h>
 #include "com/centreon/broker/graphite/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -115,7 +114,8 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   std::string db_host(find_param(cfg, "db_host"));
   unsigned short db_port(get_uint_param(cfg, "db_port", 2003));

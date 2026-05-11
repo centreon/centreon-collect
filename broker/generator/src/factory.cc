@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/generator/factory.hh"
+#include <absl/container/btree_map.h>
 #include <memory>
 #include "com/centreon/broker/generator/endpoint.hh"
 
@@ -46,7 +47,7 @@ bool factory::has_endpoint(config::endpoint& cfg,
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params,
+    const absl::btree_map<std::string, std::string>& global_params,
     bool& is_acceptor,
     std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Generate opener.

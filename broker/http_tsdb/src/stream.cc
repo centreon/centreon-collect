@@ -25,6 +25,11 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 
+namespace asio = boost::asio;
+using system_clock = std::chrono::system_clock;
+using time_point = system_clock::time_point;
+using duration = system_clock::duration;
+
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::http_tsdb;

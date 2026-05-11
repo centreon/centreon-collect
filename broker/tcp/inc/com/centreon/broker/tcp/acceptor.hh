@@ -35,7 +35,7 @@ class acceptor : public io::endpoint {
 
   absl::flat_hash_set<std::string> _children;
   std::mutex _childrenm;
-  std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
+  std::shared_ptr<boost::asio::ip::tcp::acceptor> _acceptor;
 
  public:
   acceptor(const tcp_config::pointer& conf);

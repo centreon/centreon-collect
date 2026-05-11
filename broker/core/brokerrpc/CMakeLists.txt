@@ -90,7 +90,7 @@ add_library(brokerrpc
   brokerrpc.cc
 )
 
-target_precompile_headers(brokerrpc PRIVATE ../precomp_inc/precomp.hpp)
+target_precompile_headers(brokerrpc PRIVATE ../precomp_inc/precomp.hh)
 add_dependencies(brokerrpc pb_broker_lib)
 
 target_link_libraries(brokerrpc

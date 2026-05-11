@@ -127,11 +127,11 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   bool _write_pending = false;
   std::shared_ptr<spdlog::logger> _logger;
 
-  std::shared_ptr<asio::io_context> _io_context;
-  asio::system_timer _timeout_timer;
-  asio::readable_pipe _stdout_pipe;
-  asio::readable_pipe _stderr_pipe;
-  asio::writable_pipe _stdin_pipe;
+  std::shared_ptr<boost::asio::io_context> _io_context;
+  boost::asio::system_timer _timeout_timer;
+  boost::asio::readable_pipe _stdout_pipe;
+  boost::asio::readable_pipe _stderr_pipe;
+  boost::asio::writable_pipe _stdin_pipe;
   detail::boost_process* _proc = nullptr;
   /**
    * @brief workaround

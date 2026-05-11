@@ -113,7 +113,7 @@ add_library(
   "bbdo/stop.hh"
   "bbdo/bbdo_version.hh")
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
-target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hh)
 add_dependencies(bbdo_bbdo pb_bbdo_lib pb_extcmd_lib)
 
 add_library(

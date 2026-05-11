@@ -18,6 +18,8 @@
 
 #include "com/centreon/broker/rrd/factory.hh"
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/rrd/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -76,7 +78,8 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   auto logger = log_v2::instance().get(log_v2::RRD);
 
@@ -101,7 +104,7 @@ io::endpoint* factory::new_endpoint(
   // Should metrics be written ?
   bool write_metrics;
   {
-    std::map<std::string, std::string>::const_iterator it(
+    absl::btree_map<std::string, std::string>::const_iterator it(
         cfg.params.find("write_metrics"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_metrics)) {

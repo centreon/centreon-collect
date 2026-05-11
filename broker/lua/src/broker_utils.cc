@@ -20,8 +20,6 @@
 
 #include <fmt/format.h>
 #include <sys/stat.h>
-#include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
 #include "broker/core/config/applier/state.hh"
 #include "common/crypto/base64.hh"
 
@@ -29,7 +27,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iomanip>
-#include <nlohmann/json.hpp>
 #include <sstream>
 
 #include "com/centreon/broker/io/data.hh"

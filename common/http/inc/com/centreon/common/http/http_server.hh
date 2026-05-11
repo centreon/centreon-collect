@@ -33,11 +33,11 @@ namespace com::centreon::common::http {
  */
 class server : public std::enable_shared_from_this<server> {
  private:
-  const std::shared_ptr<asio::io_context> _io_context;
+  const std::shared_ptr<boost::asio::io_context> _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
   http_config::pointer _conf;
   connection_creator _conn_creator;
-  asio::ip::tcp::acceptor _acceptor;
+  boost::asio::ip::tcp::acceptor _acceptor;
   std::mutex _acceptor_m;
 
   void start_accept();
@@ -48,14 +48,14 @@ class server : public std::enable_shared_from_this<server> {
  public:
   using pointer = std::shared_ptr<server>;
 
-  server(const std::shared_ptr<asio::io_context>& io_context,
+  server(const std::shared_ptr<boost::asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf,
          connection_creator&& conn_creator);
 
   ~server();
 
-  static pointer load(const std::shared_ptr<asio::io_context>& io_context,
+  static pointer load(const std::shared_ptr<boost::asio::io_context>& io_context,
                       const std::shared_ptr<spdlog::logger>& logger,
                       const http_config::pointer& conf,
                       connection_creator&& conn_creator);

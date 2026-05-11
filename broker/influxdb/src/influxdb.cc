@@ -22,7 +22,7 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
-using namespace asio;
+using namespace boost::asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::influxdb;
 using log_v2 = com::centreon::common::log_v2::log_v2;

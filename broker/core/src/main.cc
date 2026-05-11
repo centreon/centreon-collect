@@ -25,8 +25,6 @@
 #include <exception>
 #include <thread>
 
-#include <absl/strings/numbers.h>
-
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;

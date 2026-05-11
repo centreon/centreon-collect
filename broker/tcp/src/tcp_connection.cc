@@ -22,6 +22,8 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
+namespace asio = boost::asio;
+
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
 using com::centreon::common::debug_buf;

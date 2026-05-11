@@ -17,8 +17,6 @@
  */
 
 #include "com/centreon/broker/simu/factory.hh"
-#include <absl/strings/match.h>
-#include <nlohmann/json.hpp>
 #include "com/centreon/broker/simu/connector.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -73,9 +71,10 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
-  std::map<std::string, simu::variant> conf_map;
+  absl::btree_map<std::string, simu::variant> conf_map;
   std::string err;
 
   std::string filename(find_param(cfg, "path"));

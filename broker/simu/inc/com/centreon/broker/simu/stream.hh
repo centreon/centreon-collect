@@ -19,6 +19,8 @@
 #ifndef CCB_SIMU_STREAM_HH
 #define CCB_SIMU_STREAM_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/simu/luabinding.hh"
 
@@ -41,7 +43,7 @@ class stream : public io::stream {
 
  public:
   stream(std::string const& lua_script,
-         std::map<std::string, variant> const& conf_params,
+         absl::btree_map<std::string, variant> const& conf_params,
          const std::shared_ptr<spdlog::logger>& logger);
   ~stream();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;

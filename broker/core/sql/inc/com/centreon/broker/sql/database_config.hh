@@ -19,6 +19,8 @@
 #ifndef CCB_DATABASE_CONFIG_HH
 #define CCB_DATABASE_CONFIG_HH
 
+#include <absl/container/btree_map.h>
+
 namespace com::centreon::broker {
 
 // Forward declaration.
@@ -74,8 +76,9 @@ class database_config {
                   bool check_replication = true,
                   int connections_count = 1,
                   unsigned max_commit_delay = 5);
-  database_config(config::endpoint const& cfg,
-                  const std::map<std::string, std::string>& global_params);
+  database_config(
+      config::endpoint const& cfg,
+      const absl::btree_map<std::string, std::string>& global_params);
   database_config(const database_config& other);
   ~database_config() noexcept = default;
   database_config& operator=(database_config const& other);

@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/btree_map.h>
 #include <fcntl.h>
 #include <rrd.h>
 
@@ -64,7 +65,7 @@ creator::~creator() {
  *  Clear cache and remove template file.
  */
 void creator::clear() {
-  for (std::map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
+  for (absl::btree_map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
        end(_fds.end());
        it != end; ++it) {
     ::close(it->second.fd);
@@ -102,7 +103,8 @@ void creator::create(std::string const& filename,
         .from = 0, .length = length, .step = step, .value_type = value_type};
 
     // Find fd informations.
-    std::map<tmpl_info, fd_info>::const_iterator it(_fds.lower_bound(info));
+    absl::btree_map<tmpl_info, fd_info>::const_iterator it(
+        _fds.lower_bound(info));
 
     // Is in the cache, just duplicate file.
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
@@ -115,8 +117,8 @@ void creator::create(std::string const& filename,
     // Create new entry.
     else if (_fds.size() < _cache_size) {
       auto tmpl_filename =
-          (_tmpl_path / fmt::format("tmpl_{}_{}_{}_{}.rrd", from, length, step,
-                                    value_type))
+          (_tmpl_path /
+           fmt::format("tmpl_{}_{}_{}_{}.rrd", from, length, step, value_type))
               .string();
       info.from = from;
 

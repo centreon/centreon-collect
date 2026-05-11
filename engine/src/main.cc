@@ -33,6 +33,7 @@ namespace po = boost::program_options;
 #include <spdlog/spdlog.h>
 
 #include <absl/container/btree_map.h>
+#include <absl/strings/str_split.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>

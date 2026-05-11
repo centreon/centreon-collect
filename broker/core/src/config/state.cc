@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/config/state.hh"
+#include <absl/container/btree_map.h>
 #include "broker/core/bbdo/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -358,7 +359,7 @@ std::list<std::string> const& state::module_list() const noexcept {
  *
  *  @return Additional parameters list.
  */
-std::map<std::string, std::string>& state::params() noexcept {
+absl::btree_map<std::string, std::string>& state::params() noexcept {
   return _params;
 }
 
@@ -367,7 +368,8 @@ std::map<std::string, std::string>& state::params() noexcept {
  *
  *  @return Additional parameters list.
  */
-const std::map<std::string, std::string>& state::params() const noexcept {
+const absl::btree_map<std::string, std::string>& state::params()
+    const noexcept {
   return _params;
 }
 

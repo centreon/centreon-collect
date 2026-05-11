@@ -31,15 +31,13 @@
 
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include "absl/container/btree_map.h"
+#include <absl/container/btree_map.h>
 #include <absl/strings/match.h>
 #include <absl/synchronization/mutex.h>
 
 #include <boost/asio.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/system/system_error.hpp>
-
-namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/fmt/std.h>

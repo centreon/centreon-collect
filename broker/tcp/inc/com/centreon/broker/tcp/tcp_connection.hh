@@ -18,6 +18,8 @@
 #ifndef CENTREON_BROKER_TCP_CONNECTION_HH
 #define CENTREON_BROKER_TCP_CONNECTION_HH
 
+namespace asio = boost::asio;
+
 namespace com::centreon::broker::tcp {
 
 class tcp_connection : public std::enable_shared_from_this<tcp_connection> {

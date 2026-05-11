@@ -19,6 +19,8 @@
 #ifndef CCB_FILE_FACTORY_HH
 #define CCB_FILE_FACTORY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/factory.hh"
 
@@ -40,7 +42,7 @@ class factory : public io::factory {
   bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
-      const std::map<std::string, std::string>& global_params,
+      const absl::btree_map<std::string, std::string>& global_params,
       bool& is_acceptor) const override;
 };
 

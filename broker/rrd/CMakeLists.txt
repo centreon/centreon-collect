@@ -96,7 +96,7 @@ add_library(
   "${INC_DIR}/com/centreon/broker/rrd/stream.hh")
 set_target_properties("${RRD}" PROPERTIES PREFIX ""
   LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")
-target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${RRD} PRIVATE precomp_inc/precomp.hh)
 target_include_directories("${RRD}" PRIVATE
   $<TARGET_PROPERTY:pb_rrd_retention_lib,INTERFACE_INCLUDE_DIRECTORIES>)
 add_dependencies("${RRD}" pb_rebuild_message_lib pb_remove_graph_message_lib

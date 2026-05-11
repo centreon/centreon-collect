@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/sql/database_config.hh"
+#include <absl/container/btree_map.h>
 #include <absl/strings/ascii.h>
 #include <boost/beast.hpp>
 #include "com/centreon/broker/config/endpoint.hh"
@@ -110,7 +111,7 @@ database_config::database_config(const std::string& type,
  */
 database_config::database_config(
     const config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params)
+    const absl::btree_map<std::string, std::string>& global_params)
     : _extension_directory{DEFAULT_MARIADB_EXTENSION_DIR},
       _config_logger{log_v2::instance().get(log_v2::CONFIG)} {
   std::string env_file;

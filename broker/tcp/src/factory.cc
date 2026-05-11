@@ -19,8 +19,6 @@
 
 #include "com/centreon/broker/tcp/factory.hh"
 
-#include <absl/strings/match.h>
-
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -71,7 +69,8 @@ bool factory::has_endpoint(com::centreon::broker::config::endpoint& cfg,
  */
 io::endpoint* factory::new_endpoint(
     com::centreon::broker::config::endpoint& cfg,
-    const std::map<std::string, std::string>& global_params [[maybe_unused]],
+    const absl::btree_map<std::string, std::string>& global_params
+    [[maybe_unused]],
     bool& is_acceptor) const {
   auto logger = log_v2::instance().get(log_v2::TCP);
 

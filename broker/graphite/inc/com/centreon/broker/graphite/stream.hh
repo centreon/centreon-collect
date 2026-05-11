@@ -60,8 +60,8 @@ class stream : public io::stream {
   query _status_query;
   std::string _query;
   std::string _auth_query;
-  asio::io_context _io_context;
-  asio::ip::tcp::socket _socket;
+  boost::asio::io_context _io_context;
+  boost::asio::ip::tcp::socket _socket;
 
   // Logger
   std::shared_ptr<spdlog::logger> _logger;

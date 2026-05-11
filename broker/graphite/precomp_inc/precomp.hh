@@ -16,42 +16,24 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCB_NEB_PRECOMP_HH
-#define CCB_NEB_PRECOMP_HH
+#ifndef CC_GRAPHITE_PRECOMP_HH
+#define CC_GRAPHITE_PRECOMP_HH
 
-#include <chrono>
 #include <condition_variable>
-#include <ctime>
-#include <deque>
 #include <future>
-#include <limits>
 #include <list>
-#include <map>
-#include <stack>
+#include <queue>
+#include <set>
 #include <string>
-#include <string_view>
-#include <thread>
 #include <unordered_map>
 
-#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
-#include <absl/strings/numbers.h>
-#include <absl/strings/str_split.h>
-
-#include <absl/strings/string_view.h>
-
-#include <boost/circular_buffer.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
+#include <absl/strings/match.h>
 
 #include <boost/asio.hpp>
-
-namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include <rapidjson/document.h>
-
-#endif
+#endif  // CC_GRAPHITE_PRECOMP_HH

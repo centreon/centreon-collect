@@ -35,6 +35,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <absl/container/btree_map.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
@@ -47,10 +48,5 @@
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
-using system_clock = std::chrono::system_clock;
-using time_point = system_clock::time_point;
-using duration = system_clock::duration;
-
-namespace asio = boost::asio;
 
 #endif  // CC_VICTORIA_METRICS_PRECOMP_HH

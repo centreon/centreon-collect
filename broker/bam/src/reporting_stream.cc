@@ -1057,7 +1057,7 @@ void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
       _ba_event_cache[ba_key] = newba;
       // check events for BA
       if (_last_inserted_kpi.find(be.ba_id) != _last_inserted_kpi.end()) {
-        std::map<std::time_t, uint64_t>& m_events =
+        absl::btree_map<std::time_t, uint64_t>& m_events =
             _last_inserted_kpi[be.ba_id];
         if (m_events.find(be.start_time.get_time_t()) != m_events.end()) {
           // Insert kpi event link.
@@ -1151,7 +1151,7 @@ void reporting_stream::_process_pb_ba_event(
       _ba_event_cache[ba_key] = newba;
       // check events for BA
       if (_last_inserted_kpi.find(be.ba_id()) != _last_inserted_kpi.end()) {
-        std::map<std::time_t, uint64_t>& m_events =
+        absl::btree_map<std::time_t, uint64_t>& m_events =
             _last_inserted_kpi[be.ba_id()];
         if (m_events.find(be.start_time()) != m_events.end()) {
           // Insert kpi event link.

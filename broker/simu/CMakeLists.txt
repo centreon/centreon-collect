@@ -50,7 +50,7 @@ add_dependencies(${SIMU} pb_neb_lib pb_storage_lib pb_bam_lib
                  pb_open_telemetry_lib)
 
 target_link_libraries("${SIMU}" PRIVATE ${LUA_LIBRARIES} spdlog::spdlog)
-target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)
+target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hh)
 set_target_properties(
   "${SIMU}" PROPERTIES PREFIX "" LIBRARY_OUTPUT_DIRECTORY
                                  "${CMAKE_BINARY_DIR}/broker/lib")

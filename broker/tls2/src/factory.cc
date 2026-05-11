@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/tls2/factory.hh"
 
+#include <absl/container/btree_map.h>
 #include <cstring>
 #include <memory>
 
@@ -90,9 +91,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
  */
 io::endpoint* factory::new_endpoint(
     config::endpoint& cfg,
-    const absl::flat_hash_map<std::string, std::string>& global_params,
+    const absl::btree_map<std::string, std::string>& global_params,
     bool& is_acceptor,
-    std::shared_ptr<persistent_cache> cache[[maybe_unused]]) const {
+    std::shared_ptr<persistent_cache> cache [[maybe_unused]]) const {
   // Find TLS parameters (optional).
   bool tls2 = false;
   std::string private_key;
@@ -101,7 +102,7 @@ io::endpoint* factory::new_endpoint(
   std::string tls_hostname;
   {
     // Is TLS enabled ?
-    std::map<std::string, std::string>::const_iterator it{
+    absl::btree_map<std::string, std::string>::const_iterator it{
         cfg.params.find("tls2")};
     if (it != cfg.params.end()) {
       tls2 = config::parser::parse_boolean(it->second);
