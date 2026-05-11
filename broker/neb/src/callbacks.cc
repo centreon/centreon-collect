@@ -3154,6 +3154,7 @@ int neb::callback_pb_service(int callback_type [[maybe_unused]], void* data) {
                                : engine::notifier::hard));
     srv.set_severity_id(es->get_severity() ? es->get_severity()->id() : 0);
     srv.set_icon_id(es->get_icon_id());
+    srv.set_instance_id(config::applier::state::instance().poller_id());
 
     for (auto& tg : es->tags()) {
       TagInfo* ti = srv.mutable_tags()->Add();
