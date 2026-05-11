@@ -1669,6 +1669,158 @@ def ctn_engine_config_remove_host(idx: int, host: str):
         f.writelines(lines)
 
 
+def ctn_engine_config_move_host_to_engine(src_idx: int, dest_idx: int, host_name: str):
+    """
+    Move a host block from src engine's hosts.cfg to dest engine's hosts.cfg.
+    The host is removed from src and appended to dest in a single operation.
+
+    Args:
+        src_idx (int): Index of the source engine configuration (from 0)
+        dest_idx (int): Index of the destination engine configuration (from 0)
+        host_name (str): Name of the host to move
+    """
+    src_file = f"{ETC_ROOT}/centreon-engine/config{src_idx}/hosts.cfg"
+    dest_file = f"{ETC_ROOT}/centreon-engine/config{dest_idx}/hosts.cfg"
+
+    with open(src_file, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{re.escape(host_name)}\s*$")
+    host_begin = re.compile(r"^define host {$")
+    host_end = re.compile(r"^}$")
+
+    block_start = None
+    for i, line in enumerate(lines):
+        if host_begin.match(line):
+            block_start = i
+        elif block_start is not None and host_name_re.match(line):
+            for j in range(i, len(lines)):
+                if host_end.match(lines[j]):
+                    block = lines[block_start:j + 1]
+                    del lines[block_start:j + 1]
+                    with open(src_file, "w") as f:
+                        f.writelines(lines)
+                    with open(dest_file, "a") as f:
+                        f.writelines(block)
+                    return
+        elif block_start is not None and host_end.match(line):
+            block_start = None
+
+
+def ctn_engine_config_move_services_to_engine(src_idx: int, dest_idx: int, host_name: str):
+    """
+    Move all service blocks for host_name from src engine to dest engine.
+    Services are removed from src and appended to dest. Referenced check_command
+    definitions not already in dest commands.cfg are also copied from src.
+
+    Args:
+        src_idx (int): Index of the source engine configuration (from 0)
+        dest_idx (int): Index of the destination engine configuration (from 0)
+        host_name (str): Name of the host whose services to move
+    """
+    src_services = f"{ETC_ROOT}/centreon-engine/config{src_idx}/services.cfg"
+    dest_services = f"{ETC_ROOT}/centreon-engine/config{dest_idx}/services.cfg"
+    src_commands = f"{ETC_ROOT}/centreon-engine/config{src_idx}/commands.cfg"
+    dest_commands = f"{ETC_ROOT}/centreon-engine/config{dest_idx}/commands.cfg"
+
+    with open(src_services, "r") as f:
+        lines = f.readlines()
+
+    host_name_re = re.compile(rf"^\s*host_name\s+{re.escape(host_name)}\s*$")
+    check_cmd_re = re.compile(r"^\s*check_command\s+(\S+)\s*$")
+    serv_begin = re.compile(r"^define service {$")
+    serv_end = re.compile(r"^}$")
+
+    block_ranges = []
+    needed_commands = set()
+    block_start = None
+    found_host = False
+    cmd_in_block = None
+
+    for i, line in enumerate(lines):
+        if serv_begin.match(line):
+            block_start = i
+            found_host = False
+            cmd_in_block = None
+        elif block_start is not None:
+            if host_name_re.match(line):
+                found_host = True
+            m = check_cmd_re.match(line)
+            if m:
+                cmd_in_block = m.group(1)
+            if serv_end.match(line):
+                if found_host:
+                    block_ranges.append((block_start, i + 1))
+                    if cmd_in_block:
+                        needed_commands.add(cmd_in_block)
+                block_start = None
+
+    if not block_ranges:
+        return
+
+    service_blocks = [lines[s:e] for s, e in block_ranges]
+
+    remaining = []
+    prev = 0
+    for start, end in block_ranges:
+        remaining.extend(lines[prev:start])
+        prev = end
+    remaining.extend(lines[prev:])
+
+    with open(src_services, "w") as f:
+        f.writelines(remaining)
+    with open(dest_services, "a") as f:
+        for block in service_blocks:
+            f.writelines(block)
+
+    if not needed_commands:
+        return
+
+    with open(src_commands, "r") as f:
+        src_cmd_lines = f.readlines()
+    with open(dest_commands, "r") as f:
+        dest_cmd_lines = f.readlines()
+
+    cmd_begin = re.compile(r"^define command \{")
+    cmd_name_re = re.compile(r"^\s*command_name\s+(\S+)\s*$")
+    cmd_end = re.compile(r"^\}")
+
+    existing_commands = set()
+    block_start = None
+    for line in dest_cmd_lines:
+        if cmd_begin.match(line):
+            block_start = True
+        elif block_start is not None:
+            m = cmd_name_re.match(line)
+            if m:
+                existing_commands.add(m.group(1))
+            if cmd_end.match(line):
+                block_start = None
+
+    block_start = None
+    cmd_name_in_block = None
+    commands_to_copy = []
+
+    for i, line in enumerate(src_cmd_lines):
+        if cmd_begin.match(line):
+            block_start = i
+            cmd_name_in_block = None
+        elif block_start is not None:
+            m = cmd_name_re.match(line)
+            if m:
+                cmd_name_in_block = m.group(1)
+            if cmd_end.match(line):
+                if (cmd_name_in_block in needed_commands and
+                        cmd_name_in_block not in existing_commands):
+                    commands_to_copy.append(src_cmd_lines[block_start:i + 1])
+                block_start = None
+
+    if commands_to_copy:
+        with open(dest_commands, "a") as f:
+            for block in commands_to_copy:
+                f.writelines(block)
+
+
 def ctn_engine_config_rename_host(idx: int, old_host_name: str, new_host_name: str):
     """
     Rename a host from the hosts.cfg configuration file.

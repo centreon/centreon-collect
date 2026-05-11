@@ -519,6 +519,7 @@ TEST_F(protobuf_test, service_to_protobuf) {
   pb.set_type(ServiceType(rand() % 5));
   pb.set_internal_id(rand() + 1);
   pb.set_icon_id(rand() + 1);
+  pb.set_instance_id(rand() + 1);
   for (int i = 1 + rand() % 2; i > 0; --i)
     *pb.add_tags() = create_random_tag_info();
 
