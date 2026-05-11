@@ -31,7 +31,6 @@ jobs:
   get-environment:
     needs: [dependency-scan]
     uses: ./.github/workflows/get-environment.yml
-    secrets: inherit
 
   package-rpm:
     needs: [get-environment]

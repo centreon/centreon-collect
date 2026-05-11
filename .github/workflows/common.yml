@@ -44,7 +44,6 @@ jobs:
     with:
       version_file: .version.centreon-common
       labels: ${{ inputs.labels || '' }}
-    secrets: inherit
 
   package:
     needs: [get-environment]
