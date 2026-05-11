@@ -19,6 +19,7 @@
 #include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <boost/system/detail/error_code.hpp>
 #include <fstream>
 #include "com/centreon/common/process/process_args.hh"
 #include "common/crypto/aes256.hh"
@@ -302,9 +303,14 @@ static void run_with_streaming_handler(const std::string& cmd,
   chunk_count_out = 0;
   size_t expected_pos = 0;
 
-  using reader_type = std::function<void(const std::string_view&)>;
+  using reader_type = std::function<void(const boost::system::error_code&,
+                                         const std::string_view&)>;
 
-  reader_type chunk_handler = [&](const std::string_view& data) {
+  reader_type chunk_handler = [&](const boost::system::error_code& err,
+                                  const std::string_view& data) {
+    if (err) {
+      return;
+    }
     absl::MutexLock l(&mutex);
     ++chunk_count_out;
     for (unsigned char c : data) {
@@ -316,7 +322,8 @@ static void run_with_streaming_handler(const std::string& cmd,
     accumulated_out.append(data);
   };
 
-  reader_type noop_handler = [](const std::string_view&) {};
+  reader_type noop_handler = [](const boost::system::error_code&,
+                                const std::string_view&) {};
 
   auto proc = std::make_shared<process<true>>(g_io_context, _logger, cmd, true,
                                               false, nullptr);

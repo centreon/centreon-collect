@@ -38,6 +38,7 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/config.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/main.cc
@@ -45,16 +46,6 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
   ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
-
-  # Headers.
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/log.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/reporter.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/result.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/parser.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
 
 

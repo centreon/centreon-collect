@@ -18,9 +18,6 @@
 
 #include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
-#include <unistd.h>
-#include <cstring>
-#include <memory>
 
 #include "com/centreon/connector/perl/protocol.hh"
 
@@ -266,11 +263,11 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   auto* after_first = res->mutable_afterfirstcheck();
   after_first->set_used_memory(1024);
   after_first->set_nb_opened_fd(5);
-  after_first->set_nb_threads(2);
+  after_first->set_nb_thread(2);
   auto* after_last = res->mutable_afterlastcheck();
   after_last->set_used_memory(2048);
   after_last->set_nb_opened_fd(7);
-  after_last->set_nb_threads(3);
+  after_last->set_nb_thread(3);
 
   // Produce a wire frame: [ size_t packet_len ][ serialised protobuf bytes ]
   std::string payload;
@@ -291,10 +288,10 @@ TEST_F(ProtocolTest, OnRecvCompleteConnectorMess) {
   EXPECT_EQ(got.result().stdout(), "PING OK - Packet loss = 0%");
   EXPECT_EQ(got.result().afterfirstcheck().used_memory(), 1024u);
   EXPECT_EQ(got.result().afterfirstcheck().nb_opened_fd(), 5u);
-  EXPECT_EQ(got.result().afterfirstcheck().nb_threads(), 2u);
+  EXPECT_EQ(got.result().afterfirstcheck().nb_thread(), 2u);
   EXPECT_EQ(got.result().afterlastcheck().used_memory(), 2048u);
   EXPECT_EQ(got.result().afterlastcheck().nb_opened_fd(), 7u);
-  EXPECT_EQ(got.result().afterlastcheck().nb_threads(), 3u);
+  EXPECT_EQ(got.result().afterlastcheck().nb_thread(), 3u);
 }
 
 // ============================================================

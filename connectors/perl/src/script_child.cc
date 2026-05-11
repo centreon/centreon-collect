@@ -16,8 +16,10 @@
  * For more information : contact@centreon.com
  */
 
+#include <spdlog/spdlog.h>
 #include <sys/prctl.h>
 
+#include "bbdo/bam/state.hh"
 #include "com/centreon/connector/perl/check_child.hh"
 #include "com/centreon/connector/perl/script_child.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -26,6 +28,9 @@
 
 #include <EXTERN.h>
 #include <perl.h>
+#include <boost/asio/system_timer.hpp>
+#include <chrono>
+#include <memory>
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
@@ -237,8 +242,9 @@ void script_child::_compile_script(const std::string& loader_path) {
  *
  * Reads the script file, calls Embed::Persistent::eval_file to compile it into
  * an anonymous subroutine, and stores the resulting code reference in
- * _check_script_handle. Also records the file mtime so _minute_timer_handler
- * can detect later modifications and trigger a reload.
+ * _check_script_handle. Also records the file mtime so
+ * _every_second_timer_handler can detect later modifications and trigger a
+ * reload.
  *
  * @throws com::centreon::exceptions::msg_fmt if the file cannot be read,
  *         eval_file returns no handle, or the Perl ERRSV is set after
@@ -262,7 +268,7 @@ void script_child::_load_check_script() {
   {
     SPDLOG_LOGGER_DEBUG(_logger, "parsing file {}", _script_path);
     const char* argv[3];
-    argv[0] = file_content.c_str();
+    argv[0] = _script_path.c_str();
     argv[1] = "0";
     argv[2] = nullptr;
     if (call_argv("Embed::Persistent::eval_file", G_EVAL | G_SCALAR,
@@ -291,7 +297,7 @@ void script_child::_load_check_script() {
 void script_child::write_mess_to_child_stdin(const ConnectorMess& to_send) {
   auto buff = _protocol.serialize(to_send);
   write_to_child_stdin(
-      std::string(reinterpret_cast<const char*>(buff.get()), buff->len));
+      std::string_view(reinterpret_cast<const char*>(buff.get()), buff->len));
 }
 
 /**
@@ -303,11 +309,17 @@ void script_child::write_mess_to_child_stdin(const ConnectorMess& to_send) {
  *
  * @param raw_data  Raw bytes read from the child stdout pipe.
  */
-void script_child::_on_stdout_read(const std::string raw_data) {
+void script_child::_on_stdout_read(const boost::system::error_code& err,
+                                   const std::string raw_data) {
+  if (err) {  // child is dying, wait for process end
+    return;
+  }
   std::vector<ConnectorMess> received;
 
   auto forward_to_handler = [&, this]() {
     for (const ConnectorMess& to_read : received) {
+      SPDLOG_LOGGER_DEBUG(_logger, "{} receive from script_child: {}",
+                          _script_path, to_read.ShortDebugString());
       _parent_read_handler(_script_path, to_read);
     }
   };
@@ -330,7 +342,7 @@ void script_child::_on_stdout_read(const std::string raw_data) {
  * active-children map and stop dispatching requests to it.
  */
 void script_child::_on_process_end() {
-  _parent_end_child_handler(_script_path);
+  _parent_end_child_handler(_script_path, get_pid());
 }
 
 /************************************************************************
@@ -351,8 +363,11 @@ void script_child::_on_process_end() {
  * @return 0 on clean exit, -1 if initialisation failed.
  */
 int script_child::_run(int stdin_fd, int stdout_fd, int) {
+  SPDLOG_LOGGER_DEBUG(_logger, "start of script_child {} pid={}", _script_path,
+                      getpid());
+  _child_io_context = std::make_shared<asio::io_context>();
   _child_stdout =
-      std::make_unique<asio::writable_pipe>(*_io_context, stdout_fd);
+      std::make_unique<asio::writable_pipe>(*_child_io_context, stdout_fd);
   std::string loader_path;
   try {
     loader_path = _write_loader_to_disk(_additional_code);
@@ -380,13 +395,19 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
     std::this_thread::sleep_for(std::chrono::seconds(1));
     return -1;
   }
-  _child_stdin = std::make_unique<asio::readable_pipe>(*_io_context, stdin_fd);
+  _child_stdin =
+      std::make_unique<asio::readable_pipe>(*_child_io_context, stdin_fd);
   read_from_main_process_stdin();
+  _every_second_timer =
+      std::make_unique<asio::system_timer>(*_child_io_context);
+  _start_every_second_timer();
 
   auto basename = std::filesystem::path(_script_path).filename();
   prctl(PR_SET_NAME, basename.c_str());
 
-  _io_context->run();
+  _child_io_context->run();
+  SPDLOG_LOGGER_DEBUG(_logger, "end of script_child {} pid={}", _script_path,
+                      getpid());
   return 0;
 }
 
@@ -402,6 +423,7 @@ void script_child::read_from_main_process_stdin() {
                            const boost::system::error_code& err,
                            const std::shared_ptr<ConnectorMess>& received) {
                          me->_on_stdin_receive(err, received);
+                         me->read_from_main_process_stdin();
                        });
 }
 
@@ -409,39 +431,98 @@ void script_child::read_from_main_process_stdin() {
  * @brief Arm the one-minute periodic timer.
  *
  * Called once after initialisation and re-armed at the end of each
- * _minute_timer_handler invocation to provide a recurring check.
+ * _every_second_timer_handler invocation to provide a recurring check.
  */
-void script_child::_start_minute_timer() {
-  _minute_timer.expires_after(std::chrono::minutes(1));
-  _minute_timer.async_wait(
+void script_child::_start_every_second_timer() {
+  _every_second_timer->expires_after(std::chrono::seconds(1));
+  _every_second_timer->async_wait(
       [this, me = shared_from_this()](const boost::system::error_code& err) {
         if (!err) {
-          _minute_timer_handler();
+          _every_second_timer_handler();
         }
       });
 }
 
 /**
- * @brief Fired every minute to detect check script modifications.
+ * @brief Fired every second to detect check script modifications.
  *
  * Compares the current mtime of the script file against the mtime recorded
  * at load time. If the file has changed, sends a have_to_terminate message to
  * the parent so it can restart this child with the updated script.
  * The timer is re-armed unconditionally at the end.
  */
-void script_child::_minute_timer_handler() {
+void script_child::_every_second_timer_handler() {
   std::error_code err;
   auto check_script_mtime = std::filesystem::last_write_time(_script_path, err);
   if (!err &&
       check_script_mtime != _check_script_mtime) {  // script updated => reload
+    SPDLOG_LOGGER_INFO(
+        _logger,
+        "script {} updated => live until all pending queries completed",
+        _script_path);
     ConnectorMess error;
     error.mutable_have_to_terminate()->set_error(
         fmt::format("{} updated, need to reload", _script_path));
-    _protocol.async_send(*_child_stdout, error,
-                         [](const boost::system::error_code&) {});
+    _send_to_main_process(error);
   }
 
-  _start_minute_timer();
+  // check execute timeout
+  auto& timeout_index = _pending.get<1>();
+  time_t now = time(nullptr);
+  while (!timeout_index.empty()) {
+    auto first_expire = timeout_index.begin();
+    if (first_expire->query->execute().timeout() > now) {
+      break;
+    }
+    SPDLOG_LOGGER_ERROR(_logger, "{} timeout on child pid={} => kill",
+                        _script_path, first_expire->pid);
+    auto to_kill = _check_childs.find(first_expire->pid);
+    if (to_kill != _check_childs.end()) {
+      to_kill->second->kill();
+    }
+    // main process manages timeout so that's all
+    _clean_execute_queue();
+  }
+
+  // kill time out
+  time_t limit = time(nullptr) - 10;
+  for (auto to_check = _die_start_to_check_child.begin();
+       to_check != _die_start_to_check_child.end();) {
+    if (to_check->first < limit) {
+      to_check->second->kill();
+      _die_start_to_check_child.erase(to_check++);
+    } else {
+      break;
+    }
+  }
+
+  _start_every_second_timer();
+}
+
+void script_child::_create_child_and_execute(
+    const std::shared_ptr<ConnectorMess>& query) {
+  std::shared_ptr<check_child> new_child = std::make_shared<check_child>(
+      _child_io_context, _logger, _script_path, _check_script_handle,
+      [weak_me = weak_from_this()](int pid,
+                                   const ConnectorMess& from_check_child) {
+        auto me = weak_me.lock();
+        if (me) {
+          std::static_pointer_cast<script_child>(me)
+              ->_from_child_script_receive(pid, from_check_child);
+        }
+      },
+      [weak_me = weak_from_this()](int pid) {
+        auto me = weak_me.lock();
+        if (me) {
+          std::static_pointer_cast<script_child>(me)->_on_child_script_end(pid);
+        }
+      });
+  new_child->do_fork(false);
+  _check_childs.emplace(new_child->get_pid(), new_child);
+  SPDLOG_LOGGER_TRACE(_logger, "{} new child_script pid={} will do the job",
+                      _script_path, new_child->get_pid());
+  new_child->execute(*query);
+  _pending.emplace(new_child->get_pid(), query);
 }
 
 /**
@@ -462,79 +543,48 @@ void script_child::_on_stdin_receive(
     const boost::system::error_code& err,
     const std::shared_ptr<ConnectorMess>& from_main_process_mess) {
   if (err) {
-    _io_context->stop();
+    SPDLOG_LOGGER_ERROR(_logger,
+                        "script_child {} fail receive from main process {}",
+                        _script_path, err.message());
+    _child_io_context->stop();
     return;
   }
+  SPDLOG_LOGGER_DEBUG(_logger, "script_child {} receive {}", _script_path,
+                      from_main_process_mess->ShortDebugString());
   if (from_main_process_mess->has_execute()) {
     for (auto idle : _check_childs) {
       if (!idle.second->is_running()) {
-        idle.second->execute(
-            *from_main_process_mess,
-            [weak_me = weak_from_this(), pid = idle.first,
-             from_main_process_mess](const boost::system::error_code& err) {
-              if (err) {
-                auto me = weak_me.lock();
-                if (me) {
-                  std::static_pointer_cast<script_child>(me)
-                      ->_on_execute_send_error(pid, from_main_process_mess);
-                }
-              }
-            });
-        _pending[idle.first] = from_main_process_mess;
-        read_from_main_process_stdin();
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "{} idle child_script pid={} will do the job",
+                            _script_path, idle.first);
+        idle.second->execute(*from_main_process_mess);
+        _pending.emplace(idle.first, from_main_process_mess);
         return;
       }
     }
     // no idle child
     if (from_main_process_mess->execute().no_child_create()) {
       _execute_queue.emplace(from_main_process_mess);
+      SPDLOG_LOGGER_TRACE(_logger, "{} no idle child_script => enqueue",
+                          _script_path);
+
     } else {
-      std::shared_ptr<check_child> new_child = std::make_shared<check_child>(
-          _io_context, _logger, _script_path, _check_script_handle,
-          [weak_me = weak_from_this()](int pid,
-                                       const ConnectorMess& from_check_child) {
-            auto me = weak_me.lock();
-            if (me) {
-              std::static_pointer_cast<script_child>(me)
-                  ->_from_child_script_receive(pid, from_check_child);
-            }
-          },
-          [weak_me = weak_from_this()](int pid) {
-            auto me = weak_me.lock();
-            if (me) {
-              std::static_pointer_cast<script_child>(me)->_on_child_script_end(
-                  pid);
-            }
-          });
-      new_child->do_fork(false);
-      _check_childs.emplace(new_child->get_pid(), new_child);
-      new_child->execute(
-          *from_main_process_mess,
-          [weak_me = weak_from_this(), pid = new_child->get_pid(),
-           from_main_process_mess](const boost::system::error_code& err) {
-            if (err) {
-              auto me = weak_me.lock();
-              if (me) {
-                std::static_pointer_cast<script_child>(me)
-                    ->_on_execute_send_error(pid, from_main_process_mess);
-              }
-            }
-          });
-      _pending[new_child->get_pid()] = from_main_process_mess;
+      _create_child_and_execute(from_main_process_mess);
     }
-  } else if (from_main_process_mess->has_have_to_terminate()) {
-    auto dest = _check_childs.find(from_main_process_mess->terminate().pid());
-    if (dest == _check_childs.end()) {
-      if (from_main_process_mess->terminate().immediate()) {
-        dest->second->kill();
-      } else {
-        dest->second->execute(
-            *from_main_process_mess,
-            [me = shared_from_this()](const boost::system::error_code&) {});
+  } else if (from_main_process_mess->has_terminate()) {
+    if (getpid() == from_main_process_mess->terminate().pid()) {
+      _child_io_context->stop();
+    } else {
+      auto dest = _check_childs.find(from_main_process_mess->terminate().pid());
+      if (dest != _check_childs.end()) {
+        if (from_main_process_mess->terminate().immediate()) {
+          dest->second->kill();
+        } else {
+          _kill_check_child(true, dest->second);
+        }
       }
     }
   }
-  read_from_main_process_stdin();
 }
 
 /**
@@ -550,53 +600,110 @@ void script_child::_on_stdin_receive(
 void script_child::_from_child_script_receive(
     int pid,
     const ConnectorMess& from_child_script) {
+  SPDLOG_LOGGER_DEBUG(_logger, "{} receive from child_script pid={}: {}",
+                      _script_path, pid, from_child_script.ShortDebugString());
   if (from_child_script.has_result()) {
-    _pending.erase(pid);
-    _send_to_main_process(from_child_script);
-    // timeout pending request? (answer will be sent by main process)
-    time_t now = time(nullptr);
-    while (!_execute_queue.empty() &&
-           (*_execute_queue.begin())->execute().timeout() < now) {
-      _execute_queue.erase(_execute_queue.begin());
+    const auto& res = from_child_script.result();
+    auto query = _pending.find(pid);
+    auto check_child = _check_childs.find(pid);
+    enum {
+      no_kill,
+      max_execute,
+      max_memory,
+      max_fd,
+      max_thread
+    } kill_reason = no_kill;
+    if (query != _pending.end() && check_child != _check_childs.end()) {
+      const auto& execute = query->query->execute();
+      if (execute.max_execute()) {
+        if (execute.max_execute() <= check_child->second->execute_counter()) {
+          SPDLOG_LOGGER_DEBUG(_logger, "{}: too much executions pid:{} => kill",
+                              _script_path, pid);
+          kill_reason = max_execute;
+        }
+      }
+      if (kill_reason == no_kill && execute.percent_max_memory_increased()) {
+        if (res.afterfirstcheck().used_memory() *
+                (1.0 + execute.percent_max_memory_increased() / 100.0) <
+            res.afterlastcheck().used_memory()) {
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "{}: too much memory growth pid:{} => kill",
+                              _script_path, pid);
+          kill_reason = max_memory;
+        }
+      }
+      if (kill_reason == no_kill && execute.percent_max_open_fd_increased()) {
+        if (res.afterfirstcheck().nb_opened_fd() *
+                (1.0 + execute.percent_max_open_fd_increased() / 100.0) <
+            res.afterlastcheck().nb_opened_fd()) {
+          SPDLOG_LOGGER_DEBUG(_logger,
+                              "{}: too much opened fd growth pid:{} => kill",
+                              _script_path, pid);
+          kill_reason = max_fd;
+        }
+      }
+      if (kill_reason == no_kill && execute.max_thread()) {
+        if (res.afterlastcheck().nb_thread() >= execute.max_thread()) {
+          SPDLOG_LOGGER_DEBUG(_logger, "{}: too much threads pid:{} => kill",
+                              _script_path, pid);
+          kill_reason = max_thread;
+        }
+      }
+      _pending.erase(query);
+      if (kill_reason != no_kill) {
+        _kill_check_child(false, check_child->second);
+      }
     }
+    _send_to_main_process(from_child_script);
+
+    _clean_execute_queue();
     if (!_execute_queue.empty()) {
-      auto check_child = _check_childs.find(pid);
-      if (check_child != _check_childs.end()) {
+      if (check_child != _check_childs.end() && kill_reason == no_kill) {
         auto to_send = _execute_queue.extract(_execute_queue.begin());
-        check_child->second->execute(
-            from_child_script, [weak_me = weak_from_this(), pid,
-                                from_main_process_mess = to_send.value()](
-                                   const boost::system::error_code& err) {
-              if (err) {
-                auto me = weak_me.lock();
-                if (me) {
-                  std::static_pointer_cast<script_child>(me)
-                      ->_on_execute_send_error(pid, from_main_process_mess);
-                }
-              }
-            });
-        _pending.emplace(pid, to_send.value()).first;
+        check_child->second->execute(*to_send.value());
+        _pending.emplace(pid, to_send.value());
       }
     }
   }
 }
 
 /**
- * @brief Called when sending an execute request to a check_child fails.
+ * @brief Initiate the termination of a check_child process.
  *
- * Kills the offending child and removes it from the active-children map.
- * The pending request is implicitly abandoned; _on_child_script_end will
- * generate an unknown-status result for it when the child exits.
+ * Optionally removes the child from the active map, then moves it to
+ * _die_start_to_check_child (timestamped so a watchdog can detect stalls)
+ * and sends it a child_end message so it exits cleanly.
  *
- * @param pid   PID of the check_child that could not receive the request.
- * @param mess  The execute request that failed to be sent (unused here).
+ * @param erase_from_check_childs  If true, remove the entry from _check_childs
+ *                                 before killing. Pass false to not create
+ *                                 another one on child end.
+ * @param to_kill                  The check_child instance to terminate.
  */
-void script_child::_on_execute_send_error(
-    int pid,
-    const std::shared_ptr<ConnectorMess>& mess) {
-  auto to_kill = _check_childs.find(pid);
-  to_kill->second->kill();
-  _check_childs.erase(to_kill);
+void script_child::_kill_check_child(
+    bool erase_from_check_childs,
+    const std::shared_ptr<check_child>& to_kill) {
+  if (erase_from_check_childs) {
+    _check_childs.erase(to_kill->get_pid());
+  }
+  _die_start_to_check_child.emplace(time(nullptr), to_kill);
+  ConnectorMess kill_mess;
+  kill_mess.mutable_child_end()->set_pid(to_kill->get_pid());
+  to_kill->execute(kill_mess);
+}
+
+/**
+ * @brief Discard timed-out entries from the pending execute queue.
+ *
+ * Iterates from the front of _execute_queue (ordered by timeout) and drops
+ * every check whose deadline has already passed. Called before scheduling new
+ * work so stale checks are never dispatched to a fresh child process.
+ */
+void script_child::_clean_execute_queue() {
+  time_t now = time(nullptr);
+  while (!_execute_queue.empty() &&
+         (*_execute_queue.begin())->execute().timeout() < now) {
+    _execute_queue.erase(_execute_queue.begin());
+  }
 }
 
 /**
@@ -610,26 +717,50 @@ void script_child::_on_execute_send_error(
  * @param pid  PID of the check_child that exited.
  */
 void script_child::_on_child_script_end(int pid) {
-  _check_childs.erase(pid);
+  for (auto child_to_kill = _die_start_to_check_child.begin();
+       child_to_kill != _die_start_to_check_child.end(); ++child_to_kill) {
+    if (child_to_kill->second->get_pid() == pid) {
+      _die_start_to_check_child.erase(child_to_kill);
+      break;
+    }
+  }
 
-  auto pending =
-      _pending.find(pid);  // process end while running check => generate status
-  if (pending != _pending.end()) {
-    const Execute& command = pending->second->execute();
+  auto check_to_delete = _check_childs.find(pid);
+  const bool was_registered = (check_to_delete != _check_childs.end());
+  if (was_registered) {
+    _check_childs.erase(check_to_delete);
+    ConnectorMess to_main_process;
+    to_main_process.mutable_child_end()->set_pid(pid);
+    _send_to_main_process(to_main_process);
+  }
+  auto& pid_index = _pending.get<0>();
+  auto pending = pid_index.find(
+      pid);  // process end while running check => generate status
+  if (pending != pid_index.end()) {
+    SPDLOG_LOGGER_ERROR(_logger, "{} end of check_child during check pid={}",
+                        _script_path, pid);
     ConnectorMess bad_terminate;
     auto res = bad_terminate.mutable_result();
-    res->set_cmd_id(command.cmd_id());
-    res->set_status(3);  // unknown
+    res->set_cmd_id(pending->query->execute().cmd_id());
+    res->set_status(3);
     res->set_stdout(
-        fmt::format("{} had terminated without result", _script_path));
-
-    _pending.erase(pending);
+        fmt::format("Process pid:{} died during check execution", pid));
     _send_to_main_process(bad_terminate);
+    pid_index.erase(pending);
+  } else {
+    SPDLOG_LOGGER_DEBUG(_logger, "{} end of check_child pid={}", _script_path,
+                        pid);
+  }
+  // replace dead check_child by another if queries in queue
+  if (was_registered && !_execute_queue.empty()) {
+    auto to_send = _execute_queue.extract(_execute_queue.begin());
+    _create_child_and_execute(to_send.value());
   }
 }
 
 /**
- * @brief Asynchronously send a protobuf message to the main process via stdout.
+ * @brief Asynchronously send a protobuf message to the main process via
+ * stdout.
  *
  * Stops the io_context on write error so the child exits cleanly rather than
  * looping on a broken pipe.
@@ -637,11 +768,15 @@ void script_child::_on_child_script_end(int pid) {
  * @param to_send  Message to serialize and send.
  */
 void script_child::_send_to_main_process(const ConnectorMess& to_send) {
+  SPDLOG_LOGGER_DEBUG(_logger, "{} send {} to main process", _script_path,
+                      to_send.ShortDebugString());
   _protocol.async_send(
       *_child_stdout, to_send,
       [me = shared_from_this()](const boost::system::error_code err) {
         if (err) {
-          me->_io_context->stop();
+          SPDLOG_LOGGER_ERROR(me->_logger, "{} fail to send to main process",
+                              me->_script_path);
+          me->_child_io_context->stop();
         }
       });
 }

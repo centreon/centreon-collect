@@ -142,8 +142,9 @@ void child_process<use_mutex>::_stdin_write_no_lock(
           asio::buffer(*data),
           [me = shared_from_this(), data](const boost::system::error_code& err,
                                           size_t nb_written [[maybe_unused]]) {
-            detail::lock<use_mutex> l(&me->_protect);
             me->_on_stdin_write(err);
+            detail::lock<use_mutex> l(&me->_protect);
+            me->_priv_on_stdin_write(err);
           });
     } catch (const std::exception& e) {
       _write_pending = false;
@@ -157,23 +158,20 @@ void child_process<use_mutex>::_stdin_write_no_lock(
 /**
  * @brief stdin write handler
  * if data remains in queue, we send them
- * if override process::on_stdin_write must be called
  *
  * @param err
  */
 template <bool use_mutex>
-void child_process<use_mutex>::_on_stdin_write(
+void child_process<use_mutex>::_priv_on_stdin_write(
     const boost::system::error_code& err) {
   _write_pending = false;
 
   if (err) {
     if (err == asio::error::eof) {
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "pid:{} on_stdin_write fail to write to stdin {}",
+      SPDLOG_LOGGER_DEBUG(_logger, "fail to write to child pid:{} to stdin {}",
                           _proc->proc.handle().id(), err.message());
     } else {
-      SPDLOG_LOGGER_ERROR(_logger,
-                          "pid:{} on_stdin_write fail to write to stdin {}",
+      SPDLOG_LOGGER_ERROR(_logger, "fail to write to child pid:{} to stdin {}",
                           _proc->proc.handle().id(), err.message());
     }
     return;
@@ -193,11 +191,16 @@ void child_process<use_mutex>::_on_stdin_write(
 template <bool use_mutex>
 void child_process<use_mutex>::_stdout_read() {
   if (_proc) {
+    SPDLOG_LOGGER_TRACE(_logger, "_stdout_read from child pid:{}",
+                        _proc->proc.handle().id());
     try {
       _stdout_pipe.async_read_some(
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this()](const boost::system::error_code& err,
                                     size_t nb_read) {
+            SPDLOG_LOGGER_TRACE(
+                me->_logger, "from child pid:{}, {} bytes received on stdout",
+                me->_proc->proc.handle().id(), nb_read);
             me->_on_stdout_read(err, nb_read);
           });
     } catch (const std::exception& e) {
@@ -210,8 +213,6 @@ void child_process<use_mutex>::_stdout_read() {
 
 /**
  * @brief stdout read handler
- * This method or his override is called with _protect locked.
- * If override process::on_stdout_read must be called
  *
  * @param err
  * @param nb_read
@@ -226,23 +227,23 @@ void child_process<use_mutex>::_on_stdout_read(
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
-                            "pid:{} end read from stdout of process: {}",
+                            "from child pid:{} end read from stdout: {}",
                             _proc->proc.handle().id(), err.message());
       } else {
         SPDLOG_LOGGER_ERROR(
-            _logger, "pid:{} fail read from stdout of process: {} {}",
+            _logger, "pid:{} fail read from stdout of child process: {} {}",
             _proc->proc.handle().id(), err.value(), err.message());
       }
       _completion_flags.fetch_or(e_completion_flags::stdout_eof);
     } else {
-      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: read from stdout: {}",
+      SPDLOG_LOGGER_TRACE(_logger, "from child pid:{} read from stdout: {}",
                           _proc->proc.handle().id(),
                           std::string_view(_stdout_read_buffer, nb_read));
       received.assign(_stdout_read_buffer, nb_read);
     }
   }
   if (!received.empty()) {
-    _on_stdout_read(received);
+    _on_stdout_read(err, received);
   }
   if (!err) {
     detail::lock<use_mutex> l(&_protect);
@@ -276,8 +277,6 @@ void child_process<use_mutex>::_stderr_read() {
 
 /**
  * @brief stderr read handler
- * This method or his override is called with _protect locked.
- * If override process::on_stderr_read must be called
  *
  * @param err
  * @param nb_read
@@ -293,15 +292,16 @@ void child_process<use_mutex>::_on_stderr_read(
       _completion_flags.fetch_or(e_completion_flags::stderr_eof);
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
-                            "pid:{} end read from stderr of process: {}",
+                            "from child pid:{} end read from stderr : {}",
                             _proc->proc.handle().id(), err.message());
       } else {
         SPDLOG_LOGGER_ERROR(
-            _logger, "pid:{} fail read from stderr of process: {} {}",
+            _logger, "from child pid:{} fail read from stderr: {} {}",
             _proc->proc.handle().id(), err.value(), err.message());
       }
     } else {
-      SPDLOG_LOGGER_TRACE(_logger, "pid:{} process: read from stderr: {}",
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "from child pid:{} process: read from stderr: {}",
                           _proc->proc.handle().id(),
                           std::string_view(_stderr_read_buffer, nb_read));
       received.assign(_stderr_read_buffer, nb_read);
@@ -309,7 +309,7 @@ void child_process<use_mutex>::_on_stderr_read(
   }
 
   if (!received.empty()) {
-    _on_stderr_read(received);
+    _on_stderr_read(err, received);
   }
   if (!err) {
     detail::lock<use_mutex> l(&_protect);
@@ -358,12 +358,12 @@ void child_process<use_mutex>::kill() {
   detail::lock<use_mutex> l(&_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
-    SPDLOG_LOGGER_INFO(_logger, "pid:{} kill process", child_pid);
+    SPDLOG_LOGGER_INFO(_logger, "kill process child pid:{}", child_pid);
     boost::system::error_code err;
     _proc->proc.terminate(err);
     _terminated = true;
     if (err) {
-      SPDLOG_LOGGER_INFO(_logger, "pid:{} fail to kill: {}", child_pid,
+      SPDLOG_LOGGER_INFO(_logger, "fail to kill child pid:{}: {}", child_pid,
                          err.message());
     }
   }

@@ -16,8 +16,7 @@
  * For more information : contact@centreon.com
  */
 
-#include <boost/program_options.hpp>
-
+#include "com/centreon/connector/perl/config.hh"
 #include "connectors/perl/src/perl_connector.pb.h"
 
 #include <EXTERN.h>
@@ -30,7 +29,6 @@
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
-namespace po = boost::program_options;
 
 // Should be defined by build tools.
 #ifndef CENTREON_CONNECTOR_VERSION
@@ -51,52 +49,27 @@ int main(int argc, char** argv, char** env) {
 
   try {
     // Command line parsing.
-    // Process all command line arguments.
-    po::options_description desc("Allowed options");
-    // clang-format off
-    desc.add_options()
-      ("help,h", "Print help and exit")
-      ("code,c", po::value<std::string>(), "Argument is some Perl code that will be executed by the embedded interpreter.")
-      ("debug,d","If this flag is specified, print all logs messages.")
-      ("version,v","Print software version and exit.")
-      ("log-file,l", po::value<std::string>(),"Specifies the log file (default: stderr).")
-      ("test-file,x", po::value<std::string>(),"Specifies the file used instead of stdin.");
+    config conf(argc, argv);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-    po::notify(vm);
-      
-    std::string test_file_path;
-
-    if (vm.count("help")) {
-      std::cout << desc << std::endl;
-      return EXIT_SUCCESS;
-    } else if (vm.count("version")) {
-      std::cout << "Centreon Perl Connector " << CENTREON_CONNECTOR_VERSION
-                << std::endl;
-      return EXIT_SUCCESS;
-    }
-    if (vm.count("test-file")) {
-      test_file_path = vm["test-file"].as<std::string>();
-    }
     // Set logging object.
-    if (vm.count("log-file")) {
-      std::string filename = vm["log-file"].as<std::string>();
-      log::instance().switch_to_file(filename);
+    if (!conf.log_file_path().empty()) {
+      log::instance().switch_to_file(conf.log_file_path());
     } else
       log::instance().switch_to_stdout();
 
-    if (vm.count("debug")) {
-      log::instance().set_level(spdlog::level::trace);
-    } else {
-      log::instance().set_level(spdlog::level::info);
-    }
+    log::instance().set_level(conf.log_level());
     log::instance().add_pid_to_log();
     log::core()->info("Centreon Perl Connector {} starting",
                       CENTREON_CONNECTOR_VERSION);
 
+    if (conf.need_to_stop()) {
+      return 0;
+    }
+
     shared_io_context io_context(std::make_shared<asio::io_context>());
-    // checks::shared_signal_set signal_handler(std::make_shared<asio::signal_set>(
+    sigignore(SIGPIPE);
+    // checks::shared_signal_set
+    // signal_handler(std::make_shared<asio::signal_set>(
     //     *io_context, SIGTERM, SIGINT, SIGPIPE));
 
     // signal_handler->async_wait(
@@ -105,8 +78,8 @@ int main(int argc, char** argv, char** env) {
     //         log::core()->info("SIGPIPE received");
     //         return;
     //       }
-    //       log::core()->info("termination request received {}", signal_number);
-    //       io_context->stop();
+    //       log::core()->info("termination request received {}",
+    //       signal_number); io_context->stop();
     //     });
 
     // // Load Embedded Perl.
@@ -117,8 +90,7 @@ int main(int argc, char** argv, char** env) {
 
     // Program policy.
     // Program policy.
-    policy::create(io_context, vm.count("code")
-                              ? vm["code"].as<std::string>():"",test_file_path);
+    policy::create(io_context, conf);
 
     io_context->run();
 
@@ -127,7 +99,7 @@ int main(int argc, char** argv, char** env) {
   }
 
   // Deinitializations.
-  //embedded_perl::unload();
+  // embedded_perl::unload();
 
   log::core()->info("bye");
 

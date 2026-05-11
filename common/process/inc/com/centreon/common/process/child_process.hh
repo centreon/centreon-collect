@@ -99,7 +99,7 @@ class child_process
   void _stdin_write_no_lock(const std::shared_ptr<std::string>& data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
   void _stdin_write(const std::shared_ptr<std::string>& data);
-  void _on_stdin_write(const boost::system::error_code& err);
+  void _priv_on_stdin_write(const boost::system::error_code& err);
 
   void _on_stdout_read(const boost::system::error_code& err, size_t nb_read);
 
@@ -123,8 +123,14 @@ class child_process
   void _stderr_read();
   void _async_wait_process_end();
 
-  virtual void _on_stdout_read([[maybe_unused]] const std::string received) {};
-  virtual void _on_stderr_read([[maybe_unused]] const std::string received) {};
+  virtual void _on_stdout_read(
+      [[maybe_unused]] const boost::system::error_code& err,
+      [[maybe_unused]] const std::string received) {};
+  virtual void _on_stderr_read(
+      [[maybe_unused]] const boost::system::error_code& err,
+      [[maybe_unused]] const std::string received) {};
+  virtual void _on_stdin_write(
+      [[maybe_unused]] const boost::system::error_code& err) {}
 
   virtual void _on_process_end() {};
 

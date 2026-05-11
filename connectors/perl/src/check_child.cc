@@ -22,7 +22,7 @@
 
 #include <EXTERN.h>
 #include <perl.h>
-#include <boost/system/detail/error_code.hpp>
+#include <unistd.h>
 
 #include "common/inc/com/centreon/common/process_stat.hh"
 #include "src/perl_connector.pb.h"
@@ -46,11 +46,18 @@ using namespace com::centreon::connector::perl;
  *
  * @param received Raw bytes read from the child stdout pipe.
  */
-void check_child::_on_stdout_read(const std::string received) {
+void check_child::_on_stdout_read(const boost::system::error_code& err,
+                                  const std::string received) {
+  if (err) {
+    kill();
+    return;
+  }
   std::vector<ConnectorMess> decoded;
 
   auto forward_to_handler = [&, this]() {
     for (const ConnectorMess& to_read : decoded) {
+      SPDLOG_LOGGER_DEBUG(_logger, "{} receive from check_child pid={}: {}",
+                          _script_path, get_pid(), to_read.ShortDebugString());
       if (to_read.has_result()) {
         _running = false;
       }
@@ -68,6 +75,14 @@ void check_child::_on_stdout_read(const std::string received) {
                         get_pid(), e.what());
     kill();
   }
+}
+
+void check_child::execute(const ConnectorMess& stdin_mess) {
+  _running = true;
+  ++_execute_counter;
+  auto raw = _protocol.serialize(stdin_mess);
+  write_to_child_stdin(
+      std::string_view(reinterpret_cast<const char*>(raw.get()), raw->len));
 }
 
 /**
@@ -96,11 +111,15 @@ void check_child::_on_process_end() {
  * @return A load struct populated with the current measurements.
  */
 check_child::load check_child::measure_load() {
-  common::process_stat stats(getpid());
-
-  return load{.used_memory = stats.res_size(),
-              .nb_thread = stats.num_threads(),
-              .nb_opened_fd = stats.opened_fds()};
+  try {
+    common::process_stat stats(getpid());
+    return load{.used_memory = stats.res_size(),
+                .nb_thread = stats.num_threads(),
+                .nb_opened_fd = stats.opened_fds()};
+  } catch (const std::exception& e) {
+    std::cout << "fail process stats:" << e.what() << std::endl;
+    throw;
+  }
 }
 
 /**
@@ -117,6 +136,7 @@ check_child::load check_child::measure_load() {
  * @return 0 on clean exit.
  */
 int check_child::_run(int stdin_fd, int stdout_fd, int) {
+  SPDLOG_LOGGER_DEBUG(_logger, "pid: {} check_child start", get_pid());
   asio::readable_pipe child_stdin(*_io_context, stdin_fd);
   asio::writable_pipe child_stdout(*_io_context, stdout_fd);
 
@@ -132,7 +152,7 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
   if (pipe(stderr_pipe_fd)) {
     return -1;
   }
-  dup2(stderr_pipe_fd[1], STDOUT_FILENO);
+  dup2(stderr_pipe_fd[1], STDERR_FILENO);
   close(stderr_pipe_fd[1]);
 
   dSP;
@@ -144,6 +164,8 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
     if (err) {
       break;
     }
+    SPDLOG_LOGGER_TRACE(_logger, "pid: {} check_child receive: {}", getpid(),
+                        received.ShortDebugString());
     if (received.has_terminate()) {
       break;
     }
@@ -169,6 +191,8 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
 
       ConnectorMess result;
       auto res = result.mutable_result();
+      res->set_cmd_id(received.execute().cmd_id());
+      res->set_pid(getpid());
 
       int poll_ret;
       char buffer[4096];
@@ -197,22 +221,26 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         }
       }
       if (!status_decoded) {
+        SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail to decode status", getpid());
         res->set_status(3);  // UNKNOWN
         res->set_stdout("script status no decoded " + res->stdout());
       }
       load new_load = measure_load();
       if (!_after_first_check_load) {
-        *_after_first_check_load = new_load;
+        _after_first_check_load = new_load;
       }
-      res->mutable_afterfirstcheck()->set_nb_threads(
+      res->mutable_afterfirstcheck()->set_nb_thread(
           _after_first_check_load->nb_thread);
       res->mutable_afterfirstcheck()->set_nb_opened_fd(
           _after_first_check_load->nb_opened_fd);
       res->mutable_afterfirstcheck()->set_used_memory(
           _after_first_check_load->used_memory);
-      res->mutable_afterlastcheck()->set_nb_threads(new_load.nb_thread);
+      res->mutable_afterlastcheck()->set_nb_thread(new_load.nb_thread);
       res->mutable_afterlastcheck()->set_nb_opened_fd(new_load.nb_opened_fd);
       res->mutable_afterlastcheck()->set_used_memory(new_load.used_memory);
+      SPDLOG_LOGGER_TRACE(_logger,
+                          "pid: {} check_child send to script_child: {}",
+                          getpid(), result.ShortDebugString());
       boost::system::error_code send_error =
           _protocol.send(child_stdout, result);
       if (send_error) {

@@ -56,12 +56,14 @@ class fork_wait : public com::centreon::common::fork<true> {
   std::string _stderr;
 
  protected:
-  void _on_stdout_read(const std::string received) override {
+  void _on_stdout_read(const boost::system::error_code&,
+                       const std::string received) override {
     absl::MutexLock l(&_mu);
     _stdout += received;
   }
 
-  void _on_stderr_read(const std::string received) override {
+  void _on_stderr_read(const boost::system::error_code&,
+                       const std::string received) override {
     absl::MutexLock l(&_mu);
     _stderr += received;
   }

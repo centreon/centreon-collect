@@ -16,6 +16,8 @@
  * For more information : contact@centreon.com
  */
 
+#include "com/centreon/exceptions/msg_fmt.hh"
+
 #include "com/centreon/connector/perl/protocol.hh"
 
 using namespace com::centreon::connector::perl;

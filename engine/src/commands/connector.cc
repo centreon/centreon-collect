@@ -411,22 +411,28 @@ void connector::_connector_start_nolock() {
                                   const std::string& /*stdout*/,
                                   const std::string& /*stderr*/
         ) { me->_on_process_end(proc); },
-        [me = shared_from_this(),
-         proc = _process->weak_from_this()](const std::string_view& received) {
-          auto sub_process = proc.lock();
-          if (sub_process) {
-            me->_on_stdout_recv(
-                std::static_pointer_cast<common::process<true>>(sub_process),
-                received);
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stdout_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
           }
         },
-        [me = shared_from_this(),
-         proc = _process->weak_from_this()](const std::string_view& received) {
-          auto sub_process = proc.lock();
-          if (sub_process) {
-            me->_on_stderr_recv(
-                std::static_pointer_cast<common::process<true>>(sub_process),
-                received);
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stderr_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
           }
         },
         {

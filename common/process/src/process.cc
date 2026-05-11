@@ -309,9 +309,10 @@ void process<use_mutex>::_on_process_end() {
  * @param nb_read
  */
 template <bool use_mutex>
-void process<use_mutex>::_on_stdout_read(const std::string received) {
+void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
+                                         const std::string received) {
   if (_stdout_handler) {
-    _stdout_handler(received);
+    _stdout_handler(err, received);
   } else {
     _stdout.append(received);
   }
@@ -326,9 +327,10 @@ void process<use_mutex>::_on_stdout_read(const std::string received) {
  * @param nb_read
  */
 template <bool use_mutex>
-void process<use_mutex>::_on_stderr_read(const std::string received) {
+void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
+                                         const std::string received) {
   if (_stderr_handler) {
-    _stderr_handler(received);
+    _stderr_handler(err, received);
   } else {
     _stderr.append(received);
   }

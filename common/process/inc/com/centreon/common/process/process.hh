@@ -101,7 +101,8 @@ class process : public child_process<use_mutex> {
                                           const std::string& /*stderr*/
                                           )>;
 
-  using reader_type = std::function<void(const std::string_view&)>;
+  using reader_type = std::function<void(const boost::system::error_code&,
+                                         const std::string_view&)>;
 
   handler_type _handler;
   std::string _stdout ABSL_GUARDED_BY(_protect);
@@ -113,8 +114,10 @@ class process : public child_process<use_mutex> {
                              const std::chrono::system_clock::duration& timeout)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  void _on_stdout_read(const std::string received) override;
-  void _on_stderr_read(const std::string received) override;
+  void _on_stdout_read(const boost::system::error_code& err,
+                       const std::string received) override;
+  void _on_stderr_read(const boost::system::error_code& err,
+                       const std::string received) override;
   void _on_process_end() override;
 
   void _on_timeout();

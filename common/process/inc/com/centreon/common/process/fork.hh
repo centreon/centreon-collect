@@ -26,62 +26,99 @@
 namespace com::centreon::common {
 
 /**
- * @brief Base class for child processes created via fork(2).
+ * @brief Base class for child processes created via POSIX fork(2).
  *
- * This CRTP-friendly template inherits from child_process and provides the
- * mechanics for spawning a child via the POSIX fork(2) syscall.  The parent
- * side receives three Boost.Asio pipes (stdin/stdout/stderr) and a
- * boost::process handle so that all I/O and lifetime management go through the
- * async machinery of child_process.  The child side calls the pure-virtual
- * _run() method and then exits with its return value.
+ * Inherits from child_process and adds the fork(2) mechanics: pipe creation,
+ * process spawning, and Boost.Asio integration for async I/O and process-end
+ * notification.
  *
- * Typical usage: derive from fork<>, implement _run(), then call do_fork() to
- * actually create the child process.
+ * ## Lifecycle
+ * 1. Construct the derived object (no process is created yet).
+ * 2. Call do_fork() to actually fork.
+ *    - **Parent** side: the three Boost.Asio pipe objects (_stdin_pipe,
+ *      _stdout_pipe, _stderr_pipe) become usable and async reads start
+ *      immediately.  _on_stdout_read() / _on_stderr_read() / _on_process_end()
+ *      are called on the io_context thread as data arrives or the process
+exits.
+ *    - **Child** side: _run() is invoked with the raw pipe file descriptors;
+ *      when it returns the child calls ::exit() with the return value.
+ * 3. The parent can write to the child via write_to_child_stdin() and kill it
+ *    via kill().
  *
- * @tparam use_mutex When true (default) an absl::Mutex protects shared state,
- *         allowing concurrent calls from multiple threads.  Pass false in
- *         single-threaded contexts to eliminate locking overhead.
+ * ## Thread safety
+ * @tparam use_mutex    When true (default) an absl::Mutex guards all shared
+ *                      state, making the object safe to use from multiple
+ *                      threads.  Pass false in single-threaded contexts to
+ *                      eliminate locking overhead.
+ *
+ * ## Asio fork notification
+ * @tparam asio_notify_fork  When true, do_fork() calls
+ *                           io_context::notify_fork() with the prepare /
+ *                           parent / child phases around the fork(2) syscall.
+ *                           This is required when the io_context has active
+ *                           async operations in the parent (e.g. timers,
+ *                           sockets) so that internal file descriptors are
+ *                           correctly reset in the child.
+ * Use it in single thread io_context run. In multithread program, there is an
+issue in io_context::notify_fork. Internally, ctx.notify_fork calls
+epoll_reactor::notify_fork which locks registered_descriptors_mutex_. An issue
+occurs when registered_descriptors_mutex_ is locked by another thread at fork
+timepoint. In such a case, child process starts with
+registered_descriptors_mutex_ already locked and both child and parent process
+will hang.
  */
-template <bool use_mutex = true>
+template <bool use_mutex = true, bool asio_notify_fork = false>
 class fork : public child_process<use_mutex> {
+ private:
+  using child_process<use_mutex>::_stdout_pipe;
+  using child_process<use_mutex>::_stderr_pipe;
+  using child_process<use_mutex>::_proc;
+
+  using child_process<use_mutex>::_stdout_read;
+  using child_process<use_mutex>::_stderr_read;
+  using child_process<use_mutex>::_async_wait_process_end;
+  using child_process<use_mutex>::_stdin_pipe;
+
  protected:
   using child_process<use_mutex>::_io_context;
   using child_process<use_mutex>::_logger;
-  using child_process<use_mutex>::_proc;
 
   /**
    * @brief Entry point executed in the child process after fork(2).
    *
-   * Implement this method in a derived class to define what the child process
-   * actually does.  The method runs in a freshly forked process; the parent
-   * is already unblocked at that point.  The three file descriptors are the
-   * raw pipe ends connected to the parent:
-   *  - @p stdin_fd  is the read end of the stdin pipe  (data written by the
-   *    parent arrives here);
-   *  - @p stdout_fd is the write end of the stdout pipe (data written here is
-   *    forwarded to the parent's stdout handler);
-   *  - @p stderr_fd is the write end of the stderr pipe (data written here is
-   *    forwarded to the parent's stderr handler).
+   * Implement this pure-virtual method in a derived class to define the
+   * child's behaviour.  It runs in a freshly forked process; the parent is
+   * already unblocked at that point.
    *
-   * The return value is passed to ::exit(), so it becomes the process exit code
+   * The three file descriptors are the raw pipe ends connecting the child to
+   * the parent:
+   *  - @p stdin_fd   read end of the parent→child pipe; data written by the
+   *                  parent via write_to_child_stdin() arrives here.
+   *  - @p stdout_fd  write end of the child→parent stdout pipe; bytes written
+   *                  here trigger _on_stdout_read() in the parent.
+   *  - @p stderr_fd  write end of the child→parent stderr pipe; bytes written
+   *                  here trigger _on_stderr_read() in the parent.  Equals -1
+   *                  when do_fork() was called with use_stderr_pipe = false.
+   *
+   * The return value is forwarded to ::exit(), becoming the process exit code
    * visible to waitpid(2).
    *
    * @param stdin_fd   Read end of the stdin pipe.
    * @param stdout_fd  Write end of the stdout pipe.
-   * @param stderr_fd  Write end of the stderr pipe.
+   * @param stderr_fd  Write end of the stderr pipe, or -1 if not created.
    * @return Exit code for the child process (0 = success, non-zero = error).
    */
   virtual int _run(int stdin_fd, int stdout_fd, int stderr_fd) = 0;
 
  public:
   /**
-   * @brief Construct a fork instance without starting the child process.
+   * @brief Construct a fork object without starting the child process.
    *
-   * The child is not created until do_fork() is called.
+   * No fork(2) happens here.  Call do_fork() when ready to spawn the child.
    *
-   * @param io_context Boost.Asio context that will drive all async I/O for
-   *        the pipes and the process-end notification.
-   * @param logger spdlog logger shared with the caller, used for debug traces.
+   * @param io_context  Boost.Asio context that drives all async I/O for the
+   *                    pipes and the process-end notification in the parent.
+   * @param logger      spdlog logger instance shared with the caller.
    */
   fork(const std::shared_ptr<asio::io_context> io_context,
        const std::shared_ptr<spdlog::logger>& logger)
@@ -90,26 +127,35 @@ class fork : public child_process<use_mutex> {
   fork(const fork&) = delete;
   fork& operator=(const fork&) = delete;
 
+  std::shared_ptr<fork> shared_from_this() {
+    return std::static_pointer_cast<fork>(
+        child_process<use_mutex>::shared_from_this());
+  }
+
   /**
-   * @brief Fork the current process and start the child.
+   * @brief Spawn the child process.
    *
-   * Creates two or three anonymous pipes (stdin, stdout, and optionally stderr),
-   * calls fork(2), then:
-   * - Parent side: takes ownership of the write end of stdin and the read ends
-   *   of stdout (and stderr if @p use_stderr_pipe is true), wraps the child PID
-   *   in a boost::process handle, and starts async-wait for process termination.
-   *   When @p use_stderr_pipe is false no stderr pipe is created, and the child's
-   *   stderr is inherited from the parent process.
-   * - Child side: passes the raw pipe file descriptors to _run(); when
-   *   @p use_stderr_pipe is false, -1 is passed as the @c stderr_fd argument.
-   *   After _run() returns the child calls ::exit() with the return value.
+   * Creates the anonymous pipes, then calls fork(2):
    *
-   * @param use_stderr_pipe When true a dedicated stderr pipe is created between
-   *        parent and child, and _on_stderr_read() will be called with the
-   *        child's stderr output.  When false no stderr pipe is allocated,
-   *        stderr_fd is -1 in _run(), and the child inherits the parent's stderr.
+   * **Parent** — assigns the write end of stdin and the read ends of stdout
+   * (and stderr when @p use_stderr_pipe is true) to the corresponding Asio
+   * pipe objects, wraps the child PID in a Boost.Process handle, and starts
+   * async reads and a process-end wait on the io_context.
    *
-   * @throws com::centreon::exceptions::msg_fmt if fork(2) fails.
+   * **Child** — calls _run() with the raw pipe file descriptors, then
+   * ::exit() with the return value.
+   *
+   * If @p asio_notify_fork is true the io_context receives fork_prepare /
+   * fork_parent / fork_child notifications around the fork(2) call so that
+   * internal Asio file descriptors are correctly handled on both sides.
+   *
+   * @param use_stderr_pipe  When true a dedicated stderr pipe is created;
+   *                         _on_stderr_read() will be called with the child's
+   *                         stderr output.  When false no stderr pipe is
+   *                         allocated, @p stderr_fd is -1 in _run(), and the
+   *                         child inherits the parent's stderr file descriptor.
+   *
+   * @throws com::centreon::exceptions::msg_fmt if pipe(2) or fork(2) fails.
    */
   void do_fork(bool use_stderr_pipe);
 };

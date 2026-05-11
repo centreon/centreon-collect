@@ -25,6 +25,24 @@
 
 using namespace com::centreon::common;
 
+/**
+ * @brief do not use read_file_content because it's not usable with special
+ * files
+ *
+ */
+static auto read_file = [](const std::string& file_path) -> std::string {
+  std::ifstream file(file_path);
+  if (file.is_open()) {
+    std::stringstream ss;
+    ss << file.rdbuf();
+    file.close();
+    return ss.str();
+  } else {
+    BOOST_THROW_EXCEPTION(process_stat::exception()
+                          << boost::errinfo_file_name(file_path));
+  }
+};
+
 static auto extract_io_value = [](const std::string_view& label_value,
                                   const std::string& file_path) -> uint64_t {
   size_t value_index = label_value.find_first_of(" :");
@@ -66,7 +84,7 @@ process_stat::process_stat(pid_t process_id)
       _real_write_bytes(0) {
   std::string proc_path = fmt::format("/proc/{}/", process_id);
   std::string file_path(proc_path + "cmdline");
-  _cmdline = common::read_file_content(file_path);
+  _cmdline = read_file(file_path);
   // there are \0 between arguments
   for (auto& chr : _cmdline) {
     if (!chr) {
@@ -76,7 +94,7 @@ process_stat::process_stat(pid_t process_id)
 
   file_path = proc_path;
   file_path += "io";
-  std::string file_content = common::read_file_content(file_path);
+  std::string file_content = read_file(file_path);
   auto io_lines = absl::StrSplit(file_content, '\n');
   for (const auto line : io_lines) {
     if (line.length() < 2) {
@@ -100,7 +118,7 @@ process_stat::process_stat(pid_t process_id)
 
   file_path = proc_path;
   file_path += "stat";
-  file_content = common::read_file_content(file_path);
+  file_content = read_file(file_path);
   auto stat_fields = absl::StrSplit(file_content, ' ');
   auto field_iter = stat_fields.begin();
   std::advance(field_iter, 13);
@@ -127,7 +145,7 @@ process_stat::process_stat(pid_t process_id)
 
   // statm file
   file_path.push_back('m');
-  file_content = common::read_file_content(file_path);
+  file_content = read_file(file_path);
   stat_fields = absl::StrSplit(file_content, ' ');
   unsigned page_size = getpagesize();
   field_iter = stat_fields.begin();

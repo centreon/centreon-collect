@@ -27,8 +27,8 @@ using namespace com::centreon;
 using namespace com::centreon::connector;
 // using namespace com::centreon::connector::perl;
 
-std::shared_ptr<asio::io_context> g_io_context(
-    std::make_shared<asio::io_context>());
+std::shared_ptr<asio::io_context> g_io_context(new asio::io_context{
+    boost::asio::config_from_string{"scheduler.wait_usec=-1"}});
 
 /**
  *  Tester entry point.
@@ -38,9 +38,10 @@ std::shared_ptr<asio::io_context> g_io_context(
  *
  *  @return 0 on success, any other value on failure.
  */
-int main(int argc, char* argv[], char** env) {
+int main(int argc, char* argv[], char**) {
   log::instance().set_level(spdlog::level::trace);
-  log::instance().switch_to_stdout();
+  // log::instance().switch_to_stdout();
+  log::instance().switch_to_file("/tmp/ut_connector.log");
   log::instance().add_pid_to_log();
   auto worker{asio::make_work_guard(*g_io_context)};
   std::thread asio_thread([]() { g_io_context->run(); });

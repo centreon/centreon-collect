@@ -13,27 +13,36 @@ message Execute {
     repeated string args = 2; // command arguments without script path
     bool no_child_create = 3; //if true and all child_script are running, we does not create a new child_script
     int64 timeout = 4;
+    uint32 max_execute = 5; //max number of script execute, after this threshold kill child_script
+    uint32 percent_max_memory_increased = 6;
+    uint32 percent_max_open_fd_increased = 7;
+    uint32 max_thread = 8;
 }
 
 
 message CheckChildStatistics {
     uint64 used_memory = 1;
     uint32 nb_opened_fd = 2;
-    uint32 nb_threads = 3;
+    uint32 nb_thread = 3;
 }
 
 message Result {
     uint64 cmd_id = 1;
-    int32 status = 2;
-    string stdout = 3;
-    CheckChildStatistics AfterFirstCheck = 4;
-    CheckChildStatistics AfterLastCheck = 5;
+    int64 pid = 2;
+    int32 status = 3;
+    string stdout = 4;
+    CheckChildStatistics AfterFirstCheck = 5;
+    CheckChildStatistics AfterLastCheck = 6;
 }
 
 
 message Terminate {
-    uint64 pid = 1;
+    int64 pid = 1;
     bool immediate = 2;
+}
+
+message CheckChildEnd {
+    int64 pid = 1;
 }
 
 message ConnectorMess {
@@ -42,5 +51,6 @@ message ConnectorMess {
         Execute execute = 2;
         Result result = 3;
         Terminate terminate = 4;
+        CheckChildEnd child_end = 5;
     }
 }

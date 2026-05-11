@@ -16,35 +16,46 @@
  * For more information : contact@centreon.com
  */
 #include <absl/strings/ascii.h>
+#include <re2/re2.h>
+#include <spdlog/spdlog.h>
 
 #include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/policy.hh"
 #include "com/centreon/connector/perl/script_child.hh"
+#include "common/inc/com/centreon/common/file_system.hh"
 #include "src/perl_connector.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
+static int64_t free_memory() {
+  std::string mem_info = common::read_file_content("/proc/meminfo");
+  static re2::RE2 mem_parser("MemAvailable:\\s+(\\d+)");
+  int64_t free_mem = 0;
+  if (re2::RE2::PartialMatch(mem_info, mem_parser, &free_mem)) {
+    return free_mem * 1024;
+  }
+  return 0;
+}
+
 /**
  *  Default constructor.
  */
-policy::policy(const shared_io_context& io_context,
-               const std::string& additional_loader_code)
+policy::policy(const shared_io_context& io_context, const config& conf)
     : _reporter(reporter::create(io_context)),
       _io_context(io_context),
-      _additional_loader_code(additional_loader_code) {}
+      _config(conf) {}
 
-void policy::create(const shared_io_context& io_context,
-                    const std::string& additional_loader_code,
-                    const std::string& test_cmd_file) {
-  std::shared_ptr<policy> ret(new policy(io_context, additional_loader_code));
-  ret->_start(test_cmd_file);
+void policy::create(const shared_io_context& io_context, const config& conf) {
+  std::shared_ptr<policy> ret(new policy(io_context, conf));
+  ret->_start();
 }
 
-void policy::_start(const std::string& test_cmd_file) {
-  orders::parser::create(_io_context, shared_from_this(), test_cmd_file);
+void policy::_start() {
+  orders::parser::create(_io_context, shared_from_this(),
+                         _config.test_file_path());
 }
 
 /**
@@ -109,15 +120,15 @@ void policy::on_execute(
                             ->_from_script_child(script_path, mess);
                       }
                     },
-                    [weak_me =
-                         weak_from_this()](const std::string& script_path) {
+                    [weak_me = weak_from_this()](const std::string& script_path,
+                                                 int pid) {
                       auto me = weak_me.lock();
                       if (me) {
-                        std::static_pointer_cast<policy>(me)->_scripts.erase(
-                            script_path);
+                        std::static_pointer_cast<policy>(me)
+                            ->_on_script_child_end(script_path, pid);
                       }
                     },
-                    _additional_loader_code))
+                    _config.code()))
             .first;
     script->second->do_fork(false);
   }
@@ -129,7 +140,20 @@ void policy::on_execute(
   for (const auto& arg : cmd_line.get_args()) {
     execute->add_args(arg);
   }
+  execute->set_timeout(std::chrono::system_clock::to_time_t(timeout));
+
+  size_t free_mem = free_memory();
+  if (free_mem <= 0) {
+    SPDLOG_LOGGER_CRITICAL(log::core(), "Can't get system free memory");
+  }
+  if (free_mem < _config.min_free_memory()) {
+    execute->set_no_child_create(true);
+  }
+  if (_check_child_stats.size() + _scripts.size() >= _config.max_child()) {
+    execute->set_no_child_create(true);
+  }
   script->second->write_mess_to_child_stdin(order);
+  _pending_queries.emplace(cmd_id, script_path, timeout);
 }
 
 /**
@@ -152,3 +176,5 @@ void policy::on_version() {
 
 void policy::_from_script_child(const std::string& script_path,
                                 const ConnectorMess& from_script_mess) {}
+
+void policy::_on_script_child_end(const std::string& script_path, int pid) {}

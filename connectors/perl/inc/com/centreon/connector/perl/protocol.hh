@@ -20,7 +20,6 @@
 #define CCCP_PROTOCOL_HH
 
 #include <boost/system/detail/error_code.hpp>
-#include "com/centreon/exceptions/msg_fmt.hh"
 #include "connectors/perl/src/perl_connector.pb.h"
 
 namespace com::centreon::connector::perl {
@@ -78,6 +77,12 @@ class async_receive_impl : std::enable_shared_from_this<async_receive_impl> {
                          std::move(self));
         break;
       case e_state::read_data:
+        if (_data_len > 0x100000) {
+          self.complete(boost::system::errc::make_error_code(
+                            boost::system::errc::protocol_error),
+                        std::shared_ptr<ConnectorMess>());
+          return;
+        }
         // _data_len holds the total packet length (header + data).
         // Subtract the header size to get the actual protobuf payload length.
         _data_len -= sizeof(size_t);

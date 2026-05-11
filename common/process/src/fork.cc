@@ -115,40 +115,64 @@ class pipe {
 }  // namespace com::centreon::common::detail
 
 /**
- * @brief Fork the current process and start the child.
+ * @brief Spawn the child process.
  *
- * Creates two or three anonymous pipes (stdin, stdout, and optionally stderr),
- * calls fork(2), then:
- * - Parent side: takes ownership of the write end of stdin and the read ends
- *   of stdout (and stderr if @p use_stderr_pipe is true), wraps the child PID
- *   in a boost::process handle, and starts async-wait for process termination.
- *   When @p use_stderr_pipe is false no stderr pipe is created, and the child's
- *   stderr is inherited from the parent process.
- * - Child side: passes the raw pipe file descriptors to _run(); when
- *   @p use_stderr_pipe is false, -1 is passed as the @c stderr_fd argument.
- *   After _run() returns the child calls ::exit() with the return value.
+ * ## Pipe setup
+ * Always creates a stdin pipe (parent writes, child reads) and a stdout pipe
+ * (child writes, parent reads).  When @p use_stderr_pipe is true a third pipe
+ * is created for stderr; otherwise the child inherits the parent's stderr file
+ * descriptor and @p stderr_fd is -1 in _run().
  *
- * @param use_stderr_pipe When true a dedicated stderr pipe is created between
- *        parent and child, and _on_stderr_read() will be called with the
- *        child's stderr output.  When false no stderr pipe is allocated,
- *        stderr_fd is -1 in _run(), and the child inherits the parent's stderr.
+ * ## Asio fork notification
+ * When the @p asio_notify_fork template parameter is true, the io_context
+ * receives three notifications:
+ *  - fork_prepare — before fork(2), lets Asio flush and lock internal state.
+ *  - fork_parent  — in the parent after fork(2), resumes normal operation.
+ *  - fork_child   — in the child after fork(2), resets internal file
+ *                   descriptors (e.g. epoll fd) so the child's io_context is
+ *                   usable independently of the parent's.
  *
- * @throws com::centreon::exceptions::msg_fmt if fork(2) fails.
+ * ## Parent side
+ * - Steals the write end of the stdin pipe and both read ends (stdout, stderr)
+ *   into the Asio pipe objects inherited from child_process.
+ * - Wraps the child PID in a boost::process handle and arms async_wait so that
+ *   _on_process_end() fires when the child exits.
+ * - Starts async_read on stdout (and stderr if piped) so _on_stdout_read() /
+ *   _on_stderr_read() are called as data arrives.
+ *
+ * ## Child side
+ * - Closes the unused ends (write side of stdin, read sides of stdout/stderr).
+ * - Calls _run() with the raw file descriptors; when _run() returns, calls
+ *   ::exit() with its return value so the child never returns to the caller.
+ *
+ * @param use_stderr_pipe  When true a stderr pipe is created and
+ *                         _on_stderr_read() will be invoked in the parent.
+ *                         When false the child inherits the parent's stderr
+ *                         and @p stderr_fd equals -1 in _run().
+ *
+ * @throws com::centreon::exceptions::msg_fmt if pipe(2) or fork(2) fails.
  */
-template <bool use_mutex>
-void com::centreon::common::fork<use_mutex>::do_fork(bool use_stderr_pipe) {
+template <bool use_mutex, bool asio_notify_fork>
+void com::centreon::common::fork<use_mutex, asio_notify_fork>::do_fork(
+    bool use_stderr_pipe) {
   detail::pipe stdin;
   detail::pipe stdout;
   std::unique_ptr<detail::pipe> stderr;
   if (use_stderr_pipe)
     stderr = std::make_unique<detail::pipe>();
 
+  if (asio_notify_fork) {
+    this->_io_context->notify_fork(asio::io_context::fork_prepare);
+  }
   pid_t child = ::fork();
   if (child < 0) {
     throw exceptions::msg_fmt("unable to fork:{}", strerror(errno));
   }
 
   if (child > 0) {  // parent
+    if (asio_notify_fork) {
+      this->_io_context->notify_fork(asio::io_context::fork_parent);
+    }
     this->_stdin_pipe.assign(stdin.steal_write_fd());
     stdin.close_read();
     this->_stdout_pipe.assign(stdout.steal_read_fd());
@@ -168,6 +192,9 @@ void com::centreon::common::fork<use_mutex>::do_fork(bool use_stderr_pipe) {
     SPDLOG_LOGGER_DEBUG(_logger, "child started pid:{} ", child);
 
   } else {  // child
+    if (asio_notify_fork) {
+      this->_io_context->notify_fork(asio::io_context::fork_child);
+    }
     stdin.close_write();
     stdout.close_read();
     if (use_stderr_pipe) {
@@ -179,5 +206,7 @@ void com::centreon::common::fork<use_mutex>::do_fork(bool use_stderr_pipe) {
   }
 }
 
-template class com::centreon::common::fork<true>;
-template class com::centreon::common::fork<false>;
+template class com::centreon::common::fork<true, true>;
+template class com::centreon::common::fork<true, false>;
+template class com::centreon::common::fork<false, true>;
+template class com::centreon::common::fork<false, false>;

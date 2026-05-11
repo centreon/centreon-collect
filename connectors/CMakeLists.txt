@@ -50,9 +50,11 @@ if(WITH_TESTING)
                               PROPERTIES GENERATED TRUE)
   include_directories(/usr/lib64/perl5/CORE)
 
-  include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
-  include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
-  include_directories(${Libssh2_INCLUDE_DIR})
+  include_directories(${PROJECT_SOURCE_DIR}/perl/inc 
+    ${CMAKE_SOURCE_DIR}/common/process/inc 
+    ${PROJECT_SOURCE_DIR}/ssh/inc
+    ${Libssh2_INCLUDE_DIR}
+    ${CMAKE_BINARY_DIR}/connectors/perl)
 
   add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
 
@@ -63,8 +65,11 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/common/src/result.cc
     ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
     ${PROJECT_SOURCE_DIR}/common/src/parser.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
@@ -73,6 +78,7 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
     # Test sources.
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/script_child_test.cc
     ${PROJECT_SOURCE_DIR}/perl/test/protocol_test.cc
     ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/buffer_handle.cc
@@ -91,6 +97,8 @@ if(WITH_TESTING)
     ut_connector PRIVATE
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
+    centreon_process_no_crypto
+    centreon_file_system
     process_stat
     pb_perl_connector_lib
     protobuf::libprotobuf

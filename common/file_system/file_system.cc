@@ -24,16 +24,60 @@ namespace com::centreon::common {
 
 /**
  * @brief Reads the content of a text file and returns it in an std::string.
+ * optim: two versions
  *
  * @param file_path The file to read.
  *
  * @return The content as an std::string.
  */
+
+#ifndef _WIN32
+std::string read_file_content(const std::filesystem::path& file_path) {
+  int fd = open(file_path.c_str(), O_RDONLY);
+  if (fd < 0)
+    throw exceptions::msg_fmt("Can't open file '{}': {}", file_path.string(),
+                              strerror(errno));
+
+  struct stat st;
+  if (fstat(fd, &st) != 0) {
+    close(fd);
+    throw exceptions::msg_fmt("Can't get file size '{}': {}",
+                              file_path.string(), strerror(errno));
+  }
+
+  size_t fileSize = static_cast<size_t>(st.st_size);
+
+  std::string result;
+  if (fileSize > 0 && fileSize < SIZE_MAX) {  // if special files
+    result.reserve(fileSize);
+  }
+
+  char buffer[64 * 1024];  // 64 KB
+
+  while (true) {
+    ssize_t n = read(fd, buffer, sizeof(buffer));
+    if (n <= 0)
+      break;
+
+    result.append(buffer, static_cast<size_t>(n));
+  }
+
+  close(fd);
+  return result;
+}
+
+#else
+
 std::string read_file_content(const std::filesystem::path& file_path) {
   std::ifstream in(file_path, std::ios::in);
   std::string retval;
   if (in) {
     in.seekg(0, std::ios::end);
+    auto size = in.tellg();
+    if (size == -1) {
+      throw exceptions::msg_fmt("Can't get file size '{}': {}",
+                                file_path.string(), strerror(errno));
+    }
     retval.resize(in.tellg());
     in.seekg(0, std::ios::beg);
     in.read(&retval[0], retval.size());
@@ -43,6 +87,7 @@ std::string read_file_content(const std::filesystem::path& file_path) {
                               strerror(errno));
   return retval;
 }
+#endif
 
 /**
  * @brief Compute the hash of a directory content.
