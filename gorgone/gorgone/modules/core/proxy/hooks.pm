@@ -630,7 +630,7 @@ sub setlogs {
     $constatus_ping->{ $options{data}->{data}->{id} }->{last_ping_recv} = time();
     $last_pong->{ $options{data}->{data}->{id} } = time() if (defined($last_pong->{ $options{data}->{data}->{id} }));
 
-    if (!defined($node_status->{total_msg} or $node_status->{total_msg} == -1)) {
+    if (!defined($node_status->{total_msg}) or $node_status->{total_msg} == -1) {
         $node_status->{total_msg} = $options{data}->{data}->{nb_total_msg} // 1;
         # if not defined it probably mean we are connected to an older node that does not support multipart messages, so there is only one part.
     }
