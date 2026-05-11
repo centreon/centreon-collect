@@ -48,7 +48,6 @@ jobs:
     with:
       version_file: .version.centreon-gorgone
       labels: ${{ inputs.labels || '' }}
-    secrets: inherit
 
   changes:
     if: |

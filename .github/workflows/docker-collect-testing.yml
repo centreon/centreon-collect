@@ -34,7 +34,6 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-    secrets: inherit
 
   dockerize:
     needs: [get-environment]

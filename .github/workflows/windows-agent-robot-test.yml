@@ -26,7 +26,6 @@ jobs:
     uses: ./.github/workflows/get-environment.yml
     with:
       version_file: CMakeLists.txt
-    secrets: inherit
 
   get-aws-environment:
     uses: ./.github/workflows/get-aws-environment.yml
