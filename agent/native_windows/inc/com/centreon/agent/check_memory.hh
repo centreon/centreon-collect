@@ -21,8 +21,6 @@
 
 #include "native_check_base.hh"
 
-struct _PERFORMANCE_INFORMATION;
-
 namespace com::centreon::agent {
 namespace native_check_detail {
 
@@ -53,10 +51,12 @@ class w_memory_info
 
   w_memory_info(unsigned flags);
   w_memory_info(const MEMORYSTATUSEX& mem_status,
-                const struct _PERFORMANCE_INFORMATION& perf_mem_status,
+                uint64_t pagefile_total_bytes,
+                uint64_t pagefile_used_bytes,
                 unsigned flags = 0);
   void init(const MEMORYSTATUSEX& mem_status,
-            const struct _PERFORMANCE_INFORMATION& perf_mem_status);
+            uint64_t pagefile_total_bytes,
+            uint64_t pagefile_used_bytes);
 
   void dump_to_output(std::string* output) const override;
 };
