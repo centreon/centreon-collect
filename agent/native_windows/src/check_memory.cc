@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  */
 
+#include <pdh.h>
 #include <psapi.h>
 #include <windows.h>
 
@@ -83,6 +84,39 @@ struct formatter<
 namespace com::centreon::agent::native_check_detail {
 
 /**
+ * @brief Query actual page file usage percentage via PDH.
+ *
+ * Uses the documented "Paging File(_Total)\% Usage" performance counter
+ * (psapi.h / GetPerformanceInfo for the total, PDH for the live percentage).
+ * Returns 0.0 on any failure so the caller can fall back gracefully.
+ */
+static double query_pagefile_usage_pct() {
+  PDH_HQUERY hQuery = nullptr;
+  if (PdhOpenQuery(nullptr, 0, &hQuery) != ERROR_SUCCESS)
+    return 0.0;
+
+  struct QueryGuard {
+    PDH_HQUERY h;
+    ~QueryGuard() { PdhCloseQuery(h); }
+  } guard{hQuery};
+
+  PDH_HCOUNTER hCounter = nullptr;
+  if (PdhAddEnglishCounterW(hQuery, L"\\Paging File(_Total)\\% Usage", 0,
+                            &hCounter) != ERROR_SUCCESS)
+    return 0.0;
+
+  if (PdhCollectQueryData(hQuery) != ERROR_SUCCESS)
+    return 0.0;
+
+  PDH_FMT_COUNTERVALUE val{};
+  if (PdhGetFormattedCounterValue(hCounter, PDH_FMT_DOUBLE, nullptr, &val) !=
+      ERROR_SUCCESS)
+    return 0.0;
+
+  return val.doubleValue;
+}
+
+/**
  * @brief Construct a new w_memory info
  * it measures memory usage and fill _metrics
  *
@@ -90,51 +124,57 @@ namespace com::centreon::agent::native_check_detail {
 w_memory_info::w_memory_info(unsigned flags) : _output_flags(flags) {
   MEMORYSTATUSEX mem_status;
   mem_status.dwLength = sizeof(mem_status);
-  if (!GlobalMemoryStatusEx(&mem_status)) {
+  if (!GlobalMemoryStatusEx(&mem_status))
     throw std::runtime_error("fail to get memory status");
-  }
 
-  PERFORMANCE_INFORMATION perf_mem_status;
-  perf_mem_status.cb = sizeof(perf_mem_status);
-  if (!GetPerformanceInfo(&perf_mem_status, sizeof(perf_mem_status))) {
-    throw std::runtime_error("fail to get memory status");
-  }
+  PERFORMANCE_INFORMATION perf_info;
+  perf_info.cb = sizeof(perf_info);
+  if (!GetPerformanceInfo(&perf_info, sizeof(perf_info)))
+    throw std::runtime_error("fail to get performance info");
 
-  init(mem_status, perf_mem_status);
+  // swap_total = page file capacity (commit limit minus physical RAM).
+  const uint64_t pagefile_total =
+      static_cast<uint64_t>(perf_info.CommitLimit - perf_info.PhysicalTotal) *
+      perf_info.PageSize;
+
+  // Actual page-file disk usage from the documented PDH performance counter
+  // "Paging File(_Total)\% Usage".  Falls back to 0 on failure.
+  const double pct = query_pagefile_usage_pct();
+  const uint64_t pagefile_used =
+      static_cast<uint64_t>(static_cast<double>(pagefile_total) * pct / 100.0);
+
+  init(mem_status, pagefile_total, pagefile_used);
 }
 
 /**
- * @brief mock for tests
+ * @brief mock for tests — accepts explicit pagefile bytes
  *
- * @param mem_status
  */
 w_memory_info::w_memory_info(const MEMORYSTATUSEX& mem_status,
-                             const PERFORMANCE_INFORMATION& perf_mem_status,
+                             uint64_t pagefile_total_bytes,
+                             uint64_t pagefile_used_bytes,
                              unsigned flags)
     : _output_flags(flags) {
-  init(mem_status, perf_mem_status);
+  init(mem_status, pagefile_total_bytes, pagefile_used_bytes);
 }
 
 /**
  * @brief fills _metrics
  *
- * @param mem_status
  */
 void w_memory_info::init(const MEMORYSTATUSEX& mem_status,
-                         const PERFORMANCE_INFORMATION& perf_mem_status) {
+                         uint64_t pagefile_total_bytes,
+                         uint64_t pagefile_used_bytes) {
   _metrics[e_memory_metric::phys_total] = mem_status.ullTotalPhys;
   _metrics[e_memory_metric::phys_free] = mem_status.ullAvailPhys;
   _metrics[e_memory_metric::phys_used] =
       mem_status.ullTotalPhys - mem_status.ullAvailPhys;
-  _metrics[e_memory_metric::swap_total] =
-      perf_mem_status.PageSize *
-      (perf_mem_status.CommitLimit - perf_mem_status.PhysicalTotal);
+  _metrics[e_memory_metric::swap_total] = pagefile_total_bytes;
   _metrics[e_memory_metric::swap_used] =
-      perf_mem_status.PageSize *
-      (perf_mem_status.CommitTotal + perf_mem_status.PhysicalAvailable -
-       perf_mem_status.PhysicalTotal);
-  _metrics[e_memory_metric::swap_free] = _metrics[e_memory_metric::swap_total] -
-                                         _metrics[e_memory_metric::swap_used];
+      std::min(pagefile_used_bytes, pagefile_total_bytes);
+  _metrics[e_memory_metric::swap_free] =
+      _metrics[e_memory_metric::swap_total] -
+      _metrics[e_memory_metric::swap_used];
   _metrics[e_memory_metric::virtual_total] = mem_status.ullTotalPageFile;
   _metrics[e_memory_metric::virtual_free] = mem_status.ullAvailPageFile;
   _metrics[e_memory_metric::virtual_used] =
