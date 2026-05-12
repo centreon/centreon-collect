@@ -55,12 +55,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma9
-            distrib: el9
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma10
-            distrib: el10
           - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
@@ -111,39 +105,6 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
-  deliver-rpm:
-    runs-on: centreon-common
-    needs: [get-environment, package]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-
-    strategy:
-      matrix:
-        distrib: [el9, el10]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Delivery
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: common
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-          delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
-          centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
-
   deliver-deb:
     runs-on: centreon-common
     needs: [get-environment, package]
@@ -152,8 +113,7 @@ jobs:
       contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       matrix:
@@ -174,44 +134,3 @@ jobs:
           stability: ${{ needs.get-environment.outputs.stability }}
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
-
-    runs-on: centreon-common
-    strategy:
-      matrix:
-        distrib: [el9, el10, trixie]
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: common
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
-
-  set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    uses: ./.github/workflows/set-pull-request-skip-label.yml
