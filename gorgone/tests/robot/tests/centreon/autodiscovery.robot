@@ -61,7 +61,7 @@ Test Host disco
 Test Teardown
     [Arguments]    @{process_list}
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Stop Mockoon
 
 Test Setup
