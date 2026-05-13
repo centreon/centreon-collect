@@ -112,10 +112,51 @@ sub test_yaml_get_include {
           'filter' => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)');
     is(scalar(@emptyResult), 0, 'no file found return empty');
 }
+
+sub test_new_env_configuration {
+    my @argv_backup = @ARGV;
+    my @tests = (
+        {env => undef, argv=> undef, res => undef},
+        {env => "env", argv=> undef, res => "env"},
+        {env => "env", argv=> "", res => "env"},
+        {env => "env", argv=> "arg", res => "arg"},
+        {env => undef, argv=> "arg", res => "arg"},
+        );
+    my @variables_names = (
+        ["config", "config_file"],
+        ["vault","vault_config_file"],
+        ["logfile", "log_file"],
+        ["severity", "severity"]);
+    # pub is the public name, used in command line, private is the variable name mapped to it.
+    for my $ref (@variables_names) {
+        my ($pub, $private) = @$ref;
+        for my $t (@tests){
+            @ARGV = ();
+            @ARGV = ("--$pub" , $t->{argv}) if $t->{argv};
+            $ENV{"GORGONE_INIT_" . uc($pub)} = $t->{env};
+            # severity is the only argument that have a default value.
+            if ($pub eq "severity") {
+                if (!defined($t->{res})) {
+                    $t->{res} = "info";
+                }
+                if (!defined($t->{env})) {
+                    $t->{env} = "info";
+                }
+            }
+
+            my $obj = gorgone::class::core->new();
+            is($obj->{$private}, $t->{env}, "$pub is taken from env");
+            $obj->parse_options();
+            is($obj->{$private}, $t->{res}, "$pub is taken from ARGV if needed");
+        }
+    }
+    @ARGV = @argv_backup;
+}
 sub main {
     my $set = create_data_set();
     test_yaml_get_include($set);
     test_configuration_read($set);
+    test_new_env_configuration();
 
     print "\n";
     done_testing;

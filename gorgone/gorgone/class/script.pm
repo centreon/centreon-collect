@@ -54,6 +54,12 @@ sub new {
     bless $self, $class;
     $self->{name} = $name;
     $self->{logger} = centreon::common::logger->new();
+    # if both env variables and argv are present, argv will be used.
+    $self->{config_file} = $ENV{"GORGONE_INIT_CONFIG"} if $ENV{"GORGONE_INIT_CONFIG"};
+    $self->{vault_config_file} = $ENV{"GORGONE_INIT_VAULT"} if $ENV{"GORGONE_INIT_VAULT"};
+    $self->{log_file} = $ENV{"GORGONE_INIT_LOGFILE"} if $ENV{"GORGONE_INIT_LOGFILE"};;
+    $self->{severity} = $ENV{"GORGONE_INIT_SEVERITY"} if $ENV{"GORGONE_INIT_SEVERITY"} ;
+
     $self->{options} = {
         'config=s'    => \$self->{config_file},
         'vault=s'     => \$self->{vault_config_file},
@@ -133,6 +139,7 @@ sub parse_options {
         print "version: " . $self->get_version() . "\n";
         exit(0);
     }
+
 }
 
 sub run {

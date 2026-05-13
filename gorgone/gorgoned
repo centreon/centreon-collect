@@ -40,6 +40,8 @@ gorgoned [options]
 
 =head1 OPTIONS
 
+Every option may be set as an environment variable, using the form GORGONE_INIT_OPTIONNAME, for exemple GORGONE_INIT_SEVERITY to change the log level. Command line configuration override environment variable.
+
 =over 8
 
 =item B<--config>
@@ -49,6 +51,19 @@ Specify the path to the yaml configuration file (default: '').
 =item B<--vault>
 
 Specify the path to the vault json configuration file (default: '/var/lib/centreon/vault/vault.json').
+
+=item B<--logfile>
+
+Specify the path to logfile to use (default: stdout).
+
+=item B<--severity>
+
+minimum log level to print a message
+(either a digit from 2 to 7 or the string equivalent : 'fatal','error','warning',notice,'info','debug' ) (default: info).
+
+=item B<--flushoutput>
+
+for output to be printed without caching when writing logs.
 
 =item B<--help>
 
