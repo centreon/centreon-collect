@@ -263,6 +263,7 @@ sub yaml_parse_config {
         if ($self->{vault} and $self->{vault}->can('get_secret')) {
             ${$options{config}} = $self->{vault}->get_secret( ${$options{config}});
         }
+        # let's check
     } else {
         $self->{logger}->writeLogError("config - unknown type of data: " . ref(${$options{config}}));
     }
@@ -294,6 +295,60 @@ sub yaml_load_config {
         ariane => defined($options{ariane}) ? $options{ariane} : ''
     );
     return $config;
+}
+
+# this function check all environment variables for default value to add to the configuration.
+# This function SHOULD be called after yaml_load_config.
+# as gorgone don't have a consolidated list of allowed configuration option, this parse every env variable which name start as gorgone__
+# and expect every level of the hashmap to be separated by double underscore.
+# it should be done after the yaml loading because modules definition are in an array, and we can't set 2 array element for a single gorgone module.
+# The variables name shall be lowercase following the name defined by the yaml syntax
+# (lowercase env variable is permitted for application https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html)
+sub load_env_config {
+    my $self = shift;
+
+    for my $key_env (keys %ENV){
+        next if $key_env !~ /^gorgone__/;
+        $self->{logger}->writeLogDebug("config - checking if env variable $key_env should update configuration...");
+
+        my $key = substr($key_env, 9);
+        my $conf = $self->{config}->{configuration};
+        my $arianne = "gorgone";
+        for my $path (split(/__/, $key)){
+            if ($arianne eq "gorgone__gorgone__modules"){
+                # we need to search the correct module in the array of module
+                my $module_ref = undef;
+                for my $module (@$conf){
+                    if ($module->{name} eq $path){
+                        $module_ref = $module;
+                    }
+                }
+                if (!defined($module_ref)){
+                    # the module don't exist, so we create it in the array, and then jump in.
+                    push(@$conf,{name => $path});
+                }
+                $conf = $module_ref;
+                $arianne .= "__$path";
+                next;
+            }
+            $arianne .= "__$path";
+            if ($arianne eq $key_env){
+                # last iteration, change the configuration only if the value don't exist,
+                # as config file (load before by yaml_load_config) take precedence
+                if (! exists $conf->{$path}){
+                    $self->{logger}->writeLogDebug("config - updated the configuration from $arianne environment variable.");
+                    $conf->{$path} = $ENV{$key_env};
+                }
+            } else { # still not on the leaf, we continue to create the hash map if needed. for now we can't process array leaf like action whitelist.
+                if (!$conf->{$path}) {
+                    $conf->{$path} = {};
+                }
+                $conf = $conf->{$path};
+            }
+
+
+        }
+    }
 }
 
 1;

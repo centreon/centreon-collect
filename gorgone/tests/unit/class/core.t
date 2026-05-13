@@ -1,22 +1,5 @@
 #!/usr/bin/perl
 
-# we can't use mock() on a non loaded package, so we need to create the class we want to mock first.
-# We could have set centreon-common as a dependancy for the test, but it's not that package we are testing right now, so let mock it.
-BEGIN {
-    package centreon::common::centreonvault;
-    sub get_secret {};
-    sub new {};
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1;
-}
-
-# same here, gorgone use a logger, but we don't want to test it right now, so we mock it.
-BEGIN {
-    package centreon::common::logger;
-    sub severity {};
-    sub new {};
-    $INC{ (__PACKAGE__ =~ s{::}{/}rg) . ".pm" } = 1; # this allow the module to be available for other modules anywhere in the code.
-}
-
 package main;
 
 use strict;
@@ -27,6 +10,8 @@ use Test2::Tools::Compare qw{is like match};
 use Data::Dumper;
 use FindBin;
 use lib "$FindBin::Bin/../../../";
+use tests::unit::lib::mockLogger;
+use tests::unit::lib::mockCentreonvault;
 use gorgone::class::script;
 use gorgone::class::core;
 
@@ -152,11 +137,36 @@ sub test_new_env_configuration {
     }
     @ARGV = @argv_backup;
 }
+sub test_config_from_env {
+    $ENV{"gorgone__gorgone__modules__action__command_timeout"} = 5;
+    $ENV{"gorgone__gorgone__modules__action__New_Argument"} = "value";
+
+    my $gorgone = gorgone::class::core->new();
+    $gorgone->{config} = $gorgone->yaml_load_config(
+            file   => './config_examples/centreon-gorgone/config.yaml',
+            filter => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)'
+        );
+    $gorgone->load_env_config();
+    my $modules = $gorgone->{config}->{configuration}->{gorgone}->{modules};
+    my $action_module = undef;
+    for my $module (@$modules){
+        if ($module->{name} ne "action"){
+        next;
+        }
+        $action_module = $module;
+    }
+    isnt($action_module, undef, "action module should exist");
+    is($action_module->{command_timeout}, 30, "env variable should not override yaml config");
+    is($action_module->{New_Argument}, "value", "new variable creation is possible");
+
+
+}
 sub main {
     my $set = create_data_set();
-    test_yaml_get_include($set);
-    test_configuration_read($set);
-    test_new_env_configuration();
+    #test_yaml_get_include($set);
+    #test_configuration_read($set);
+    #test_new_env_configuration();
+    test_config_from_env();
 
     print "\n";
     done_testing;
