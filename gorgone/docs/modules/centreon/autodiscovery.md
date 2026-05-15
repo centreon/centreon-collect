@@ -2,15 +2,6 @@
 
 ## Description
 
-
-```mermaid
-graph TD;
-    central[Gorgone central]-- tcp/5556 -->poller[Gorgone Poller];
-    webApp[Web Application]-- FS -->central;
-    poller-- tcp/5556 -->webApp;   
-```
-
-
 This module aims to extend Centreon Autodiscovery server functionalities.
 
 ## Configuration
@@ -18,8 +9,7 @@ This module aims to extend Centreon Autodiscovery server functionalities.
 | Directive                 | Description                                                                                                     | Default value |
 |:--------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
 | global\_timeout           | Time in seconds before a discovery command is considered timed out                                              | `300`         |
-| check\_interval           | Time in seconds defining the frequency at which results will be searched for                                          | `15`          |
-
+| check\_interval           | Time in seconds defining the frequency at which results will be searched for                                    | `15`          |
 | no\_shell\_interpretation | Don't let bash interpret commands to be executed ('true' :  no interpretation, 'false': bash honnor `; & $()` ) | `true`        |
 
 
@@ -332,7 +322,10 @@ curl --request POST "https://hostname:8443/api/centreon/autodiscovery/services" 
 
 ### Developer manual
 
-This module heavily uses the gorgone-action module to work.
+This module heavily uses the gorgone-action module to work, both on the central and the poller task with the discovery.
+
+
+#### Service discovery
 
 Here is a diagram of how these modules interact:
 
@@ -354,3 +347,30 @@ and dispatch another message to the waiting module.
 
 
 gorgone-core also stores the log in a local sqlite database.
+
+#### host discovery
+
+Gorgone can perform host discovery.
+
+```mermaid
+sequenceDiagram
+    participant web
+    participant Database
+    participant php script
+    participant GorgoneCentral
+    participant GorgonePoller 
+
+    web ->> GorgoneCentral: POST send new jobs information to Gorgone 
+    GorgoneCentral ->> GorgoneCentral: CRON start job not already started
+    GorgoneCentral ->> Database: update job status to 'running'
+    GorgoneCentral ->> GorgonePoller: send discovery command to poller
+    GorgonePoller ->> GorgonePoller: execute discovery command
+    GorgonePoller ->> GorgoneCentral: send discovery results to central
+    GorgoneCentral ->> Database: Add result to mod_host_disco_host table
+    GorgoneCentral ->> php script: execute post-discovery commands
+    php script ->> Database: update job status to 'inProgress'
+    php script ->> Database: Add discovered host to "host" table
+    php script ->> Database: update job status to 'completed'
+    
+
+```
