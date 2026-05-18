@@ -298,11 +298,11 @@ sub yaml_load_config {
 }
 
 # this function check all environment variables for default value to add to the configuration.
-# This function SHOULD be called after yaml_load_config.
+# This function should be called AFTER yaml_load_config.
 # as gorgone don't have a consolidated list of allowed configuration option, this parse every env variable which name start as gorgone__
 # and expect every level of the hashmap to be separated by double underscore.
 # it should be done after the yaml loading because modules definition are in an array, and we can't set 2 array element for a single gorgone module.
-# The variables name shall be lowercase following the name defined by the yaml syntax
+# The env variables name respect the yaml syntax case, see the documentation for all recognized variable definition.
 # (lowercase env variable is permitted for application https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html)
 sub load_env_config {
     my $self = shift;

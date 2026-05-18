@@ -140,3 +140,20 @@ https://github.com/centreon/centreon-collect/blob/develop/perl-libs/lib/centreon
 ## *modules*
 
 See the *configuration* titles of the modules documentations listed [here](../docs/modules.md).
+
+## environment variables
+
+Gorgone can be configured with environment variables. This is useful when using Gorgone in a containerized environment, for example.
+
+The configuration file is loaded after environment variables, so any value set in the configuration file will override the one set in environment variables.
+
+2 type of variables are supported. The command line arguments can be set with this format : 
+`GORGONE_INIT_CONFIG`, `GORGONE_INIT_VAULT`, `GORGONE_INIT_LOGFILE`, `GORGONE_INIT_SEVERITY`. See `gorgone --help` for an updated list of supported arguments.
+
+the configuration files variables can be set with the format `gorgone__gorgone__modules__proxy__pool=10` to set the pool directive of the proxy module to 10. The format is `gorgone__` followed by the path to the directive in the configuration file, with each level separated by `__`.
+
+The case follow the configuration file case, so POOL is not the same as pool.
+
+you can use environment variable for the database configuration too : `gorgone__centreon__database__db_configuration__username='centreon'`
+
+
