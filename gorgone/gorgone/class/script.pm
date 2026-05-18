@@ -325,7 +325,8 @@ sub load_env_config {
                 }
                 if (!defined($module_ref)){
                     # the module don't exist, so we create it in the array, and then jump in.
-                    push(@$conf,{name => $path});
+                    $module_ref = {name => $path};
+                    push(@$conf,$module_ref);
                 }
                 $conf = $module_ref;
                 $arianne .= "__$path";
