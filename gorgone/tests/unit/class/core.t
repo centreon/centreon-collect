@@ -140,6 +140,9 @@ sub test_new_env_configuration {
 sub test_config_from_env {
     $ENV{"gorgone__gorgone__modules__action__command_timeout"} = 5;
     $ENV{"gorgone__gorgone__modules__action__New_Argument"} = "value";
+    $ENV{"gorgone__gorgone__modules__proxy__httpserver__ssl"} = 1;
+    $ENV{"gorgone__gorgone__modules__newmodule__name"} = "newmodule";
+    $ENV{"gorgone__gorgone__modules__newmodule__param"} = "new_module_value";
 
     my $gorgone = gorgone::class::core->new();
     $gorgone->{config} = $gorgone->yaml_load_config(
@@ -149,23 +152,38 @@ sub test_config_from_env {
     $gorgone->load_env_config();
     my $modules = $gorgone->{config}->{configuration}->{gorgone}->{modules};
     my $action_module = undef;
+    my $proxy_module = undef;
+    my $new_module = undef;
+
     for my $module (@$modules){
-        if ($module->{name} ne "action"){
-        next;
-        }
+        if ($module->{name} eq "action"){
         $action_module = $module;
+        }
+        if ($module->{name} eq "proxy"){
+            $proxy_module = $module;
+        }
+        if ($module->{name} eq "newmodule"){
+            $new_module = $module;
+        }
     }
+
     isnt($action_module, undef, "action module should exist");
     is($action_module->{command_timeout}, 30, "env variable should not override yaml config");
     is($action_module->{New_Argument}, "value", "new variable creation is possible");
 
+    isnt($proxy_module, undef, "proxy module should exist");
+    is($proxy_module->{httpserver}->{ssl}, 1, "set sub module configuration");
+
+    isnt($new_module, undef, "new module should exist");
+    print(Dumper($modules));
+    is($new_module->{param}, "new_module_value", "set sub module configuration");
 
 }
 sub main {
     my $set = create_data_set();
-    #test_yaml_get_include($set);
-    #test_configuration_read($set);
-    #test_new_env_configuration();
+    test_yaml_get_include($set);
+    test_configuration_read($set);
+    test_new_env_configuration();
     test_config_from_env();
 
     print "\n";
