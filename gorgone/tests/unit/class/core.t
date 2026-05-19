@@ -138,12 +138,13 @@ sub test_new_env_configuration {
     @ARGV = @argv_backup;
 }
 sub test_config_from_env {
-    $ENV{"gorgone__gorgone__modules__action__command_timeout"} = 5;
-    $ENV{"gorgone__gorgone__modules__action__New_Argument"} = "value";
-    $ENV{"gorgone__gorgone__modules__proxy__httpserver__ssl"} = 1;
-    $ENV{"gorgone__gorgone__modules__newmodule__name"} = "newmodule";
-    $ENV{"gorgone__gorgone__modules__newmodule__param"} = "new_module_value";
-
+    $ENV{"GORGONE__GORGONE__MODULES__ACTION__COMMAND_TIMEOUT"} = 5;
+    $ENV{"GORGONE__GORGONE__MODULES__ACTION__NEW_ARGUMENT"} = "value";
+    $ENV{"GORGONE__GORGONE__MODULES__PROXY__HTTPSERVER__SSL"} = 1;
+    $ENV{"GORGONE__GORGONE__MODULES__NEWMODULE__NAME"} = "newmodule";
+    $ENV{"GORGONE__GORGONE__MODULES__NEWMODULE__PARAM__SUB_PARAM"} = "new_module_value";
+    $ENV{"GORGONE__GORGONE__MODULES__PULLWSS_TOKEN"} = "token_from_long_env_variable";
+    $ENV{GORGONE_TOKEN} = "new_token!";
     my $gorgone = gorgone::class::core->new();
     $gorgone->{config} = $gorgone->yaml_load_config(
             file   => './config_examples/centreon-gorgone/config.yaml',
@@ -154,6 +155,7 @@ sub test_config_from_env {
     my $action_module = undef;
     my $proxy_module = undef;
     my $new_module = undef;
+    my $pullwss_module = undef;
 
     for my $module (@$modules){
         if ($module->{name} eq "action"){
@@ -165,19 +167,25 @@ sub test_config_from_env {
         if ($module->{name} eq "newmodule"){
             $new_module = $module;
         }
+        if ($module->{name} eq "pullwss"){
+            $pullwss_module = $module;
+        }
     }
 
     isnt($action_module, undef, "action module should exist");
+        print(Dumper($action_module));
+
     is($action_module->{command_timeout}, 5, "env variable should override yaml config");
-    is($action_module->{New_Argument}, "value", "new variable creation is possible");
+    is($action_module->{new_argument}, "value", "new variable creation is possible");
 
     isnt($proxy_module, undef, "proxy module should exist");
     is($proxy_module->{httpserver}->{ssl}, 1, "set sub module configuration");
 
     isnt($new_module, undef, "new module should exist");
-    print(Dumper($modules));
-    is($new_module->{param}, "new_module_value", "set sub module configuration");
+    is($new_module->{param}->{sub_param}, "new_module_value", "set sub module configuration");
 
+    isnt($pullwss_module, undef, "pullwss module should exist");
+    is($pullwss_module->{token}, "new_token!", "shorter option name override longer one");
 }
 sub main {
     my $set = create_data_set();

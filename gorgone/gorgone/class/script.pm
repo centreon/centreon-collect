@@ -299,15 +299,15 @@ sub yaml_load_config {
 
 # this function check all environment variables for default value to add to the configuration.
 # This function should be called AFTER yaml_load_config.
-# as gorgone don't have a consolidated list of allowed configuration option, this parse every env variable which name start as gorgone__
+# as gorgone don't have a consolidated list of allowed configuration option, this parse every env variable which name start as GORGONE__
 # and expect every level of the hashmap to be separated by double underscore.
 # it should be done after the yaml loading because modules definition are in an array, and we can't set 2 array element for a single gorgone module.
-# The env variables name respect the yaml syntax case, see the documentation for all recognized variable definition.
-# (lowercase env variable is permitted for application https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap08.html)
+# The env variables name case don't matter, it is lc() before use. See the documentation for all recognized variable definition.
 sub load_env_config {
     my $self = shift;
 
     for my $key_env (keys %ENV){
+        $key_env = lc($key_env);
         next if $key_env !~ /^gorgone__/;
         $self->{logger}->writeLogDebug("config - checking if env variable $key_env should update configuration...");
 
@@ -336,7 +336,7 @@ sub load_env_config {
             if ($arianne eq $key_env) {
                 # As this configuration can come only from config file, env variable take precedence and override any value.
                 $self->{logger}->writeLogDebug("config - updated the configuration from $arianne environment variable.");
-                $conf->{$path} = $ENV{$key_env};
+                $conf->{$path} = $ENV{uc($key_env)};
             } else { # still not on the leaf, we continue to create the hash map if needed. for now we can't process array leaf like action whitelist.
                 if (!$conf->{$path}) {
                     $conf->{$path} = {};
@@ -347,6 +347,42 @@ sub load_env_config {
 
         }
     }
+
+    # as the full name of each parameter is long, we make some short alias for basic use
+    my $conf = $self->{config}->{configuration}->{gorgone};
+
+    if ($ENV{GORGONE_UID}){
+        $conf->{gorgonecore}->{id} = $ENV{GORGONE_UID};
+    }
+    my $pullwss_ref = undef;
+    for my $module (@{$conf->{modules}}) {
+        if ($module->{name} eq "pullwss") {
+            $pullwss_ref = $module;
+        }
+    }
+
+    if ($ENV{GORGONE_TOKEN}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{token} = $ENV{GORGONE_TOKEN};
+    }
+    if ($ENV{CENTRAL_HOST}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{address} = $ENV{CENTRAL_HOST};
+    }
+    if ($ENV{CENTRAL_PORT}) {
+        if (!defined($pullwss_ref)) {
+            $pullwss_ref = {name => "pullwss"};
+            push @{$conf->{modules}}, $pullwss_ref;
+        }
+        $pullwss_ref->{port} = $ENV{CENTRAL_PORT};
+    }
+
 }
 
 1;
