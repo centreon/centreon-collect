@@ -39,6 +39,8 @@ sub new {
     bless $connector, $class;
 
     $connector->{purge_timer} = time();
+    $connector->{purge_vacuum_timer} = time();
+
 
     $connector->set_signal_handlers();
     return $connector;
