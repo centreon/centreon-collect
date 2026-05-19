@@ -56,7 +56,7 @@ Environment variable : GORGONE_VAULT_FILE
 =item B<--logfile>
 
 Specify the path to logfile to use (default: stdout).
-Environment variable : GORGONE_LOGFILEt
+Environment variable : GORGONE_LOG_FILE
 
 =item B<--severity>
 

@@ -57,7 +57,7 @@ sub new {
     # if both env variables and argv are present, argv will be used.
     $self->{config_file} = $ENV{"GORGONE_CONFIG"} if $ENV{"GORGONE_CONFIG"};
     $self->{vault_config_file} = $ENV{"GORGONE_VAULT_FILE"} if $ENV{"GORGONE_VAULT_FILE"};
-    $self->{log_file} = $ENV{"GORGONE_LOGFILE"} if $ENV{"GORGONE_LOGFILE"};;
+    $self->{log_file} = $ENV{"GORGONE_LOG_FILE"} if $ENV{"GORGONE_LOG_FILE"};;
     $self->{severity} = $ENV{"GORGONE_LOG_LEVEL"} if $ENV{"GORGONE_LOG_LEVEL"} ;
 
     $self->{options} = {

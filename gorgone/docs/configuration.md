@@ -149,7 +149,7 @@ The order of precedence for configuration values is the following (from lowest t
 Each higer level of precedence will override the previous one.
 
 2 type of variables are supported. The command line arguments can be set with this format : 
-`GORGONE_CONFIG`, `GORGONE_VAULT_FILE`, `GORGONE_LOGFILE`, `GORGONE_LOG_LEVEL`. See `gorgone --help` for an updated list of supported arguments.
+`GORGONE_CONFIG`, `GORGONE_VAULT_FILE`, `GORGONE_LOG_FILE`, `GORGONE_LOG_LEVEL`. See `gorgone --help` for an updated list of supported arguments.
 
 the configuration files variables can be set with the format `GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS=1.1.1.1` to set the address directive of the pullwss module for exemple. The format is `GORGONE__` followed by the path to the directive in the configuration file, with each level separated by 2 underscore `__`. for a complete list of available directives, see individual module documentation.
 

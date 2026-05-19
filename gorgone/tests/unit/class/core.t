@@ -108,19 +108,19 @@ sub test_new_env_configuration {
         {env => undef, argv=> "arg", res => "arg"},
         );
     my @variables_names = (
-        ["config", "config_file"],
-        ["vault","vault_config_file"],
-        ["logfile", "log_file"],
-        ["severity", "severity"]);
+        ["GORGONE_CONFIG", "config", "config_file"],
+        ["GORGONE_VAULT_FILE","vault", "vault_config_file"],
+        ["GORGONE_LOG_FILE","logfile", "log_file"],
+        ["GORGONE_LOG_LEVEL", "severity", "severity"]);
     # pub is the public name, used in command line, private is the variable name mapped to it.
     for my $ref (@variables_names) {
-        my ($pub, $private) = @$ref;
+        my ($env, $cli, $private) = @$ref;
         for my $t (@tests){
             @ARGV = ();
-            @ARGV = ("--$pub" , $t->{argv}) if $t->{argv};
-            $ENV{"GORGONE_INIT_" . uc($pub)} = $t->{env};
+            @ARGV = ("--$cli" , $t->{argv}) if $t->{argv};
+            $ENV{$env} = $t->{env};
             # severity is the only argument that have a default value.
-            if ($pub eq "severity") {
+            if ($env eq "GORGONE_LOG_LEVEL") {
                 if (!defined($t->{res})) {
                     $t->{res} = "info";
                 }
@@ -130,9 +130,9 @@ sub test_new_env_configuration {
             }
 
             my $obj = gorgone::class::core->new();
-            is($obj->{$private}, $t->{env}, "$pub is taken from env");
+            is($obj->{$private}, $t->{env}, "$cli is taken from env");
             $obj->parse_options();
-            is($obj->{$private}, $t->{res}, "$pub is taken from ARGV if needed");
+            is($obj->{$private}, $t->{res}, "$cli is taken from ARGV if needed");
         }
     }
     @ARGV = @argv_backup;
