@@ -76,10 +76,12 @@ FROM debian:12-slim AS gorgone
 # Documented image contract — values are normally injected via docker compose / -e flags.
 # Declared here so `docker inspect` lists them and `docker exec -it ... bash` sees them.
 ENV TYPE= \
-    UID= \
     NAME= \
-    POLLER_TOKEN= \
-    CENTRAL_URL= \
+    GORGONE_UID= \
+    GORGONE_TOKEN= \
+    GORGONE_SSL= \
+    CENTRAL_HOST= \
+    CENTRAL_PORT= \
     APP_SECRET= \
     SALT=
 
@@ -141,7 +143,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libzmq5 \
     libmariadb3 \
     libgnutls30 \
-    gosu \
     sudo \
     lsb-release \
     iputils-ping \

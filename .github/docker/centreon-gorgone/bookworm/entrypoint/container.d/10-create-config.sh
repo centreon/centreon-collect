@@ -26,9 +26,9 @@ elif [ "$TYPE" = "poller" ]; then
     echo "=== Generating Gorgone Configuration for Poller ==="
     echo ""
 
-    UID="${UID:?ERROR: UID env var must be set for poller mode}"
+    GORGONE_UID="${GORGONE_UID:?ERROR: GORGONE_UID env var must be set for poller mode}"
     NAME="${NAME:?ERROR: NAME env var must be set for poller mode}"
-    POLLER_TOKEN="${POLLER_TOKEN:?ERROR: POLLER_TOKEN env var must be set for poller mode}"
+    GORGONE_TOKEN="${GORGONE_TOKEN:?ERROR: POLLER_TOKEN env var must be set for poller mode}"
     CENTRAL_URL="${CENTRAL_URL:?ERROR: CENTRAL_URL env var must be set for poller mode}"
 
     # Strip optional scheme (http://, https://) and trailing path, then split host/port.
@@ -36,8 +36,9 @@ elif [ "$TYPE" = "poller" ]; then
     CENTRAL_HOST=$(echo "$CENTRAL_HOSTPORT" | cut -d: -f1)
     CENTRAL_PORT=$(echo "$CENTRAL_HOSTPORT" | cut -s -d: -f2)
     CENTRAL_PORT="${CENTRAL_PORT:-8086}"
+    GORGONE_SSL="${GORGONE_SSL:-true}"
 
-    echo "Poller UID    : $UID"
+    echo "Poller UID    : $GORGONE_UID"
     echo "Poller name    : $NAME"
     echo "Central address: $CENTRAL_HOST:$CENTRAL_PORT"
 
@@ -46,7 +47,7 @@ name: ${NAME}
 description: Poller configuration
 gorgone:
   gorgonecore:
-    id: ${UID}
+    id: ${GORGONE_UID}
     privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
     pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
 
@@ -59,9 +60,9 @@ gorgone:
     - name: pullwss
       package: "gorgone::modules::core::pullwss::hooks"
       enable: true
-      ssl: false
+      ssl: ${GORGONE_SSL}
       port: ${CENTRAL_PORT}
-      token: ${POLLER_TOKEN}
+      token: ${GORGONE_TOKEN}
       address: ${CENTRAL_HOST}
 
 EOF
