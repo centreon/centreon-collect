@@ -28,7 +28,8 @@ add_custom_command(
 add_custom_target(target_timeperiod_proto DEPENDS timeperiod.pb.cc timeperiod.pb.h)
 
 add_library(centreon_common_timeperiod STATIC
-  ${CMAKE_CURRENT_BINARY_DIR}/timeperiod.pb.cc)
+  ${CMAKE_CURRENT_BINARY_DIR}/timeperiod.pb.cc
+  ${CMAKE_SOURCE_DIR}/common/src/timeperiod_utils.cc)
 add_dependencies(centreon_common_timeperiod target_timeperiod_proto)
 target_include_directories(centreon_common_timeperiod PUBLIC
   ${CMAKE_SOURCE_DIR}/common/inc
