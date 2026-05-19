@@ -101,6 +101,44 @@ sub exit_process {
     exit(0);
 }
 
+# apply vacuum on the database every week
+sub action_dbvacuum {
+      my ($self, %options) = @_;
+
+    $options{token} = $self->generate_token() if (!defined($options{token}));
+
+    if (defined($options{cycle})) {
+        return 0 if ((time() - $self->{purge_vacuum_timer}) < 3600*24*7); # doing vacuum every week as it can be slow on some database
+    }
+    $self->{logger}->writeLogDebug("[dbcleaner] vacuum database in progress...");
+    my ($status) = $self->{db_gorgone}->query({
+        query => "VACUUM"
+    });
+    $self->{purge_vacuum_timer} = time();
+
+    $self->{logger}->writeLogDebug("[dbcleaner] vacuum finished");
+
+    if ($status == -1) {
+        $self->send_log(
+            code => GORGONE_ACTION_FINISH_KO,
+            token => $options{token},
+            data => {
+                message => 'action db vacuum failed'
+            }
+        );
+        return 0;
+    }
+
+    $self->send_log(
+        code => GORGONE_ACTION_FINISH_OK,
+        token => $options{token},
+        data => {
+            message => 'action db vacuum finished'
+        }
+    );
+    return 0;
+}
+# purge database
 sub action_dbclean {
     my ($self, %options) = @_;
 
@@ -127,14 +165,12 @@ sub action_dbclean {
         query => "DELETE FROM gorgone_history WHERE (instant = 1 AND `ctime` <  " . (time() - 86400) . ") OR `ctime` < ?",
         bind_values => [time() - $self->{config}->{purge_history_time}]
     });
-    my ($status3) = $self->{db_gorgone}->query({
-        query => "VACUUM"
-    });
+
     $self->{purge_timer} = time();
 
     $self->{logger}->writeLogDebug("[dbcleaner] Purge finished");
 
-    if ($status == -1 || $status2 == -1 || $status3 == -1) {
+    if ($status == -1 || $status2 == -1) {
         $self->send_log(
             code => GORGONE_ACTION_FINISH_KO,
             token => $options{token},
@@ -161,6 +197,7 @@ sub periodic_exec {
     }
 
     $connector->action_dbclean(cycle => 1);
+    $connector->action_dbvacuum(cycle => 1);
 }
 
 sub run {
