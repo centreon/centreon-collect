@@ -320,7 +320,7 @@ void script_child::_on_stdout_read(const boost::system::error_code& err,
     for (const ConnectorMess& to_read : received) {
       SPDLOG_LOGGER_DEBUG(_logger, "{} receive from script_child: {}",
                           _script_path, to_read.ShortDebugString());
-      _parent_read_handler(_script_path, to_read);
+      _parent_read_handler(shared_from_this(), to_read);
     }
   };
 
@@ -342,7 +342,7 @@ void script_child::_on_stdout_read(const boost::system::error_code& err,
  * active-children map and stop dispatching requests to it.
  */
 void script_child::_on_process_end() {
-  _parent_end_child_handler(_script_path, get_pid());
+  _parent_end_child_handler(shared_from_this());
 }
 
 /************************************************************************
@@ -370,7 +370,7 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
       std::make_unique<asio::writable_pipe>(*_child_io_context, stdout_fd);
   std::string loader_path;
   try {
-    loader_path = _write_loader_to_disk(_additional_code);
+    loader_path = _write_loader_to_disk(_config.code());
   } catch (const std::exception& e) {
     _global_error = e.what();
   }
@@ -476,9 +476,10 @@ void script_child::_every_second_timer_handler() {
     }
     SPDLOG_LOGGER_ERROR(_logger, "{} timeout on child pid={} => kill",
                         _script_path, first_expire->pid);
-    auto to_kill = _check_childs.find(first_expire->pid);
-    if (to_kill != _check_childs.end()) {
-      to_kill->second->kill();
+    auto& pid_index = _check_childs.get<0>();
+    auto to_kill = pid_index.find(first_expire->pid);
+    if (to_kill != pid_index.end()) {
+      to_kill->child->kill();
     }
     // main process manages timeout so that's all
     _clean_execute_queue();
@@ -495,6 +496,15 @@ void script_child::_every_second_timer_handler() {
       break;
     }
   }
+
+  // after x minutes of inactivity => kill check child
+  auto& last_used_index = _check_childs.get<1>();
+  auto too_idle = last_used_index.lower_bound(
+      time(nullptr) - 60 * _config.minute_idle_check_child_ttl());
+  for (auto to_kill = last_used_index.begin(); to_kill != too_idle; ++to_kill) {
+    _kill_check_child(false, to_kill->child);
+  }
+  last_used_index.erase(last_used_index.begin(), too_idle);
 
   _start_every_second_timer();
 }
@@ -518,7 +528,7 @@ void script_child::_create_child_and_execute(
         }
       });
   new_child->do_fork(false);
-  _check_childs.emplace(new_child->get_pid(), new_child);
+  _check_childs.emplace(new_child);
   SPDLOG_LOGGER_TRACE(_logger, "{} new child_script pid={} will do the job",
                       _script_path, new_child->get_pid());
   new_child->execute(*query);
@@ -551,14 +561,16 @@ void script_child::_on_stdin_receive(
   }
   SPDLOG_LOGGER_DEBUG(_logger, "script_child {} receive {}", _script_path,
                       from_main_process_mess->ShortDebugString());
-  if (from_main_process_mess->has_execute()) {
-    for (auto idle : _check_childs) {
-      if (!idle.second->is_running()) {
+  if (from_main_process_mess->has_execute()) {  // EXECUTE
+    // we search idle check_child that have less number of perl execute
+    auto& nb_execute_index = _check_childs.get<2>();
+    for (auto idle : nb_execute_index) {
+      if (!idle.child->is_running()) {
         SPDLOG_LOGGER_TRACE(_logger,
                             "{} idle child_script pid={} will do the job",
-                            _script_path, idle.first);
-        idle.second->execute(*from_main_process_mess);
-        _pending.emplace(idle.first, from_main_process_mess);
+                            _script_path, idle.get_pid());
+        idle.child->execute(*from_main_process_mess);
+        _pending.emplace(idle.get_pid(), from_main_process_mess);
         return;
       }
     }
@@ -571,16 +583,44 @@ void script_child::_on_stdin_receive(
     } else {
       _create_child_and_execute(from_main_process_mess);
     }
-  } else if (from_main_process_mess->has_terminate()) {
-    if (getpid() == from_main_process_mess->terminate().pid()) {
+  } else if (from_main_process_mess->has_terminate()) {  // TERMINATE
+    const auto& term = from_main_process_mess->terminate();
+    if (getpid() == term.pid()) {  // terminate script child
       _child_io_context->stop();
     } else {
-      auto dest = _check_childs.find(from_main_process_mess->terminate().pid());
-      if (dest != _check_childs.end()) {
-        if (from_main_process_mess->terminate().immediate()) {
-          dest->second->kill();
-        } else {
-          _kill_check_child(true, dest->second);
+      auto& pid_index = _check_childs.get<0>();
+      if (term.pid()) {  // terminate a specific check child
+        auto dest = pid_index.find(term.pid());
+        if (dest != pid_index.end()) {
+          if (term.immediate()) {
+            dest->child->kill();
+          } else {
+            _kill_check_child(true, dest->child);
+          }
+        }
+      } else if (!term.other_pids()
+                      .empty()) {  // terminate the first check child we can
+        for (int64_t child_pid : term.other_pids()) {
+          auto dest = pid_index.find(child_pid);
+          if (dest != pid_index.end()) {
+            if (!dest->child->is_running()) {
+              if (term.immediate()) {
+                dest->child->kill();
+                pid_index.erase(dest);
+              } else {
+                _kill_check_child(true, dest->child);
+              }
+              return;
+            }
+          }
+        }
+        // no idle found first pid will be killed asap
+        for (int64_t child_pid : term.other_pids()) {
+          auto dest = pid_index.find(child_pid);
+          if (dest != pid_index.end()) {
+            _kill_check_child(true, dest->child);
+            return;
+          }
         }
       }
     }
@@ -605,7 +645,15 @@ void script_child::_from_child_script_receive(
   if (from_child_script.has_result()) {
     const auto& res = from_child_script.result();
     auto query = _pending.find(pid);
-    auto check_child = _check_childs.find(pid);
+    auto& pid_index = _check_childs.get<0>();
+    auto check_chld = pid_index.find(pid);
+    if (check_chld != pid_index.end()) {
+      // we keep iterator has pid is not modified
+      pid_index.modify(check_chld, [](check_child_last_used& to_update) {
+        to_update.execute_counter = to_update.child->execute_counter();
+        to_update.last_used = time(nullptr);
+      });
+    }
     enum {
       no_kill,
       max_execute,
@@ -613,10 +661,10 @@ void script_child::_from_child_script_receive(
       max_fd,
       max_thread
     } kill_reason = no_kill;
-    if (query != _pending.end() && check_child != _check_childs.end()) {
+    if (query != _pending.end() && check_chld != pid_index.end()) {
       const auto& execute = query->query->execute();
       if (execute.max_execute()) {
-        if (execute.max_execute() <= check_child->second->execute_counter()) {
+        if (execute.max_execute() <= check_chld->child->execute_counter()) {
           SPDLOG_LOGGER_DEBUG(_logger, "{}: too much executions pid:{} => kill",
                               _script_path, pid);
           kill_reason = max_execute;
@@ -651,16 +699,16 @@ void script_child::_from_child_script_receive(
       }
       _pending.erase(query);
       if (kill_reason != no_kill) {
-        _kill_check_child(false, check_child->second);
+        _kill_check_child(true, check_chld->child);
       }
     }
     _send_to_main_process(from_child_script);
 
     _clean_execute_queue();
     if (!_execute_queue.empty()) {
-      if (check_child != _check_childs.end() && kill_reason == no_kill) {
+      if (check_chld != pid_index.end() && kill_reason == no_kill) {
         auto to_send = _execute_queue.extract(_execute_queue.begin());
-        check_child->second->execute(*to_send.value());
+        check_chld->child->execute(*to_send.value());
         _pending.emplace(pid, to_send.value());
       }
     }
@@ -674,16 +722,16 @@ void script_child::_from_child_script_receive(
  * _die_start_to_check_child (timestamped so a watchdog can detect stalls)
  * and sends it a child_end message so it exits cleanly.
  *
- * @param erase_from_check_childs  If true, remove the entry from _check_childs
- *                                 before killing. Pass false to not create
- *                                 another one on child end.
+ * @param erase_from_check_childs  If true, remove the entry from
+ * _check_childs before killing. Pass false to not create another one on child
+ * end.
  * @param to_kill                  The check_child instance to terminate.
  */
 void script_child::_kill_check_child(
     bool erase_from_check_childs,
     const std::shared_ptr<check_child>& to_kill) {
   if (erase_from_check_childs) {
-    _check_childs.erase(to_kill->get_pid());
+    _check_childs.get<0>().erase(to_kill->get_pid());
   }
   _die_start_to_check_child.emplace(time(nullptr), to_kill);
   ConnectorMess kill_mess;
@@ -725,10 +773,11 @@ void script_child::_on_child_script_end(int pid) {
     }
   }
 
-  auto check_to_delete = _check_childs.find(pid);
-  const bool was_registered = (check_to_delete != _check_childs.end());
+  auto& child_pid_index = _check_childs.get<0>();
+  auto check_to_delete = child_pid_index.find(pid);
+  const bool was_registered = (check_to_delete != child_pid_index.end());
   if (was_registered) {
-    _check_childs.erase(check_to_delete);
+    child_pid_index.erase(check_to_delete);
     ConnectorMess to_main_process;
     to_main_process.mutable_child_end()->set_pid(pid);
     _send_to_main_process(to_main_process);
@@ -756,6 +805,11 @@ void script_child::_on_child_script_end(int pid) {
     auto to_send = _execute_queue.extract(_execute_queue.begin());
     _create_child_and_execute(to_send.value());
   }
+
+  // then report to main process
+  ConnectorMess to_main_process;
+  to_main_process.mutable_child_end()->set_pid(pid);
+  _send_to_main_process(to_main_process);
 }
 
 /**

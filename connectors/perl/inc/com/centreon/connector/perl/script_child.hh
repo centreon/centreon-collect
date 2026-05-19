@@ -19,16 +19,8 @@
 #ifndef CCCP_SCRIPT_CHILD_HH
 #define CCCP_SCRIPT_CHILD_HH
 
-#include <absl/container/btree_map.h>
-#include <absl/container/btree_set.h>
-#include <absl/container/flat_hash_map.h>
-#include <boost/asio/io_context.hpp>
-#include <boost/multi_index/indexed_by.hpp>
-#include <boost/multi_index/member.hpp>
-#include <boost/multi_index/ordered_index.hpp>
-#include <boost/multi_index_container.hpp>
-#include <memory>
 #include "check_child.hh"
+#include "config.hh"
 #include "src/perl_connector.pb.h"
 
 namespace com::centreon::connector::perl {
@@ -71,17 +63,17 @@ struct timeout_connector_mess_compare {
  */
 class script_child : public com::centreon::common::fork<false, true> {
   const std::string _script_path;
-  const std::string _additional_code;
+  const config _config;
   std::filesystem::file_time_type _check_script_mtime;
   void* _check_script_handle = nullptr;
   protocol _protocol;
   std::string _global_error;
   using parent_read_handler =
-      std::function<void(const std::string& /* _script_path*/,
+      std::function<void(const std::shared_ptr<script_child>&,
                          const ConnectorMess&)>;
   parent_read_handler _parent_read_handler;
   using end_child_handler =
-      std::function<void(const std::string& /* _script_path*/, int /*pid*/)>;
+      std::function<void(const std::shared_ptr<script_child>&)>;
   end_child_handler _parent_end_child_handler;
 
   // child side (compiled script)
@@ -119,9 +111,36 @@ class script_child : public com::centreon::common::fork<false, true> {
 
   pending_cont _pending;
 
-  using pid_to_check_child =
-      absl::flat_hash_map<int, std::shared_ptr<check_child>>;
-  pid_to_check_child _check_childs;
+  struct check_child_last_used {
+    check_child_last_used() {}
+    check_child_last_used(const std::shared_ptr<check_child>& chld)
+        : child(chld), last_used(time(nullptr)), execute_counter(0) {}
+
+    std::shared_ptr<check_child> child;
+    time_t last_used;
+    // information is yet in child, but we have to duplicate it, because this
+    // info is modified outside the following container
+    unsigned execute_counter;
+
+    int get_pid() const { return child->get_pid(); }
+  };
+  using check_child_cont = boost::multi_index::multi_index_container<
+      check_child_last_used,
+      boost::multi_index::indexed_by<
+          boost::multi_index::ordered_unique<BOOST_MULTI_INDEX_CONST_MEM_FUN(
+              check_child_last_used,
+              int,
+              get_pid)>,
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
+              check_child_last_used,
+              time_t,
+              last_used)>,
+          boost::multi_index::ordered_non_unique<BOOST_MULTI_INDEX_MEMBER(
+              check_child_last_used,
+              unsigned,
+              execute_counter)>>>;
+
+  check_child_cont _check_childs;
 
   using die_start_to_check_child =
       absl::btree_multimap<time_t, std::shared_ptr<check_child>>;
@@ -165,12 +184,14 @@ class script_child : public com::centreon::common::fork<false, true> {
                const std::string& script_path,
                read_handler&& readhandler,
                end_handler&& endhandler,
-               const std::string& additional_code);
+               const config& conf);
 
   script_child(const script_child&) = delete;
   script_child& operator=(const script_child&) = delete;
 
   ~script_child();
+
+  const std::string& get_script_path() const { return _script_path; }
 
   std::shared_ptr<script_child> shared_from_this() {
     return std::static_pointer_cast<script_child>(
@@ -186,10 +207,10 @@ script_child::script_child(const std::shared_ptr<asio::io_context> io_context,
                            const std::string& script_path,
                            read_handler&& readhandler,
                            end_handler&& endhandler,
-                           const std::string& additional_code)
+                           const config& conf)
     : com::centreon::common::fork<false, true>(io_context, logger),
       _script_path(script_path),
-      _additional_code(additional_code),
+      _config(conf),
       _parent_read_handler(readhandler),
       _parent_end_child_handler(endhandler) {}
 

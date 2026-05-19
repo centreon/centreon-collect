@@ -39,6 +39,9 @@ message Result {
 message Terminate {
     int64 pid = 1;
     bool immediate = 2;
+    //used when we need to erase a check child in order to save memory
+    //in that case script child iterate this list and kill first idle check child of list
+    repeated int64 other_pids = 3; 
 }
 
 message CheckChildEnd {

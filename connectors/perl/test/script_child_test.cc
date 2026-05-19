@@ -112,22 +112,21 @@ class ScriptChildTest : public ::testing::Test {
    * @param script_path     Path to the Perl check script to compile.
    * @param additional_code Optional Perl code appended to the loader.
    */
-  void fork_child(const std::string& script_path,
-                  const std::string& additional_code = "") {
+  void fork_child(const std::string& script_path) {
     _child = std::make_shared<script_child>(
         g_io_context, com::centreon::connector::log::core(), script_path,
-        [this](const std::string&, const ConnectorMess& msg) {
+        [this](const std::shared_ptr<script_child>&, const ConnectorMess& msg) {
           SPDLOG_LOGGER_DEBUG(com::centreon::connector::log::core(),
                               "main process receive {}",
                               msg.ShortDebugString());
           absl::MutexLock l(&_mu);
           _received.push_back(msg);
         },
-        [this](const std::string&, int) {
+        [this](const std::shared_ptr<script_child>&) {
           absl::MutexLock l(&_mu);
           _ended = true;
         },
-        additional_code);
+        config(0, nullptr));
     _child->do_fork(false);
   }
 

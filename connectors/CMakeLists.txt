@@ -68,6 +68,7 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
     ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/config.cc
     ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
     ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
@@ -103,6 +104,7 @@ if(WITH_TESTING)
     pb_perl_connector_lib
     protobuf::libprotobuf
     Boost::process
+    Boost::program_options
     re2::re2
     ${PERL_LIBRARIES}
     fmt::fmt

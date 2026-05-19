@@ -68,38 +68,14 @@ int main(int argc, char** argv, char** env) {
 
     shared_io_context io_context(std::make_shared<asio::io_context>());
     sigignore(SIGPIPE);
-    // checks::shared_signal_set
-    // signal_handler(std::make_shared<asio::signal_set>(
-    //     *io_context, SIGTERM, SIGINT, SIGPIPE));
-
-    // signal_handler->async_wait(
-    //     [io_context](const boost::system::error_code&, int signal_number) {
-    //       if (signal_number == SIGPIPE) {
-    //         log::core()->info("SIGPIPE received");
-    //         return;
-    //       }
-    //       log::core()->info("termination request received {}",
-    //       signal_number); io_context->stop();
-    //     });
-
-    // // Load Embedded Perl.
-    // embedded_perl::load(argc, argv, env,
-    //                     (vm.count("code")
-    //                          ? vm["code"].as<std::string>().c_str()
-    //                          : nullptr));
-
     // Program policy.
-    // Program policy.
-    policy::create(io_context, conf);
+    policy::create(io_context, log::core(), conf);
 
     io_context->run();
 
   } catch (const std::exception& e) {
     std::cerr << "fail to start connector" << e.what() << std::endl;
   }
-
-  // Deinitializations.
-  // embedded_perl::unload();
 
   log::core()->info("bye");
 
