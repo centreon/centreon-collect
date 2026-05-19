@@ -145,15 +145,22 @@ See the *configuration* titles of the modules documentations listed [here](../do
 
 Gorgone can be configured with environment variables. This is useful when using Gorgone in a containerized environment, for example.
 
-The configuration file is loaded after environment variables, so any value set in the configuration file will override the one set in environment variables.
+The order of precedence for configuration values is the following (from lowest to highest) : default values, configuration files, long environment variables, short environment variables, command line arguments.
+Each higer level of precedence will override the previous one.
 
 2 type of variables are supported. The command line arguments can be set with this format : 
-`GORGONE_INIT_CONFIG`, `GORGONE_INIT_VAULT`, `GORGONE_INIT_LOGFILE`, `GORGONE_INIT_SEVERITY`. See `gorgone --help` for an updated list of supported arguments.
+`GORGONE_CONFIG`, `GORGONE_VAULT_FILE`, `GORGONE_LOGFILE`, `GORGONE_LOG_LEVEL`. See `gorgone --help` for an updated list of supported arguments.
 
-the configuration files variables can be set with the format `gorgone__gorgone__modules__proxy__pool=10` to set the pool directive of the proxy module to 10. The format is `gorgone__` followed by the path to the directive in the configuration file, with each level separated by `__`.
-
-The case follow the configuration file case, so POOL is not the same as pool.
+the configuration files variables can be set with the format `GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS=1.1.1.1` to set the address directive of the pullwss module for exemple. The format is `GORGONE__` followed by the path to the directive in the configuration file, with each level separated by 2 underscore `__`. for a complete list of available directives, see individual module documentation.
 
 you can use environment variable for the database configuration too : `gorgone__centreon__database__db_configuration__username='centreon'`
 
+some configuration can be made with shorter variable name : 
+
+| short name        | full name                                   |
+|:------------------|:--------------------------------------------|
+| GORGONE_UID       | GORGONE__GORGONE__GORGONE_CORE__ID          |
+| GORGONE_TOKEN     | GORGONE__GORGONE__MODULES__PULLWSS__TOKEN   | 
+| CENTRAL_HOST      | GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS | 
+| CENTRAL_PORT      | GORGONE__GORGONE__MODULES__PULLWSS__PORT    |
 
