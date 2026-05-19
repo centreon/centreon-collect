@@ -139,7 +139,7 @@ sub action_dbvacuum {
     );
     return 0;
 }
-# purge database 
+# purge database
 sub action_dbclean {
     my ($self, %options) = @_;
 
@@ -171,7 +171,7 @@ sub action_dbclean {
 
     $self->{logger}->writeLogDebug("[dbcleaner] Purge finished");
 
-    if ($status == -1 || $status2 == -1 || $status3 == -1) {
+    if ($status == -1 || $status2 == -1) {
         $self->send_log(
             code => GORGONE_ACTION_FINISH_KO,
             token => $options{token},
