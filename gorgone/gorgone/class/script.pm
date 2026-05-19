@@ -333,13 +333,10 @@ sub load_env_config {
                 next;
             }
             $arianne .= "__$path";
-            if ($arianne eq $key_env){
-                # last iteration, change the configuration only if the value don't exist,
-                # as config file (load before by yaml_load_config) take precedence
-                if (! exists $conf->{$path}){
-                    $self->{logger}->writeLogDebug("config - updated the configuration from $arianne environment variable.");
-                    $conf->{$path} = $ENV{$key_env};
-                }
+            if ($arianne eq $key_env) {
+                # As this configuration can come only from config file, env variable take precedence and override any value.
+                $self->{logger}->writeLogDebug("config - updated the configuration from $arianne environment variable.");
+                $conf->{$path} = $ENV{$key_env};
             } else { # still not on the leaf, we continue to create the hash map if needed. for now we can't process array leaf like action whitelist.
                 if (!$conf->{$path}) {
                     $conf->{$path} = {};

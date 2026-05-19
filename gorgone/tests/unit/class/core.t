@@ -97,7 +97,7 @@ sub test_yaml_get_include {
           'filter' => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)');
     is(scalar(@emptyResult), 0, 'no file found return empty');
 }
-
+# check that the argument in argv can have a value from env variable, argv override env.
 sub test_new_env_configuration {
     my @argv_backup = @ARGV;
     my @tests = (
@@ -168,7 +168,7 @@ sub test_config_from_env {
     }
 
     isnt($action_module, undef, "action module should exist");
-    is($action_module->{command_timeout}, 30, "env variable should not override yaml config");
+    is($action_module->{command_timeout}, 5, "env variable should override yaml config");
     is($action_module->{New_Argument}, "value", "new variable creation is possible");
 
     isnt($proxy_module, undef, "proxy module should exist");
