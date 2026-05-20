@@ -20,6 +20,7 @@
 #include <spawn.h>
 #include <sys/syscall.h>
 
+#include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/detail/spawnp_launcher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -99,10 +100,8 @@ com::centreon::common::detail::spawnp(asio::io_context& io_context,
 
   pid_t pid(static_cast<pid_t>(-1));
 
-// child not play with parent fds
-#if defined SYS_close_range && defined CLOSE_RANGE_CLOEXEC
-  ::syscall(SYS_close_range, 3, ~0u, CLOSE_RANGE_CLOEXEC);
-#endif
+  // child not play with parent fds
+  common::close_range({0, 1, 2}, CLOSE_RANGE_CLOEXEC);
 
   if (posix_spawnp(&pid, args->get_c_args()[0], &file_action.actions,
                    &attr.attr,

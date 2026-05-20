@@ -33,9 +33,18 @@ namespace com::centreon::connector::perl {
  * check_child becomes available.
  */
 struct timeout_connector_mess_compare {
+  using is_transparent = void;
   bool operator()(const std::shared_ptr<ConnectorMess>& left,
                   const std::shared_ptr<ConnectorMess>& right) const {
     return left->execute().timeout() < right->execute().timeout();
+  }
+  bool operator()(time_t left,
+                  const std::shared_ptr<ConnectorMess>& right) const {
+    return left < right->execute().timeout();
+  }
+  bool operator()(const std::shared_ptr<ConnectorMess>& left,
+                  time_t right) const {
+    return left->execute().timeout() < right;
   }
 };
 
@@ -64,6 +73,8 @@ struct timeout_connector_mess_compare {
 class script_child : public com::centreon::common::fork<false, true> {
   const std::string _script_path;
   const config _config;
+  char* _argv0;
+  const int _fd_to_close_after_fork;
   std::filesystem::file_time_type _check_script_mtime;
   void* _check_script_handle = nullptr;
   protocol _protocol;
@@ -142,8 +153,16 @@ class script_child : public com::centreon::common::fork<false, true> {
 
   check_child_cont _check_childs;
 
+  struct killing_check_child {
+    killing_check_child() {}
+    killing_check_child(bool finl, const std::shared_ptr<check_child>& chld)
+        : final(finl), to_kill(chld) {}
+    bool final = false;
+    std::shared_ptr<check_child> to_kill;
+  };
+
   using die_start_to_check_child =
-      absl::btree_multimap<time_t, std::shared_ptr<check_child>>;
+      absl::btree_multimap<time_t, killing_check_child>;
   die_start_to_check_child _die_start_to_check_child;
 
   // parent side (main process)
@@ -175,7 +194,8 @@ class script_child : public com::centreon::common::fork<false, true> {
   void _create_child_and_execute(const std::shared_ptr<ConnectorMess>& query);
 
   void _kill_check_child(bool erase_from_check_childs,
-                         const std::shared_ptr<check_child>& to_kill);
+                         bool send_child_end_mess,
+                         std::shared_ptr<check_child> to_kill);
 
  public:
   template <typename read_handler, typename end_handler>
@@ -184,7 +204,9 @@ class script_child : public com::centreon::common::fork<false, true> {
                const std::string& script_path,
                read_handler&& readhandler,
                end_handler&& endhandler,
-               const config& conf);
+               const config& conf,
+               char* argv0,
+               int fd_to_close_after_fork);
 
   script_child(const script_child&) = delete;
   script_child& operator=(const script_child&) = delete;
@@ -207,10 +229,14 @@ script_child::script_child(const std::shared_ptr<asio::io_context> io_context,
                            const std::string& script_path,
                            read_handler&& readhandler,
                            end_handler&& endhandler,
-                           const config& conf)
+                           const config& conf,
+                           char* argv0,
+                           int fd_to_close_after_fork)
     : com::centreon::common::fork<false, true>(io_context, logger),
       _script_path(script_path),
       _config(conf),
+      _argv0(argv0),
+      _fd_to_close_after_fork(fd_to_close_after_fork),
       _parent_read_handler(readhandler),
       _parent_end_child_handler(endhandler) {}
 

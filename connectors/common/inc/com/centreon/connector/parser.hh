@@ -19,6 +19,7 @@
 #ifndef CCC_ORDERS_PARSER_HH
 #define CCC_ORDERS_PARSER_HH
 
+#include <unistd.h>
 namespace com::centreon::connector {
 
 class policy_interface;
@@ -48,7 +49,8 @@ class parser : public std::enable_shared_from_this<parser> {
   void _parse(std::string const& cmd);
 
   parser(const shared_io_context& io_context,
-         const std::shared_ptr<policy_interface>& policy);
+         const std::shared_ptr<policy_interface>& policy,
+         int stdin_fd = STDIN_FILENO);
 
   virtual void start_read();
   void read_file(const std::string& test_file_path);

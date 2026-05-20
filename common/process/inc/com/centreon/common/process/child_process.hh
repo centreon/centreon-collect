@@ -48,6 +48,8 @@ class lock<false> {
 struct boost_process;
 }  // namespace detail
 
+void close_range(const std::set<int>& fds_to_not_close, int flags);
+
 /**
  * @brief status of execution of a child process
  * crash is never returned but is there to ensure backward compatibility
@@ -183,6 +185,7 @@ class child_process
   }
 
   void kill();
+  void request_exit();
 };
 
 /**

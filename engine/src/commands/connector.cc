@@ -17,7 +17,6 @@
  *
  */
 #include "com/centreon/engine/commands/connector.hh"
-#include <memory>
 
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/engine/commands/result.hh"

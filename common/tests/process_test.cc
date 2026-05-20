@@ -17,10 +17,13 @@
  */
 
 #include <absl/synchronization/mutex.h>
+#include <dirent.h>
+#include <fcntl.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <boost/system/detail/error_code.hpp>
 #include <fstream>
+#include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
 #include "common/crypto/aes256.hh"
 
@@ -391,6 +394,66 @@ TEST_F(process_test, stderr_handler_ordering_large_output) {
       << kLargeOutputSize << " bytes";
   EXPECT_TRUE(order_ok) << "stderr chunks received out of order";
   EXPECT_GT(chunk_count, 1);
+}
+
+#endif  // !_WIN32
+
+#ifndef _WIN32
+
+/**
+ * @brief close_range() must close exactly the fds NOT listed in its keep-set,
+ * and leave the listed ones intact.
+ *
+ * Strategy:
+ *  1. Snapshot all currently-open fds via /proc/self/fd so we can preserve
+ *     the test framework's own descriptors (epoll, log file, sockets…).
+ *  2. Open three fresh pipe pairs to get six known fds.
+ *  3. Build a keep-set = existing fds ∪ {one end per pair}.
+ *  4. Call close_range() and verify with fcntl(F_GETFD).
+ */
+TEST_F(process_test, close_range_keeps_specified_fds) {
+  // 1. Snapshot existing fds.
+  std::set<int> existing;
+  {
+    DIR* d = ::opendir("/proc/self/fd");
+    ASSERT_NE(d, nullptr);
+    int dir_fd = ::dirfd(d);
+    struct dirent* entry;
+    while ((entry = ::readdir(d)) != nullptr) {
+      if (entry->d_name[0] == '.') continue;
+      int fd = std::stoi(entry->d_name);
+      if (fd != dir_fd) existing.insert(fd);
+    }
+    ::closedir(d);
+  }
+
+  // 2. Three pipe pairs.
+  int p1[2], p2[2], p3[2];
+  ASSERT_EQ(::pipe(p1), 0);
+  ASSERT_EQ(::pipe(p2), 0);
+  ASSERT_EQ(::pipe(p3), 0);
+
+  // 3. Keep one end per pair; the other end must be closed by close_range.
+  std::set<int> keep = existing;
+  keep.insert(p1[0]);  // keep read-end of p1
+  keep.insert(p2[1]);  // keep write-end of p2
+  keep.insert(p3[0]);  // keep read-end of p3
+
+  com::centreon::common::close_range(keep, 0);
+
+  // 4a. Kept fds must still be open.
+  EXPECT_NE(::fcntl(p1[0], F_GETFD), -1) << "p1[0] should remain open";
+  EXPECT_NE(::fcntl(p2[1], F_GETFD), -1) << "p2[1] should remain open";
+  EXPECT_NE(::fcntl(p3[0], F_GETFD), -1) << "p3[0] should remain open";
+
+  // 4b. Non-kept fds must be closed (fcntl returns -1 / EBADF).
+  EXPECT_EQ(::fcntl(p1[1], F_GETFD), -1) << "p1[1] should be closed";
+  EXPECT_EQ(::fcntl(p2[0], F_GETFD), -1) << "p2[0] should be closed";
+  EXPECT_EQ(::fcntl(p3[1], F_GETFD), -1) << "p3[1] should be closed";
+
+  ::close(p1[0]);
+  ::close(p2[1]);
+  ::close(p3[0]);
 }
 
 #endif  // !_WIN32

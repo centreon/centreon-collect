@@ -16,13 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
 #include <sys/stat.h>
-#include <unistd.h>
-#include <chrono>
-#include <ctime>
-#include <thread>
 
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/script_child.hh"
@@ -31,6 +26,7 @@ using namespace com::centreon::connector::perl;
 namespace asio = boost::asio;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+extern char* argv0;
 
 namespace {
 
@@ -126,7 +122,7 @@ class ScriptChildTest : public ::testing::Test {
           absl::MutexLock l(&_mu);
           _ended = true;
         },
-        config(0, nullptr));
+        config(0, nullptr), argv0, -1);
     _child->do_fork(false);
   }
 
@@ -161,6 +157,7 @@ class ScriptChildTest : public ::testing::Test {
       _child->kill();
       _child.reset();
     }
+    wait_for_end();
     if (!_temp_script.empty()) {
       ::unlink(_temp_script.c_str());
     }

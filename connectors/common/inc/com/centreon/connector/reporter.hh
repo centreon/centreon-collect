@@ -19,6 +19,7 @@
 #ifndef CCC_REPORTER_HH
 #define CCC_REPORTER_HH
 
+#include <unistd.h>
 #include "com/centreon/connector/result.hh"
 
 namespace com::centreon::connector {
@@ -38,12 +39,13 @@ class reporter : public std::enable_shared_from_this<reporter> {
   asio::posix::stream_descriptor _sout;
   bool _writing;
 
-  reporter(const shared_io_context& io_context);
+  reporter(const shared_io_context& io_context, int stdout_fd = STDOUT_FILENO);
 
  public:
   using pointer = std::shared_ptr<reporter>;
 
-  static pointer create(const shared_io_context& io_context);
+  static pointer create(const shared_io_context& io_context,
+                        int stdout_fd = STDOUT_FILENO);
 
   reporter(reporter const& r) = delete;
   virtual ~reporter() noexcept;

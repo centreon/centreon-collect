@@ -215,6 +215,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    centreon_file_system
     ctncrypto
     Boost::program_options
     -static-libgcc -static-libstdc++

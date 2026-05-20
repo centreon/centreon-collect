@@ -69,7 +69,7 @@ int main(int argc, char** argv, char** env) {
     shared_io_context io_context(std::make_shared<asio::io_context>());
     sigignore(SIGPIPE);
     // Program policy.
-    policy::create(io_context, log::core(), conf);
+    policy::create(io_context, log::core(), conf, argv[0]);
 
     io_context->run();
 

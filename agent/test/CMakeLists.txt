@@ -62,6 +62,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            centreon_file_system
             ctncrypto
             pb_open_telemetry_lib
             GTest::gtest

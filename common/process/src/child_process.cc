@@ -16,12 +16,79 @@
  * For more information : contact@centreon.com
  */
 
+#include <sys/syscall.h>
+#include <boost/icl/interval_set.hpp>
 #include <boost/process/v2/process.hpp>
+#include "absl/strings/numbers.h"
+#include "boost/icl/concept/interval_bounds.hpp"
+#include "boost/icl/discrete_interval.hpp"
 
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/detail/boost_process.hh"
 
 using namespace com::centreon::common;
+
+/**
+ * @brief Close all file descriptors except those in @p fds_to_not_close.
+ *
+ * Computes the complement of @p fds_to_not_close over [0, INT_MAX] using
+ * boost::icl, then closes each resulting interval with a single close_range(2)
+ * syscall.  @p flags is forwarded verbatim (e.g. CLOSE_RANGE_CLOEXEC to set
+ * FD_CLOEXEC instead of actually closing).
+ *
+ * Requires Linux 5.9+ (SYS_close_range) and glibc 2.34+ (CLOSE_RANGE_CLOEXEC).
+ * Falls back to the /proc/self/fd implementation on older systems.
+ *
+ * @param fds_to_not_close  File descriptors to leave open.
+ * @param flags             Flags for close_range(2) (0 or CLOSE_RANGE_CLOEXEC).
+ */
+#if defined SYS_close_range && defined CLOSE_RANGE_CLOEXEC
+void com::centreon::common::close_range(const std::set<int>& fds_to_not_close,
+                                        int flags) {
+  boost::icl::interval_set<int> intervals;
+  intervals.add(boost::icl::discrete_interval<int>::closed(
+      0, std::numeric_limits<int>::max()));
+  for (int fd : fds_to_not_close) {
+    intervals -= fd;
+  }
+
+  for (const auto& inter : intervals) {
+    int lower = inter.lower();
+    if (!boost::icl::is_left_closed(inter.bounds())) {
+      ++lower;
+    }
+    int upper = inter.upper();
+    if (!boost::icl::is_right_closed(inter.bounds())) {
+      --upper;
+    }
+    if (lower <= upper) {
+      ::syscall(SYS_close_range, lower, upper, flags);
+    }
+  }
+}
+#else
+/**
+ * @brief Fallback: close all fds not in @p fds_to_not_close via /proc/self/fd.
+ *
+ * Used when SYS_close_range or CLOSE_RANGE_CLOEXEC are unavailable.
+ * @p flags is ignored in this implementation.
+ */
+void com::centreon::common::close_range(const std::set<int>& fds_to_not_close,
+                                        int flags) {
+  std::list<std::filesystem::path> opened =
+      dir_content("/proc/self/fd", false, true);
+
+  for (const std::filesystem::path& fd_path : opened) {
+    int numeric_fd;
+    if (absl::SimpleAtoi(fd_path.filename().native(), &numeric_fd) &&
+        fds_to_not_close.find(numeric_fd) == fds_to_not_close.end()) {
+      ::close(numeric_fd);
+    }
+  }
+}
+
+#endif
 
 /**
  * @brief Destroy the process<use mutex>::process object
@@ -350,7 +417,7 @@ bool child_process<use_mutex>::is_alive() const {
 }
 
 /**
- * @brief kill child process
+ * @brief kill child process 9
  *
  */
 template <bool use_mutex>
@@ -358,13 +425,35 @@ void child_process<use_mutex>::kill() {
   detail::lock<use_mutex> l(&_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
-    SPDLOG_LOGGER_INFO(_logger, "kill process child pid:{}", child_pid);
+    SPDLOG_LOGGER_INFO(_logger, "kill with SIGKILL process child pid:{}",
+                       child_pid);
     boost::system::error_code err;
     _proc->proc.terminate(err);
     _terminated = true;
     if (err) {
-      SPDLOG_LOGGER_INFO(_logger, "fail to kill child pid:{}: {}", child_pid,
-                         err.message());
+      SPDLOG_LOGGER_INFO(_logger, "fail to kill with SIGKILL child pid:{}: {}",
+                         child_pid, err.message());
+    }
+  }
+}
+
+/**
+ * @brief kill child process SIGTERM
+ *
+ */
+template <bool use_mutex>
+void child_process<use_mutex>::request_exit() {
+  detail::lock<use_mutex> l(&_protect);
+  if (_proc) {
+    auto child_pid = _proc->proc.handle().id();
+    SPDLOG_LOGGER_INFO(_logger, "kill with SIGTERM process child pid:{}",
+                       child_pid);
+    boost::system::error_code err;
+    _proc->proc.request_exit(err);
+    _terminated = true;
+    if (err) {
+      SPDLOG_LOGGER_INFO(_logger, "fail to kill with SIGTERM child pid:{}: {}",
+                         child_pid, err.message());
     }
   }
 }

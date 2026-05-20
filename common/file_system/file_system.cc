@@ -17,6 +17,7 @@
  */
 #include <dirent.h>
 
+#include "absl/strings/numbers.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "file_system.hh"
 
@@ -152,6 +153,7 @@ std::string hash_directory(const std::filesystem::path& dir_path,
 
 static void _dir_content_impl(const std::filesystem::path& dir_path,
                               bool recursive,
+                              bool remove_directory_fd_from_result,
                               std::list<std::filesystem::path>& result) {
   constexpr size_t buf_size = 65536;
   char buf[buf_size];
@@ -176,6 +178,12 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
       pos += entry->d_reclen;
 
       std::string_view name(entry->d_name);
+
+      if (remove_directory_fd_from_result) {
+        int numeric_name;
+        if (absl::SimpleAtoi(name, &numeric_name) && numeric_name == fd)
+          continue;
+      }
       if (name == "." || name == "..")
         continue;
 
@@ -183,7 +191,8 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
 
       if (entry->d_type == DT_DIR) {
         if (recursive)
-          _dir_content_impl(entry_path, true, result);
+          _dir_content_impl(entry_path, true, remove_directory_fd_from_result,
+                            result);
       } else {
         result.push_back(std::move(entry_path));
       }
@@ -196,14 +205,19 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
  *  Fill a path list with the files listed in the directory.
  *
  * @param path The directory path
+ * @param recursive if true, we iterate in sub directories
+ * @param remove_directory_fd_from_result if true, when we walk in
+ * /proc/self/fd, we don't report opened directory from result
  *
  * @return a list of names.
  */
 std::list<std::filesystem::path> dir_content(
     const std::filesystem::path& dir_path,
-    bool recursive) {
+    bool recursive,
+    bool remove_directory_fd_from_result) {
   std::list<std::filesystem::path> result;
-  _dir_content_impl(dir_path, recursive, result);
+  _dir_content_impl(dir_path, recursive, remove_directory_fd_from_result,
+                    result);
   return result;
 }
 

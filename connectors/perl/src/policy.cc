@@ -19,6 +19,7 @@
 #include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
 #include <re2/re2.h>
+#include <spdlog/spdlog.h>
 #include <memory>
 
 #include "com/centreon/common/process/process_args.hh"
@@ -62,30 +63,47 @@ __attribute__((weak)) int64_t get_free_memory() {
  */
 policy::policy(const shared_io_context& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
-               const config& conf)
-    : _reporter(reporter::create(io_context)),
+               const config& conf,
+               char* argv0,
+               int stdin_fd,
+               int stdout_fd)
+    : _reporter(reporter::create(io_context, stdout_fd)),
       _io_context(io_context),
       _logger(logger),
+      _stdin_fd(stdin_fd),
       _every_second_timer(*io_context),
-      _config(conf) {}
+      _config(conf),
+      _argv0(argv0) {
+  SPDLOG_LOGGER_DEBUG(logger, "Create policy {:p}",
+                      static_cast<const void*>(this));
+}
+
+policy::~policy() {
+  SPDLOG_LOGGER_DEBUG(_logger, "Delete policy {:p}",
+                      static_cast<const void*>(this));
+}
 
 void policy::create(const shared_io_context& io_context,
                     const std::shared_ptr<spdlog::logger>& logger,
-                    const config& conf) {
-  std::shared_ptr<policy> ret(new policy(io_context, logger, conf));
+                    const config& conf,
+                    char* argv0,
+                    int stdin_fd,
+                    int stdout_fd) {
+  std::shared_ptr<policy> ret(
+      new policy(io_context, logger, conf, argv0, stdin_fd, stdout_fd));
   ret->_start();
 }
 
 void policy::_start() {
   orders::parser::create(_io_context, shared_from_this(),
-                         _config.test_file_path());
+                         _config.test_file_path(), _stdin_fd);
 }
 
 /**
  *  Called if stdin is closed.
  */
 void policy::on_eof() {
-  _logger->info("stdin is closed");
+  SPDLOG_LOGGER_INFO(_logger, "stdin is closed");
   on_quit();
 }
 
@@ -103,7 +121,7 @@ void policy::on_error(uint64_t cmd_id, const std::string& msg) {
     r.set_error(msg);
     _reporter->send_result(r);
   } else {
-    _logger->info("error occurred while parsing stdin");
+    SPDLOG_LOGGER_INFO(_logger, "error occurred while parsing stdin");
     on_quit();
   }
 }
@@ -115,12 +133,11 @@ void policy::on_error(uint64_t cmd_id, const std::string& msg) {
  *  @param[in] timeout Time the command has to execute.
  *  @param[in] cmd     Command to execute.
  */
-void policy::on_execute(
-    uint64_t cmd_id,
-    const time_point& timeout,
-    const std::shared_ptr<com::centreon::connector::orders::options>& opt) {
+void policy::on_execute(uint64_t cmd_id,
+                        const time_point& timeout,
+                        const std::string& cmdline) {
   // first extract executable
-  std::string script_path = *opt;
+  std::string script_path = cmdline;
   size_t first_space = script_path.find(' ');
   if (first_space != std::string_view::npos) {
     script_path = script_path.substr(0, first_space);
@@ -130,6 +147,9 @@ void policy::on_execute(
   auto& script_path_index = _scripts.get<0>();
   auto script = script_path_index.find(script_path);
   if (script == script_path_index.end()) {
+    // script_child process close _stdin_fd. If we don't do that, stdin_fd
+    // closed event will never happen as stdin_fd will remain opened in
+    // script_child process
     script =
         script_path_index
             .emplace(std::make_shared<script_child>(
@@ -151,7 +171,7 @@ void policy::on_execute(
                         script_chld);
                   }
                 },
-                _config))
+                _config, _argv0, _stdin_fd))
             .first;
     (*script)->do_fork(false);
   }
@@ -163,18 +183,17 @@ void policy::on_execute(
 
   _pending_queries.emplace(cmd_id, script_path, timeout, *script);
   (*script)->write_mess_to_child_stdin(
-      _create_execute(cmd_id, timeout, opt, no_child_create));
+      _create_execute(cmd_id, timeout, cmdline, no_child_create));
 }
 
-ConnectorMess policy::_create_execute(
-    uint64_t cmd_id,
-    const time_point& timeout,
-    const std::shared_ptr<com::centreon::connector::orders::options>& opt,
-    bool no_child_create) {
+ConnectorMess policy::_create_execute(uint64_t cmd_id,
+                                      const time_point& timeout,
+                                      const std::string& cmdline,
+                                      bool no_child_create) {
   ConnectorMess order;
   auto execute = order.mutable_execute();
   execute->set_cmd_id(cmd_id);
-  com::centreon::common::process_args cmd_line(*opt);
+  com::centreon::common::process_args cmd_line(cmdline);
   execute->set_max_execute(_config.child_max_reuse_script());
   execute->set_percent_max_memory_increased(
       _config.child_max_memory_increase_percent());
@@ -248,7 +267,14 @@ ConnectorMess policy::_create_execute(
  */
 void policy::on_quit() {
   // Exiting.
-  _logger->info("quit request received");
+  SPDLOG_LOGGER_INFO(_logger, "quit request received");
+  _every_second_timer.cancel();
+  // stop all scripts
+  for (auto script : _scripts) {
+    ConnectorMess terminate;
+    terminate.mutable_terminate()->set_pid(script->get_pid());
+    script->write_mess_to_child_stdin(terminate);
+  }
 }
 
 /**
@@ -256,13 +282,13 @@ void policy::on_quit() {
  */
 void policy::on_version() {
   // Report version 1.0.
-  _logger->info("monitoring engine requested protocol version, sending 1.0");
+  SPDLOG_LOGGER_INFO(
+      _logger, "monitoring engine requested protocol version, sending 1.0");
   _reporter->send_version(1, 0);
 }
 
-void policy::_from_script_child(
-    const std::shared_ptr<script_child>& script_chld,
-    const ConnectorMess& from_script_mess) {
+void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
+                                const ConnectorMess& from_script_mess) {
   if (from_script_mess.has_have_to_terminate()) {
     auto& script_index = _scripts.get<1>();
     auto has_been = script_index.find(script_chld);
@@ -270,8 +296,20 @@ void policy::_from_script_child(
       _dying_scripts.emplace(*has_been);
       script_index.erase(has_been);
     }
+    // export script_child failure to all pending checks
+    auto& script_pid_index = _pending_queries.get<2>();
+    auto check_errors = script_pid_index.equal_range(script_chld);
+    for (; check_errors.first != check_errors.second; ++check_errors.first) {
+      result res(check_errors.first->cmd_id, -1, "",
+                 from_script_mess.have_to_terminate().error());
+      res.set_executed(false);
+      _reporter->send_result(res);
+    }
+    script_pid_index.erase(script_chld);
+
   } else if (from_script_mess.has_result()) {
-    check_child_stat new_stat(script_chld, from_script_mess.result());
+    const auto& res = from_script_mess.result();
+    check_child_stat new_stat(script_chld, res);
     auto res_insert = _check_child_stats.insert(new_stat);
     if (!res_insert.second) {
       _check_child_stats.modify(
@@ -279,13 +317,14 @@ void policy::_from_script_child(
           [&new_stat](check_child_stat& to_update) { to_update = new_stat; });
     }
     _free_memory({});
+    _reporter->send_result(
+        result(res.cmd_id(), res.status(), res.stdout(), res.stderr()));
   } else if (from_script_mess.has_child_end()) {
     _check_child_stats.get<1>().erase(from_script_mess.child_end().pid());
   }
 }
 
-void policy::_on_script_child_end(
-    const std::shared_ptr<script_child>& script_chld) {
+void policy::_on_script_child_end(std::shared_ptr<script_child> script_chld) {
   int pid = script_chld->get_pid();
   SPDLOG_LOGGER_INFO(_logger, "end of script child pid={} {}", pid,
                      script_chld->get_script_path());
@@ -302,10 +341,13 @@ void policy::_on_script_child_end(
   auto& script_pid_index = _pending_queries.get<2>();
   auto check_errors = script_pid_index.equal_range(script_chld);
   for (; check_errors.first != check_errors.second; ++check_errors.first) {
-    _reporter->send_result({check_errors.first->cmd_id, 3, "",
-                            fmt::format("script child {} has died",
-                                        script_chld->get_script_path())});
+    result res(check_errors.first->cmd_id, -1, "",
+               fmt::format("script child {} has died",
+                           script_chld->get_script_path()));
+    res.set_executed(false);
+    _reporter->send_result(res);
   }
+  script_pid_index.erase(script_chld);
 }
 
 void policy::_start_every_second_timer() {
@@ -322,14 +364,15 @@ void policy::_every_second_timer_handler(const boost::system::error_code& err) {
   }
 
   // timeout requests?
-  auto& timeout_index = _pending_queries.get<1>();
-  auto limit = timeout_index.lower_bound(std::chrono::system_clock::now());
-  for (auto timeout_request = timeout_index.begin(); timeout_request != limit;
-       ++timeout_request) {
-    _reporter->send_result({timeout_request->cmd_id, 3, "", "timeout"});
+  if (!_pending_queries.empty()) {
+    auto& timeout_index = _pending_queries.get<1>();
+    auto limit = timeout_index.lower_bound(std::chrono::system_clock::now());
+    for (auto timeout_request = timeout_index.begin(); timeout_request != limit;
+         ++timeout_request) {
+      _reporter->send_result({timeout_request->cmd_id, 9, "timeout", ""});
+    }
+    timeout_index.erase(timeout_index.begin(), limit);
   }
-
-  timeout_index.erase(timeout_index.begin(), limit);
 
   // can we delete has been script child?
   auto& script_index = _pending_queries.get<2>();

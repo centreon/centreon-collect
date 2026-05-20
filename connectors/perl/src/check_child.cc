@@ -22,6 +22,7 @@
 
 #include <EXTERN.h>
 #include <perl.h>
+#include <spdlog/spdlog.h>
 #include <unistd.h>
 
 #include "common/inc/com/centreon/common/process_stat.hh"
@@ -248,6 +249,6 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
       }
     }
   }
-
+  SPDLOG_LOGGER_DEBUG(_logger, "end of check_child pid:{}", getpid());
   return 0;
 }

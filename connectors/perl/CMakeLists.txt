@@ -37,7 +37,6 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
   ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
   ${PROJECT_SOURCE_DIR}/perl/src/config.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
   ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc

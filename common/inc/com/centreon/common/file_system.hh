@@ -24,7 +24,8 @@ std::string hash_directory(const std::filesystem::path& dir_path,
                            std::error_code& ec) noexcept;
 std::list<std::filesystem::path> dir_content(
     const std::filesystem::path& dir_path,
-    bool recursive);
+    bool recursive,
+    bool remove_directory_fd_from_result = false);
 }  // namespace com::centreon::common
 
 #endif /* !CCCM_FILE_HH */

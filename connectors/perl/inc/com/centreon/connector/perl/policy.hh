@@ -19,6 +19,7 @@
 #ifndef CCCP_POLICY_HH
 #define CCCP_POLICY_HH
 
+#include <unistd.h>
 #include "com/centreon/connector/ipolicy.hh"
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/reporter.hh"
@@ -113,29 +114,33 @@ class policy : public com::centreon::connector::policy_interface {
   pending_cont _pending_queries;
 
   reporter::pointer _reporter;
-  shared_io_context _io_context;
+  const shared_io_context _io_context;
   const std::shared_ptr<spdlog::logger> _logger;
+  const int _stdin_fd;
   asio::system_timer _every_second_timer;
   const config _config;
+  char* _argv0;
 
   policy(const shared_io_context& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
-         const config& conf);
+         const config& conf,
+         char* argv0,
+         int stdin_fd,
+         int stdout_fd);
   void _start();
 
-  void _from_script_child(const std::shared_ptr<script_child>& script_child,
+  void _from_script_child(std::shared_ptr<script_child> script_child,
                           const ConnectorMess& from_script_mess);
 
-  void _on_script_child_end(const std::shared_ptr<script_child>& script_child);
+  void _on_script_child_end(std::shared_ptr<script_child> script_child);
 
   void _start_every_second_timer();
   void _every_second_timer_handler(const boost::system::error_code& err);
 
-  ConnectorMess _create_execute(
-      uint64_t cmd_id,
-      const time_point& timeout,
-      const std::shared_ptr<com::centreon::connector::orders::options>& opt,
-      bool no_child_create);
+  ConnectorMess _create_execute(uint64_t cmd_id,
+                                const time_point& timeout,
+                                const std::string& cmdline,
+                                bool no_child_create);
 
   size_t _free_memory(const std::shared_ptr<script_child>& who_need_memory);
 
@@ -145,6 +150,7 @@ class policy : public com::centreon::connector::policy_interface {
  public:
   policy(policy const& p) = delete;
   policy& operator=(policy const& p) = delete;
+  ~policy();
 
   std::shared_ptr<policy> shared_from_this() {
     return std::static_pointer_cast<policy>(
@@ -153,15 +159,22 @@ class policy : public com::centreon::connector::policy_interface {
 
   static void create(const shared_io_context& io_context,
                      const std::shared_ptr<spdlog::logger>& logger,
-                     const config& conf);
+                     const config& conf,
+                     char* argv0,
+                     int stdin_fd = STDIN_FILENO,
+                     int stdout_fd = STDOUT_FILENO);
 
   void on_eof() override;
   void on_error(uint64_t cmd_id, const std::string& msg) override;
+  void on_execute(uint64_t cmd_id,
+                  const time_point& timeout,
+                  const std::string& cmdline);
   void on_execute(
-      uint64_t cmd_id,
-      const time_point& timeout,
-      const std::shared_ptr<com::centreon::connector::orders::options>& opt)
-      override;
+      uint64_t,
+      const time_point&,
+      const std::shared_ptr<com::centreon::connector::orders::options>&)
+      override {}
+
   void on_quit() override;
   void on_version() override;
 };

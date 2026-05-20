@@ -66,10 +66,10 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
     ${PROJECT_SOURCE_DIR}/common/src/parser.cc
     ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/perl/src/config.cc
     ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
     ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
@@ -80,6 +80,7 @@ if(WITH_TESTING)
     # Test sources.
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
     ${PROJECT_SOURCE_DIR}/perl/test/script_child_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/policy_test.cc
     ${PROJECT_SOURCE_DIR}/perl/test/protocol_test.cc
     ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/buffer_handle.cc

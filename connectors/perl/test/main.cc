@@ -21,6 +21,8 @@
 #include <perl.h>
 
 #include "com/centreon/connector/log.hh"
+
+#include "com/centreon/common/process/child_process.hh"
 // #include "com/centreon/connector/perl/embedded_perl.hh"
 
 using namespace com::centreon;
@@ -30,6 +32,7 @@ using namespace com::centreon::connector;
 std::shared_ptr<asio::io_context> g_io_context(new asio::io_context{
     boost::asio::config_from_string{"scheduler.wait_usec=-1"}});
 
+char* argv0 = nullptr;
 /**
  *  Tester entry point.
  *
@@ -39,6 +42,7 @@ std::shared_ptr<asio::io_context> g_io_context(new asio::io_context{
  *  @return 0 on success, any other value on failure.
  */
 int main(int argc, char* argv[], char**) {
+  argv0 = argv[0];
   log::instance().set_level(spdlog::level::trace);
   // log::instance().switch_to_stdout();
   log::instance().switch_to_file("/tmp/ut_connector.log");

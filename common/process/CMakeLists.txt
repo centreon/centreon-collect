@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-include_directories(${PROJECT_SOURCE_DIR}/process/inc)
+include_directories(${PROJECT_SOURCE_DIR}/process/inc ${PROJECT_SOURCE_DIR}/inc)
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS})
 

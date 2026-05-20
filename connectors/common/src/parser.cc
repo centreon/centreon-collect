@@ -25,14 +25,16 @@ using namespace com::centreon::connector;
 using com::centreon::exceptions::msg_fmt;
 
 parser::parser(const shared_io_context& io_context,
-               const std::shared_ptr<policy_interface>& policy)
+               const std::shared_ptr<policy_interface>& policy,
+               int stdin_fd)
     : _io_context(io_context),
-      _sin(*io_context, dup(STDIN_FILENO)),
+      //      _sin(*io_context, dup(STDIN_FILENO)),
+      _sin(*io_context, dup(stdin_fd)),
       _dont_care_about_stdin_eof(false),
       _owner(policy) {}
 
 void parser::start_read() {
-  log::core()->debug("reading data for parsing");
+  SPDLOG_LOGGER_DEBUG(log::core(), "reading data for parsing");
   _sin.async_read_some(
       asio::buffer(_recv_buff, parser_buff_size),
       [me = shared_from_this()](const boost::system::error_code& error,
@@ -55,19 +57,27 @@ const boost::system::error_code parser::eof_err(
 
 void parser::read_handler(const boost::system::error_code& error,
                           std::size_t bytes_transferred) {
+  if (error) {
+    SPDLOG_LOGGER_DEBUG(log::core(), "fail to read from stdin fd:{}: {}",
+                        _sin.native_handle(), error.message());
+  } else {
+    SPDLOG_LOGGER_DEBUG(log::core(), "read {} bytes from stdin",
+                        bytes_transferred);
+  }
   if (_dont_care_about_stdin_eof) {
     return;
   }
   if (error) {
     if (error == eof_err) {  // stdin's eof is reached.
 
-      log::core()->debug("got eof on read handle");
+      SPDLOG_LOGGER_DEBUG(log::core(), "got eof on read handle");
       _owner->on_eof();
       return;
     }
 
-    log::core()->error("fail to read from stdin {}:{} {}", error.value(),
-                       error.category().name(), error.message());
+    SPDLOG_LOGGER_ERROR(log::core(), "fail to read from stdin {}:{} {}",
+                        error.value(), error.category().name(),
+                        error.message());
     _owner->on_error(0, "error on handle");
     _io_context->stop();
     return;
@@ -88,7 +98,8 @@ void parser::read() {
 
   // Parse command.
   while (bound != std::string::npos) {
-    log::core()->debug("got command boundary at offset {}", bound);
+    SPDLOG_LOGGER_DEBUG(log::core(), "got command boundary at offset {}",
+                        bound);
     bound += sizeof(boundary);
     std::string cmd(_buffer.substr(0, bound));
     _buffer.erase(0, bound);
@@ -98,11 +109,11 @@ void parser::read() {
     } catch (std::exception const& e) {
       error_msg = "orders parsing error: ";
       error_msg.append(e.what());
-      log::core()->error("{}", error_msg);
+      SPDLOG_LOGGER_ERROR(log::core(), "{}", error_msg);
       _owner->on_error(0, error_msg);
     } catch (...) {
       error_msg = "unknown orders parsing error";
-      log::core()->error("{}", error_msg);
+      SPDLOG_LOGGER_ERROR(log::core(), "{}", error_msg);
       _owner->on_error(0, error_msg);
     }
     bound = _buffer.find(boundary, 0, sizeof(boundary));
@@ -129,7 +140,7 @@ void parser::_parse(std::string const& cmd) {
   unsigned int id(strtoul(cmd.c_str(), nullptr, 10));
   ++pos;
 
-  log::core()->debug("receive cmd {}", id);
+  SPDLOG_LOGGER_DEBUG(log::core(), "receive cmd {}", id);
 
   // Process each command as necessary.
   switch (id) {
