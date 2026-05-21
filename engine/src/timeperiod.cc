@@ -20,8 +20,8 @@
 
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -59,38 +59,6 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
     throw engine_error() << "Could not register time period '" << _name << "'";
   }
 
-  // Fill time period structure.
-  for (auto& r : obj.timeranges().sunday())
-    days[0].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().monday())
-    days[1].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().tuesday())
-    days[2].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().wednesday())
-    days[3].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().thursday())
-    days[4].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().friday())
-    days[5].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : obj.timeranges().saturday())
-    days[6].emplace_back(r.range_start(), r.range_end());
-
-  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
-    for (auto& r : obj_daterange) {
-      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
-                                   r.syear(), r.smon(), r.smday(), r.swday(),
-                                   r.swday_offset(), r.eyear(), r.emon(),
-                                   r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), r.timerange());
-    }
-  };
-
-  fill_exceptions(obj.exceptions().calendar_date(), 0);
-  fill_exceptions(obj.exceptions().month_date(), 1);
-  fill_exceptions(obj.exceptions().month_day(), 2);
-  fill_exceptions(obj.exceptions().month_week_day(), 3);
-  fill_exceptions(obj.exceptions().week_day(), 4);
-
   set_exclusions(obj.exclude());
 }
 
@@ -101,29 +69,6 @@ void timeperiod::set_exclusions(const configuration::StringSet& exclusions) {
 }
 
 void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
-  for (auto& e : exceptions)
-    e.clear();
-
-  auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
-    for (auto& r : obj_daterange) {
-      //      std::list<timerange> tr;
-      //      for (auto& t : r.timerange())
-      //        tr.emplace_back(t.range_start(), t.range_end());
-      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
-                                   r.syear(), r.smon(), r.smday(), r.swday(),
-                                   r.swday_offset(), r.eyear(), r.emon(),
-                                   r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), r.timerange());
-    }
-  };
-
-  fill_exceptions(array.calendar_date(), 0);
-  fill_exceptions(array.month_date(), 1);
-  fill_exceptions(array.month_day(), 2);
-  fill_exceptions(array.month_week_day(), 3);
-  fill_exceptions(array.week_day(), 4);
-
-  // Keep the protobuf config in sync so calculation helpers can use it.
   *_config.mutable_exceptions() = array;
 }
 
@@ -144,19 +89,7 @@ void timeperiod::set_alias(std::string const& alias) {
  *  @return True if is the same object, otherwise false.
  */
 bool timeperiod::operator==(timeperiod const& obj) noexcept {
-  if (_name == obj._name && _alias == obj._alias &&
-      (_exclusions.size() == obj._exclusions.size() &&
-       std::equal(_exclusions.begin(), _exclusions.end(),
-                  obj._exclusions.begin(), obj._exclusions.end()))) {
-    for (uint32_t i{0}; i < exceptions.size(); ++i)
-      if (exceptions[i] != obj.exceptions[i])
-        return false;
-    for (uint32_t i{0}; i < days.size(); ++i)
-      if (days[i] != obj.days[i])
-        return false;
-    return true;
-  }
-  return false;
+  return MessageDifferencer::Equals(_config, obj._config);
 }
 
 /**
@@ -346,24 +279,5 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
 }
 
 void timeperiod::set_days(const configuration::DaysArray& array) {
-  for (auto& d : days)
-    d.clear();
-
-  for (auto& r : array.sunday())
-    days[0].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.monday())
-    days[1].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.tuesday())
-    days[2].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.wednesday())
-    days[3].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.thursday())
-    days[4].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.friday())
-    days[5].emplace_back(r.range_start(), r.range_end());
-  for (auto& r : array.saturday())
-    days[6].emplace_back(r.range_start(), r.range_end());
-
-  // Keep the protobuf config in sync so calculation helpers can use it.
   *_config.mutable_timeranges() = array;
 }

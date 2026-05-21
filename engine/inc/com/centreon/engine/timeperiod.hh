@@ -21,7 +21,6 @@
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
 #include "com/centreon/common/timeperiod_utils.hh"
-#include "com/centreon/engine/daterange.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 
 /* Forward declaration. */
@@ -63,9 +62,6 @@ class timeperiod {
 
   bool operator==(timeperiod const& obj) noexcept;
   bool operator!=(timeperiod const& obj) noexcept;
-
-  days_array days;
-  exception_array exceptions;
 
   static timeperiod_map timeperiods;
 
