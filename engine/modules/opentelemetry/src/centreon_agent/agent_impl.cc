@@ -293,6 +293,8 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
+    if (!pb_config.use_timezone().empty())
+      cnf->set_use_timezone(pb_config.use_timezone());
     bool crypt_credentials = false;
     if (!_is_crypted) {
       SPDLOG_LOGGER_INFO(_logger,

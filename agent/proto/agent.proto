@@ -100,6 +100,7 @@ message AgentConfiguration {
   string salt = 10;
   // timeperiod definitions referenced by services' check_period_name
   repeated com.centreon.engine.configuration.Timeperiod timeperiods = 11;
+  string use_timezone = 12;
 }
 
 // Service (poller configuration definition)

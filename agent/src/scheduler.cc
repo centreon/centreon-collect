@@ -32,6 +32,7 @@
 #include "check_uptime.hh"
 #endif
 #include "check_exec.hh"
+#include "com/centreon/common/check_timeperiod.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
 #include "drive_size.hh"
@@ -151,12 +152,43 @@ void scheduler::_check_timer_handler(const boost::system::error_code& err) {
  */
 void scheduler::_start_waiting_check() {
   time_point now = std::chrono::system_clock::now();
+  const time_t now_t = std::chrono::system_clock::to_time_t(now);
   if (!_waiting_check_queue.empty()) {
     for (check_queue::iterator to_check = _waiting_check_queue.begin();
          !_waiting_check_queue.empty() &&
          to_check != _waiting_check_queue.end() &&
          to_check->second->get_start_expected() <= now &&
          _active_check < _conf->config().max_concurrent_checks();) {
+      const std::string& period_name =
+          to_check->second->get_check_period_name();
+      if (!com::centreon::common::is_time_in_period_by_name(now_t, period_name,
+                                                            _timeperiods)) {
+        // Compute when the period next opens and defer the check there.
+        const time_t next_t =
+            com::centreon::common::next_valid_time_in_period_by_name(
+                now_t, period_name, _timeperiods);
+        const check::pointer deferred = to_check->second;
+        to_check = _waiting_check_queue.erase(to_check);
+        if (next_t != (time_t)-1) {
+          SPDLOG_LOGGER_DEBUG(
+              _logger, "service '{}' deferred to next active period '{}'",
+              deferred->get_service(), period_name);
+          const auto next_tp = std::chrono::system_clock::from_time_t(next_t);
+          time_step slot(_check_time_step);
+          slot.increment_to_after_min(next_tp);
+          uint64_t steps = slot.get_step_index();
+          while (!_waiting_check_queue.emplace(steps, deferred).second) {
+            ++steps;
+          }
+        } else {
+          // Period is never active drop the check.
+          SPDLOG_LOGGER_DEBUG(
+              _logger,
+              "service '{}': period '{}' is never active, check dropped",
+              deferred->get_service(), period_name);
+        }
+        continue;
+      }
       _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
     }
@@ -327,6 +359,15 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
+
+  // Apply the engine's timezone so timeperiod.
+  const std::string& tz = conf->config().use_timezone();
+  if (!tz.empty()) {
+    setenv("TZ", tz.c_str(), 1);
+  } else {
+    unsetenv("TZ");
+  }
+  tzset();
 
   _timeperiods.clear();
   for (const auto& tp : conf->config().timeperiods()) {
