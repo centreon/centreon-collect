@@ -1558,6 +1558,124 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
     # Should Not Be True    ${result}    resources table updated, agent must not be able to connect to engine
 
 
+BEOTEL_CENTREON_AGENT_CHECK_SERVICE_TIMEPERIODS
+    [Documentation]    Given an Engine configured with an OpenTelemetry server module
+    ...    And four services all using the same check command (--id 456, returns OK)
+    ...    With different check_period assignments:
+    ...      service_1 → 24x7         (built-in, always active)
+    ...      service_2 → none          (built-in, never active)
+    ...      service_3 → always_active (custom, always active)
+    ...      service_4 → never_active  (custom, never active)
+    ...    And two extra timeperiods defined but not assigned to any service:
+    ...      unused_business_hours, unused_nights
+    ...    When broker, engine and agent are started
+    ...    Then services with always-active periods (service_1, service_3) MUST reach HARD OK
+    ...    And services with never-active periods (service_2, service_4) MUST NOT be checked by the CMA
+    [Tags]    broker    engine    opentelemetry    MON-171482
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    "This test is only for linux agent version"
+
+    # 1 engine, 1 host, 4 services → service_1..service_4 all under host_1
+    Ctn Config Engine    ${1}    ${1}    ${4}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+
+    # --- custom timeperiods: two active, two inactive, two unused ---
+    ${all_days}    Create Dictionary
+    ...    sunday=00:00-24:00    monday=00:00-24:00    tuesday=00:00-24:00
+    ...    wednesday=00:00-24:00    thursday=00:00-24:00    friday=00:00-24:00
+    ...    saturday=00:00-24:00
+    Ctn Engine Config Add Timeperiod    ${0}    always_active    Always Active Custom Period    ${all_days}
+    # never_active: no ranges → period is always inactive
+    Ctn Engine Config Add Timeperiod    ${0}    never_active    Never Active Custom Period
+    # unused timeperiods: defined but not assigned to any service
+    ${business_days}    Create Dictionary
+    ...    monday=09:00-17:00    tuesday=09:00-17:00    wednesday=09:00-17:00
+    ...    thursday=09:00-17:00    friday=09:00-17:00
+    Ctn Engine Config Add Timeperiod    ${0}    unused_business_hours    Unused Business Hours    ${business_days}
+    ${nights}    Create Dictionary
+    ...    monday=22:00-24:00    tuesday=22:00-24:00    wednesday=22:00-24:00
+    ...    thursday=22:00-24:00    friday=22:00-24:00    saturday=22:00-24:00
+    ...    sunday=22:00-24:00
+    Ctn Engine Config Add Timeperiod    ${0}    unused_nights    Unused Nights    ${nights}
+
+    # --- assign the same otel command to all four services ---
+    ${check_cmd}    Ctn Check Pl Command    --id 456
+    Ctn Engine Config Add Command    ${0}    otel_check    ${check_cmd}    OTEL connector
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    otel_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_command    otel_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_command    otel_check
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_command    otel_check
+
+    # --- timeperiod assignments ---
+    # 24x7 is already the default; set it explicitly for clarity
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_period    24x7
+    Ctn Engine Config Replace Value In Services    ${0}    service_2    check_period    none
+    Ctn Engine Config Replace Value In Services    ${0}    service_3    check_period    always_active
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_period    unused_nights
+
+    Ctn Set Services Passive    0    service_[1-4]
+    Ctn Engine Config Set Value    0    interval_length    10
+    FOR    ${svc}    IN    service_1    service_2    service_3    service_4
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    check_interval    2
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    retry_interval    1
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    max_check_attempts    2
+    END
+
+    # single shared check command returns OK
+    Ctn Set Command Status    456    ${0}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+    Ctn Broker Config Log    central    sql    trace
+
+    Ctn Config BBDO3    1
+    Ctn Clear Db    resources
+    Ctn Clear Retention
+
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    ${start}    Ctn Get Round Current Date
+    ${start_int}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+
+    # Let's wait for the otel server start
+    Ctn Wait For Otel Server To Be Ready    ${start}
+    
+    Sleep    360s
+    # --- active-period services must be checked and reach HARD OK ---
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_1    120    ${start_int}    0    HARD    Test check 456
+    Should Be True    ${result}    service_1 (24x7) was not checked by the CMA
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_3    120    ${start_int}    0    HARD    Test check 456
+    Should Be True    ${result}    service_3 (always_active) was not checked by the CMA
+
+    # --- inactive-period services must NOT appear as checked in resources ---
+    # service_1 reaching OK above proves the CMA was active and had time to check
+    # anything it was supposed to, so a short window is enough to assert the negative
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_2    10    ${start_int}    0    HARD    Test check 456
+    Should Not Be True    ${result}    service_2 (none) was checked by the CMA but should have been skipped
+
+    ${result}    Ctn Check Service Output Resource Status With Timeout    host_1    service_4    10    ${start_int}    0    HARD    Test check 456
+    Should Not Be True    ${result}    service_4 (never_active) was checked by the CMA but should have been skipped
+
 *** Keywords ***
 Ctn Create Cert And Init
     [Documentation]  create key and certificates used by agent and engine on linux side

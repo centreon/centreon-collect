@@ -22,6 +22,7 @@
 #include <memory>
 #include "check.hh"
 #include "common/crypto/aes256.hh"
+#include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::agent {
 
@@ -99,6 +100,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   unsigned _average_metric_length;
 
   std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
+
+  // Map from timeperiod_name to Timeperiod proto pointer
+  absl::flat_hash_map<std::string,
+                      const com::centreon::engine::configuration::Timeperiod*>
+      _timeperiods;
 
   void _start();
   void _start_send_timer();

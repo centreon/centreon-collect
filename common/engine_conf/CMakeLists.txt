@@ -15,15 +15,37 @@
 #
 # For more information : contact@centreon.com
 #
+
+# timeperiod.proto
+add_custom_command(
+  OUTPUT timeperiod.pb.cc timeperiod.pb.h
+  DEPENDS timeperiod.proto
+  COMMENT "Generating interface files for timeperiod proto"
+  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=.
+          --proto_path=${CMAKE_CURRENT_SOURCE_DIR} timeperiod.proto
+  VERBATIM)
+
+add_custom_target(target_timeperiod_proto DEPENDS timeperiod.pb.cc timeperiod.pb.h)
+
+add_library(centreon_common_timeperiod STATIC
+  ${CMAKE_CURRENT_BINARY_DIR}/timeperiod.pb.cc)
+add_dependencies(centreon_common_timeperiod target_timeperiod_proto)
+target_include_directories(centreon_common_timeperiod PUBLIC
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_CURRENT_BINARY_DIR})
+set_target_properties(centreon_common_timeperiod PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# state.proto
 add_custom_command(
   OUTPUT state.pb.cc state.pb.h
-  DEPENDS state.proto
+  DEPENDS state.proto ${CMAKE_CURRENT_BINARY_DIR}/timeperiod.pb.h
   COMMENT "Generating interface files of the engine configuration file"
   COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=.
           --proto_path=${CMAKE_CURRENT_SOURCE_DIR} state.proto
   VERBATIM)
 
-add_custom_target(target_state_proto DEPENDS state.pb.cc state.pb.h)
+add_custom_target(target_state_proto DEPENDS state.pb.cc state.pb.h
+                                             target_timeperiod_proto)
 
 include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
 
@@ -77,6 +99,7 @@ add_library(
   timeperiod_helper.cc
   timeperiod_helper.hh)
 add_dependencies(engine_conf target_state_proto)
+target_link_libraries(engine_conf PUBLIC centreon_common_timeperiod)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
 target_precompile_headers(engine_conf PRIVATE

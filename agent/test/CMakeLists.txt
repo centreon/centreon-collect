@@ -60,6 +60,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_agent
     PRIVATE centagent_lib
+            centreon_common_timeperiod
             centreon_common
             centreon_process
             centreon_hexdump

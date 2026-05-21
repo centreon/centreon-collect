@@ -304,6 +304,10 @@ class check : public std::enable_shared_from_this<check> {
     return _service.check_interval();
   }
 
+  const std::string& get_check_period_name() const {
+    return _service.check_period_name();
+  }
+
   void increment_cur_attempt() { ++_current_attempt; }
   int get_current_attempt() const { return _current_attempt; }
   void set_current_attempt(int attempt) { _current_attempt = attempt; }

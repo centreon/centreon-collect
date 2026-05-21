@@ -328,6 +328,15 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
 
   _conf = conf;
 
+  _timeperiods.clear();
+  for (const auto& tp : conf->config().timeperiods()) {
+    if (tp.has_timeperiod_name()) {
+      _timeperiods.emplace(tp.timeperiod_name(), &tp);
+      SPDLOG_LOGGER_DEBUG(_logger, "registered timeperiod '{}'",
+                          tp.timeperiod_name());
+    }
+  }
+
   // first start check in waiting queue
   _start_waiting_check();
   // start send timer and check timer
