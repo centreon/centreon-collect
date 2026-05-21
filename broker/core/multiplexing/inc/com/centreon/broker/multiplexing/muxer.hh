@@ -75,10 +75,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   /** Events are stacked into _events or into _file. Because several threads
    * access to them, they are protected by a mutex _events_m. */
   mutable absl::Mutex _events_m;
-  std::list<std::shared_ptr<io::data>> _events ABSL_GUARDED_BY(_events_m);
-  size_t _events_size ABSL_GUARDED_BY(_events_m);
-  std::list<std::shared_ptr<io::data>>::iterator _pos
-      ABSL_GUARDED_BY(_events_m);
+  std::deque<std::shared_ptr<io::data>> _events ABSL_GUARDED_BY(_events_m);
+  size_t _pos ABSL_GUARDED_BY(_events_m);
   std::unique_ptr<persistent_file> _file ABSL_GUARDED_BY(_events_m);
   absl::CondVar _no_event_cv;
 
@@ -169,13 +167,13 @@ bool muxer::read(container& to_fill, size_t max_to_read) noexcept {
   absl::MutexLock lck(&_events_m);
 
   size_t nb_read = 0;
-  while (_pos != _events.end() && nb_read < max_to_read) {
-    to_fill.push_back(*_pos);
+  while (_pos < _events.size() && nb_read < max_to_read) {
+    to_fill.push_back(_events[_pos]);
     ++_pos;
     ++nb_read;
   }
   // no more data => store handler to call when data will be available
-  if (_pos == _events.end()) {
+  if (_pos == _events.size()) {
     _update_stats();
     _logger->debug("muxer::read ({}) no more data to handle", _name);
     return false;
