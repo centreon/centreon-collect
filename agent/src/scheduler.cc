@@ -17,6 +17,7 @@
  */
 
 #include "scheduler.hh"
+#include <vector>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -151,6 +152,7 @@ void scheduler::_check_timer_handler(const boost::system::error_code& err) {
  * check started are removed from queue and will be inserted once completed
  */
 void scheduler::_start_waiting_check() {
+  std::vector<std::pair<const check::pointer, uint64_t>> save_defer_checks;
   time_point now = std::chrono::system_clock::now();
   const time_t now_t = std::chrono::system_clock::to_time_t(now);
   if (!_waiting_check_queue.empty()) {
@@ -177,9 +179,7 @@ void scheduler::_start_waiting_check() {
           time_step slot(_check_time_step);
           slot.increment_to_after_min(next_tp);
           uint64_t steps = slot.get_step_index();
-          while (!_waiting_check_queue.emplace(steps, deferred).second) {
-            ++steps;
-          }
+          save_defer_checks.push_back(std::pair(deferred, steps));
         } else {
           // Period is never active drop the check.
           SPDLOG_LOGGER_DEBUG(
@@ -191,6 +191,13 @@ void scheduler::_start_waiting_check() {
       }
       _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
+    }
+
+    for (const auto& defer_check : save_defer_checks) {
+      uint64_t steps = defer_check.second;
+      while (!_waiting_check_queue.emplace(steps, defer_check.first).second) {
+        ++steps;
+      }
     }
   }
 }
