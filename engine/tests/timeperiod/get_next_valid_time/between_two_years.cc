@@ -38,24 +38,24 @@ class GetNextValidTimeBetweenTwoYears : public ::testing::Test {
   //
 
   void calendar_date() {
-    daterange* dr(_creator.new_calendar_date(2016, 11, 20, 2017, 0, 10));
+    configuration::Daterange* dr(_creator.new_calendar_date(2016, 11, 20, 2017, 0, 10));
     _creator.new_timerange(0, 0, 24, 0, dr);
     dr = _creator.new_calendar_date(2017, 11, 20, 2018, 0, 10);
     _creator.new_timerange(0, 0, 24, 0, dr);
   }
 
   void specific_month_date() {
-    daterange* dr(_creator.new_specific_month_date(11, 20, 0, 10));
+    configuration::Daterange* dr(_creator.new_specific_month_date(11, 20, 0, 10));
     _creator.new_timerange(0, 0, 24, 0, dr);
   }
 
   void generic_month_date() {
-    daterange* dr(_creator.new_generic_month_date(20, 10));
+    configuration::Daterange* dr(_creator.new_generic_month_date(20, 10));
     _creator.new_timerange(0, 0, 24, 0, dr);
   }
 
   void offset_weekday_of_specific_month() {
-    daterange* dr(
+    configuration::Daterange* dr(
         _creator.new_offset_weekday_of_specific_month(11, 2, 3, 0, 2, 2));
     _creator.new_timerange(0, 0, 24, 0, dr);
   }
