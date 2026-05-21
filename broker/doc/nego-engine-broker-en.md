@@ -2447,7 +2447,7 @@ thoroughly before the complexity of multi-poller HA is introduced.
 
 | Ticket | Description |
 |--------|-------------|
-| **T1** | Dual-priority neb queue |
+| **T1** | Triple-priority neb queue |
 | **T2** | `global_cache` downtime state tracking |
 | **T3** | BrokerRpc endpoints: downtimes and acknowledgements |
 | **T4** | BrokerRpc endpoints: escalation rules |
@@ -2463,7 +2463,7 @@ gantt
     dateFormat  YYYY-MM-DD
 
     section Infrastructure
-    T1 · Dual-priority neb queue          :t1, 2024-01-01, 5d
+    T1 · Triple-priority neb queue         :t1, 2024-01-01, 5d
     T3 · BrokerRpc downtime & ack         :t3, 2024-01-01, 5d
     T4 · BrokerRpc escalation rules       :t4, 2024-01-01, 3d
 
@@ -2488,27 +2488,26 @@ T1, T3, T4, and T6 have no dependencies and can be developed in parallel. T2 req
 both T1 (neb priority path) and T3 (BrokerRpc path). T8 requires both T6 (Engine side)
 and T7 (Broker side). T9 gates on everything.
 
-## Dual-priority neb queue
+## Triple-priority neb queue
 
 Today the neb module maintains a single FIFO queue for all monitoring events. When Engine has
 a large retention backlog (e.g. after a two-week disconnection), every event — including urgent
 downtimes and notification requests — must wait behind hours of accumulated check results before
 reaching Broker.
 
-To resolve this, the neb event queue is split into two. The queue an event is placed in is
+To resolve this, the neb event queue is split into three. The queue an event is placed in is
 determined **at insertion time**, based on the event type and its timestamp:
 
-| Event type | Classification rule |
-|------------|---------------------|
-| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Always priority** — age is irrelevant; what matters is whether the downtime or acknowledgement is still active |
-| Host / service status | **Priority** if `now − event_timestamp < priority_age_threshold` (default: 5 min); **secondary** otherwise |
-| Performance data, logs, other bulk events | Always secondary |
+| Event type | Classification rule | Queue |
+|------------|---------------------|-------|
+| `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Always priority (P)** — age is irrelevant; what matters is whether the downtime or acknowledgement is still active | P |
+| Host / service status | **Current (C)** if `now − event_timestamp < priority_age_threshold` (default: 5 min); **Historical (H)** otherwise | C or H |
+| Performance data, logs, other bulk events | Always **Historical (H)** | H |
 
 The `priority_age_threshold` (default 5 minutes, one typical check interval) is configurable.
-In normal operation all check results are fresh and go to the priority queue — the secondary
-queue remains empty and both queues behave identically to today. The distinction only activates
-under backlog: old check results are demoted to secondary while recent ones and all downtime /
-acknowledgement events drain first.
+In normal operation all check results are fresh and go to queue C — queues C and H are then
+indistinguishable from a single secondary queue. The distinction only activates under backlog:
+old check results go directly to H at insertion while recent ones drain from C before H.
 
 This preserves the causality between a downtime and the resource it is associated with (both
 remain in the `neb` namespace), while guaranteeing that urgent events are never blocked by
@@ -2517,45 +2516,47 @@ accumulated bulk data.
 **Boundary with the `bbdo` namespace**
 
 `bbdo`-namespace messages (`pb_diff_state`, `pb_diff_state_ack`, `Health`, `pb_welcome`) remain
-completely out-of-band — they bypass both queues entirely. These are connection and configuration
-management messages, not monitoring event stream entries; their delivery must be independent of
-any queue state.
+completely out-of-band — they bypass all three queues entirely. These are connection and
+configuration management messages, not monitoring event stream entries; their delivery must be
+independent of any queue state.
 
 ```
-bbdo namespace  →  bypasses all queues  (connection / config management)
-neb priority    →  drained first        (urgent monitoring events)
-neb secondary   →  drained last         (bulk monitoring data)
+bbdo namespace   →  bypasses all queues  (connection / config management)
+neb priority P   →  drained first        (urgent monitoring events — always active)
+neb current C    →  drained second       (fresh real-time check results)
+neb historical H →  drained last         (bulk data, old check results)
 ```
 
-**Connected Engine with large secondary queue**
+**Connected Engine with large historical queue**
 
 Even when Engine is actively connected but saturated with check results, a new `pb_downtime` or
-`pb_notification_request` is placed in the priority queue and delivered to Broker immediately,
-without waiting for the secondary queue to drain.
+`pb_notification_request` is placed in queue P and delivered to Broker immediately,
+without waiting for queues C or H to drain.
 
 **Reconnection after a long absence**
 
 This is the more subtle and important case. Consider Engine reconnecting after several days of
-disconnection. It has a large secondary queue (accumulated check results). Immediately after
+disconnection. It has a large historical queue (accumulated check results). Immediately after
 reconnection, a monitored resource goes down — Engine generates a real-time check result and
-places it in the secondary queue. Meanwhile, the `pb_downtime` for that resource — created days
-ago, still sitting in the priority queue — drains first:
+places it in queue C. Meanwhile, the `pb_downtime` for that resource — created days
+ago, still sitting in queue P — drains first:
 
 ```
 Engine reconnects
-  → priority queue drains: pb_downtime (created 5 days ago, still active) → Broker
-  → secondary queue drains: check result DOWN (real-time) → Broker
+  → queue P drains: pb_downtime (created 5 days ago, still active) → Broker
+  → queue C drains: check result DOWN (real-time) → Broker
+  → queue H drains: accumulated old check results → Broker
 
 Broker receives pb_downtime first → downtime is active → DOWN arrives → notification suppressed ✓
 ```
 
 The age of the `pb_downtime` event is irrelevant: what matters is whether the downtime is
-**still active**, not when it was created. The priority queue guarantees that Broker has the
+**still active**, not when it was created. Queue P guarantees that Broker has the
 correct downtime state before it processes the first real-time check result.
 
 Expired downtimes are also handled correctly. A downtime that started and ended during the
-disconnection period appears as a `pb_downtime_start` / `pb_downtime_end` pair, both in the
-priority queue, in order. Broker processes them in sequence: downtime created, then closed.
+disconnection period appears as a `pb_downtime_start` / `pb_downtime_end` pair, both in queue P,
+in order. Broker processes them in sequence: downtime created, then closed.
 When the first real-time check result arrives, no downtime is active — and notification fires
 correctly.
 
@@ -2580,10 +2581,13 @@ struct queue_entry {
     std::shared_ptr<io::data>  event;
 };
 
-std::deque<queue_entry> _priority_events;
-std::deque<queue_entry> _secondary_events;
+std::deque<queue_entry> _priority_events;    // Queue P: INT64_MAX events
+std::deque<queue_entry> _current_events;     // Queue C: fresh status events
+std::deque<queue_entry> _historical_events;  // Queue H: bulk/old events
 size_t _priority_read_pos{0};
-size_t _secondary_read_pos{0};
+size_t _current_read_pos{0};
+size_t _historical_read_pos{0};
+size_t _current_events_size{0};             // live entries in _current_events (tombstones excluded)
 ```
 
 Storing the timestamp in the entry eliminates any `dynamic_cast` or virtual dispatch at
@@ -2595,24 +2599,27 @@ a new priority event is pushed, `_priority_read_pos` already equals the index of
 
 | Condition | Queue | Stored timestamp |
 |-----------|-------|-----------------|
-| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | Priority | `INT64_MAX` |
-| host/service status AND `now − last_check < priority_age_threshold` | Priority | `last_check` |
-| host/service status AND `now − last_check ≥ priority_age_threshold` | Secondary | `last_check` |
-| all other types (perf data, logs, …) | Secondary | `0` |
+| type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | P | `INT64_MAX` |
+| host/service status AND `now − last_check < priority_age_threshold` | C | `now` (insertion time) |
+| host/service status AND `now − last_check ≥ priority_age_threshold` | H | `now` (insertion time) |
+| all other types (perf data, logs, …) | H | `now` (insertion time) |
 
 `priority_age_threshold` defaults to **5 minutes** (one typical check interval) and is
 configurable in Broker's JSON configuration.
 
 #### Acknowledgement: two-count `pb_ack`
 
-`ack_events` is extended to two independent counts — one per queue:
+`ack_events` is extended to two independent counts — priority (Queue P) and secondary (Queues C
+and H combined). Broker does not need to distinguish C from H: events from both queues are
+delivered in order P → C → H, and the secondary count simply reflects how many non-priority
+events were consumed in that batch.
 
 ```cpp
 void ack_events(uint32_t priority_count, uint32_t secondary_count);
 ```
 
 `pb_ack` gains two new fields (field 1 kept for backward compatibility with old senders, which
-are handled by applying the count to the secondary queue):
+are handled by applying the count to the secondary queues):
 
 ```protobuf
 message Ack {
@@ -2635,6 +2642,8 @@ uint32_t s_acked = written - p_acked;
 muxer.ack_events(p_acked, s_acked);
 ```
 
+`s_acked` is then applied against queues C and H in order: C first, then H once C is exhausted.
+
 #### Disk spill (retention on disk)
 
 The muxer already supports persistent retention on disk via `_file` (`persistent_file`): when
@@ -2642,12 +2651,17 @@ the in-memory queue is full, events overflow to a file on disk so that they surv
 restart and are eventually delivered once the connection recovers. This mechanism is called
 **disk spill** — excess events that no longer fit in RAM are spilled into the retention file.
 
-With the dual-priority queue, the spill policy is:
+With the triple-priority queue, the spill policy is:
 
-- Secondary events spill to `_file` first (they are the least urgent).
-- Priority events have a separate, higher in-memory limit before spilling.
-- Events reloaded from `_file` on restart go into the secondary queue regardless of their
-  original classification: by that point they are historical backlog, not real-time data.
+- Queue H events spill to `_file` first (they are the least urgent).
+- Queue C events spill next.
+- Queue P events have a separate, higher in-memory limit before spilling.
+- Events reloaded from `_file` on restart are reclassified based on their **event type** — the
+  `queue_entry` timestamp is an in-memory artifact that is not persisted on disk. Events of type
+  `pb_downtime`, `pb_acknowledgement`, or `pb_notification_request` go back into queue P (they
+  are potentially still active and must reach Broker before any check results); all other events
+  go into queue H (they are historical backlog at this point). The file format is unchanged and
+  files produced by older versions reload correctly.
 
 #### Benchmark results
 
@@ -2674,6 +2688,89 @@ Each queue entry is `struct queue_entry { int64_t timestamp; std::shared_ptr<io:
 Using a named struct instead of `std::pair<int64_t, shared_ptr<io::data>>` has zero runtime cost:
 the compiler generates identical code (same memory layout, same field offsets). The struct is
 preferred solely for readability (`.timestamp` / `.event` vs `.first` / `.second`).
+
+#### Timestamp field: insertion time, not event data time
+
+The `timestamp` field stores `std::chrono::system_clock::now()` captured **at the moment
+`push_back` is called** — not the event's `last_check` field.
+
+This choice preserves a key invariant: because events are enqueued in FIFO order and the
+stored timestamp reflects when the event entered the queue, **the deque is always sorted
+by age** — entries near the front are older than entries near the back.
+
+This invariant enables an early-exit scan when looking for stale events to demote from queue C
+to queue H:
+
+```
+[very old] [old] [normal] [normal] …
+  demote   demote   STOP — everything after is also fresh
+```
+
+Because queue C never contains `INT64_MAX` entries (those go directly into queue P at insertion),
+the scan requires no special-casing. As soon as the scan reaches an entry whose timestamp exceeds
+the demotion threshold, all subsequent entries also exceed it, and the loop terminates
+immediately.
+
+**In-flight events and tombstone demotion**
+
+At any point, the first `_current_read_pos` entries in `_current_events` are *in-flight*: they
+have been sent to Broker but not yet acknowledged. The demotion scan starts at
+`_current_read_pos`, not at 0 — in-flight events have already been delivered and cannot be
+moved.
+
+In practice, `_current_read_pos` is 0 whenever demotion is needed: for a pending entry to be
+stale it must have been in C for more than `priority_age_threshold` (5 minutes); because the
+deque is sorted by age, in-flight entries are older still, so if no acknowledgement has returned
+for that long the connection is broken and `nack_events()` will already have reset
+`_current_read_pos` to 0.
+
+Regardless, demotion is implemented as **tombstoning**: there is no middle-of-deque erasure at all.
+When entry at position `_current_read_pos` is stale:
+1. Its event is pushed to queue H.
+2. The `event` pointer in the `_current_events` entry is set to `nullptr`.
+3. `_current_read_pos` is advanced past the tombstone.
+
+```
+before:  [e0 in-flight] [e1 in-flight] [e2 in-flight] [e3 stale] [e4 stale] [e5 fresh]
+         _current_read_pos = 3
+demote:  [e0 in-flight] [e1 in-flight] [e2 in-flight] [null]     [null]     [e5 fresh]
+         _current_read_pos = 5   (e3, e4 already in H)
+```
+
+`read()` resumes at the new `_current_read_pos` and never returns a null entry to the caller.
+
+When `ack_events` processes C, it pops non-null entries for the acked count, then discards any
+leading nulls:
+
+```cpp
+// ack 3 events that came from C
+pop e0  // non-null, count 1
+pop e1  // non-null, count 2
+pop e2  // non-null, count 3 — done
+pop     // null, cleanup
+pop     // null, cleanup
+// _current_read_pos: 5 − 5 pops = 0
+```
+
+Each demotion is O(1) (one pointer write + one index increment). The null cleanup is folded
+into the normal ack pop loop at no extra asymptotic cost.
+
+`get_event_queue_size()` relies on a dedicated counter rather than iterating the deques.
+The counter is incremented on each `push_back` and decremented both when an entry is tombstoned
+(event set to `nullptr`) and when a non-null entry is popped during ack. This keeps the size
+query O(1) and avoids any deque traversal.
+
+Had `last_check` been stored instead, an event arriving late (reconnection replay, out-of-order
+delivery) could carry a very old `last_check` despite being inserted after fresher events,
+breaking the ordering invariant and forcing a full-deque scan.
+
+#### Handling connection loss: `nack_events()`
+
+When a connection is lost before an acknowledgement arrives, `nack_events()` resets all three
+`_read_pos` values to 0. In-flight events in all three queues re-enter the pending state and
+will be re-sent on the next connection. In queue C, the sorted order is preserved after the
+reset: the previously in-flight entries (oldest) sit at the front, ahead of the entries that
+were never sent.
 
 `emplace_back` brings no gain over `push_back(std::move(e))` on the write path: events arrive
 pre-constructed from the engine or network layer and are moved into the queue — there is no
@@ -3459,7 +3556,7 @@ re-notification interval elapsed, etc.), it emits a `pb_notification_request` BB
 instead of calling a command directly:
 
 ```protobuf
-// neb priority queue — Engine → Broker: delivered ahead of all secondary-queue events.
+// neb queue P — Engine → Broker: delivered before all queue C and H events.
 // Notification requests must not be delayed by accumulated check results.
 message NotificationRequest {
   uint32 poller_id         = 1;
