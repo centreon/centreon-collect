@@ -257,7 +257,7 @@ void stream::_update_stats() {
  *
  *  @return Number of events acknowledged (1).
  */
-int32_t stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   // Check that data exists.
   if (!validate(d, get_name()))
     return 1;
@@ -289,7 +289,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
  *
  * @return The number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   return 0;
 }
 

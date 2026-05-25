@@ -134,15 +134,19 @@ class stream : public io::stream,
 
   // server version
   void OnDone();
-  // client version
+// client version — intentionally no 'override': template is instantiated for
+// both server (no matching virtual) and client (virtual exists) reactors
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
   void OnDone(const ::grpc::Status& /*s*/);
+#pragma clang diagnostic pop
 
   // io::stream part
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 };

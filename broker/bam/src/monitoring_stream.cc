@@ -103,10 +103,10 @@ monitoring_stream::~monitoring_stream() {
  *
  *  @return Number of acknowledged events.
  */
-int32_t monitoring_stream::flush() {
+uint32_t monitoring_stream::flush() {
   _execute();
   _pending_request = 0;
-  int retval = _pending_events;
+  uint32_t retval = _pending_events;
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream flush: {} events",
                       retval);
   _pending_events = 0;
@@ -118,8 +118,8 @@ int32_t monitoring_stream::flush() {
  *
  * @return Number of acknowledged events.
  */
-int32_t monitoring_stream::stop() {
-  int32_t retval = flush();
+uint32_t monitoring_stream::stop() {
+  uint32_t retval = flush();
   _logger->info("monitoring stream: stopped with {} events acknowledged",
                 retval);
   /* I want to be sure the timer is really stopped. */
@@ -379,7 +379,7 @@ struct kpi_binder {
  *
  *  @return Number of events acknowledged.
  */
-int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
+uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
@@ -656,7 +656,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
         _pending_events);
     return 0;
   }
-  int retval = _pending_events;
+  uint32_t retval = _pending_events;
   _pending_events = 0;
   _logger->trace("BAM: monitoring_stream write: {} events", retval);
   return retval;
@@ -850,7 +850,7 @@ void monitoring_stream::_async_write_external_commands() {
   _logger->debug("BAM: sending {} external commands", local_queue.size());
   for (auto& cmd : local_queue) {
     misc::fifo_client fc(_ext_cmd_file);
-    int32_t ret = fc.write(cmd);
+    uint32_t ret = fc.write(cmd);
     if (ret >= 0)
       _logger->info("BAM: external command '{}' sent to command file '{}'", cmd,
                     _ext_cmd_file);

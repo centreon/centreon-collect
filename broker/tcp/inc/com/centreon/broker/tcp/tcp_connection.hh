@@ -64,7 +64,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   asio::ip::tcp::socket& socket();
   asio::io_context::strand& get_strand() { return _strand; }
 
-  int32_t flush();
+  uint32_t flush();
 
   void writing();
   void handle_write(const boost::system::error_code& ec);

@@ -129,12 +129,12 @@ class monitoring_stream : public io::stream {
   ~monitoring_stream();
   monitoring_stream(const monitoring_stream&) = delete;
   monitoring_stream& operator=(const monitoring_stream&) = delete;
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t flush() override;
+  uint32_t stop() override;
   void initialize();
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override final;
-  int write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace bam
 }  // namespace com::centreon::broker

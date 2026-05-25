@@ -185,8 +185,8 @@ class stream : public io::stream {
 
   instance_state _state;
 
-  std::atomic_int _processed;
-  std::atomic_int _ack;
+  std::atomic_uint _processed;
+  std::atomic_uint _ack;
 
   std::atomic_int _pending_events;
   uint32_t _count;
@@ -493,10 +493,10 @@ class stream : public io::stream {
                                 uint32_t metric_id,
                                 std::string const& metric_name,
                                 short metric_type);
-  int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t flush() override;
+  uint32_t write(const std::shared_ptr<io::data>& d) override;
+  uint32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
-  int32_t stop() override;
+  uint32_t stop() override;
   void statistics(nlohmann::json& tree) const override;
   void remove_graphs(const std::shared_ptr<io::data>& d);
   void remove_poller(const std::shared_ptr<io::data>& d);

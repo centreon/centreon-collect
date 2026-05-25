@@ -90,8 +90,8 @@ luabinding::~luabinding() noexcept {
   stop();
 }
 
-int32_t luabinding::stop() {
-  int32_t retval = 0;
+uint32_t luabinding::stop() {
+  uint32_t retval = 0;
   if (_L) {
     retval = flush();
     lua_close(_L);
@@ -285,7 +285,9 @@ void luabinding::_init_script(
     absl::btree_map<std::string, variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
-  for (const auto& [name, val] : conf_params) {
+  for (const auto& kv : conf_params) {
+    const auto& name = kv.first;
+    const auto& val = kv.second;
     std::visit(
         [this, &name](auto&& v) {
           using T = std::decay_t<decltype(v)>;
@@ -328,8 +330,8 @@ void luabinding::_init_script(
  *
  *  @return The number of events written.
  */
-int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
-  int retval = 0;
+uint32_t luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
+  uint32_t retval = 0;
 
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "lua: luabinding::write call {}", *data);
@@ -434,7 +436,7 @@ lua_State* luabinding::_load_interpreter() {
   return L;
 }
 
-int32_t luabinding::flush() noexcept {
+uint32_t luabinding::flush() noexcept {
   if (!_flush)
     return 0;
   // Let's get the function to call
@@ -455,7 +457,7 @@ int32_t luabinding::flush() noexcept {
   }
   bool acknowledge = lua_toboolean(_L, -1);
 
-  int32_t retval = 0;
+  uint32_t retval = 0;
   if (acknowledge) {
     retval = _total;
     _total = 0;

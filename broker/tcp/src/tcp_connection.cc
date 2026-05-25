@@ -91,8 +91,8 @@ asio::ip::tcp::socket& tcp_connection::socket() {
  *
  * @return 0.
  */
-int32_t tcp_connection::flush() {
-  int32_t retval = _acks;
+uint32_t tcp_connection::flush() {
+  uint32_t retval = _acks;
   if (_acks) {
     /* Do not set it to zero directly, maybe it has already been incremented by
      * another operation */

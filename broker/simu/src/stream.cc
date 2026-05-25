@@ -53,7 +53,7 @@ stream::~stream() {
  *
  *  @return The number of events to acknowledge.
  */
-int stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t stream::write(std::shared_ptr<io::data> const& d) {
   (void)d;
   throw exceptions::shutdown("cannot write from simu connector");
   return 0;

@@ -52,12 +52,12 @@ class into_memory : public io::stream {
     return true;
   }
 
-  int32_t write(std::shared_ptr<io::data> const& d) override {
+  uint32_t write(std::shared_ptr<io::data> const& d) override {
     _memory = std::static_pointer_cast<io::raw>(d)->get_buffer();
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 
   std::vector<char> const& get_memory() const { return _memory; }
   std::vector<char>& get_mutable_memory() { return _memory; }

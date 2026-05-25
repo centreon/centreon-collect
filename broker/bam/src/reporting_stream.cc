@@ -124,10 +124,10 @@ void reporting_stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of acknowledged events.
  */
-int32_t reporting_stream::flush() {
+uint32_t reporting_stream::flush() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream flush");
   _commit();
-  int retval(_ack_events + _pending_events);
+  uint32_t retval = _ack_events + _pending_events;
   _ack_events = 0;
   _pending_events = 0;
   return retval;
@@ -138,8 +138,8 @@ int32_t reporting_stream::flush() {
  *
  * @return Number of acknowledged events.
  */
-int32_t reporting_stream::stop() {
-  int32_t retval = flush();
+uint32_t reporting_stream::stop() {
+  uint32_t retval = flush();
   _logger->info("reporting stream stopped with {} events acknowledged", retval);
   return retval;
 }
@@ -151,7 +151,7 @@ int32_t reporting_stream::stop() {
  *
  *  @return Number of events acknowledged.
  */
-int reporting_stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t reporting_stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_events;
   assert(data);
@@ -245,7 +245,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
   }
 
   // Event acknowledgement.
-  int retval = _ack_events;
+  uint32_t retval = _ack_events;
   _ack_events = 0;
   return retval;
 }

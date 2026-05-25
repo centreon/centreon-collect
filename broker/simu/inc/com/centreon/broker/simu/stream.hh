@@ -49,8 +49,8 @@ class stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   stream& operator=(stream const&) = delete;
   stream(stream const&) = delete;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override { return 0; }
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override { return 0; }
 };
 
 }  // namespace com::centreon::broker::simu

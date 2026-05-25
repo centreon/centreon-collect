@@ -120,7 +120,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   muxer(const muxer&) = delete;
   muxer& operator=(const muxer&) = delete;
   ~muxer() noexcept;
-  void ack_events(int count);
+  void ack_events(uint32_t count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   template <class container>
@@ -135,9 +135,9 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void statistics(nlohmann::json& tree) const override
       ABSL_LOCKS_EXCLUDED(_events_m);
   void wake();
-  int32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
   void write(std::deque<std::shared_ptr<io::data>>& to_publish);
-  int32_t stop() override;
+  uint32_t stop() override;
   const std::string& name() const;
   void set_read_filter(const muxer_filter& w_filter);
   void set_write_filter(const muxer_filter& w_filter);

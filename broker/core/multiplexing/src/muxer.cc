@@ -224,7 +224,7 @@ muxer::~muxer() noexcept {
  *
  *  @param[in] count  Number of events to acknowledge.
  */
-void muxer::ack_events(int count) {
+void muxer::ack_events(uint32_t count) {
   if (count) {
     absl::MutexLock lck(&_events_m);
     SPDLOG_LOGGER_TRACE(
@@ -234,7 +234,7 @@ void muxer::ack_events(int count) {
     SPDLOG_LOGGER_DEBUG(
         _logger, "multiplexing: acknowledging {} events from {} event queue",
         count, _name);
-    for (int i = 0; i < count && !_events.empty(); ++i) {
+    for (uint32_t i = 0; i < count && !_events.empty(); ++i) {
       if (_pos == 0) {
         _logger->error(
             "multiplexing: attempt to acknowledge more events than available "
@@ -270,7 +270,7 @@ void muxer::ack_events(int count) {
  *
  * @return The number of acknowledged events.
  */
-int32_t muxer::stop() {
+uint32_t muxer::stop() {
   absl::MutexLock lck(&_events_m);
   SPDLOG_LOGGER_INFO(_logger,
                      "Stopping muxer {}: number of events in the queue: {}",
@@ -579,7 +579,7 @@ void muxer::wake() {
  *
  *  @param[in] d  Event to multiplex.
  */
-int muxer::write(std::shared_ptr<io::data> const& d) {
+uint32_t muxer::write(std::shared_ptr<io::data> const& d) {
   _logger->debug("write on muxer '{}'", _name);
   if (!d) {
     return 1;

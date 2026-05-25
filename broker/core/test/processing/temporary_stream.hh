@@ -73,13 +73,13 @@ class temporary_stream : public io::stream {
    *
    *  @return Number of elements acknowledged (1).
    */
-  int32_t write(std::shared_ptr<io::data> const& d) override {
+  uint32_t write(std::shared_ptr<io::data> const& d) override {
     std::lock_guard<std::mutex> lock(_events_m);
     _events.push(d);
     return 1;
   }
 
-  int32_t stop() override { return 0; }
+  uint32_t stop() override { return 0; }
 };
 
 }

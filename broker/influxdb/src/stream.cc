@@ -75,9 +75,9 @@ stream::stream(std::string const& user,
  *
  *  @return Number of events acknowledged.
  */
-int32_t stream::flush() {
+uint32_t stream::flush() {
   _logger->debug("influxdb: commiting {} queries", _actual_query);
-  int ret(_pending_queries);
+  uint32_t ret(_pending_queries);
   _actual_query = 0;
   _pending_queries = 0;
   _influx_db->commit();
@@ -90,9 +90,9 @@ int32_t stream::flush() {
  *
  * @return Number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("influxdb::stream stop {}", static_cast<void*>(this));
-  int32_t retval = flush();
+  uint32_t retval = flush();
   _logger->info("influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }
@@ -130,7 +130,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(std::shared_ptr<io::data> const& data) {
+uint32_t stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_queries;
   if (!validate(data, get_name()))

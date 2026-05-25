@@ -103,7 +103,7 @@ class luabinding {
   bool _flush;
 
   // Count on events
-  int32_t _total;
+  uint32_t _total;
 
   // Api version among (1, 2)
   uint32_t _broker_api_version;
@@ -123,10 +123,10 @@ class luabinding {
   luabinding& operator=(luabinding const&) = delete;
   ~luabinding() noexcept;
   bool has_filter() const noexcept;
-  int32_t write(std::shared_ptr<io::data> const& data) noexcept;
+  uint32_t write(std::shared_ptr<io::data> const& data) noexcept;
   bool has_flush() const noexcept;
-  int32_t flush() noexcept;
-  int32_t stop();
+  uint32_t flush() noexcept;
+  uint32_t stop();
 };
 
 // Event conversion to Lua table.

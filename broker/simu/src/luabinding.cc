@@ -134,7 +134,9 @@ void luabinding::_init_script(
     absl::btree_map<std::string, variant> const& conf_params) {
   lua_getglobal(_L, "init");
   lua_newtable(_L);
-  for (const auto& [name, val] : conf_params) {
+  for (const auto& kv : conf_params) {
+    const auto& name = kv.first;
+    const auto& val = kv.second;
     std::visit(
         [this, &name](auto&& v) {
           using T = std::decay_t<decltype(v)>;

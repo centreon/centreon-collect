@@ -65,7 +65,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return Number of events acknowledged.
  */
-int stream::write(const std::shared_ptr<io::data>& data) {
+uint32_t stream::write(const std::shared_ptr<io::data>& data) {
   assert(data);
 
   return _luabinding.write(data);
@@ -78,8 +78,8 @@ int stream::write(const std::shared_ptr<io::data>& data) {
  *
  * @return The number of events to ack.
  */
-int32_t stream::flush() {
-  int32_t retval = 0;
+uint32_t stream::flush() {
+  uint32_t retval = 0;
   if (_luabinding.has_flush()) {
     retval = _luabinding.flush();
     _logger->debug("stream: flush {} events acknowledged", retval);
@@ -92,7 +92,7 @@ int32_t stream::flush() {
  *
  * @return The number of acknowledged events.
  */
-int32_t stream::stop() {
+uint32_t stream::stop() {
   _logger->trace("lua::stream stop {}", static_cast<void*>(this));
   return _luabinding.stop();
 }

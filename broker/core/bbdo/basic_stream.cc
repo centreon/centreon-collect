@@ -588,7 +588,7 @@ basic_stream::~basic_stream() {
  *
  * @return The number of events to acknowledge.
  */
-int32_t basic_stream::stop() {
+uint32_t basic_stream::stop() {
   _logger->debug("bbdo::basic_stream stop {}", static_cast<void*>(this));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
@@ -614,7 +614,7 @@ int32_t basic_stream::stop() {
   _substream->stop();
 
   /* We return the number of events handled by our basic stream. */
-  int32_t retval = _acknowledged_events;
+  uint32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
   return retval;
 }
@@ -624,9 +624,9 @@ int32_t basic_stream::stop() {
  *
  *  @return Number of acknowledged events.
  */
-int basic_stream::flush() {
+uint32_t basic_stream::flush() {
   _substream->flush();
-  int retval = _acknowledged_events;
+  uint32_t retval = _acknowledged_events;
   _acknowledged_events -= retval;
   return retval;
 }
@@ -1229,10 +1229,10 @@ void basic_stream::_write(const std::shared_ptr<io::data>& d) {
  *
  *  @return Number of events acknowledged.
  */
-int32_t basic_stream::write(std::shared_ptr<io::data> const& d) {
+uint32_t basic_stream::write(std::shared_ptr<io::data> const& d) {
   _write(d);
 
-  int32_t retval = _acknowledged_events;
+  uint32_t retval = _acknowledged_events;
   _acknowledged_events -= retval;
   return retval;
 }

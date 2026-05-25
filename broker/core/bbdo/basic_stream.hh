@@ -182,15 +182,15 @@ class basic_stream : public io::stream {
   virtual ~basic_stream();
   basic_stream(const basic_stream&) = delete;
   basic_stream& operator=(const basic_stream&) = delete;
-  int32_t stop() override;
-  int flush() override;
+  uint32_t stop() override;
+  uint32_t flush() override;
   bool read(std::shared_ptr<io::data>& d,
             time_t deadline = (time_t)-1) override;
   void set_ack_limit(uint32_t limit);
   void set_coarse(bool coarse);
   void set_timeout(int timeout);
   void statistics(nlohmann::json& tree) const override;
-  int write(std::shared_ptr<io::data> const& d) override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
   void acknowledge_events(uint32_t events);
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();

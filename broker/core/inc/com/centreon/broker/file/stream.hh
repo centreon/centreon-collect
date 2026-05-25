@@ -57,8 +57,8 @@ class stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void remove_all_files();
   void statistics(nlohmann::json& tree) const override;
-  int32_t write(std::shared_ptr<io::data> const& d) override;
-  int32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t stop() override;
   uint32_t max_file_size() const;
 };
 }  // namespace com::centreon::broker::file

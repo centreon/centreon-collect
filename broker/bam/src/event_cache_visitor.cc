@@ -68,7 +68,7 @@ bool event_cache_visitor::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *
  *  @return       Number of event acknowledged.
  */
-int event_cache_visitor::write(std::shared_ptr<io::data> const& d) {
+uint32_t event_cache_visitor::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
 

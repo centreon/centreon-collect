@@ -84,7 +84,7 @@ void hooker::stopping() {
  *
  *  @return Number of elements acknowledged (1).
  */
-int32_t hooker::write(std::shared_ptr<io::data> const& d) {
+uint32_t hooker::write(std::shared_ptr<io::data> const& d) {
   (void)d;
   if (_registered) {
     std::shared_ptr<io::raw> raw(new io::raw);
@@ -95,6 +95,6 @@ int32_t hooker::write(std::shared_ptr<io::data> const& d) {
   return 1;
 }
 
-int32_t hooker::stop() {
+uint32_t hooker::stop() {
   return 0;
 }

@@ -60,9 +60,9 @@ class stream : public io::stream {
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
-  int write(std::shared_ptr<io::data> const& d) override;
-  int32_t flush() override;
-  int32_t stop() override;
+  uint32_t write(std::shared_ptr<io::data> const& d) override;
+  uint32_t flush() override;
+  uint32_t stop() override;
 };
 
 }  // namespace com::centreon::broker::lua

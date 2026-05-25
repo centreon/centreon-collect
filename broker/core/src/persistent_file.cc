@@ -84,7 +84,7 @@ void persistent_file::statistics(nlohmann::json& tree) const {
  *
  *  @param[in] d  Input data.
  */
-int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
+uint32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
   return _substream->write(d);
 }
 
@@ -93,8 +93,8 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  *
  * @return the number of acknowledged events.
  */
-int32_t persistent_file::stop() {
-  int32_t retval = _substream->stop();
+uint32_t persistent_file::stop() {
+  uint32_t retval = _substream->stop();
   log_v2::instance()
       .get(log_v2::CORE)
       ->info("persistent file stopped with {} acknowledged events", retval);
