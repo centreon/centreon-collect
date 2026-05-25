@@ -74,7 +74,8 @@ void engine::unload() {
        * from the muxers array. Even if they execute asynchronous functions,
        * they have finished after that. */
       auto muxers_empty = [&m = instance->_muxers,
-                           logger = instance->_logger]() {
+                           logger = instance->_logger]()
+          ABSL_NO_THREAD_SAFETY_ANALYSIS {
         logger->debug("Still {} muxers configured in Broker engine", m.size());
         return m.empty();
       };
@@ -87,8 +88,14 @@ void engine::unload() {
 
     // Commit the cache file, if needed.
     if (instance->_cache_file) {
-      // In case of muxers removed from the Engine and still events in _kiew
-      instance->publish(instance->_kiew);
+      // Drain _kiew under lock, then publish the copy outside to satisfy
+      // ABSL_LOCKS_EXCLUDED(_kiew_m) on publish().
+      std::deque<std::shared_ptr<io::data>> kiew_copy;
+      {
+        absl::MutexLock kiew_lck(&instance->_kiew_m);
+        kiew_copy = std::move(instance->_kiew);
+      }
+      instance->publish(kiew_copy);
       instance->_cache_file->commit();
     }
     _instance.reset();

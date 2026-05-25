@@ -741,7 +741,7 @@ TEST_F(TestConnector, TimeoutKill) {
 
   ASSERT_EQ(retval, 0);
   std::string expected(TimeoutKillRESULT,
-                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
+                       &TimeoutKillRESULT[sizeof(TimeoutKillRESULT) - 1]);
   ASSERT_EQ(output, expected);
 }
 
@@ -764,6 +764,6 @@ TEST_F(TestConnector, TimeoutTerm) {
   ASSERT_EQ(retval, 0);
   std::string expected(
       TimeoutKillTermRESULT,
-      TimeoutKillTermRESULT + sizeof(TimeoutKillTermRESULT) - 1);
+      &TimeoutKillTermRESULT[sizeof(TimeoutKillTermRESULT) - 1]);
   ASSERT_EQ(output, expected);
 }

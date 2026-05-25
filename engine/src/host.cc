@@ -1089,11 +1089,9 @@ void host::schedule_acknowledgement_expiration() {
  *  @return Return true on success.
  */
 int host::log_event() {
-  unsigned long log_options{NSLOG_HOST_UP};
   char const* state("UP");
   if (get_current_state() > 0 &&
       (unsigned int)get_current_state() < tab_host_states.size()) {
-    log_options = tab_host_states[get_current_state()].first;
     state = tab_host_states[get_current_state()].second.c_str();
   }
   const std::string& state_type(tab_state_type[get_state_type()]);

@@ -126,8 +126,12 @@ class agent_impl
 
   // server version
   void OnDone();
-  // client version
+// client version — intentionally no 'override': template is instantiated for
+// both server (no matching virtual) and client (virtual exists) reactors
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
   void OnDone(const ::grpc::Status& /*s*/);
+#pragma clang diagnostic pop
 
   virtual void shutdown();
 

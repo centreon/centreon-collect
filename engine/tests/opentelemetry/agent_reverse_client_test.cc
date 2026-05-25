@@ -89,7 +89,8 @@ class my_agent_reverse_client : public agent_reverse_client {
   agent_reverse_client::config_to_client::iterator
   _create_new_client_connection(
       const grpc_config::pointer& agent_endpoint,
-      const agent_config::pointer& agent_conf) override {
+      const agent_config::pointer& agent_conf) override
+      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_agents_m) {
     return _agents
         .try_emplace(
             agent_endpoint,
@@ -98,7 +99,7 @@ class my_agent_reverse_client : public agent_reverse_client {
         .first;
   }
 
-  void _shutdown_connection(config_to_client::const_iterator to_delete) {
+  void _shutdown_connection(config_to_client::const_iterator to_delete) override {
     to_delete->second->shutdown();
   }
 };

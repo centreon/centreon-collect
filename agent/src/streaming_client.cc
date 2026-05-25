@@ -99,7 +99,7 @@ streaming_client::streaming_client(
       _io_context(io_context),
       _logger(logger),
       _supervised_host(supervised_host) {
-  _stub = std::move(AgentService::NewStub(_channel));
+  _stub = AgentService::NewStub(_channel);
 }
 
 /**

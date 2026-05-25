@@ -99,7 +99,7 @@ void failover::exit() {
       SPDLOG_LOGGER_TRACE(_logger, "Waiting for {} to be stopped", _name);
 
       _state_m.Await(absl::Condition(
-          +[](failover* f) {
+          +[](failover* f) ABSL_NO_THREAD_SAFETY_ANALYSIS {
             return f->_state == stopped || f->_state == not_started;
           },
           this));
@@ -607,7 +607,10 @@ void failover::start() {
     _thread = std::thread(&failover::_run, this);
     pthread_setname_np(_thread.native_handle(), "proc_failover");
     _state_m.Await(absl::Condition(
-        +[](failover* f) { return f->_state != not_started; }, this));
+        +[](failover* f) ABSL_NO_THREAD_SAFETY_ANALYSIS {
+          return f->_state != not_started;
+        },
+        this));
   }
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' started.", _name);
 }

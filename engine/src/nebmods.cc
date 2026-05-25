@@ -432,7 +432,6 @@ int neb_make_callbacks(int callback_type, void* data) {
   nebcallback* temp_callback;
   nebcallback* next_callback;
   int cbresult = 0;
-  int total_callbacks = 0;
 
   /* make sure the callback type is within bounds */
   if (callback_type < 0 || callback_type >= NEBCALLBACK_NUMITEMS)
@@ -449,8 +448,6 @@ int neb_make_callbacks(int callback_type, void* data) {
     } neb;
     neb.data = temp_callback->callback_func;
     cbresult = (*neb.func)(callback_type, data);
-
-    total_callbacks++;
 
     /* module wants to cancel callbacks to other modules (and potentially cancel
      * the default handling of an event) */

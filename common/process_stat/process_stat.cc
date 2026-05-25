@@ -116,7 +116,7 @@ process_stat::process_stat(pid_t process_id)
   auto field_iter = stat_fields.begin();
   std::advance(field_iter, 13);
   uint64_t value = 0;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
 
   unsigned tick_per_second = sysconf(_SC_CLK_TCK);
   timespec ts_boot_time;
@@ -127,12 +127,12 @@ process_stat::process_stat(pid_t process_id)
 
   _user_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 1);
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _kernel_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 5);
-  absl::SimpleAtoi(*field_iter, &_num_threads);
+  (void)absl::SimpleAtoi(*field_iter, &_num_threads);
   std::advance(field_iter, 2);
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _starttime =
       boot_time + std::chrono::milliseconds(value * 1000 / tick_per_second);
 
@@ -142,12 +142,12 @@ process_stat::process_stat(pid_t process_id)
   stat_fields = absl::StrSplit(file_content, ' ');
   unsigned page_size = getpagesize();
   field_iter = stat_fields.begin();
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _vm_size = value * page_size;
   ++field_iter;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _res_size = value * page_size;
   ++field_iter;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _shared_size = value * page_size;
 }

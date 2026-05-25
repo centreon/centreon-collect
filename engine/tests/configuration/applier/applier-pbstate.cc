@@ -270,11 +270,6 @@ static void CreateBadConf(ConfigurationObject obj) {
 constexpr size_t CFG_FILES = 19u;
 constexpr size_t RES_FILES = 1u;
 constexpr size_t HOSTS = 11u;
-constexpr size_t SERVICES = 363u;
-constexpr size_t TIMEPERIODS = 2u;
-constexpr size_t CONTACTS = 1u;
-constexpr size_t HOSTGROUPS = 2u;
-constexpr size_t SERVICEGROUPS = 1u;
 
 TEST_F(ApplierState, StateParsing) {
   configuration::error_cnt err;
