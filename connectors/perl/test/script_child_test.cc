@@ -307,6 +307,48 @@ TEST_F(ScriptChildTest, CmdIdRoundTrip) {
 }
 
 // ============================================================
+//  stdout / stderr capture
+// ============================================================
+
+/**
+ * @brief A Perl script that prints to both stdout and stderr should have both
+ *        captured in the corresponding fields of the result message.
+ *
+ * The script writes a known sentinel to stdout ("STDOUT_MARKER") and a
+ * distinct diagnostic to stderr ("STDERR_MARKER"), then calls exit(0).
+ * The loader's BEGIN block intercepts exit() and writes "SCRIPT_EXIT_CODE:0"
+ * to stderr so the exit status is decoded; the remaining stderr text
+ * ("STDERR_MARKER") must be forwarded to result.stderr().
+ *
+ * This test documents a known gap in check_child::_run(): the stderr poll
+ * loop currently discards all stderr text that does not match the
+ * SCRIPT_EXIT_CODE pattern and never calls res->set_stderr().  The test will
+ * fail until that is fixed.
+ */
+TEST_F(ScriptChildTest, StdoutAndStderrBothCaptured) {
+  _temp_script = write_temp_script(
+      "print \"STDOUT_MARKER\\n\";\n"
+      "print STDERR \"STDERR_MARKER\\n\";\n"
+      "exit(0);\n");
+  ASSERT_FALSE(_temp_script.empty());
+
+  fork_child(_temp_script);
+  _child->write_mess_to_child_stdin(make_execute(70));
+
+  ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
+
+  absl::MutexLock l(&_mu);
+  ASSERT_TRUE(_received[0].has_result());
+  const auto& res = _received[0].result();
+  EXPECT_EQ(res.cmd_id(), 70u);
+  EXPECT_EQ(res.status(), 0);
+  EXPECT_NE(res.stdout().find("STDOUT_MARKER"), std::string::npos)
+      << "stdout not captured in result.stdout(); got: " << res.stdout();
+  EXPECT_NE(res.stderr().find("STDERR_MARKER"), std::string::npos)
+      << "stderr not captured in result.stderr(); got: " << res.stderr();
+}
+
+// ============================================================
 //  Sequential multiple checks
 // ============================================================
 
@@ -346,8 +388,8 @@ TEST_F(ScriptChildTest, ThreeSequentialChecks) {
 // ============================================================
 
 /**
- * @brief After a successful check the result carries non-zero afterfirstcheck
- *        and afterlastcheck load metrics set by check_child::measure_load().
+ * @brief After a successful check the result carries non-zero after_first_check
+ *        and after_last_check load metrics set by check_child::measure_load().
  *
  * Verifies that the "baseline after first check" metrics are populated and
  * that nb_threads > 0 (the child process itself counts as at least one
@@ -365,10 +407,10 @@ TEST_F(ScriptChildTest, ResultContainsLoadMetrics) {
   absl::MutexLock l(&_mu);
   ASSERT_TRUE(_received[0].has_result());
   const auto& res = _received[0].result();
-  EXPECT_GT(res.afterfirstcheck().nb_thread(), 0u);
-  EXPECT_GT(res.afterlastcheck().nb_thread(), 0u);
+  EXPECT_GT(res.after_first_check().nb_thread(), 0u);
+  EXPECT_GT(res.after_last_check().nb_thread(), 0u);
   // Memory usage of a live process is always > 0.
-  EXPECT_GT(res.afterfirstcheck().used_memory(), 0u);
+  EXPECT_GT(res.after_first_check().used_memory(), 0u);
 }
 
 // ============================================================

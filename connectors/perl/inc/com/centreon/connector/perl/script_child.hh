@@ -72,6 +72,7 @@ struct timeout_connector_mess_compare {
  */
 class script_child : public com::centreon::common::fork<false, true> {
   const std::string _script_path;
+  std::string _loader_script_path;
   const config _config;
   char* _argv0;
   const int _fd_to_close_after_fork;

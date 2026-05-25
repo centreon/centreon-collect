@@ -120,7 +120,7 @@ class policy : public com::centreon::connector::policy_interface {
   asio::system_timer _every_second_timer;
   const config _config;
   char* _argv0;
-  bool _stop_io_context_on_quit;
+  const bool _stop_io_context_on_quit;
 
   policy(const shared_io_context& io_context,
          const std::shared_ptr<spdlog::logger>& logger,

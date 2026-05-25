@@ -148,6 +148,9 @@ script_child::~script_child() {
     perl_free(my_perl);
     PERL_SYS_TERM();
   }
+  if (!_loader_script_path.empty()) {
+    unlink(_loader_script_path.c_str());
+  }
 }
 
 /**
@@ -196,7 +199,7 @@ std::string script_child::_write_loader_to_disk(
       offset += wb;
     }
   }
-
+  close(script_fd);
   return script_path;
 }
 
@@ -252,10 +255,8 @@ void script_child::_compile_script(const std::string& loader_path) {
 void script_child::_load_check_script() {
   // load check script
   std::filesystem::file_time_type check_script_mtime;
-  std::string file_content;
   try {
     check_script_mtime = std::filesystem::last_write_time(_script_path);
-    file_content = common::read_file_content(_script_path);
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_ERROR(_logger, "failed to open Perl file {}", _script_path);
     throw exceptions::msg_fmt("failed to open Perl file {}", _script_path);
@@ -371,15 +372,14 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
   _child_io_context = std::make_shared<asio::io_context>();
   _child_stdout =
       std::make_unique<asio::writable_pipe>(*_child_io_context, stdout_fd);
-  std::string loader_path;
   try {
-    loader_path = _write_loader_to_disk(_config.code());
+    _loader_script_path = _write_loader_to_disk(_config.code());
   } catch (const std::exception& e) {
     _global_error = e.what();
   }
   if (_global_error.empty()) {
     try {
-      _compile_script(loader_path);
+      _compile_script(_loader_script_path);
     } catch (const std::exception& e) {
       _global_error = e.what();
     }
@@ -443,7 +443,9 @@ void script_child::read_from_main_process_stdin() {
                            const boost::system::error_code& err,
                            const std::shared_ptr<ConnectorMess>& received) {
                          me->_on_stdin_receive(err, received);
-                         me->read_from_main_process_stdin();
+                         if (!err) {
+                           me->read_from_main_process_stdin();
+                         }
                        });
 }
 
@@ -706,9 +708,9 @@ void script_child::_from_child_script_receive(
         }
       }
       if (kill_reason == no_kill && execute.percent_max_memory_increased()) {
-        if (res.afterfirstcheck().used_memory() *
+        if (res.after_first_check().used_memory() *
                 (1.0 + execute.percent_max_memory_increased() / 100.0) <
-            res.afterlastcheck().used_memory()) {
+            res.after_last_check().used_memory()) {
           SPDLOG_LOGGER_DEBUG(_logger,
                               "{}: too much memory growth pid:{} => kill",
                               _script_path, pid);
@@ -716,9 +718,9 @@ void script_child::_from_child_script_receive(
         }
       }
       if (kill_reason == no_kill && execute.percent_max_open_fd_increased()) {
-        if (res.afterfirstcheck().nb_opened_fd() *
+        if (res.after_first_check().nb_opened_fd() *
                 (1.0 + execute.percent_max_open_fd_increased() / 100.0) <
-            res.afterlastcheck().nb_opened_fd()) {
+            res.after_last_check().nb_opened_fd()) {
           SPDLOG_LOGGER_DEBUG(_logger,
                               "{}: too much opened fd growth pid:{} => kill",
                               _script_path, pid);
@@ -726,7 +728,7 @@ void script_child::_from_child_script_receive(
         }
       }
       if (kill_reason == no_kill && execute.max_thread()) {
-        if (res.afterlastcheck().nb_thread() >= execute.max_thread()) {
+        if (res.after_last_check().nb_thread() >= execute.max_thread()) {
           SPDLOG_LOGGER_DEBUG(_logger, "{}: too much threads pid:{} => kill",
                               _script_path, pid);
           kill_reason = max_thread;

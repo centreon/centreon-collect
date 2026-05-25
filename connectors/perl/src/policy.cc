@@ -20,7 +20,9 @@
 #include <absl/strings/numbers.h>
 #include <re2/re2.h>
 #include <spdlog/spdlog.h>
+#include <chrono>
 #include <memory>
+#include <thread>
 
 #include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/connector/perl/policy.hh"
@@ -39,9 +41,9 @@ policy::check_child_stat::check_child_stat(
     : parent(prent),
       check_child_pid(res.pid()),
       last_used(time(nullptr)),
-      footprint(res.afterlastcheck().used_memory(),
-                res.afterlastcheck().nb_opened_fd(),
-                res.afterlastcheck().nb_thread()) {}
+      footprint(res.after_last_check().used_memory(),
+                res.after_last_check().nb_opened_fd(),
+                res.after_last_check().nb_thread()) {}
 
 /**
  * @brief This function evaluate free memory by parsing /proc/meminfo
@@ -280,6 +282,8 @@ void policy::on_quit() {
     terminate.mutable_terminate()->set_pid(script->get_pid());
     script->write_mess_to_child_stdin(terminate);
   }
+  // let time to send terminate
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   if (_stop_io_context_on_quit) {
     _io_context->stop();
   }
@@ -493,12 +497,13 @@ size_t policy::_remove_heaviest_check_child() {
           selected = load_iter->parent;
           // we give to script child list of check child reverse ordered by
           // footprint
+          freed = std::get<0>(load_iter->footprint);
           for (; load_iter != footprint_index.rend() &&
                  load_iter->parent == selected;
                ++load_iter) {
             term->add_other_pids(load_iter->check_child_pid);
           }
-          freed = std::get<0>(load_iter->footprint);
+          break;
         } else {
           round_forbidden.emplace(
               load_iter->parent);  // no need to re test this script child
@@ -508,12 +513,13 @@ size_t policy::_remove_heaviest_check_child() {
                                        // the first inactive check child
         // we give to script child list of check child reverse ordered by
         // footprint
+        freed = std::get<0>(load_iter->footprint);
         for (; load_iter != footprint_index.rend() &&
                load_iter->parent == selected;
              ++load_iter) {
           term->add_other_pids(load_iter->check_child_pid);
         }
-        freed = std::get<0>(load_iter->footprint);
+        break;
       }
     }
     round_forbidden.clear();

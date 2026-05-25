@@ -211,12 +211,15 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         }
         if (pfd[1].revents & POLLIN) {
           nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
-          static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)");
+          static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
+          std::string to_clean(buffer, nb_read);
           int exit_status = -1;
-          if (re2::RE2::PartialMatch(std::string_view(buffer, nb_read),
-                                     exit_code_pattern, &exit_status)) {
+          if (re2::RE2::PartialMatch(to_clean, exit_code_pattern,
+                                     &exit_status)) {
             res->set_status(exit_status);
             status_decoded = true;
+            re2::RE2::Replace(&to_clean, exit_code_pattern, "");
+            res->mutable_stderr()->append(to_clean);
           }
           stderr_received = true;
         }
@@ -230,15 +233,15 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
       if (!_after_first_check_load) {
         _after_first_check_load = new_load;
       }
-      res->mutable_afterfirstcheck()->set_nb_thread(
+      res->mutable_after_first_check()->set_nb_thread(
           _after_first_check_load->nb_thread);
-      res->mutable_afterfirstcheck()->set_nb_opened_fd(
+      res->mutable_after_first_check()->set_nb_opened_fd(
           _after_first_check_load->nb_opened_fd);
-      res->mutable_afterfirstcheck()->set_used_memory(
+      res->mutable_after_first_check()->set_used_memory(
           _after_first_check_load->used_memory);
-      res->mutable_afterlastcheck()->set_nb_thread(new_load.nb_thread);
-      res->mutable_afterlastcheck()->set_nb_opened_fd(new_load.nb_opened_fd);
-      res->mutable_afterlastcheck()->set_used_memory(new_load.used_memory);
+      res->mutable_after_last_check()->set_nb_thread(new_load.nb_thread);
+      res->mutable_after_last_check()->set_nb_opened_fd(new_load.nb_opened_fd);
+      res->mutable_after_last_check()->set_used_memory(new_load.used_memory);
       SPDLOG_LOGGER_TRACE(_logger,
                           "pid: {} check_child send to script_child: {}",
                           getpid(), result.ShortDebugString());
