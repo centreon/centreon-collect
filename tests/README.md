@@ -1384,57 +1384,51 @@ Here is the list of the currently implemented tests:
 300. **GRPC_RECONNECT**: We restart broker and engine must reconnect to it and send data
 301. **LCDNU**: the lua cache updates correctly service cache.
 302. **LCDNUH**: the lua cache updates correctly host cache
-303. **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
-304. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
-305. **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
-306. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
-307. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
-308. **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
-309. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
-310. **LOGV2EBU2**: Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
-311. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
-312. **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
-313. **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
-314. **LUA_CACHE_SAVE_BBDO3**: 
+303. **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
+304. **LOGV2DF2**: log-v2 disabled old log disabled check logfile sink
+305. **LOGV2EB1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled.
+306. **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
+307. **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
+308. **LUA_CACHE_SAVE_BBDO3**: 
      * **GIVEN** a engine broker configured in bbdo2, we check that services and hosts are stored in bbdo3 format in cache
      To do that we compare host and service event with lua cache
-315. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: **SCENARIO:** Moving hosts between pollers without losing hostgroup tag
+309. **MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER**: **SCENARIO:** Moving hosts between pollers without losing hostgroup tag
 
      * **GIVEN** two pollers each with two hosts
      * **AND** all hosts belong to the same hostgroup
      * **WHEN** I move two hosts from one poller to the other
      * **THEN** the hostgroup tag of the moved hosts is not erased
-316. **NON_TLS_CONNECTION_WARNING**: 
+310. **NON_TLS_CONNECTION_WARNING**: 
      * **GIVEN** an agent starts a non-TLS connection,
      we expect to get a warning message.
-317. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
+311. **NON_TLS_CONNECTION_WARNING_ENCRYPTED**: 
      * **GIVEN** agent with encrypted connection, we expect no warning message.
-318. **NON_TLS_CONNECTION_WARNING_FULL**: 
+312. **NON_TLS_CONNECTION_WARNING_FULL**: 
      * **GIVEN** an agent starts a non-TLS connection,
      we expect to get a warning message.
      After 1 hour, we expect to get a warning message about the connection time expired
      * **AND** the connection killed.
-319. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
+313. **NON_TLS_CONNECTION_WARNING_FULL_REVERSED**: 
      * **GIVEN** an agent starts a non-TLS connection reverse,
      we expect to get a warning message.
      After 1 hour, we expect to get a warning message about the connection time expired
      * **AND** the connection killed.
-320. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
+314. **NON_TLS_CONNECTION_WARNING_REVERSED**: 
      * **GIVEN** an agent starts a non-TLS connection reversed,
      we expect to get a warning message.
-321. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
+315. **NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED**: 
      * **GIVEN** agent with encrypted reversed connection, we expect no warning message.
-322. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
-323. **RENAME_PARENT**: 
+316. **NO_FILTER_NO_ERROR**: no filter configured => no filter error.
+317. **RENAME_PARENT**: 
      * **GIVEN** an host with a parent host. We rename the parent host and check if the child host is still linked to the parent.
      Engine mustn't crash and log an error on reload.
-324. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
-325. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
-326. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
-327. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
-328. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
-329. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
-330. **Service_increased_huge_check_interval**: **SCENARIO:** New services with huge check interval at creation time.
+318. **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+319. **RRD1**: RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+320. **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then Engine and Broker are started and Broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that Broker doesn't crash anymore.
+321. **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+322. **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+323. **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
+324. **Service_increased_huge_check_interval**: **SCENARIO:** New services with huge check interval at creation time.
 
      * **GIVEN** Engine and Broker are configured with 1 poller and 10 hosts
      * **WHEN** Engine is started
@@ -1450,49 +1444,49 @@ Here is the list of the currently implemented tests:
      * **THEN** metrics should be created and sent to rrd Broker
      * **WHEN** new service metrics are analyzed
      * **THEN** metrics should have minimal heartbeat of 54000 and pdp_per_row of 5400
-331. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
-332. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
-333. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
-334. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
-335. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
-336. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
-337. **VICT_ONE_CHECK_STATUS**: victoria metrics status output
-338. **Whitelist_Directory_NotReadable**: 
+325. **Services_and_bulks_${id}**: One service is configured with one metric with a name of 150 to 1021 characters.
+326. **Start_Stop_Broker_Engine_${id}**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
+327. **Start_Stop_Engine_Broker_${id}**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
+328. **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+329. **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+330. **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+331. **VICT_ONE_CHECK_STATUS**: victoria metrics status output
+332. **Whitelist_Directory_NotReadable**: 
      * **GIVEN** a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
-339. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
-340. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
-341. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
-342. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
-343. **Whitelist_NotReadable**: 
+333. **Whitelist_Directory_Rights**: log if /etc/centreon-engine-whitelist has not mandatory rights or owner
+334. **Whitelist_Empty_Directory**: log if /etc/centreon-engine-whitelist is empty
+335. **Whitelist_Host**: Test on allowed and forbidden commands for hosts
+336. **Whitelist_No_Whitelist_Directory**: log if /etc/centreon-engine-whitelist doesn't exist
+337. **Whitelist_NotReadable**: 
      * **GIVEN** a centengine started by centreon-engine user, whitelist files are not readable and centengine must log an error
-344. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
-345. **Whitelist_Service**: test allowed and forbidden commands for services
-346. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
-347. **metric_mapping**: Check if metric name exists using a stream connector
-348. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
-349. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
-350. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
-351. **not12**: Escalations
-352. **not13**: notification for a dependencies host
-353. **not14**: notification for a Service dependency
-354. **not15**: several notification commands for the same user.
-355. **not16**: notification for dependencies services group
-356. **not17**: notification for a dependensies host group
-357. **not18**: notification delay where first notification delay equal retry check
-358. **not19**: notification delay where first notification delay greater than retry check
-359. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
-360. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
-361. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
-362. **not2**: This test case configures a single service and verifies that a recovery notification is sent
-363. **not20**: notification delay where first notification delay samller than retry check
-364. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
-365. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
-366. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
-367. **not6**: This test case validate the behavior when the notification time period is set to null.
-368. **not7**: This test case simulates a host alert scenario.
-369. **not8**: This test validates the critical host notification.
-370. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
-371. **not_in_timeperiod_with_send_recovery_notifications_anyways**: **SCENARIO:** Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
+338. **Whitelist_Perl_Connector**: test allowed and forbidden commands for services
+339. **Whitelist_Service**: test allowed and forbidden commands for services
+340. **Whitelist_Service_EH**: test allowed and forbidden event handler for services
+341. **metric_mapping**: Check if metric name exists using a stream connector
+342. **not1**: This test case configures a single service and verifies that a notification is sent when the service is in a non-OK HARD state.
+343. **not10**: This test case involves scheduling downtime on a down host that already had a critical notification. When The Host return to UP state we should receive a recovery notification.
+344. **not11**: This test case involves configuring one service and checking that three alerts are sent for it.
+345. **not12**: Escalations
+346. **not13**: notification for a dependencies host
+347. **not14**: notification for a Service dependency
+348. **not15**: several notification commands for the same user.
+349. **not16**: notification for dependencies services group
+350. **not17**: notification for a dependensies host group
+351. **not18**: notification delay where first notification delay equal retry check
+352. **not19**: notification delay where first notification delay greater than retry check
+353. **not1_WL_KO**: This test case configures a single service. When it is in non-OK HARD state a notification should be sent but it is not allowed by the whitelist
+354. **not1_WL_OK**: This test case configures a single service. When it is in non-OK HARD state a notification is sent because it is allowed by the whitelist
+355. **not1_reload**: This test case configures a single service and set the service in a non-OK HARD state so engine sends a notification. Then the service is removed from the configuration and Engine is reloaded. And Engine doesn't crash.
+356. **not2**: This test case configures a single service and verifies that a recovery notification is sent
+357. **not20**: notification delay where first notification delay samller than retry check
+358. **not3**: This test case configures a single service and verifies the notification system's behavior during and after downtime
+359. **not4**: This test case configures a single service and verifies the notification system's behavior during and after acknowledgement
+360. **not5**: This test case configures two services with two different users being notified when the services transition to a critical state.
+361. **not6**: This test case validate the behavior when the notification time period is set to null.
+362. **not7**: This test case simulates a host alert scenario.
+363. **not8**: This test validates the critical host notification.
+364. **not9**: This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
+365. **not_in_timeperiod_with_send_recovery_notifications_anyways**: **SCENARIO:** Verify notification is sent when service is in non-OK state and recovery is sent outside timeperiod if setting is enabled
 
      * **GIVEN** a configured single service
      * **AND** the service enters a non-OK state
@@ -1500,7 +1494,7 @@ Here is the list of the currently implemented tests:
      * **THEN** a notification should be sent
      * **AND** an OK notification should be sent outside the time period
      * **WHEN** the setting "_send_recovery_notifications_anyways" is set
-372. **not_in_timeperiod_without_send_recovery_notifications_anyways**: **SCENARIO:** Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
+366. **not_in_timeperiod_without_send_recovery_notifications_anyways**: **SCENARIO:** Verify notification is sent when service is in non-OK state and recovery is not sent outside timeperiod
 
      * **GIVEN** a configured single service
      * **AND** the service enters a non-OK state
@@ -2740,4 +2734,4 @@ Here is the list of the currently implemented tests:
      * **THEN** broker logs an error about the bad base64 encoding
 
 
-801 tests currently implemented.
+795 tests currently implemented.
