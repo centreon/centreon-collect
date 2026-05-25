@@ -5,6 +5,7 @@ package com.centreon.connector.perl;
 
 message GlobalError {
     string error = 1;
+    bool unusable_script = 2;
 }
 
 

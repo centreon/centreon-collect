@@ -26,10 +26,6 @@
 
 #include <EXTERN.h>
 #include <perl.h>
-#include <cstddef>
-#include <cstring>
-#include <ctime>
-#include <memory>
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
@@ -394,6 +390,7 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
   if (!_global_error.empty()) {
     ConnectorMess error;
     error.mutable_have_to_terminate()->set_error(_global_error);
+    error.mutable_have_to_terminate()->set_unusable_script(true);
     auto dummy [[maybe_unused]] = _protocol.send(*_child_stdout, error);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     return -1;
@@ -530,8 +527,7 @@ void script_child::_every_second_timer_handler() {
     }
     _die_start_to_check_child.erase(_die_start_to_check_child.begin(), limit);
     for (std::shared_ptr<check_child> to_insert : to_final_kill) {
-      _die_start_to_check_child.emplace(time(nullptr),
-                                        killing_check_child(true, to_insert));
+      _kill_check_child(false, false, to_insert);
     }
   }
 
@@ -542,7 +538,7 @@ void script_child::_every_second_timer_handler() {
         time(nullptr) - 60 * _config.minute_idle_check_child_ttl());
     for (auto to_kill = last_used_index.begin(); to_kill != too_idle;
          ++to_kill) {
-      _kill_check_child(false, true, to_kill->child);
+      _kill_check_child(true, true, to_kill->child);
     }
     last_used_index.erase(last_used_index.begin(), too_idle);
   }
@@ -627,17 +623,16 @@ void script_child::_on_stdin_receive(
   } else if (from_main_process_mess->has_terminate()) {  // TERMINATE
     const auto& term = from_main_process_mess->terminate();
     if (getpid() == term.pid()) {  // terminate script child
+      for (auto& child_to_kill : _check_childs) {
+        child_to_kill.child->kill();
+      }
       _child_io_context->stop();
     } else {
       auto& pid_index = _check_childs.get<0>();
       if (term.pid()) {  // terminate a specific check child
         auto dest = pid_index.find(term.pid());
         if (dest != pid_index.end()) {
-          if (term.immediate()) {
-            dest->child->kill();
-          } else {
-            _kill_check_child(true, true, dest->child);
-          }
+          _kill_check_child(true, !term.immediate(), dest->child);
         }
       } else if (!term.other_pids()
                       .empty()) {  // terminate the first check child we can
@@ -700,7 +695,7 @@ void script_child::_from_child_script_receive(
     if (query != _pending.end() && check_chld != pid_index.end()) {
       const auto& execute = query->query->execute();
       if (execute.max_execute()) {
-        if (execute.max_execute() <= check_chld->child->execute_counter()) {
+        if (execute.max_execute() <= check_chld->execute_counter) {
           SPDLOG_LOGGER_DEBUG(_logger, "{}: too much executions pid:{} => kill",
                               _script_path, pid);
           kill_reason = max_execute;
@@ -843,7 +838,7 @@ void script_child::_on_child_script_end(int pid) {
                         pid);
   }
   // replace dead check_child by another if queries in queue
-  if (was_registered && !_execute_queue.empty()) {
+  if (!_execute_queue.empty() && _check_childs.empty()) {
     auto to_send = _execute_queue.extract(_execute_queue.begin());
     _create_child_and_execute(to_send.value());
   }

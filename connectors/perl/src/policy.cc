@@ -15,14 +15,9 @@
  *
  * For more information : contact@centreon.com
  */
-#include <absl/container/flat_hash_set.h>
 #include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
 #include <re2/re2.h>
-#include <spdlog/spdlog.h>
-#include <chrono>
-#include <memory>
-#include <thread>
 
 #include "com/centreon/common/process/process_args.hh"
 #include "com/centreon/connector/perl/policy.hh"
@@ -35,6 +30,14 @@ using namespace com::centreon;
 using namespace com::centreon::connector;
 using namespace com::centreon::connector::perl;
 
+/**
+ * @brief Snapshot the resource footprint of a check_child after it reports a
+ *        result.  The parent pointer is stored so the stat can be indexed by
+ *        script_child later.
+ *
+ * @param parent Owning script_child.
+ * @param res   Result protobuf carrying pid and after_last_check metrics.
+ */
 policy::check_child_stat::check_child_stat(
     const std::shared_ptr<script_child>& prent,
     const Result& res)
@@ -47,7 +50,7 @@ policy::check_child_stat::check_child_stat(
 
 /**
  * @brief This function evaluate free memory by parsing /proc/meminfo
- * It's a weak function on order to be override in tests
+ * It's a weak function in order to be override in tests
  *
  */
 __attribute__((weak)) int64_t get_free_memory() {
@@ -87,6 +90,11 @@ policy::~policy() {
                       static_cast<const void*>(this));
 }
 
+/**
+ * @brief Factory: allocates a policy, starts the stdin parser and the periodic
+ *        timer, then transfers ownership to the internal shared_ptr chain.
+ *        Callers do not hold a reference after this call returns.
+ */
 void policy::create(const shared_io_context& io_context,
                     const std::shared_ptr<spdlog::logger>& logger,
                     const config& conf,
@@ -100,6 +108,10 @@ void policy::create(const shared_io_context& io_context,
   ret->_start();
 }
 
+/**
+ * @brief Wires up the stdin command parser and arms the one-second timer.
+ *        Must be called once, immediately after the shared_ptr is established.
+ */
 void policy::_start() {
   orders::parser::create(_io_context, shared_from_this(),
                          _config.test_file_path(), _stdin_fd);
@@ -153,6 +165,7 @@ void policy::on_execute(uint64_t cmd_id,
 
   auto& script_path_index = _scripts.get<0>();
   auto script = script_path_index.find(script_path);
+  bool no_child_create = false;
   if (script == script_path_index.end()) {
     // script_child process close _stdin_fd. If we don't do that, stdin_fd
     // closed event will never happen as stdin_fd will remain opened in
@@ -181,11 +194,15 @@ void policy::on_execute(uint64_t cmd_id,
                 _config, _argv0, _stdin_fd))
             .first;
     (*script)->do_fork(false);
-  }
-
-  bool no_child_create = _free_memory(*script) < _config.min_free_memory();
-  if (_check_child_stats.size() + _scripts.size() >= _config.max_child()) {
-    no_child_create = true;
+  } else {  // we allow new script to create at least one child
+    // we add an offset in order to avoid remove check_child, start another one,
+    // remove...
+    no_child_create =
+        _free_memory(*script) + 50 * 1024 * 1024 < _config.min_free_memory();
+    if (_check_child_stats.size() + _scripts.size() + 10 >=
+        _config.max_child()) {
+      no_child_create = true;
+    }
   }
 
   _pending_queries.emplace(cmd_id, script_path, timeout, *script);
@@ -193,6 +210,24 @@ void policy::on_execute(uint64_t cmd_id,
       _create_execute(cmd_id, timeout, cmdline, no_child_create));
 }
 
+/**
+ * Build a ConnectorMess::Execute protobuf message to send to a script_child.
+ *
+ * Global resource limits (max_execute, memory, fd, thread) are taken from
+ * _config; any per-command overrides are parsed out of the extra arguments
+ * embedded in cmdline (child-max-reuse-script,
+ * child-max-memory-increase-percent, child-max-fd-increase-percent,
+ * child-max-thread). All remaining arguments are forwarded verbatim to the
+ * check_child as the script's argv.
+ *
+ * @param cmd_id          Unique command identifier, echoed back in the result.
+ * @param timeout         Absolute deadline for this check.
+ * @param cmdline         Full command line: script path followed by optional
+ *                        per-command limit flags and then script arguments.
+ * @param no_child_create If true the script_child must not spawn a new
+ *                        check_child but reuse an existing idle one.
+ * @return ConnectorMess with the Execute field populated.
+ */
 ConnectorMess policy::_create_execute(uint64_t cmd_id,
                                       const time_point& timeout,
                                       const std::string& cmdline,
@@ -201,6 +236,8 @@ ConnectorMess policy::_create_execute(uint64_t cmd_id,
   auto execute = order.mutable_execute();
   execute->set_cmd_id(cmd_id);
   com::centreon::common::process_args cmd_line(cmdline);
+  // Apply global limits; per-command overrides in the loop below may replace
+  // them.
   execute->set_max_execute(_config.child_max_reuse_script());
   execute->set_percent_max_memory_increased(
       _config.child_max_memory_increase_percent());
@@ -299,6 +336,19 @@ void policy::on_version() {
   _reporter->send_version(1, 0);
 }
 
+/**
+ * @brief Dispatch a message received from a script_child process.
+ *
+ * Three message kinds are handled:
+ *  - have_to_terminate: the script file changed; move the script_child to the
+ *    dying set, flush pending checks with an error, and let the timer reap it.
+ *  - result: a check_child finished a check; update its resource stats, trigger
+ *    a memory sweep, and forward the result to the reporter.
+ *  - child_end: a check_child process exited; remove its entry from stats.
+ *
+ * @param script_chld      The script_child that sent the message.
+ * @param from_script_mess Incoming protobuf message.
+ */
 void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
                                 const ConnectorMess& from_script_mess) {
   if (from_script_mess.has_have_to_terminate()) {
@@ -309,16 +359,17 @@ void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
       script_index.erase(has_been);
     }
     // export script_child failure to all pending checks
-    auto& script_pid_index = _pending_queries.get<2>();
-    auto check_errors = script_pid_index.equal_range(script_chld);
-    for (; check_errors.first != check_errors.second; ++check_errors.first) {
-      result res(check_errors.first->cmd_id, -1, "",
-                 from_script_mess.have_to_terminate().error());
-      res.set_executed(false);
-      _reporter->send_result(res);
+    if (from_script_mess.have_to_terminate().unusable_script()) {
+      auto& script_pid_index = _pending_queries.get<2>();
+      auto check_errors = script_pid_index.equal_range(script_chld);
+      for (; check_errors.first != check_errors.second; ++check_errors.first) {
+        result res(check_errors.first->cmd_id, -1, "",
+                   from_script_mess.have_to_terminate().error());
+        res.set_executed(false);
+        _reporter->send_result(res);
+      }
+      script_pid_index.erase(script_chld);
     }
-    script_pid_index.erase(script_chld);
-
   } else if (from_script_mess.has_result()) {
     const auto& res = from_script_mess.result();
     check_child_stat new_stat(script_chld, res);
@@ -337,6 +388,15 @@ void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
   }
 }
 
+/**
+ * @brief Called when a script_child process exits (expected or unexpected).
+ *
+ * Removes all check_child stats owned by the script_child, erases it from the
+ * active or dying set, and reports an error for every pending check that was
+ * waiting on it.
+ *
+ * @param script_chld The script_child that just exited.
+ */
 void policy::_on_script_child_end(std::shared_ptr<script_child> script_chld) {
   int pid = script_chld->get_pid();
   SPDLOG_LOGGER_INFO(_logger, "end of script child pid={} {}", pid,
@@ -363,6 +423,10 @@ void policy::_on_script_child_end(std::shared_ptr<script_child> script_chld) {
   script_pid_index.erase(script_chld);
 }
 
+/**
+ * @brief Arms the one-second recurring timer that drives check timeouts and
+ *        deferred script_child cleanup.
+ */
 void policy::_start_every_second_timer() {
   _every_second_timer.expires_after(std::chrono::seconds(1));
   _every_second_timer.async_wait(
@@ -371,6 +435,16 @@ void policy::_start_every_second_timer() {
       });
 }
 
+/**
+ * @brief Periodic tick fired every second.
+ *
+ * 1. Expires timed-out pending checks (exit code 3, "(Process Timeout)").
+ * 2. Kills dying script_children that no longer have pending queries.
+ * 3. Re-arms the timer for the next tick.
+ *
+ * @param err Asio error code; non-zero means the timer was cancelled — return
+ *            immediately without re-arming.
+ */
 void policy::_every_second_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
@@ -422,13 +496,13 @@ size_t policy::_free_memory(
 
   // idle check_child for this check?
   if (who_need_memory) {
-    auto working_check_child =
-        _pending_queries.get<2>().equal_range(who_need_memory);
+    unsigned nb_working_check_child =
+        _pending_queries.get<2>().count(who_need_memory);
 
     auto total_check_child =
         _check_child_stats.get<0>().equal_range(who_need_memory);
     if (std::distance(total_check_child.first, total_check_child.second) <=
-        std::distance(working_check_child.first, working_check_child.second)) {
+        nb_working_check_child) {
       // all check child busy => calculate memory used by another child
       unsigned average_memory_used_by_this_script = 0;
       unsigned nb_check_child_script = 0;
@@ -479,7 +553,7 @@ size_t policy::_remove_heaviest_check_child() {
   // round 1 search heaviest and delay kill
   for (round = 0; round < 2; ++round) {
     for (auto load_iter = footprint_index.rbegin();
-         !selected && load_iter != footprint_index.rend(); ++load_iter) {
+         load_iter != footprint_index.rend(); ++load_iter) {
       if (forbidden.contains(load_iter->parent) ||
           round_forbidden.contains(load_iter->parent)) {
         continue;
@@ -535,11 +609,15 @@ size_t policy::_remove_heaviest_check_child() {
   return freed;
 }
 
+/**
+ * @brief Evicts the least-recently-used check_child to free a process slot
+ *        when the total child count reaches max_child.
+ */
 void policy::_remove_oldest_check_child() {
   auto& older_index = _check_child_stats.get<2>();
-  ConnectorMess child_script_terminate;
-  auto term = child_script_terminate.mutable_terminate();
   if (!older_index.empty()) {
+    ConnectorMess child_script_terminate;
+    auto term = child_script_terminate.mutable_terminate();
     term->add_other_pids(older_index.begin()->check_child_pid);
     older_index.begin()->parent->write_mess_to_child_stdin(
         child_script_terminate);

@@ -19,7 +19,6 @@
 #ifndef CCC_REPORTER_HH
 #define CCC_REPORTER_HH
 
-#include <unistd.h>
 #include "com/centreon/connector/result.hh"
 
 namespace com::centreon::connector {

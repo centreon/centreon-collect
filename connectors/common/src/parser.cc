@@ -28,7 +28,6 @@ parser::parser(const shared_io_context& io_context,
                const std::shared_ptr<policy_interface>& policy,
                int stdin_fd)
     : _io_context(io_context),
-      //      _sin(*io_context, dup(STDIN_FILENO)),
       _sin(*io_context, dup(stdin_fd)),
       _dont_care_about_stdin_eof(false),
       _owner(policy) {}

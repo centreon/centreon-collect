@@ -19,7 +19,6 @@
 #ifndef CCC_ORDERS_PARSER_HH
 #define CCC_ORDERS_PARSER_HH
 
-#include <unistd.h>
 namespace com::centreon::connector {
 
 class policy_interface;

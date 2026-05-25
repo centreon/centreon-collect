@@ -22,8 +22,6 @@
 
 #include <EXTERN.h>
 #include <perl.h>
-#include <spdlog/spdlog.h>
-#include <unistd.h>
 
 #include "common/inc/com/centreon/common/process_stat.hh"
 #include "src/perl_connector.pb.h"
@@ -196,25 +194,19 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         bool stdout_received = false;
         bool stderr_received = false;
         bool status_decoded = false;
-        bool have_to_stop_poll = false;
         // we wait 1000ms to receive first stdout and stderr datas
-        while (!have_to_stop_poll &&
-               poll(pfd, 2, (stdout_received && stderr_received) ? 10 : 1000) >
-                   0) {
+        while (poll(pfd, 2, (stdout_received && stderr_received) ? 10 : 1000) >
+               0) {
           if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
             nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
-            if (nb_read <= 0) {
-              have_to_stop_poll = true;
-            } else {
+            if (nb_read > 0) {
               res->mutable_stdout()->append(buffer, nb_read);
               stdout_received = true;
             }
           }
           if (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) {
             nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
-            if (nb_read <= 0) {
-              have_to_stop_poll = true;
-            } else {
+            if (nb_read > 0) {
               static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
               static re2::RE2 exit_code_pattern_without_exit_code(
                   "SCRIPT_EXIT_CODE:\n");

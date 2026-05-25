@@ -16,13 +16,8 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
-#include <dirent.h>
-#include <fcntl.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <boost/system/detail/error_code.hpp>
-#include <fstream>
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
 #include "common/crypto/aes256.hh"

@@ -352,17 +352,16 @@ TEST_F(PolicyTest, ScriptChildFailureSendsErrorForPendingQuery) {
 // ---------------------------------------------------------------------------
 
 /**
- * @brief When get_free_memory() returns 0, policy::_free_memory() triggers
- *        the early-return path and returns 0.  Because 0 < min_free_memory
- *        (default 500), no_child_create=true is placed in the Execute message
- *        sent to the script_child.
+ * @brief Even when get_free_memory() returns 0 (memory exhausted), a brand-new
+ *        script (not yet registered in policy::_scripts) is always allowed to
+ *        spawn its first check_child.
  *
- * With no existing idle check_child and no_child_create=true the script_child
- * enqueues the request without forking a check_child process.  The Perl
- * script therefore never executes and the flag file it would create is absent
- * after a 3 s window.
+ * policy::on_execute() only sets no_child_create=true for scripts that are
+ * already known (existing script_child).  For a new script the flag stays
+ * false regardless of memory, so the script_child forks a check_child and the
+ * Perl script executes normally.
  */
-TEST_F(PolicyTest, LowFreeMemoryPreventsCheckChildCreation) {
+TEST_F(PolicyTest, LowFreeMemoryAllowsFirstCheckChildForNewScript) {
   const std::string flag =
       "/tmp/centreon_policy_low_mem_flag_" + std::to_string(::getpid());
   ::unlink(flag.c_str());
@@ -373,19 +372,22 @@ TEST_F(PolicyTest, LowFreeMemoryPreventsCheckChildCreation) {
                                          "exit(0);\n");
   ASSERT_FALSE(script.empty());
 
-  g_mock_free_memory = 0;  // forces no_child_create = true
+  g_mock_free_memory = 0;  // memory exhausted, but must not block a new script
 
   create_policy();
   send_cmd(make_execute_cmd(1, 60, script));
 
-  // Allow enough time for the script_child to load and potentially run the
-  // Perl check (loading the Perl interpreter takes ~1-2 s).
-  std::this_thread::sleep_for(std::chrono::seconds(4));
-
+  // Poll until the flag file appears (up to 15 s for Perl init + execution).
+  auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
   struct stat st;
-  EXPECT_NE(::stat(flag.c_str(), &st), 0)
-      << "Flag file should NOT exist: the Perl script ran despite "
-         "no_child_create=true (low free memory)";
+  while (::stat(flag.c_str(), &st) != 0 &&
+         std::chrono::steady_clock::now() < deadline) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+
+  EXPECT_EQ(::stat(flag.c_str(), &st), 0)
+      << "Flag file should exist: new script must get its first check_child "
+         "even under memory pressure (no_child_create=false for new scripts)";
 
   ::unlink(flag.c_str());
   ::unlink(script.c_str());

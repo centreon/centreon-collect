@@ -16,14 +16,12 @@
  * For more information : contact@centreon.com
  */
 
+#ifndef _WIN32
 #include <sys/syscall.h>
-#include <boost/icl/interval_set.hpp>
-#include <boost/process/v2/process.hpp>
-#include "absl/strings/numbers.h"
-#include "boost/icl/concept/interval_bounds.hpp"
-#include "boost/icl/discrete_interval.hpp"
+#endif
 
-#include "com/centreon/common/file_system.hh"
+#include <boost/process/v2/process.hpp>
+
 #include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/detail/boost_process.hh"
 
