@@ -112,15 +112,10 @@ void check_child::_on_process_end() {
  * @return A load struct populated with the current measurements.
  */
 check_child::load check_child::measure_load() {
-  try {
-    common::process_stat stats(getpid());
-    return load{.used_memory = stats.res_size(),
-                .nb_thread = stats.num_threads(),
-                .nb_opened_fd = stats.opened_fds()};
-  } catch (const std::exception& e) {
-    std::cout << "fail process stats:" << e.what() << std::endl;
-    throw;
-  }
+  common::process_stat stats(getpid());
+  return load{.used_memory = stats.res_size(),
+              .nb_thread = stats.num_threads(),
+              .nb_opened_fd = stats.opened_fds()};
 }
 
 /**
@@ -158,120 +153,131 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
 
   dSP;
   SPAGAIN;
-
-  while (1) {
-    ConnectorMess received;
-    boost::system::error_code err = _protocol.recv(child_stdin, received);
-    if (err) {
-      break;
-    }
-    SPDLOG_LOGGER_TRACE(_logger, "pid: {} check_child receive: {}", getpid(),
-                        received.ShortDebugString());
-    if (received.has_terminate()) {
-      break;
-    }
-    if (received.has_execute()) {
-      ENTER;
-      SAVETMPS;
-      PUSHMARK(SP);
-      XPUSHs(reinterpret_cast<SV*>(_check_script_handle));
-      XPUSHs(sv_2mortal(newSVpv(_script_path.c_str(), 0)));
-      for (const auto& arg : received.execute().args()) {
-        XPUSHs(sv_2mortal(newSVpv(arg.c_str(), 0)));
-      }
-      PUTBACK;
-      call_pv("Embed::Persistent::run_file", G_DISCARD);
-      SPAGAIN; /* rafraichit le pointeur de pile  */
-      LEAVE;
-
-      struct pollfd pfd[2];
-      pfd[0].fd = stdout_pipe_fd[0];
-      pfd[0].events = POLLIN;
-      pfd[1].fd = stderr_pipe_fd[0];
-      pfd[1].events = POLLIN;
-
-      ConnectorMess result;
-      auto res = result.mutable_result();
-      res->set_cmd_id(received.execute().cmd_id());
-      res->set_pid(getpid());
-
-      char buffer[4096];
-      ssize_t nb_read;
-      bool stdout_received = false;
-      bool stderr_received = false;
-      bool status_decoded = false;
-      bool have_to_stop_poll = false;
-      // we wait 1000ms to receive first stdout and stderr datas
-      while (!have_to_stop_poll &&
-             poll(pfd, 2, (stdout_received && stderr_received) ? 10 : 1000) >
-                 0) {
-        if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
-          nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
-          if (nb_read <= 0) {
-            have_to_stop_poll = true;
-          } else {
-            res->mutable_stdout()->append(buffer, nb_read);
-            stdout_received = true;
-          }
-        }
-        if (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) {
-          nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
-          if (nb_read <= 0) {
-            have_to_stop_poll = true;
-          } else {
-            static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
-            static re2::RE2 exit_code_pattern_without_exit_code(
-                "SCRIPT_EXIT_CODE:\n");
-            std::string to_clean(buffer, nb_read);
-            int exit_status = -1;
-            if (re2::RE2::PartialMatch(to_clean, exit_code_pattern,
-                                       &exit_status)) {
-              res->set_status(exit_status);
-              status_decoded = true;
-            } else if (re2::RE2::PartialMatch(
-                           to_clean, exit_code_pattern_without_exit_code)) {
-              SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail empty status",
-                                  getpid());
-              exit_status = 3;
-              res->set_status(exit_status);
-              status_decoded = true;
-            }
-
-            re2::RE2::Replace(&to_clean, exit_code_pattern, "");
-            re2::RE2::Replace(&to_clean, exit_code_pattern_without_exit_code,
-                              "");
-            res->mutable_stderr()->append(to_clean);
-            stderr_received = true;
-          }
-        }
-      }
-      if (!status_decoded) {
-        SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail to decode status", getpid());
-        res->set_status(3);  // UNKNOWN
-        res->set_stdout("script status no decoded " + res->stdout());
-      }
-      load new_load = measure_load();
-      if (!_after_first_check_load) {
-        _after_first_check_load = new_load;
-      }
-      res->mutable_after_first_check()->set_nb_thread(
-          _after_first_check_load->nb_thread);
-      res->mutable_after_first_check()->set_nb_opened_fd(
-          _after_first_check_load->nb_opened_fd);
-      res->mutable_after_first_check()->set_used_memory(
-          _after_first_check_load->used_memory);
-      res->mutable_after_last_check()->set_nb_thread(new_load.nb_thread);
-      res->mutable_after_last_check()->set_nb_opened_fd(new_load.nb_opened_fd);
-      res->mutable_after_last_check()->set_used_memory(new_load.used_memory);
-      SPDLOG_LOGGER_TRACE(_logger,
-                          "pid: {} check_child send to script_child: {}",
-                          getpid(), result.ShortDebugString());
-      boost::system::error_code send_error =
-          _protocol.send(child_stdout, result);
-      if (send_error) {
+  try {
+    while (1) {
+      ConnectorMess received;
+      boost::system::error_code err = _protocol.recv(child_stdin, received);
+      if (err) {
         break;
       }
+      SPDLOG_LOGGER_TRACE(_logger, "pid: {} check_child receive: {}", getpid(),
+                          received.ShortDebugString());
+      if (received.has_terminate()) {
+        break;
+      }
+      if (received.has_execute()) {
+        ENTER;
+        SAVETMPS;
+        PUSHMARK(SP);
+        XPUSHs(reinterpret_cast<SV*>(_check_script_handle));
+        XPUSHs(sv_2mortal(newSVpv(_script_path.c_str(), 0)));
+        for (const auto& arg : received.execute().args()) {
+          XPUSHs(sv_2mortal(newSVpv(arg.c_str(), 0)));
+        }
+        PUTBACK;
+        call_pv("Embed::Persistent::run_file", G_DISCARD);
+        SPAGAIN; /* rafraichit le pointeur de pile  */
+        FREETMPS;
+        LEAVE;
+
+        struct pollfd pfd[2];
+        pfd[0].fd = stdout_pipe_fd[0];
+        pfd[0].events = POLLIN;
+        pfd[1].fd = stderr_pipe_fd[0];
+        pfd[1].events = POLLIN;
+
+        ConnectorMess result;
+        auto res = result.mutable_result();
+        res->set_cmd_id(received.execute().cmd_id());
+        res->set_pid(getpid());
+
+        char buffer[4096];
+        ssize_t nb_read;
+        bool stdout_received = false;
+        bool stderr_received = false;
+        bool status_decoded = false;
+        bool have_to_stop_poll = false;
+        // we wait 1000ms to receive first stdout and stderr datas
+        while (!have_to_stop_poll &&
+               poll(pfd, 2, (stdout_received && stderr_received) ? 10 : 1000) >
+                   0) {
+          if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
+            nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
+            if (nb_read <= 0) {
+              have_to_stop_poll = true;
+            } else {
+              res->mutable_stdout()->append(buffer, nb_read);
+              stdout_received = true;
+            }
+          }
+          if (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) {
+            nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
+            if (nb_read <= 0) {
+              have_to_stop_poll = true;
+            } else {
+              static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
+              static re2::RE2 exit_code_pattern_without_exit_code(
+                  "SCRIPT_EXIT_CODE:\n");
+              std::string to_clean(buffer, nb_read);
+              int exit_status = -1;
+              if (re2::RE2::PartialMatch(to_clean, exit_code_pattern,
+                                         &exit_status)) {
+                res->set_status(exit_status);
+                status_decoded = true;
+              } else if (re2::RE2::PartialMatch(
+                             to_clean, exit_code_pattern_without_exit_code)) {
+                SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail empty status",
+                                    getpid());
+                exit_status = 3;
+                res->set_status(exit_status);
+                status_decoded = true;
+              }
+
+              re2::RE2::Replace(&to_clean, exit_code_pattern, "");
+              re2::RE2::Replace(&to_clean, exit_code_pattern_without_exit_code,
+                                "");
+              res->mutable_stderr()->append(to_clean);
+              stderr_received = true;
+            }
+          }
+        }
+        if (!status_decoded) {
+          SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail to decode status",
+                              getpid());
+          res->set_status(3);  // UNKNOWN
+          res->set_stdout("script status no decoded " + res->stdout());
+        }
+        load new_load = measure_load();
+        if (!_after_first_check_load) {
+          _after_first_check_load = new_load;
+        }
+        res->mutable_after_first_check()->set_nb_thread(
+            _after_first_check_load->nb_thread);
+        res->mutable_after_first_check()->set_nb_opened_fd(
+            _after_first_check_load->nb_opened_fd);
+        res->mutable_after_first_check()->set_used_memory(
+            _after_first_check_load->used_memory);
+        res->mutable_after_last_check()->set_nb_thread(new_load.nb_thread);
+        res->mutable_after_last_check()->set_nb_opened_fd(
+            new_load.nb_opened_fd);
+        res->mutable_after_last_check()->set_used_memory(new_load.used_memory);
+        SPDLOG_LOGGER_TRACE(_logger,
+                            "pid: {} check_child send to script_child: {}",
+                            getpid(), result.ShortDebugString());
+        boost::system::error_code send_error =
+            _protocol.send(child_stdout, result);
+        if (send_error) {
+          break;
+        }
+      }
     }
+  } catch (const std::exception& e) {
+    SPDLOG_LOGGER_ERROR(_logger, "exception: {} for pid: {}", e.what(),
+                        getpid());
+    return -1;
+  } catch (...) {
+    SPDLOG_LOGGER_ERROR(_logger, "unknown exception for pid: {}", getpid());
+    return -1;
   }
   SPDLOG_LOGGER_DEBUG(_logger, "end of check_child pid:{}", getpid());
   return 0;
