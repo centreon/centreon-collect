@@ -565,6 +565,11 @@ if(NOT ONLY_ROBOT_CMA)
   add_subdirectory(tests)
 endif()
 
+# Benchmarks.
+if(WITH_TESTING AND NOT ONLY_ROBOT_CMA)
+  add_subdirectory(benchmark)
+endif()
+
 #
 # Install stuff.
 #
