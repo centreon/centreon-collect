@@ -412,8 +412,7 @@ int script_child::_run(int stdin_fd, int stdout_fd, int) {
   // ps
   if (_argv0) {
     size_t max_len = strlen(_argv0);
-    char* new_process_name = strdup(basename.c_str());
-    strncpy(_argv0, new_process_name, max_len);
+    strncpy(_argv0, basename.c_str(), max_len);
   }
 
   _child_io_context->run();
