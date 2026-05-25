@@ -450,7 +450,9 @@ anomalydetection::anomalydetection(uint64_t host_id,
                                    std::string const& timezone,
                                    uint64_t icon_id,
                                    double sensitivity)
-    : service{hostname,
+    : service{host_id,
+              service_id,
+              hostname,
               description,
               display_name,
               "",
@@ -489,8 +491,6 @@ anomalydetection::anomalydetection(uint64_t host_id,
       _thresholds_file_viable{false},
       _sensitivity(sensitivity),
       _dependent_service_id(0) {
-  set_host_id(host_id);
-  set_service_id(service_id);
   init_thresholds();
   set_dependent_service(dependent_service);
 }

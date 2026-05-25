@@ -218,7 +218,7 @@ static std::string get_host_children(host& hst, nagios_macros* mac) {
  */
 static std::string get_host_id(host& hst, nagios_macros* mac) {
   (void)mac;
-  return fmt::to_string(com::centreon::engine::get_host_id(hst.name()));
+  return fmt::to_string(hst.host_id());
 }
 
 /**

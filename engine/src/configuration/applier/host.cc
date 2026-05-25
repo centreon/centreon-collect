@@ -38,6 +38,9 @@ using namespace com::centreon::engine::configuration;
  *  @param[in] obj  The new host to add into the monitoring engine.
  */
 void applier::host::add_object(const configuration::Host& obj) {
+  if (obj.host_id() == 0)
+    throw engine_error() << fmt::format(
+        "Could not add host '{}': host_id must not be zero", obj.host_name());
   // Logging.
   config_logger->debug("Creating new host '{}'.", obj.host_name());
 
@@ -84,7 +87,6 @@ void applier::host::add_object(const configuration::Host& obj) {
 
   h->set_initial_notif_time(0);
   h->set_should_reschedule_current_check(false);
-  h->set_host_id(obj.host_id());
   h->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
                                  pb_indexed_config.state().interval_length());
   h->set_last_acknowledgement(0);
@@ -149,6 +151,10 @@ void applier::host::add_object(const configuration::Host& obj) {
  */
 void applier::host::modify_object(configuration::Host* old_obj,
                                   const configuration::Host& new_obj) {
+  if (new_obj.host_id() == 0)
+    throw engine_error() << fmt::format(
+        "Could not modify host '{}': host_id must not be zero",
+        new_obj.host_name());
   // Logging.
   config_logger->debug("Modifying host '{}' (id {}).", new_obj.host_name(),
                        new_obj.host_id());
@@ -254,7 +260,6 @@ void applier::host::modify_object(configuration::Host* old_obj,
       static_cast<int>(new_obj.retain_nonstatus_information()));
   h->set_obsess_over(new_obj.obsess_over_host());
   h->set_timezone(new_obj.timezone());
-  h->set_host_id(new_obj.host_id());
   h->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
                                  pb_indexed_config.state().interval_length());
   h->set_recovery_notification_delay(new_obj.recovery_notification_delay());

@@ -467,9 +467,8 @@ static void forward_host(int type,
   my_host->timezone = h->get_timezone();
 
   // Find host ID.
-  uint64_t host_id = engine::get_host_id(my_host->host_name);
-  if (host_id != 0) {
-    my_host->host_id = host_id;
+  if (h->host_id() != 0) {
+    my_host->host_id = h->host_id();
 
     // Send host event.
     SPDLOG_LOGGER_DEBUG(
@@ -856,10 +855,8 @@ static void forward_service(int type,
         (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
 
     // Search host ID and service ID.
-    std::pair<uint64_t, uint64_t> p;
-    p = engine::get_host_and_service_id(s->get_hostname(), s->description());
-    my_service->host_id = p.first;
-    my_service->service_id = p.second;
+    my_service->host_id = s->host_id();
+    my_service->service_id = s->service_id();
     if (my_service->host_id && my_service->service_id) {
       // Send service event.
       SPDLOG_LOGGER_DEBUG(neb_logger,
@@ -1451,11 +1448,10 @@ static void forward_custom_variable(int type,
         case NEBTYPE_HOSTCUSTOMVARIABLE_ADD: {
           if (object_ptr && !object_ptr->name().empty()) {
             // Fill custom variable event.
-            uint64_t host_id = engine::get_host_id(object_ptr->name());
-            if (host_id != 0) {
+            if (object_ptr->host_id() != 0) {
               auto new_cvar = std::make_shared<neb::custom_variable>();
               new_cvar->enabled = true;
-              new_cvar->host_id = host_id;
+              new_cvar->host_id = object_ptr->host_id();
               new_cvar->modified = false;
               new_cvar->name = common::check_string_utf8(var_name);
               new_cvar->var_type = 0;
@@ -1479,11 +1475,10 @@ static void forward_custom_variable(int type,
         } break;
         case NEBTYPE_HOSTCUSTOMVARIABLE_DELETE: {
           if (object_ptr && !object_ptr->name().empty()) {
-            uint32_t host_id = engine::get_host_id(object_ptr->name());
-            if (host_id != 0) {
+            if (object_ptr->host_id() != 0) {
               auto old_cvar{std::make_shared<neb::custom_variable>()};
               old_cvar->enabled = false;
-              old_cvar->host_id = host_id;
+              old_cvar->host_id = object_ptr->host_id();
               old_cvar->name = common::check_string_utf8(var_name);
               old_cvar->var_type = 0;
               if (timestamp)
@@ -1511,16 +1506,13 @@ static void forward_custom_variable(int type,
           if (object_ptr && !object_ptr->description().empty() &&
               !object_ptr->get_hostname().empty()) {
             // Fill custom variable event.
-            std::pair<uint32_t, uint32_t> p;
-            p = engine::get_host_and_service_id(object_ptr->get_hostname(),
-                                                object_ptr->description());
-            if (p.first && p.second) {
+            if (object_ptr->host_id() && object_ptr->service_id()) {
               auto new_cvar{std::make_shared<neb::custom_variable>()};
               new_cvar->enabled = true;
-              new_cvar->host_id = p.first;
+              new_cvar->host_id = object_ptr->host_id();
               new_cvar->modified = false;
               new_cvar->name = common::check_string_utf8(var_name);
-              new_cvar->service_id = p.second;
+              new_cvar->service_id = object_ptr->service_id();
               new_cvar->var_type = 1;
               if (timestamp)
                 new_cvar->update_time = timestamp->tv_sec;
@@ -1544,16 +1536,13 @@ static void forward_custom_variable(int type,
         case NEBTYPE_SERVICECUSTOMVARIABLE_DELETE: {
           if (object_ptr && !object_ptr->description().empty() &&
               !object_ptr->get_hostname().empty()) {
-            const std::pair<uint64_t, uint64_t> p{
-                engine::get_host_and_service_id(object_ptr->get_hostname(),
-                                                object_ptr->description())};
-            if (p.first && p.second) {
+            if (object_ptr->host_id() && object_ptr->service_id()) {
               auto old_cvar{std::make_shared<neb::custom_variable>()};
               old_cvar->enabled = false;
-              old_cvar->host_id = p.first;
+              old_cvar->host_id = object_ptr->host_id();
+              old_cvar->service_id = object_ptr->service_id();
               old_cvar->modified = true;
               old_cvar->name = common::check_string_utf8(var_name);
-              old_cvar->service_id = p.second;
               old_cvar->var_type = 1;
               if (timestamp)
                 old_cvar->update_time = timestamp->tv_sec;
@@ -1601,12 +1590,11 @@ static void forward_pb_custom_variable(int type,
       if (NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type ||
           NEBTYPE_HOSTCUSTOMVARIABLE_DELETE == type) {
         if (object_ptr && !object_ptr->name().empty()) {
-          uint64_t host_id = engine::get_host_id(object_ptr->name());
-          if (host_id != 0) {
+          if (object_ptr->host_id() != 0) {
             std::string name(common::check_string_utf8(var_name));
             bool add = NEBTYPE_HOSTCUSTOMVARIABLE_ADD == type;
             obj.set_enabled(add);
-            obj.set_host_id(host_id);
+            obj.set_host_id(object_ptr->host_id());
             obj.set_modified(!add);
             obj.set_name(name);
             obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
@@ -1624,12 +1612,12 @@ static void forward_pb_custom_variable(int type,
               SPDLOG_LOGGER_DEBUG(neb_logger,
                                   "callbacks: new custom variable '{}' with "
                                   "value '{}' on host {}",
-                                  name, value, host_id);
+                                  name, value, object_ptr->host_id());
             } else {
               SPDLOG_LOGGER_DEBUG(
                   neb_logger,
                   "callbacks: deleted custom variable '{}' on host {}", name,
-                  host_id);
+                  object_ptr->host_id());
             }
             ok_to_send = true;
           }
@@ -1642,16 +1630,13 @@ static void forward_pb_custom_variable(int type,
         if (object_ptr && !object_ptr->description().empty() &&
             !object_ptr->get_hostname().empty()) {
           // Fill custom variable event.
-          std::pair<uint64_t, uint64_t> p;
-          p = engine::get_host_and_service_id(object_ptr->get_hostname(),
-                                              object_ptr->description());
-          if (p.first && p.second) {
+          if (object_ptr->host_id() && object_ptr->service_id()) {
             std::string name(common::check_string_utf8(var_name));
             bool add = NEBTYPE_SERVICECUSTOMVARIABLE_ADD == type;
             obj.set_enabled(add);
-            obj.set_host_id(p.first);
+            obj.set_host_id(object_ptr->host_id());
             obj.set_modified(!add);
-            obj.set_service_id(p.second);
+            obj.set_service_id(object_ptr->service_id());
             obj.set_name(name);
             obj.set_type(com::centreon::broker::CustomVariable_VarType_SERVICE);
             if (timestamp)
@@ -1668,13 +1653,12 @@ static void forward_pb_custom_variable(int type,
               SPDLOG_LOGGER_DEBUG(
                   neb_logger,
                   "callbacks: new custom variable '{}' on service ({}, {})",
-                  name, p.first, p.second);
-
+                  name, object_ptr->host_id(), object_ptr->service_id());
             } else {
               SPDLOG_LOGGER_DEBUG(
                   neb_logger,
                   "callbacks: deleted custom variable '{}' on service ({},{})",
-                  name, p.first, p.second);
+                  name, object_ptr->host_id(), object_ptr->service_id());
             }
             ok_to_send = true;
           }
@@ -2275,9 +2259,8 @@ static void forward_group_member(int type,
     hgm->group_id = group->get_id();
     hgm->group_name = common::check_string_utf8(group->get_group_name());
     hgm->poller_id = cbm->poller_id();
-    uint32_t host_id = engine::get_host_id(object->name());
-    if (host_id != 0 && hgm->group_id != 0) {
-      hgm->host_id = host_id;
+    if (object->host_id() != 0 && hgm->group_id != 0) {
+      hgm->host_id = object->host_id();
       if (type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
         SPDLOG_LOGGER_DEBUG(neb_logger,
                             "callbacks: host {} is not a member of group "
@@ -2622,7 +2605,7 @@ static void forward_host_status(const engine::host* hst,
     if (hst->name().empty())
       throw exceptions::msg_fmt("unnamed host");
     {
-      host_status->host_id = engine::get_host_id(hst->name());
+      host_status->host_id = hst->host_id();
       if (host_status->host_id == 0)
         throw exceptions::msg_fmt("could not find ID of host '{}'",
                                   hst->name());
@@ -4616,10 +4599,8 @@ static void forward_service_status(const engine::service* svc,
     service_status->service_description =
         common::check_string_utf8(svc->description());
     {
-      std::pair<uint64_t, uint64_t> p{engine::get_host_and_service_id(
-          svc->get_hostname(), svc->description())};
-      service_status->host_id = p.first;
-      service_status->service_id = p.second;
+      service_status->host_id = svc->host_id();
+      service_status->service_id = svc->service_id();
       if (!service_status->host_id || !service_status->service_id)
         throw exceptions::msg_fmt("could not find ID of service ('{}', '{}')",
                                   service_status->host_name,

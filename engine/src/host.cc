@@ -293,10 +293,6 @@ uint64_t host::host_id() const {
   return _id;
 }
 
-void host::set_host_id(uint64_t id) {
-  _id = id;
-}
-
 /**
  * @brief change name of the host
  *

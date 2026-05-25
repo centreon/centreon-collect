@@ -49,7 +49,9 @@ std::array<std::pair<uint32_t, std::string>, 4> const
 service_map service::services;
 service_id_map service::services_by_id;
 
-service::service(const std::string& hostname,
+service::service(uint64_t host_id,
+                 uint64_t service_id,
+                 const std::string& hostname,
                  const std::string& description,
                  const std::string& display_name,
                  const std::string& check_command,
@@ -117,8 +119,8 @@ service::service(const std::string& hostname,
                is_volatile,
                icon_id},
       _service_type{st},
-      _host_id{0},
-      _service_id{0},
+      _host_id{host_id},
+      _service_id{service_id},
       _hostname{hostname},
       _process_performance_data{0},
       _check_flapping_recovery_notification{0},
@@ -730,7 +732,8 @@ com::centreon::engine::service* add_service(
 
   // Allocate memory.
   auto obj{std::make_shared<service>(
-      host_name, description, display_name.empty() ? description : display_name,
+      host_id, service_id, host_name,
+      description, display_name.empty() ? description : display_name,
       check_command, checks_enabled, accept_passive_checks, check_interval,
       retry_interval, notification_interval, max_attempts,
       first_notification_delay, recovery_notification_delay,
@@ -910,16 +913,8 @@ void service::schedule_acknowledgement_expiration() {
   }
 }
 
-void service::set_host_id(uint64_t host_id) {
-  _host_id = host_id;
-}
-
 uint64_t service::host_id() const {
   return _host_id;
-}
-
-void service::set_service_id(uint64_t service_id) {
-  _service_id = service_id;
 }
 
 uint64_t service::service_id() const {
