@@ -57,6 +57,7 @@ static void add_bench_point(bbdo::pb_bench& event,
 }
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
+uint32_t muxer::_priority_age_threshold = 300;
 
 absl::Mutex muxer::_running_muxers_m;
 absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
@@ -298,6 +299,14 @@ void muxer::event_queue_max_size(uint32_t max) noexcept {
  */
 uint32_t muxer::event_queue_max_size() noexcept {
   return _event_queue_max_size;
+}
+
+void muxer::priority_age_threshold(uint32_t seconds) noexcept {
+  _priority_age_threshold = seconds;
+}
+
+uint32_t muxer::priority_age_threshold() noexcept {
+  return _priority_age_threshold;
 }
 
 /**

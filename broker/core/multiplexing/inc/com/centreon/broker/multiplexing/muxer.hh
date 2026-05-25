@@ -59,6 +59,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
 
  private:
   static uint32_t _event_queue_max_size;
+  static uint32_t _priority_age_threshold;
 
   const std::string _name;
   std::shared_ptr<engine> _engine;
@@ -111,6 +112,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   static std::string memory_file(const std::string& name);
   static void event_queue_max_size(uint32_t max) noexcept;
   static uint32_t event_queue_max_size() noexcept;
+  static void priority_age_threshold(uint32_t seconds) noexcept;
+  static uint32_t priority_age_threshold() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
                                        const std::shared_ptr<engine>& parent,
