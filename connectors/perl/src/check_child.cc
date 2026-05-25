@@ -195,19 +195,20 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
       res->set_cmd_id(received.execute().cmd_id());
       res->set_pid(getpid());
 
-      int poll_ret;
       char buffer[4096];
       size_t nb_read;
       bool stdout_received = false;
       bool stderr_received = false;
       bool status_decoded = false;
+      bool have_to_stop_poll = false;
       // we wait 1000ms to receive first stdout and stderr datas
-      while ((poll_ret = poll(
-                  pfd, 2, (stdout_received && stderr_received) ? 10 : 1000))) {
+      while (!have_to_stop_poll &&
+             poll(pfd, 2, (stdout_received && stderr_received) ? 10 : 1000) >
+                 0) {
         if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
           nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
           if (nb_read <= 0) {
-            break;
+            have_to_stop_poll = true;
           }
           res->mutable_stdout()->append(buffer, nb_read);
           stdout_received = true;
@@ -215,18 +216,27 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         if (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) {
           nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
           if (nb_read <= 0) {
-            break;
+            have_to_stop_poll = true;
           }
           static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
+          static re2::RE2 exit_code_pattern_without_exit_code(
+              "SCRIPT_EXIT_CODE:\n");
           std::string to_clean(buffer, nb_read);
           int exit_status = -1;
           if (re2::RE2::PartialMatch(to_clean, exit_code_pattern,
                                      &exit_status)) {
             res->set_status(exit_status);
             status_decoded = true;
-            re2::RE2::Replace(&to_clean, exit_code_pattern, "");
-            res->mutable_stderr()->append(to_clean);
+          } else if (re2::RE2::PartialMatch(
+                         to_clean, exit_code_pattern_without_exit_code)) {
+            SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail empty status", getpid());
+            exit_status = 3;
+            res->set_status(exit_status);
+            status_decoded = true;
           }
+
+          re2::RE2::Replace(&to_clean, exit_code_pattern, "");
+          res->mutable_stderr()->append(to_clean);
           stderr_received = true;
         }
       }
