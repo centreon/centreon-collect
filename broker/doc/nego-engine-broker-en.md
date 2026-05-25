@@ -2501,7 +2501,7 @@ determined **at insertion time**, based on the event type and its timestamp:
 | Event type | Classification rule | Queue |
 |------------|---------------------|-------|
 | `pb_downtime`, `pb_acknowledgement`, `pb_notification_request` | **Always priority (P)** — age is irrelevant; what matters is whether the downtime or acknowledgement is still active | P |
-| Host / service status | **Current (C)** if `now − event_timestamp < priority_age_threshold` (default: 5 min); **Historical (H)** otherwise | C or H |
+| Host / service status | Inserted into **Current (C)**; demoted to **Historical (H)** when `now − insertion_time ≥ priority_age_threshold` (default: 5 min) | C or H |
 | Performance data, logs, other bulk events | Always **Historical (H)** | H |
 
 The `priority_age_threshold` (default 5 minutes, one typical check interval) is configurable.
@@ -2600,49 +2600,34 @@ a new priority event is pushed, `_priority_read_pos` already equals the index of
 | Condition | Queue | Stored timestamp |
 |-----------|-------|-----------------|
 | type ∈ {`pb_downtime`, `pb_acknowledgement`, `pb_notification_request`} | P | `INT64_MAX` |
-| host/service status AND `now − last_check < priority_age_threshold` | C | `now` (insertion time) |
-| host/service status AND `now − last_check ≥ priority_age_threshold` | H | `now` (insertion time) |
+| host/service status | C (at insertion); demoted to H once `now − insertion_time ≥ priority_age_threshold` | `now` (insertion time) |
 | all other types (perf data, logs, …) | H | `now` (insertion time) |
 
 `priority_age_threshold` defaults to **5 minutes** (one typical check interval) and is
 configurable in Broker's JSON configuration.
 
-#### Acknowledgement: two-count `pb_ack`
+#### Acknowledgement
 
-`ack_events` is extended to two independent counts — priority (Queue P) and secondary (Queues C
-and H combined). Broker does not need to distinguish C from H: events from both queues are
-delivered in order P → C → H, and the secondary count simply reflects how many non-priority
-events were consumed in that batch.
-
-```cpp
-void ack_events(uint32_t priority_count, uint32_t secondary_count);
-```
-
-`pb_ack` gains two new fields (field 1 kept for backward compatibility with old senders, which
-are handled by applying the count to the secondary queues):
-
-```protobuf
-message Ack {
-  uint32 acknowledged_events           = 1;  // deprecated
-  uint32 priority_acknowledged_events  = 2;
-  uint32 secondary_acknowledged_events = 3;
-}
-```
-
-`read()` gains an output parameter `priority_count` so the caller can compute the split after
-`write()` returns:
+`ack_events` takes a single count and drains queues in order P → C → H until the count is
+exhausted. Because events are always delivered to the caller in that same order, a single count
+unambiguously identifies which events to remove.
 
 ```cpp
-size_t priority_count = 0;
-muxer.read(to_fill, max, priority_count);
+void ack_events(uint32_t count);
+```
+
+The caller reads a batch, writes it to the stream, and acknowledges however many were accepted:
+
+```cpp
+muxer.read(to_fill, max);
 
 uint32_t written = stream.write(to_fill);
-uint32_t p_acked = std::min(written, (uint32_t)priority_count);
-uint32_t s_acked = written - p_acked;
-muxer.ack_events(p_acked, s_acked);
+muxer.ack_events(written);
 ```
 
-`s_acked` is then applied against queues C and H in order: C first, then H once C is exhausted.
+`pb_ack` is unchanged — it carries a single `acknowledged_events` count, which is sufficient
+because Engine's retention queue is also a simple FIFO and only needs to know how many events
+Broker has received.
 
 #### Disk spill (retention on disk)
 
