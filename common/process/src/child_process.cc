@@ -30,67 +30,6 @@
 using namespace com::centreon::common;
 
 /**
- * @brief Close all file descriptors except those in @p fds_to_not_close.
- *
- * Computes the complement of @p fds_to_not_close over [0, INT_MAX] using
- * boost::icl, then closes each resulting interval with a single close_range(2)
- * syscall.  @p flags is forwarded verbatim (e.g. CLOSE_RANGE_CLOEXEC to set
- * FD_CLOEXEC instead of actually closing).
- *
- * Requires Linux 5.9+ (SYS_close_range) and glibc 2.34+ (CLOSE_RANGE_CLOEXEC).
- * Falls back to the /proc/self/fd implementation on older systems.
- *
- * @param fds_to_not_close  File descriptors to leave open.
- * @param flags             Flags for close_range(2) (0 or CLOSE_RANGE_CLOEXEC).
- */
-#if defined SYS_close_range && defined CLOSE_RANGE_CLOEXEC
-void com::centreon::common::close_range(const std::set<int>& fds_to_not_close,
-                                        int flags) {
-  boost::icl::interval_set<int> intervals;
-  intervals.add(boost::icl::discrete_interval<int>::closed(
-      0, std::numeric_limits<int>::max()));
-  for (int fd : fds_to_not_close) {
-    intervals -= fd;
-  }
-
-  for (const auto& inter : intervals) {
-    int lower = inter.lower();
-    if (!boost::icl::is_left_closed(inter.bounds())) {
-      ++lower;
-    }
-    int upper = inter.upper();
-    if (!boost::icl::is_right_closed(inter.bounds())) {
-      --upper;
-    }
-    if (lower <= upper) {
-      ::syscall(SYS_close_range, lower, upper, flags);
-    }
-  }
-}
-#else
-/**
- * @brief Fallback: close all fds not in @p fds_to_not_close via /proc/self/fd.
- *
- * Used when SYS_close_range or CLOSE_RANGE_CLOEXEC are unavailable.
- * @p flags is ignored in this implementation.
- */
-void com::centreon::common::close_range(const std::set<int>& fds_to_not_close,
-                                        int flags) {
-  std::list<std::filesystem::path> opened =
-      dir_content("/proc/self/fd", false, true);
-
-  for (const std::filesystem::path& fd_path : opened) {
-    int numeric_fd;
-    if (absl::SimpleAtoi(fd_path.filename().native(), &numeric_fd) &&
-        fds_to_not_close.find(numeric_fd) == fds_to_not_close.end()) {
-      ::close(numeric_fd);
-    }
-  }
-}
-
-#endif
-
-/**
  * @brief Destroy the process<use mutex>::process object
  *
  * @tparam use_mutex

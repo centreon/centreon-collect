@@ -37,10 +37,10 @@ namespace com::centreon::common::detail {
  *
  */
 class pipe {
-  /** _fd[0]: read end; _fd[1]: write end.  0 means closed/not owned. */
+  /** _fd[0]: read end; _fd[1]: write end.   */
   int _fd[2] = {
-      0,
-      0,
+      -1,
+      -1,
   };
 
  public:
@@ -67,7 +67,7 @@ class pipe {
    */
   int steal_read_fd() {
     int fd = _fd[0];
-    _fd[0] = 0;
+    _fd[0] = -1;
     return fd;
   }
 
@@ -79,35 +79,35 @@ class pipe {
    */
   int steal_write_fd() {
     int fd = _fd[1];
-    _fd[1] = 0;
+    _fd[1] = -1;
     return fd;
   }
 
   /** @brief Close both ends that are still owned. */
   void close() {
-    if (_fd[0]) {
+    if (_fd[0] >= 0) {
       ::close(_fd[0]);
-      _fd[0] = 0;
+      _fd[0] = -1;
     }
-    if (_fd[1]) {
+    if (_fd[1] >= 0) {
       ::close(_fd[1]);
-      _fd[1] = 0;
+      _fd[1] = -1;
     }
   }
 
   /** @brief Close the write end only. */
   void close_write() {
-    if (_fd[1]) {
+    if (_fd[1] >= 0) {
       ::close(_fd[1]);
-      _fd[1] = 0;
+      _fd[1] = -1;
     }
   }
 
   /** @brief Close the read end only. */
   void close_read() {
-    if (_fd[0]) {
+    if (_fd[0] >= 0) {
       ::close(_fd[0]);
-      _fd[0] = 0;
+      _fd[0] = -1;
     }
   }
 };

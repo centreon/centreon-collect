@@ -619,10 +619,6 @@ TEST_F(TestConnector, TimeoutKill) {
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  for (char c : output) {
-    std::cout << std::hex << int(c) << ',';
-  }
-  std::cout << std::endl << output << std::endl;
   std::string expected(TimeoutKillRESULT,
                        TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
   ASSERT_EQ(output, expected);

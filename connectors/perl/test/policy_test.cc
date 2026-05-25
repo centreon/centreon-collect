@@ -176,11 +176,6 @@ class PolicyTest : public ::testing::Test {
     const auto* test_info =
         ::testing::UnitTest::GetInstance()->current_test_info();
 
-    // SPDLOG_LOGGER_DEBUG(com::centreon::connector::log::core(), "TearDown 1");
-    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    // ::write(_stdin_write, "coucou", 7);
-    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
     SPDLOG_LOGGER_DEBUG(com::centreon::connector::log::core(), "TearDown [{}]",
                         test_info ? test_info->name() : "unknown");
     // Send EOF to the parser so the policy reference is released.
@@ -267,7 +262,7 @@ class PolicyTest : public ::testing::Test {
       argv.push_back(a.c_str());
     config conf(static_cast<int>(argv.size()), const_cast<char**>(argv.data()));
     policy::create(g_io_context, com::centreon::connector::log::core(), conf,
-                   argv0, _stdin_read, _stdout_write);
+                   argv0, _stdin_read, _stdout_write, false);
   }
 };
 

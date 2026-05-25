@@ -276,6 +276,8 @@ void script_child::_load_check_script() {
   }
   SPAGAIN;
   SV* handle = POPs;
+  // we had a reference to handle in order that perl GC will not erase it
+  SvREFCNT_inc(handle);
   if (SvTRUE(ERRSV)) {
     throw exceptions::msg_fmt("Embedded Perl error: {}", SvPV_nolen(ERRSV));
   }
@@ -642,12 +644,7 @@ void script_child::_on_stdin_receive(
           auto dest = pid_index.find(child_pid);
           if (dest != pid_index.end()) {
             if (!dest->child->is_running()) {
-              if (term.immediate()) {
-                dest->child->kill();
-                pid_index.erase(dest);
-              } else {
-                _kill_check_child(true, true, dest->child);
-              }
+              _kill_check_child(true, !term.immediate(), dest->child);
               return;
             }
           }

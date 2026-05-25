@@ -120,13 +120,15 @@ class policy : public com::centreon::connector::policy_interface {
   asio::system_timer _every_second_timer;
   const config _config;
   char* _argv0;
+  bool _stop_io_context_on_quit;
 
   policy(const shared_io_context& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const config& conf,
          char* argv0,
          int stdin_fd,
-         int stdout_fd);
+         int stdout_fd,
+         bool stop_io_context_on_quit);
   void _start();
 
   void _from_script_child(std::shared_ptr<script_child> script_child,
@@ -162,7 +164,8 @@ class policy : public com::centreon::connector::policy_interface {
                      const config& conf,
                      char* argv0,
                      int stdin_fd = STDIN_FILENO,
-                     int stdout_fd = STDOUT_FILENO);
+                     int stdout_fd = STDOUT_FILENO,
+                     bool stop_io_context_on_quit = true);
 
   void on_eof() override;
   void on_error(uint64_t cmd_id, const std::string& msg) override;

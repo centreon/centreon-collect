@@ -66,14 +66,16 @@ policy::policy(const shared_io_context& io_context,
                const config& conf,
                char* argv0,
                int stdin_fd,
-               int stdout_fd)
+               int stdout_fd,
+               bool stop_io_context_on_quit)
     : _reporter(reporter::create(io_context, stdout_fd)),
       _io_context(io_context),
       _logger(logger),
       _stdin_fd(stdin_fd),
       _every_second_timer(*io_context),
       _config(conf),
-      _argv0(argv0) {
+      _argv0(argv0),
+      _stop_io_context_on_quit(stop_io_context_on_quit) {
   SPDLOG_LOGGER_DEBUG(logger, "Create policy {:p}",
                       static_cast<const void*>(this));
 }
@@ -88,15 +90,18 @@ void policy::create(const shared_io_context& io_context,
                     const config& conf,
                     char* argv0,
                     int stdin_fd,
-                    int stdout_fd) {
-  std::shared_ptr<policy> ret(
-      new policy(io_context, logger, conf, argv0, stdin_fd, stdout_fd));
+                    int stdout_fd,
+                    bool stop_io_context_on_quit) {
+  std::shared_ptr<policy> ret(new policy(io_context, logger, conf, argv0,
+                                         stdin_fd, stdout_fd,
+                                         stop_io_context_on_quit));
   ret->_start();
 }
 
 void policy::_start() {
   orders::parser::create(_io_context, shared_from_this(),
                          _config.test_file_path(), _stdin_fd);
+  _start_every_second_timer();
 }
 
 /**
@@ -275,6 +280,9 @@ void policy::on_quit() {
     terminate.mutable_terminate()->set_pid(script->get_pid());
     script->write_mess_to_child_stdin(terminate);
   }
+  if (_stop_io_context_on_quit) {
+    _io_context->stop();
+  }
 }
 
 /**
@@ -319,6 +327,7 @@ void policy::_from_script_child(std::shared_ptr<script_child> script_chld,
     _free_memory({});
     _reporter->send_result(
         result(res.cmd_id(), res.status(), res.stdout(), res.stderr()));
+    _pending_queries.get<0>().erase(res.cmd_id());
   } else if (from_script_mess.has_child_end()) {
     _check_child_stats.get<1>().erase(from_script_mess.child_end().pid());
   }
@@ -369,7 +378,8 @@ void policy::_every_second_timer_handler(const boost::system::error_code& err) {
     auto limit = timeout_index.lower_bound(std::chrono::system_clock::now());
     for (auto timeout_request = timeout_index.begin(); timeout_request != limit;
          ++timeout_request) {
-      _reporter->send_result({timeout_request->cmd_id, 9, "timeout", ""});
+      _reporter->send_result(
+          {timeout_request->cmd_id, 3, "", "(Process Timeout)"});
     }
     timeout_index.erase(timeout_index.begin(), limit);
   }
@@ -455,7 +465,7 @@ size_t policy::_remove_heaviest_check_child() {
 
   auto& script_child_index = _check_child_stats.get<0>();
   auto& footprint_index = _check_child_stats.get<3>();
-  absl::flat_hash_set<std::shared_ptr<script_child>> forbidden;
+  absl::flat_hash_set<std::shared_ptr<script_child>> forbidden, round_forbidden;
   ConnectorMess child_script_terminate;
   auto term = child_script_terminate.mutable_terminate();
   std::shared_ptr<script_child> selected;
@@ -463,10 +473,11 @@ size_t policy::_remove_heaviest_check_child() {
   size_t freed = 0;
   // round 0 search idle
   // round 1 search heaviest and delay kill
-  for (round = 0; round < 2; ++round) {
+  for (round = 0; round < 2 && !selected; ++round) {
     for (auto load_iter = footprint_index.rbegin();
-         load_iter != footprint_index.rend(); ++load_iter) {
-      if (forbidden.find(load_iter->parent) != forbidden.end()) {
+         !selected && load_iter != footprint_index.rend(); ++load_iter) {
+      if (forbidden.contains(load_iter->parent) ||
+          round_forbidden.contains(load_iter->parent)) {
         continue;
       }
       unsigned nb_check_child = script_child_index.count(load_iter->parent);
@@ -478,26 +489,34 @@ size_t policy::_remove_heaviest_check_child() {
       // all busy for this script
       if (_pending_queries.get<2>().count(load_iter->parent) >=
           nb_check_child) {
-        if (round == 1 && !selected) {
+        if (round == 1) {
           selected = load_iter->parent;
+          // we give to script child list of check child reverse ordered by
+          // footprint
+          for (; load_iter != footprint_index.rend() &&
+                 load_iter->parent == selected;
+               ++load_iter) {
+            term->add_other_pids(load_iter->check_child_pid);
+          }
+          freed = std::get<0>(load_iter->footprint);
+        } else {
+          round_forbidden.emplace(
+              load_iter->parent);  // no need to re test this script child
+        }
+      } else {
+        selected = load_iter->parent;  // we tell to script child to terminate
+                                       // the first inactive check child
+        // we give to script child list of check child reverse ordered by
+        // footprint
+        for (; load_iter != footprint_index.rend() &&
+               load_iter->parent == selected;
+             ++load_iter) {
           term->add_other_pids(load_iter->check_child_pid);
-          freed = std::get<0>(load_iter->footprint);
         }
-      }
-      if (!selected) {
-        selected = load_iter->parent;
-        term->add_other_pids(load_iter->check_child_pid);
         freed = std::get<0>(load_iter->footprint);
-      } else if (selected == load_iter->parent) {
-        term->add_other_pids(load_iter->check_child_pid);
-        if (freed == 0 || freed >= std::get<0>(load_iter->footprint)) {
-          freed = std::get<0>(load_iter->footprint);
-        }
       }
     }
-    if (selected) {
-      break;
-    }
+    round_forbidden.clear();
   }
   // if all busy, no kill wait pending queries
   term->set_immediate(round == 0);
