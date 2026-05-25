@@ -477,7 +477,7 @@ size_t policy::_remove_heaviest_check_child() {
   size_t freed = 0;
   // round 0 search idle
   // round 1 search heaviest and delay kill
-  for (round = 0; round < 2 && !selected; ++round) {
+  for (round = 0; round < 2; ++round) {
     for (auto load_iter = footprint_index.rbegin();
          !selected && load_iter != footprint_index.rend(); ++load_iter) {
       if (forbidden.contains(load_iter->parent) ||
@@ -521,6 +521,9 @@ size_t policy::_remove_heaviest_check_child() {
         }
         break;
       }
+    }
+    if (selected) {
+      break;
     }
     round_forbidden.clear();
   }

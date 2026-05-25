@@ -204,13 +204,19 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
       // we wait 1000ms to receive first stdout and stderr datas
       while ((poll_ret = poll(
                   pfd, 2, (stdout_received && stderr_received) ? 10 : 1000))) {
-        if (pfd[0].revents & POLLIN) {
+        if (pfd[0].revents & (POLLIN | POLLHUP | POLLERR)) {
           nb_read = ::read(stdout_pipe_fd[0], buffer, sizeof(buffer));
+          if (nb_read <= 0) {
+            break;
+          }
           res->mutable_stdout()->append(buffer, nb_read);
           stdout_received = true;
         }
-        if (pfd[1].revents & POLLIN) {
+        if (pfd[1].revents & (POLLIN | POLLHUP | POLLERR)) {
           nb_read = ::read(stderr_pipe_fd[0], buffer, sizeof(buffer));
+          if (nb_read <= 0) {
+            break;
+          }
           static re2::RE2 exit_code_pattern("SCRIPT_EXIT_CODE:(\\d+)\n");
           std::string to_clean(buffer, nb_read);
           int exit_status = -1;
