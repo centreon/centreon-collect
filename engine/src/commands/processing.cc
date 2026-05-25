@@ -843,7 +843,7 @@ bool processing::execute(const std::string& cmdstr) {
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     bool log_passive_check = pb_indexed_config.state().log_passive_checks();
     // Passive checks are logged in checks.c.
-    if (log_passive_checks) {
+    if (log_passive_check) {
       checks_logger->info("EXTERNAL COMMAND: {};{}", command_name, args);
     }
   } else if (pb_indexed_config.state().log_external_commands()) {
