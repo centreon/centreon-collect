@@ -174,7 +174,7 @@ void protocol::on_recv(const std::string& raw_data,
                                data_len)) {
         throw exceptions::msg_fmt("fail to decode protobuf message");
       }
-      received.push_back(std::move(mess));
+      received.emplace_back(std::move(mess));
     } catch (const exceptions::msg_fmt& e) {
       throw;
     } catch (const std::exception& e) {

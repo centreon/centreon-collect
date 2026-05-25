@@ -316,14 +316,9 @@ TEST_F(ScriptChildTest, CmdIdRoundTrip) {
  *
  * The script writes a known sentinel to stdout ("STDOUT_MARKER") and a
  * distinct diagnostic to stderr ("STDERR_MARKER"), then calls exit(0).
- * The loader's BEGIN block intercepts exit() and writes "SCRIPT_EXIT_CODE:0"
- * to stderr so the exit status is decoded; the remaining stderr text
- * ("STDERR_MARKER") must be forwarded to result.stderr().
- *
- * This test documents a known gap in check_child::_run(): the stderr poll
- * loop currently discards all stderr text that does not match the
- * SCRIPT_EXIT_CODE pattern and never calls res->set_stderr().  The test will
- * fail until that is fixed.
+ * The loader's BEGIN block intercepts exit() and appends "SCRIPT_EXIT_CODE:0\n"
+ * to stderr; check_child strips that marker, decodes the exit status, and
+ * forwards the remaining stderr text ("STDERR_MARKER") to result.stderr().
  */
 TEST_F(ScriptChildTest, StdoutAndStderrBothCaptured) {
   _temp_script = write_temp_script(

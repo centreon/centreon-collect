@@ -605,7 +605,7 @@ void script_child::_on_stdin_receive(
   if (from_main_process_mess->has_execute()) {  // EXECUTE
     // we search idle check_child that have less number of perl execute
     auto& nb_execute_index = _check_childs.get<2>();
-    for (auto idle : nb_execute_index) {
+    for (const auto& idle : nb_execute_index) {
       if (!idle.child->is_running()) {
         SPDLOG_LOGGER_TRACE(_logger,
                             "{} idle child_script pid={} will do the job",

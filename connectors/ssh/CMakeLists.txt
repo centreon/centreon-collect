@@ -65,8 +65,7 @@ target_link_libraries(
   absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
   pthread)
 
-target_precompile_headers(centreon_connector_ssh REUSE_FROM
-                          centreon_connector_perl)
+target_precompile_headers(centreon_connector_ssh PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
 
 # Install rules.
 install(TARGETS centreon_connector_ssh RUNTIME DESTINATION ${PREFIX_CONNECTORS})
