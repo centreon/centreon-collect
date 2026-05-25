@@ -22,7 +22,6 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -1964,11 +1963,9 @@ int service::log_event() {
   if (get_state_type() == soft && !log_service_retries)
     return OK;
 
-  uint32_t log_options{NSLOG_SERVICE_UNKNOWN};
   char const* state{"UNKNOWN"};
   if (_current_state >= 0 &&
       (unsigned int)_current_state < tab_service_states.size()) {
-    log_options = tab_service_states[_current_state].first;
     state = tab_service_states[_current_state].second.c_str();
   }
   const std::string& state_type{tab_state_type[get_state_type()]};
