@@ -343,12 +343,6 @@ bool contains_illegal_object_chars(char const* name) {
   return strpbrk(name, illegal_object_chars) ? true : false;
 }
 
-/* compares strings */
-int compare_strings(char* val1a, char* val2a) {
-  /* use the compare_hashdata() function */
-  return compare_hashdata(val1a, nullptr, val2a, nullptr);
-}
-
 /******************************************************************/
 /************************* FILE FUNCTIONS *************************/
 /******************************************************************/

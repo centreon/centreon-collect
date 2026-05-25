@@ -38,8 +38,6 @@
 #include "nebcallbacks.h"
 #include "nebstructs.h"
 #include "objects.h"
-#include "sighandlers.h"
-
 // Inter-check delay calculation types.
 #define ICD_NONE 0   // No inter-check delay.
 #define ICD_DUMB 1   // Dumb delay of 1 second.
