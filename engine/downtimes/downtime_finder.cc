@@ -17,10 +17,10 @@
 * <http://www.gnu.org/licenses/>.
 */
 
-#include "com/centreon/engine/downtimes/downtime_finder.hh"
+#include "engine/downtimes/downtime_finder.hh"
 
-#include "com/centreon/engine/downtimes/host_downtime.hh"
-#include "com/centreon/engine/downtimes/service_downtime.hh"
+#include "engine/downtimes/host_downtime.hh"
+#include "engine/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
