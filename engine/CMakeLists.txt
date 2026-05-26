@@ -50,6 +50,7 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
 include_directories(
+  ${CMAKE_SOURCE_DIR}
   ${INC_DIR}
   ${INC_DIR}/compatibility
   ${CMAKE_BINARY_DIR}/bbdo
@@ -482,7 +483,7 @@ if(WITH_CONF)
   add_subdirectory(conf)
 endif()
 
-add_subdirectory(src/downtimes)
+add_subdirectory(downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)
@@ -519,6 +520,7 @@ target_link_libraries(
   engine_conf
   fmt::fmt
   spdlog::spdlog
+  downtimes_lib
   cbmod)
 
 # centengine target.

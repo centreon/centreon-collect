@@ -33,11 +33,11 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
