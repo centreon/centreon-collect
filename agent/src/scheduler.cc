@@ -163,8 +163,14 @@ void scheduler::_start_waiting_check() {
          _active_check < _conf->config().max_concurrent_checks();) {
       const std::string& period_name =
           to_check->second->get_check_period_name();
-      if (!com::centreon::common::is_time_in_period_by_name(now_t, period_name,
-                                                            _timeperiods)) {
+      const bool in_period = com::centreon::common::is_time_in_period_by_name(
+          now_t, period_name, _timeperiods);
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "timeperiod check: service='{}' period='{}' now={} in_period={}",
+          to_check->second->get_service(),
+          period_name.empty() ? "(none)" : period_name, now_t, in_period);
+      if (!in_period) {
         // Compute when the period next opens and defer the check there.
         const time_t next_t =
             com::centreon::common::next_valid_time_in_period_by_name(
@@ -173,8 +179,10 @@ void scheduler::_start_waiting_check() {
         to_check = _waiting_check_queue.erase(to_check);
         if (next_t != (time_t)-1) {
           SPDLOG_LOGGER_DEBUG(
-              _logger, "service '{}' deferred to next active period '{}'",
-              deferred->get_service(), period_name);
+              _logger,
+              "service '{}': outside period '{}', next open at {} ({}s from "
+              "now)",
+              deferred->get_service(), period_name, next_t, next_t - now_t);
           const auto next_tp = std::chrono::system_clock::from_time_t(next_t);
           time_step slot(_check_time_step);
           slot.increment_to_after_min(next_tp);
@@ -189,6 +197,9 @@ void scheduler::_start_waiting_check() {
         }
         continue;
       }
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "service '{}': inside period '{}', starting check",
+                          to_check->second->get_service(), period_name);
       _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
     }

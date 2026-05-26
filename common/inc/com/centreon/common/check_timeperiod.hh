@@ -30,6 +30,9 @@ namespace com::centreon::common {
  * @param tp         Timeperiod proto message.
  * @return true if test_time is inside the period.
  */
+// NOTE: exclusions that reference other named periods are silently skipped
+// because this overload has no access to the full timeperiod map.
+// Use is_time_in_period_by_name when the full map is available.
 inline bool is_time_in_timeperiod(
     time_t test_time,
     const com::centreon::engine::configuration::Timeperiod& tp) {
@@ -58,14 +61,14 @@ inline bool is_time_in_period_by_name(time_t test_time,
   if (period_name.empty())
     return true;
   const auto it = periods.find(period_name);
-  if (it == periods.end())
+  if (it == periods.end() || !it->second)
     return true;
   return com::centreon::common::check_time_against_period(
       test_time, *it->second,
       [&periods](const std::string& name)
           -> const com::centreon::engine::configuration::Timeperiod* {
         const auto jt = periods.find(name);
-        return jt != periods.end() ? jt->second : nullptr;
+        return (jt != periods.end() && jt->second) ? jt->second : nullptr;
       });
 }
 
@@ -83,7 +86,7 @@ inline time_t next_valid_time_in_period_by_name(time_t test_time,
   if (period_name.empty())
     return (time_t)-1;
   const auto it = periods.find(period_name);
-  if (it == periods.end())
+  if (it == periods.end() || !it->second)
     return (time_t)-1;
   time_t valid = 0;
   com::centreon::common::get_next_valid_time(
@@ -91,7 +94,7 @@ inline time_t next_valid_time_in_period_by_name(time_t test_time,
       [&periods](const std::string& name)
           -> const com::centreon::engine::configuration::Timeperiod* {
         const auto jt = periods.find(name);
-        return jt != periods.end() ? jt->second : nullptr;
+        return (jt != periods.end() && jt->second) ? jt->second : nullptr;
       });
   return valid;
 }
