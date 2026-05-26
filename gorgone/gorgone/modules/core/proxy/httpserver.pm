@@ -298,8 +298,12 @@ sub action_proxyaddnode {
         } elsif ($ws_id and (
             defined($self->{nodes}->{ $node->{id} }->{token}) and $self->{nodes}->{ $node->{id} }->{token} ne $node->{token}
               or !defined($self->{nodes}->{ $node->{id} }->{token}) and defined($node->{token}) )){
-            $self->{ws_clients}->{ $ws_id }->{tx}->finish();
-            $self->{ws_clients}->{$ws_id}->{logged} = 0;
+            $self->close_websocket(
+            code => 500,
+            message  => 'authentication failed',
+            ws_id => $ws_id,
+            finish  => 1
+        );
             $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
             # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
         }
@@ -318,8 +322,14 @@ sub action_proxyaddnode {
         $self->{logger}->writeLogInfo("[EVAN] trying to see node $delete_node, identities is : " . Dumper($self->{identities}));
         $self->{logger}->writeLogInfo("[EVAN] temp_node : " . Dumper($temp_nodes));
         my $ws_id = $self->{identities}->{ $delete_node };
-        $self->{ws_clients}->{ $ws_id }->{tx}->finish();
+        next if !defined($ws_id);
         $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore, disconnecting client " . $ws_id );
+        $self->close_websocket(
+            code    => 500,
+            message => 'authentication failed',
+            ws_id   => $ws_id,
+            finish  => 1
+        );
     }
 
     $self->{nodes} = $temp_nodes;
@@ -484,7 +494,9 @@ sub is_token_ok {
     }
 
     $self->{ws_clients}->{ $options{ws_id} }->{identity} = $client_id;
-    $self->{identities}->{ $client_id } = $options{ws_id};
+    # todo document or make a oo interface on this.
+    $self->{identities}->{ $self->{nodes}->{$client_id}->{uuid} } = $options{ws_id};
+    $self->{identities}->{ $self->{nodes}->{$client_id}->{id} } = $options{ws_id};
     $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
     $self->{logger}->writeLogDebug("[proxy-httpserver] WS client '" . $options{ws_id} . "' authenticated successfully as node " . $client_id);
     return 1;
@@ -510,8 +522,16 @@ sub clean_websocket {
     return if (!defined($self->{ws_clients}->{ $options{ws_id} }));
 
     $self->{ws_clients}->{ $options{ws_id} }->{tx}->finish() if (!defined($options{finish}));
-    delete $self->{identities}->{ $self->{ws_clients}->{ $options{ws_id} }->{identity} } 
-        if (defined($self->{ws_clients}->{ $options{ws_id} }->{identity}));
+
+    if (defined($self->{ws_clients}->{ $options{ws_id} }->{identity})){
+        my $poller_id = $self->get_poller_id($self->{ws_clients}->{ $options{ws_id} }->{identity});
+        delete $self->{identities}->{ $poller_id };
+
+        my $poller_uuid = $self->get_poller_uuid($self->{ws_clients}->{ $options{ws_id} }->{identity});
+        delete $self->{identities}->{ $poller_uuid };
+        $self->{logger}->writeLogError("[EVAN:clean_websocket] deleted all data : for id $poller_id and uuid $poller_uuid ");
+    }
+
     delete $self->{ws_clients}->{ $options{ws_id} };
 }
 
@@ -522,7 +542,21 @@ sub close_websocket {
         code => $options{code},
         message  => $options{message}
     }});
-    $self->clean_websocket(ws_id => $options{ws_id});
+    $self->clean_websocket(ws_id => $options{ws_id}, finish => $options{finish});
+}
+sub get_poller_id{
+    my ($self, $value) = @_;
+    if ($self->{nodes}->{$value} and $self->{nodes}->{$value}->{id} ) {
+        return $self->{nodes}->{$value}->{id};
+    }
+    return $value;
+}
+sub get_poller_uuid{
+    my ($self, $value) = @_;
+    if ($self->{nodes}->{$value} and $self->{nodes}->{$value}->{uuid} ) {
+        return $self->{nodes}->{$value}->{uuid};
+    }
+    return $value;
 }
 
 1;
