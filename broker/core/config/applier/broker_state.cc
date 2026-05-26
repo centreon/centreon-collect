@@ -507,7 +507,16 @@ void broker_state::remove_peer(uint64_t poller_id,
  */
 bool broker_state::has_connection_from_poller(uint64_t poller_id) const {
   absl::ReaderMutexLock lck(&_connected_peers_m);
-  return _engine_peers.contains(poller_id);
+  auto it = _engine_peers.find(poller_id);
+  return it != _engine_peers.end() && it->second.running;
+}
+
+void broker_state::set_instance_running(uint64_t poller_id,
+                                        bool running) noexcept {
+  absl::WriterMutexLock lck(&_connected_peers_m);
+  auto it = _engine_peers.find(poller_id);
+  if (it != _engine_peers.end())
+    it->second.running = running;
 }
 
 /**

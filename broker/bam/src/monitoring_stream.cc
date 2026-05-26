@@ -613,15 +613,28 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
     } break;
     case neb::pb_instance::static_type(): {
       auto inst = std::static_pointer_cast<neb::pb_instance>(data);
-      if (!inst->obj().running()) {
-        uint64_t instance_id = inst->obj().instance_id();
-        _logger->debug(
-            "BAM: poller instance {} stopped, resetting downtime state",
-            instance_id);
-        multiplexing::publisher pblshr;
-        event_cache_visitor ev_cache;
-        _applier.book_service().reset_downtime_state(instance_id, &ev_cache);
-        ev_cache.commit_to(pblshr);
+      uint64_t instance_id = inst->obj().instance_id();
+      if (inst->obj().running()) {
+        config::applier::state::instance().set_instance_running(instance_id,
+                                                                true);
+      } else {
+        if (config::applier::state::instance().has_connection_from_poller(
+                instance_id)) {
+          _logger->debug(
+              "BAM: poller instance {} stopped, resetting downtime state",
+              instance_id);
+          multiplexing::publisher pblshr;
+          event_cache_visitor ev_cache;
+          _applier.book_service().reset_downtime_state(instance_id, &ev_cache);
+          ev_cache.commit_to(pblshr);
+        } else {
+          _logger->debug(
+              "BAM: poller instance {} stopped (historical event), skipping "
+              "downtime state reset",
+              instance_id);
+        }
+        config::applier::state::instance().set_instance_running(instance_id,
+                                                                false);
       }
     } break;
     case extcmd::pb_ba_info::static_type(): {
