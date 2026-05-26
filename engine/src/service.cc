@@ -22,7 +22,6 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -34,6 +33,7 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -732,16 +732,15 @@ com::centreon::engine::service* add_service(
 
   // Allocate memory.
   auto obj{std::make_shared<service>(
-      host_id, service_id, host_name,
-      description, display_name.empty() ? description : display_name,
-      check_command, checks_enabled, accept_passive_checks, check_interval,
-      retry_interval, notification_interval, max_attempts,
-      first_notification_delay, recovery_notification_delay,
-      notification_period, notifications_enabled, is_volatile, check_period,
-      event_handler, event_handler_enabled, notes, notes_url, action_url,
-      icon_image, icon_image_alt, flap_detection_enabled, low_flap_threshold,
-      high_flap_threshold, check_freshness, freshness_threshold,
-      obsess_over_service, timezone, icon_id)};
+      host_id, service_id, host_name, description,
+      display_name.empty() ? description : display_name, check_command,
+      checks_enabled, accept_passive_checks, check_interval, retry_interval,
+      notification_interval, max_attempts, first_notification_delay,
+      recovery_notification_delay, notification_period, notifications_enabled,
+      is_volatile, check_period, event_handler, event_handler_enabled, notes,
+      notes_url, action_url, icon_image, icon_image_alt, flap_detection_enabled,
+      low_flap_threshold, high_flap_threshold, check_freshness,
+      freshness_threshold, obsess_over_service, timezone, icon_id)};
   try {
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);

@@ -37,13 +37,13 @@
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

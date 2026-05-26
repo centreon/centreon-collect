@@ -16,29 +16,18 @@
 # along with Centreon Scheduler. If not, see
 # <http://www.gnu.org/licenses/>.
 #
-
-# Set directories.
-set(SRC_DIR "${SRC_DIR}/downtimes")
-set(INC_DIR "${INC_DIR}/com/centreon/engine/downtimes")
-
-# Set files.
-set(
-  FILES
-  ${FILES}
-
-  # Sources.
-  "${SRC_DIR}/downtime.cc"
-  "${SRC_DIR}/downtime_manager.cc"
-  "${SRC_DIR}/host_downtime.cc"
-  "${SRC_DIR}/service_downtime.cc"
-  "${SRC_DIR}/downtime_finder.cc"
-
-  # Headers.
-  "${INC_DIR}/downtime.hh"
-  "${INC_DIR}/downtime_manager.hh"
-  "${INC_DIR}/host_downtime.hh"
-  "${INC_DIR}/service_downtime.hh"
-  "${INC_DIR}/downtime_finder.hh"
-
-  PARENT_SCOPE
+include_directories(
+  ${PROJECT_BINARY_DIR}
 )
+
+add_library(downtimes_lib STATIC
+  # Sources.
+  downtime.cc
+  downtime_manager.cc
+  host_downtime.cc
+  service_downtime.cc
+  downtime_finder.cc
+)
+
+target_precompile_headers(downtimes_lib PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
+add_dependencies(downtimes_lib pb_neb_lib engine_conf process_stat)
