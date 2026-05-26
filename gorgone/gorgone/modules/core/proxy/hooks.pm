@@ -934,8 +934,15 @@ sub pull_request {
 
 sub get_constatus_result {
     my (%options) = @_;
-
-    return $constatus_ping;
+    # now that we must allows uuid and id as key to access gorgone, we need to de duplicate the variable
+    # and show both id and uuid in the output.
+    my $res = {};
+    while (my ($key, $elem) = each %$constatus_ping){
+        if ($key =~ /^\d*$/ and $key == $elem->{id}){
+            $res->{$key} = $elem;
+        }
+    }
+    return $res;
 }
 
 sub unregister_nodes {
@@ -1153,15 +1160,17 @@ sub register_nodes_from_db {
 
         if ($new_node == 1) {
             $constatus_ping->{ $node->{id} } = {
-                type => $node->{type},
+                type             => $node->{type},
                 in_progress_ping => 0,
-                ping_timeout => 0,
-                last_ping_sent => 0,
-                last_ping_recv => 0,
-                next_ping => time() + int(rand($ping_interval)),
-                ping_ok => 0,
-                ping_failed => 0,
-                nodes => {}
+                ping_timeout     => 0,
+                last_ping_sent   => 0,
+                last_ping_recv   => 0,
+                next_ping        => time() + int(rand($ping_interval)),
+                ping_ok          => 0,
+                ping_failed      => 0,
+                nodes            => {},
+                uuid             => $node->{uuid},
+                id               => $node->{id},
             };
             $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is registered");
         }
