@@ -48,7 +48,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/diagnostic.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
@@ -62,6 +61,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/version.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/log_v2/log_v2.hh"
+#include "engine/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using com::centreon::broker::neb::cbmod;

@@ -18,15 +18,15 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/engine/downtimes/downtime_finder.hh"
+#include "engine/downtimes/downtime_finder.hh"
 
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "com/centreon/engine/downtimes/downtime.hh"
-#include "com/centreon/engine/downtimes/downtime_manager.hh"
-#include "com/centreon/engine/downtimes/service_downtime.hh"
+#include "engine/downtimes/downtime.hh"
+#include "engine/downtimes/downtime_manager.hh"
+#include "engine/downtimes/service_downtime.hh"
 #include "helper.hh"
 #include "test_engine.hh"
 
