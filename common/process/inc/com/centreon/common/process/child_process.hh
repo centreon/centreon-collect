@@ -66,7 +66,7 @@ class child_process
  private:
   std::deque<std::shared_ptr<std::string>> _stdin_write_queue
       ABSL_GUARDED_BY(_protect);
-  bool _write_pending = false;
+  bool _write_pending ABSL_GUARDED_BY(_protect) = false;
 
   /**
    * @brief workaround
@@ -94,7 +94,7 @@ class child_process
   std::atomic_uint _completion_flags = 0;
 
   std::atomic<e_exit_status> _exit_status = e_exit_status::crash;
-  int _exit_code = -1;
+  std::atomic_int _exit_code = -1;
 
   void _stdin_write_no_lock(const std::shared_ptr<std::string>& data)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
@@ -115,13 +115,15 @@ class child_process
   const std::shared_ptr<spdlog::logger> _logger;
   asio::readable_pipe _stdout_pipe ABSL_GUARDED_BY(_protect);
   asio::readable_pipe _stderr_pipe ABSL_GUARDED_BY(_protect);
+  bool _use_stderr_pipe;  // as _stderr_pipe needs _protect lock, we use it
+                          // instead of _stderr_pipe.is_open()
   asio::writable_pipe _stdin_pipe ABSL_GUARDED_BY(_protect);
   detail::boost_process* _proc = nullptr;
   mutable detail::mutex<use_mutex> _protect;
 
-  void _stdout_read();
-  void _stderr_read();
-  void _async_wait_process_end();
+  void _stdout_read() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+  void _stderr_read() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
+  void _async_wait_process_end() ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
   virtual void _on_stdout_read(
       [[maybe_unused]] const boost::system::error_code& err,
@@ -150,6 +152,7 @@ class child_process
         _logger(logger),
         _stdout_pipe(*io_context),
         _stderr_pipe(*io_context),
+        _use_stderr_pipe(false),
         _stdin_pipe(*io_context) {}
 
   child_process(const child_process&) = delete;

@@ -72,6 +72,7 @@ class fork : public child_process<use_mutex> {
  private:
   using child_process<use_mutex>::_stdout_pipe;
   using child_process<use_mutex>::_stderr_pipe;
+  using child_process<use_mutex>::_use_stderr_pipe;
   using child_process<use_mutex>::_proc;
 
   using child_process<use_mutex>::_stdout_read;

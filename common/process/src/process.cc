@@ -90,7 +90,9 @@ process<use_mutex>::process(
       _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
-      _timeout_timer(*io_context) {}
+      _timeout_timer(*io_context) {
+  _use_stderr_pipe = true;
+}
 
 /**
  * @brief Construct a new process<use mutex>::process object
@@ -123,6 +125,7 @@ process<use_mutex>::process(
       _use_stdin(use_stdin),
       _env(env),
       _timeout_timer(*io_context) {
+  _use_stderr_pipe = true;
   SPDLOG_LOGGER_TRACE(logger, "create process {:p}",
                       static_cast<const void*>(this));
 }

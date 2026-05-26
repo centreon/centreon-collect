@@ -160,5 +160,5 @@ process_stat::process_stat(pid_t process_id)
 
   // file descriptors
   std::list<std::filesystem::path> fds = dir_content(proc_path + "fd", false);
-  _opened_fds = fds.size() > 0 ? fds.size() - 1 : 0;
+  _opened_fds = fds.size() > 0 ? (fds.size() - 1) : 0;
 }

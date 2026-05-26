@@ -158,6 +158,7 @@ void com::centreon::common::fork<use_mutex, asio_notify_fork>::do_fork(
   detail::pipe stdin;
   detail::pipe stdout;
   std::unique_ptr<detail::pipe> stderr;
+  _use_stderr_pipe = use_stderr_pipe;
   if (use_stderr_pipe)
     stderr = std::make_unique<detail::pipe>();
 

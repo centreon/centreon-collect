@@ -91,6 +91,7 @@ class process : public child_process<use_mutex> {
   using child_process<use_mutex>::_protect;
   using child_process<use_mutex>::_logger;
   using child_process<use_mutex>::_proc;
+  using child_process<use_mutex>::_use_stderr_pipe;
 
   asio::system_timer _timeout_timer ABSL_GUARDED_BY(_protect);
 
@@ -211,7 +212,9 @@ process<use_mutex>::process(
       _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
-      _timeout_timer(*io_context) {}
+      _timeout_timer(*io_context) {
+  _use_stderr_pipe = true;
+}
 
 }  // namespace com::centreon::common
 #endif

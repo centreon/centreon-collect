@@ -474,6 +474,9 @@ void script_child::_every_second_timer_handler() {
   auto check_script_mtime = std::filesystem::last_write_time(_script_path, err);
   if (!err &&
       check_script_mtime != _check_script_mtime) {  // script updated => reload
+    _check_script_mtime =
+        check_script_mtime;  // in order to not send another message even if we
+                             // haven't reload script
     SPDLOG_LOGGER_INFO(
         _logger,
         "script {} updated => live until all pending queries completed",

@@ -119,7 +119,7 @@ void child_process<use_mutex>::_on_process_end(
       }
       _exit_code = boost::process::v2::evaluate_exit_code(raw_exit_status);
       SPDLOG_LOGGER_DEBUG(_logger, "pid:{} end of process, exit_code={}",
-                          _proc->proc.handle().id(), _exit_code);
+                          _proc->proc.handle().id(), _exit_code.load());
     }
   }
   _completion_flags.fetch_or(e_completion_flags::process_end);
@@ -217,9 +217,6 @@ void child_process<use_mutex>::_stdout_read() {
           asio::buffer(_stdout_read_buffer),
           [me = shared_from_this()](const boost::system::error_code& err,
                                     size_t nb_read) {
-            SPDLOG_LOGGER_TRACE(
-                me->_logger, "from child pid:{}, {} bytes received on stdout",
-                me->_proc->proc.handle().id(), nb_read);
             me->_on_stdout_read(err, nb_read);
           });
     } catch (const std::exception& e) {
@@ -347,7 +344,7 @@ void child_process<use_mutex>::_on_stderr_read(
  */
 template <bool use_mutex>
 void child_process<use_mutex>::_on_completion() {
-  unsigned expected = _stderr_pipe.is_open()
+  unsigned expected = _use_stderr_pipe
                           ? e_completion_flags::all_completed
                           : e_completion_flags::stdout_process_completed;
   if (_completion_flags.compare_exchange_strong(
