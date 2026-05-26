@@ -162,7 +162,6 @@ BAWORST
 
     ${res}    Ctn Get Broker Stats    central    connected    10    endpoint centreon-bam-reporting    state
     Should Be True    ${res}    central-bam-reporting not connected
-    Disconnect From Database
 
     Ctn Reload Engine
     Ctn Reload Broker
