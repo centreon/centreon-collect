@@ -1197,6 +1197,7 @@ classDiagram
         +add_peer()
         +remove_peer()
         +has_connection_from_poller(uint64_t poller_id)
+        +set_instance_running(uint64_t poller_id, bool running)
         +connected_peers()
         +connected_pollers()
         +engine_peer_needs_update(uint64_t poller_id)
@@ -2541,6 +2542,10 @@ struct engine_peer {
     bool        available_conf_sent;
     bool        conf_acknowledged;
     bool        conf_unknown;
+    /* Positionné à true uniquement après réception d'un pb_instance(running=true).
+     * Protège contre les faux positifs lors du rejeu de pb_instance(running=false)
+     * à la reconnexion Broker. */
+    bool        running = false;
 };
 
 struct broker_peer {
@@ -2595,6 +2600,17 @@ switch (peer_type) {
     default:              _unknown_peers[key] = unknown_peer{...}; break;
 }
 ```
+
+### Sémantique du champ `running` et de `has_connection_from_poller`
+
+`engine_peer::running` distingue un peer **activement en cours d'exécution** d'un peer simplement enregistré. Il est géré par `set_instance_running()`, appelée par tout module traitant les événements `pb_instance` (ex. le `monitoring_stream` de BAM) :
+
+- `pb_instance(running=true)` → `set_instance_running(poller_id, true)` — l'instance Engine est démarrée.
+- `pb_instance(running=false)` → `set_instance_running(poller_id, false)` puis `remove_peer()` — l'instance Engine s'est arrêtée ou déconnectée.
+
+`has_connection_from_poller(poller_id)` retourne `true` **uniquement** si un `engine_peer` existe pour ce poller *et* que son flag `running` vaut `true`. Cela évite les faux positifs qui surviennent lors du rejeu de `pb_instance(running=false)` à la reconnexion Broker : `add_peer()` est appelé par la couche BBDO dès l'acceptation de la connexion TCP, mais `running` reste `false` tant que le premier événement `pb_instance(running=true)` n'a pas confirmé que l'instance est bien vivante.
+
+La classe de base `state` fournit une implémentation virtuelle vide de `set_instance_running()`, de sorte que les modules qui n'en ont pas besoin (ex. `cbmod_state`) n'ont aucune modification à faire.
 
 ## Modifications nécessaires
 
