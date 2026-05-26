@@ -23,7 +23,7 @@ namespace com::centreon::connector::perl {
 
 class config {
   unsigned _max_child = 64;
-  unsigned _min_free_memory = 500;
+  uint64_t _min_free_memory = 500 * 1024 * 1024;
   unsigned _max_opened_fd = 0;
   unsigned _child_max_memory_increase_percent = 10;
   unsigned _child_max_fd_increase_percent = 10;
@@ -46,7 +46,7 @@ class config {
    *
    * @return unsigned in Mo
    */
-  unsigned min_free_memory() const { return _min_free_memory; }
+  uint64_t min_free_memory() const { return _min_free_memory; }
   unsigned max_opened_fd() const { return _max_opened_fd; }
   unsigned child_max_memory_increase_percent() const {
     return _child_max_memory_increase_percent;

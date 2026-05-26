@@ -27,6 +27,21 @@
 
 using namespace com::centreon::common;
 
+static std::string extract_string_from_buffer(const char* buff, size_t len) {
+  std::string hex;
+  hex.reserve(len * 3);
+  const char* buff_end = buff + len;
+  for (; buff != buff_end; ++buff) {
+    char c = *buff;
+    if (c >= 32 && c < 127) {
+      hex += c;
+    } else {
+      hex += fmt::format("\\x{:02x}", c);
+    }
+  }
+  return hex;
+}
+
 /**
  * @brief Destroy the process<use mutex>::process object
  *
@@ -240,9 +255,10 @@ void child_process<use_mutex>::_on_stdout_read(
       }
       _completion_flags.fetch_or(e_completion_flags::stdout_eof);
     } else {
-      SPDLOG_LOGGER_TRACE(_logger, "from child pid:{} read from stdout: {}",
-                          _proc->proc.handle().id(),
-                          std::string_view(_stdout_read_buffer, nb_read));
+      SPDLOG_LOGGER_TRACE(
+          _logger, "from child pid:{} read from stdout: {}",
+          _proc->proc.handle().id(),
+          extract_string_from_buffer(_stdout_read_buffer, nb_read));
       received.assign(_stdout_read_buffer, nb_read);
     }
   }
@@ -304,10 +320,10 @@ void child_process<use_mutex>::_on_stderr_read(
             _proc->proc.handle().id(), err.value(), err.message());
       }
     } else {
-      SPDLOG_LOGGER_TRACE(_logger,
-                          "from child pid:{} process: read from stderr: {}",
-                          _proc->proc.handle().id(),
-                          std::string_view(_stderr_read_buffer, nb_read));
+      SPDLOG_LOGGER_TRACE(
+          _logger, "from child pid:{} process: read from stderr: {}",
+          _proc->proc.handle().id(),
+          extract_string_from_buffer(_stderr_read_buffer, nb_read));
       received.assign(_stderr_read_buffer, nb_read);
     }
   }

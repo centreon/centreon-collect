@@ -313,14 +313,6 @@ void policy::on_quit() {
   // Exiting.
   SPDLOG_LOGGER_INFO(_logger, "quit request received");
   _every_second_timer.cancel();
-  // stop all scripts
-  for (auto script : _scripts) {
-    ConnectorMess terminate;
-    terminate.mutable_terminate()->set_pid(script->get_pid());
-    script->write_mess_to_child_stdin(terminate);
-  }
-  // let time to send terminate
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
   if (_stop_io_context_on_quit) {
     _io_context->stop();
   }

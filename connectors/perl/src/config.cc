@@ -48,7 +48,7 @@ config::config(int argc, char** argv) {
     ("test-file,x", po::value<std::string>(),"Specifies the file used instead of stdin.")
     ("max-child", po::value<unsigned>(), "Max number of child process")
     ("min-free-memory", po::value<unsigned>(), "If free system memory becomes lower than this threshold in Mo, some child processes are killed")
-    ("max-opened_fd", po::value<unsigned>(), max_opened_option_help.c_str())
+    ("max-opened-fd", po::value<unsigned>(), max_opened_option_help.c_str())
     ("child-max-memory-increase-percent", po::value<unsigned>(), "If memory used by a child process has increased more than this threshold between first and last check, it is killed")
     ("child-max-fd-increase-percent", po::value<unsigned>(), "If the number of file descriptors opened by a child process has increased more than this threshold between first and last check, it is killed")
     ("child-max-thread", po::value<unsigned>(), "If a child process has created more threads than this threshold, it is killed")
@@ -92,7 +92,7 @@ config::config(int argc, char** argv) {
     _max_child = vm["max-child"].as<unsigned>();
   }
   if (vm.count("min-free-memory")) {
-    _min_free_memory = vm["min-free-memory"].as<unsigned>();
+    _min_free_memory = vm["min-free-memory"].as<uint64_t>() * 1024 * 1024;
   }
   if (vm.count("max-opened-fd")) {
     _max_opened_fd = vm["max-opened-fd"].as<unsigned>();
