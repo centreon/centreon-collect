@@ -62,9 +62,10 @@ jobs:
     steps:
       - name: package rpm
         run: |
-          dnf install -y wget rpmdevtools rpmlint epel-release
-          dnf config-manager --set-enabled crb || true # alma 9
+          dnf install -y epel-release
+          dnf config-manager --set-enabled crb || true # alma 9, alma 10
           dnf config-manager --set-enabled powertools || true # alma 8
+          dnf install -y wget rpmdevtools rpmlint
           dnf install -y asciidoc autoconf automake gcc gcc-c++ glib2-devel libbsd-devel libtool make rpm-build xmlto
 
           cd /github/home
