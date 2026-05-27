@@ -46,15 +46,15 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/version.hh"
-#include "engine/downtimes/downtime_finder.hh"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime_finder.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::string;
-
 using com::centreon::common::log_v2::log_v2;
+
+namespace downtimes = com::centreon::common::downtimes;
 
 namespace com::centreon::engine {
 
@@ -1912,11 +1912,11 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     else
       duration = static_cast<unsigned long>(request->duration());
     /* scheduling downtime */
-    int res = downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, temp_host->host_id(), 0, request->entry_time(),
-        request->author().c_str(), request->comment_data().c_str(),
-        request->start(), request->end(), request->fixed(),
-        request->triggered_by(), duration, &downtime_id);
+    int res = downtimes::downtime_manager::instance().schedule_downtime(
+        downtimes::downtime::host_downtime, temp_host->host_id(), 0,
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
     if (res == ERROR) {
       err = fmt::format("could not schedule downtime of host '{}'",
                         request->host_name());
@@ -1987,8 +1987,8 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
       duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling downtime */
-    int res = downtime_manager::instance().schedule_downtime(
-        downtime::service_downtime, temp_service->host_id(),
+    int res = downtimes::downtime_manager::instance().schedule_downtime(
+        downtimes::downtime::service_downtime, temp_service->host_id(),
         temp_service->service_id(), request->entry_time(),
         request->author().c_str(), request->comment_data().c_str(),
         request->start(), request->end(), request->fixed(),
@@ -2064,8 +2064,8 @@ grpc::Status engine_impl::ScheduleHostServicesDowntime(
       if (!it->second)
         continue;
       /* scheduling downtime */
-      downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, temp_host->host_id(),
+      downtimes::downtime_manager::instance().schedule_downtime(
+          downtimes::downtime::service_downtime, temp_host->host_id(),
           it->second->service_id(), request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
           request->start(), request->end(), request->fixed(),
@@ -2138,8 +2138,8 @@ grpc::Status engine_impl::ScheduleHostGroupHostsDowntime(
          end(hg->members.end());
          it != end; ++it)
       /* scheduling downtime */
-      downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, it->second->host_id(), 0,
+      downtimes::downtime_manager::instance().schedule_downtime(
+          downtimes::downtime::host_downtime, it->second->host_id(), 0,
           request->entry_time(), request->author().c_str(),
           request->comment_data().c_str(), request->start(), request->end(),
           request->fixed(), request->triggered_by(), duration, &downtime_id);
@@ -2219,8 +2219,8 @@ grpc::Status engine_impl::ScheduleHostGroupServicesDowntime(
         if (!it2->second)
           continue;
         /* scheduling downtime */
-        downtime_manager::instance().schedule_downtime(
-            downtime::service_downtime, it2->second->host_id(),
+        downtimes::downtime_manager::instance().schedule_downtime(
+            downtimes::downtime::service_downtime, it2->second->host_id(),
             it2->second->service_id(), request->entry_time(),
             request->author().c_str(), request->comment_data().c_str(),
             request->start(), request->end(), request->fixed(),
@@ -2300,8 +2300,8 @@ grpc::Status engine_impl::ScheduleServiceGroupHostsDowntime(
       if (last_host == temp_host)
         continue;
       /* scheduling downtime */
-      downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, it->second->host_id(), 0,
+      downtimes::downtime_manager::instance().schedule_downtime(
+          downtimes::downtime::host_downtime, it->second->host_id(), 0,
           request->entry_time(), request->author().c_str(),
           request->comment_data().c_str(), request->start(), request->end(),
           request->fixed(), request->triggered_by(), duration, &downtime_id);
@@ -2372,8 +2372,8 @@ grpc::Status engine_impl::ScheduleServiceGroupServicesDowntime(
          end(sg_it->second->members.end());
          it != end; ++it)
       /* scheduling downtime */
-      downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, it->second->host_id(),
+      downtimes::downtime_manager::instance().schedule_downtime(
+          downtimes::downtime::service_downtime, it->second->host_id(),
           it->second->service_id(), request->entry_time(),
           request->author().c_str(), request->comment_data().c_str(),
           request->start(), request->end(), request->fixed(),
@@ -2439,11 +2439,11 @@ grpc::Status engine_impl::ScheduleAndPropagateHostDowntime(
       duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling the parent host */
-    downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, temp_host->host_id(), 0, request->entry_time(),
-        request->author().c_str(), request->comment_data().c_str(),
-        request->start(), request->end(), request->fixed(),
-        request->triggered_by(), duration, &downtime_id);
+    downtimes::downtime_manager::instance().schedule_downtime(
+        downtimes::downtime::host_downtime, temp_host->host_id(), 0,
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
 
     /* schedule (non-triggered) downtime for all child hosts */
     command_manager::schedule_and_propagate_downtime(
@@ -2513,11 +2513,11 @@ grpc::Status engine_impl::ScheduleAndPropagateTriggeredHostDowntime(
       duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling the parent host */
-    downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, temp_host->host_id(), 0, request->entry_time(),
-        request->author().c_str(), request->comment_data().c_str(),
-        request->start(), request->end(), request->fixed(),
-        request->triggered_by(), duration, &downtime_id);
+    downtimes::downtime_manager::instance().schedule_downtime(
+        downtimes::downtime::host_downtime, temp_host->host_id(), 0,
+        request->entry_time(), request->author().c_str(),
+        request->comment_data().c_str(), request->start(), request->end(),
+        request->fixed(), request->triggered_by(), duration, &downtime_id);
     /* scheduling his childs */
     command_manager::schedule_and_propagate_downtime(
         temp_host.get(), request->entry_time(), request->author().c_str(),
@@ -2557,8 +2557,8 @@ grpc::Status engine_impl::DeleteDowntime(grpc::ServerContext* context
   auto fn =
       std::packaged_task<int32_t(void)>([&err, &downtime_id]() -> int32_t {
         /* deletes scheduled  downtime */
-        if (downtime_manager::instance().unschedule_downtime(downtime_id) ==
-            ERROR) {
+        if (downtimes::downtime_manager::instance().unschedule_downtime(
+                downtime_id) == ERROR) {
           err = fmt::format("could not delete downtime {}", downtime_id);
           return 1;
         } else
@@ -2627,7 +2627,8 @@ grpc::Status engine_impl::DeleteHostDowntimeFull(
     }
 
     for (auto& d : dtlist)
-      downtime_manager::instance().unschedule_downtime(d->get_downtime_id());
+      downtimes::downtime_manager::instance().unschedule_downtime(
+          d->get_downtime_id());
 
     return 0;
   });
@@ -2660,7 +2661,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::list<service_downtime*> dtlist;
+    std::list<downtimes::service_downtime*> dtlist;
     /* iterate through all current downtime(s) */
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
@@ -2669,7 +2670,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
                         .get_scheduled_downtimes()
                         .end();
          it != end; ++it) {
-      service_downtime* dt = static_cast<service_downtime*>(it->second.get());
+      downtimes::service_downtime* dt =
+          static_cast<downtimes::service_downtime*>(it->second.get());
       /* we are checking if request criteria match with the downtime criteria
        */
       auto p =
@@ -2703,7 +2705,8 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
 
     /* deleting downtime(s) */
     for (auto& d : dtlist)
-      downtime_manager::instance().unschedule_downtime(d->get_downtime_id());
+      downtimes::downtime_manager::instance().unschedule_downtime(
+          d->get_downtime_id());
     return 0;
   });
 
@@ -2753,7 +2756,7 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
       start_time = {true, request->start().value()};
 
     uint32_t deleted =
-        downtime_manager::instance()
+        downtimes::downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
                 host_name, service_desc, start_time, comment_data);
     if (deleted == 0) {
@@ -2827,7 +2830,7 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
       if (!(host_name.empty()) && it_h->first != host_name)
         continue;
       deleted =
-          downtime_manager::instance()
+          downtimes::downtime_manager::instance()
               .delete_downtime_by_hostname_service_description_start_time_comment(
                   host_name, service_desc, start_time, comment_data);
     }
@@ -2881,7 +2884,7 @@ grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
   auto fn = std::packaged_task<int32_t(void)>([&err, &comment_data,
                                                &start_time]() -> int32_t {
     uint32_t deleted =
-        downtime_manager::instance()
+        downtimes::downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
                 "", "", {true, start_time}, comment_data);
     if (0 == deleted) {

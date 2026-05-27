@@ -30,9 +30,9 @@
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine;
 
 /**

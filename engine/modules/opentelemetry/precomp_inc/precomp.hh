@@ -43,7 +43,6 @@ namespace asio = boost::asio;
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 

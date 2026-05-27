@@ -17,10 +17,11 @@
  */
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/host_downtime.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/host_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
+namespace downtimes = com::centreon::common::downtimes;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
 
@@ -53,7 +54,8 @@ void applier::downtime::_add_host_downtime(
     auto dt{std::make_shared<downtimes::host_downtime>(
         found->second->host_id(), obj.entry_time(), obj.author(),
         obj.comment_data(), obj.start_time(), obj.end_time(), obj.fixed(),
-        obj.triggered_by(), obj.duration(), obj.downtime_id())};
+        obj.triggered_by(), obj.duration(), obj.downtime_id(),
+        downtimes_logger)};
     downtimes::downtime_manager::instance().add_downtime(dt);
     dt->schedule();
     downtimes::downtime_manager::instance().register_downtime(
@@ -77,7 +79,8 @@ void applier::downtime::_add_service_downtime(
     auto dt{std::make_shared<downtimes::service_downtime>(
         found->second->host_id(), found->second->service_id(), obj.entry_time(),
         obj.author(), obj.comment_data(), obj.start_time(), obj.end_time(),
-        obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id())};
+        obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id(),
+        downtimes_logger)};
     downtimes::downtime_manager::instance().add_downtime(dt);
     dt->schedule();
     downtimes::downtime_manager::instance().register_downtime(

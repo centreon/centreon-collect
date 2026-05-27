@@ -32,13 +32,13 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "engine/downtimes/downtime_finder.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_finder.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "mmap.h"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 
 /******************************************************************/
 /****************** EXTERNAL COMMAND PROCESSING *******************/
@@ -69,7 +69,7 @@ int check_for_external_commands() {
 
   /* process all commands found in the buffer */
   for (;;) {
-    boost::optional<std::string> cmd = external_command_buffer.pop();
+    std::optional<std::string> cmd = external_command_buffer.pop();
     if (!cmd) {
       break;
     }
@@ -1270,8 +1270,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   ++it;
 
   // Find downtimes.
-  downtime_finder dtf(
-      downtimes::downtime_manager::instance().get_scheduled_downtimes());
+  downtime_finder dtf(downtime_manager::instance().get_scheduled_downtimes());
   downtime_finder::result_set result(dtf.find_matching_all(criterias));
   for (downtime_finder::result_set::const_iterator it = result.begin(),
                                                    end = result.end();

@@ -483,7 +483,6 @@ if(WITH_CONF)
   add_subdirectory(conf)
 endif()
 
-add_subdirectory(downtimes)
 add_subdirectory(src/configuration)
 add_subdirectory(src/commands)
 add_subdirectory(src/compatibility)

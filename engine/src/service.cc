@@ -33,11 +33,11 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
 
 std::array<std::pair<uint32_t, std::string>, 4> const
