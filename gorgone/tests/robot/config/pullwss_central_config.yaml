@@ -10,8 +10,7 @@ gorgone:
         ssl: false
         #ssl_cert_file: /etc/centreon-gorgone/keys/certificate.crt
         #ssl_key_file: /etc/centreon-gorgone/keys/private.key
-        # this is sed replaced in pullwss test.
-        # token: "secret_token" this token is now optional as it is set in the Centreon database.
+        token: "secret_token"
         address: "0.0.0.0"
         port: 8086
 

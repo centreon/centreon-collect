@@ -13,6 +13,7 @@ ${pull_central_config}        ${ROOT_CONFIG}pull_central_config.yaml
 ${pull_poller_config}         ${ROOT_CONFIG}pull_poller_config.yaml
 ${pullwss_central_config}     ${ROOT_CONFIG}pullwss_central_config.yaml
 ${pullwss_poller_config}      ${ROOT_CONFIG}pullwss_poller_config.yaml
+${pullwss_uid_poller_config}      ${ROOT_CONFIG}pullwss_uid_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml

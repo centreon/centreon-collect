@@ -934,8 +934,8 @@ sub pull_request {
 
 sub get_constatus_result {
     my (%options) = @_;
-    # now that we must allows uuid and id as key to access gorgone, we need to de duplicate the variable
-    # and show both id and uuid in the output.
+    # Gorgone now allow pollers to connect with either the legacy id or a new field named "uid"
+    # to allow this most state variables have double the key number. This avoid showing a poller from both key id and uid.
     my $res = {};
     while (my ($key, $elem) = each %$constatus_ping){
         if ($key =~ /^\d*$/ and $key == $elem->{id}){
@@ -1169,24 +1169,24 @@ sub register_nodes_from_db {
                 ping_ok          => 0,
                 ping_failed      => 0,
                 nodes            => {},
-                uuid             => $node->{uuid},
+                uid             => $node->{uid},
                 id               => $node->{id},
             };
             $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is registered");
         }
-        # now we link the uuid and the id of the node
+        # now we link the uid and the id of the node
 
-        if (!$constatus_ping->{$node->{uuid}}) {
-            $constatus_ping->{$node->{uuid}} = $constatus_ping->{$node->{id}};
+        if (!$constatus_ping->{$node->{uid}}) {
+            $constatus_ping->{$node->{uid}} = $constatus_ping->{$node->{id}};
         }
-        if (!$last_pong->{$node->{uuid}}) {
-            $last_pong->{$node->{uuid}} = $last_pong->{$node->{id}};
+        if (!$last_pong->{$node->{uid}}) {
+            $last_pong->{$node->{uid}} = $last_pong->{$node->{id}};
         }
-        if (!$synctime_nodes->{$node->{uuid}}) {
-            $synctime_nodes->{$node->{uuid}} = $synctime_nodes->{$node->{id}};
+        if (!$synctime_nodes->{$node->{uid}}) {
+            $synctime_nodes->{$node->{uid}} = $synctime_nodes->{$node->{id}};
         }
-        if (!$register_subnodes->{$node->{uuid}} and $register_subnodes->{$node->{uuid}}) {
-            $register_subnodes->{$node->{uuid}} = $register_subnodes->{$node->{id}};
+        if (!$register_subnodes->{$node->{uid}} and $register_subnodes->{$node->{uid}}) {
+            $register_subnodes->{$node->{uid}} = $register_subnodes->{$node->{id}};
         }
     }
 }

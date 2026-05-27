@@ -134,7 +134,7 @@ sub action_centreonnodessync {
     }
 
     $request = "
-        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, gorgone_auth_token
+        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, uid
         FROM nagios_server
         WHERE ns_activate = '1'
     ";
@@ -170,8 +170,7 @@ sub action_centreonnodessync {
                 address => $node->{ns_ip_address},
                 ssh_port => $node->{gorgone_port},
                 ssh_username => $self->{config}->{ssh_username},
-                uuid => $node->{id} . "-UUID",
-                token => $node->{gorgone_auth_token} // "",
+                uid => $node->{uid},
             };
         } elsif($node->{gorgone_communication_type} == 3) {
             push @$register_nodes, {
@@ -180,14 +179,13 @@ sub action_centreonnodessync {
                 # Letting address and port for consistency and if in the future we want to validate source ip/port
                 address => $node->{ns_ip_address},
                 port => $node->{gorgone_port},
-                uuid => $node->{id} . "-UUID",
-                token => $node->{gorgone_auth_token} // "",
+                uid => $node->{uid},
             };
         } elsif($node->{gorgone_communication_type} == 4) {
             push @$register_nodes, {
                 id    => $node->{id},
                 type  => 'pullwss',
-                uuid => $node->{id} . "-UUID",
+                uid => $node->{uid},
                 token => $node->{gorgone_auth_token} // "",
             };
         } else{ # value 1 and unknown is zmq push
@@ -196,7 +194,7 @@ sub action_centreonnodessync {
                 type => 'push_zmq',
                 address => $node->{ns_ip_address},
                 port => $node->{gorgone_port},
-                uuid => $node->{id} . "-UUID",
+                uid => $node->{uid},
                 token => $node->{gorgone_auth_token} // "",
             };
         }

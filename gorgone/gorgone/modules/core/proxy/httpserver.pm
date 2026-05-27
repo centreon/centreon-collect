@@ -27,7 +27,6 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::standard::misc;
-use centreon::common::centreonvault;
 use Mojolicious::Lite;
 use Mojo::Server::Daemon;
 use IO::Socket::SSL;
@@ -84,11 +83,6 @@ sub construct {
     $connector->{identities} = {};
     $connector->{nodes} = {}; # store nodes info from node module which take it from centreon DB.
 
-    # didn't sent the vault object to avoid duplicating connection and any unforeseen concurrency issue.
-    # should probably be passed as an object already constructed
-    $connector->{vault} = centreon::common::centreonvault->new(
-        logger => $options{logger},
-        config_file => $options{config_core}->{vault_file});
     $connector->set_signal_handlers();
     return $connector;
 }
@@ -278,41 +272,21 @@ sub action_proxyaddnode {
           $self->{logger}->writeLogError("Can't decode a proxyaddnode message data: no data");
           return 1;
     }
-    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come from the nodes module, so we keep the old token.
-    # if you want to remove the token to use the default one from the conf use "" instead of undef.
+    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come from the nodes module but from the register module.
     my $temp_nodes = {};
     for my $node (@{$nodes}){
         next if $node->{type} !~ /wss/;
-        if (!$node->{uuid}){
-            $self->{logger}->writeLogInfo("EVAN] Not uuid for the node $node->{id}, so this message might be the poller message, throwing it away.");
-            return;
+        if (!$node->{uid}){
+            $self->{logger}->writeLogInfo("EVAN] Not uid for the node $node->{id}, so this message might be the poller message, throwing it away.");
+            return 1;
         }
 
-        $node->{token} = $self->{vault}->get_secret($node->{token});
-        my $ws_id = $self->{identities}->{ $node->{id} };
-
-        if (!defined($node->{token})) {
-            if (!is_empty($self->{nodes}->{ $node->{id} })) {
-                $node->{token} = $self->{nodes}->{ $node->{id} }->{token};
-            }
-        } elsif ($ws_id and (
-            defined($self->{nodes}->{ $node->{id} }->{token}) and $self->{nodes}->{ $node->{id} }->{token} ne $node->{token}
-              or !defined($self->{nodes}->{ $node->{id} }->{token}) and defined($node->{token}) )){
-            $self->close_websocket(
-            code => 500,
-            message  => 'authentication failed',
-            ws_id => $ws_id,
-            finish  => 1
-        );
-            $self->{logger}->writeLogInfo("[proxy-httpserver] node already connected but token changed, disconnecting client " . $ws_id );
-            # now distant node should get a disconnect, and try to reconnect by itself, sending a registernode message to authenticate properly.
-        }
         $self->{logger}->writeLogInfo("[proxy-httpserver] adding node " . $node->{id} . " as pullwss." );
         # we add the node with it's id as key
         $temp_nodes->{$node->{id}} = $node;
-        # then we make a reference, using the uuid as key and the same hashmap as a value.
-        # this allow to transparently use both id and uuid as key, without worrying about duplicate element.
-        $temp_nodes->{$node->{uuid}} = $temp_nodes->{$node->{id}};
+        # then we make a reference, using the uid as key and the same hashmap as a value.
+        # this allow to transparently use both id and uid as key, without worrying about duplicate element.
+        $temp_nodes->{$node->{uid}} = $temp_nodes->{$node->{id}};
 
     }
     # disconnect every node that don't exist anymore.
@@ -356,6 +330,9 @@ sub action_proxydelnode {
 
     if ($self->{nodes}->{ $node->{id} }){
         $self->{logger}->writeLogDebug("[proxy-httpserver] deleting node ". $node->{id} . " from pullwss." );
+        if ($node->{uid} and $self->{nodes}->{ $node->{uid}}){
+           delete($self->{nodes}->{ $node->{uid} });
+        }
         delete($self->{nodes}->{ $node->{id} });
         return 0;
     }else {
@@ -505,15 +482,56 @@ sub is_logged_websocket {
     my ($self, %options) = @_;
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
-    if (!$self->is_token_ok(%options)) {
+
+    if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
+        $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+$self->{config}->{httpserver}->{token}\s*$/) {
         $self->close_websocket(
-            code => 500,
-            message  => 'authentication failed',
-            ws_id => $options{ws_id}
+            code    => 500,
+            message => 'token authorization unallowed',
+            ws_id   => $options{ws_id}
         );
         return 0;
     }
-    return 1;
+
+    if ($options{data} !~ /^\[REGISTERNODES\]\s+\[(?:.*?)\]\s+\[.*?\]\s+(.*)/ms) {
+        $self->close_websocket(
+            code    => 500,
+            message => 'please registernodes',
+            ws_id   => $options{ws_id}
+        );
+        return 0;
+    }
+
+    my $content;
+    eval {
+        $content = JSON::XS->new->decode($1);
+    };
+    if ($@) {
+        $self->close_websocket(
+            code    => 500,
+            message => 'decode error: unsupported format',
+            ws_id   => $options{ws_id}
+        );
+        return 0;
+    }
+    if (!defined($content->{nodes}->[0]->{id}) or !defined($self->{nodes}->{$content->{nodes}->[0]->{id}})){
+        $self->{logger}->writeLogDebug("[proxy-httpserver] client connection for unknown poller id/uid : " . $content->{nodes}->[0]->{id});
+       $self->close_websocket(
+            code    => 500,
+            message => 'please registernodes',
+            ws_id   => $options{ws_id}
+        );
+        return 0;
+    }
+    my $poller_id = $self->{nodes}->{$content->{nodes}->[0]->{id}}->{id};
+    my $poller_uid = $self->{nodes}->{$content->{nodes}->[0]->{id}}->{uid};
+
+    $self->{logger}->writeLogDebug("[proxy] httpserver client " . $content->{nodes}->[0]->{id} . " is logged");
+    $self->{ws_clients}->{ $options{ws_id} }->{identity} = $content->{nodes}->[0]->{id};
+    $self->{identities}->{ $poller_id } = $options{ws_id};
+    $self->{identities}->{ $poller_uid } = $options{ws_id};
+    $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
+    return 2;
 }
 
 sub clean_websocket {
@@ -527,9 +545,8 @@ sub clean_websocket {
         my $poller_id = $self->get_poller_id($self->{ws_clients}->{ $options{ws_id} }->{identity});
         delete $self->{identities}->{ $poller_id };
 
-        my $poller_uuid = $self->get_poller_uuid($self->{ws_clients}->{ $options{ws_id} }->{identity});
-        delete $self->{identities}->{ $poller_uuid };
-        $self->{logger}->writeLogError("[EVAN:clean_websocket] deleted all data : for id $poller_id and uuid $poller_uuid ");
+        my $poller_uid = $self->get_poller_uid($self->{ws_clients}->{ $options{ws_id} }->{identity});
+        delete $self->{identities}->{ $poller_uid };
     }
 
     delete $self->{ws_clients}->{ $options{ws_id} };
@@ -551,10 +568,10 @@ sub get_poller_id{
     }
     return $value;
 }
-sub get_poller_uuid{
+sub get_poller_uid{
     my ($self, $value) = @_;
-    if ($self->{nodes}->{$value} and $self->{nodes}->{$value}->{uuid} ) {
-        return $self->{nodes}->{$value}->{uuid};
+    if ($self->{nodes}->{$value} and $self->{nodes}->{$value}->{uid} ) {
+        return $self->{nodes}->{$value}->{uid};
     }
     return $value;
 }

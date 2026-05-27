@@ -1,6 +1,6 @@
 gorgone:
   gorgonecore:
-    id: 2
+    id: 4991234
   modules:
     - name: pullwss
       package: "gorgone::modules::core::pullwss::hooks"
