@@ -549,20 +549,16 @@ def ctn_stop_mysql():
 
 
 def ctn_stop_rrdcached():
-    getoutput(
-        "kill -9 $(ps ax | ctn_grep '.usr.bin.rrdcached' | ctn_grep -v ctn_grep | awk '{print $1}')")
+    getoutput("pkill -9 -f '/usr/bin/rrdcached'")
 
 
 def ctn_kill_broker():
-    getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbwd' | ctn_grep -v ctn_grep | awk '{print $1}')")
-    getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/cbd' | ctn_grep -v ctn_grep | awk '{print $1}')")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/cbwd'")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/cbd'")
 
 
 def ctn_kill_engine():
-    getoutput(
-        "kill -SIGKILL $(ps ax | ctn_grep '/usr/sbin/centengine' | ctn_grep -v ctn_grep | awk '{print $1}')")
+    getoutput("pkill -SIGKILL -f '/usr/sbin/centengine'")
     Engine.ctn_clear_instances()
 
 
