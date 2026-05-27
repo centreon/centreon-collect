@@ -46,6 +46,7 @@ class downtime {
   uint64_t _comment_id;
   int _start_flex_downtime;
   bool _incremented_pending_downtime;
+  std::shared_ptr<spdlog::logger> _logger;
 
   void _set_in_effect(bool in_effect);
   uint64_t _get_comment_id() const;
@@ -61,7 +62,8 @@ class downtime {
            bool fixed,
            uint64_t triggered_by,
            uint32_t duration,
-           uint64_t downtime_id);
+           uint64_t downtime_id,
+           const std::shared_ptr<spdlog::logger>& logger);
   downtime(downtime const&) = delete;
   downtime(downtime&&) = delete;
   virtual ~downtime();

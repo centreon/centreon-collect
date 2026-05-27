@@ -23,13 +23,13 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/downtimes/host_downtime.hh"
 #include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
+using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::common::downtimes {
 
@@ -41,13 +41,12 @@ namespace com::centreon::common::downtimes {
  *
  */
 void downtime_manager::delete_downtime(uint64_t downtime_id) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "delete_downtime({})", downtime_id);
+  SPDLOG_LOGGER_TRACE(_logger, "delete_downtime({})", downtime_id);
   /* find the downtime we should remove */
   for (auto it = _scheduled_downtimes.begin(), end = _scheduled_downtimes.end();
        it != end; ++it) {
     if (it->second->get_downtime_id() == downtime_id) {
-      SPDLOG_LOGGER_TRACE(downtimes_logger, "delete downtime(id: {})",
-                          downtime_id);
+      SPDLOG_LOGGER_TRACE(_logger, "delete downtime(id: {})", downtime_id);
       _scheduled_downtimes.erase(it);
       break;
     }
@@ -62,14 +61,11 @@ int downtime_manager::unschedule_downtime(uint64_t downtime_id) {
         return downtime_id == d.second->get_downtime_id();
       });
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "unschedule_downtime()");
-  SPDLOG_LOGGER_TRACE(downtimes_logger, "unschedule downtime(id: {})",
-                      downtime_id);
+  SPDLOG_LOGGER_TRACE(_logger, "unschedule downtime(id: {})", downtime_id);
 
   /* find the downtime entry in the list in memory */
   if (found == _scheduled_downtimes.end()) {
-    SPDLOG_LOGGER_DEBUG(downtimes_logger, "unknown downtime(id: {})",
-                        downtime_id);
+    SPDLOG_LOGGER_DEBUG(_logger, "unknown downtime(id: {})", downtime_id);
     return ERROR;
   }
 
@@ -91,8 +87,7 @@ int downtime_manager::unschedule_downtime(uint64_t downtime_id) {
   }
 
   for (uint64_t id : lst) {
-    SPDLOG_LOGGER_TRACE(downtimes_logger,
-                        "Unschedule triggered downtime (id: {})", id);
+    SPDLOG_LOGGER_TRACE(_logger, "Unschedule triggered downtime (id: {})", id);
     unschedule_downtime(id);
   }
   return OK;
@@ -118,7 +113,7 @@ std::shared_ptr<downtime> downtime_manager::find_downtime(
 int downtime_manager::check_pending_flex_host_downtime(host* hst) {
   time_t current_time(0L);
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "check_pending_flex_host_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "check_pending_flex_host_downtime()");
 
   if (hst == nullptr)
     return ERROR;
@@ -151,8 +146,7 @@ int downtime_manager::check_pending_flex_host_downtime(host* hst) {
       if (it->second->get_start_time() <= current_time &&
           current_time <= it->second->get_end_time()) {
         SPDLOG_LOGGER_TRACE(
-            downtimes_logger,
-            "Flexible downtime (id={}) for host '{}' starting now...",
+            _logger, "Flexible downtime (id={}) for host '{}' starting now...",
             it->second->get_downtime_id(), hst->name());
 
         it->second->start_flex_downtime();
@@ -167,8 +161,7 @@ int downtime_manager::check_pending_flex_host_downtime(host* hst) {
 int downtime_manager::check_pending_flex_service_downtime(service* svc) {
   time_t current_time(0L);
 
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "check_pending_flex_service_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "check_pending_flex_service_downtime()");
 
   if (svc == nullptr)
     return ERROR;
@@ -201,7 +194,7 @@ int downtime_manager::check_pending_flex_service_downtime(service* svc) {
       if (dt.get_start_time() <= current_time &&
           current_time <= dt.get_end_time()) {
         SPDLOG_LOGGER_TRACE(
-            downtimes_logger,
+            _logger,
             "Flexible downtime (id={}) for service '{}' on host '{}' starting "
             "now...",
             dt.get_downtime_id(), svc->description(), svc->get_hostname());
@@ -231,7 +224,7 @@ void downtime_manager::add_downtime(
 int downtime_manager::check_for_expired_downtime() {
   time_t current_time(0L);
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "check_for_expired_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "check_for_expired_downtime()");
 
   time(&current_time);
 
@@ -245,7 +238,7 @@ int downtime_manager::check_for_expired_downtime() {
     /* this entry should be removed */
     if (!dt.is_in_effect() && dt.get_end_time() < current_time) {
       SPDLOG_LOGGER_TRACE(
-          downtimes_logger, "Expiring {} downtime (id={})...",
+          _logger, "Expiring {} downtime (id={})...",
           dt.get_type() == downtime::host_downtime ? "host" : "service",
           dt.get_downtime_id());
 
@@ -269,7 +262,7 @@ int downtime_manager::
         std::pair<bool, time_t> const& start_time,
         const std::string& comment) {
   SPDLOG_LOGGER_TRACE(
-      downtimes_logger,
+      _logger,
       "Delete downtimes (host: '{}', service description: '{}', start time: "
       "{}, comment: '{}')",
       hostname, service_description, start_time.second, comment);
@@ -319,7 +312,7 @@ int downtime_manager::
   return deleted;
 }
 void downtime_manager::insert_downtime(std::shared_ptr<downtime> dt) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "downtime_manager::insert_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "downtime_manager::insert_downtime()");
   time_t start{dt->get_start_time()};
   _scheduled_downtimes.insert({start, dt});
 }
@@ -330,8 +323,7 @@ void downtime_manager::insert_downtime(std::shared_ptr<downtime> dt) {
  * @return OK or ERROR if an error occured.
  */
 void downtime_manager::initialize_downtime_data() {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "downtime_manager::initialize_downtime_data()");
+  SPDLOG_LOGGER_TRACE(_logger, "downtime_manager::initialize_downtime_data()");
   /* clean up the old downtime data */
   validate_downtime_data();
 
@@ -409,8 +401,9 @@ std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
     uint32_t duration) {
   auto found = host::hosts_by_id.find(host_id);
   if (found == host::hosts_by_id.end())
-    throw engine_error() << "can not create a host downtime on host " << host_id
-                         << " because it does not exist";
+    throw msg_fmt(
+        "can not create a host downtime on host {} because it does not exist",
+        host_id);
 
   host* hst = found->second.get();
   /* find the next valid downtime id */
@@ -419,7 +412,7 @@ std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
   /* add downtime to list in memory */
   auto retval{std::make_shared<host_downtime>(
       hst->host_id(), entry_time, author, comment_data, start_time, end_time,
-      fixed, triggered_by, duration, new_downtime_id)};
+      fixed, triggered_by, duration, new_downtime_id, _logger)};
   instance().add_downtime(retval);
   retval->schedule();
 
@@ -445,9 +438,10 @@ std::shared_ptr<service_downtime> downtime_manager::add_new_service_downtime(
     uint32_t duration) {
   auto found = service::services_by_id.find({host_id, service_id});
   if (found == service::services_by_id.end())
-    throw engine_error() << "can not create a service downtime on service ("
-                         << host_id << ", " << service_id
-                         << ") which does not exist";
+    throw msg_fmt(
+        "can not create a service downtime on service ({}, {}) which does not "
+        "exist",
+        host_id, service_id);
 
   /* find the next valid downtime id */
   uint64_t new_downtime_id{get_next_downtime_id()};
@@ -457,7 +451,8 @@ std::shared_ptr<service_downtime> downtime_manager::add_new_service_downtime(
   /* add downtime to list in memory */
   auto retval{std::make_shared<service_downtime>(
       svc->host_id(), svc->service_id(), entry_time, author, comment_data,
-      start_time, end_time, fixed, triggered_by, duration, new_downtime_id)};
+      start_time, end_time, fixed, triggered_by, duration, new_downtime_id,
+      _logger)};
   instance().add_downtime(retval);
   retval->schedule();
 
@@ -483,28 +478,28 @@ int downtime_manager::schedule_downtime(downtime::type type,
                                         uint64_t triggered_by,
                                         uint32_t duration,
                                         uint64_t* new_downtime_id) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "schedule_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "schedule_downtime()");
 
   /* don't add old or invalid downtimes */
   if (start_time >= end_time || end_time <= time(nullptr))
     return ERROR;
 
   if (start_time > 4102441200) {
-    config_logger->warn(
+    _logger->warn(
         "SCHEDULE DOWNTIME ALERT : start time is out of range and setted to "
         "1/1/2100 00:00");
     start_time = 4102441200;
   }
 
   if (end_time > 4102441200) {
-    config_logger->warn(
+    _logger->warn(
         "SCHEDULE DOWNTIME ALERT : end time is out of range and setted to "
         "1/1/2100 00:00");
     end_time = 4102441200;
   }
 
   if (duration > 31622400) {
-    config_logger->warn(
+    _logger->warn(
         "SCHEDULE DOWNTIME ALERT : is too long and setted to 366 days");
     duration = 31622400;
   }
@@ -548,9 +543,8 @@ int downtime_manager::schedule_downtime(downtime::type type,
 /* registers scheduled downtime (schedules it, adds comments, etc.) */
 int downtime_manager::register_downtime(downtime::type type,
                                         uint64_t downtime_id) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "downtime_manager::register_downtime()");
-  SPDLOG_LOGGER_TRACE(downtimes_logger, "register downtime(type: {}, id: {})",
+  SPDLOG_LOGGER_TRACE(_logger, "downtime_manager::register_downtime()");
+  SPDLOG_LOGGER_TRACE(_logger, "register downtime(type: {}, id: {})",
                       static_cast<uint32_t>(type), downtime_id);
   /* find the downtime entry in memory */
   std::shared_ptr<downtime> temp_downtime{find_downtime(type, downtime_id)};

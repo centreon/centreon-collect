@@ -21,15 +21,20 @@
 #define CCC_DOWNTIMES_DOWNTIME_MANAGER_HH
 
 #include "common/downtimes/downtime.hh"
+#include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::common::downtimes {
+using com::centreon::common::log_v2::log_v2;
 
 class host_downtime;
 class service_downtime;
 class downtime_manager {
-  downtime_manager() = default;
   std::multimap<time_t, std::shared_ptr<downtime>> _scheduled_downtimes;
   uint64_t _next_id = 0u;
+  std::shared_ptr<spdlog::logger> _logger =
+      log_v2::instance().get(log_v2::DOWNTIMES);
+
+  downtime_manager() = default;
 
  public:
   static downtime_manager& instance() {

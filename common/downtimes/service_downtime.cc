@@ -33,17 +33,19 @@ using namespace com::centreon::engine::configuration::applier;
 
 namespace com::centreon::common::downtimes {
 
-service_downtime::service_downtime(const uint64_t host_id,
-                                   const uint64_t service_id,
-                                   time_t entry_time,
-                                   const std::string& author,
-                                   const std::string& comment_data,
-                                   time_t start_time,
-                                   time_t end_time,
-                                   bool fixed,
-                                   uint64_t triggered_by,
-                                   uint32_t duration,
-                                   uint64_t downtime_id)
+service_downtime::service_downtime(
+    const uint64_t host_id,
+    const uint64_t service_id,
+    time_t entry_time,
+    const std::string& author,
+    const std::string& comment_data,
+    time_t start_time,
+    time_t end_time,
+    bool fixed,
+    uint64_t triggered_by,
+    uint32_t duration,
+    uint64_t downtime_id,
+    const std::shared_ptr<spdlog::logger>& logger)
     : downtime{downtime::service_downtime,
                host_id,
                entry_time,
@@ -54,7 +56,8 @@ service_downtime::service_downtime(const uint64_t host_id,
                fixed,
                triggered_by,
                duration,
-               downtime_id},
+               downtime_id,
+               logger},
       _service_id{service_id} {}
 
 service_downtime::~service_downtime() {
@@ -171,7 +174,7 @@ void service_downtime::print(std::ostream& os) const {
 }
 
 int service_downtime::unschedule() {
-  SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::unschedule()");
+  SPDLOG_LOGGER_TRACE(_logger, "service_downtime::unschedule()");
   auto found = service::services_by_id.find({host_id(), service_id()});
 
   /* find the host or service associated with this downtime */
@@ -198,7 +201,7 @@ int service_downtime::unschedule() {
     /* log a notice - this is parsed by the history CGI */
     if (found->second->get_scheduled_downtime_depth() == 0) {
       SPDLOG_LOGGER_INFO(
-          events_logger,
+          _logger,
           "SERVICE DOWNTIME ALERT: {};{};CANCELLED; Scheduled downtime "
           "for service has been cancelled.",
           found->second->get_hostname(), found->second->description());
@@ -212,7 +215,7 @@ int service_downtime::unschedule() {
 }
 
 int service_downtime::subscribe() {
-  SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::subscribe()");
+  SPDLOG_LOGGER_TRACE(_logger, "service_downtime::subscribe()");
 
   auto found = service::services_by_id.find({host_id(), service_id()});
 
@@ -249,15 +252,13 @@ int service_downtime::subscribe() {
         "period.",
         type_string, start_time_string, end_time_string, hours, minutes);
 
-  SPDLOG_LOGGER_TRACE(downtimes_logger, "Scheduled Downtime Details:");
-  SPDLOG_LOGGER_TRACE(downtimes_logger, " Type: Service Downtime");
-  SPDLOG_LOGGER_TRACE(downtimes_logger, " Host: {}",
-                      found->second->get_hostname());
-  SPDLOG_LOGGER_TRACE(downtimes_logger, " Service: {}",
-                      found->second->description());
+  SPDLOG_LOGGER_TRACE(_logger, "Scheduled Downtime Details:");
+  SPDLOG_LOGGER_TRACE(_logger, " Type: Service Downtime");
+  SPDLOG_LOGGER_TRACE(_logger, " Host: {}", found->second->get_hostname());
+  SPDLOG_LOGGER_TRACE(_logger, " Service: {}", found->second->description());
 
   SPDLOG_LOGGER_TRACE(
-      downtimes_logger,
+      _logger,
       " Fixed/Flex:  {} Start:       {} End:         {} Duration:    {}h "
       "{}m {}s Downtime ID: {} Trigger ID:  {}",
       is_fixed() ? "Fixed" : "Flexible", start_time_string, end_time_string,
@@ -302,14 +303,13 @@ int service_downtime::handle() {
   time_t event_time = 0L;
   int attr = 0;
 
-  SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::handle()");
+  SPDLOG_LOGGER_TRACE(_logger, "service_downtime::handle()");
 
   auto found = service::services_by_id.find({host_id(), service_id()});
 
   /* find the host or service associated with this downtime */
   if (found == service::services_by_id.end() || !found->second) {
-    SPDLOG_LOGGER_ERROR(downtimes_logger, "{}:{} not found", host_id(),
-                        service_id());
+    SPDLOG_LOGGER_ERROR(_logger, "{}:{} not found", host_id(), service_id());
     return ERROR;
   }
 
@@ -360,7 +360,7 @@ int service_downtime::handle() {
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       SPDLOG_LOGGER_TRACE(
-          downtimes_logger,
+          _logger,
           "Service '{}' on host '{}' has exited from a period of "
           "scheduled downtime (id={}).",
           found->second->description(), found->second->get_hostname(),
@@ -368,7 +368,7 @@ int service_downtime::handle() {
 
       /* log a notice - this one is parsed by the history CGI */
       SPDLOG_LOGGER_INFO(
-          events_logger,
+          _logger,
           "SERVICE DOWNTIME ALERT: {};{};STOPPED; Service has exited from a "
           "period of scheduled "
           "downtime",
@@ -426,7 +426,7 @@ int service_downtime::handle() {
 
     if (found->second->get_scheduled_downtime_depth() == 0) {
       SPDLOG_LOGGER_TRACE(
-          downtimes_logger,
+          _logger,
           "Service '{}' on host '{}' has entered a period of scheduled "
           "downtime (id={}).",
           found->second->description(), found->second->get_hostname(),
@@ -434,7 +434,7 @@ int service_downtime::handle() {
 
       /* log a notice - this one is parsed by the history CGI */
       SPDLOG_LOGGER_INFO(
-          events_logger,
+          _logger,
           "SERVICE DOWNTIME ALERT: {};{};STARTED; Service has entered a period "
           "of scheduled downtime",
           found->second->get_hostname(), found->second->description());
@@ -491,7 +491,7 @@ uint64_t service_downtime::service_id() const {
 }
 
 void service_downtime::schedule() {
-  SPDLOG_LOGGER_TRACE(functions_logger, "service_downtime::schedule()");
+  SPDLOG_LOGGER_TRACE(_logger, "service_downtime::schedule()");
 
   /* send data to event broker */
   broker_downtime_data(

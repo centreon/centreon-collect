@@ -35,8 +35,9 @@ class host_downtime : public downtime {
                 bool fixed,
                 uint64_t triggered_by,
                 uint32_t duration,
-                uint64_t downtime_id);
-  virtual ~host_downtime();
+                uint64_t downtime_id,
+                const std::shared_ptr<spdlog::logger>& logger);
+  virtual ~host_downtime() override;
 
   virtual bool is_stale() const override;
   virtual void schedule() override;

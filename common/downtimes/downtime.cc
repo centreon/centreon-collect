@@ -18,7 +18,6 @@
  */
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -28,6 +27,7 @@
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::string;
+using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::common::downtimes {
 downtime::downtime(downtime::type type,
@@ -40,7 +40,8 @@ downtime::downtime(downtime::type type,
                    bool fixed,
                    uint64_t triggered_by,
                    uint32_t duration,
-                   uint64_t downtime_id)
+                   uint64_t downtime_id,
+                   const std::shared_ptr<spdlog::logger>& logger)
     : _type{type},
       _host_id{host_id},
       _entry_time{entry_time},
@@ -55,12 +56,12 @@ downtime::downtime(downtime::type type,
       _in_effect{false},
       _comment_id{0},
       _start_flex_downtime{0},
-      _incremented_pending_downtime{false} {
+      _incremented_pending_downtime{false},
+      _logger{logger} {
   /* don't add triggered downtimes that don't have a valid parent */
   if (triggered_by > 0 && !downtime_manager::instance().find_downtime(
                               downtime::any_downtime, triggered_by))
-    throw engine_error()
-        << "can not add triggered host downtime without a valid parent";
+    throw msg_fmt("can not add triggered host downtime without a valid parent");
 }
 
 downtime::~downtime() {}

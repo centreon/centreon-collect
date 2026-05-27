@@ -38,7 +38,8 @@ class service_downtime : public downtime {
                    bool fixed,
                    uint64_t triggered_by,
                    uint32_t duration,
-                   uint64_t downtime_id);
+                   uint64_t downtime_id,
+                   const std::shared_ptr<spdlog::logger>& logger);
   service_downtime(const downtime&) = delete;
   service_downtime(downtime&&) = delete;
   virtual ~service_downtime() override;
