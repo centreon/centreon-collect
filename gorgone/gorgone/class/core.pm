@@ -989,8 +989,7 @@ sub handshake {
             privkey => $self->{server_privkey},
             message => $$first_message,
             logger => $self->{logger},
-            authorized_clients => $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{authorized_clients},
-            database_authorized_clients => $self->{config}->{authorized_clients_db},
+            authorized_clients => $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{authorized_clients}
         );
         if ($rv == -1) {
             $self->external_core_response(
