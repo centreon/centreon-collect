@@ -469,7 +469,7 @@ sub is_token_ok {
 
     $self->{ws_clients}->{ $options{ws_id} }->{identity} = $client_id;
     # todo document or make a oo interface on this.
-    $self->{identities}->{ $self->{nodes}->{$client_id}->{uuid} } = $options{ws_id};
+    $self->{identities}->{ $self->{nodes}->{$client_id}->{uid} } = $options{ws_id};
     $self->{identities}->{ $self->{nodes}->{$client_id}->{id} } = $options{ws_id};
     $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
     $self->{logger}->writeLogDebug("[proxy-httpserver] WS client '" . $options{ws_id} . "' authenticated successfully as node " . $client_id);
