@@ -731,11 +731,16 @@ sub increment_log_messages_retrieved {
 
 sub ping_send {
     my (%options) = @_;
-
     my $nodes_id = [keys %$register_nodes];
     $nodes_id = [$options{node_id}] if (defined($options{node_id}));
     my $current_time = time();
+    $options{logger}->writeLogError("EVAN - constatus_ping is : " . Dumper($constatus_ping));
     foreach my $id (@$nodes_id) {
+
+        $options{logger}->writeLogError("EVAN - checking node $id");
+
+
+
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
         $constatus_ping->{$id}->{last_ping_sent} = $current_time;
@@ -1116,9 +1121,8 @@ sub register_nodes_from_db {
                 }
             }
         }
-        if ($node->{uuid} and !$register_nodes->{$node->{uuid}}) {
-            $options{logger}->writeLogInfo("[proxy-EVAN] updating the register_nodes uuid");
-            $register_nodes->{$node->{uuid}} = $register_nodes->{$node->{id}};
+        if ($node->{uid} and !$register_nodes->{$node->{uid}}) {
+            $register_nodes->{$node->{uid}} = $register_nodes->{$node->{id}};
         }
 
         use Data::Dumper;
