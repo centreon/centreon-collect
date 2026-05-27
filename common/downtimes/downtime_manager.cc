@@ -17,20 +17,21 @@
  *
  */
 
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "engine/downtimes/host_downtime.hh"
-#include "engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
+#include "common/downtimes/host_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
+
+namespace com::centreon::common::downtimes {
 
 /**
  *  Remove a service/host downtime from its id.
@@ -263,10 +264,10 @@ int downtime_manager::check_for_expired_downtime() {
 */
 int downtime_manager::
     delete_downtime_by_hostname_service_description_start_time_comment(
-        std::string const& hostname,
-        std::string const& service_description,
+        const std::string& hostname,
+        const std::string& service_description,
         std::pair<bool, time_t> const& start_time,
-        std::string const& comment) {
+        const std::string& comment) {
   SPDLOG_LOGGER_TRACE(
       downtimes_logger,
       "Delete downtimes (host: '{}', service description: '{}', start time: "
@@ -332,20 +333,19 @@ void downtime_manager::initialize_downtime_data() {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "downtime_manager::initialize_downtime_data()");
   /* clean up the old downtime data */
-  xdddefault_validate_downtime_data();
+  validate_downtime_data();
 
   _next_id = 0;
 }
 
 /* removes invalid and old downtime entries from the downtime file */
-int downtime_manager::xdddefault_validate_downtime_data() {
+int downtime_manager::validate_downtime_data() {
   bool save = true;
 
   /* remove stale downtimes */
   for (auto it = _scheduled_downtimes.begin(), end = _scheduled_downtimes.end();
        it != end;) {
-    std::shared_ptr<com::centreon::engine::downtimes::downtime> temp_downtime(
-        it->second);
+    std::shared_ptr<downtime> temp_downtime(it->second);
 
     /* delete downtimes with invalid host names, invalid service descriptions
      * or that have expired. */
@@ -400,13 +400,13 @@ uint64_t downtime_manager::get_next_downtime_id() {
 std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
     const uint64_t host_id,
     time_t entry_time,
-    const char* author,
-    const char* comment_data,
+    const std::string& author,
+    const std::string& comment_data,
     time_t start_time,
     time_t end_time,
     bool fixed,
     uint64_t triggered_by,
-    unsigned long duration) {
+    uint32_t duration) {
   auto found = host::hosts_by_id.find(host_id);
   if (found == host::hosts_by_id.end())
     throw engine_error() << "can not create a host downtime on host " << host_id
@@ -424,10 +424,10 @@ std::shared_ptr<host_downtime> downtime_manager::add_new_host_downtime(
   retval->schedule();
 
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE,
-                       downtime::host_downtime, hst->host_id(), 0, entry_time,
-                       author, comment_data, start_time, end_time, fixed,
-                       triggered_by, duration, new_downtime_id);
+  broker_downtime_data(
+      NEBTYPE_DOWNTIME_ADD, NEBATTR_NONE, downtime::host_downtime,
+      hst->host_id(), 0, entry_time, author.c_str(), comment_data.c_str(),
+      start_time, end_time, fixed, triggered_by, duration, new_downtime_id);
   return retval;
 }
 
@@ -442,7 +442,7 @@ std::shared_ptr<service_downtime> downtime_manager::add_new_service_downtime(
     time_t end_time,
     bool fixed,
     uint64_t triggered_by,
-    unsigned long duration) {
+    uint32_t duration) {
   auto found = service::services_by_id.find({host_id, service_id});
   if (found == service::services_by_id.end())
     throw engine_error() << "can not create a service downtime on service ("
@@ -475,13 +475,13 @@ int downtime_manager::schedule_downtime(downtime::type type,
                                         const uint64_t host_id,
                                         const uint64_t service_id,
                                         time_t entry_time,
-                                        char const* author,
-                                        char const* comment_data,
+                                        const std::string& author,
+                                        const std::string& comment_data,
                                         time_t start_time,
                                         time_t end_time,
                                         bool fixed,
                                         uint64_t triggered_by,
-                                        unsigned long duration,
+                                        uint32_t duration,
                                         uint64_t* new_downtime_id) {
   SPDLOG_LOGGER_TRACE(functions_logger, "schedule_downtime()");
 
@@ -562,3 +562,5 @@ int downtime_manager::register_downtime(downtime::type type,
 
   return OK;
 }
+
+}  // namespace com::centreon::common::downtimes

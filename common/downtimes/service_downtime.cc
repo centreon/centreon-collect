@@ -17,31 +17,32 @@
  *
  */
 
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
+
+namespace com::centreon::common::downtimes {
 
 service_downtime::service_downtime(const uint64_t host_id,
                                    const uint64_t service_id,
                                    time_t entry_time,
-                                   std::string const& author,
-                                   std::string const& comment_data,
+                                   const std::string& author,
+                                   const std::string& comment_data,
                                    time_t start_time,
                                    time_t end_time,
                                    bool fixed,
                                    uint64_t triggered_by,
-                                   int32_t duration,
+                                   uint32_t duration,
                                    uint64_t downtime_id)
     : downtime{downtime::service_downtime,
                host_id,
@@ -55,13 +56,6 @@ service_downtime::service_downtime(const uint64_t host_id,
                duration,
                downtime_id},
       _service_id{service_id} {}
-
-/* finds a specific service downtime entry */
-downtime* find_service_downtime(uint64_t downtime_id) {
-  return downtime_manager::instance()
-      .find_downtime(downtime::service_downtime, downtime_id)
-      .get();
-}
 
 service_downtime::~service_downtime() {
   comment::delete_comment(_get_comment_id());
@@ -235,11 +229,11 @@ int service_downtime::subscribe() {
                       SHORT_DATE_TIME);
   get_datetime_string(&end_time, end_time_string, MAX_DATETIME_LENGTH,
                       SHORT_DATE_TIME);
-  int hours{get_duration() / 3600};
-  int minutes{(get_duration() - hours * 3600) / 60};
-  int seconds{get_duration() - hours * 3600 - minutes * 60};
+  uint32_t hours{get_duration() / 3600u};
+  uint32_t minutes{(get_duration() - hours * 3600u) / 60u};
+  uint32_t seconds{get_duration() - hours * 3600u - minutes * 60u};
 
-  char const* type_string{"service"};
+  const std::string_view type_string{"service"};
   std::string msg;
   if (is_fixed())
     msg = fmt::format(
@@ -398,28 +392,23 @@ int service_downtime::handle() {
 
     /* handle (stop) downtime that is triggered by this one */
     while (true) {
-      std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator it,
-          end{downtime_manager::instance().get_scheduled_downtimes().end()};
-
-      /* list contents might change by recursive calls, so we use this
-       * inefficient method to prevent segfaults */
-      for (it = downtime_manager::instance().get_scheduled_downtimes().begin();
+      /* list contents might change by recursive calls, so we restart from
+       * scratch after each handle() call */
+      bool found = false;
+      for (auto
+               it = downtime_manager::instance()
+                        .get_scheduled_downtimes()
+                        .begin(),
+               end =
+                   downtime_manager::instance().get_scheduled_downtimes().end();
            it != end; ++it) {
         if (it->second->get_triggered_by() == get_downtime_id()) {
           it->second->handle();
+          found = true;
           break;
         }
       }
-
-      for (it = downtime_manager::instance().get_scheduled_downtimes().begin();
-           it != end; ++it) {
-        if (it->second->get_triggered_by() == get_downtime_id()) {
-          it->second->handle();
-          break;
-        }
-      }
-
-      if (it == end)
+      if (!found)
         break;
     }
 
@@ -510,3 +499,5 @@ void service_downtime::schedule() {
       host_id(), service_id(), _entry_time, _author.c_str(), _comment.c_str(),
       _start_time, _end_time, _fixed, _triggered_by, _duration, _downtime_id);
 }
+
+}  // namespace com::centreon::common::downtimes

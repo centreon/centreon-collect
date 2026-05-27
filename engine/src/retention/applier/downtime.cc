@@ -17,10 +17,11 @@
  */
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/host_downtime.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/host_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
+namespace downtimes = com::centreon::common::downtimes;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
 

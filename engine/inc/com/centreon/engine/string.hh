@@ -180,7 +180,7 @@ class c_strtok {
  public:
   c_strtok(const std::string_view src) : _src(src), _pos(0) {}
 
-  boost::optional<std::string_view> extract(char sep);
+  std::optional<std::string_view> extract(char sep);
   bool extract(char sep, std::string_view& extracted);
   bool extract(char sep, std::string& extracted);
   bool extract(char sep, int& extracted);

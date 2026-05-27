@@ -67,6 +67,7 @@ endif()
 add_subdirectory(grpc)
 add_subdirectory(process)
 add_subdirectory(crypto)
+add_subdirectory(downtimes)
 
 if(WITH_TESTING)
   add_subdirectory(tests)
