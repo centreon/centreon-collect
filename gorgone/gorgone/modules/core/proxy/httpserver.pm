@@ -236,10 +236,7 @@ sub read_message_client {
             target => ''
         });
         $connector->read_zmq_events();
-  #  }elsif ($options{data} =~ /^\[(?:REGISTERNODES)\]/){
-  #      # As we are on the httpserver module, this message comme from the poller.
-  #      # I still don't know why we transmit this message to the other modules on the central, as there is already nodes module to determine the poller list.
-  #      return;
+
     } elsif ($options{data} =~ /^\[(?:REGISTERNODES|UNREGISTERNODES|SYNCLOGS|SETLOGS)\]/) {
         return undef if ($options{data} !~ /^\[(.+?)\]\s+\[(.*?)\]\s+\[.*?\]\s+(.*)/ms);
 
