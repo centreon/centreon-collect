@@ -45,13 +45,13 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
-#include "engine/downtimes/downtime_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 

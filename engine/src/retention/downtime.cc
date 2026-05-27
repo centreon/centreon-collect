@@ -17,7 +17,7 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "engine/downtimes/downtime.hh"
+#include "common/downtimes/downtime.hh"
 #include "com/centreon/engine/retention/downtime.hh"
 #include "com/centreon/engine/string.hh"
 

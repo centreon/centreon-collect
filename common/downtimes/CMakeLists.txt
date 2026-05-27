@@ -18,6 +18,12 @@
 #
 include_directories(
   ${PROJECT_BINARY_DIR}
+  ${CMAKE_BINARY_DIR}/engine/enginerpc
+  ${CMAKE_BINARY_DIR}/common/process_stat
+  ${CMAKE_SOURCE_DIR}/engine/inc
+  ${CMAKE_SOURCE_DIR}/bbdo
+  ${CMAKE_SOURCE_DIR}/broker/neb/inc
+  ${CMAKE_SOURCE_DIR}/broker/core/inc
 )
 
 add_library(downtimes_lib STATIC

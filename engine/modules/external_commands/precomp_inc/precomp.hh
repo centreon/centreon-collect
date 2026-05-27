@@ -35,7 +35,6 @@
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
 
 #include <boost/asio.hpp>
 

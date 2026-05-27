@@ -1,30 +1,30 @@
 /**
-* Copyright 2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
-#include "engine/downtimes/downtime_finder.hh"
+#include "common/downtimes/downtime_finder.hh"
 
-#include "engine/downtimes/host_downtime.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/host_downtime.hh"
+#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::downtimes;
 
+namespace com::centreon::common::downtimes {
 // Helper macro.
 #define ARE_STRINGS_MATCHING(stdstring, cstring) \
   ((cstring && (cstring == stdstring)) || (!cstring && stdstring.empty()))
@@ -36,32 +36,8 @@ using namespace com::centreon::engine::downtimes;
  *                   on this list.
  */
 downtime_finder::downtime_finder(
-    std::multimap<time_t, std::shared_ptr<downtime> > const& map)
-    : _map(&map) {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-// downtime_finder::downtime_finder(downtime_finder const& other)
-//  : _map(other._map) {}
-
-/**
- *  Destructor.
- */
-downtime_finder::~downtime_finder() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- */
-downtime_finder& downtime_finder::operator=(downtime_finder const& other) {
-  if (this != &other)
-    _map = other._map;
-  return *this;
-}
+    const std::multimap<time_t, std::shared_ptr<downtime>>& map)
+    : _map(map) {}
 
 /**
  *  Find downtimes that match all the criterias.
@@ -72,11 +48,11 @@ downtime_finder::result_set downtime_finder::find_matching_all(
     downtime_finder::criteria_set const& criterias) {
   result_set result;
   // Process all downtimes.
-  for (auto dt = _map->begin(); dt != _map->end(); ++dt) {
+  for (auto dt = _map.begin(); dt != _map.end(); ++dt) {
     // Process all criterias.
     bool matched_all{true};
-    for (criteria_set::const_iterator it(criterias.begin()),
-         end(criterias.end());
+    for (criteria_set::const_iterator it = criterias.begin(),
+                                      end = criterias.end();
          it != end; ++it) {
       switch (dt->second->get_type()) {
         case downtime::host_downtime:
@@ -116,29 +92,33 @@ bool downtime_finder::_match_criteria(const host_downtime& dt,
   bool retval = false;
   std::string hostname = engine::get_host_name(dt.host_id());
 
-  if (crit.first == "host")
+  if (crit.first == "host") {
     retval = (crit.second == hostname);
-  else if (crit.first == "start") {
-    time_t expected(strtoll(crit.second.c_str(), nullptr, 0));
-    retval = (expected == dt.get_start_time());
+  } else if (crit.first == "start") {
+    int64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (static_cast<time_t>(expected) == dt.get_start_time());
   } else if (crit.first == "end") {
-    time_t expected(strtoll(crit.second.c_str(), nullptr, 0));
-    retval = (expected == dt.get_end_time());
+    int64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (static_cast<time_t>(expected) == dt.get_end_time());
   } else if (crit.first == "fixed") {
-    bool expected(strtol(crit.second.c_str(), nullptr, 0));
-    retval = (expected == static_cast<bool>(dt.is_fixed()));
+    bool expected;
+    if (absl::SimpleAtob(crit.second, &expected))
+      retval = (expected == dt.is_fixed());
   } else if (crit.first == "triggered_by") {
-    unsigned long expected(strtoul(crit.second.c_str(), nullptr, 0));
-    retval = (expected == dt.get_triggered_by());
+    uint64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (expected == dt.get_triggered_by());
   } else if (crit.first == "duration") {
-    int32_t expected{std::stoi(crit.second)};
-    retval = (expected == dt.get_duration());
-  } else if (crit.first == "author")
+    uint32_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (expected == dt.get_duration());
+  } else if (crit.first == "author") {
     retval = (crit.second == dt.get_author());
-  else if (crit.first == "comment")
+  } else if (crit.first == "comment") {
     retval = (crit.second == dt.get_comment());
-  else
-    retval = false;
+  }
   return retval;
 }
 
@@ -160,25 +140,31 @@ bool downtime_finder::_match_criteria(service_downtime const& dt,
   } else if (crit.first == "service") {
     retval = (crit.second == p.second);
   } else if (crit.first == "start") {
-    time_t expected(std::stoull(crit.second, nullptr, 0));
-    retval = (expected == dt.get_start_time());
+    int64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (static_cast<time_t>(expected) == dt.get_start_time());
   } else if (crit.first == "end") {
-    time_t expected(strtoll(crit.second.c_str(), nullptr, 0));
-    retval = (expected == dt.get_end_time());
+    int64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (static_cast<time_t>(expected) == dt.get_end_time());
   } else if (crit.first == "fixed") {
-    bool expected(strtol(crit.second.c_str(), nullptr, 0));
-    retval = (expected == static_cast<bool>(dt.is_fixed()));
+    bool expected;
+    if (absl::SimpleAtob(crit.second, &expected))
+      retval = (expected == dt.is_fixed());
   } else if (crit.first == "triggered_by") {
-    unsigned long expected(strtoul(crit.second.c_str(), nullptr, 0));
-    retval = (expected == dt.get_triggered_by());
+    uint64_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (expected == dt.get_triggered_by());
   } else if (crit.first == "duration") {
-    int32_t expected(std::stoul(crit.second));
-    retval = (expected == dt.get_duration());
-  } else if (crit.first == "author")
+    uint32_t expected;
+    if (absl::SimpleAtoi(crit.second, &expected))
+      retval = (expected == dt.get_duration());
+  } else if (crit.first == "author") {
     retval = (crit.second == dt.get_author());
-  else if (crit.first == "comment")
+  } else if (crit.first == "comment") {
     retval = (crit.second == dt.get_comment());
-  else
-    retval = false;
+  }
   return retval;
 }
+
+}  // namespace com::centreon::common::downtimes

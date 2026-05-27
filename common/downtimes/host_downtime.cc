@@ -17,30 +17,32 @@
  *
  */
 
-#include "engine/downtimes/host_downtime.hh"
+#include "common/downtimes/host_downtime.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::downtimes;
+
+namespace com::centreon::common::downtimes {
 
 host_downtime::host_downtime(const uint64_t host_id,
                              time_t entry_time,
-                             std::string const& author,
-                             std::string const& comment,
+                             const std::string& author,
+                             const std::string& comment,
                              time_t start_time,
                              time_t end_time,
                              bool fixed,
                              uint64_t triggered_by,
-                             int32_t duration,
-                             uint64_t downtime_id)
+                             uint32_t duration,
+                             uint64_t downtime_id,
+                             const std::shared_ptr<spdlog::logger>& logger)
     : downtime(downtime::host_downtime,
                host_id,
                entry_time,
@@ -51,7 +53,8 @@ host_downtime::host_downtime(const uint64_t host_id,
                fixed,
                triggered_by,
                duration,
-               downtime_id) {}
+               downtime_id,
+               logger) {}
 
 host_downtime::~host_downtime() {
   comment::delete_comment(_get_comment_id());
@@ -177,7 +180,7 @@ int host_downtime::unschedule() {
 
     /* log a notice - this is parsed by the history CGI */
     if (it->second->get_scheduled_downtime_depth() == 0) {
-      events_logger->info(
+      _logger->info(
           "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host has "
           "been "
           "cancelled.",
@@ -192,7 +195,7 @@ int host_downtime::unschedule() {
 }
 
 int host_downtime::subscribe() {
-  functions_logger->trace("host_downtime::subscribe()");
+  _logger->trace("host_downtime::subscribe()");
 
   auto it = host::hosts_by_id.find(host_id());
 
@@ -211,11 +214,11 @@ int host_downtime::subscribe() {
                       SHORT_DATE_TIME);
   get_datetime_string(&end_time, end_time_string, MAX_DATETIME_LENGTH,
                       SHORT_DATE_TIME);
-  int hours{get_duration() / 3600};
-  int minutes{(get_duration() - hours * 3600) / 60};
-  int seconds{get_duration() - hours * 3600 - minutes * 60};
+  uint32_t hours{get_duration() / 3600u};
+  uint32_t minutes{(get_duration() - hours * 3600u) / 60u};
+  uint32_t seconds{get_duration() - hours * 3600u - minutes * 60u};
 
-  char const* type_string{"host"};
+  const std::string_view type_string{"host"};
   std::string msg;
   if (is_fixed())
     msg = fmt::format(
@@ -234,9 +237,9 @@ int host_downtime::subscribe() {
         " will not be sent out during that time period.",
         type_string, start_time_string, end_time_string, hours, minutes);
 
-  downtimes_logger->trace("Scheduled Downtime Details:");
-  downtimes_logger->trace(" Type: Host Downtime ; Host: {}", hst->name());
-  downtimes_logger->trace(
+  _logger->trace("Scheduled Downtime Details:");
+  _logger->trace(" Type: Host Downtime ; Host: {}", hst->name());
+  _logger->trace(
       " Fixed/Flex:  {} Start:       {} End:         {} Duration:    {}h "
       "{}m {}s Downtime ID: {} Trigger ID:  ",
       is_fixed() ? "Fixed" : "Flexible", start_time_string, end_time_string,
@@ -282,7 +285,7 @@ int host_downtime::handle() {
   time_t event_time{0L};
   int attr{0};
 
-  functions_logger->trace("handle_downtime()");
+  _logger->trace("handle_downtime()");
 
   auto it_hst = host::hosts_by_id.find(host_id());
 
@@ -335,12 +338,12 @@ int host_downtime::handle() {
     it_hst->second->dec_scheduled_downtime_depth();
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
-      downtimes_logger->trace(
+      _logger->trace(
           "Host '{}' has exited from a period of scheduled downtime (id={}).",
           it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
-      events_logger->info(
+      _logger->info(
           "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
           "scheduled "
           "downtime",
@@ -362,31 +365,23 @@ int host_downtime::handle() {
 
     /* handle (stop) downtime that is triggered by this one */
     while (true) {
-      std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator it;
-      std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator end{
-          downtime_manager::instance().get_scheduled_downtimes().end()};
-
-      /*
-       * list contents might change by recursive calls, so we use this
-       * inefficient method to prevent segfaults
-       */
-      for (it = downtime_manager::instance().get_scheduled_downtimes().begin();
+      /* list contents might change by recursive calls, so we restart from
+       * scratch after each handle() call */
+      bool found = false;
+      for (auto
+               it = downtime_manager::instance()
+                        .get_scheduled_downtimes()
+                        .begin(),
+               end =
+                   downtime_manager::instance().get_scheduled_downtimes().end();
            it != end; ++it) {
         if (it->second->get_triggered_by() == get_downtime_id()) {
           it->second->handle();
+          found = true;
           break;
         }
       }
-
-      for (it = downtime_manager::instance().get_scheduled_downtimes().begin();
-           it != end; ++it) {
-        if (it->second->get_triggered_by() == get_downtime_id()) {
-          it->second->handle();
-          break;
-        }
-      }
-
-      if (it == end)
+      if (!found)
         break;
     }
 
@@ -403,12 +398,12 @@ int host_downtime::handle() {
                          get_duration(), get_downtime_id());
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
-      downtimes_logger->trace(
+      _logger->trace(
           "Host '{}' has entered a period of scheduled downtime (id={}).",
           it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
-      events_logger->info(
+      _logger->info(
           "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
           "scheduled downtime",
           it_hst->second->name());
@@ -467,3 +462,5 @@ void host_downtime::schedule() {
       0, _entry_time, _author.c_str(), _comment.c_str(), _start_time, _end_time,
       _fixed, _triggered_by, _duration, _downtime_id);
 }
+
+}  // namespace com::centreon::common::downtimes

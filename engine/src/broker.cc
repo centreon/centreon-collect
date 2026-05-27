@@ -46,8 +46,8 @@
 #include "com/centreon/engine/severity.hh"
 #include "com/centreon/engine/string.hh"
 #include "common.h"
-#include "engine/downtimes/downtime_manager.hh"
-#include "engine/downtimes/service_downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
+#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::engine;
@@ -3893,8 +3893,8 @@ static void send_downtimes_list() {
 
   std::multimap<
       time_t,
-      std::shared_ptr<com::centreon::engine::downtimes::downtime>> const& dts{
-      com::centreon::engine::downtimes::downtime_manager::instance()
+      std::shared_ptr<com::centreon::common::downtimes::downtime>> const& dts{
+      com::centreon::common::downtimes::downtime_manager::instance()
           .get_scheduled_downtimes()};
   // Iterate through all downtimes.
   for (const auto& p : dts) {
@@ -3902,9 +3902,9 @@ static void send_downtimes_list() {
     forward_downtime(
         NEBTYPE_DOWNTIME_ADD, 0, p.second->get_type(), p.second->host_id(),
         p.second->get_type() ==
-                com::centreon::engine::downtimes::downtime::service_downtime
+                com::centreon::common::downtimes::downtime::service_downtime
             ? std::static_pointer_cast<
-                  com::centreon::engine::downtimes::service_downtime>(p.second)
+                  com::centreon::common::downtimes::service_downtime>(p.second)
                   ->service_id()
             : 0,
         p.second->get_entry_time(), p.second->get_author().c_str(),
