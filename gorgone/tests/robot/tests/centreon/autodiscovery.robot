@@ -23,6 +23,7 @@ check autodiscovery ${communication_mode}
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***

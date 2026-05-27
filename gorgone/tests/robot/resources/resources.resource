@@ -226,6 +226,24 @@ Setup Two Gorgone Instances
         Wait Until Port Is Bind    8085
         Check Poller Is Connected    port=8086    expected_nb=2
         Check Poller Communicate     2
+    ELSE IF    '${communication_mode}' == 'pullwss_uid'
+
+        @{central_pullwss_config}=    Copy List    ${central_config}
+        Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
+
+        @{poller_pullwss_config}=    Copy List    ${poller_config}
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_uid_poller_config}
+
+        Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
+        Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
+
+        Start Gorgone    debug    ${central_name}
+        Wait Until Port Is Bind    8086
+        Start Gorgone    debug    ${poller_name}
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
+        Check Poller Is Connected    port=8086    expected_nb=2
+        Check Poller Communicate     2
     ELSE IF    '${communication_mode}' == 'pull'
         @{central_pull_config}=    Copy List    ${central_config}
         Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
@@ -274,7 +292,7 @@ Ctn Check No Error In Logs
 Gorgone Fix Schema
     [Documentation]    gorgone will now need new field in the db. while waiting to include it by the webapp, let's fix the tests manually.
         Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
-        ${nb_column}=    Query   SELECT count(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'centreon' AND TABLE_NAME = 'nagios_server' AND COLUMN_NAME = 'gorgone_auth_token'
+        ${nb_column}=    Query   SELECT count(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = 'centreon' AND TABLE_NAME = 'nagios_server' AND COLUMN_NAME = 'uid'
         IF    ${nb_column}[0][0] == 0
             Execute SQL Script    ${ROOT_CONFIG}database/gorgone-pullwss-db-update.sql
         END

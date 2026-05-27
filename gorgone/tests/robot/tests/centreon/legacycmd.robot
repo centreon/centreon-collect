@@ -30,6 +30,7 @@ Legacycmd with ${communication_mode} communication
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
         
 *** Keywords ***

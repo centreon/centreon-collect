@@ -73,6 +73,7 @@ action module with ${communication_mode} communcation mode
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***

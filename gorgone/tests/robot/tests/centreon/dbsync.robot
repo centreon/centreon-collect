@@ -58,6 +58,7 @@ send many log by ${communication_mode}, expect all of them on the central
         ...    push_zmq
         ...    pull
         ...    pullwss
+        ...    pullwss_uid
 
 *** Keywords ***
 Get Log From Central
