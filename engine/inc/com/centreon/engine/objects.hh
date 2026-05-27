@@ -27,6 +27,6 @@
 #include "com/centreon/engine/hostgroup.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#include "engine/downtimes/downtime.hh"
+#include "common/downtimes/downtime.hh"
 
 #endif /* !CCE_OBJECTS_HH */

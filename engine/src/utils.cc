@@ -43,9 +43,10 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "engine/downtimes/downtime_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
 
@@ -411,7 +412,7 @@ void free_memory(nagios_macros* mac) {
   comment::comments.clear();
 
   // Free memory allocated to downtimes.
-  downtimes::downtime_manager::instance().clear_scheduled_downtimes();
+  downtime_manager::instance().clear_scheduled_downtimes();
 
   /*
   ** Free memory associated with macros. It's ok to only free the
