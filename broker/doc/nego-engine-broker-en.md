@@ -2447,6 +2447,9 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
 
 # Centralized downtime and acknowledgement management
 
+> For the implementation details of the shared downtime scheduling library and the Broker-specific
+> callbacks to implement, see [Downtimes library — Broker integration guide](./downtimes-integration-en.md).
+
 ## Problem
 
 In the current architecture, downtimes and acknowledgements are managed directly by Engine. PHP
@@ -2475,7 +2478,10 @@ B without its active downtimes, risking false alerts during a maintenance window
 exactly as it always has. No change.
 
 **In centralized configuration mode** (BBDO3), the `notification_mode` parameter in
-`centengine.cfg` controls who manages notifications, downtimes, and acknowledgements:
+Broker's configuration controls who manages notifications, downtimes, and acknowledgements.
+Broker activates or deactivates its downtime management accordingly; PHP adapts by sending
+commands either to Broker (via `BrokerRpc`) or to Engine (via the command pipe). Engine is
+never informed of this setting.
 
 - `notification_mode = engine` **(default)**: Engine manages everything exactly as in legacy
   mode. PHP continues to send downtime and acknowledgement commands to Engine via the command
