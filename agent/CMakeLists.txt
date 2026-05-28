@@ -215,6 +215,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     centreon_common
     centreon_grpc
     centreon_process
+    centreon_hexdump
     centreon_file_system
     ctncrypto
     Boost::program_options
@@ -230,6 +231,7 @@ else()
     centreon_common
     centreon_grpc
     centreon_process
+    centreon_hexdump
     ctncrypto
     gRPC::grpc++
     absl::any absl::log absl::base absl::bits

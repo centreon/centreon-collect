@@ -23,12 +23,31 @@
 #include <EXTERN.h>
 #include <perl.h>
 
+#include "common/inc/com/centreon/common/hex_dump.hh"
 #include "common/inc/com/centreon/common/process_stat.hh"
 #include "src/perl_connector.pb.h"
 
 extern PerlInterpreter* my_perl;
 
 using namespace com::centreon::connector::perl;
+
+// static std::set<int> get_open_fds() {
+//   std::set<int> fds;
+//   try {
+//     for (const auto& p :
+//          com::centreon::common::dir_content("/proc/self/fd", false, true)) {
+//       int fd = std::atoi(p.filename().c_str());
+//       fds.insert(fd);
+//     }
+//   } catch (...) {
+//   }
+//   return fds;
+// }
+
+// static bool is_socket(int fd) {
+//   struct stat st;
+//   return fstat(fd, &st) == 0 && S_ISSOCK(st.st_mode);
+// }
 
 /************************************************************************
  *    parent side
@@ -130,7 +149,7 @@ check_child::load check_child::measure_load() {
  * @return 0 on clean exit.
  */
 int check_child::_run(int stdin_fd, int stdout_fd, int) {
-  SPDLOG_LOGGER_DEBUG(_logger, "pid: {} check_child start", get_pid());
+  SPDLOG_LOGGER_DEBUG(_logger, "pid: {} check_child start", getpid());
   asio::readable_pipe child_stdin(*_io_context, stdin_fd);
   asio::writable_pipe child_stdout(*_io_context, stdout_fd);
 
@@ -149,8 +168,11 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
   dup2(stderr_pipe_fd[1], STDERR_FILENO);
   close(stderr_pipe_fd[1]);
 
+  int original_pid = getpid();
+
   dSP;
   SPAGAIN;
+  unsigned counter = 0;
   try {
     while (1) {
       ConnectorMess received;
@@ -164,6 +186,9 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         break;
       }
       if (received.has_execute()) {
+        SPDLOG_LOGGER_DEBUG(_logger, "pid:{}, execute counter:{}", getpid(),
+                            ++counter);
+        //        auto fds_before = get_open_fds();
         ENTER;
         SAVETMPS;
         PUSHMARK(SP);
@@ -177,6 +202,32 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         SPAGAIN; /* rafraichit le pointeur de pile  */
         FREETMPS;
         LEAVE;
+
+        if (getpid() != original_pid) {
+          SPDLOG_LOGGER_DEBUG(_logger, "perl process had forked => exit 0");
+          ::exit(0);
+        }
+
+        // for (int fd : get_open_fds()) {
+        //   if (!fds_before.count(fd) && is_socket(fd)) {
+        //     SPDLOG_LOGGER_DEBUG(_logger, "pid:{} closing leaked socket
+        //     fd={}",
+        //                         getpid(), fd);
+        //     ::close(fd);
+        //   }
+        // }
+
+        // // release any SNMP C-level sessions left open by the script
+        // {
+        //   ENTER;
+        //   SAVETMPS;
+        //   PUSHMARK(SP);
+        //   PUTBACK;
+        //   call_pv("SNMP::finish", G_EVAL | G_DISCARD);
+        //   SPAGAIN;
+        //   FREETMPS;
+        //   LEAVE;
+        // }
 
         struct pollfd pfd[2];
         pfd[0].fd = stdout_pipe_fd[0];
@@ -234,8 +285,10 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
           }
         }
         if (!status_decoded) {
-          SPDLOG_LOGGER_ERROR(_logger, "pid: {} fail to decode status",
-                              getpid());
+          SPDLOG_LOGGER_ERROR(
+              _logger, "pid: {} fail to decode status stderr: {} stdout: {}",
+              getpid(), common::ascii_hex_dump(res->stderr()),
+              common::ascii_hex_dump(res->stdout()));
           res->set_status(3);  // UNKNOWN
           res->set_stdout("script status no decoded " + res->stdout());
         }

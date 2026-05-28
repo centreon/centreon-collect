@@ -417,6 +417,7 @@ target_link_libraries(
   multiplexing
   centreon_common
   centreon_process
+  centreon_hexdump
   centreon_file_system
   pb_neb_lib
   pb_bam_lib

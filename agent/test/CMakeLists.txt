@@ -62,6 +62,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            centreon_hexdump
             centreon_file_system
             ctncrypto
             pb_open_telemetry_lib
@@ -76,13 +77,14 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             pthread
             crypto
             ssl)
-  add_dependencies(ut_agent centreon_common centagent_lib process_stat)
+  add_dependencies(ut_agent centreon_common centreon_hexdump centagent_lib process_stat)
 else()
   target_link_libraries(
     ut_agent
     PRIVATE centagent_lib
             centreon_common
             centreon_process
+            centreon_hexdump
             ctncrypto
             GTest::gtest
             GTest::gtest_main
@@ -94,7 +96,7 @@ else()
             pdh
             taskschd
             Version.lib)
-  add_dependencies(ut_agent centreon_common centagent_lib)
+  add_dependencies(ut_agent centreon_common centreon_hexdump centagent_lib)
 endif()
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)

@@ -142,3 +142,30 @@ std::string com::centreon::common::debug_buf(const char* data,
   }
   return retval;
 }
+
+/**
+ * @brief Dump a byte buffer as a mixed ASCII/hex string.
+ *
+ * Printable bytes (0x20–0x7F) are emitted as-is; non-printable bytes are
+ * emitted as "0xNN". The result is suitable for log messages.
+ *
+ * @param buffer    Pointer to the data to dump.
+ * @param buff_len  Number of bytes to process.
+ * @return Human-readable representation of the buffer.
+ */
+std::string com::centreon::common::ascii_hex_dump(const unsigned char* buffer,
+                                                  size_t buff_len) {
+  const unsigned char* end_buff = buffer + buff_len;
+  std::string ret;
+  ret.reserve(buff_len * 3);
+  for (; buffer != end_buff; ++buffer) {
+    unsigned char c = *buffer;
+    if (c >= 32 && c <= 127) {
+      ret += c;
+    } else {
+      ret += "0x";
+      char_to_hex(c, ret);
+    }
+  }
+  return ret;
+}

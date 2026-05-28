@@ -32,6 +32,12 @@ inline std::string hex_dump(const std::string& buffer,
                   buffer.size(), nb_char_per_line);
 }
 
+std::string ascii_hex_dump(const unsigned char* buffer, size_t buff_len);
+
+inline std::string ascii_hex_dump(const std::string& buffer) {
+  return ascii_hex_dump(reinterpret_cast<const unsigned char*>(buffer.data()),
+                        buffer.size());
+}
 std::string debug_buf(const char* data, int32_t size, int max_len = 10);
 
 }  // namespace com::centreon::common

@@ -115,6 +115,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+            centreon_hexdump
             centreon_grpc
             centreon_file_system
             engine_conf
@@ -145,6 +146,7 @@ else()
     ut_common
     PRIVATE centreon_common
             centreon_process
+            centreon_hexdump
             ctncrypto
             centreon_grpc
             Boost::program_options

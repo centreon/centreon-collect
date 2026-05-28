@@ -54,6 +54,7 @@ add_dependencies(centreon_connector_perl centreon_clib)
 target_link_libraries(centreon_connector_perl 
   centreon_process_no_crypto
   centreon_file_system
+  centreon_hexdump
   process_stat
   ${PERL_LIBRARIES}
   pb_perl_connector_lib

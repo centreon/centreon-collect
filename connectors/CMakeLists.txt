@@ -100,6 +100,7 @@ if(WITH_TESTING)
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
     centreon_process_no_crypto
+    centreon_hexdump
     centreon_file_system
     process_stat
     pb_perl_connector_lib

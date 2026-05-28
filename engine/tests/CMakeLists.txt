@@ -195,12 +195,12 @@ if(WITH_TESTING)
     PRIVATE
     enginerpc
     ut_engine_utils
-    centreon_process
     pb_open_telemetry_lib
     centagent_lib
+    centreon_process
+    centreon_hexdump
     centreon_grpc
     centreon_http
-    centreon_process
     -Wl,-whole-archive
     cce_core
     log_v2

@@ -116,6 +116,7 @@ target_link_libraries(
 	  -Wl,--no-whole-archive
           conflictmgr
           centreon_common
+          centreon_hexdump
           centreon_grpc
           nlohmann_json::nlohmann_json
           multiplexing

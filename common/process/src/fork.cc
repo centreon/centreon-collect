@@ -201,9 +201,13 @@ void com::centreon::common::fork<use_mutex, asio_notify_fork>::do_fork(
     if (use_stderr_pipe) {
       stderr->close_read();
     }
-    int exit_code = _run(stdin.get_fd_to_read(), stdout.get_fd_to_write(),
-                         use_stderr_pipe ? stderr->get_fd_to_write() : -1);
-    ::exit(exit_code);
+    try {
+      int exit_code = _run(stdin.get_fd_to_read(), stdout.get_fd_to_write(),
+                           use_stderr_pipe ? stderr->get_fd_to_write() : -1);
+      ::exit(exit_code);
+    } catch (...) {
+      ::exit(-1);
+    }
   }
 }
 
