@@ -11,59 +11,66 @@ To get this project, you have to clone centreon-collect.
 
 These tests are executed from the `centreon-tests/robot` folder and uses the [Robot Framework](https://robotframework.org/).
 
-From a Centreon host, you need to install Robot Framework
+From a Centreon host, you need to install Robot Framework.
 
-On AlmaLinux, the following commands should work to initialize your robot tests:
+On AlmaLinux, we have to install some python packages, some perl packages:
 
 ```bash
 dnf install "Development Tools" python3-devel -y
+dnf install perl-HTTP-Daemon-SSL -y
+dnf install perl-JSON -y
+```
 
-pip3 install -U robotframework \
+On rpm based system, we have to execute the following commands (maybe to update a little):
+
+```bash
+yum install "Development Tools" python3-devel -y
+yum install perl-HTTP-Daemon-SSL -y
+yum install perl-JSON -y
+```
+
+On deb based system, we have to execute:
+
+
+```bash
+apt-get install python3-dev openssh-server
+```
+
+Once these packages, we recommand to create a python virtual environment to play with robot framework.
+
+You can do that as you prefer, here we use uv. The first step is to install it:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | less
+```
+
+Once installed, you have to create a virtual environment, we create it in the centreon-collect/tests directory:
+
+```bash
+cd centreon-collect/tests
+uv venv --python=python3.11 robotframework
+```
+
+And now, we can install the required python modules for our tests:
+
+```bash
+uv pip install -U robotframework \
         robotframework-databaselibrary \
         robotframework-examples pymysql \
         robotframework-requests psutil \
         robotframework-httpctrl boto3 \
-        GitPython unqlite py-cpuinfo pyjwt
-
-
-pip3 install grpcio grpcio_tools
-
-#you need also to provide opentelemetry proto files at the project root with this command
-git clone https://github.com/open-telemetry/opentelemetry-proto.git opentelemetry-proto
-
-#Then you must have something like that:
-#root directory/bbdo
-#              /broker
-#              /engine
-#              /opentelemetry-proto
-#              /tests
+        GitPython unqlite py-cpuinfo pyjwt \
+        grpcio grpcio_tools
 ```
 
-We need some perl modules to run the tests, you can install them with the following command:
+When you want to enable the virtual environment, you just have to execute the following command:
 
 ```bash
-dnf install perl-HTTP-Daemon-SSL
-dnf install perl-JSON
+cd centreon-collect/tests
+source robotframework/bin/activate
 ```
 
-To work with gRPC, we also need to install some python modules.
-
-On rpm based system, we have to install:
-```
-yum install python3-devel -y
-```
-
-On deb based system, we have to install:
-```
-apt-get install python3-dev openssh-server
-```
-
-And then we can install the required python modules:
-```
-pip3 install grpcio grpcio_tools
-```
-
-Now it should be possible to initialize the tests with the following commands:
+Now it should be possible to initialize several files to execute the tests with the following commands:
 
 ```bash
 ./init-proto.sh
@@ -73,7 +80,7 @@ Now it should be possible to initialize the tests with the following commands:
 Then to run tests, you can use the following commands
 
 ```
-robot .
+robot -e unstable .
 ```
 
 And it is also possible to execute a specific test, for example:
@@ -81,10 +88,13 @@ And it is also possible to execute a specific test, for example:
 ```
 robot broker/sql.robot
 ```
+
 In order to execute bench tests (broker-engine/bench.robot), you need also to
 install py-cpuinfo, cython, unqlite and boto3
 
-pip3 install py-cpuinfo cython unqlite gitpython boto3
+```bash
+uv pip install py-cpuinfo cython unqlite gitpython boto3
+```
 
 ## Implemented tests
 
