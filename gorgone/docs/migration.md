@@ -5,7 +5,7 @@ To build a configuration file based on */etc/centreon/conf.pm*, execute the foll
 If using package:
 
 ```bash
-$ perl /usr/local/bin/gorgone_config_init.pl
+$ perl /usr/bin/gorgone_config_init.pl
 2019-09-30 11:00:00 - INFO - file '/etc/centreon-gorgone/config.yaml' created success
 ```
 

@@ -50,13 +50,10 @@ jobs:
 
     steps:
       - name: Checkout sources
-        if: github.event_name == 'pull_request' || inputs.base_sha != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Fetch tags
         if: inputs.base_sha != ''
-        run: git fetch origin tag ${{ inputs.base_sha }} --no-tags || true
-        shell: bash
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-tags: true
 
       - name: Convert inputs to yaml list
         if: github.event_name == 'pull_request' || inputs.base_sha != ''

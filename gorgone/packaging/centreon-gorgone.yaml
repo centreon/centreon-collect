@@ -126,27 +126,27 @@ contents:
     expand: true
 
   - src: "../contrib/gorgone_config_init.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_audit.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0755
 
   - src: "../contrib/gorgone_install_plugins.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_thumbprint.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 
   - src: "../contrib/gorgone_key_generation.pl"
-    dst: "/usr/local/bin/"
+    dst: "/usr/bin/"
     file_info:
       mode: 0750
 

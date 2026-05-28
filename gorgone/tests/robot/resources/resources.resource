@@ -118,7 +118,7 @@ Setup Gorgone Config
     FOR    ${file}    IN    @{file_list}
         Copy File    ${file}    /etc/centreon-gorgone/${gorgone_name}/config.d/
     END
-    ${key_thumbprint}    Run    perl /usr/local/bin/gorgone_key_thumbprint.pl --key-path=/var/lib/centreon-gorgone/.keys/rsakey.priv.pem | cut -d: -f4
+    ${key_thumbprint}    Run    perl /usr/bin/gorgone_key_thumbprint.pl --key-path=/var/lib/centreon-gorgone/.keys/rsakey.priv.pem | cut -d: -f4
 
     ${result}    Run    sed -i -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g' /etc/centreon-gorgone/${gorgone_name}/includer.yaml
 
@@ -177,7 +177,7 @@ Check Poller Communicate
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
     ${start_time}   Get Time    str=epoch
-    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+    ${result}    Run    perl /usr/bin/gorgone_key_generation.pl
     # generate key if there is none.
     # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
     # this script only create key if the files don't exists, and silently finish if the files already exists.
