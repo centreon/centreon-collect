@@ -235,7 +235,7 @@ COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /usr/local/
 COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
 COPY --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
 COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/sudoersCentreon /etc/sudoers.d/centreon-docker
-COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/local/bin/gorgone_install_plugins.pl
+COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/bin/gorgone_install_plugins.pl
 COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
 
 # Perl library path for Debian
