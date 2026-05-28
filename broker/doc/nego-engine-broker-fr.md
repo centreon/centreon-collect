@@ -2732,6 +2732,9 @@ La classe de base `state` fournit une implémentation virtuelle vide de `set_ins
 
 # Gestion centralisée des downtimes et acquittements
 
+> Pour le détail de la librairie de planification partagée et des callbacks à implémenter côté
+> Broker, voir [Librairie downtimes — Guide d'intégration Broker](./downtimes-integration-fr.md).
+
 ## Problème
 
 Dans l'architecture actuelle, les downtimes et acquittements sont gérés directement par Engine.
@@ -2761,8 +2764,11 @@ de maintenance.
 **En mode legacy**, Engine continue de gérer les downtimes, les acquittements et les
 notifications exactement comme il l'a toujours fait. Aucun changement.
 
-**En mode configuration centralisée** (BBDO3), le paramètre `notification_mode` dans
-`centengine.cfg` contrôle qui gère les notifications, downtimes et acquittements :
+**En mode configuration centralisée** (BBDO3), le paramètre `notification_mode` dans la
+configuration de Broker contrôle qui gère les notifications, downtimes et acquittements.
+Broker active ou désactive sa gestion des downtimes en conséquence ; PHP s'adapte en envoyant
+les commandes soit à Broker (via `BrokerRpc`), soit à Engine (via le pipe de commandes).
+Engine n'est jamais informé de ce paramètre.
 
 - `notification_mode = engine` **(défaut)** : Engine gère tout exactement comme en mode legacy.
   PHP continue d'envoyer les commandes de downtime et d'acquittement à Engine via le pipe de
