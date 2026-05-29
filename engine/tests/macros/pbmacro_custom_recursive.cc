@@ -82,6 +82,8 @@ class MacroCustomRecursive : public TestEngine {
     _svc = service::services.find({"test_host", "test_svc"})->second;
 
     init_macros();
+
+    //macros_logger->set_level(spdlog::level::trace);
   }
 
   void TearDown() override {
@@ -163,6 +165,20 @@ TEST_F(MacroCustomRecursive, ServiceCustomFullExample) {
   mac->service_ptr = _svc.get();
   process_macros_r(mac, "$_SERVICECUSTOMURL$", out, 0);
   ASSERT_EQ(out, "http://10.0.0.1:8080/api/status");
+}
+
+TEST_F(MacroCustomRecursive, ServiceCustomFullExampleEndWithDollar) {
+  _host->custom_variables["HTTPPORT"] = customvariable("8080");
+  _svc->custom_variables["ENDPOINT"] = customvariable("api/status");
+  _svc->custom_variables["CUSTOMURL"] = customvariable(
+      "http://$HOSTADDRESS$:$_HOSTHTTPPORT$/$_SERVICEENDPOINT$/storage'^/$'");
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  mac->host_ptr = _host.get();
+  mac->service_ptr = _svc.get();
+  process_macros_r(mac, "$_SERVICECUSTOMURL$", out, 0);
+  ASSERT_EQ(out, "http://10.0.0.1:8080/api/status/storage'^/$'");
 }
 
 /* Service custom macro containing a standard service macro. */
