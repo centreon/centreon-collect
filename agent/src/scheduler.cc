@@ -42,15 +42,26 @@
 
 using namespace com::centreon::agent;
 
+// Strip the POSIX ':' prefix from a timezone string (":Europe/Paris" ->
+// "Europe/Paris").
+std::string scheduler::_normalize_tz(std::string_view tz) {
+  if (!tz.empty() && tz[0] == ':')
+    tz.remove_prefix(1);
+  return std::string(tz);
+}
+
 std::string scheduler::_detect_local_tz_name() {
 #ifdef _WIN32
-  // Windows timezone()
+  // Windows timezone key names are not IANA names — skip the comparison.
   return {};
 #else
-  // Prefer $TZ only if it looks like an IANA name (contains '/').
+  // Prefer $TZ if it looks like an IANA name (contains '/'), strip ':' prefix.
   const char* tz_env = ::getenv("TZ");
-  if (tz_env && *tz_env && ::strchr(tz_env, '/'))
-    return tz_env;
+  if (tz_env && *tz_env) {
+    std::string name = _normalize_tz(tz_env);
+    if (name.find('/') != std::string::npos)
+      return name;
+  }
 
   // Resolve /etc/localtime symlink to extract the IANA name from the path
   // (e.g. /usr/share/zoneinfo/Europe/Paris → "Europe/Paris").
@@ -305,19 +316,22 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       if (serv.max_attempts() == 0) {
         serv.set_max_attempts(3);  // three attempt by default
       }
-      if (!serv.timezone().empty() && !_local_tz_name.empty() &&
-          serv.timezone() != _local_tz_name) {
-        SPDLOG_LOGGER_ERROR(
-            _logger,
-            "service '{}': timezone mismatch - service configured with '{}' "
-            "but agent is running in '{}'; timeperiod checks may be incorrect",
-            serv.service_description(), serv.timezone(), _local_tz_name);
-      } else if (!serv.timezone().empty() && !_local_tz_name.empty()) {
-        SPDLOG_LOGGER_DEBUG(
-            _logger,
-            "service '{}': timezone match - service configured with '{}' "
-            "and agent is running in '{}'",
-            serv.service_description(), serv.timezone(), _local_tz_name);
+      const std::string serv_tz = _normalize_tz(serv.timezone());
+      if (!serv_tz.empty() && !_local_tz_name.empty()) {
+        if (serv_tz != _local_tz_name) {
+          SPDLOG_LOGGER_ERROR(
+              _logger,
+              "service '{}': timezone mismatch - service configured with '{}' "
+              "but agent is running in '{}'; timeperiod checks may be "
+              "incorrect",
+              serv.service_description(), serv_tz, _local_tz_name);
+        } else {
+          SPDLOG_LOGGER_DEBUG(
+              _logger,
+              "service '{}': timezone match - service configured with '{}' "
+              "and agent is running in '{}'",
+              serv.service_description(), serv_tz, _local_tz_name);
+        }
       }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();

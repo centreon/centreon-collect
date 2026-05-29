@@ -109,6 +109,7 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   // Local timezone name detected once at construction time.
   std::string _local_tz_name;
 
+  static std::string _normalize_tz(std::string_view tz);
   static std::string _detect_local_tz_name();
 
   void _start();
