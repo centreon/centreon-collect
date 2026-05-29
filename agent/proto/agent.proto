@@ -100,7 +100,6 @@ message AgentConfiguration {
   string salt = 10;
   // timeperiod definitions referenced by services' check_period_name
   repeated com.centreon.engine.configuration.Timeperiod timeperiods = 11;
-  string use_timezone = 12;
 }
 
 // Service (poller configuration definition)
@@ -115,6 +114,7 @@ message Service {
   uint32 retry_interval = 7;
   uint64 max_attempts = 8;
   string check_period_name = 9;
+  string timezone = 10;
 }
 
 // message used by engine to make agent do a force check

@@ -106,6 +106,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
                       const com::centreon::engine::configuration::Timeperiod*>
       _timeperiods;
 
+  // Local timezone name detected once at construction time.
+  std::string _local_tz_name;
+
+  static std::string _detect_local_tz_name();
+
   void _start();
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
@@ -228,7 +233,8 @@ scheduler::scheduler(
       _check_timer(*io_context),
       _check_builder(builder),
       _conf(config),
-      _average_metric_length(0) {}
+      _average_metric_length(0),
+      _local_tz_name(_detect_local_tz_name()) {}
 
 /**
  * @brief create and start a new scheduler

@@ -308,6 +308,8 @@ class check : public std::enable_shared_from_this<check> {
     return _service.check_period_name();
   }
 
+  const std::string& get_timezone() const { return _service.timezone(); }
+
   void increment_cur_attempt() { ++_current_attempt; }
   int get_current_attempt() const { return _current_attempt; }
   void set_current_attempt(int attempt) { _current_attempt = attempt; }

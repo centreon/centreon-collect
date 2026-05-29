@@ -42,6 +42,38 @@
 
 using namespace com::centreon::agent;
 
+std::string scheduler::_detect_local_tz_name() {
+#ifdef _WIN32
+  // Windows timezone()
+  return {};
+#else
+  // Prefer $TZ only if it looks like an IANA name (contains '/').
+  const char* tz_env = ::getenv("TZ");
+  if (tz_env && *tz_env && ::strchr(tz_env, '/'))
+    return tz_env;
+
+  // Resolve /etc/localtime symlink to extract the IANA name from the path
+  // (e.g. /usr/share/zoneinfo/Europe/Paris → "Europe/Paris").
+  char buf[256];
+  ssize_t len = ::readlink("/etc/localtime", buf, sizeof(buf) - 1);
+  if (len > 0) {
+    buf[len] = '\0';
+    const char* marker = "zoneinfo/";
+    const char* pos = ::strstr(buf, marker);
+    if (pos)
+      return pos + ::strlen(marker);
+  }
+
+  // Fallback: /etc/timezone (Debian/Ubuntu systems).
+  std::ifstream tz_file("/etc/timezone");
+  std::string name;
+  if (tz_file && std::getline(tz_file, name) && !name.empty())
+    return name;
+
+  return {};
+#endif
+}
+
 /**
  * @brief destructor
  *
@@ -273,6 +305,20 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       if (serv.max_attempts() == 0) {
         serv.set_max_attempts(3);  // three attempt by default
       }
+      if (!serv.timezone().empty() && !_local_tz_name.empty() &&
+          serv.timezone() != _local_tz_name) {
+        SPDLOG_LOGGER_ERROR(
+            _logger,
+            "service '{}': timezone mismatch - service configured with '{}' "
+            "but agent is running in '{}'; timeperiod checks may be incorrect",
+            serv.service_description(), serv.timezone(), _local_tz_name);
+      } else if (!serv.timezone().empty() && !_local_tz_name.empty()) {
+        SPDLOG_LOGGER_DEBUG(
+            _logger,
+            "service '{}': timezone match - service configured with '{}' "
+            "and agent is running in '{}'",
+            serv.service_description(), serv.timezone(), _local_tz_name);
+      }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();
       auto min_interval = std::min(check_interval, retry_interval);
@@ -377,15 +423,6 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
-
-  // Apply the engine's timezone so timeperiod.
-  const std::string& tz = conf->config().use_timezone();
-  if (!tz.empty()) {
-    setenv("TZ", tz.c_str(), 1);
-  } else {
-    unsetenv("TZ");
-  }
-  tzset();
 
   _timeperiods.clear();
   for (const auto& tp : conf->config().timeperiods()) {
