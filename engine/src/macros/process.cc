@@ -163,6 +163,8 @@ int process_macros_r(nagios_macros* mac,
           }
 
           it += pos - where;
+        } else {  // only one dollar in string, let it
+          output_buffer += *it;
         }
       }
     } else {
