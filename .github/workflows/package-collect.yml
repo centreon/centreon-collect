@@ -110,12 +110,14 @@ jobs:
           distrib: ${{ inputs.distrib }}
 
       - name: Install sccache
+        env:
+          ARCH: ${{ inputs.arch }}
         run: |
-          if [ "${{ inputs.arch }}" = "amd64" ]; then
+          if [ "$ARCH" = "amd64" ]; then
             wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
             tar xzf sccache-v0.12.0-x86_64-unknown-linux-musl.tar.gz
             mv sccache-v0.12.0-x86_64-unknown-linux-musl/sccache /usr/bin/
-          elif [ "${{ inputs.arch }}" = "arm64" ]; then
+          elif [ "$ARCH" = "arm64" ]; then
             wget https://github.com/mozilla/sccache/releases/download/v0.12.0/sccache-v0.12.0-aarch64-unknown-linux-musl.tar.gz
             tar xzf sccache-v0.12.0-aarch64-unknown-linux-musl.tar.gz
             mv sccache-v0.12.0-aarch64-unknown-linux-musl/sccache /usr/bin/
@@ -124,8 +126,12 @@ jobs:
 
       - name: Generate selinux binaries
         if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
+        env:
+          ONLY_ROBOT_CMA_INPUT: ${{ inputs.only_robot_cma }}
+          MAJOR_VERSION: ${{ inputs.major_version }}
+          MINOR_VERSION: ${{ inputs.minor_version }}
         run: |
-          if [[ "${{ inputs.only_robot_cma }}" == "true" ]]; then
+          if [[ "$ONLY_ROBOT_CMA_INPUT" == "true" ]]; then
             MODULES=("centreon-monitoring-agent")
           else
             MODULES=("centreon-engine" "centreon-broker")
@@ -134,7 +140,7 @@ jobs:
           cd selinux
           for MODULE in "${MODULES[@]}"; do
             cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.major_version }}.${{ inputs.minor_version }}/g" $MODULE.te
+            sed -i "s/@VERSION@/$MAJOR_VERSION.$MINOR_VERSION/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
             cd -
           done
@@ -146,13 +152,17 @@ jobs:
         shell: bash
 
       - name: Compile sources
+        env:
+          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+          ARCH: ${{ inputs.arch }}
+          LEGACY_ENGINE: ${{ inputs.legacy_engine }}
         run: |
           CMAKE="cmake3"
-          if [ "${{ steps.parse-distrib.outputs.package_extension }}" = "deb" ]; then
+          if [ "$PACKAGE_EXTENSION" = "deb" ]; then
             CMAKE="cmake"
           fi
 
-          if [ "${{ inputs.arch }}" = "arm64" ]; then
+          if [ "$ARCH" = "arm64" ]; then
             export VCPKG_FORCE_SYSTEM_BINARIES=1
             export TRIPLET=arm64-linux-release
           else
@@ -188,7 +198,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
-                  -DLEGACY_ENGINE=${{ inputs.legacy_engine }} \
+                  -DLEGACY_ENGINE="$LEGACY_ENGINE" \
                   -DONLY_ROBOT_CMA=$ONLY_ROBOT_CMA \
                   -S .
 
@@ -300,5 +310,7 @@ jobs:
           upload_artifacts: ${{ inputs.packages_in_artifact && 'true' || 'false' }}
 
       - name: Cleaning not needed packages
-        run: rm -rf *-debuginfo*.${{ steps.parse-distrib.outputs.package_extension }}
+        env:
+          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+        run: rm -rf *-debuginfo*."$PACKAGE_EXTENSION"
         shell: bash

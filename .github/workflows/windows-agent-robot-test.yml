@@ -203,7 +203,9 @@ jobs:
           copy tests\resources\engine-scripts\check.ps1 C:\Users\public\
 
       - name: robot tests
-        run: .github/scripts/agent_robot_test.ps1 -robot ${{matrix.robot-files}}
+        env:
+          ROBOT_FILE: ${{ matrix.robot-files }}
+        run: .github/scripts/agent_robot_test.ps1 -robot $env:ROBOT_FILE
         shell: powershell
 
       - name: Upload Test Results
