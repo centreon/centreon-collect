@@ -44,15 +44,15 @@ config::config(int argc, char** argv) {
     ("debug,d","If this flag is specified, print all logs messages.")
     ("version,v","Print software version and exit.")
     ("log-file,l", po::value<std::string>(),"Specifies the log file (default: stderr).")
-    ("log-level", po::value<std::string>(),"error, info, debug or trace")
+    ("log-level", po::value<std::string>()->default_value("info"),"error, info, debug or trace")
     ("test-file,x", po::value<std::string>(),"Specifies the file used instead of stdin.")
-    ("max-child", po::value<unsigned>(), "Max number of child process")
-    ("min-free-memory", po::value<unsigned>(), "If free system memory becomes lower than this threshold in Mo, some child processes are killed")
+    ("max-child", po::value<unsigned>()->default_value(64), "Max number of child process")
+    ("min-free-memory", po::value<unsigned>()->default_value(500), "If free system memory becomes lower than this threshold in Mo, some child processes are killed")
     ("max-opened-fd", po::value<unsigned>(), max_opened_option_help.c_str())
-    ("child-max-memory-increase-percent", po::value<unsigned>(), "If memory used by a child process has increased more than this threshold between first and last check, it is killed")
-    ("child-max-fd-increase-percent", po::value<unsigned>(), "If the number of file descriptors opened by a child process has increased more than this threshold between first and last check, it is killed")
-    ("child-max-thread", po::value<unsigned>(), "If a child process has created more threads than this threshold, it is killed")
-    ("child-max-reuse-script", po::value<unsigned>(), "Some perl scripts are not designed to be reused in the same process many times, so if a child process has been used more than this threshold, it is killed")
+    ("child-max-memory-increase-percent", po::value<unsigned>()->default_value(10), "If memory used by a child process has increased more than this threshold between first and last check, it is killed")
+    ("child-max-fd-increase-percent", po::value<unsigned>()->default_value(10), "If the number of file descriptors opened by a child process has increased more than this threshold between first and last check, it is killed")
+    ("child-max-thread", po::value<unsigned>()->default_value(10), "If a child process has created more threads than this threshold, it is killed")
+    ("child-max-reuse-script", po::value<unsigned>()->default_value(1), "Some perl scripts are not designed to be reused in the same process many times, so if a child process has been used more than this threshold, it is killed")
     ("idle-child-ttl", po::value<unsigned>()->default_value(15), "When a child process has performed no checks for longer than this duration in minutes, it is killed.");
   // clang-format on
 
@@ -63,7 +63,28 @@ config::config(int argc, char** argv) {
   std::string test_file_path;
 
   if (vm.count("help")) {
-    std::cout << desc << std::endl;
+    std::cout << desc << R"(
+Per-command overrides:
+  Four of the global limits can be overridden on a per-check basis by
+  inserting keyword/value pairs directly in the check command line, between
+  the script path and the script's own arguments.  Each keyword must be
+  followed by a numeric value:
+
+    child-max-reuse-script <N>
+        Override --child-max-reuse-script for this command only.
+
+    child-max-memory-increase-percent <N>
+        Override --child-max-memory-increase-percent for this command only.
+
+    child-max-fd-increase-percent <N>
+        Override --child-max-fd-increase-percent for this command only.
+
+    child-max-thread <N>
+        Override --child-max-thread for this command only.
+
+  Example:
+    /usr/lib/nagios/plugins/check_something.pl --child-max-reuse-script=5 --child-max-thread=20 --arg1
+)" << std::endl;
     _need_to_stop = true;
     return;
   }
