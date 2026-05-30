@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Centreon (https://www.centreon.com/)
+ * Copyright 2023-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
+#include "com/centreon/engine/engine_downtime_callbacks.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -36,7 +38,11 @@ class ApplierPbHost : public ::testing::Test {
   std::unique_ptr<configuration::state_helper> _state_hlp;
 
  public:
-  void SetUp() override { _state_hlp = init_config_state(); }
+  void SetUp() override {
+    _state_hlp = init_config_state();
+    com::centreon::common::downtimes::downtime_manager::load(
+        std::make_unique<engine_downtime_callbacks>());
+  }
 
   void TearDown() override { deinit_config_state(); }
 };

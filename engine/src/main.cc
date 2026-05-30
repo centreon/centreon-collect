@@ -47,6 +47,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/diagnostic.hh"
+#include "com/centreon/engine/engine_downtime_callbacks.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
@@ -85,6 +86,9 @@ int main(int argc, char* argv[]) {
 
   // Load singletons and global variable.
   log_v2::load("centengine");
+
+  downtimes::downtime_manager::load(
+      std::make_unique<engine_downtime_callbacks>());
 
   // Initialize the initial configuration state.
   {

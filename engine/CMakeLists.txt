@@ -394,6 +394,7 @@ set(FILES
     "${SRC_DIR}/dependency.cc"
     "${SRC_DIR}/diagnostic.cc"
     "${SRC_DIR}/exceptions/error.cc"
+    "${SRC_DIR}/engine_downtime_callbacks.cc"
     "${SRC_DIR}/flapping.cc"
     "${SRC_DIR}/escalation.cc"
     "${SRC_DIR}/globals.cc"

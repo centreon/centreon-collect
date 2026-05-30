@@ -2163,7 +2163,9 @@ int host::handle_state() {
     /* check for start of flexible (non-fixed) scheduled downtime */
     /* CHANGED 08-05-2010 EG flex downtime can now start on soft states */
     /*if(this->state_type==hard) */
-    downtime_manager::instance().check_pending_flex_host_downtime(this);
+    if (get_current_state() != host::state_up)
+      downtime_manager::instance().activate_pending_flex_host_downtimes(
+          host_id());
 
     /* notify contacts about the recovery or problem if its a "hard" state */
     if (get_current_state_int() == 0)
