@@ -18,8 +18,6 @@
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/downtimes/host_downtime.hh"
-#include "common/downtimes/service_downtime.hh"
 
 namespace downtimes = com::centreon::common::downtimes;
 using namespace com::centreon::engine;
@@ -31,63 +29,39 @@ using namespace com::centreon::engine::retention;
  *  @param[in] lst The downtime list to add.
  */
 void applier::downtime::apply(list_downtime const& lst) {
-  // Big speedup when reading retention.dat in bulk.
+  for (const auto& dt : lst) {
+    bool is_service = (dt->downtime_type() == retention::downtime::service);
 
-  for (list_downtime::const_iterator it(lst.begin()), end(lst.end()); it != end;
-       ++it) {
-    if ((*it)->downtime_type() == retention::downtime::host)
-      _add_host_downtime(**it);
-    else
-      _add_service_downtime(**it);
+    auto found_host = host::hosts.find(dt->host_name());
+    if (found_host == host::hosts.end()) {
+      downtimes_logger->error(
+          "Cannot add downtime on host '{}' because it does not exist",
+          dt->host_name());
+      continue;
+    }
+
+    uint64_t host_id = found_host->second->host_id();
+    uint64_t service_id = 0;
+
+    if (is_service) {
+      auto found_svc = service::services.find(
+          {dt->host_name(), dt->service_description()});
+      if (found_svc == service::services.end()) {
+        downtimes_logger->error(
+            "Cannot create service downtime on service ('{}', '{}') because "
+            "it does not exist",
+            dt->host_name(), dt->service_description());
+        continue;
+      }
+      service_id = found_svc->second->service_id();
+    }
+
+    auto d = std::make_shared<downtimes::downtime>(
+        host_id, service_id, dt->entry_time(), dt->author(),
+        dt->comment_data(), dt->start_time(), dt->end_time(), dt->fixed(),
+        dt->triggered_by(), dt->duration(), dt->downtime_id(), downtimes_logger);
+    downtimes::downtime_manager::instance().add_downtime(d);
+    d->notify_broker_load();
+    d->subscribe();
   }
-}
-
-/**
- *  Add host downtime.
- *
- *  @param[in] obj The downtime to add into the host.
- */
-void applier::downtime::_add_host_downtime(
-    retention::downtime const& obj) noexcept {
-  auto found = host::hosts.find(obj.host_name());
-  if (found != host::hosts.end()) {
-    auto dt{std::make_shared<downtimes::host_downtime>(
-        found->second->host_id(), obj.entry_time(), obj.author(),
-        obj.comment_data(), obj.start_time(), obj.end_time(), obj.fixed(),
-        obj.triggered_by(), obj.duration(), obj.downtime_id(),
-        downtimes_logger)};
-    downtimes::downtime_manager::instance().add_downtime(dt);
-    dt->schedule();
-    downtimes::downtime_manager::instance().register_downtime(
-        downtimes::downtime::host_downtime, obj.downtime_id());
-  } else
-    downtimes_logger->error(
-        "Cannot add host downtime on host '{}' because it does not exist",
-        obj.host_name());
-}
-
-/**
- *  Add service downtime.
- *
- *  @param[in] obj The downtime to add into the service.
- */
-void applier::downtime::_add_service_downtime(
-    retention::downtime const& obj) noexcept {
-  auto found =
-      service::services.find({obj.host_name(), obj.service_description()});
-  if (found != service::services.end()) {
-    auto dt{std::make_shared<downtimes::service_downtime>(
-        found->second->host_id(), found->second->service_id(), obj.entry_time(),
-        obj.author(), obj.comment_data(), obj.start_time(), obj.end_time(),
-        obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id(),
-        downtimes_logger)};
-    downtimes::downtime_manager::instance().add_downtime(dt);
-    dt->schedule();
-    downtimes::downtime_manager::instance().register_downtime(
-        downtimes::downtime::service_downtime, obj.downtime_id());
-  } else
-    downtimes_logger->error(
-        "Cannot create service downtime on service ('{}', '{}') because it "
-        "does not exist",
-        obj.host_name(), obj.service_description());
 }

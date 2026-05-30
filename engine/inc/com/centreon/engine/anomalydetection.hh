@@ -70,6 +70,8 @@ class anomalydetection : public service {
   double _sensitivity;
   uint64_t _dependent_service_id;
 
+  void _register_dependent_to_anomaly_detection(uint64_t old_service_id);
+
   using threshold_point_map = std::map<time_t, threshold_point>;
   threshold_point_map _thresholds;
   std::mutex _thresholds_m;
@@ -148,7 +150,7 @@ class anomalydetection : public service {
   const std::string& get_thresholds_file() const;
   void resolve(uint32_t& w, uint32_t& e);
 
-  static const pointer_set& get_anomaly(uint64_t dependent_service_id);
+  static const pointer_set& find_by_dependent_service(uint64_t host_id, uint64_t service_id);
 };
 }  // namespace com::centreon::engine
 

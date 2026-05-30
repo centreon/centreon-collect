@@ -40,10 +40,10 @@ class host_downtime : public downtime {
   virtual ~host_downtime() override;
 
   virtual bool is_stale() const override;
-  virtual void schedule() override;
-  virtual int unschedule() override;
-  virtual int subscribe() override;
-  virtual int handle() override;
+  virtual void notify_broker_load() override;
+  virtual bool unschedule() override;
+  virtual bool subscribe() override;
+  virtual bool handle() override;
   virtual void print(std::ostream& os) const override;
   virtual void retention(std::ostream& os) const override;
 };

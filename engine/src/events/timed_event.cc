@@ -249,7 +249,7 @@ void timed_event::_exec_event_expire_downtime() {
   events_logger->trace("** Expire Downtime Event");
 
   // check for expired scheduled downtime entries.
-  downtime_manager::instance().check_for_expired_downtime();
+  downtime_manager::instance().delete_expired_downtimes();
 }
 
 /**

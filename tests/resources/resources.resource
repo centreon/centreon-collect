@@ -363,21 +363,9 @@ Ctn Stop Engine
 
 Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
-    TRY
-        Ctn Stop Engine
-    EXCEPT
-        Log    can't kindly stop engine
-    END
-    TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
-    EXCEPT
-        Log    Can't kindly stop Broker
-    END
-    TRY
-        Ctn Kindly Stop Agent
-    EXCEPT
-        Log    Can't kindly stop Agent
-    END
+    Run Keyword And Continue On Failure    Ctn Stop Engine
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Agent
     Ctn Save Logs If Failed
 
 Ctn Get Engine Pid

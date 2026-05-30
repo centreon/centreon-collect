@@ -48,7 +48,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_finder.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/downtimes/service_downtime.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::string;
@@ -1912,12 +1911,12 @@ grpc::Status engine_impl::ScheduleHostDowntime(
     else
       duration = static_cast<unsigned long>(request->duration());
     /* scheduling downtime */
-    int res = downtimes::downtime_manager::instance().schedule_downtime(
+    bool res = downtimes::downtime_manager::instance().schedule_downtime(
         downtimes::downtime::host_downtime, temp_host->host_id(), 0,
         request->entry_time(), request->author().c_str(),
         request->comment_data().c_str(), request->start(), request->end(),
         request->fixed(), request->triggered_by(), duration, &downtime_id);
-    if (res == ERROR) {
+    if (!res) {
       err = fmt::format("could not schedule downtime of host '{}'",
                         request->host_name());
       return 1;
@@ -1987,13 +1986,13 @@ grpc::Status engine_impl::ScheduleServiceDowntime(
       duration = static_cast<unsigned long>(request->duration());
 
     /* scheduling downtime */
-    int res = downtimes::downtime_manager::instance().schedule_downtime(
+    bool res = downtimes::downtime_manager::instance().schedule_downtime(
         downtimes::downtime::service_downtime, temp_service->host_id(),
         temp_service->service_id(), request->entry_time(),
         request->author().c_str(), request->comment_data().c_str(),
         request->start(), request->end(), request->fixed(),
         request->triggered_by(), duration, &downtime_id);
-    if (res == ERROR) {
+    if (!res) {
       err = fmt::format("could not schedule downtime of service '{}', '{}'",
                         request->host_name(), request->service_desc());
       return 1;
@@ -2557,8 +2556,8 @@ grpc::Status engine_impl::DeleteDowntime(grpc::ServerContext* context
   auto fn =
       std::packaged_task<int32_t(void)>([&err, &downtime_id]() -> int32_t {
         /* deletes scheduled  downtime */
-        if (downtimes::downtime_manager::instance().unschedule_downtime(
-                downtime_id) == ERROR) {
+        if (!downtimes::downtime_manager::instance().unschedule_downtime(
+                downtime_id)) {
           err = fmt::format("could not delete downtime {}", downtime_id);
           return 1;
         } else
@@ -2661,7 +2660,7 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
     CommandSuccess* response [[maybe_unused]]) {
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([request]() -> int32_t {
-    std::list<downtimes::service_downtime*> dtlist;
+    std::list<downtimes::downtime*> dtlist;
     /* iterate through all current downtime(s) */
     for (auto it = downtimes::downtime_manager::instance()
                        .get_scheduled_downtimes()
@@ -2670,8 +2669,10 @@ grpc::Status engine_impl::DeleteServiceDowntimeFull(
                         .get_scheduled_downtimes()
                         .end();
          it != end; ++it) {
-      downtimes::service_downtime* dt =
-          static_cast<downtimes::service_downtime*>(it->second.get());
+      /* skip host downtimes */
+      if (it->second->get_type() != downtimes::downtime::service_downtime)
+        continue;
+      downtimes::downtime* dt = it->second.get();
       /* we are checking if request criteria match with the downtime criteria
        */
       auto p =
@@ -2743,17 +2744,15 @@ grpc::Status engine_impl::DeleteDowntimeByHostName(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, &host_name,
                                                request]() -> int32_t {
-    std::pair<bool, time_t> start_time;
+    std::optional<time_t> start_time;
     std::string service_desc;
     std::string comment_data;
     if (!(request->service_desc().empty()))
       service_desc = request->service_desc();
     if (!(request->comment_data().empty()))
       comment_data = request->comment_data();
-    if (!(request->has_start()))
-      start_time = {false, 0};
-    else
-      start_time = {true, request->start().value()};
+    if (request->has_start())
+      start_time = request->start().value();
 
     uint32_t deleted =
         downtimes::downtime_manager::instance()
@@ -2799,7 +2798,7 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
   std::string err;
   auto fn = std::packaged_task<int32_t(void)>([&err, &host_group_name,
                                                request]() -> int32_t {
-    std::pair<bool, time_t> start_time;
+    std::optional<time_t> start_time;
     std::string host_name;
     std::string service_desc;
     std::string comment_data;
@@ -2817,10 +2816,8 @@ grpc::Status engine_impl::DeleteDowntimeByHostGroupName(
       service_desc = request->service_desc();
     if (!(request->comment_data().empty()))
       comment_data = request->comment_data();
-    if (!(request->has_start()))
-      start_time = {false, 0};
-    else
-      start_time = {true, request->start().value()};
+    if (request->has_start())
+      start_time = request->start().value();
 
     for (host_map_unsafe::iterator it_h(it->second->members.begin()),
          end_h(it->second->members.end());
@@ -2886,7 +2883,7 @@ grpc::Status engine_impl::DeleteDowntimeByStartTimeComment(
     uint32_t deleted =
         downtimes::downtime_manager::instance()
             .delete_downtime_by_hostname_service_description_start_time_comment(
-                "", "", {true, start_time}, comment_data);
+                "", "", start_time, comment_data);
     if (0 == deleted) {
       err = fmt::format("could not delete comment with comment_data '{}'",
                         comment_data);
