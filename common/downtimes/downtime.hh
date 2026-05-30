@@ -20,19 +20,15 @@
 #ifndef CCC_DOWNTIMES_DOWNTIME_HH
 #define CCC_DOWNTIMES_DOWNTIME_HH
 
-#include "com/centreon/engine/host.hh"
-
 namespace com::centreon::common::downtimes {
 
 class downtime {
  public:
   enum type { service_downtime = 1, host_downtime = 2, any_downtime = 3 };
 
- private:
-  type _type;
-
  protected:
   const uint64_t _host_id;
+  const uint64_t _service_id;
   time_t _entry_time;
   std::string _author;
   std::string _comment;
@@ -52,8 +48,8 @@ class downtime {
   uint64_t _get_comment_id() const;
 
  public:
-  downtime(type type,
-           const uint64_t host_id,
+  downtime(uint64_t host_id,
+           uint64_t service_id,
            time_t entry_time,
            const std::string& author,
            const std::string& comment,
@@ -66,18 +62,18 @@ class downtime {
            const std::shared_ptr<spdlog::logger>& logger);
   downtime(downtime const&) = delete;
   downtime(downtime&&) = delete;
-  virtual ~downtime();
+  ~downtime();
 
   type get_type() const;
-  virtual bool is_stale() const = 0;
-  virtual void schedule() = 0;
-  virtual int unschedule() = 0;
-  virtual int subscribe() = 0;
-  virtual int handle() = 0;
+  uint64_t service_id() const;
+  bool is_stale() const;
+  void notify_broker_load();
+  bool unschedule();
+  bool subscribe();
+  bool handle();
   uint64_t host_id() const;
-  virtual const char* service_description() const;
-  virtual void print(std::ostream& os) const = 0;
-  virtual void retention(std::ostream& os) const = 0;
+  void print(std::ostream& os) const;
+  void retention(std::ostream& os) const;
   const std::string& get_author() const;
   const std::string& get_comment() const;
   uint64_t get_downtime_id() const;
@@ -90,9 +86,10 @@ class downtime {
   bool is_in_effect() const;
   void start_flex_downtime();
 };
+
 }  // namespace com::centreon::common::downtimes
 
-int handle_scheduled_downtime_by_id(uint64_t downtime_id);
+bool handle_scheduled_downtime_by_id(uint64_t downtime_id);
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::common::downtimes::downtime const& dt);

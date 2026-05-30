@@ -1800,8 +1800,10 @@ int service::handle_async_check_result(
       /* we need to check for both, state_change (SOFT) and hard_state_change
        * (HARD) values */
       if ((hard_state_change || state_change) &&
-          get_pending_flex_downtime() > 0)
-        downtime_manager::instance().check_pending_flex_service_downtime(this);
+          get_pending_flex_downtime() > 0 &&
+          get_current_state() != service::state_ok)
+        downtime_manager::instance().activate_pending_flex_service_downtimes(
+            host_id(), service_id());
 
       /* 10/04/07 check to see if the service and/or associate host is flapping
        */

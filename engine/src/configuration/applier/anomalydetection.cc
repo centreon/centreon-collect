@@ -323,7 +323,7 @@ void applier::anomalydetection::remove_object(
     // Remove anomalydetection downtimes.
     downtime_manager::instance()
         .delete_downtime_by_hostname_service_description_start_time_comment(
-            host_name, service_description, {false, (time_t)0}, "");
+            host_name, service_description, std::nullopt, "");
 
     // Remove events related to this anomalydetection.
     applier::scheduler::instance().remove_service(obj.host_id(),

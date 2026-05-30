@@ -407,7 +407,7 @@ void applier::host::remove_object(uint64_t host_id) {
     // Remove host downtimes.
     downtimes::downtime_manager::instance()
         .delete_downtime_by_hostname_service_description_start_time_comment(
-            obj.host_name(), "", {false, (time_t)0}, "");
+            obj.host_name(), "", std::nullopt, "");
 
     // Remove events related to this host.
     applier::scheduler::instance().remove_host(obj.host_id());
