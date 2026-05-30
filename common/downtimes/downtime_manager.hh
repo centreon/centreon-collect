@@ -20,49 +20,70 @@
 #ifndef CCC_DOWNTIMES_DOWNTIME_MANAGER_HH
 #define CCC_DOWNTIMES_DOWNTIME_MANAGER_HH
 
+#include <optional>
+
 #include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_callbacks.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::common::downtimes {
 using com::centreon::common::log_v2::log_v2;
 
-class host_downtime;
-class service_downtime;
 class downtime_manager {
+  static std::unique_ptr<downtime_manager> _instance;
+  const std::unique_ptr<downtime_callbacks> _callbacks;
+
   std::multimap<time_t, std::shared_ptr<downtime>> _scheduled_downtimes;
   uint64_t _next_id = 0u;
   std::shared_ptr<spdlog::logger> _logger =
       log_v2::instance().get(log_v2::DOWNTIMES);
 
-  downtime_manager() = default;
+ protected:
+  std::shared_ptr<downtime> add_new_downtime(uint64_t host_id,
+                                             uint64_t service_id,
+                                             time_t entry_time,
+                                             const std::string& author,
+                                             const std::string& comment_data,
+                                             time_t start_time,
+                                             time_t end_time,
+                                             bool fixed,
+                                             uint64_t triggered_by,
+                                             uint32_t duration);
 
  public:
-  static downtime_manager& instance() {
-    static downtime_manager instance;
-    return instance;
+  downtime_manager(std::unique_ptr<downtime_callbacks> callbacks);
+  static void load(std::unique_ptr<downtime_callbacks> callbacks) {
+    if (!_instance)
+      _instance = std::make_unique<downtime_manager>(std::move(callbacks));
   }
+
+  static downtime_manager& instance() {
+    assert(_instance);
+    return *_instance;
+  }
+
   std::multimap<time_t, std::shared_ptr<downtime>> const&
   get_scheduled_downtimes() const;
 
   void delete_downtime(uint64_t downtime_id);
-  int unschedule_downtime(uint64_t downtime_id);
+  bool unschedule_downtime(uint64_t downtime_id);
   std::shared_ptr<downtime> find_downtime(downtime::type type,
                                           uint64_t downtime_id);
-  int check_pending_flex_host_downtime(com::centreon::engine::host* hst);
-  int check_pending_flex_service_downtime(com::centreon::engine::service* svc);
+  void activate_pending_flex_host_downtimes(uint64_t host_id);
+  void activate_pending_flex_service_downtimes(uint64_t host_id,
+                                               uint64_t service_id);
   void add_downtime(const std::shared_ptr<downtime>& dt) noexcept;
   void clear_scheduled_downtimes();
-  int check_for_expired_downtime();
+  void delete_expired_downtimes();
   int delete_downtime_by_hostname_service_description_start_time_comment(
       const std::string& hostname,
       const std::string& service_description,
-      std::pair<bool, time_t> const& start_time,
+      std::optional<time_t> start_time,
       const std::string& comment);
-  void insert_downtime(std::shared_ptr<downtime> dt);
   void initialize_downtime_data();
-  int validate_downtime_data();
+  void validate_downtime_data();
   uint64_t get_next_downtime_id();
-  int schedule_downtime(downtime::type type,
+  bool schedule_downtime(downtime::type type,
                         const uint64_t host_id,
                         const uint64_t service_id,
                         time_t entry_time,
@@ -74,30 +95,7 @@ class downtime_manager {
                         uint64_t triggered_by,
                         uint32_t duration,
                         uint64_t* new_downtime_id);
-  int register_downtime(downtime::type type, uint64_t downtime_id);
-
- protected:
-  std::shared_ptr<host_downtime> add_new_host_downtime(
-      const uint64_t host_id,
-      time_t entry_time,
-      const std::string& author,
-      const std::string& comment_data,
-      time_t start_time,
-      time_t end_time,
-      bool fixed,
-      uint64_t triggered_by,
-      uint32_t duration);
-  std::shared_ptr<service_downtime> add_new_service_downtime(
-      const uint64_t host_id,
-      const uint64_t service_id,
-      time_t entry_time,
-      const std::string& author,
-      const std::string& comment_data,
-      time_t start_time,
-      time_t end_time,
-      bool fixed,
-      uint64_t triggered_by,
-      uint32_t duration);
+  downtime_callbacks& callbacks() const;
 };
 }  // namespace com::centreon::common::downtimes
 

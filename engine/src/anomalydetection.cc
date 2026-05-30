@@ -283,39 +283,14 @@ void cancellable_command::unregister_host_serv(
  * anomalydetection
  ****************************************************************/
 
-using dependentservice_to_anomaly_map =
-    std::map<uint64_t, anomalydetection::pointer_set>;
 /**
- * @brief sometimes we need to know the list of anomalydetection that depend of
+ * @brief sometimes we need to know the list of anomalydetection that depend on
  * a service, this is the goal of this container
  *
  */
-static dependentservice_to_anomaly_map _dependentservice_to_anomaly;
+static absl::btree_map<std::pair<uint64_t, uint64_t>, anomalydetection::pointer_set>
+    _dependentservice_to_anomaly_detection;
 
-/**
- * @brief update _dependentservice_to_anomaly
- *
- * @param dependent_service_id  new dependent service od
- * @param old_dependent_service_id old dependent service od
- * @param ano anomalydetection
- */
-static void _register_dependent_to_anomaly(uint64_t dependent_service_id,
-                                           uint64_t old_dependent_service_id,
-                                           anomalydetection* ano) {
-  if (old_dependent_service_id) {
-    dependentservice_to_anomaly_map::iterator to_clean =
-        _dependentservice_to_anomaly.find(old_dependent_service_id);
-    if (to_clean != _dependentservice_to_anomaly.end()) {
-      to_clean->second.erase(ano);
-      if (to_clean->second.empty()) {
-        _dependentservice_to_anomaly.erase(to_clean);
-      }
-    }
-  }
-  if (dependent_service_id) {
-    _dependentservice_to_anomaly[dependent_service_id].insert(ano);
-  }
-}
 
 static const anomalydetection::pointer_set _empty_set;
 
@@ -325,13 +300,12 @@ static const anomalydetection::pointer_set _empty_set;
  * @param dependent_service_id
  * @return const anomalydetection::pointer_set&
  */
-const anomalydetection::pointer_set& anomalydetection::get_anomaly(
-    uint64_t dependent_service_id) {
-  dependentservice_to_anomaly_map::const_iterator search =
-      _dependentservice_to_anomaly.find(dependent_service_id);
-  if (search != _dependentservice_to_anomaly.end()) {
+const anomalydetection::pointer_set& anomalydetection::find_by_dependent_service(
+    uint64_t host_id, uint64_t service_id) {
+  auto search =
+      _dependentservice_to_anomaly_detection.find({host_id, service_id});
+  if (search != _dependentservice_to_anomaly_detection.end())
     return search->second;
-  }
   return _empty_set;
 }
 
@@ -496,9 +470,31 @@ anomalydetection::anomalydetection(uint64_t host_id,
 }
 
 anomalydetection::~anomalydetection() {
-  if (_dependent_service_id) {
-    _register_dependent_to_anomaly(0, _dependent_service_id, this);
+  if (_dependent_service_id)
+    _register_dependent_to_anomaly_detection(
+        std::exchange(_dependent_service_id, 0));
+}
+
+/**
+ * @brief Updates _dependentservice_to_anomaly_detection by deregistering the
+ * old dependent service id and registering the new one (_dependent_service_id).
+ *
+ * @param old_service_id The previous dependent service id to deregister.
+ */
+void anomalydetection::_register_dependent_to_anomaly_detection(
+    uint64_t old_service_id) {
+  if (old_service_id) {
+    auto to_clean = _dependentservice_to_anomaly_detection.find(
+        {host_id(), old_service_id});
+    if (to_clean != _dependentservice_to_anomaly_detection.end()) {
+      to_clean->second.erase(this);
+      if (to_clean->second.empty())
+        _dependentservice_to_anomaly_detection.erase(to_clean);
+    }
   }
+  if (_dependent_service_id)
+    _dependentservice_to_anomaly_detection[{host_id(), _dependent_service_id}]
+        .insert(this);
 }
 
 /**
@@ -801,8 +797,7 @@ void anomalydetection::set_internal_id(uint64_t id) {
 void anomalydetection::set_dependent_service(service* svc) {
   uint64_t old_dep_serv_id = _dependent_service_id;
   _dependent_service_id = svc ? svc->service_id() : 0;
-
-  _register_dependent_to_anomaly(_dependent_service_id, old_dep_serv_id, this);
+  _register_dependent_to_anomaly_detection(old_dep_serv_id);
   _dependent_service = svc;
 }
 

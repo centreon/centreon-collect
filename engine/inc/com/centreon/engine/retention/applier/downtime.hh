@@ -29,10 +29,6 @@ namespace applier {
 class downtime {
  public:
   static void apply(list_downtime const& lst);
-
- private:
-  static void _add_host_downtime(retention::downtime const& obj) throw();
-  static void _add_service_downtime(retention::downtime const& obj) throw();
 };
 }  // namespace applier
 }  // namespace retention

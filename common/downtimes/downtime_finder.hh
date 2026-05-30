@@ -23,21 +23,26 @@
 namespace com::centreon::common::downtimes {
 
 class downtime;
-class host_downtime;
-class service_downtime;
 
 /**
  *  @class downtime_finder downtime_finder.hh
- * "com/centreon/engine/downtime_finder.hh"
+ * "common/downtimes/downtime_finder.hh"
  *  @brier Find active downtimes.
  *
  *  This class can find active downtimes according to some criterias.
  */
 class downtime_finder {
+  const std::multimap<time_t, std::shared_ptr<downtime>>& _map;
+
  public:
   using criteria = std::pair<std::string, std::string>;
   using criteria_set = std::vector<criteria>;
   using result_set = std::vector<unsigned long>;
+
+ private:
+  bool _match_criteria(downtime const& dt, criteria const& crit);
+
+ public:
 
   downtime_finder(std::multimap<time_t, std::shared_ptr<downtime>> const& map);
   downtime_finder(downtime_finder const& other) = default;
@@ -45,12 +50,6 @@ class downtime_finder {
   downtime_finder& operator=(const downtime_finder&) = delete;
   ~downtime_finder() noexcept = default;
   result_set find_matching_all(criteria_set const& criterias);
-
- private:
-  bool _match_criteria(host_downtime const& dt, criteria const& crit);
-  bool _match_criteria(service_downtime const& dt, criteria const& crit);
-
-  const std::multimap<time_t, std::shared_ptr<downtime>>& _map;
 };
 }  // namespace com::centreon::common::downtimes
 

@@ -26,7 +26,6 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "common/downtimes/downtime.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/downtimes/service_downtime.hh"
 #include "helper.hh"
 #include "test_engine.hh"
 
