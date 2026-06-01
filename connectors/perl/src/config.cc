@@ -47,7 +47,7 @@ config::config(int argc, char** argv) {
     ("log-level", po::value<std::string>()->default_value("info"),"error, info, debug or trace")
     ("test-file,x", po::value<std::string>(),"Specifies the file used instead of stdin.")
     ("max-child", po::value<unsigned>()->default_value(64), "Max number of child process")
-    ("min-free-memory", po::value<unsigned>()->default_value(500), "If free system memory becomes lower than this threshold in Mo, some child processes are killed")
+    ("min-free-memory", po::value<uint64_t>()->default_value(500), "If free system memory becomes lower than this threshold in Mo, some child processes are killed")
     ("max-opened-fd", po::value<unsigned>(), max_opened_option_help.c_str())
     ("child-max-memory-increase-percent", po::value<unsigned>()->default_value(10), "If memory used by a child process has increased more than this threshold between first and last check, it is killed")
     ("child-max-fd-increase-percent", po::value<unsigned>()->default_value(10), "If the number of file descriptors opened by a child process has increased more than this threshold between first and last check, it is killed")

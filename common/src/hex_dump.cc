@@ -59,7 +59,8 @@ std::string com::centreon::common::hex_dump(const unsigned char* buffer,
 
     for (const unsigned char *current = buffer, *end = buffer + buff_len;
          current < end; current_address += nb_char_per_line) {
-      ret += fmt::format(address_format, current_address);
+      ret +=
+          fmt::vformat(address_format, fmt::make_format_args(current_address));
       std::string char_part;
       char_part.reserve(nb_char_per_line + 1);
 
