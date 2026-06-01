@@ -75,6 +75,50 @@ CUSTOM_MACRO_RECURSIVE_RESOLUTION
     ...    /bin/echo http://1.0.0.0/status|got inner_value|/usr/lib64/nagios/plugins/check_ping|svc=service_1|http://1.0.0.0:8080/api/health|/usr/lib64/nagios/plugins/check_http -H 1.0.0.0|$HOSTNAME$
     Should Be True    ${result}    Resolved command line not found in DB for service_1
 
+CUSTOM_MACRO_RESOLUTION_WITH_ONE_DOLLAR
+    [Documentation]    Custom macros with one dollar can be resolved an dollar is not removed
+    [Tags]    engine    macros    MON-200062
+    Ctn Config Engine    ${1}    ${1}    ${1}
+
+    # --- Host custom macros ---
+    # host standard inside host custom
+    Ctn Engine Config Set Value In Hosts    0    host_1    _SNMPVERSION        2c
+    Ctn Engine Config Set Value In Hosts    0    host_1    _SNMPCOMMUNITY      public
+    
+    # --- Service custom macros ---
+    # service standard inside service custom
+    Ctn Engine Config Set Value In Services    0    service_1    _DISKNAME        ^/$
+    Ctn Engine Config Set Value In Services    0    service_1    _WARNING        80
+    Ctn Engine Config Set Value In Services    0    service_1    _CRITICAL        90
+    Ctn Engine Config Set Value In Services    0    service_1    _EXTRAOPTIONS    --filter-perfdata='storage.space|used|free'
+    
+    # Command that echoes all macros in one line, separated by |
+    Ctn Engine Config Add Command
+    ...    ${0}
+    ...    macro_echo_cmd
+    ...    /bin/echo --plugin=os::linux::snmp::plugin --mode=storage --hostname=$HOSTADDRESS$ --snmp-version='$_HOSTSNMPVERSION$' --snmp-community='$_HOSTSNMPCOMMUNITY$' --storage '$_SERVICEDISKNAME$' --name --display-transform-src='$_SERVICETRANSFORMSRC$' --display-transform-dst='$_SERVICETRANSFORMDST$' --warning-usage='$_SERVICEWARNING$' --critical-usage='$_SERVICECRITICAL$' $_SERVICEEXTRAOPTIONS$
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_command    macro_echo_cmd
+
+    Ctn Config Broker    module
+    Ctn Config Broker    central
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+
+
+    Ctn Clear Retention
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # Force an immediate service check
+    Ctn Schedule Forced Service Check    host_1    service_1
+
+    ${result}    Ctn Check Commandline Service With Timeout Rt    host_1    service_1    120
+    ...    /bin/echo --plugin=os::linux::snmp::plugin --mode=storage --hostname=1.0.0.0 --snmp-version='2c' --snmp-community='public' --storage '^/$' --name --display-transform-src='' --display-transform-dst='' --warning-usage='80' --critical-usage='90' --filter-perfdata='storage.space|used|free'
+    Should Be True    ${result}    Resolved command line not found in DB for service_1
+
 CUSTOM_MACRO_RECURSIVE_RESOLUTION_WITH_ONE_DOLLAR
     [Documentation]    Custom macros can reference other macros and get them resolved:
     ...                - host custom containing host standard ($HOSTADDRESS$)
