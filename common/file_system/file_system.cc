@@ -151,10 +151,28 @@ std::string hash_directory(const std::filesystem::path& dir_path,
   return retval;
 }
 
+/**
+ * @brief Reads directory entries via getdents64 and appends file paths to
+ * result. Directories are skipped (recursed into if recursive=true). The
+ * remove_directory_fd_from_result flag filters out the fd of the opened
+ * directory itself, which is needed when walking /proc/self/fd. Depth is
+ * capped at 10 to prevent infinite loops on symlink cycles.
+ *
+ * @param dir_path         Directory to scan.
+ * @param recursive        Whether to recurse into subdirectories.
+ * @param remove_directory_fd_from_result  Skip the numeric entry equal to the
+ *                         fd of the opened directory (for /proc/self/fd walks).
+ * @param recursive_depth  Current recursion depth; aborts above 10.
+ * @param result           Accumulator for discovered file paths.
+ */
 static void _dir_content_impl(const std::filesystem::path& dir_path,
                               bool recursive,
                               bool remove_directory_fd_from_result,
+                              unsigned recursive_depth,
                               std::list<std::filesystem::path>& result) {
+  if (recursive_depth > 10) {
+    return;
+  }
   constexpr size_t buf_size = 65536;
   char buf[buf_size];
 
@@ -192,7 +210,7 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
       if (entry->d_type == DT_DIR) {
         if (recursive)
           _dir_content_impl(entry_path, true, remove_directory_fd_from_result,
-                            result);
+                            recursive_depth + 1, result);
       } else {
         result.push_back(std::move(entry_path));
       }
@@ -201,6 +219,7 @@ static void _dir_content_impl(const std::filesystem::path& dir_path,
 
   close(fd);
 }
+
 /**
  *  Fill a path list with the files listed in the directory.
  *
@@ -216,7 +235,7 @@ std::list<std::filesystem::path> dir_content(
     bool recursive,
     bool remove_directory_fd_from_result) {
   std::list<std::filesystem::path> result;
-  _dir_content_impl(dir_path, recursive, remove_directory_fd_from_result,
+  _dir_content_impl(dir_path, recursive, remove_directory_fd_from_result, 0,
                     result);
   return result;
 }

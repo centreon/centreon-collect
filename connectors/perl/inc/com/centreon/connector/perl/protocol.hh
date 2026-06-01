@@ -101,8 +101,13 @@ class async_receive_impl : std::enable_shared_from_this<async_receive_impl> {
         try {
           std::shared_ptr<ConnectorMess> received =
               std::make_shared<ConnectorMess>();
-          received->ParseFromArray(_data_buff.get(), _data_len);
-          self.complete({}, received);
+          if (received->ParseFromArray(_data_buff.get(), _data_len)) {
+            self.complete({}, received);
+          } else {
+            self.complete(boost::system::errc::make_error_code(
+                              boost::system::errc::protocol_error),
+                          std::shared_ptr<ConnectorMess>());
+          }
         } catch (const std::exception& e) {
           self.complete(boost::system::errc::make_error_code(
                             boost::system::errc::protocol_error),

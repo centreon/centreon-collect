@@ -446,7 +446,7 @@ void script_child::read_from_main_process_stdin() {
 }
 
 /**
- * @brief Arm the one-minute periodic timer.
+ * @brief Arm the one-second periodic timer.
  *
  * Called once after initialisation and re-armed at the end of each
  * _every_second_timer_handler invocation to provide a recurring check.

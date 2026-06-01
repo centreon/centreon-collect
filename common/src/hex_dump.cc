@@ -161,7 +161,7 @@ std::string com::centreon::common::ascii_hex_dump(const unsigned char* buffer,
   ret.reserve(buff_len * 3);
   for (; buffer != end_buff; ++buffer) {
     unsigned char c = *buffer;
-    if (c >= 32 && c <= 127) {
+    if (c >= 32 && c < 127) {
       ret += c;
     } else {
       ret += "0x";

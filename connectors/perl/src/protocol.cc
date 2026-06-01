@@ -38,6 +38,9 @@ std::shared_ptr<protocol::proto_buffer> protocol::serialize(
   size_t packet_len = mess_len + sizeof(proto_buffer);
 
   proto_buffer* b = static_cast<proto_buffer*>(malloc(packet_len));
+  if (!b) {
+    throw std::bad_alloc();
+  }
   b->len = packet_len;
   mess.SerializeToArray(b->data, mess_len);
   return std::shared_ptr<proto_buffer>(
@@ -128,7 +131,10 @@ boost::system::error_code protocol::recv(asio::readable_pipe& in_pipe,
 
   // Step 3: deserialize the protobuf message.
   try {
-    received.ParseFromArray(raw.get(), data_len);
+    if (!received.ParseFromArray(raw.get(), data_len)) {
+      return boost::system::errc::make_error_code(
+          boost::system::errc::protocol_error);
+    }
   } catch (const std::exception& e) {
     return boost::system::errc::make_error_code(
         boost::system::errc::protocol_error);
