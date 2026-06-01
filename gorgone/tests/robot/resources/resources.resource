@@ -18,7 +18,6 @@ ${pullwss_uid_poller_config}      ${ROOT_CONFIG}pullwss_uid_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml
-${gorgone_core_remote_config}    ${ROOT_CONFIG}gorgone_core_remote.yaml
 ${MOCKOON_LOG_FILE}           /tmp/mockoon.log
 
 ${DBHOST}                   127.0.0.1
@@ -142,13 +141,12 @@ Setup Gorgone Config
     END
     ${CMD}    Catenate
     ...    sed -i -e 's/@KEYTHUMBPRINT@/${key_thumbprint}/g'
+    ...     ${dynamic_expr}
     ...    -e 's/@DBNAME@/${DBNAME}/g'
-    ...    -e 's/@DBNAME_REMOTE@/${DBNAME_REMOTE}/g'
     ...    -e 's/@DBNAME_STORAGE@/${DBNAME_STORAGE}/g'
     ...    -e 's/@DBHOST@/${DBHOST}/g'
     ...    -e 's/@DBPASSWORD@/${DBPASSWORD}/g'
     ...    -e 's/@DBUSER@/${DBUSER}/g'
-    ...    ${dynamic_expr}
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
@@ -174,13 +172,13 @@ Check Poller Is Connected
 
 Check Poller Communicate
     [Documentation]    Ask the central Gorgone rest api if it have communicated with the poller using a given ID.
-    [Arguments]    ${poller_id}    ${max_failed_attempt}=0
+    [Arguments]    ${poller_id}    ${max_failed_attempt}=0    ${api_port}=8085
     ${response}     Set Variable    ${EMPTY}
     Log To Console    checking Gorgone see poller in rest api response...
     FOR    ${i}    IN RANGE    61
         Sleep    1
-        ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/${poller_id}/ping
-        ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
+        ${none}=    GET  http://127.0.0.1:${api_port}/api/internal/nodes/${poller_id}/ping
+        ${response}=    GET  http://127.0.0.1:${api_port}/api/internal/constatus
         Log    ${response.json()}
         IF    not ${response.json()}[data]
             CONTINUE
@@ -214,11 +212,14 @@ Setup Remote And Poller And Central Instances
     Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_remote_on_remote.sql    alias=${DBNAME_REMOTE}
     Log To Console    Starting the gorgone setup with pullwss configuration and remote server
 
+    ${C_port}=    Set Variable    8086
+    ${R_port}=     Set Variable    8096
+
     @{central_pullwss_config}=    Copy List    ${central_config}
     Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
 
     @{remote_pullwss_config}=    Copy List    ${remote_config}
-    Append To List    ${remote_pullwss_config}    ${pullwss_remote_config}    ${gorgone_core_remote_config}
+    Append To List    ${remote_pullwss_config}    ${pullwss_remote_config}    ${gorgone_core_config}
 
     @{poller_pullwss_config}=    Copy List    ${poller_config}
     
@@ -226,27 +227,36 @@ Setup Remote And Poller And Central Instances
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_uid_poller_config}
+    ELSE IF   '${communication_mode}' == 'pull'
+        ${C_port}    Set Variable    5556
+        ${R_port}=     Set Variable    5566
+
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pull_poller_config}
+    ELSE IF   '${communication_mode}' == 'push_zmq'
+        ${C_port}    Set Variable    5556
+        ${R_port}=     Set Variable    5566
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${push_poller_config}
     ELSE
         Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: pullwss, pullwss_uid.
     END
-    @{from}=    Create List    @PULLWSS_PORT@
-    @{to}=      Create List    8096
-    Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}
-    Setup Gorgone Config    ${remote_pullwss_config}     gorgone_name=${remote_name}
-    Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${from}    replace_to=${to}
 
+    Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}
+    Setup Gorgone Config    ${remote_pullwss_config}     gorgone_name=${remote_name}    replace_from=${{['@DBNAME@']}}    replace_to=${{['${DBNAME_REMOTE}']}}
+    Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@PULLWSS_PORT@']}}    replace_to=${{['${R_port}']}}
 
     Start Gorgone    debug    ${central_name}
-    Wait Until Port Is Bind    8086
+    Wait Until Port Is Bind    ${C_port}
     Start Gorgone    debug    ${remote_name}
     # wait until gorgone http server bind the http api port.
     Wait Until Port Is Bind    8085
-    Check Poller Is Connected    port=8086    expected_nb=2
+    Check Poller Is Connected    port=${C_port}    expected_nb=2
     Check Poller Communicate     3
     Log To Console    central and remote successfully started, starting poller to connect to the remote...
     Start Gorgone    debug    ${poller_name}
-    Check Poller Is Connected    port=8096    expected_nb=2
-    Log To Console    poller was started and seem connectoed to 8096...
+    Check Poller Is Connected    port=${R_port}    expected_nb=2
+    Check Poller Communicate     2    api_port=8095
+
+    Log To Console    poller was started and seem connected to ${R_port}...
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
