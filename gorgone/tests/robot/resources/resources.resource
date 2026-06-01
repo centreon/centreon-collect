@@ -21,6 +21,7 @@ ${MOCKOON_LOG_FILE}           /tmp/mockoon.log
 
 ${DBHOST}                   127.0.0.1
 ${DBPORT}                   3306
+${DBNAME_remote}            centreon-remote
 ${DBNAME}                   centreon_gorgone_test
 ${DBNAME_STORAGE}           centreon-storage
 ${DBUSER}                   centreon
@@ -175,6 +176,21 @@ Check Poller Communicate
     Should Be True    ${i} < 60    timeout after ${i} time waiting for poller status in gorgone rest api (/api/internal/constatus) : ${response.json()}
     Should Be True    ${max_failed_attempt} >= ${response.json()}[data][${poller_id}][ping_failed]    there was failed ping between the central and the poller ${poller_id}
     Should Be True    0 < ${response.json()}[data][${poller_id}][ping_ok]    there was no successful ping between the central and the poller ${poller_id}
+
+Setup Remote And Poller And Central Instances
+    [Arguments]
+    ...    ${central_config}=@{EMPTY}
+    ...    ${remote_config}=@{EMPTY}
+    ...    ${poller_config}=@{EMPTY}
+    ...    ${central_name}=gorgone_central
+    ...    ${remote_name}=gorgone_remote
+    ...    ${poller_name}=gorgone_poller_2
+    
+    Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=centreon
+    Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=centreon
+
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_pullwss_remote_on_central.sql
+    
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
