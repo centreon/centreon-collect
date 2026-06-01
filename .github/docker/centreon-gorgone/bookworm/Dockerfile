@@ -257,4 +257,4 @@ USER centreon-gorgone
 
 ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
-CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug"]
+CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug", "--flushoutput"]
