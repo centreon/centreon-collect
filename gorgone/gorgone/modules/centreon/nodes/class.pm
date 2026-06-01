@@ -214,8 +214,32 @@ sub action_centreonnodessync {
             $_->{nodes} = $register_subnodes->{ $_->{id} };
         }
     }
+
+    # as we can now specify communication type in the database, the register module become useless.
+    # to avoid breaking existing config, the node module now read the register config file and apply it.
+    # using a single module allows to simplify the overriding compute, and stop doing it in multiples interposed zmq messages.
+    my $file_nodes = $self->get_register_module_config();
+    for my $file_node (@$file_nodes) {
+        next unless $file_node->{prevail};
+        my $db_node;
+        for my $arr (@$register_nodes) {
+            if ($arr->{id} == $file_node->{id}){
+                $db_node = $arr;
+            }
+        }
+        $self->{logger}->writeLogInfo("[nodes] updating node " . $file_node->{id} . " info from database with register configuration");
+        if (!defined($db_node)) {
+            $db_node = {};
+            push @$register_nodes, $db_node;
+        }
+        for my $key ("type", "address", "port", "server_pubkey", "client_pubkey", "client_privkey", "cipher", "vector", "nodes") {
+            $file_node->{$key} and $db_node->{$key} = $file_node->{$key};
+        }
+    }
+
+
     $self->{logger}->writeLogInfo(sprintf(
-        "[nodes] retrieved %s nodes from DB, %s new and %s to delete. Sending to other gorgone modules",
+        "[nodes] retrieved %s nodes from DB and/or register configuration file, %s new and %s to delete. Sending to other gorgone modules",
         scalar( keys %$datas),
         scalar(@$register_nodes),
         scalar(@$unregister_nodes)));
@@ -231,7 +255,27 @@ sub action_centreonnodessync {
     $self->{resync_time} = $self->{default_resync_time};
     return 0;
 }
+sub get_register_module_config {
+    my ($self, %options) = @_;
+    # first we check if the register module is enabled, and exit if not.
+    my $file_path;
+    for my $module (@{$self->{config_core}->{modules}}){
+        next if $module->{package} ne 'gorgone::modules::core::register::hooks';
+        next if $module->{enable} !~ /true|1/;
+        $file_path = $module->{config_file};
+    }
+    return undef if !defined($file_path);
 
+    my $file_conf = gorgone::standard::library::read_config(
+        config_file => $file_path,
+        logger => $self->{logger}
+    );
+    if (!$file_conf or !$file_conf->{nodes}){
+        return undef;
+    }
+    return $file_conf->{nodes};
+
+}
 sub periodic_exec {
     my ($self, %options) = @_;
 
