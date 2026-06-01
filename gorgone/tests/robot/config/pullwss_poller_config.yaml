@@ -6,7 +6,7 @@ gorgone:
       package: "gorgone::modules::core::pullwss::hooks"
       enable: true
       ssl: false
-      port: 8086
+      port: @PULLWSS_PORT@
       token: "secret_token"
       address: 127.0.0.1
       ping: 1

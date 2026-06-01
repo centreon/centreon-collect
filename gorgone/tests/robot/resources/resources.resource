@@ -12,16 +12,18 @@ ${ROOT_CONFIG}                ${CURDIR}${/}..${/}config${/}
 ${pull_central_config}        ${ROOT_CONFIG}pull_central_config.yaml
 ${pull_poller_config}         ${ROOT_CONFIG}pull_poller_config.yaml
 ${pullwss_central_config}     ${ROOT_CONFIG}pullwss_central_config.yaml
+${pullwss_remote_config}     ${ROOT_CONFIG}pullwss_remote_config.yaml
 ${pullwss_poller_config}      ${ROOT_CONFIG}pullwss_poller_config.yaml
 ${pullwss_uid_poller_config}      ${ROOT_CONFIG}pullwss_uid_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml
+${gorgone_core_remote_config}    ${ROOT_CONFIG}gorgone_core_remote.yaml
 ${MOCKOON_LOG_FILE}           /tmp/mockoon.log
 
 ${DBHOST}                   127.0.0.1
 ${DBPORT}                   3306
-${DBNAME_remote}            centreon-remote
+${DBNAME_REMOTE}            centreon-remote
 ${DBNAME}                   centreon_gorgone_test
 ${DBNAME_STORAGE}           centreon-storage
 ${DBUSER}                   centreon
@@ -46,8 +48,9 @@ Start Gorgone
 Stop Gorgone And Remove Gorgone Config
     [Documentation]    This keyword stops the gorgone process and removes the configuration in the database. Configuration files are not modified as we want them in case something failed to analyse the problem.
     [Arguments]    @{process_alias}    ${sql_file}=
-    Gorgone Execute Sql    ${sql_file}
     # remove configuration in db if needed.
+    Gorgone Execute Sql    ${sql_file}    alias=${DBNAME}
+    Gorgone Execute Sql    ${sql_file}    alias=${DBNAME_REMOTE}
 
     FOR    ${process}    IN    @{process_alias}
         ${result}    Terminate Process    ${process}
@@ -58,7 +61,17 @@ Stop Gorgone And Remove Gorgone Config
     IF    ${output} == 0
         Run    rm -f /usr/local/bin/sudo
     END
-    
+
+Ctn Init Tests
+    # generate key if there is none and connect to various databases.
+    # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
+    # this script only create key if the files don't exists, and silently finish if the files already exists.
+    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+
+    Connect To Database    pymysql    ${DBNAME_REMOTE}     ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=${DBNAME_REMOTE}
+    Connect To Database    pymysql    ${DBNAME_STORAGE}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=${DBNAME_STORAGE}
+    Connect To Database    pymysql    ${DBNAME}            ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=${DBNAME}
+
 Start Mockoon
     [Arguments]    ${MOCKOON_JSON}
     Remove File    ${MOCKOON_LOG_FILE}
@@ -103,16 +116,15 @@ Setup Sudo
         Run    chown root:root /usr/local/bin/sudo
     END
 Gorgone Execute Sql
-    [Arguments]    ${sql_file}
+    [Arguments]    ${sql_file}    ${alias}=${DBNAME}
     ${length}    Get Length    ${sql_file}
     IF    ${length} > 0
-        Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}
         Log To Console    Executing sql file ${sql_file}
-        Execute SQL Script    ${sql_file}
+        Execute SQL Script    ${sql_file}    alias=${alias}
     END
 
 Setup Gorgone Config
-    [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=
+    [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=    ${replace_from}=@{EMPTY}    ${replace_to}=@{EMPTY}
     Gorgone Execute Sql    ${sql_file}
     Run    rm -rf /etc/centreon-gorgone/${gorgone_name}/*
     Create Directory    /var/log/centreon-gorgone/${gorgone_name}/
@@ -124,14 +136,19 @@ Setup Gorgone Config
     ${key_thumbprint}    Run    perl /usr/local/bin/gorgone_key_thumbprint.pl --key-path=/var/lib/centreon-gorgone/.keys/rsakey.priv.pem | cut -d: -f4
 
     ${result}    Run    sed -i -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g' /etc/centreon-gorgone/${gorgone_name}/includer.yaml
-
+    ${dynamic_expr}    Set Variable    ${EMPTY}
+    FOR    ${old}    ${new}    IN ZIP    ${replace_from}    ${replace_to}
+        ${dynamic_expr}    Catenate    SEPARATOR=    ${dynamic_expr} -e 's/${old}/${new}/g'
+    END
     ${CMD}    Catenate
     ...    sed -i -e 's/@KEYTHUMBPRINT@/${key_thumbprint}/g'
     ...    -e 's/@DBNAME@/${DBNAME}/g'
+    ...    -e 's/@DBNAME_REMOTE@/${DBNAME_REMOTE}/g'
     ...    -e 's/@DBNAME_STORAGE@/${DBNAME_STORAGE}/g'
     ...    -e 's/@DBHOST@/${DBHOST}/g'
     ...    -e 's/@DBPASSWORD@/${DBPASSWORD}/g'
     ...    -e 's/@DBUSER@/${DBUSER}/g'
+    ...    ${dynamic_expr}
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
@@ -162,7 +179,7 @@ Check Poller Communicate
     Log To Console    checking Gorgone see poller in rest api response...
     FOR    ${i}    IN RANGE    61
         Sleep    1
-        ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/2/ping
+        ${none}=    GET  http://127.0.0.1:8085/api/internal/nodes/${poller_id}/ping
         ${response}=    GET  http://127.0.0.1:8085/api/internal/constatus
         Log    ${response.json()}
         IF    not ${response.json()}[data]
@@ -185,21 +202,58 @@ Setup Remote And Poller And Central Instances
     ...    ${central_name}=gorgone_central
     ...    ${remote_name}=gorgone_remote
     ...    ${poller_name}=gorgone_poller_2
-    
-    Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=centreon
-    Connect To Database    pymysql    ${DBNAME}    ${DBUSER}    ${DBPASSWORD}    ${DBHOST}    ${DBPORT}    alias=centreon
+    ...    ${communication_mode}=pullwss
+
+    Ctn Init Tests
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_pullwss_poller.sql
 
     Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_pullwss_remote_on_central.sql
+
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_pullwss_poller.sql    alias=${DBNAME_REMOTE}
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_remote_on_remote.sql    alias=${DBNAME_REMOTE}
+    Log To Console    Starting the gorgone setup with pullwss configuration and remote server
+
+    @{central_pullwss_config}=    Copy List    ${central_config}
+    Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
+
+    @{remote_pullwss_config}=    Copy List    ${remote_config}
+    Append To List    ${remote_pullwss_config}    ${pullwss_remote_config}    ${gorgone_core_remote_config}
+
+    @{poller_pullwss_config}=    Copy List    ${poller_config}
     
+    IF    '${communication_mode}' == 'pullwss'
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
+    ELSE IF    '${communication_mode}' == 'pullwss_uid'
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_uid_poller_config}
+    ELSE
+        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: pullwss, pullwss_uid.
+    END
+    @{from}=    Create List    @PULLWSS_PORT@
+    @{to}=      Create List    8096
+    Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}
+    Setup Gorgone Config    ${remote_pullwss_config}     gorgone_name=${remote_name}
+    Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${from}    replace_to=${to}
+
+
+    Start Gorgone    debug    ${central_name}
+    Wait Until Port Is Bind    8086
+    Start Gorgone    debug    ${remote_name}
+    # wait until gorgone http server bind the http api port.
+    Wait Until Port Is Bind    8085
+    Check Poller Is Connected    port=8086    expected_nb=2
+    Check Poller Communicate     3
+    Log To Console    central and remote successfully started, starting poller to connect to the remote...
+    Start Gorgone    debug    ${poller_name}
+    Check Poller Is Connected    port=8096    expected_nb=2
+    Log To Console    poller was started and seem connectoed to 8096...
 
 Setup Two Gorgone Instances
     [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
     ${start_time}   Get Time    str=epoch
 
-    # generate key if there is none.
-    # gorgone can generate it's own key, but as we need the thumbprint in the configuration we need to generate them before launching gorgone.
-    # this script only create key if the files don't exists, and silently finish if the files already exists.
-    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+
+    Ctn Init Tests
     # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
     # this should not stay after merge on develop
     Gorgone Fix Schema
