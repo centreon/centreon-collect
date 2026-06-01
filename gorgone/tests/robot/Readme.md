@@ -25,17 +25,20 @@ docker run --env MYSQL_USER=centreon --env MYSQL_PASSWORD=password --env MARIADB
 docker run --network robot-gorgone-bookworm --name 'gorgone-bookworm' -v $(pwd):/centreon-collect/:rw  -v $(pwd)/../centreon:/centreon/:rw -it  gorgone-bookworm bash
 ```
 
-Connect to the robot bookworm container, go to the mount point, and create the database needed : 
+Connect to the robot bookworm container, go to the mount point, and create the databases needed : 
 ```
 cd /
 
 # please check .github/workflows/gorgone.yml file for any update on this.
 
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-remote\`"
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
 mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON \`centreon-remote\`.* TO 'centreon'@'%'"
+mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON \`centreon-storage\`.* TO 'centreon'@'%'"
 mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+mysql -h mariadb -u root -ppassword 'centreon-remote' < centreon/centreon/www/install/createTables.sql
 mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 # we install gorgone because we want all dependancy to come from the package manager to be sure they work.
 # locally you should use the code in the repository, which is controlled in robot execution by the argument -v 'gorgone_binary:...'
