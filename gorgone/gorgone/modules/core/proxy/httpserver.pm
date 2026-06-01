@@ -81,7 +81,7 @@ sub construct {
 
     $connector->{ws_clients} = {};
     $connector->{identities} = {};
-    $connector->{nodes} = {}; # store nodes info from node module which take it from centreon DB.
+    $connector->{nodes} = {}; # store nodes info from module centreon/nodes which take it from centreon DB.
 
     $connector->set_signal_handlers();
     return $connector;
@@ -261,7 +261,6 @@ If the message is valid, update the internal state to allow new nodes connect, a
 
 Return : 1 in case of failure, 0 in case of success
 =cut
-    use Data::Dumper;
 sub action_proxyaddnode {
     my ($self, %options) = @_;
     my $nodes = $options{data};
@@ -269,7 +268,7 @@ sub action_proxyaddnode {
           $self->{logger}->writeLogError("Can't decode a proxyaddnode message data: no data");
           return 1;
     }
-    # let's loop on the nodes and delete any non wss. if token is undef it mean message don't come from the nodes module but from the register module.
+    # let's loop on the nodes and delete any non wss. if uid is undef it mean message don't come from the nodes module but from the register module.
     my $temp_nodes = {};
     for my $node (@{$nodes}){
         next if $node->{type} !~ /wss/;
@@ -414,7 +413,6 @@ sub read_zmq_events {
     my ($self, %options) = @_;
 
     while ($self->{internal_socket}->has_pollin()) {
-
         my ($message) = $connector->read_message();
         proxy(message => $message);
     }
@@ -429,52 +427,16 @@ sub is_empty {
 =head3 $self->is_token_ok(ws_id => $ws_id, data => $data)
 
 validate a client sent the correct token/node Id couple to authenticate.
-
-Token validation logic :
-check in the local state if node id exist and get token from there.
-If token don't exist, use default one from yaml config file
-if db token is set, don't allow default one for this particular node.
+Authentication id done only once when websocket client send the first message, then the websocket session is considered authenticated.
+The first message of any poller must be registernodes containing the poller id (or uid).
 
 The "local state" is filled by PROXYADDNODE messages sent by nodes modules, and processed by the proxy function.
+
+Return :
+1 if websocket is logged.
+0 if websocket is not logged.
+
 =cut
-sub is_token_ok {
-    my ($self, %options) = @_;
-
-    return 0 if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization})
-        or $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+(.*?)\s*$/);
-    my $client_token = $1;
-    return 0 if (!defined($client_token) || $client_token eq '');
-
-    if ($options{data} !~ /^\[REGISTERNODES\]\s+\[(?:.*?)\]\s+\[.*?\]\s+(.*)/ms) {
-        return 0;
-    }
-    my ($status,$json) = $self->json_decode(argument => $1);
-    return 0 if ($status == 1);
-    if (is_empty($json->{nodes}->[0]->{id})){
-        $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for client " . $options{ws_id});
-    }
-    my $client_id = $json->{nodes}->[0]->{id};
-    $client_id or return 0;
-    if (!defined($self->{nodes}->{ $client_id })) {
-        $self->{logger}->writeLogDebug("[proxy-httpserver] cannot find node info for id " . $client_id);
-        return 0;
-    }
-    my $db_token = $self->{nodes}->{ $client_id }->{token};
-    my $correct_token = $db_token ? $db_token : $self->{config}->{httpserver}->{token};
-
-    if (!$client_token or $client_token ne $correct_token){
-        $self->{logger}->writeLogDebug(sprintf("[proxy-httpserver] WS client '%s' as node '%s' could not be authenticated." , $options{ws_id}, $client_id ));
-        return 0;
-    }
-
-    $self->{ws_clients}->{ $options{ws_id} }->{identity} = $client_id;
-    # todo document or make a oo interface on this.
-    $self->{identities}->{ $self->{nodes}->{$client_id}->{uid} } = $options{ws_id};
-    $self->{identities}->{ $self->{nodes}->{$client_id}->{id} } = $options{ws_id};
-    $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
-    $self->{logger}->writeLogDebug("[proxy-httpserver] WS client '" . $options{ws_id} . "' authenticated successfully as node " . $client_id);
-    return 1;
-}
 sub is_logged_websocket {
     my ($self, %options) = @_;
 

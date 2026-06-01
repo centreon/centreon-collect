@@ -564,9 +564,7 @@ sub pathway {
     if (defined($register_subnodes->{$target}->{dynamic})) {
         push @targets, keys %{$register_subnodes->{$target}->{dynamic}};
     }
-    use Data::Dumper;
-    $options{logger}->writeLogError("re nodes : " . Dumper($register_nodes));
-    $options{logger}->writeLogError("re SUB nodes : " . Dumper($register_subnodes));
+
     my $first_target;
     foreach (@targets) {
         if ($register_nodes->{$_}->{type} =~ /^(?:pull|wss|pullwss)$/ && !defined($register_nodes->{$_}->{identity})) {
@@ -940,7 +938,8 @@ sub pull_request {
 sub get_constatus_result {
     my (%options) = @_;
     # Gorgone now allow pollers to connect with either the legacy id or a new field named "uid"
-    # to allow this most state variables have double the key number. This avoid showing a poller from both key id and uid.
+    # to allow this most state variables have both the id and uid as key, and both point to the same hash
+    # This loop avoid showing a poller from 2 time from both id and uid point of view.
     my $res = {};
     while (my ($key, $elem) = each %$constatus_ping){
         if ($key =~ /^\d*$/ and $key == $elem->{id}){
@@ -1027,10 +1026,10 @@ sub register_subnodes {
         push @$subnodes, $entry->{nodes} if (defined($entry->{nodes}));
     }
 }
-
+# this message is sent by a poller on connection and by register module
 sub register_nodes {
     my (%options) = @_;
-        return if (!defined($options{data}->{nodes}));
+    return if (!defined($options{data}->{nodes}));
 
     foreach my $node (@{$options{data}->{nodes}}) {
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
@@ -1046,12 +1045,10 @@ sub register_nodes_from_db {
     my (%options) = @_;
 
     return if (!defined($options{data}->{nodes}) or !$options{data}->{nodes});
-    $options{logger}->writeLogInfo("[proxy-EVAN] msg registernode  : " . Dumper($options{data}->{nodes}));
-    $options{logger}->writeLogInfo("[proxy-EVAN] node info starting register nodes : " . Dumper($register_nodes));
 
     # send all data to proxy-httpserver, which manage pullwss nodes.
     # need to send the complete list in one message to be able to delete node when they are removed from the db.
-    # on plateform which don't have this module, the message should be thrown away
+    # on platform which don't have this module, the message is thrown away
     $options{gorgone}->send_internal_message(
         identity    => "gorgone-proxy-httpserver",
         action      => "PROXYADDNODE",
@@ -1125,9 +1122,6 @@ sub register_nodes_from_db {
             $register_nodes->{$node->{uid}} = $register_nodes->{$node->{id}};
         }
 
-        use Data::Dumper;
-        $options{logger}->writeLogInfo("[proxy-EVAN] node info after the identity thing : " . Dumper($register_nodes));
-
         $last_pong->{ $node->{id} } = 0 if (!defined($last_pong->{ $node->{id} }));
         if (!defined($synctime_nodes->{ $node->{id} })) {
             $synctime_nodes->{ $node->{id} } = {
@@ -1178,8 +1172,9 @@ sub register_nodes_from_db {
             };
             $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is registered");
         }
-        # now we link the uid and the id of the node
 
+        # now we link the uid and the id of the node to point to the same hash (this is not a copy)
+        # This allows to access a node from both the uid and id transparently.
         if (!$constatus_ping->{$node->{uid}}) {
             $constatus_ping->{$node->{uid}} = $constatus_ping->{$node->{id}};
         }
