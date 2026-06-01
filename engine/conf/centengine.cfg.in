@@ -800,3 +800,12 @@ enable_macros_filter=0
 #         Value must be between 5 and 600. Default value is 30.
 
 instance_heartbeat_interval=30
+
+
+# var:    grpc_port
+# brief:  TCP port on which the gRPC server listens for incoming connections.
+#         This is used for communication between centengine and external
+#         components (e.g. gorgone or scripts) via the gRPC protocol.
+#         Default value is 50155.
+
+grpc_port=50155
