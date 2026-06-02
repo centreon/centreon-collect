@@ -133,7 +133,7 @@ message State {
   string command_file = 72;
   string status_file = 73;
   string poller_name = 74;
-  uint32 poller_id = 75;
+  uint64 poller_id = 75;
   uint32 cached_service_check_horizon = 76;
   bool check_orphaned_hosts = 77;
   bool check_orphaned_services = 78;

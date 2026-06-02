@@ -5260,7 +5260,7 @@ void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
   }
   int32_t conn = _mysql.choose_connection_by_instance(stats.poller_id());
 
-  _agent_information_insert_update.bind_value_as_u32(0, stats.poller_id());
+  _agent_information_insert_update.bind_value_as_u64(0, stats.poller_id());
   _agent_information_insert_update.bind_value_as_bool(1, true);
   _agent_information_insert_update.bind_value_as_str(2, out_buff.GetString());
   _mysql.run_statement(_agent_information_insert_update,
