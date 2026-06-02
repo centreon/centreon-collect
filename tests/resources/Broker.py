@@ -4146,3 +4146,97 @@ def ctn_clear_broker_cache():
     """
     for f in glob.glob(f"{VAR_ROOT}/lib/centreon-broker/central-*.cache"):
         os.remove(f)
+
+
+def ctn_broker_schedule_host_downtime(hostname: str, duration: int,
+                                       port: int = 51001) -> int:
+    """
+    Schedule a host downtime via the Broker gRPC ScheduleDowntime endpoint.
+    Requires notification_mode = broker in the Broker configuration.
+
+    Args:
+        hostname: The host name.
+        duration: Duration in seconds.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The new downtime ID.
+
+    *Example:*
+
+    | ${dt_id} =    Ctn Broker Schedule Host Downtime    host_1    ${3600} |
+    """
+    now = int(time.time())
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ScheduleDowntimeRequest()
+        req.type = broker_pb2.ScheduleDowntimeRequest.HOST
+        req.host_name = hostname
+        req.entry_time = now
+        req.author = "robot"
+        req.comment_data = f"Robot test downtime on {hostname}"
+        req.start_time = now
+        req.end_time = now + int(duration)
+        req.fixed = True
+        req.triggered_by = 0
+        req.duration = int(duration)
+        response = stub.ScheduleDowntime(req)
+        return response.downtime_id
+
+
+def ctn_broker_schedule_service_downtime(hostname: str, service_desc: str,
+                                          duration: int,
+                                          port: int = 51001) -> int:
+    """
+    Schedule a service downtime via the Broker gRPC ScheduleDowntime endpoint.
+    Requires notification_mode = broker in the Broker configuration.
+
+    Args:
+        hostname: The host name.
+        service_desc: The service description.
+        duration: Duration in seconds.
+        port: The Broker gRPC port (default 51001).
+
+    Returns:
+        The new downtime ID.
+
+    *Example:*
+
+    | ${dt_id} =    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600} |
+    """
+    now = int(time.time())
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.ScheduleDowntimeRequest()
+        req.type = broker_pb2.ScheduleDowntimeRequest.SERVICE
+        req.host_name = hostname
+        req.service_description = service_desc
+        req.entry_time = now
+        req.author = "robot"
+        req.comment_data = f"Robot test downtime on {hostname}/{service_desc}"
+        req.start_time = now
+        req.end_time = now + int(duration)
+        req.fixed = True
+        req.triggered_by = 0
+        req.duration = int(duration)
+        response = stub.ScheduleDowntime(req)
+        return response.downtime_id
+
+
+def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
+    """
+    Delete a downtime by ID via the Broker gRPC DeleteDowntime endpoint.
+
+    Args:
+        downtime_id: The downtime ID to delete.
+        port: The Broker gRPC port (default 51001).
+
+    *Example:*
+
+    | Ctn Broker Delete Downtime    ${dt_id} |
+    """
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        req = broker_pb2.GenericNameOrIndex()
+        req.idx = int(downtime_id)
+        stub.DeleteDowntime(req)
