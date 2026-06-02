@@ -24,7 +24,11 @@ namespace com::centreon::common::downtimes {
 class downtime_callbacks {
  public:
   enum action { ADD, START, DELETE, LOAD, STOP };
-  enum attribute { ATTR_NONE = 0, ATTR_STOP_NORMAL = 1, ATTR_STOP_CANCELLED = 2 };
+  enum attribute {
+    ATTR_NONE = 0,
+    ATTR_STOP_NORMAL = 1,
+    ATTR_STOP_CANCELLED = 2
+  };
 
   virtual ~downtime_callbacks() = default;
 
@@ -37,18 +41,23 @@ class downtime_callbacks {
   virtual std::vector<uint64_t> get_anomaly_detection_services(
       uint64_t host_id,
       uint64_t service_id) const = 0;
+  virtual uint64_t create_downtime_comment(uint64_t host_id,
+                                           uint64_t service_id,
+                                           const std::string& author,
+                                           const std::string& comment_data) = 0;
+  virtual void delete_downtime_comment(uint64_t comment_id) = 0;
+
   virtual bool cancel_downtime(uint64_t host_id,
                                uint64_t service_id,
                                bool is_fixed,
                                bool incremented_pending,
                                bool is_in_effect) = 0;
-  virtual void schedule_downtime_check(uint64_t downtime_id,
-                                       time_t when) = 0;
+  virtual void schedule_downtime_check(uint64_t downtime_id, time_t when) = 0;
   virtual void schedule_expire_downtime(time_t when) = 0;
   virtual void remove_downtime_check(uint64_t downtime_id) = 0;
 
-  virtual bool object_exists(uint64_t host_id, uint64_t service_id) const = 0;
-  virtual bool is_object_ok(uint64_t host_id, uint64_t service_id) const = 0;
+  virtual bool resource_exists(uint64_t host_id, uint64_t service_id) const = 0;
+  virtual bool is_resource_ok(uint64_t host_id, uint64_t service_id) const = 0;
   virtual bool inc_pending_flex_downtime(uint64_t host_id,
                                          uint64_t service_id) = 0;
   virtual void start_downtime_effect(uint64_t host_id,
@@ -74,7 +83,7 @@ class downtime_callbacks {
                              bool fixed,
                              uint64_t triggered_by,
                              uint32_t duration,
-                             uint64_t downtime_id) const = 0;
+                             uint64_t downtime_id) = 0;
 };
 
 }  // namespace com::centreon::common::downtimes
