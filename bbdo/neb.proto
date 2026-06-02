@@ -153,6 +153,10 @@ message Service {
    * here. */
   uint64 internal_id = 86;
   uint64 icon_id = 87;
+
+  /* Only set for anomaly detection services: ID of the service whose metrics
+   * are monitored by this anomaly detection. */
+  uint64 dependent_service_id = 88;
 }
 
 /**
