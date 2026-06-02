@@ -299,7 +299,7 @@ jobs:
         shell: bash
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
@@ -369,7 +369,7 @@ jobs:
         shell: bash
 
       - name: Store docker image in cache
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./docker-image
           key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
@@ -397,7 +397,7 @@ jobs:
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -422,7 +422,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -457,7 +457,7 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -499,7 +499,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
