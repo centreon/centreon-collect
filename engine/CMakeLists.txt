@@ -159,6 +159,7 @@ option(WITH_CREATE_FILES "Create centreon-engine files." ON)
 set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
+set(PREFIX_BROKER_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-broker")
 
 #
 

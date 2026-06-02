@@ -119,7 +119,7 @@ event_broker_options=-1
 
 #broker_module=<modulepath> [moduleargs]
 broker_module=@ENGINE_MODULES_DIR@externalcmd.so
-
+broker_module_cfg_file=@PREFIX_BROKER_CONF@/central-module.json
 
 # var:    use_syslog
 # brief:  If you want messages logged to the syslog facility, as well as the

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022-2024 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3932,6 +3932,8 @@ grpc::Status engine_impl::ChangeContactObjectCustomVar(
     return grpc::Status::OK;
 }
 
+extern int sigshutdown;
+
 /**
  * @brief Shutdown Program.
  *
@@ -3946,7 +3948,7 @@ grpc::Status engine_impl::ShutdownProgram(
     const ::google::protobuf::Empty* request [[maybe_unused]],
     ::google::protobuf::Empty* response [[maybe_unused]]) {
   auto fn = std::packaged_task<int32_t(void)>([]() -> int32_t {
-    exit(0);
+    sigshutdown = true;
     return 0;
   });
 
