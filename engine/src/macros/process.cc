@@ -61,9 +61,9 @@ int process_macros_r(nagios_macros* mac,
        end{input_buffer.end()};
        it != end; ++it) {
     if (*it == '$') {
-      if (std::next(it) == input_buffer.end())
-        ;                                // last character is a dollar
-      else if (*std::next(it) == '$') {  //$$ => $ escape
+      if (std::next(it) == input_buffer.end()) {
+        output_buffer += "$";  // last character is a dollar we keep it
+      } else if (*std::next(it) == '$') {  //$$ => $ escape
         output_buffer += "$";
         ++it;
       } else {
