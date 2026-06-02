@@ -4106,6 +4106,49 @@ def ctn_del_host_comment(comment_id):
 
 
 @ctn_external_command
+def ctn_del_svc_comment(comment_id):
+    """
+    Delete a service comment.
+
+    Args:
+        comment_id (int): Comment ID.
+
+    Returns:
+        0 on success.
+    """
+    return f"DEL_SVC_COMMENT;{comment_id}\n"
+
+
+@ctn_external_command
+def ctn_del_all_host_comments(host_name):
+    """
+    Delete all the comments of a host.
+
+    Args:
+        host_name (str): Host name of the impacted host.
+
+    Returns:
+        0 on success.
+    """
+    return f"DEL_ALL_HOST_COMMENTS;{host_name}\n"
+
+
+@ctn_external_command
+def ctn_del_all_svc_comments(host_name, svc_description):
+    """
+    Delete all the comments of a service.
+
+    Args:
+        host_name (str): Host name of the service.
+        svc_description (str): Description of the service.
+
+    Returns:
+        0 on success.
+    """
+    return f"DEL_ALL_SVC_COMMENTS;{host_name};{svc_description}\n"
+
+
+@ctn_external_command
 def ctn_change_host_check_command(hst: str, Check_Command: str):
     """
     Change a host check command.
