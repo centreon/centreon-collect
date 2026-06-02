@@ -372,6 +372,13 @@ class broker_cache {
       std::pair<std::shared_ptr<neb::pb_tag>, absl::flat_hash_set<uint64_t>>>
       _tags ABSL_GUARDED_BY(_mutex);
 
+  /* Anomaly detection index: maps {host_id, dependent_service_id} to the set
+   * of anomaly detection service IDs that monitor that dependent service.
+   * Only anomaly detection services appear here. */
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                      absl::flat_hash_set<uint64_t>>
+      _anomaly_detection_index ABSL_GUARDED_BY(_mutex);
+
   /* BAM relations from BA to BV */
   absl::btree_set<std::pair<uint64_t, uint64_t>> _dimension_ba_bv_relations
       ABSL_GUARDED_BY(_mutex);
@@ -477,6 +484,16 @@ class broker_cache {
   std::shared_ptr<storage::pb_metric_mapping> get_metric_mapping(
       uint64_t metric_id) const ABSL_LOCKS_EXCLUDED(_mutex);
   std::vector<std::pair<uint64_t, uint64_t>> service_ids() const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> find_anomaly_detection_ids_by_dependent_service(
+      uint64_t host_id,
+      uint64_t dependent_service_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  uint32_t first_active_instance_id() const ABSL_LOCKS_EXCLUDED(_mutex);
+  std::vector<uint64_t> service_ids_for_host(uint64_t host_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  int32_t add_downtime(uint64_t host_id, uint64_t service_id)
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  int32_t remove_downtime(uint64_t host_id, uint64_t service_id)
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host_group> hostgroup(uint64_t hostgroup_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
