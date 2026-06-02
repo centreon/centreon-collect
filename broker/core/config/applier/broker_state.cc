@@ -18,9 +18,11 @@
 
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
+#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
@@ -35,6 +37,7 @@ broker_state::~broker_state() {
     _watch_engine_conf_timer->cancel();
   }
   save_topology_cache();
+  com::centreon::common::downtimes::downtime_manager::unload();
 }
 
 /**
@@ -48,6 +51,17 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
   state::apply(s, run_mux);
 
   // FIXME DBO: before modules application, or this can be later?
+  {
+    auto it = s.params().find("notification_mode");
+    _notification_mode = (it != s.params().end() && it->second == "broker")
+                             ? notification_mode_broker
+                             : notification_mode_engine;
+  }
+  if (_notification_mode == notification_mode_broker)
+    com::centreon::common::downtimes::downtime_manager::load(
+        std::make_unique<broker_downtime_callbacks>(
+            com::centreon::common::pool::instance().io_context()));
+
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
     set_cache_config_dir(s.cache_config_dir());

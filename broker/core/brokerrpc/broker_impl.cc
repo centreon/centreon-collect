@@ -21,11 +21,11 @@
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
 #include <algorithm>
+#include "common/downtimes/downtime_manager.hh"
 
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/endpoint.hh"
-#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
@@ -35,6 +35,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
 using com::centreon::common::crypto::aes256;
+using com::centreon::common::downtimes::downtime;
+using com::centreon::common::downtimes::downtime_manager;
 using com::centreon::common::log_v2::log_v2;
 
 broker_impl::broker_impl() {}
@@ -1177,5 +1179,152 @@ grpc::Status broker_impl::GetTopology(grpc::ServerContext* context
         break;
     }
   }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Schedule a host or service downtime via the Broker gRPC API.
+ *
+ * Only available when notification_mode = broker is set in the Broker
+ * configuration, which loads the downtime_manager singleton. Returns
+ * UNAVAILABLE if the manager is not loaded.
+ *
+ * The host can be identified by name (host_name) or ID (host_id). For service
+ * downtimes, the service can likewise be identified by description or ID. When
+ * a name is provided the Broker cache resolves it to the numeric ID; NOT_FOUND
+ * is returned if the name is unknown.
+ *
+ * Scheduling a HOST downtime also creates triggered SERVICE downtimes for all
+ * services of that host, matching the behaviour of Engine's
+ * SCHEDULE_HOST_DOWNTIME command.
+ *
+ * @param context  gRPC server context (unused).
+ * @param request  A ScheduleDowntimeRequest message.
+ * @param response A ScheduleDowntimeResponse filled with the new downtime ID.
+ *
+ * @return grpc::Status::OK on success, UNAVAILABLE if the downtime manager is
+ *         not loaded, NOT_FOUND if the host or service name is unknown,
+ *         INVALID_ARGUMENT if required fields are missing or the time window
+ *         is invalid.
+ */
+grpc::Status broker_impl::ScheduleDowntime(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ScheduleDowntimeRequest* request,
+    ScheduleDowntimeResponse* response) {
+  if (!downtime_manager::is_loaded())
+    return grpc::Status(
+        grpc::StatusCode::UNAVAILABLE,
+        "Downtime management is not enabled (notification_mode != broker)");
+
+  // Resolve host identifier
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t resolved_host_id = 0;
+  if (request->host_case() == ScheduleDowntimeRequest::kHostId) {
+    resolved_host_id = request->host_id();
+  } else if (request->host_case() == ScheduleDowntimeRequest::kHostName) {
+    auto h = cache.host(request->host_name());
+    if (!h)
+      return grpc::Status(
+          grpc::StatusCode::NOT_FOUND,
+          fmt::format("Host '{}' not found", request->host_name()));
+    resolved_host_id = h->obj().host_id();
+  } else {
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "host_name or host_id must be set");
+  }
+
+  // Resolve service identifier (only for SERVICE type)
+  uint64_t resolved_service_id = 0;
+  if (request->type() == ScheduleDowntimeRequest::SERVICE) {
+    if (request->service_case() == ScheduleDowntimeRequest::kServiceId) {
+      resolved_service_id = request->service_id();
+    } else if (request->service_case() ==
+               ScheduleDowntimeRequest::kServiceDescription) {
+      auto s = cache.service(request->host_name().empty()
+                                 ? cache.host(resolved_host_id)->obj().name()
+                                 : request->host_name(),
+                             request->service_description());
+      if (!s)
+        return grpc::Status(
+            grpc::StatusCode::NOT_FOUND,
+            fmt::format("Service '{}/{}' not found", resolved_host_id,
+                        request->service_description()));
+      resolved_service_id = s->obj().service_id();
+    } else {
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                          "service_description or service_id must be set for "
+                          "SERVICE downtime");
+    }
+  }
+
+  downtime::type dt_type = request->type() == ScheduleDowntimeRequest::HOST
+                               ? downtime::host_downtime
+                               : downtime::service_downtime;
+
+  uint64_t new_id = 0;
+  bool ok = downtime_manager::instance().schedule_downtime(
+      dt_type, resolved_host_id, resolved_service_id,
+      static_cast<time_t>(request->entry_time()), request->author(),
+      request->comment_data(), static_cast<time_t>(request->start_time()),
+      static_cast<time_t>(request->end_time()), request->fixed(),
+      request->triggered_by(), request->duration(), &new_id);
+
+  if (!ok)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "Invalid downtime parameters (end_time <= now or "
+                        "end_time <= start_time)");
+
+  if (request->type() == ScheduleDowntimeRequest::HOST) {
+    for (uint64_t svc_id :
+         cache.service_ids_for_host(resolved_host_id)) {
+      uint64_t svc_downtime_id;
+      downtime_manager::instance().schedule_downtime(
+          downtime::service_downtime, resolved_host_id, svc_id,
+          static_cast<time_t>(request->entry_time()), request->author(),
+          request->comment_data(), static_cast<time_t>(request->start_time()),
+          static_cast<time_t>(request->end_time()), request->fixed(), new_id,
+          request->duration(), &svc_downtime_id);
+    }
+  }
+
+  response->set_downtime_id(new_id);
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Cancel (delete) a previously scheduled downtime by its ID.
+ *
+ * Only available when notification_mode = broker is set. The downtime ID must
+ * be passed as the idx field of a GenericNameOrIndex message. Cancelling a
+ * host downtime cascades to all triggered service downtimes that were created
+ * alongside it.
+ *
+ * @param context  gRPC server context (unused).
+ * @param request  A GenericNameOrIndex with idx set to the downtime ID.
+ * @param response Empty.
+ *
+ * @return grpc::Status::OK on success, UNAVAILABLE if the downtime manager is
+ *         not loaded, INVALID_ARGUMENT if idx is not provided, NOT_FOUND if
+ *         no downtime with the given ID exists.
+ */
+grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
+                                         [[maybe_unused]],
+                                         const GenericNameOrIndex* request,
+                                         ::google::protobuf::Empty* response
+                                         [[maybe_unused]]) {
+  if (!downtime_manager::is_loaded())
+    return grpc::Status(
+        grpc::StatusCode::UNAVAILABLE,
+        "Downtime management is not enabled (notification_mode != broker)");
+
+  if (request->nameOrIndex_case() != GenericNameOrIndex::kIdx)
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "downtime ID must be provided as idx");
+
+  bool ok = downtime_manager::instance().unschedule_downtime(request->idx());
+  if (!ok)
+    return grpc::Status(grpc::StatusCode::NOT_FOUND,
+                        fmt::format("downtime {} not found", request->idx()));
+
   return grpc::Status::OK;
 }
