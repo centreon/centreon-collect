@@ -21,11 +21,17 @@
 #define CCE_ENGINE_DOWNTIME_CALLBACKS_HH
 
 #include "common/downtimes/downtime_callbacks.hh"
+#include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::engine {
 class engine_downtime_callbacks
     : public com::centreon::common::downtimes::downtime_callbacks {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
+  engine_downtime_callbacks()
+      : _logger{common::log_v2::log_v2::instance().get(
+            common::log_v2::log_v2::DOWNTIMES)} {}
   virtual ~engine_downtime_callbacks() = default;
 
   bool host_exists(uint64_t host_id) const override;
@@ -45,14 +51,23 @@ class engine_downtime_callbacks
   void schedule_downtime_check(uint64_t downtime_id, time_t when) override;
   void schedule_expire_downtime(time_t when) override;
   void remove_downtime_check(uint64_t downtime_id) override;
-  bool object_exists(uint64_t host_id, uint64_t service_id) const override;
-  bool is_object_ok(uint64_t host_id, uint64_t service_id) const override;
-  bool inc_pending_flex_downtime(uint64_t host_id, uint64_t service_id) override;
-  void start_downtime_effect(uint64_t host_id, uint64_t service_id,
+  bool resource_exists(uint64_t host_id, uint64_t service_id) const override;
+  uint64_t create_downtime_comment(uint64_t host_id,
+                                   uint64_t service_id,
+                                   const std::string& author,
+                                   const std::string& comment_data) override;
+  void delete_downtime_comment(uint64_t comment_id) override;
+  bool is_resource_ok(uint64_t host_id, uint64_t service_id) const override;
+  bool inc_pending_flex_downtime(uint64_t host_id,
+                                 uint64_t service_id) override;
+  void start_downtime_effect(uint64_t host_id,
+                             uint64_t service_id,
                              const std::string& author,
                              const std::string& comment) override;
-  void end_downtime_effect(uint64_t host_id, uint64_t service_id,
-                           bool is_fixed, bool incremented_pending,
+  void end_downtime_effect(uint64_t host_id,
+                           uint64_t service_id,
+                           bool is_fixed,
+                           bool incremented_pending,
                            const std::string& author,
                            const std::string& comment) override;
   void notify_broker(action act,
@@ -67,7 +82,7 @@ class engine_downtime_callbacks
                      bool fixed,
                      uint64_t triggered_by,
                      uint32_t duration,
-                     uint64_t downtime_id) const override;
+                     uint64_t downtime_id) override;
 };
 
 }  // namespace com::centreon::engine

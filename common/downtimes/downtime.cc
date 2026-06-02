@@ -16,10 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/comment.hh"
 #include "common/downtimes/downtime_manager.hh"
 
-using namespace com::centreon::engine;
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::common::downtimes {
@@ -82,7 +80,8 @@ downtime::downtime(uint64_t host_id,
  *        the downtime deletion.
  */
 downtime::~downtime() {
-  comment::delete_comment(_get_comment_id());
+  downtime_manager::instance().callbacks().delete_downtime_comment(
+      _get_comment_id());
   /* send data to event broker */
   downtime_manager::instance().callbacks().notify_broker(
       downtime_callbacks::DELETE, downtime_callbacks::ATTR_NONE, _host_id,
@@ -213,8 +212,8 @@ bool downtime::unschedule() {
 bool downtime::subscribe() {
   _logger->trace("downtime::subscribe() id={}", _downtime_id);
 
-  if (!downtime_manager::instance().callbacks().object_exists(_host_id,
-                                                              _service_id))
+  if (!downtime_manager::instance().callbacks().resource_exists(_host_id,
+                                                                _service_id))
     return false;
 
   auto fmt_time = [](time_t t) -> std::string {
@@ -235,13 +234,15 @@ bool downtime::subscribe() {
   if (_fixed)
     msg = fmt::format(
         "This {} has been scheduled for fixed downtime from {} to {}. "
-        "Notifications for the {} will not be sent out during that time period.",
+        "Notifications for the {} will not be sent out during that time "
+        "period.",
         type_str, start_time_string, end_time_string, type_str);
   else
     msg = fmt::format(
         "This {} has been scheduled for flexible downtime starting between "
         "{} and {} and lasting for a period of {} hours and {} minutes. "
-        "Notifications for the {} will not be sent out during that time period.",
+        "Notifications for the {} will not be sent out during that time "
+        "period.",
         type_str, start_time_string, end_time_string, hours, minutes, type_str);
 
   _logger->trace("Scheduled Downtime Details:");
@@ -263,13 +264,9 @@ bool downtime::subscribe() {
       minutes, seconds, _downtime_id, _triggered_by);
 
   /* add a non-persistent comment */
-  comment::type ctype = _service_id == 0 ? comment::host : comment::service;
-  auto com = std::make_shared<comment>(ctype, comment::downtime, _host_id,
-                                       _service_id, time(nullptr),
-                                       "(Centreon Engine Process)", msg, false,
-                                       comment::internal, false, (time_t)0);
-  comment::comments.insert({com->get_comment_id(), com});
-  _comment_id = com->get_comment_id();
+  _comment_id =
+      downtime_manager::instance().callbacks().create_downtime_comment(
+          _host_id, _service_id, "(Centreon Engine Process)", msg);
 
   if (_triggered_by == 0)
     downtime_manager::instance().callbacks().schedule_downtime_check(
@@ -298,16 +295,16 @@ bool downtime::subscribe() {
 bool downtime::handle() {
   _logger->trace("downtime::handle() id={}", _downtime_id);
 
-  if (!downtime_manager::instance().callbacks().object_exists(_host_id,
-                                                              _service_id)) {
+  if (!downtime_manager::instance().callbacks().resource_exists(_host_id,
+                                                                _service_id)) {
     _logger->error("downtime::handle(): object {}:{} not found", _host_id,
                    _service_id);
     return false;
   }
 
   if (!_fixed && !_start_flex_downtime) {
-    if (downtime_manager::instance().callbacks().is_object_ok(_host_id,
-                                                              _service_id)) {
+    if (downtime_manager::instance().callbacks().is_resource_ok(_host_id,
+                                                                _service_id)) {
       _incremented_pending_downtime =
           downtime_manager::instance().callbacks().inc_pending_flex_downtime(
               _host_id, _service_id);
@@ -419,8 +416,9 @@ void downtime::retention(std::ostream& os) const {
        << "\n"
           "}\n";
   } else {
-    auto p = downtime_manager::instance().callbacks().get_host_and_service_names(
-        _host_id, _service_id);
+    auto p =
+        downtime_manager::instance().callbacks().get_host_and_service_names(
+            _host_id, _service_id);
     // If p.first starts with "_Module_BAM_" and p.second starts with 'ba_', we
     // skip this downtime.
     // The idea here is to avoid downtimes coming from BA, because broker
@@ -484,8 +482,9 @@ void downtime::print(std::ostream& os) const {
        << "\n"
           "\t}\n\n";
   } else {
-    auto p = downtime_manager::instance().callbacks().get_host_and_service_names(
-        _host_id, _service_id);
+    auto p =
+        downtime_manager::instance().callbacks().get_host_and_service_names(
+            _host_id, _service_id);
     // If p.first starts with "_Module_BAM_" and p.second starts with 'ba_', we
     // skip this downtime.
     // The idea here is to avoid downtimes coming from BA, because broker

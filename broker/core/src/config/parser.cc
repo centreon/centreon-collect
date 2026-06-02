@@ -293,11 +293,10 @@ state parser::parse(std::string const& file) {
                                       &state::event_queue_max_size,
                                       &json::is_number, &json::get<int>))
           ;
-        else if (get_conf<uint32_t, state>({it.key(), it.value()},
-                                           "priority_age_threshold", retval,
-                                           &state::priority_age_threshold,
-                                           &json::is_number,
-                                           &json::get<uint32_t>))
+        else if (get_conf<uint32_t, state>(
+                     {it.key(), it.value()}, "priority_age_threshold", retval,
+                     &state::priority_age_threshold, &json::is_number,
+                     &json::get<uint32_t>))
           ;
         else if (it.key() == "event_queues_total_size") {
           auto eqts = check_and_read<uint64_t>(json_document["centreonBroker"],

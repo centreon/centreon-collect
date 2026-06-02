@@ -27,7 +27,6 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/processing/failover.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

@@ -18,9 +18,11 @@
 
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
+#include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
 
@@ -35,6 +37,7 @@ broker_state::~broker_state() {
     _watch_engine_conf_timer->cancel();
   }
   save_topology_cache();
+  com::centreon::common::downtimes::downtime_manager::unload();
 }
 
 /**
@@ -48,6 +51,17 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
   state::apply(s, run_mux);
 
   // FIXME DBO: before modules application, or this can be later?
+  {
+    auto it = s.params().find("notification_mode");
+    _notification_mode = (it != s.params().end() && it->second == "broker")
+                             ? notification_mode_broker
+                             : notification_mode_engine;
+  }
+  if (_notification_mode == notification_mode_broker)
+    com::centreon::common::downtimes::downtime_manager::load(
+        std::make_unique<broker_downtime_callbacks>(
+            com::centreon::common::pool::instance().io_context()));
+
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
     set_cache_config_dir(s.cache_config_dir());
@@ -60,7 +74,6 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
       load_topology_cache();
     } else
       set_pollers_config_dir(s.pollers_config_dir());
-
   }
 }
 
@@ -161,8 +174,8 @@ void broker_state::load_topology_cache() {
     _last_known_topology[e.poller_id()] = e.relay_id();
     if (!_engine_peers.count(e.poller_id())) {
       _engine_peers[e.poller_id()] =
-          engine_peer{e.poller_id(), "", 0, false, "", "", false, true, false,
-                      e.relay_id()};
+          engine_peer{e.poller_id(), "",   0,     false,       "", "",
+                      false,         true, false, e.relay_id()};
     }
   }
   _logger->info("Topology cache loaded: {} hints", cache.entries_size());
@@ -200,8 +213,9 @@ void broker_state::create_prot_file(
     std::filesystem::path lck_file =
         _cache_config_dir / fmt::format("{}.lck", poller_id);
     if (std::filesystem::is_regular_file(lck_file)) {
-      skip(fmt::format("'{}' exists, the normal configuration flow will handle it",
-                       lck_file.string()));
+      skip(fmt::format(
+          "'{}' exists, the normal configuration flow will handle it",
+          lck_file.string()));
       return;
     }
   }
@@ -213,13 +227,16 @@ void broker_state::create_prot_file(
   std::filesystem::path new_prot_file =
       pollers_config_dir() / fmt::format("new-{}.prot", poller_id);
   if (std::filesystem::is_regular_file(new_prot_file)) {
-    skip(fmt::format("'{}' already exists, the normal configuration flow will handle it",
-                     new_prot_file.string()));
+    skip(fmt::format(
+        "'{}' already exists, the normal configuration flow will handle it",
+        new_prot_file.string()));
     return;
   }
   if (std::filesystem::is_regular_file(prot_file)) {
-    skip(fmt::format("'{}' already exists, the normal configuration flow has already handled it",
-                     prot_file.string()));
+    skip(
+        fmt::format("'{}' already exists, the normal configuration flow has "
+                    "already handled it",
+                    prot_file.string()));
     return;
   }
 
@@ -452,9 +469,9 @@ void broker_state::set_poller_engine_conf_unknown(uint64_t poller_id,
   absl::WriterMutexLock lck(&_connected_peers_m);
   auto found = _engine_peers.find(poller_id);
   if (found != _engine_peers.end()) {
-      _logger->info("Poller with id {} engine conf is now {}", poller_id,
-                    unknown ? "unknown" : "known");
-      found->second.conf_unknown = unknown;
+    _logger->info("Poller with id {} engine conf is now {}", poller_id,
+                  unknown ? "unknown" : "known");
+    found->second.conf_unknown = unknown;
   }
 }
 
@@ -474,7 +491,6 @@ bool broker_state::is_peer_conf_known(uint64_t poller_id) const {
   }
   return true;
 }
-
 
 /**
  * @brief Remove a poller from the list of connected pollers.
@@ -876,9 +892,8 @@ bool broker_state::_prepare_diff_for_poller(
     peer.available_conf_sent = false;
     return true;
   }
-  _logger->error(
-      "Cannot write the diff Engine protobuf configuration '{}': {}",
-      diff_prot_conf.string(), strerror(errno));
+  _logger->error("Cannot write the diff Engine protobuf configuration '{}': {}",
+                 diff_prot_conf.string(), strerror(errno));
   return false;
 }
 
@@ -1000,8 +1015,7 @@ std::shared_ptr<io::data> broker_state::pop_pending_diff_state_for_engine(
   return result;
 }
 
-void broker_state::push_pending_diff_state_ack(
-    std::shared_ptr<io::data> ack) {
+void broker_state::push_pending_diff_state_ack(std::shared_ptr<io::data> ack) {
   absl::WriterMutexLock lck(&_connected_peers_m);
   _pending_diff_state_acks.push_back(std::move(ack));
 }
@@ -1118,7 +1132,8 @@ broker_state::relay_config_response broker_state::prepare_relay_config_response(
 
   /* 2. */
   if (auto r = _prepare_diff_from_new_prot_file(engine_id))
-    return *r ? relay_config_response::diff_ready : relay_config_response::up_to_date;
+    return *r ? relay_config_response::diff_ready
+              : relay_config_response::up_to_date;
 
   /* 3. */
   {
