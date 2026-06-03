@@ -135,7 +135,7 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @param invalid_on A bit field with values mapping::entry::invalid_on_zero,
    * mapping::entry::invalid_minus_one or mapping::entry::invalid_on_negative.
    */
-  void set_value_as_u64(size_t range, int64_t value, uint32_t invalid_on);
+  void set_value_as_u64(size_t range, uint64_t value, uint32_t invalid_on);
   /**
    * @brief Setter of the value at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
