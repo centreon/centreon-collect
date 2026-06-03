@@ -368,7 +368,7 @@ int mysql::choose_connection_by_name(std::string const& name) {
  *
  *  @return an integer
  */
-int mysql::choose_connection_by_instance(int instance_id) const {
+int mysql::choose_connection_by_instance(uint64_t instance_id) const {
   return instance_id % connections_count();
 }
 

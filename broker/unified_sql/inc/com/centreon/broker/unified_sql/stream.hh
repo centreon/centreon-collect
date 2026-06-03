@@ -261,7 +261,7 @@ class stream : public io::stream {
   std::shared_ptr<stats::center> _center;
   ConflictManagerStats* _stats;
 
-  absl::flat_hash_set<uint32_t> _cache_deleted_instance_id;
+  absl::flat_hash_set<uint64_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   absl::flat_hash_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
@@ -319,7 +319,7 @@ class stream : public io::stream {
 
   timestamp _oldest_timestamp;
   std::mutex _stored_timestamps_m;
-  std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  std::unordered_map<uint64_t, stored_timestamp> _stored_timestamps;
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _pb_acknowledgement_insupdate;
@@ -408,9 +408,9 @@ class stream : public io::stream {
   database::mysql_stmt _agent_information_insert_update;
 
   void _update_hosts_and_services_of_unresponsive_instances();
-  void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
-  void _update_timestamp(uint32_t instance_id);
-  bool _is_valid_poller(uint32_t instance_id);
+  void _update_hosts_and_services_of_instance(uint64_t id, bool responsive);
+  void _update_timestamp(uint64_t instance_id);
+  bool _is_valid_poller(uint64_t instance_id);
   void _check_queues(boost::system::error_code ec)
       ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _check_deleted_index();
@@ -480,7 +480,7 @@ class stream : public io::stream {
   void _load_deleted_instances();
   void _init_statements();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
+  void _clean_tables(uint64_t instance_id);
   void _clean_group_table() ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
   void _prepare_hg_insupdate_statement();
   void _prepare_pb_hg_insupdate_statement();

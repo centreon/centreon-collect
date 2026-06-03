@@ -286,7 +286,7 @@ void stream::_load_deleted_instances() {
   try {
     mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
-      int32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -379,7 +379,7 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_instance_id.get());
     while (_mysql.fetch_row(res)) {
-      uint32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       _stored_timestamps.insert(
           {instance_id,
            stored_timestamp(instance_id, stored_timestamp::unresponsive)});
