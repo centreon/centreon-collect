@@ -1371,14 +1371,14 @@ int service::handle_async_check_result(
         (state_change || !hard_state_change)) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_service_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     } else if (get_acknowledgement() == AckType::STICKY &&
                _current_state == service::state_ok) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_service_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     }
 
     /*

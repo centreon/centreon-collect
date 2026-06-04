@@ -229,6 +229,9 @@ class notifier : public checkable {
   void set_notifications_enabled(bool notifications_enabled) noexcept;
   uint64_t get_flapping_comment_id(void) const noexcept;
   void set_flapping_comment_id(uint64_t comment_id) noexcept;
+  uint64_t get_acknowledgement_comment_id(void) const noexcept;
+  void set_acknowledgement_comment_id(uint64_t comment_id) noexcept;
+  void delete_acknowledgement_comment() noexcept;
   int get_check_options(void) const noexcept;
   void set_check_options(int option) noexcept;
   int get_retain_status_information(void) const noexcept;
@@ -336,6 +339,7 @@ class notifier : public checkable {
   std::list<escalation*> _escalations;
   bool _no_more_notifications;
   uint64_t _flapping_comment_id;
+  uint64_t _acknowledgement_comment_id;
   int _check_options;
   AckType _acknowledgement_type;
   bool _retain_status_information;
