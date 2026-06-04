@@ -1689,8 +1689,8 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
     temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
-    /* remove any non-persistant comments associated with the ack */
-    comment::delete_host_acknowledgement_comments(temp_host.get());
+    /* remove any non-persistant comment associated with the ack */
+    temp_host->delete_acknowledgement_comment();
     return 0;
   });
 
@@ -1729,8 +1729,8 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
     temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
-    /* remove any non-persistant comments associated with the ack */
-    comment::delete_service_acknowledgement_comments(temp_service.get());
+    /* remove any non-persistant comment associated with the ack */
+    temp_service->delete_acknowledgement_comment();
     return 0;
   });
 

@@ -2138,14 +2138,14 @@ int host::handle_state() {
     if (get_acknowledgement() == AckType::NORMAL) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_host_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     } else if (get_acknowledgement() == AckType::STICKY &&
                get_current_state() == host::state_up) {
       set_acknowledgement(AckType::NONE);
 
-      /* remove any non-persistant comments associated with the ack */
-      comment::delete_host_acknowledgement_comments(this);
+      /* remove any non-persistant comment associated with the ack */
+      delete_acknowledgement_comment();
     }
 
     /* reset the next and last notification times */
