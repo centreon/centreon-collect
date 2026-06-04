@@ -207,7 +207,7 @@ applier::state::~state() noexcept {
  *
  *  @return  The user macros.
  */
-std::unordered_map<std::string, std::string>& applier::state::user_macros() {
+absl::flat_hash_map<std::string, std::string>& applier::state::user_macros() {
   return _user_macros;
 }
 
@@ -218,8 +218,8 @@ std::unordered_map<std::string, std::string>& applier::state::user_macros() {
  *
  *  @return  Iterator to user macros.
  */
-std::unordered_map<std::string, std::string>::const_iterator
-applier::state::user_macros_find(std::string const& key) const {
+absl::flat_hash_map<std::string, std::string>::const_iterator
+applier::state::user_macros_find(const std::string_view & key) const {
   return _user_macros.find(key);
 }
 

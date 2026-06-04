@@ -55,9 +55,9 @@ class state {
 
   servicedependency_mmap const& servicedependencies() const throw();
   servicedependency_mmap& servicedependencies() throw();
-  std::unordered_map<std::string, std::string>& user_macros();
-  std::unordered_map<std::string, std::string>::const_iterator user_macros_find(
-      std::string const& key) const;
+  absl::flat_hash_map<std::string, std::string>& user_macros();
+  absl::flat_hash_map<std::string, std::string>::const_iterator
+  user_macros_find(const std::string_view & key) const;
   void lock();
   void unlock();
 
@@ -104,7 +104,7 @@ class state {
   processing_state _processing_state;
 
   servicedependency_mmap _servicedependencies;
-  std::unordered_map<std::string, std::string> _user_macros;
+  absl::flat_hash_map<std::string, std::string> _user_macros;
 };
 }  // namespace applier
 }  // namespace configuration

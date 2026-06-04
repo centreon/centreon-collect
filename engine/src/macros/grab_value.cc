@@ -903,7 +903,7 @@ struct grab_value_redirection {
 
 /* this is the big one */
 int grab_macro_value_r(nagios_macros* mac,
-                       std::string const& macro_name,
+                       const std::string_view& macro_name,
                        std::string& output,
                        int* clean_options,
                        int* free_macro) {
@@ -918,7 +918,7 @@ int grab_macro_value_r(nagios_macros* mac,
     return ERROR;
 
   /* work with a copy of the original buffer */
-  std::unique_ptr<char[]> buf(string::dup(macro_name.c_str()));
+  std::unique_ptr<char[]> buf(string::dup(macro_name));
 
   /* BY DEFAULT, TELL CALLER TO FREE MACRO BUFFER WHEN DONE */
   *free_macro = true;
@@ -975,13 +975,12 @@ int grab_macro_value_r(nagios_macros* mac,
   if (x < MACRO_X_COUNT)
     ;
   /***** ARGV MACROS *****/
-  else if (macro_name.size() > 3 &&
-           strncmp(macro_name.c_str(), "ARG", 3) == 0) {
+  else if (macro_name.size() > 3 && strncmp(macro_name.data(), "ARG", 3) == 0) {
     /* which arg do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 3, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(3), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 3);
+          macro_name.substr(3));
       return ERROR;
     }
 
@@ -995,12 +994,12 @@ int grab_macro_value_r(nagios_macros* mac,
   }
   /***** USER MACROS *****/
   else if (macro_name.size() > 4 &&
-           strncmp(macro_name.c_str(), "USER", 4) == 0) {
+           strncmp(macro_name.data(), "USER", 4) == 0) {
     /* which macro do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 4, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(4), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 4);
+          macro_name.substr(4));
       return ERROR;
     }
 
@@ -1016,12 +1015,12 @@ int grab_macro_value_r(nagios_macros* mac,
   /***** CONTACT ADDRESS MACROS *****/
   /* NOTE: the code below should be broken out into a separate function */
   else if (macro_name.size() > 14 &&
-           strncmp(macro_name.c_str(), "CONTACTADDRESS", 14) == 0) {
+           strncmp(macro_name.data(), "CONTACTADDRESS", 14) == 0) {
     /* which address do we want? */
-    if (!absl::SimpleAtoi(macro_name.c_str() + 14, &x)) {
+    if (!absl::SimpleAtoi(macro_name.substr(14), &x)) {
       macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
-          macro_name.c_str() + 14);
+          macro_name.substr(14));
       return ERROR;
     }
     x -= 1;
@@ -1099,8 +1098,6 @@ int grab_macro_value_r(nagios_macros* mac,
   }
   /* no macro matched... */
   else {
-    engine_logger(dbg_macros, basic)
-        << " WARNING: Could not find a macro matching '" << macro_name << "'!";
     macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
                          macro_name);
     result = ERROR;

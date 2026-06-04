@@ -83,7 +83,7 @@ static void resolve_custom_macro_value(nagios_macros* mac,
 
 /* calculates the value of a custom macro */
 int grab_custom_macro_value_r(nagios_macros* mac,
-                              std::string const& macro_name,
+                              const std::string_view& macro_name,
                               std::string const& arg1,
                               std::string const& arg2,
                               std::string& output) {
@@ -664,7 +664,7 @@ int grab_standard_contactgroup_macro(
 
 /* computes a custom object macro */
 int grab_custom_object_macro_r(nagios_macros* mac,
-                               std::string const& macro_name,
+                               const std::string_view& macro_name,
                                map_customvar const& vars,
                                std::string& output) {
   int result = ERROR;
