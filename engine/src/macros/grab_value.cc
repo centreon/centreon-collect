@@ -1094,7 +1094,7 @@ int grab_macro_value_r(nagios_macros* mac,
     output = configuration::applier::state::instance()
                  .user_macros_find(macro_name)
                  ->second;
-    result = true;
+    result = OK;
   }
   /* no macro matched... */
   else {

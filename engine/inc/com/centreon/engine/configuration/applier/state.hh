@@ -57,7 +57,7 @@ class state {
   servicedependency_mmap& servicedependencies() throw();
   absl::flat_hash_map<std::string, std::string>& user_macros();
   absl::flat_hash_map<std::string, std::string>::const_iterator
-  user_macros_find(const std::string_view & key) const;
+  user_macros_find(const std::string_view& key) const;
   void lock();
   void unlock();
 

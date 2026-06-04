@@ -54,20 +54,19 @@ int process_macros_r(nagios_macros* mac,
                       "**** BEGIN MACRO PROCESSING **** Processing: '{}'",
                       input_buffer);
 
+  // clang-format off
+  /*we have two kinds of tags for macros
+  $_SERVICEMAC$: resolved as a service _MAC macro. 
+        If it exists, it is replaced by its content
+        If not, if we are at first level of recursion, $_SERVICEMAC$ is replaced by an empty string
+                if we are evaluating content of a macro, $_SERVICEMAC$ stays in place
+  {{$_SERVICEMAC$}}: resolved as a service _MAC macro. 
+        If it exists, it is replaced by its content
+        If not, {{$_SERVICEMAC$}} is replaced by an empty string IN ALL CASES
+  */
+  // clang-format on
   size_t offset = 0;
   while (offset < input_buffer.length()) {
-    // clang-format off
-    /*we have two kinds of tags for macros
-    $_SERVICEMAC$: resolved as a service _MAC macro. 
-          If it exists, it is replaced by its content
-          If not, if we are at first level of recursion, $_SERVICEMAC$ is replaced by an empty string
-                  if we are evaluating content of a macro, $_SERVICEMAC$ stays in place
-    {{$_SERVICEMAC$}}: resolved as a service _MAC macro. 
-          If it exists, it is replaced by its content
-          If not, {{$_SERVICEMAC$}} is replaced by an empty string IN ALL CASES
-    */
-    // clang-format on
-
     size_t tag_begin = input_buffer.find('$', offset);
     if (tag_begin == std::string_view::npos) {
       break;
@@ -112,12 +111,6 @@ int process_macros_r(nagios_macros* mac,
         macros_logger, "  Processed '{}', To '{}', Clean Options: {}, Free: {}",
         token, token_resolved, clean_options, free_macro);
 
-    /* an error occurred - we couldn't parse the macro, so continue on */
-    if (result == ERROR) {
-      SPDLOG_LOGGER_TRACE(macros_logger,
-                          " WARNING: An error occurred processing macro '{}'!",
-                          token);
-    }
     if (result == OK) {
       SPDLOG_LOGGER_TRACE(macros_logger,
                           "  Processed '{}', Clean Options: {}, Free: {}",
@@ -162,6 +155,11 @@ int process_macros_r(nagios_macros* mac,
                           "  Just finished macro.  Running output ({}): '{}'",
                           output_buffer.length(), output_buffer);
     } else {
+      /* an error occurred - we couldn't parse the macro, so continue on */
+      SPDLOG_LOGGER_TRACE(macros_logger,
+                          " WARNING: An error occurred processing macro '{}'!",
+                          token);
+
       // for reason of backward compatibility simple dollar macros name are not
       // removed while decoding content of macros
       // example: _FILTER         name in ('MSSQL$SIG','MSSQL$RH')
