@@ -149,60 +149,6 @@ void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
   }
 }
 
-/**
- * @brief Deletes all non-persistent acknowledgement comments for a particular
- * host.
- *
- * @param hst A pointer to the host.
- */
-void comment::delete_host_acknowledgement_comments(engine::host* hst) {
-  for (auto it = comments.begin(); it != comments.end();) {
-    if (it->second->get_comment_type() == comment::host &&
-        it->second->get_host_id() == hst->host_id() &&
-        it->second->get_entry_type() ==
-            com::centreon::engine::comment::acknowledgment &&
-        !it->second->get_persistent()) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
-          it->second->get_entry_type(), it->second->get_host_id(), 0,
-          it->second->get_entry_time(), it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first);
-      comments.erase(it++);
-    } else
-      ++it;
-  }
-}
-
-/**
- * @brief Deletes all non-persistent acknowledgement comments for a particular
- * service.
- *
- * @param svc A pointer to the service.
- */
-void comment::delete_service_acknowledgement_comments(::service* svc) {
-  for (auto it = comments.begin(); it != comments.end();) {
-    if (it->second->get_comment_type() == comment::service &&
-        it->second->get_host_id() == svc->host_id() &&
-        it->second->get_service_id() == svc->service_id() &&
-        it->second->get_entry_type() ==
-            com::centreon::engine::comment::acknowledgment &&
-        !it->second->get_persistent()) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
-          it->second->get_entry_type(), it->second->get_host_id(),
-          it->second->get_service_id(), it->second->get_entry_time(),
-          it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first);
-      comments.erase(it++);
-    } else
-      ++it;
-  }
-}
-
 /* checks for an expired comment (and removes it) */
 void comment::remove_if_expired_comment(uint64_t comment_id) {
   comment_map::iterator found = comment::comments.find(comment_id);
