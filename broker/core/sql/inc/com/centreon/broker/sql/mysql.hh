@@ -92,7 +92,7 @@ class mysql {
   int get_last_insert_id(int thread_id);
   int connections_count() const;
   int choose_connection_by_name(std::string const& name);
-  int choose_connection_by_instance(int instance_id) const;
+  int choose_connection_by_instance(uint64_t instance_id) const;
   int choose_best_connection(int32_t type);
   const database_config& get_config() const;
   const std::string& get_server_version() { return _server_version; }

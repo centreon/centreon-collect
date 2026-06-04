@@ -184,7 +184,7 @@ class conflict_manager {
   /* How many streams are using this conflict_manager? */
   std::atomic<uint32_t> _ref_count;
 
-  std::unordered_set<uint32_t> _cache_deleted_instance_id;
+  std::unordered_set<uint64_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   std::unordered_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
@@ -230,7 +230,7 @@ class conflict_manager {
   std::deque<std::pair<bool*, std::string>> _downtimes_queue;
 
   timestamp _oldest_timestamp;
-  std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  std::unordered_map<uint64_t, stored_timestamp> _stored_timestamps;
   std::shared_ptr<spdlog::logger> _logger_sql;
   std::shared_ptr<spdlog::logger> _logger_storage;
 
@@ -278,10 +278,10 @@ class conflict_manager {
   void _callback();
 
   void _update_hosts_and_services_of_unresponsive_instances();
-  void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
-  void _update_timestamp(uint32_t instance_id);
+  void _update_hosts_and_services_of_instance(uint64_t id, bool responsive);
+  void _update_timestamp(uint64_t instance_id);
   void _update_downtimes();
-  bool _is_valid_poller(uint32_t instance_id);
+  bool _is_valid_poller(uint64_t instance_id);
   void _check_deleted_index();
 
   void _process_acknowledgement(
@@ -333,7 +333,7 @@ class conflict_manager {
 
   void _load_deleted_instances();
   void _load_caches();
-  void _clean_tables(uint32_t instance_id);
+  void _clean_tables(uint64_t instance_id);
   void _clean_group_table();
   void _prepare_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
