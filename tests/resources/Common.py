@@ -1982,6 +1982,143 @@ def ctn_find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     return False
 
 
+def ctn_check_comment(host_name: str, service_description: str, entry_type: int, start, exists=True, timeout: int = TIMEOUT):
+    """
+    Wait for an active comment (deletion_time IS NULL) of a given entry_type on
+    a host or a service.
+
+    Args:
+        host_name (str): host name.
+        service_description (str): service description, empty for a host comment.
+        entry_type (int): 1=user, 2=downtime, 3=flapping, 4=acknowledgment.
+        start: a date (string) used to only consider comments newer than it.
+        exists (bool): wait for the comment to be present (True) or gone (False).
+        timeout (int): timeout in seconds.
+
+    Returns:
+        When exists=True: the comment internal_id (>0) or 0 if none found.
+        When exists=False: True if no such active comment remains, else False.
+    """
+    my_date = datetime.timestamp(parser.parse(start)) if isinstance(start, str) else start
+    if service_description:
+        where = (f"h.name='{host_name}' AND s.description='{service_description}' "
+                 f"AND c.service_id<>0")
+        join = ("JOIN hosts h ON c.host_id=h.host_id "
+                "JOIN services s ON c.host_id=s.host_id AND c.service_id=s.service_id")
+    else:
+        where = f"h.name='{host_name}' AND (c.service_id=0 OR c.service_id IS NULL)"
+        join = "JOIN hosts h ON c.host_id=h.host_id"
+    query = (f"SELECT c.internal_id FROM comments c {join} WHERE {where} "
+             f"AND c.entry_type={entry_type} AND c.deletion_time IS NULL "
+             f"AND c.entry_time>={my_date}")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                result = cursor.fetchall()
+                if exists and len(result) > 0:
+                    return result[0]['internal_id']
+                if not exists and len(result) == 0:
+                    return True
+        time.sleep(1)
+    return 0 if exists else False
+
+
+def ctn_check_comment_is_deleted(internal_id: int, timeout: int = TIMEOUT):
+    """
+    Wait for the comment carrying internal_id to have its deletion_time set.
+
+    Args:
+        internal_id (int): the comment internal_id (as minted by Engine).
+        timeout (int): timeout in seconds.
+
+    Returns:
+        True if the comment got a deletion_time, False otherwise.
+    """
+    query = (f"SELECT deletion_time FROM comments "
+             f"WHERE internal_id={internal_id} AND deletion_time IS NOT NULL")
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     autocommit=True,
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(query)
+                if len(cursor.fetchall()) > 0:
+                    return True
+        time.sleep(1)
+    return False
+
+
+def ctn_count_active_comments(host_name: str, service_description: str = ""):
+    """
+    Count active (deletion_time IS NULL) comments on a host or a service.
+
+    Args:
+        host_name (str): host name.
+        service_description (str): service description, empty for host comments.
+
+    Returns:
+        The number of active comments.
+    """
+    if service_description:
+        where = (f"h.name='{host_name}' AND s.description='{service_description}' "
+                 f"AND c.service_id<>0")
+        join = ("JOIN hosts h ON c.host_id=h.host_id "
+                "JOIN services s ON c.host_id=s.host_id AND c.service_id=s.service_id")
+    else:
+        where = f"h.name='{host_name}' AND (c.service_id=0 OR c.service_id IS NULL)"
+        join = "JOIN hosts h ON c.host_id=h.host_id"
+    query = (f"SELECT COUNT(*) AS nb FROM comments c {join} "
+             f"WHERE {where} AND c.deletion_time IS NULL")
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 autocommit=True,
+                                 cursorclass=pymysql.cursors.DictCursor)
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(query)
+            return cursor.fetchall()[0]['nb']
+
+
+def ctn_check_active_comments_count(host_name: str, service_description: str, expected: int, timeout: int = TIMEOUT):
+    """
+    Wait until the number of active comments on a host or a service reaches an
+    expected value.
+
+    Args:
+        host_name (str): host name.
+        service_description (str): service description, empty for host comments.
+        expected (int): expected number of active comments.
+        timeout (int): timeout in seconds.
+
+    Returns:
+        True if the expected count was reached within timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        if ctn_count_active_comments(host_name, service_description) == int(expected):
+            return True
+        time.sleep(1)
+    return False
+
+
 def ctn_create_bad_queue(filename: str):
     with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb') as f:
         buffer = bytearray(10000)
