@@ -99,15 +99,21 @@ in the constructor (`comment.cc:63-68`) when no ID is provided; otherwise the co
 
 ### The four comment types
 
-Two types store their `comment_id` on the owning object so they can delete it later; the other two
-are found differently.
+Three types now store their `comment_id` on the owning object so they can delete it later; only
+`user` comments are addressed by an externally supplied id.
 
 | `entry_type` | Created by | `comment_id` stored | Deleted when |
 |---|---|---|---|
 | `user` | `cmd_add_comment` (`commands.cc:207`) — `ADD_HOST_COMMENT` / `ADD_SVC_COMMENT` | — | `DEL_*_COMMENT` by id, `DEL_ALL_*`, or object deletion |
 | `downtime` | `downtime::subscribe()` via callback (`engine_downtime_callbacks.cc:478`) | `downtime::_comment_id` | downtime object destruction |
 | `flapping` | `host::set_flap()` / `service::set_flap()` (`host.cc:1980`, `service.cc:2742`) | `notifier::_flapping_comment_id` | `clear_flap()` (flapping ends) |
-| `acknowledgment` | `cmd_acknowledge_*_problem` (`commands.cc:2519/2558`) | — | ack cleared → scan by host/service + `entry_type` |
+| `acknowledgment` | `cmd_acknowledge_*_problem` (`commands.cc`) | `notifier::_acknowledgement_comment_id` (non-persistent only) | ack cleared → delete by stored id |
+
+> **Phase 1 (done).** The `acknowledgment` type used to be found by scanning the whole map filtered on
+> `entry_type==ack`. It now mirrors `flapping`: a non-persistent ack comment's id is kept on the
+> notifier (`_acknowledgement_comment_id`) at creation and deleted by id when the acknowledgement is
+> cleared. Persistent ack comments are never tracked (id stays `0`) so they survive — same semantics,
+> no map scan.
 
 ### Deletion operations
 
@@ -115,15 +121,20 @@ are found differently.
 
 | Method | Key | Usage |
 |---|---|---|
-| `delete_comment(id)` | `comment_id` (find) | `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT`, and every targeted deletion (downtime, flapping) |
+| `delete_comment(id)` | `comment_id` (find) | `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT`, and every targeted deletion (downtime, flapping, ack) |
 | `delete_host_comments(host_id)` | iteration | `DEL_ALL_HOST_COMMENTS` |
 | `delete_service_comments(host_id, svc_id)` | iteration | `DEL_ALL_SVC_COMMENTS` |
-| `delete_host_acknowledgement_comments(host*)` | iteration + `entry_type==ack` + non-persistent | host ack cleared |
-| `delete_service_acknowledgement_comments(svc*)` | iteration + `entry_type==ack` + non-persistent | service ack cleared |
-| `remove_if_expired_comment(id)` | `comment_id` + `expires`/`expire_time` | `EVENT_EXPIRE_COMMENT` (`timed_event.cc:291`) |
+| `notifier::delete_acknowledgement_comment()` | `comment_id` (stored on notifier) | ack cleared (replaces the old full-map scans) |
+| `remove_if_expired_comment(id)` | `comment_id` + `expires`/`expire_time` | `EVENT_EXPIRE_COMMENT` — **dead code** (see below) |
 
-All of them send Broker a `NEBTYPE_COMMENT_DELETE` rebuilt from the comment's **full tuple** (author,
-host/service, entry_time, etc.) — which is precisely the reason the in-memory map exists.
+The targeted deletions send Broker a `NEBTYPE_COMMENT_DELETE` rebuilt from the comment's **full tuple**
+(author, host/service, entry_time, etc.) — which is precisely the reason the in-memory map still
+exists.
+
+> **Phase 0 finding — expiration is dead code.** Every comment is created with `expires=false`
+> (`commands.cc`, `host.cc`, `service.cc`, `engine_downtime_callbacks.cc`) and no external command
+> carries an expire parameter. Nothing ever produces an expiring comment, so `EVENT_EXPIRE_COMMENT` /
+> `remove_if_expired_comment` never fire. They will simply be removed (not ported to Broker).
 
 ### Broker notification
 
@@ -285,9 +296,11 @@ store its ID in `notifier::_flapping_comment_id`; `clear_flap()` deletes it (`ho
 
 ### Acknowledgement comments
 
-Created by `cmd_acknowledge_*_problem`. They are not referenced by a stored ID: when the ack is
-cleared, `delete_*_acknowledgement_comments()` iterates the map and deletes the object's
-**non-persistent** `acknowledgment` comments.
+Created by `cmd_acknowledge_*_problem`. Since Phase 1 they behave like flapping comments: the id of a
+**non-persistent** ack comment is stored on the notifier (`_acknowledgement_comment_id`) at creation.
+When the ack is cleared, `notifier::delete_acknowledgement_comment()` deletes it by id and resets the
+field. Persistent ack comments are never tracked (id stays `0`) and therefore survive the clear. On
+restart, `retention/applier/comment.cc` restores the id link for a kept non-persistent ack comment.
 
 ---
 

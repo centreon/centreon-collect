@@ -101,15 +101,21 @@ est considéré comme **chargé** (rétention). `_next_comment_id` est :
 
 ### Les quatre types de commentaires
 
-Deux types stockent leur `comment_id` sur l'objet propriétaire pour pouvoir le supprimer plus tard ;
-les deux autres sont retrouvés autrement.
+Trois types stockent désormais leur `comment_id` sur l'objet propriétaire pour pouvoir le supprimer
+plus tard ; seuls les commentaires `user` sont adressés par un id fourni de l'extérieur.
 
 | `entry_type` | Créé par | `comment_id` stocké | Supprimé quand |
 |---|---|---|---|
 | `user` | `cmd_add_comment` (`commands.cc:207`) — `ADD_HOST_COMMENT` / `ADD_SVC_COMMENT` | — | `DEL_*_COMMENT` par id, `DEL_ALL_*`, ou suppression de l'objet |
 | `downtime` | `downtime::subscribe()` via callback (`engine_downtime_callbacks.cc:478`) | `downtime::_comment_id` | destruction de l'objet downtime |
 | `flapping` | `host::set_flap()` / `service::set_flap()` (`host.cc:1980`, `service.cc:2742`) | `notifier::_flapping_comment_id` | `clear_flap()` (fin du flapping) |
-| `acknowledgment` | `cmd_acknowledge_*_problem` (`commands.cc:2519/2558`) | — | levée d'ack → scan par host/service + `entry_type` |
+| `acknowledgment` | `cmd_acknowledge_*_problem` (`commands.cc`) | `notifier::_acknowledgement_comment_id` (non persistant uniquement) | levée d'ack → suppression par id stocké |
+
+> **Phase 1 (faite).** Le type `acknowledgment` était auparavant retrouvé par scan de toute la map
+> filtré sur `entry_type==ack`. Il calque désormais `flapping` : l'id d'un commentaire d'ack
+> non-persistant est conservé sur le notifier (`_acknowledgement_comment_id`) à la création et
+> supprimé par id à la levée de l'acquittement. Les commentaires d'ack persistants ne sont jamais
+> trackés (id reste `0`) donc ils survivent — même sémantique, sans scan de map.
 
 ### Opérations de suppression
 
@@ -117,16 +123,21 @@ les deux autres sont retrouvés autrement.
 
 | Méthode | Clé | Usage |
 |---|---|---|
-| `delete_comment(id)` | `comment_id` (find) | `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT`, et toute suppression ciblée (downtime, flapping) |
+| `delete_comment(id)` | `comment_id` (find) | `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT`, et toute suppression ciblée (downtime, flapping, ack) |
 | `delete_host_comments(host_id)` | itération | `DEL_ALL_HOST_COMMENTS` |
 | `delete_service_comments(host_id, svc_id)` | itération | `DEL_ALL_SVC_COMMENTS` |
-| `delete_host_acknowledgement_comments(host*)` | itération + `entry_type==ack` + non persistant | levée d'ack hôte |
-| `delete_service_acknowledgement_comments(svc*)` | itération + `entry_type==ack` + non persistant | levée d'ack service |
-| `remove_if_expired_comment(id)` | `comment_id` + `expires`/`expire_time` | `EVENT_EXPIRE_COMMENT` (`timed_event.cc:291`) |
+| `notifier::delete_acknowledgement_comment()` | `comment_id` (stocké sur le notifier) | levée d'ack (remplace les anciens scans de map) |
+| `remove_if_expired_comment(id)` | `comment_id` + `expires`/`expire_time` | `EVENT_EXPIRE_COMMENT` — **code mort** (cf. ci-dessous) |
 
-Toutes envoient à Broker un `NEBTYPE_COMMENT_DELETE` reconstruit à partir du **tuple complet** du
-commentaire (auteur, host/service, entry_time, etc.) — c'est précisément la raison d'être de la map
-mémoire.
+Les suppressions ciblées envoient à Broker un `NEBTYPE_COMMENT_DELETE` reconstruit à partir du
+**tuple complet** du commentaire (auteur, host/service, entry_time, etc.) — c'est précisément la
+raison d'être de la map mémoire qui subsiste encore.
+
+> **Constat de la Phase 0 — l'expiration est du code mort.** Tout commentaire est créé avec
+> `expires=false` (`commands.cc`, `host.cc`, `service.cc`, `engine_downtime_callbacks.cc`) et aucune
+> commande externe ne porte de paramètre d'expiration. Rien ne produit jamais de commentaire
+> expirant, donc `EVENT_EXPIRE_COMMENT` / `remove_if_expired_comment` ne se déclenchent jamais. Ils
+> seront simplement supprimés (pas portés vers Broker).
 
 ### Notification broker
 
@@ -291,9 +302,12 @@ et stockent son ID dans `notifier::_flapping_comment_id` ; `clear_flap()` le sup
 
 ### Commentaires d'acquittement
 
-Créés par `cmd_acknowledge_*_problem`. Ils ne sont pas référencés par un ID stocké : à la levée de
-l'ack, `delete_*_acknowledgement_comments()` parcourt la map et supprime les commentaires
-`acknowledgment` **non persistants** de l'objet.
+Créés par `cmd_acknowledge_*_problem`. Depuis la Phase 1, ils se comportent comme les commentaires de
+flapping : l'id d'un commentaire d'ack **non persistant** est stocké sur le notifier
+(`_acknowledgement_comment_id`) à la création. À la levée de l'ack,
+`notifier::delete_acknowledgement_comment()` le supprime par id et remet le champ à zéro. Les
+commentaires d'ack persistants ne sont jamais trackés (id reste `0`) et survivent donc à la levée. Au
+redémarrage, `retention/applier/comment.cc` restaure le lien d'id pour un ack non persistant conservé.
 
 ---
 
