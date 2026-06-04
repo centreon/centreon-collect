@@ -418,7 +418,7 @@ jobs:
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -455,7 +455,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -492,7 +492,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         include:
@@ -527,7 +527,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
         distrib: [el8, el9, bookworm]
