@@ -1087,20 +1087,19 @@ int grab_macro_value_r(nagios_macros* mac,
 
     result = grab_custom_macro_value_r(mac, macro_name, arg[0] ? arg[0] : "",
                                        arg[1] ? arg[1] : "", output);
-  } else if (configuration::applier::state::instance().user_macros().find(
-                 macro_name) !=
-             configuration::applier::state::instance().user_macros().end()) {
-    /*** New style user macros ***/
-    output = configuration::applier::state::instance()
-                 .user_macros_find(macro_name)
-                 ->second;
-    result = OK;
-  }
-  /* no macro matched... */
-  else {
-    macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
-                         macro_name);
-    result = ERROR;
+  } else {
+    auto it =
+        configuration::applier::state::instance().user_macros_find(macro_name);
+    if (it != configuration::applier::state::instance().user_macros().end()) {
+      output = it->second;
+      result = OK;
+    }
+    /* no macro matched... */
+    else {
+      macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
+                           macro_name);
+      result = ERROR;
+    }
   }
 
   // some macros are encrypted?

@@ -112,10 +112,6 @@ int process_macros_r(nagios_macros* mac,
         token, token_resolved, clean_options, free_macro);
 
     if (result == OK) {
-      SPDLOG_LOGGER_TRACE(macros_logger,
-                          "  Processed '{}', Clean Options: {}, Free: {}",
-                          token, clean_options, free_macro);
-
       /* include any cleaning options passed back to us */
       macro_options = (options | clean_options);
 
@@ -149,8 +145,6 @@ int process_macros_r(nagios_macros* mac,
                             output_buffer.length(), output_buffer);
       }
 
-      /* free memory if necessary (if we URL encoded the macro or we were
-       * told to do so by grab_macro_value()) */
       SPDLOG_LOGGER_TRACE(macros_logger,
                           "  Just finished macro.  Running output ({}): '{}'",
                           output_buffer.length(), output_buffer);
@@ -173,7 +167,7 @@ int process_macros_r(nagios_macros* mac,
     offset = tag_type == simple_dollar_tag ? tag_end + 1 : tag_end + 3;
   }
 
-  // some reminder?
+  // append any trailing text after the last macro
   if (offset < input_buffer.length()) {
     output_buffer.append(input_buffer, offset);
   }
