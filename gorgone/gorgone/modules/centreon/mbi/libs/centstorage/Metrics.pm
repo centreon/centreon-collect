@@ -206,11 +206,11 @@ sub getFirstAndLastValues {
     $db->query({ query => $query });
     
     $self->createTempTableMetricDayFirstLastValues($useMemory);
-    $query = "INSERT INTO " . $self->{name_firstlast_tmp} . " SELECT d.value as `first_value`, d2.value as `last_value`, d.id_metric";
+    $query = "INSERT INTO " . $self->{name_firstlast_tmp} . " SELECT MAX(d.value) as `first_value`, MAX(d2.value) as `last_value`, d.id_metric";
     $query .= " FROM data_bin as d, data_bin as d2, " . $self->{name_minmaxctime_tmp} . " as db";
     $query .= " WHERE db.id_metric=d.id_metric AND db.min_val=d.ctime";
     $query .=         " AND db.id_metric=d2.id_metric AND db.max_val=d2.ctime";
-    $query .= " GROUP BY db.id_metric, d.value, d2.value, d.id_metric";
+    $query .= " GROUP BY db.id_metric";
     my $sth = $db->query({ query => $query });
     $self->addIndexTempTableMetricDayFirstLastValues();
     $self->dropTempTableCtimeMinMaxValues();
