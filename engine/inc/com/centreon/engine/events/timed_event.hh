@@ -46,7 +46,6 @@ class timed_event {
   void _exec_event_expire_downtime();
   void _exec_event_host_check();
   void _exec_event_hfreshness_check();
-  void _exec_event_expire_comment();
   void _exec_event_expire_host_ack();
   void _exec_event_expire_service_ack();
   void _exec_event_enginerpc_check();
@@ -79,7 +78,6 @@ class timed_event {
                                // downtime
     EVENT_HOST_CHECK,          // active host check
     EVENT_HFRESHNESS_CHECK,    // checks host result "freshness"
-    EVENT_EXPIRE_COMMENT,      // removes expired comments
     EVENT_EXPIRE_HOST_ACK,     // remove expired host acknowledgement
     EVENT_EXPIRE_SERVICE_ACK,  // remove expired service acknowledgement
     EVENT_ENGINERPC_CHECK,     // EngineRPC command check
