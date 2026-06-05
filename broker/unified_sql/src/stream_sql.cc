@@ -534,6 +534,25 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
                      "unified_sql: processing comment of poller {} on ({}, {})",
                      cmmnt.poller_id, cmmnt.host_id, cmmnt.service_id);
 
+  /* A deletion no longer carries the full comment tuple: Engine addresses it
+   * directly by (internal_id, instance_id). See _process_pb_comment for the
+   * rationale and the ordering guarantee. */
+  if (!cmmnt.deletion_time.is_null()) {
+    int32_t conn = special_conn::comment % _mysql.connections_count();
+    {
+      std::lock_guard<database::bulk_or_multi> lck(*_comments);
+      if (_comments->row_count() > 0)
+        _comments->execute(_mysql, database::mysql_error::store_comment, conn);
+    }
+    _mysql.run_query(
+        fmt::format("UPDATE comments SET deletion_time={} WHERE internal_id={} "
+                    "AND instance_id={}",
+                    static_cast<uint64_t>(cmmnt.deletion_time),
+                    cmmnt.internal_id, cmmnt.poller_id),
+        database::mysql_error::store_comment, conn);
+    return;
+  }
+
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
       b.set_value_as_str(
@@ -654,6 +673,27 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       _logger_sql,
       "unified_sql: processing pb comment (poller: {}, host: {}, serv: {})",
       cmmnt.instance_id(), cmmnt.host_id(), cmmnt.service_id());
+
+  /* A deletion no longer carries the full comment tuple: Engine addresses it
+   * directly by (internal_id, instance_id). The unique-key upsert below cannot
+   * match such a partial row, so the deletion is handled as a dedicated UPDATE.
+   * Any pending creation of the same comment is flushed first, on the same
+   * connection, so the UPDATE is applied after it (FIFO ordering preserved). */
+  if (cmmnt.deletion_time() != 0) {
+    int32_t conn = special_conn::comment % _mysql.connections_count();
+    {
+      std::lock_guard<database::bulk_or_multi> lck(*_comments);
+      if (_comments->row_count() > 0)
+        _comments->execute(_mysql, database::mysql_error::store_comment, conn);
+    }
+    _mysql.run_query(
+        fmt::format("UPDATE comments SET deletion_time={} WHERE internal_id={} "
+                    "AND instance_id={}",
+                    cmmnt.deletion_time(), cmmnt.internal_id(),
+                    cmmnt.instance_id()),
+        database::mysql_error::store_comment, conn);
+    return;
+  }
 
   if (_comments->is_bulk()) {
     auto binder = [&](database::mysql_bulk_bind& b) {
