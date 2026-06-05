@@ -82,28 +82,23 @@ comment::comment(comment::type comment_type,
 /**
  * @brief deletes a host or service comment from its id.
  *
+ * Broker matches the deletion on (internal_id, instance_id), so we only need
+ * the comment id: the full tuple no longer has to be rebuilt from the in-memory
+ * map. The map is still kept in sync transitionally.
+ *
  * @param comment_id The comment id.
  *
  * @return True on success, False otherwise.
  */
 bool comment::delete_comment(uint64_t comment_id) {
-  comment_map::iterator found = comment::comments.find(comment_id);
-
-  // check that comment exist
-  if (found != comment::comments.end() && found->second) {
-    broker_comment_data(
-        NEBTYPE_COMMENT_DELETE, found->second->get_comment_type(),
-        found->second->get_entry_type(), found->second->get_host_id(),
-        found->second->get_service_id(), found->second->get_entry_time(),
-        found->second->get_author().c_str(),
-        found->second->get_comment_data().c_str(),
-        found->second->get_persistent(), found->second->get_source(),
-        found->second->get_expires(), found->second->get_expire_time(),
-        comment_id);
-    comment::comments.erase(comment_id);
-    return true;
-  } else
+  if (comment_id == 0)
     return false;
+
+  broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::host, comment::user, 0,
+                      0, 0, nullptr, nullptr, false, comment::internal, false,
+                      0, comment_id);
+  comment::comments.erase(comment_id);
+  return true;
 }
 
 void comment::delete_host_comments(uint64_t host_id) {
