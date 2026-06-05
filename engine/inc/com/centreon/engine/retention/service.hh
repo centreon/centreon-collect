@@ -62,6 +62,8 @@ class service : public object {
   uint64_t host_id() const noexcept;
   std::string const& host_name() const throw();
   opt<bool> const& is_flapping() const throw();
+  opt<uint64_t> const& flapping_comment_id() const throw();
+  opt<uint64_t> const& acknowledgement_comment_id() const throw();
   opt<time_t> const& last_acknowledgement() const throw();
   opt<time_t> const& last_check() const throw();
   opt<uint64_t> const& last_event_id() const throw();
@@ -129,6 +131,8 @@ class service : public object {
   bool _set_host_id(uint64_t value);
   bool _set_host_name(std::string const& value);
   bool _set_is_flapping(bool value);
+  bool _set_flapping_comment_id(uint64_t value);
+  bool _set_acknowledgement_comment_id(uint64_t value);
   bool _set_last_acknowledgement(time_t value);
   bool _set_last_check(time_t value);
   bool _set_last_event_id(uint64_t value);
@@ -198,6 +202,8 @@ class service : public object {
   uint64_t _host_id;
   std::string _host_name;
   opt<bool> _is_flapping;
+  opt<uint64_t> _flapping_comment_id;
+  opt<uint64_t> _acknowledgement_comment_id;
   opt<time_t> _last_acknowledgement;
   opt<time_t> _last_check;
   opt<uint64_t> _last_event_id;
