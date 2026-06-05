@@ -2739,14 +2739,11 @@ void service::set_flap(double percent_change,
          "flapping "
       << "stops, notifications will be re-enabled.";
 
-  auto com{std::make_shared<comment>(
-      comment::service, comment::flapping, host_id(), _service_id,
-      time(nullptr), "(Centreon Engine Process)", oss.str(), false,
-      comment::internal, false, (time_t)0)};
+  comment com(comment::service, comment::flapping, host_id(), _service_id,
+              time(nullptr), "(Centreon Engine Process)", oss.str(), false,
+              comment::internal, false, (time_t)0);
 
-  comment::comments.insert({com->get_comment_id(), com});
-
-  this->set_flapping_comment_id(com->get_comment_id());
+  this->set_flapping_comment_id(com.get_comment_id());
 
   /* set the flapping indicator */
   set_is_flapping(true);

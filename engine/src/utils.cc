@@ -408,9 +408,6 @@ void cleanup() {
  *  @param[in,out] mac Macros.
  */
 void free_memory(nagios_macros* mac) {
-  // Free memory allocated to comments.
-  comment::comments.clear();
-
   // Free memory allocated to downtimes.
   downtime_manager::instance().clear_scheduled_downtimes();
 
