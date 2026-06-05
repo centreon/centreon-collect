@@ -125,15 +125,6 @@ void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
                       comment::internal, false, 0, 0);
 }
 
-/* checks for an expired comment (and removes it) */
-void comment::remove_if_expired_comment(uint64_t comment_id) {
-  comment_map::iterator found = comment::comments.find(comment_id);
-
-  if (found != comment::comments.end() && found->second->get_expires() &&
-      found->second->get_expire_time() < time(nullptr))
-    delete_comment(comment_id);
-}
-
 comment::type comment::get_comment_type() const {
   return _comment_type;
 }
