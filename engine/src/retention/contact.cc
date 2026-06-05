@@ -61,7 +61,7 @@ contact::contact(contact const& right) : object(right) {
 /**
  *  Destructor.
  */
-contact::~contact() throw() {}
+contact::~contact() noexcept {}
 
 /**
  *  Copy operator.
@@ -95,7 +95,7 @@ contact& contact::operator=(contact const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool contact::operator==(contact const& right) const throw() {
+bool contact::operator==(contact const& right) const noexcept {
   return (object::operator==(right) && _contact_name == right._contact_name &&
           std::operator==(_customvariables, right._customvariables) &&
           _host_notification_period == right._host_notification_period &&
@@ -117,7 +117,7 @@ bool contact::operator==(contact const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool contact::operator!=(contact const& right) const throw() {
+bool contact::operator!=(contact const& right) const noexcept {
   return (!operator==(right));
 }
 
@@ -145,7 +145,7 @@ bool contact::set(char const* key, char const* value) {
  *
  * @return The contact_name.
  */
-std::string const& contact::contact_name() const throw() {
+std::string const& contact::contact_name() const noexcept {
   return (_contact_name);
 }
 
@@ -154,7 +154,7 @@ std::string const& contact::contact_name() const throw() {
  *
  * @return The customvariables.
  */
-map_customvar const& contact::customvariables() const throw() {
+map_customvar const& contact::customvariables() const noexcept {
   return (_customvariables);
 }
 
@@ -163,7 +163,7 @@ map_customvar const& contact::customvariables() const throw() {
  *
  * @return The host_notification_period.
  */
-opt<std::string> const& contact::host_notification_period() const throw() {
+opt<std::string> const& contact::host_notification_period() const noexcept {
   return (_host_notification_period);
 }
 
@@ -172,7 +172,7 @@ opt<std::string> const& contact::host_notification_period() const throw() {
  *
  * @return The host_notifications_enabled.
  */
-opt<bool> const& contact::host_notifications_enabled() const throw() {
+opt<bool> const& contact::host_notifications_enabled() const noexcept {
   return (_host_notifications_enabled);
 }
 
@@ -181,7 +181,7 @@ opt<bool> const& contact::host_notifications_enabled() const throw() {
  *
  * @return The last_host_notification.
  */
-opt<time_t> const& contact::last_host_notification() const throw() {
+opt<time_t> const& contact::last_host_notification() const noexcept {
   return (_last_host_notification);
 }
 
@@ -190,7 +190,7 @@ opt<time_t> const& contact::last_host_notification() const throw() {
  *
  * @return The last_service_notification.
  */
-opt<time_t> const& contact::last_service_notification() const throw() {
+opt<time_t> const& contact::last_service_notification() const noexcept {
   return (_last_service_notification);
 }
 
@@ -199,7 +199,7 @@ opt<time_t> const& contact::last_service_notification() const throw() {
  *
  * @return The modified_attributes.
  */
-opt<unsigned long> const& contact::modified_attributes() const throw() {
+opt<unsigned long> const& contact::modified_attributes() const noexcept {
   return (_modified_attributes);
 }
 
@@ -208,7 +208,7 @@ opt<unsigned long> const& contact::modified_attributes() const throw() {
  *
  * @return The modified_host_attributes.
  */
-opt<unsigned long> const& contact::modified_host_attributes() const throw() {
+opt<unsigned long> const& contact::modified_host_attributes() const noexcept {
   return (_modified_host_attributes);
 }
 
@@ -217,7 +217,7 @@ opt<unsigned long> const& contact::modified_host_attributes() const throw() {
  *
  * @return The modified_service_attributes.
  */
-opt<unsigned long> const& contact::modified_service_attributes() const throw() {
+opt<unsigned long> const& contact::modified_service_attributes() const noexcept {
   return (_modified_service_attributes);
 }
 
@@ -226,7 +226,7 @@ opt<unsigned long> const& contact::modified_service_attributes() const throw() {
  *
  * @return The service_notification_period.
  */
-opt<std::string> const& contact::service_notification_period() const throw() {
+opt<std::string> const& contact::service_notification_period() const noexcept {
   return (_service_notification_period);
 }
 
@@ -235,7 +235,7 @@ opt<std::string> const& contact::service_notification_period() const throw() {
  *
  * @return The service_notifications_enabled.
  */
-opt<bool> const& contact::service_notifications_enabled() const throw() {
+opt<bool> const& contact::service_notifications_enabled() const noexcept {
   return (_service_notifications_enabled);
 }
 

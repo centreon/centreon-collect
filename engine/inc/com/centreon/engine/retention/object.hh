@@ -44,14 +44,14 @@ class object {
  public:
   object(type_id type);
   object(object const& right);
-  virtual ~object() throw();
+  virtual ~object() noexcept;
   object& operator=(object const& right);
-  bool operator==(object const& right) const throw();
-  bool operator!=(object const& right) const throw();
+  bool operator==(object const& right) const noexcept;
+  bool operator!=(object const& right) const noexcept;
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual bool set(char const* key, char const* value) = 0;
-  type_id type() const throw();
-  std::string const& type_name() const throw();
+  type_id type() const noexcept;
+  std::string const& type_name() const noexcept;
 
  protected:
   template <typename T, typename U, bool (T::*ptr)(U)>
