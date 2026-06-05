@@ -331,6 +331,12 @@ std::ostream& dump::host(std::ostream& os,
         "is_flapping="
      << obj.get_is_flapping()
      << "\n"
+        "flapping_comment_id="
+     << obj.get_flapping_comment_id()
+     << "\n"
+        "acknowledgement_comment_id="
+     << obj.get_acknowledgement_comment_id()
+     << "\n"
         "last_acknowledgement="
      << obj.last_acknowledgement()
      << "\n"
@@ -564,7 +570,10 @@ bool dump::save(std::string const& path) {
     dump::hosts(stream);
     dump::services(stream);
     dump::contacts(stream);
-    dump::comments(stream);
+    /* Comments are no longer persisted in the Engine retention file: Broker
+     * owns them (comments table). The flapping/acknowledgement comment ids that
+     * Engine still needs to drive deletions are kept on the host/service
+     * objects above (flapping_comment_id / acknowledgement_comment_id). */
     dump::downtimes(stream);
 
     ret = true;
@@ -664,6 +673,12 @@ std::ostream& dump::service(std::ostream& os,
      << "\n"
         "is_flapping="
      << obj.get_is_flapping()
+     << "\n"
+        "flapping_comment_id="
+     << obj.get_flapping_comment_id()
+     << "\n"
+        "acknowledgement_comment_id="
+     << obj.get_acknowledgement_comment_id()
      << "\n"
         "last_acknowledgement="
      << obj.last_acknowledgement()
