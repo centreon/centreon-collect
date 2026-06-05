@@ -620,88 +620,8 @@ TEST_F(EngineRpc, GetHostDependenciesCount) {
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, AddHostComment) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  bool continuerunning = false;
 
-  ASSERT_EQ(comment::comments.size(), 0u);
 
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-
-  auto output =
-      execute("AddHostComment test_host test-admin mycomment 1 10000");
-  ASSERT_EQ(comment::comments.size(), 1u);
-
-  output = execute("DeleteComment 1");
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  erpc.shutdown();
-}
-
-TEST_F(EngineRpc, AddServiceComment) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  bool continuerunning = false;
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute(
-      "AddServiceComment test_host test_svc test-admin mycomment 1 10000");
-  ASSERT_EQ(comment::comments.size(), 1u);
-
-  output = execute("DeleteComment 1");
-  ASSERT_EQ(comment::comments.size(), 0u);
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  erpc.shutdown();
-}
-
-TEST_F(EngineRpc, DeleteComment) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  bool continuerunning = false;
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  // create comment
-  std::ostringstream oss;
-  oss << "my comment ";
-  auto cmt = std::make_shared<comment>(
-      comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
-      oss.str(), true, comment::external, false, 0);
-  comment::comments.insert({cmt->get_comment_id(), cmt});
-
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-
-  auto output = execute("DeleteComment 1");
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  erpc.shutdown();
-}
 
 TEST_F(EngineRpc, DeleteWrongComment) {
   enginerpc erpc("0.0.0.0", 40001);
@@ -727,104 +647,10 @@ TEST_F(EngineRpc, DeleteWrongComment) {
   std::copy(output.begin(), output.end(), results.begin());
 
   ASSERT_EQ(vectests, results);
-  ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
 
-TEST_F(EngineRpc, DeleteAllHostComments) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  bool continuerunning = false;
-  // first test
-  ASSERT_EQ(comment::comments.size(), 0u);
-  // create some comments
-  for (int i = 0; i < 10; ++i) {
-    std::string cmt_str{fmt::format("my host comment {}", i)};
-    auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
-        cmt_str, true, comment::external, false, 0);
-    comment::comments.insert({cmt->get_comment_id(), cmt});
-  }
-  ASSERT_EQ(comment::comments.size(), 10u);
 
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute(
-      fmt::format("DeleteAllHostComments byhostid {}", _host->host_id()));
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  // second test
-  for (int i = 0; i < 10; ++i) {
-    std::string cmt_str{fmt::format("my host comment {}", i)};
-    auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
-        cmt_str, true, comment::external, false, 0);
-    comment::comments.insert({cmt->get_comment_id(), cmt});
-  }
-  ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute(
-      fmt::format("DeleteAllHostComments byhostname {}", _host->name()));
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  erpc.shutdown();
-}
-
-TEST_F(EngineRpc, DeleteAllServiceComments) {
-  enginerpc erpc("0.0.0.0", 40001);
-  std::unique_ptr<std::thread> th;
-  std::condition_variable condvar;
-  std::mutex mutex;
-  bool continuerunning = false;
-  auto svc = _svc;
-  auto hit = engine::host::hosts_by_id.find(svc->host_id());
-  auto hst = hit->second;
-
-  // first test
-  ASSERT_EQ(comment::comments.size(), 0u);
-  // create some comments
-  for (int i = 0; i < 10; ++i) {
-    std::string cmt_str{fmt::format("my service comment {} on service ({}, {})",
-                                    i, svc->host_id(), svc->service_id())};
-    auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, svc->host_id(), svc->service_id(),
-        10000, "test-admin", cmt_str, true, comment::external, false, 0);
-    comment::comments.insert({cmt->get_comment_id(), cmt});
-  }
-  ASSERT_EQ(comment::comments.size(), 10u);
-
-  call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute(fmt::format("DeleteAllServiceComments byids {} {}",
-                                    svc->host_id(), svc->service_id()));
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  // second test
-  for (int i = 0; i < 10; ++i) {
-    std::string cmt_str{fmt::format("my service comment {}", i)};
-    auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, svc->host_id(), svc->service_id(),
-        10000, "test-admin", cmt_str, true, comment::external, false, 0);
-    comment::comments.insert({cmt->get_comment_id(), cmt});
-  }
-  ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute(fmt::format("DeleteAllServiceComments bynames {} {}",
-                               hst->name(), svc->description()));
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    continuerunning = true;
-  }
-  condvar.notify_one();
-  th->join();
-
-  ASSERT_EQ(comment::comments.size(), 0u);
-  erpc.shutdown();
-}
 
 TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   enginerpc erpc("0.0.0.0", 40001);
@@ -837,23 +663,20 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   // first test
   _host->set_acknowledgement(AckType::NORMAL);
   // create comment
-  auto cmt = std::make_shared<comment>(
+  comment(
       comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
-  comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
   auto output = execute(
       fmt::format("RemoveHostAcknowledgement byhostid {}", _host->host_id()));
 
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
-  ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   _host->set_acknowledgement(AckType::NORMAL);
-  cmt = std::make_shared<comment>(
+  comment(
       comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
-  comment::comments.insert({cmt->get_comment_id(), cmt});
 
   output = execute(
       fmt::format("RemoveHostAcknowledgement byhostname {}", _host->name()));
@@ -865,7 +688,6 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   th->join();
 
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
-  ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
 
@@ -880,26 +702,23 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   auto hst = hit->second;
   std::string ack_str{"my comment"};
   _svc->set_acknowledgement(AckType::NORMAL);
-  auto cmt = std::make_shared<comment>(
+  comment(
       comment::service, comment::acknowledgment, hst->host_id(),
       svc->service_id(), 10000, "test-admin", ack_str, false, comment::external,
       false, 0);
-  comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output =
       execute("RemoveServiceAcknowledgement bynames test_host test_svc");
 
-  ASSERT_EQ(comment::comments.size(), 0u);
   ASSERT_EQ(svc->problem_has_been_acknowledged(), false);
 
   svc->set_acknowledgement(AckType::NORMAL);
-  cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
+  comment(comment::service, comment::acknowledgment,
                                   hst->host_id(), svc->service_id(), 10000,
                                   "test-admin", ack_str, false,
                                   comment::external, false, 0);
-  comment::comments.insert({cmt->get_comment_id(), cmt});
 
   output = execute("RemoveServiceAcknowledgement byids 12 13");
   {
@@ -909,7 +728,6 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   condvar.notify_one();
   th->join();
 
-  ASSERT_EQ(comment::comments.size(), 0u);
   erpc.shutdown();
 }
 

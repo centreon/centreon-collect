@@ -1475,11 +1475,9 @@ grpc::Status engine_impl::AddHostComment(grpc::ServerContext* context
       return 1;
     }
     /* add the comment */
-    auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, temp_host->host_id(), 0,
-        request->entry_time(), request->user(), request->comment_data(),
-        request->persistent(), comment::external, false, (time_t)0);
-    comment::comments.insert({cmt->get_comment_id(), cmt});
+    comment(comment::host, comment::user, temp_host->host_id(), 0,
+            request->entry_time(), request->user(), request->comment_data(),
+            request->persistent(), comment::external, false, (time_t)0);
     return 0;
   });
 
@@ -1535,17 +1533,10 @@ grpc::Status engine_impl::AddServiceComment(grpc::ServerContext* context
       return 1;
     }
     /* add the comment */
-    auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, temp_host->host_id(),
-        temp_service->service_id(), request->entry_time(), request->user(),
-        request->comment_data(), request->persistent(), comment::external,
-        false, (time_t)0);
-    if (!cmt) {
-      err =
-          fmt::format("could not insert comment '{}'", request->comment_data());
-      return 1;
-    }
-    comment::comments.insert({cmt->get_comment_id(), cmt});
+    comment(comment::service, comment::user, temp_host->host_id(),
+            temp_service->service_id(), request->entry_time(), request->user(),
+            request->comment_data(), request->persistent(), comment::external,
+            false, (time_t)0);
     return 0;
   });
 
@@ -1784,11 +1775,15 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     /* update the status log with the host info */
     temp_host->update_status(host::STATUS_ACKNOWLEDGEMENT);
     /* add a comment for the acknowledgement */
-    auto com = std::make_shared<comment>(
-        comment::host, comment::acknowledgment, temp_host->host_id(), 0,
-        current_time, request->ack_author(), request->ack_data(),
-        request->persistent(), comment::internal, false, (time_t)0);
-    comment::comments.insert({com->get_comment_id(), com});
+    comment com(comment::host, comment::acknowledgment, temp_host->host_id(), 0,
+                current_time, request->ack_author(), request->ack_data(),
+                request->persistent(), comment::internal, false, (time_t)0);
+    /* a non-persistent ack comment is owned by the host: keep its id so it can
+     * be deleted directly when the acknowledgement is cleared */
+    if (!request->persistent()) {
+      temp_host->delete_acknowledgement_comment();
+      temp_host->set_acknowledgement_comment_id(com.get_comment_id());
+    }
 
     return 0;
   });
@@ -1847,12 +1842,16 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->update_status(service::STATUS_ACKNOWLEDGEMENT);
 
     /* add a comment for the acknowledgement */
-    auto com = std::make_shared<comment>(
-        comment::service, comment::acknowledgment, temp_service->host_id(),
-        temp_service->service_id(), current_time, request->ack_author(),
-        request->ack_data(), request->persistent(), comment::internal, false,
-        (time_t)0);
-    comment::comments.insert({com->get_comment_id(), com});
+    comment com(comment::service, comment::acknowledgment,
+                temp_service->host_id(), temp_service->service_id(),
+                current_time, request->ack_author(), request->ack_data(),
+                request->persistent(), comment::internal, false, (time_t)0);
+    /* a non-persistent ack comment is owned by the service: keep its id so it
+     * can be deleted directly when the acknowledgement is cleared */
+    if (!request->persistent()) {
+      temp_service->delete_acknowledgement_comment();
+      temp_service->set_acknowledgement_comment_id(com.get_comment_id());
+    }
     return 0;
   });
 
