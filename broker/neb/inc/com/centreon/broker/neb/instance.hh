@@ -46,7 +46,7 @@ class instance : public io::data {
   bool is_running;
   std::string name;
   uint32_t pid;
-  uint32_t poller_id;
+  uint64_t poller_id;
   timestamp program_end;
   timestamp program_start;
   std::string version;

@@ -74,13 +74,16 @@ jobs:
           password: ${{ secrets.registry_password }}
 
       - name: load and save image to disk
+        env:
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          TEST_IMG_VERSION: ${{ inputs.test_img_version }}
         run: |
-          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
-          docker save -o ./${{ env.IMAGE_NAME }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
+          docker pull "$REGISTRY_URL/$IMAGE_NAME:$TEST_IMG_VERSION"
+          docker save -o "./$IMAGE_NAME" "$REGISTRY_URL/$IMAGE_NAME:$TEST_IMG_VERSION"
         shell: bash
 
       - name: image to cache
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./${{ env.IMAGE_NAME }}
           key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
@@ -97,17 +100,20 @@ jobs:
 
       - name: List features
         id: list-features
+        env:
+          FEATURES_PATTERN_INPUT: ${{ inputs.features_pattern }}
+          DATABASE_TYPE: ${{ inputs.database_type }}
         run: |
           cd tests
 
           #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
-          FEATURES_PATTERN="${{ inputs.features_pattern }}"
+          FEATURES_PATTERN="$FEATURES_PATTERN_INPUT"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
             FEATURES_PATTERN='^((?!cma).)*$'
           fi
 
           features=$(grep -Rl '*** Test Cases ***' . | grep -P '.robot$' | grep -P "${FEATURES_PATTERN}" | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')
-          if [[ "${{ inputs.database_type }}" == "mysql" ]]; then
+          if [[ "$DATABASE_TYPE" == "mysql" ]]; then
             for feature in $(echo "${features}" | jq -r '.[]'); do
               if [[ ! -f "$feature.mysql" ]]; then
                 features=$(echo "${features}" | jq -c "del(.[index(\"$feature\")])")
@@ -147,14 +153,14 @@ jobs:
 
       - name: Restore image
         id: restore-image
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./${{ env.IMAGE_NAME }}
           key: ${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }}
           fail-on-cache-miss: ${{ inputs.store_docker_image_in_cache == true }}
 
       - name: Restore packages
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.run_id }}-${{ github.sha }}-${{ steps.parse-distrib.outputs.package_extension }}-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-${{ inputs.arch }}-${{ github.head_ref || github.ref_name }}
@@ -163,7 +169,7 @@ jobs:
       - name: load image
         if: steps.restore-image.outputs.cache-hit == 'true'
         run: |
-          docker load --input ./${{ env.IMAGE_NAME }}
+          docker load --input "./$IMAGE_NAME"
 
       - name: Login to Registry
         if: steps.restore-image.outputs.cache-hit != 'true'
@@ -175,21 +181,29 @@ jobs:
 
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
+        env:
+          FEATURE: ${{ matrix.feature }}
+          AWS_WEB_IDENTITY_TOKEN_FILE: ${{ inputs.aws_web_identity_token_file }}
+          AWS_ROLE_ARN: ${{ inputs.aws_role_arn }}
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          TEST_IMG_VERSION: ${{ inputs.test_img_version }}
+          DATABASE_TYPE: ${{ inputs.database_type }}
+          TESTS_PARAMS: ${{ inputs.tests_params }}
         run: |
           privilege_status=""
-          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+          if [[ "$FEATURE" != 'connector_ssh/connector_ssh.robot' ]]; then
             privilege_status="--privileged"
           fi
           docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
-            -v $(pwd):/test_collect  \
-            -v  ${{ inputs.aws_web_identity_token_file }}:${{ inputs.aws_web_identity_token_file }} \
-            --env AWS_WEB_IDENTITY_TOKEN_FILE=${{ inputs.aws_web_identity_token_file }} \
-            --env AWS_ROLE_ARN=${{ inputs.aws_role_arn }} \
+            -v "$(pwd):/test_collect"  \
+            -v  "$AWS_WEB_IDENTITY_TOKEN_FILE:$AWS_WEB_IDENTITY_TOKEN_FILE" \
+            --env "AWS_WEB_IDENTITY_TOKEN_FILE=$AWS_WEB_IDENTITY_TOKEN_FILE" \
+            --env "AWS_ROLE_ARN=$AWS_ROLE_ARN" \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ env.IMAGE_NAME }}:${{ inputs.test_img_version }} \
+            "$REGISTRY_URL/$IMAGE_NAME:$TEST_IMG_VERSION" \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{ inputs.database_type }} '${{ inputs.tests_params }}'
+            "$FEATURE" "$DATABASE_TYPE" "$TESTS_PARAMS"
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
@@ -205,9 +219,12 @@ jobs:
 
       - name: Move reports
         if: ${{ failure() }}
+        env:
+          FEATURE: ${{ matrix.feature }}
+          TEST_GROUP_NAME: ${{ needs.robot-test-list.outputs.test_group_name }}
         run: |
           mkdir -p reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ needs.robot-test-list.outputs.test_group_name }}
+          FILE_PREFIX=`echo "$FEATURE" | sed -e "s#/#__#g"`-$TEST_GROUP_NAME
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
           fi
@@ -224,8 +241,10 @@ jobs:
       - name: Replace / with - in the feature path
         id: feature-path
         if: ${{ ! cancelled() }}
+        env:
+          FEATURE: ${{ matrix.feature }}
         run: |
-          feature_name="${{ matrix.feature }}"
+          feature_name="$FEATURE"
           feature_name_with_dash="${feature_name//\//-}"
           echo "Modified Feature Name: $feature_name_with_dash"
           echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
@@ -262,9 +281,12 @@ jobs:
           retention-days: 1
 
       - name: Delete separated artifacts
+        env:
+          TEST_GROUP_NAME: ${{ needs.robot-test-list.outputs.test_group_name }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
-          artifact_pattern="reports-${{ needs.robot-test-list.outputs.test_group_name }}-"
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          artifact_pattern="reports-$TEST_GROUP_NAME-"
           artifact_exist=true
           while [ "$artifact_exist" = true ] ;do
             artifact_exist=false
@@ -272,7 +294,7 @@ jobs:
                           -H "Accept: application/vnd.github+json" \
                           -H "Authorization: Bearer $TOKEN" \
                           -H "X-GitHub-Api-Version: 2022-11-28" \
-                          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=100")
+                          "https://api.github.com/repos/$GH_REPOSITORY/actions/artifacts?per_page=100")
             artifacts=$(echo $artifacts_response | jq -c '.artifacts[]')
             echo "Those are the artifacts : $artifacts"
             while read row; do
@@ -286,7 +308,7 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
-                  "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+                  "https://api.github.com/repos/$GH_REPOSITORY/actions/artifacts/${artifact_id}"
               fi
             done <<< "$artifacts"
           done

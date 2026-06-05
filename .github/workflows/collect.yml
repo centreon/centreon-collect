@@ -231,9 +231,11 @@ jobs:
         shell: bash
 
       - name: Compile centreon-collect
+        env:
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.operating_system }}" == "alma9" ]]; then
+          if [[ "$OPERATING_SYSTEM" == "alma9" ]]; then
             CMAKE="cmake3"
           fi
 
@@ -386,17 +388,19 @@ jobs:
 
       - name: Restore packages
         id: restore-packages
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./*.rpm
           key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-collect-${{ steps.parse-distrib.outputs.repo_distrib_name }}-amd64-${{ github.head_ref || github.ref_name }}
 
       - name: Prepare packages directory
         if: steps.restore-packages.outputs.cache-hit == 'true'
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
+          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
@@ -472,7 +476,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -511,7 +515,7 @@ jobs:
       github.repository == 'centreon/centreon-collect'
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -553,7 +557,7 @@ jobs:
       (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
 
     needs: [get-environment, changes, robot-test]
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -591,7 +595,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -638,8 +642,10 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: List and delete cache
+        env:
+          GH_REF_NAME: ${{ github.ref_name }}
         run: |
-          mapfile -t cache_keys < <(gh cache list --ref refs/heads/${{ github.ref_name }} --json key -q '.[] | .key')
+          mapfile -t cache_keys < <(gh cache list --ref "refs/heads/$GH_REF_NAME" --json key -q '.[] | .key')
           echo $cache_keys
           while read row; do
             gh cache delete $row

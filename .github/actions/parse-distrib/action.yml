@@ -32,8 +32,10 @@ runs:
   steps:
     - name: Parse distrib
       id: parse-distrib
+      env:
+        DISTRIB: ${{ inputs.distrib }}
       run: |
-        if [[ "${{ inputs.distrib }}" == "centos7" || "${{ inputs.distrib }}" == "el7" ]]; then
+        if [[ "$DISTRIB" == "centos7" || "$DISTRIB" == "el7" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el7"
@@ -41,7 +43,7 @@ runs:
           DISTRIB_FAMILY="el7"
           DISTRIB_NAME="centos7"
           REPO_DISTRIB_NAME="el7"
-        elif [[ "${{ inputs.distrib }}" == "alma8" || "${{ inputs.distrib }}" == "el8" ]]; then
+        elif [[ "$DISTRIB" == "alma8" || "$DISTRIB" == "el8" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el8"
@@ -49,7 +51,7 @@ runs:
           DISTRIB_FAMILY="el8"
           DISTRIB_NAME="alma8"
           REPO_DISTRIB_NAME="el8"
-        elif [[ "${{ inputs.distrib }}" == "alma9" || "${{ inputs.distrib }}" == "el9" ]]; then
+        elif [[ "$DISTRIB" == "alma9" || "$DISTRIB" == "el9" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el9"
@@ -57,7 +59,7 @@ runs:
           DISTRIB_FAMILY="el9"
           DISTRIB_NAME="alma9"
           REPO_DISTRIB_NAME="el9"
-        elif [[ "${{ inputs.distrib }}" == "alma10" || "${{ inputs.distrib }}" == "el10" ]]; then
+        elif [[ "$DISTRIB" == "alma10" || "$DISTRIB" == "el10" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="."
           PACKAGE_VERSION_SEPARATOR="-"
           PACKAGE_DISTRIB_NAME="el10"
@@ -65,7 +67,7 @@ runs:
           DISTRIB_FAMILY="el10"
           DISTRIB_NAME="alma10"
           REPO_DISTRIB_NAME="el10"
-        elif [[ "${{ inputs.distrib }}" == "bullseye" ]]; then
+        elif [[ "$DISTRIB" == "bullseye" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="deb11u1"
@@ -73,7 +75,7 @@ runs:
           DISTRIB_FAMILY="debian"
           DISTRIB_NAME="bullseye"
           REPO_DISTRIB_NAME="bullseye"
-        elif [[ "${{ inputs.distrib }}" == "bookworm" ]]; then
+        elif [[ "$DISTRIB" == "bookworm" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="deb12u1"
@@ -81,7 +83,7 @@ runs:
           DISTRIB_FAMILY="debian"
           DISTRIB_NAME="bookworm"
           REPO_DISTRIB_NAME="bookworm"
-        elif [[ "${{ inputs.distrib }}" == "trixie" ]]; then
+        elif [[ "$DISTRIB" == "trixie" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="+"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="deb13u1"
@@ -89,7 +91,7 @@ runs:
           DISTRIB_FAMILY="debian"
           DISTRIB_NAME="trixie"
           REPO_DISTRIB_NAME="trixie"
-        elif [[ "${{ inputs.distrib }}" == "jammy" ]]; then
+        elif [[ "$DISTRIB" == "jammy" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.22.04"
@@ -97,7 +99,7 @@ runs:
           DISTRIB_FAMILY="ubuntu"
           DISTRIB_NAME="jammy"
           REPO_DISTRIB_NAME="jammy"
-        elif [[ "${{ inputs.distrib }}" == "noble" ]]; then
+        elif [[ "$DISTRIB" == "noble" ]]; then
           PACKAGE_DISTRIB_SEPARATOR="-"
           PACKAGE_VERSION_SEPARATOR="_"
           PACKAGE_DISTRIB_NAME="0ubuntu.24.04"
@@ -106,7 +108,7 @@ runs:
           DISTRIB_NAME="noble"
           REPO_DISTRIB_NAME="noble"
         else
-          echo "::error::Distrib ${{ inputs.distrib }} cannot be parsed"
+          echo "::error::Distrib $DISTRIB cannot be parsed"
           exit 1
         fi
         echo "package_distrib_separator=$PACKAGE_DISTRIB_SEPARATOR" >> $GITHUB_OUTPUT

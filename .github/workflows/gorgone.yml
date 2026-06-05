@@ -102,12 +102,15 @@ jobs:
     steps:
       - name: Get linked branch of centreon repository
         id: centreon_repo_linked_branch
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          GH_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
 
-          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+            CENTREON_REPO_LINKED_BRANCH="$GH_REF"
           fi
 
           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
@@ -203,8 +206,10 @@ jobs:
           distrib: ${{ matrix.operating_system }}
 
       - name: Set package version and paths according to distrib
+        env:
+          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
         run: |
-          if [[ "${{ steps.parse-distrib.outputs.package_extension }}" == "deb" ]]; then
+          if [[ "$PACKAGE_EXTENSION" == "deb" ]]; then
             PERL_VENDORLIB="/usr/share/perl5"
           else
             PERL_VENDORLIB="/usr/share/perl5/vendor_perl"
@@ -214,9 +219,12 @@ jobs:
 
       - name: Generate selinux binaries
         if: ${{ steps.parse-distrib.outputs.package_extension == 'rpm' }}
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          MINOR_VERSION: ${{ needs.get-environment.outputs.minor_version }}
         run: |
           cd gorgone/selinux
-          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" centreon-gorgoned.te
+          sed -i "s/@VERSION@/$MAJOR_VERSION.$MINOR_VERSION/g" centreon-gorgoned.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 
@@ -280,18 +288,25 @@ jobs:
 
       - name: Get FROM image tag
         id: from_image_version
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          GH_HEAD_REF: ${{ github.head_ref || github.ref_name }}
+          GH_BASE_REF: ${{ github.base_ref || github.ref_name }}
+          PROJECT: ${{ env.project }}
         run: |
-          FROM_IMAGE_VERSION="${{ needs.get-environment.outputs.major_version }}"
-          FROM_IMAGE="gorgone-testing-dependencies-${{ matrix.operating_system }}"
-          IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.head_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
+          FROM_IMAGE_VERSION="$MAJOR_VERSION"
+          FROM_IMAGE="gorgone-testing-dependencies-$OPERATING_SYSTEM"
+          IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_HEAD_REF" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-            FROM_IMAGE_VERSION="${{ github.head_ref || github.ref_name }}"
-            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
+            FROM_IMAGE_VERSION="$GH_HEAD_REF"
+            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
           else
-            IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.base_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
+            IMAGE_TAG_EXISTS=$(docker manifest inspect "$REGISTRY_URL/${FROM_IMAGE}:$GH_BASE_REF" >/dev/null 2>&1 && echo yes || echo no)
             if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-              FROM_IMAGE_VERSION="${{ github.base_ref || github.ref_name }}"
-              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
+              FROM_IMAGE_VERSION="$GH_BASE_REF"
+              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image $PROJECT-$OPERATING_SYSTEM."
             fi
           fi
 
@@ -299,25 +314,30 @@ jobs:
         shell: bash
 
       - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
           key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.repo_distrib_name }}
           fail-on-cache-miss: true
 
-      - run: |
+      - env:
+          PACKAGE_EXTENSION: ${{ steps.parse-distrib.outputs.package_extension }}
+        run: |
           mkdir packages-centreon-gorgone
-          mv *.${{ steps.parse-distrib.outputs.package_extension }} packages-centreon-gorgone/
+          mv *."$PACKAGE_EXTENSION" packages-centreon-gorgone/
         shell: bash
 
       - name: Get linked branch of centreon repository
         id: centreon_repo_linked_branch
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          GH_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
+          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${MAJOR_VERSION}\.x$" >/dev/null 2>&1 && echo "dev-${MAJOR_VERSION}.x" || echo develop)
 
-          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${GH_REF}$" >/dev/null 2>&1 && echo yes || echo no)
           if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+            CENTREON_REPO_LINKED_BRANCH="$GH_REF"
           fi
 
           echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
@@ -353,23 +373,31 @@ jobs:
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
 
       - name: Store image in local archive
+        env:
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          GH_REF: ${{ github.head_ref || github.ref_name }}
         run: |
-          docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+          docker tag "$REGISTRY_URL/gorgone-testing-$OPERATING_SYSTEM:$GH_REF" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
           mkdir -p docker-image
-          docker save --output ./docker-image/gorgone-testing-${{ matrix.operating_system }}.tar gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+          docker save --output "./docker-image/gorgone-testing-$OPERATING_SYSTEM.tar" "gorgone-testing-$OPERATING_SYSTEM:$GH_REF"
         shell: bash
 
       - name: Clear previous docker image from cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
+          GH_REF: ${{ github.head_ref || github.ref_name }}
         run: |
           curl \
             -X DELETE \
             -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
+            -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-$OPERATING_SYSTEM-$GH_REF"
         shell: bash
 
       - name: Store docker image in cache
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ./docker-image
           key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
@@ -397,7 +425,7 @@ jobs:
       registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   deliver-sources:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
@@ -422,7 +450,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -457,7 +485,7 @@ jobs:
           centreon_technique_pat: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
 
   deliver-deb:
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
     if: |
       needs.get-environment.outputs.skip_workflow == 'false' &&
@@ -499,7 +527,7 @@ jobs:
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    runs-on: centreon-common
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
