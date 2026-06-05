@@ -35,8 +35,8 @@ class anomalydetection : public service {
   anomalydetection();
   anomalydetection(anomalydetection const& right);
   anomalydetection& operator=(anomalydetection const& right);
-  bool operator==(anomalydetection const& right) const throw();
-  bool operator!=(anomalydetection const& right) const throw();
+  bool operator==(anomalydetection const& right) const noexcept;
+  bool operator!=(anomalydetection const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
   opt<double> const& sensitivity() const { return _sensitivity; }
