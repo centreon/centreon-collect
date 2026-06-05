@@ -48,34 +48,34 @@ void applier::contact::apply(const configuration::State& config,
 void applier::contact::_update(const configuration::State& config,
                                const retention::contact& state,
                                com::centreon::engine::contact* obj) {
-  if (state.modified_attributes().is_set()) {
+  if (state.modified_attributes().has_value()) {
     obj->set_modified_attributes(*state.modified_attributes() & ~0L);
     // mask out attributes we don't want to retain.
   }
-  if (state.modified_host_attributes().is_set()) {
+  if (state.modified_host_attributes().has_value()) {
     obj->set_modified_host_attributes(
         *state.modified_host_attributes() &
         ~config.retained_contact_host_attribute_mask());
     // mask out attributes we don't want to retain.
   }
-  if (state.modified_service_attributes().is_set()) {
+  if (state.modified_service_attributes().has_value()) {
     obj->set_modified_service_attributes(
         *state.modified_service_attributes() &
         ~config.retained_contact_service_attribute_mask());
     // mask out attributes we don't want to retain.
   }
   if (obj->get_retain_status_information()) {
-    if (state.last_host_notification().is_set())
+    if (state.last_host_notification().has_value())
       obj->set_last_host_notification(*state.last_host_notification());
-    if (state.last_service_notification().is_set())
+    if (state.last_service_notification().has_value())
       obj->set_last_service_notification(*state.last_service_notification());
   }
   if (obj->get_retain_nonstatus_information()) {
-    if (state.host_notification_period().is_set()) {
+    if (state.host_notification_period().has_value()) {
       if (obj->get_modified_host_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        const std::string key = state.host_notification_period();
+        const std::string key = state.host_notification_period().value_or("");
         timeperiod_map::const_iterator found =
             timeperiod::timeperiods.find(key);
 
@@ -90,11 +90,11 @@ void applier::contact::_update(const configuration::State& config,
           obj->set_host_notification_period(*state.host_notification_period());
       }
     }
-    if (state.service_notification_period().is_set()) {
+    if (state.service_notification_period().has_value()) {
       if (obj->get_modified_service_attributes() &
           MODATTR_NOTIFICATION_TIMEPERIOD) {
         timeperiod* temp_timeperiod(nullptr);
-        const std::string key = state.host_notification_period();
+        const std::string key = state.host_notification_period().value_or("");
         timeperiod_map::const_iterator found =
             timeperiod::timeperiods.find(key);
 
@@ -110,12 +110,12 @@ void applier::contact::_update(const configuration::State& config,
               *state.service_notification_period());
       }
     }
-    if (state.host_notifications_enabled().is_set()) {
+    if (state.host_notifications_enabled().has_value()) {
       if (obj->get_modified_host_attributes() & MODATTR_NOTIFICATIONS_ENABLED)
         obj->set_host_notifications_enabled(
             *state.host_notifications_enabled());
     }
-    if (state.service_notifications_enabled().is_set()) {
+    if (state.service_notifications_enabled().has_value()) {
       if (obj->get_modified_service_attributes() &
           MODATTR_NOTIFICATIONS_ENABLED)
         obj->set_service_notifications_enabled(
