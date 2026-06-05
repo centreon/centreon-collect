@@ -102,22 +102,13 @@ bool comment::delete_comment(uint64_t comment_id) {
 }
 
 void comment::delete_host_comments(uint64_t host_id) {
-  comment_map::iterator it = comments.begin();
-
-  for (it = comments.begin(); it != comments.end();) {
-    if (it->second->get_comment_type() == comment::host &&
-        it->second->get_host_id() == host_id) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
-          it->second->get_entry_type(), host_id, 0,
-          it->second->get_entry_time(), it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first);
-      comments.erase(it++);
-    } else
-      ++it;
-  }
+  /* Bulk deletion: a single event tells Broker to delete every host comment of
+   * this host (matched by host_id + instance_id). comment_id 0 is the sentinel
+   * for a delete-by-target rather than a delete-by-id. The full-tuple is no
+   * longer needed, so no map iteration. */
+  broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::host, comment::user,
+                      host_id, 0, 0, nullptr, nullptr, false, comment::internal,
+                      false, 0, 0);
 }
 
 /**
@@ -127,21 +118,11 @@ void comment::delete_host_comments(uint64_t host_id) {
  * @param service_id Id of the service.
  */
 void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
-  for (auto it = comments.begin(); it != comments.end();) {
-    if (it->second->get_comment_type() == comment::service &&
-        it->second->get_host_id() == host_id &&
-        it->second->get_service_id() == service_id) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
-          it->second->get_entry_type(), host_id, service_id,
-          it->second->get_entry_time(), it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first);
-      comments.erase(it++);
-    } else
-      ++it;
-  }
+  /* Bulk deletion of every comment of this service (host_id + service_id +
+   * instance_id). comment_id 0 signals a delete-by-target. */
+  broker_comment_data(NEBTYPE_COMMENT_DELETE, comment::service, comment::user,
+                      host_id, service_id, 0, nullptr, nullptr, false,
+                      comment::internal, false, 0, 0);
 }
 
 /* checks for an expired comment (and removes it) */

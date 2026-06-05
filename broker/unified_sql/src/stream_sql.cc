@@ -544,11 +544,21 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
       if (_comments->row_count() > 0)
         _comments->execute(_mysql, database::mysql_error::store_comment, conn);
     }
+    std::string where;
+    if (cmmnt.internal_id != 0)
+      where = fmt::format("internal_id={} AND instance_id={}",
+                          cmmnt.internal_id, cmmnt.poller_id);
+    else if (cmmnt.service_id != 0)
+      where = fmt::format("host_id={} AND service_id={} AND instance_id={}",
+                          cmmnt.host_id, cmmnt.service_id, cmmnt.poller_id);
+    else
+      where = fmt::format(
+          "host_id={} AND (service_id=0 OR service_id IS NULL) AND "
+          "instance_id={}",
+          cmmnt.host_id, cmmnt.poller_id);
     _mysql.run_query(
-        fmt::format("UPDATE comments SET deletion_time={} WHERE internal_id={} "
-                    "AND instance_id={}",
-                    static_cast<uint64_t>(cmmnt.deletion_time),
-                    cmmnt.internal_id, cmmnt.poller_id),
+        fmt::format("UPDATE comments SET deletion_time={} WHERE {}",
+                    static_cast<uint64_t>(cmmnt.deletion_time), where),
         database::mysql_error::store_comment, conn);
     return;
   }
@@ -675,9 +685,10 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       cmmnt.instance_id(), cmmnt.host_id(), cmmnt.service_id());
 
   /* A deletion no longer carries the full comment tuple: Engine addresses it
-   * directly by (internal_id, instance_id). The unique-key upsert below cannot
-   * match such a partial row, so the deletion is handled as a dedicated UPDATE.
-   * Any pending creation of the same comment is flushed first, on the same
+   * directly by (internal_id, instance_id), or in bulk by target when
+   * internal_id is 0 (DEL_ALL_*_COMMENTS / object deletion). The unique-key
+   * upsert below cannot match such a partial row, so the deletion is handled as
+   * a dedicated UPDATE. Any pending creation is flushed first, on the same
    * connection, so the UPDATE is applied after it (FIFO ordering preserved). */
   if (cmmnt.deletion_time() != 0) {
     int32_t conn = special_conn::comment % _mysql.connections_count();
@@ -686,11 +697,22 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       if (_comments->row_count() > 0)
         _comments->execute(_mysql, database::mysql_error::store_comment, conn);
     }
+    std::string where;
+    if (cmmnt.internal_id() != 0)
+      where = fmt::format("internal_id={} AND instance_id={}",
+                          cmmnt.internal_id(), cmmnt.instance_id());
+    else if (cmmnt.service_id() != 0)
+      where = fmt::format("host_id={} AND service_id={} AND instance_id={}",
+                          cmmnt.host_id(), cmmnt.service_id(),
+                          cmmnt.instance_id());
+    else
+      where = fmt::format(
+          "host_id={} AND (service_id=0 OR service_id IS NULL) AND "
+          "instance_id={}",
+          cmmnt.host_id(), cmmnt.instance_id());
     _mysql.run_query(
-        fmt::format("UPDATE comments SET deletion_time={} WHERE internal_id={} "
-                    "AND instance_id={}",
-                    cmmnt.deletion_time(), cmmnt.internal_id(),
-                    cmmnt.instance_id()),
+        fmt::format("UPDATE comments SET deletion_time={} WHERE {}",
+                    cmmnt.deletion_time(), where),
         database::mysql_error::store_comment, conn);
     return;
   }
