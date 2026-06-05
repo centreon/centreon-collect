@@ -49,7 +49,7 @@ retention::object::object(object const& right) {
 /**
  *  Destructor.
  */
-retention::object::~object() throw() {}
+retention::object::~object() noexcept {}
 
 /**
  *  Copy constructor.
@@ -72,7 +72,7 @@ retention::object& retention::object::operator=(object const& right) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool retention::object::operator==(object const& right) const throw() {
+bool retention::object::operator==(object const& right) const noexcept {
   return _type == right._type;
 }
 
@@ -83,7 +83,7 @@ bool retention::object::operator==(object const& right) const throw() {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool retention::object::operator!=(object const& right) const throw() {
+bool retention::object::operator!=(object const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -122,7 +122,7 @@ retention::object_ptr retention::object::create(std::string const& type_name) {
  *
  *  @return The object type.
  */
-retention::object::type_id retention::object::type() const throw() {
+retention::object::type_id retention::object::type() const noexcept {
   return _type;
 }
 
@@ -131,7 +131,7 @@ retention::object::type_id retention::object::type() const throw() {
  *
  *  @return The object type name.
  */
-std::string const& retention::object::type_name() const throw() {
+std::string const& retention::object::type_name() const noexcept {
   static std::string const tab[] = {"comment", "contact", "downtime", "host",
                                     "info",    "program", "service"};
   return tab[_type];
