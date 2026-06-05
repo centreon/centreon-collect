@@ -475,12 +475,9 @@ uint64_t engine_downtime_callbacks::create_downtime_comment(
     const std::string& author,
     const std::string& comment_data) {
   comment::type ctype = service_id == 0 ? comment::host : comment::service;
-  auto com = std::make_shared<comment>(
-      ctype, comment::downtime, host_id, service_id, time(nullptr), author,
-      comment_data, false, comment::internal, false, (time_t)0);
-  uint64_t id = com->get_comment_id();
-  comment::comments.insert({id, com});
-  return id;
+  comment com(ctype, comment::downtime, host_id, service_id, time(nullptr),
+              author, comment_data, false, comment::internal, false, (time_t)0);
+  return com.get_comment_id();
 }
 
 /**

@@ -28,10 +28,6 @@ class comment;
 class service;
 }
 
-using comment_map =
-    absl::flat_hash_map<uint64_t,
-                        std::shared_ptr<com::centreon::engine::comment>>;
-
 namespace com::centreon::engine {
 // COMMENT structure
 class comment {
@@ -76,7 +72,6 @@ class comment {
   static bool delete_comment(uint64_t comment_id);
   static void delete_host_comments(uint64_t host_id);
   static void delete_service_comments(uint64_t host_id, uint64_t service_id);
-  static comment_map comments;
 
  private:
   comment::type _comment_type;

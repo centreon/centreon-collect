@@ -550,16 +550,6 @@ TEST_F(PbServiceRetention, RetentionWithMultilineOutput) {
       str.find(
           "performance_data='time'=0.123s;0:3;0:5;0; 'size'=81439B;;;0;\n"),
       std::string::npos);
-
-  std::shared_ptr<comment> cmt = std::make_shared<comment>(
-      comment::service, comment::flapping, _svc->host_id(), _svc->service_id(),
-      time(nullptr), "test1", "test2", false, comment::internal, false,
-      (time_t)0);
-
-  comment::comments.insert({cmt->get_comment_id(), cmt});
-
-  oss.str("");
-  retention::dump::comments(oss);
-  ASSERT_NE(str.find("host_name=test_host"), std::string::npos);
-  ASSERT_NE(str.find("service_description=test_svc"), std::string::npos);
+  // Comments are no longer kept in memory nor dumped to the Engine retention
+  // file (Broker owns them), so there is nothing to assert here anymore.
 }

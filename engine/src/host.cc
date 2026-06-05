@@ -1977,15 +1977,11 @@ void host::set_flap(double percent_change,
       << "% threshold).  When the host state stabilizes and the "
       << "flapping stops, notifications will be re-enabled.";
 
-  auto com = std::make_shared<comment>(
-      comment::host, comment::flapping, host_id(), 0, time(nullptr),
-      "(Centreon Engine Process)", oss.str(), false, comment::internal, false,
-      (time_t)0);
+  comment com(comment::host, comment::flapping, host_id(), 0, time(nullptr),
+              "(Centreon Engine Process)", oss.str(), false, comment::internal,
+              false, (time_t)0);
 
-  comment::comments.insert({com->get_comment_id(), com});
-
-  uint64_t comment_id{com->get_comment_id()};
-  set_flapping_comment_id(comment_id);
+  set_flapping_comment_id(com.get_comment_id());
 
   /* set the flapping indicator */
   set_is_flapping(true);
