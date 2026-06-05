@@ -31,24 +31,24 @@ class comment : public object {
 
   comment(type_id type);
   comment(comment const& right);
-  ~comment() throw() override;
+  ~comment() noexcept override;
   comment& operator=(comment const& right);
-  bool operator==(comment const& right) const throw();
-  bool operator!=(comment const& right) const throw();
+  bool operator==(comment const& right) const noexcept;
+  bool operator!=(comment const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  std::string const& author() const throw();
-  std::string const& comment_data() const throw();
-  unsigned long comment_id() const throw();
-  type_id comment_type() const throw();
-  time_t entry_time() const throw();
-  unsigned int entry_type() const throw();
-  time_t expire_time() const throw();
-  bool expires() const throw();
-  std::string const& host_name() const throw();
-  bool persistent() const throw();
-  std::string const& service_description() const throw();
-  int source() const throw();
+  std::string const& author() const noexcept;
+  std::string const& comment_data() const noexcept;
+  unsigned long comment_id() const noexcept;
+  type_id comment_type() const noexcept;
+  time_t entry_time() const noexcept;
+  unsigned int entry_type() const noexcept;
+  time_t expire_time() const noexcept;
+  bool expires() const noexcept;
+  std::string const& host_name() const noexcept;
+  bool persistent() const noexcept;
+  std::string const& service_description() const noexcept;
+  int source() const noexcept;
 
  private:
   struct setters {

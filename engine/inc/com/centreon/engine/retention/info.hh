@@ -29,13 +29,13 @@ class info : public object {
  public:
   info();
   info(info const& right);
-  ~info() throw() override;
+  ~info() noexcept override;
   info& operator=(info const& right);
-  bool operator==(info const& right) const throw();
-  bool operator!=(info const& right) const throw();
+  bool operator==(info const& right) const noexcept;
+  bool operator!=(info const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  time_t created() const throw();
+  time_t created() const noexcept;
 
  private:
   struct setters {
