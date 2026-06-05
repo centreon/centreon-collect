@@ -1252,15 +1252,16 @@ static void forward_comment(int type,
           comment->entry_time, comment->deletion_time, host_id, service_id);
     comment->expire_time = expire_time;
     comment->expires = expires;
+    /* A deletion is matched on the internal_id: host_id/service_id may be 0. */
     if (service_id) {
       comment->host_id = host_id;
       comment->service_id = service_id;
-      if (!comment->host_id)
+      if (!comment->host_id && NEBTYPE_COMMENT_DELETE != type)
         throw exceptions::msg_fmt(
             "comment created from a service with host_id/service_id 0");
     } else {
       comment->host_id = host_id;
-      if (comment->host_id == 0)
+      if (comment->host_id == 0 && NEBTYPE_COMMENT_DELETE != type)
         throw exceptions::msg_fmt("comment created from a host with host_id 0");
     }
     comment->poller_id = cbm->poller_id();
@@ -1349,8 +1350,10 @@ static void forward_pb_comment(
   }
   comment.set_expire_time(expire_time);
   comment.set_expires(expires);
+  /* A deletion is matched by Broker on (internal_id, instance_id): the full
+   * tuple is no longer carried, so host_id/service_id may legitimately be 0. */
   if (service_id) {
-    if (!host_id) {
+    if (!host_id && NEBTYPE_COMMENT_DELETE != type) {
       SPDLOG_LOGGER_ERROR(
           neb_logger,
           "comment created from a service with host_id/service_id 0");
@@ -1359,7 +1362,7 @@ static void forward_pb_comment(
     comment.set_host_id(host_id);
     comment.set_service_id(service_id);
   } else {
-    if (host_id == 0) {
+    if (host_id == 0 && NEBTYPE_COMMENT_DELETE != type) {
       SPDLOG_LOGGER_ERROR(neb_logger,
                           "comment created from a host with host_id 0");
       return;
