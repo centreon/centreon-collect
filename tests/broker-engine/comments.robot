@@ -192,6 +192,49 @@ BECMT_RETENTION
     Should Be True    not ${result}    The persistent host comment should survive the restart.
 
 
+BECMT_RETENTION_ACK
+    [Documentation]    Scenario: an acknowledgement comment is still deletable after a restart
+    ...    Given a service is acknowledged (a non-persistent ack comment is created)
+    ...    When Engine is restarted (retention preserved)
+    ...    And the service goes back to OK so the acknowledgement is cleared
+    ...    Then the ack comment is deleted, proving its id survived the restart on the notifier
+    [Tags]    broker    engine    comments    retention
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Retention
+    Ctn Clear Logs
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${cmd_id}    Ctn Get Service Command Id    ${1}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    Ctn Process Service Result Hard    host_1    service_1    2    (1;1) is critical
+    ${result}    Ctn Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be critical HARD.
+    Ctn Acknowledge Service Problem    host_1    service_1
+    ${ack_id}    Ctn Check Comment    host_1    service_1    ${4}    ${start}    True    30
+    Should Be True    ${ack_id}>0    No acknowledgement comment was created.
+
+    # restart Engine, keeping retention (the ack comment id must be restored)
+    Ctn Stop Engine
+    Remove File    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    # explicitly remove the acknowledgement -> the ack comment must be deleted,
+    # which only works if its id was restored on the notifier from retention.
+    Ctn Remove Service Acknowledgement    host_1    service_1
+    ${result}    Ctn Check Comment Is Deleted    ${ack_id}    30
+    Should Be True    ${result}    The ack comment ${ack_id} should be deleted (its id must survive the restart).
+
+
 *** Keywords ***
 Ctn Comments Test Setup
     [Documentation]    Stop all processes and empty the comments table for a clean slate.
