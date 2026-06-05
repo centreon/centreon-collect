@@ -2396,6 +2396,10 @@ The base class `state` provides a virtual no-op default for `set_instance_runnin
 
 > For the implementation details of the shared downtime scheduling library and the Broker-specific
 > callbacks to implement, see [Downtimes library — Broker integration guide](./downtimes-integration-en.md).
+>
+> For how comments were moved out of Engine's memory so that Broker owns them (transient comment
+> objects, deletion by id / in bulk, ids carried by retention), see
+> [Comments — Engine ↔ Broker integration](./comments-integration-en.md).
 
 ## Problem
 

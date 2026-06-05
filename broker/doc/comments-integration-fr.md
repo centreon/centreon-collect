@@ -1,446 +1,277 @@
-# Librairie comments — Guide d'intégration Broker
+# Commentaires — intégration Engine ↔ Broker
 
 <!-- TOC -->
-* [Librairie comments — Guide d'intégration Broker](#librairie-comments--guide-dintégration-broker)
+* [Commentaires — intégration Engine ↔ Broker](#commentaires--intégration-engine--broker)
   * [Vue d'ensemble](#vue-densemble)
-  * [État actuel dans Engine](#état-actuel-dans-engine)
-    * [La classe comment](#la-classe-comment)
-    * [La map statique comment::comments](#la-map-statique-commentcomments)
-    * [Les quatre types de commentaires](#les-quatre-types-de-commentaires)
-    * [Opérations de suppression](#opérations-de-suppression)
-    * [Notification broker](#notification-broker)
-  * [Architecture cible (partagée)](#architecture-cible-partagée)
-    * [Hiérarchie des classes](#hiérarchie-des-classes)
-    * [comment — classe de base](#comment--classe-de-base)
-    * [comment_manager — singleton propriétaire](#comment_manager--singleton-propriétaire)
-    * [comment_callbacks — contrat d'intégration](#comment_callbacks--contrat-dintégration)
-  * [Cycle de vie d'un commentaire](#cycle-de-vie-dun-commentaire)
-    * [Création](#création)
-    * [Suppression ciblée par id](#suppression-ciblée-par-id)
+  * [L'objet comment (côté Engine)](#lobjet-comment-côté-engine)
+  * [Qui mémorise un id de commentaire](#qui-mémorise-un-id-de-commentaire)
+  * [Création](#création)
+  * [Suppression](#suppression)
+    * [Suppression par id](#suppression-par-id)
     * [Suppression en masse](#suppression-en-masse)
-    * [Expiration](#expiration)
-    * [Commentaires liés à un downtime](#commentaires-liés-à-un-downtime)
-    * [Commentaires liés au flapping](#commentaires-liés-au-flapping)
-    * [Commentaires d'acquittement](#commentaires-dacquittement)
-  * [Intégration dans Broker](#intégration-dans-broker)
-    * [Initialisation](#initialisation)
-    * [Callbacks à implémenter](#callbacks-à-implémenter)
-      * [Existence des objets](#existence-des-objets)
-      * [Notification broker](#notification-broker-1)
-      * [Planification de l'expiration](#planification-de-lexpiration)
-    * [Identité d'un commentaire : comment_id vs internal_id](#identité-dun-commentaire--comment_id-vs-internal_id)
-    * [Piloter le manager depuis les événements BBDO](#piloter-le-manager-depuis-les-événements-bbdo)
-    * [Rétention](#rétention)
-  * [Différences clés avec l'implémentation engine](#différences-clés-avec-limplémentation-engine)
+  * [Côté Broker (unified_sql)](#côté-broker-unified_sql)
+  * [Expiration (supprimée)](#expiration-supprimée)
+  * [Rétention](#rétention)
+  * [status.dat](#statusdat)
+  * [Cycle de vie par type](#cycle-de-vie-par-type)
+    * [user](#user)
+    * [downtime](#downtime)
+    * [flapping](#flapping)
+    * [acquittement](#acquittement)
+  * [Identité : comment_id vs internal_id](#identité--comment_id-vs-internal_id)
+  * [Avant / après](#avant--après)
 <!-- TOC -->
 
 ---
 
 ## Vue d'ensemble
 
-Aujourd'hui, la gestion des commentaires vit **entièrement dans Engine** (`engine/src/comment.cc`,
-`engine/inc/com/centreon/engine/comment.hh`). Il n'existe pas encore de librairie partagée comme
-pour les downtimes.
+La gestion des commentaires vivait **entièrement dans Engine**, dans une map mémoire statique
+(`comment::comments`). Elle a été retravaillée pour qu'**Engine ne conserve aucun commentaire en
+mémoire** : Broker est désormais **propriétaire** des commentaires (table
+`centreon_storage.comments`). Engine se contente de :
 
-L'objectif de cette réimplémentation est de factoriser la gestion des commentaires dans une
-librairie `common/comments`, sur le même modèle que `common/downtimes` :
+* émettre un événement de création quand un commentaire est créé ;
+* émettre un événement de suppression (par id, ou en masse par cible) quand un commentaire doit
+  disparaître ;
+* mémoriser, sur l'objet runtime porteur, les quelques ids de commentaires nécessaires pour piloter
+  ces suppressions.
 
-* une classe `comment` portant l'état d'un commentaire ;
-* un singleton `comment_manager` propriétaire de l'ensemble des commentaires ;
-* une interface abstraite `comment_callbacks` injectant tous les points spécifiques à
-  l'environnement d'exécution (existence des objets, planification d'événements, notification
-  broker) ;
-* **aucun code spécifique à engine ou broker** dans la librairie elle-même.
+> **Note.** Contrairement aux downtimes, les commentaires n'ont **pas** eu de librairie partagée
+> `common/comments` avec un singleton `comment_manager` et des callbacks injectées. Une approche plus
+> légère a été retenue : l'objet `comment` reste dans Engine mais devient **éphémère** (il n'existe
+> que le temps d'émettre son événement de création), et Broker possède le stockage. Il n'y a donc
+> aucune abstraction `comment_manager` / `comment_callbacks` à implémenter.
 
-Engine fournirait `engine_comment_callbacks` ; Broker devrait fournir sa propre implémentation
-`broker_comment_callbacks`. À terme, cela permet à Broker de **posséder** les commentaires (et
-notamment d'en générer l'identifiant), réduisant Engine au rôle de relais — voir
-[Identité d'un commentaire](#identité-dun-commentaire--comment_id-vs-internal_id).
-
-Un commentaire peut avoir l'un de quatre **types d'entrée** (`entry_type`) : `user`, `downtime`,
-`flapping`, `acknowledgment`.
+Un commentaire a l'un de quatre **types d'entrée** (`entry_type`) : `user`, `downtime`, `flapping`,
+`acknowledgment`.
 
 ---
 
-## État actuel dans Engine
+## L'objet comment (côté Engine)
 
-### La classe comment
-
-`engine/inc/com/centreon/engine/comment.hh`
+`engine/inc/com/centreon/engine/comment.hh`, `engine/src/comment.cc`
 
 | Champ | Type | Signification |
 |---|---|---|
 | `_comment_type` | `enum type { host = 1, service }` | Objet porteur |
 | `_entry_type` | `enum e_type { user = 1, downtime, flapping, acknowledgment }` | Origine du commentaire |
-| `_comment_id` | `uint64_t` | Identifiant unique (minté par Engine) |
+| `_comment_id` | `uint64_t` | Identifiant minté par Engine (stocké en base comme `internal_id`) |
 | `_source` | `enum src { internal, external }` | Créé par le moteur ou par une commande externe |
-| `_persistent` | `bool` | Survit aux redémarrages / non supprimé automatiquement |
+| `_persistent` | `bool` | Survit aux redémarrages / non auto-supprimé |
 | `_entry_time` | `time_t` | Date de création |
-| `_expires` / `_expire_time` | `bool` / `time_t` | Expiration optionnelle |
-| `_host_id` / `_service_id` | `uint64_t` | Objet concerné (`_service_id == 0` ⇒ commentaire hôte) |
+| `_expires` / `_expire_time` | `bool` / `time_t` | Présents mais **toujours `false`/`0`** — l'expiration est inutilisée (cf. [Expiration](#expiration-supprimée)) |
+| `_host_id` / `_service_id` | `uint64_t` | Objet cible (`_service_id == 0` ⇒ commentaire d'hôte) |
 | `_author` | `std::string` | Auteur |
 | `_comment_data` | `std::string` | Texte |
 
-### La map statique comment::comments
+L'objet est **éphémère** : il est construit sur la pile au site de création, son constructeur minte
+un id et émet l'événement de création, puis il est détruit. Il n'y a **plus de map mémoire**.
 
-`engine/src/comment.cc:26`
+L'id est minté de façon monotone : `_comment_id = _next_comment_id++`. `_next_comment_id` est
+persisté dans le fichier de rétention (`retention/program.cc`, clé `next_comment_id`) afin que les ids
+croissent au fil des redémarrages, et il est remis à `1` au rechargement de configuration
+(`applier/state.cc`).
 
-```cpp
-comment_map comment::comments;            // absl::flat_hash_map<uint64_t, shared_ptr<comment>>
-uint64_t comment::_next_comment_id = 1;   // compteur d'ID minté par Engine
-```
+---
 
-Tout commentaire est inséré dans cette map globale, indexée par `comment_id`. L'ID est attribué par
-Engine dans le constructeur (`comment.cc:63-68`) lorsqu'aucun ID n'est fourni ; sinon le commentaire
-est considéré comme **chargé** (rétention). `_next_comment_id` est :
+## Qui mémorise un id de commentaire
 
-* persisté dans la rétention (`retention/program.cc`, clé `next_comment_id`) ;
-* exposé dans `status.dat` (`xsddefault.cc:224`) et dans le `program_status` gRPC
-  (`command_manager.cc:268`) ;
-* remis à `1` au rechargement de configuration (`applier/state.cc:224,260`).
+Engine doit pouvoir supprimer un commentaire plus tard. Plutôt que de garder chaque commentaire en
+mémoire, l'id est stocké sur l'**objet runtime porteur** — sauf pour les commentaires `user`, dont
+l'id est fourni par l'IHM au moment de la suppression.
 
-### Les quatre types de commentaires
-
-Trois types stockent désormais leur `comment_id` sur l'objet propriétaire pour pouvoir le supprimer
-plus tard ; seuls les commentaires `user` sont adressés par un id fourni de l'extérieur.
-
-| `entry_type` | Créé par | `comment_id` stocké | Supprimé quand |
+| `entry_type` | Créé par | Où l'id est gardé | Supprimé quand |
 |---|---|---|---|
-| `user` | `cmd_add_comment` (`commands.cc:207`) — `ADD_HOST_COMMENT` / `ADD_SVC_COMMENT` | — | `DEL_*_COMMENT` par id, `DEL_ALL_*`, ou suppression de l'objet |
-| `downtime` | `downtime::subscribe()` via callback (`engine_downtime_callbacks.cc:478`) | `downtime::_comment_id` | destruction de l'objet downtime |
-| `flapping` | `host::set_flap()` / `service::set_flap()` (`host.cc:1980`, `service.cc:2742`) | `notifier::_flapping_comment_id` | `clear_flap()` (fin du flapping) |
-| `acknowledgment` | `cmd_acknowledge_*_problem` (`commands.cc`) | `notifier::_acknowledgement_comment_id` (non persistant uniquement) | levée d'ack → suppression par id stocké |
+| `user` | `cmd_add_comment` — `ADD_HOST_COMMENT` / `ADD_SVC_COMMENT` (et le gRPC `AddHostComment`/`AddServiceComment`) | — (l'IHM fournit l'id) | `DEL_*_COMMENT` par id, `DEL_ALL_*`, ou suppression de l'objet |
+| `downtime` | `engine_downtime_callbacks` quand un downtime souscrit | `downtime::_comment_id` | destruction de l'objet downtime |
+| `flapping` | `host::set_flap()` / `service::set_flap()` | `notifier::_flapping_comment_id` | `clear_flap()` (fin du flapping) |
+| `acknowledgment` | `cmd_acknowledge_*_problem` (et les handlers d'ack gRPC) | `notifier::_acknowledgement_comment_id` (**non-persistant uniquement**) | levée d'ack → suppression par id stocké |
 
-> **Phase 1 (faite).** Le type `acknowledgment` était auparavant retrouvé par scan de toute la map
-> filtré sur `entry_type==ack`. Il calque désormais `flapping` : l'id d'un commentaire d'ack
-> non-persistant est conservé sur le notifier (`_acknowledgement_comment_id`) à la création et
-> supprimé par id à la levée de l'acquittement. Les commentaires d'ack persistants ne sont jamais
-> trackés (id reste `0`) donc ils survivent — même sémantique, sans scan de map.
-
-### Opérations de suppression
-
-`engine/src/comment.cc`
-
-| Méthode | Clé | Usage |
-|---|---|---|
-| `delete_comment(id)` | `comment_id` (find) | `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT`, et toute suppression ciblée (downtime, flapping, ack) |
-| `delete_host_comments(host_id)` | itération | `DEL_ALL_HOST_COMMENTS` |
-| `delete_service_comments(host_id, svc_id)` | itération | `DEL_ALL_SVC_COMMENTS` |
-| `notifier::delete_acknowledgement_comment()` | `comment_id` (stocké sur le notifier) | levée d'ack (remplace les anciens scans de map) |
-| `remove_if_expired_comment(id)` | `comment_id` + `expires`/`expire_time` | `EVENT_EXPIRE_COMMENT` — **code mort** (cf. ci-dessous) |
-
-Les suppressions ciblées envoient à Broker un `NEBTYPE_COMMENT_DELETE` reconstruit à partir du
-**tuple complet** du commentaire (auteur, host/service, entry_time, etc.) — c'est précisément la
-raison d'être de la map mémoire qui subsiste encore.
-
-> **Constat de la Phase 0 — l'expiration est du code mort.** Tout commentaire est créé avec
-> `expires=false` (`commands.cc`, `host.cc`, `service.cc`, `engine_downtime_callbacks.cc`) et aucune
-> commande externe ne porte de paramètre d'expiration. Rien ne produit jamais de commentaire
-> expirant, donc `EVENT_EXPIRE_COMMENT` / `remove_if_expired_comment` ne se déclenchent jamais. Ils
-> seront simplement supprimés (pas portés vers Broker).
-
-### Notification broker
-
-`engine/src/comment.cc` → `broker_comment_data()` → `forward_pb_comment()` (`broker.cc:1295`).
-
-* Création : `broker_comment_data(NEBTYPE_COMMENT_ADD | NEBTYPE_COMMENT_LOAD, ...)`
-  (`comment.cc:64`), selon que l'ID a été minté ou chargé.
-* Suppression : `broker_comment_data(NEBTYPE_COMMENT_DELETE, ...)`.
-
-**Important** : côté `forward_pb_comment`, le seul effet du `type` est de positionner
-`deletion_time` quand il vaut `NEBTYPE_COMMENT_DELETE` (`broker.cc:1323`). `ADD` et `LOAD`
-produisent **exactement le même message** `Comment` BBDO ; le message ne porte d'ailleurs aucun
-champ permettant de les distinguer. La sémantique utile se résume donc à un booléen
-« supprimé / non supprimé ».
+Un commentaire d'acquittement persistant n'est **volontairement pas** tracké (son id reste `0`) afin
+qu'il survive à la levée de l'acquittement — même sémantique qu'avant, sans scan de map.
 
 ---
 
-## Architecture cible (partagée)
-
-### Hiérarchie des classes
+## Création
 
 ```
-comment_callbacks  (abstrait — injecté au démarrage)
-    ↑ implémenté par
-engine_comment_callbacks   (côté Engine, engine/src/)
-broker_comment_callbacks   (côté Broker — à écrire)
-
-comment            (base, common/comments/)
-comment_manager    (singleton, propriétaire de tous les commentaires)
+site de création (commande / gRPC / flapping / ack / downtime)
+   └─ construit un `comment(...)` éphémère
+        ├─ minte internal_id (_next_comment_id++)
+        └─ broker_comment_data(NEBTYPE_COMMENT_ADD, ...)  ─▶ pb_comment ─▶ INSERT Broker
+   └─ (si besoin) stocke l'id sur l'objet porteur, puis détruit l'objet comment
 ```
 
-Contrairement aux downtimes, **aucune spécialisation `host_comment` / `service_comment` n'est
-nécessaire** : la distinction hôte/service se réduit à `_service_id == 0` et au champ `_comment_type`
-(c'est d'ailleurs la direction prise par la simplification des downtimes, où `host_downtime` et
-`service_downtime` ne sont plus compilés).
-
-### comment — classe de base
-
-Reprend les champs de la classe actuelle (voir [La classe comment](#la-classe-comment)). La logique
-spécifique à l'environnement (notification broker, planification de l'expiration) est déléguée aux
-callbacks plutôt que codée en dur.
-
-### comment_manager — singleton propriétaire
-
-Remplace la map statique `comment::comments` et les helpers statiques. Possède :
-
-```cpp
-comment_map _comments;   // indexé par comment_id
-```
-
-| Méthode | Description |
-|---|---|
-| `load(callbacks)` | Initialise le singleton avec les callbacks injectés |
-| `add_comment(...)` | Crée un commentaire, l'insère, notifie broker |
-| `delete_comment(id)` | Supprime un commentaire par id, notifie broker |
-| `delete_host_comments(host_id)` | Supprime tous les commentaires d'un hôte |
-| `delete_service_comments(host_id, svc_id)` | Idem pour un service |
-| `delete_acknowledgement_comments(host_id, svc_id)` | Supprime les commentaires d'ack non persistants |
-| `remove_if_expired_comment(id)` | Supprime si expiré |
-| `find(id)` | Recherche par id |
-| `clear()` | Vidage (rechargement de configuration) |
-| `callbacks()` | Accès aux `comment_callbacks` injectés |
-
-### comment_callbacks — contrat d'intégration
-
-La librairie rappelle l'intégrateur pour toute opération nécessitant la connaissance de
-l'environnement d'exécution.
-
-```cpp
-enum class action { ADD, LOAD, DELETE };
-```
-
-> Note : `ADD` et `LOAD` sont aujourd'hui équivalents en aval (voir
-> [Notification broker](#notification-broker)). Ils sont conservés pour la compatibilité NEBTYPE
-> mais sont fusionnables.
-
-Méthodes purement virtuelles attendues :
-
-```cpp
-// Existence (cache broker / objets engine)
-bool host_exists(uint64_t host_id) override;
-bool service_exists(uint64_t host_id, uint64_t service_id) override;
-
-// Notification : publie/persiste le changement
-void notify_broker(action act,
-                   comment::type comment_type, comment::e_type entry_type,
-                   uint64_t host_id, uint64_t service_id, time_t entry_time,
-                   const std::string& author, const std::string& data,
-                   bool persistent, comment::src source,
-                   bool expires, time_t expire_time, uint64_t comment_id) override;
-
-// Expiration
-void schedule_expire_check(uint64_t comment_id, time_t when) override;
-void remove_expire_check(uint64_t comment_id) override;
-```
+Le constructeur n'émet l'événement de création **que** lorsqu'il minte l'id (aucun id fourni). Un
+commentaire construit avec un id explicite (chemin de compat ascendante de la rétention) n'émet rien.
 
 ---
 
-## Cycle de vie d'un commentaire
+## Suppression
 
-### Création
+Engine ne reconstruit plus le tuple complet d'un commentaire pour le supprimer : il adresse la ligne
+directement.
 
-```mermaid
-flowchart LR
-    A(["source : commande externe / downtime / flapping / ack / rétention"])
-    B["comment_manager::add_comment(...)"]
-    C(["attribue / reçoit un comment_id"])
-    D["insert dans _comments"]
-    E["callbacks::notify_broker(ADD | LOAD, ...)"]
-    F(["si expires : callbacks::schedule_expire_check(id, expire_time)"])
+### Suppression par id
 
-    A --> B
-    B --> C --> D
-    B --> E
-    B --> F
-```
+Utilisée par `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT` et par les suppressions ciblées (destruction de
+downtime, `clear_flap()`, levée d'acquittement).
 
-### Suppression ciblée par id
-
-```mermaid
-flowchart LR
-    A(["DEL_HOST_COMMENT / DEL_SVC_COMMENT (id)"])
-    B["comment_manager::delete_comment(id)"]
-    C["find(id)"]
-    D(["⊘ rien si absent"])
-    E["callbacks::notify_broker(DELETE, tuple complet)"]
-    F["erase(id)"]
-
-    A --> B --> C
-    C -- absent --> D
-    C --> E --> F
-```
-
-C'est aussi le chemin utilisé par la destruction d'un downtime (`_comment_id`) et la fin d'un
-flapping (`_flapping_comment_id`).
+`comment::delete_comment(id)` émet un `pb_comment` ne portant que `internal_id` (= l'id) et
+`deletion_time` ; `host_id`/`service_id` restent à `0`. Broker retrouve la ligne sur
+**`(internal_id, instance_id)`** (l'id du poller est rempli par cbmod).
 
 ### Suppression en masse
 
-`DEL_ALL_HOST_COMMENTS` / `DEL_ALL_SVC_COMMENTS` itèrent la map et suppriment tous les commentaires
-de l'objet. Au niveau Broker, ces opérations se traduisent naturellement en
-`UPDATE comments SET deletion_time = ... WHERE host_id = ... [AND service_id = ...]`.
+Utilisée par `DEL_ALL_HOST_COMMENTS` / `DEL_ALL_SVC_COMMENTS` et par la suppression d'objet (un
+host/service retiré de la configuration).
 
-### Expiration
-
-Les commentaires marqués `expires = true` planifient un `EVENT_EXPIRE_COMMENT`
-(`timed_event.cc:291`) qui appelle `remove_if_expired_comment(id)`. Dans Broker, l'équivalent est un
-timer one-shot `io_context` ; `schedule_expire_check` / `remove_expire_check` jouent le rôle de
-`schedule_downtime_check` / `remove_downtime_check` côté downtimes.
-
-### Commentaires liés à un downtime
-
-Voir [downtimes-integration-fr.md](downtimes-integration-fr.md). Le downtime crée son commentaire à
-`subscribe()` et mémorise `_comment_id` ; il le supprime à sa destruction. Le commentaire vit donc
-exactement aussi longtemps que l'objet downtime. Le passage `START`/`STOP` ne touche **pas** au
-commentaire.
-
-### Commentaires liés au flapping
-
-Symétrique au downtime : `host::set_flap()` / `service::set_flap()` créent un commentaire `flapping`
-et stockent son ID dans `notifier::_flapping_comment_id` ; `clear_flap()` le supprime
-(`host.cc:2014`, `service.cc:2777`). Le commentaire vit le temps de l'épisode de flapping.
-
-### Commentaires d'acquittement
-
-Créés par `cmd_acknowledge_*_problem`. Depuis la Phase 1, ils se comportent comme les commentaires de
-flapping : l'id d'un commentaire d'ack **non persistant** est stocké sur le notifier
-(`_acknowledgement_comment_id`) à la création. À la levée de l'ack,
-`notifier::delete_acknowledgement_comment()` le supprime par id et remet le champ à zéro. Les
-commentaires d'ack persistants ne sont jamais trackés (id reste `0`) et survivent donc à la levée. Au
-redémarrage, `retention/applier/comment.cc` restaure le lien d'id pour un ack non persistant conservé.
+`comment::delete_host_comments(host_id)` / `delete_service_comments(host_id, service_id)` émettent un
+**seul** événement avec `internal_id = 0` (la sentinelle bulk) plus la cible `host_id`
+(`+ service_id`). Broker supprime toutes les lignes correspondantes en une seule requête. Aucune
+itération de map.
 
 ---
 
-## Intégration dans Broker
+## Côté Broker (unified_sql)
 
-### Initialisation
+`broker/unified_sql/src/stream_sql.cc`, dans **les deux** handlers de commentaire —
+`_process_pb_comment` (BBDO3 `pb_comment`) et `_process_comment` (BBDO2 `neb::comment`) :
 
-```cpp
-// Au démarrage de cbd, après que le cache est prêt :
-comment_manager::load(std::make_unique<broker_comment_callbacks>(...));
-// recharger les commentaires depuis la rétention si nécessaire
-```
+* **Création** (`deletion_time` non positionné) → l'`INSERT INTO comments ... ON DUPLICATE KEY
+  UPDATE` existant (par lots via le bulk `_comments`).
+* **Suppression** (`deletion_time` positionné) → un `UPDATE` dédié, car l'événement partiel ne peut
+  plus matcher la clé unique :
+  * `internal_id != 0` → `UPDATE comments SET deletion_time=? WHERE internal_id=? AND instance_id=?`
+  * `internal_id == 0` et `service_id != 0` → `... WHERE host_id=? AND service_id=? AND instance_id=?`
+  * `internal_id == 0` et `service_id == 0` → `... WHERE host_id=? AND (service_id=0 OR service_id IS NULL) AND instance_id=?` (commentaires d'hôte uniquement)
 
-### Callbacks à implémenter
+**Ordre.** Avant d'exécuter l'`UPDATE` de suppression, le handler flushe toute *création* de
+commentaire encore en attente dans le bulk `_comments`, sur la **même** connexion
+(`special_conn::comment`), afin que l'`UPDATE` s'applique après l'`INSERT` (FIFO préservé). C'est
+important quand un commentaire est créé puis supprimé dans la même fenêtre de flush.
 
-#### Existence des objets
+`internal_id == 0` est une sentinelle sûre : Engine minte les ids à partir de `1`, donc `0` ne
+correspond jamais à un vrai commentaire.
 
-```cpp
-bool host_exists(uint64_t host_id) override;
-bool service_exists(uint64_t host_id, uint64_t service_id) override;
-```
+---
 
-Dans Broker, interrogent le cache global (`broker_cache`).
+## Expiration (supprimée)
 
-#### Notification broker
+Le mécanisme d'expiration des commentaires était du **code mort** et a été supprimé. Tout commentaire
+est créé avec `expires = false` (les commandes externes ne portent aucun paramètre d'expiration ; les
+commentaires de flapping, downtime et ack passent tous `false`), donc rien ne produisait jamais de
+commentaire expirant. L'événement temporisé `EVENT_EXPIRE_COMMENT`, son handler et
+`comment::remove_if_expired_comment()` ont disparu. Les colonnes `expires` / `expire_time` restent
+dans le proto/la base pour compatibilité mais sont toujours non positionnées.
 
-```cpp
-void notify_broker(action act, ...) override;
-```
+---
 
-Dans Engine, cette méthode appelle `broker_comment_data()` qui publie un `pb_comment` vers Broker.
-Dans Broker, c'est l'inverse : le point où la librairie informe le code Broker qu'un commentaire a
-changé. Selon l'architecture, cela :
+## Rétention
 
-* met à jour la table `comments` via `unified_sql` (insert/upsert pour `ADD`/`LOAD`, positionnement
-  de `deletion_time` pour `DELETE`) ;
-* met éventuellement à jour le cache global.
+Engine n'écrit plus la **liste des commentaires** dans son fichier de rétention — Broker possède les
+commentaires, et ceux-ci survivent à un redémarrage d'Engine dans la base (Broker n'est pas
+redémarré avec Engine). Ce qu'Engine persiste encore est seulement ce dont il a besoin pour continuer
+à piloter les suppressions :
 
-Correspondance des actions :
+* `flapping_comment_id` et `acknowledgement_comment_id` sur chaque bloc de rétention **host/service**
+  (`retention/host.cc`, `retention/service.cc`, leurs appliers et `retention/dump.cc`) ;
+* le compteur `next_comment_id` (inchangé).
 
-| `action` | NEBTYPE Engine | Effet en DB |
-|---|---|---|
-| `ADD` | `NEBTYPE_COMMENT_ADD` | insert / upsert |
-| `LOAD` | `NEBTYPE_COMMENT_LOAD` | insert / upsert (identique à `ADD`) |
-| `DELETE` | `NEBTYPE_COMMENT_DELETE` | `deletion_time` positionné |
+Pour une montée de version en douceur, un **ancien** fichier de rétention contenant encore des blocs
+`comment { ... }` est toujours parsé : `retention/applier/comment.cc` n'utilise ces blocs que pour
+(1) rebrancher sur son notifier l'id d'un commentaire d'acquittement non-persistant conservé et
+(2) purger les commentaires non-persistants au démarrage. Il ne crée plus aucun objet commentaire.
 
-#### Planification de l'expiration
+**Changement de comportement (assumé) :** les commentaires *user* non-persistants ne sont plus purgés
+au redémarrage (aucun objet porteur ne les retient) ; c'est la purge temporelle en base
+(`len_storage_comments`) qui assure leur nettoyage à long terme.
 
-```cpp
-void schedule_expire_check(uint64_t comment_id, time_t when) override;
-void remove_expire_check(uint64_t comment_id) override;
-```
+---
 
-Timers one-shot `io_context` appelant `comment_manager::instance().remove_if_expired_comment(id)`.
-Broker maintient une map `comment_id → timer` pour pouvoir annuler.
+## status.dat
 
-### Identité d'un commentaire : comment_id vs internal_id
+Les commentaires **ne sont plus écrits** dans `status.dat` (`xsddefault.cc`). Ce fichier legacy n'est
+pas utilisé par Centreon pour lire les commentaires (l'IHM lit la base) ; seuls d'éventuels
+consommateurs externes de `status.dat` sont concernés.
 
-C'est le point central pour faire de Broker le propriétaire des commentaires. La table
-`centreon_storage.comments` porte **deux** identifiants :
+---
+
+## Cycle de vie par type
+
+### user
+
+`ADD_HOST_COMMENT` / `ADD_SVC_COMMENT` (ou les équivalents gRPC) créent le commentaire. La suppression
+est pilotée par l'IHM, qui envoie l'`internal_id` dans `DEL_*_COMMENT` (cf.
+[Identité](#identité--comment_id-vs-internal_id)) ; Engine le relaie à Broker en delete-by-id.
+`DEL_ALL_*` et la suppression d'un host/service déclenchent une suppression en masse.
+
+### downtime
+
+Cf. [downtimes-integration-fr.md](downtimes-integration-fr.md). Le downtime crée son commentaire à la
+souscription et stocke `_comment_id` ; il supprime cet id à sa destruction. Le commentaire vit donc
+exactement aussi longtemps que l'objet downtime. La transition `START`/`STOP` ne **touche pas** au
+commentaire.
+
+### flapping
+
+`host::set_flap()` / `service::set_flap()` créent un commentaire `flapping` et stockent son id dans
+`notifier::_flapping_comment_id` ; `clear_flap()` le supprime par id. Le commentaire vit le temps de
+l'épisode de flapping. L'id est persisté en rétention, donc il survit à un redémarrage d'Engine.
+
+### acquittement
+
+`cmd_acknowledge_*_problem` (et les handlers d'ack gRPC) créent le commentaire. L'id d'un commentaire
+d'ack **non-persistant** est stocké dans `notifier::_acknowledgement_comment_id` ; à la levée de
+l'acquittement, `notifier::delete_acknowledgement_comment()` le supprime par id et remet le champ à
+zéro. Un commentaire d'ack persistant n'est pas tracké et survit à la levée. L'id est persisté en
+rétention ; un ancien fichier de rétention le rebranche via `retention/applier/comment.cc`.
+
+---
+
+## Identité : comment_id vs internal_id
+
+La table `centreon_storage.comments` porte **deux** identifiants :
 
 ```sql
 comment_id  int NOT NULL AUTO_INCREMENT,        -- PRIMARY KEY, générée par la base
-internal_id int NOT NULL,                        -- = comment_id mémoire d'Engine
+internal_id int NOT NULL,                        -- = id de commentaire minté par Engine
 UNIQUE KEY (entry_time, host_id, service_id, instance_id, internal_id),
 KEY (internal_id)
 ```
 
-* `comment_id` (PK) est **déjà** entièrement géré par MariaDB : ni Engine ni Broker ne l'écrivent.
-  Aujourd'hui il n'est **pas** utilisé pour adresser un commentaire — l'IHM ne le renvoie jamais.
-* `internal_id` est l'ID minté par Engine. Il est **porteur aux deux bouts de la chaîne** et joue
-  deux rôles distincts :
-  1. **Handle de suppression utilisé par l'IHM.** C'est le point crucial, et il est plus fort qu'un
-     simple « Broker renvoie le tuple ». Lorsqu'un opérateur supprime un commentaire, l'IHM/API
-     Centreon envoie une **commande externe** `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT` portant
-     l'**`internal_id`** — et *non* la PK `comment_id` (`www/include/monitoring/comments/common-Func.php`).
-     Engine retrouve le commentaire dans sa map mémoire par cet id (son `comment_id` == l'`internal_id`
-     en base), puis envoie `NEBTYPE_COMMENT_DELETE` avec le tuple complet ; Broker positionne
-     `deletion_time` via la clé unique. C'est donc `internal_id` qui sert de clé à tout l'aller-retour
-     de suppression.
-  2. **Désambiguïsation de la clé unique / idempotence de l'upsert.** Il désambiguïse la clé unique
-     (deux commentaires créés la même seconde sur le même host/service depuis le même poller
-     entreraient sinon en collision) et, comme l'`INSERT ... ON DUPLICATE KEY UPDATE` n'écrit jamais
-     `comment_id`, c'est aussi lui qui fait qu'un `pb_comment` rejoué par BBDO fait un upsert sur place
-     au lieu de dupliquer.
+* `comment_id` (PK) est entièrement géré par MariaDB ; il n'est **pas** utilisé pour adresser un
+  commentaire aujourd'hui — l'IHM ne le renvoie jamais.
+* `internal_id` est l'id minté par Engine, et il est **porteur** :
+  1. **Handle de suppression IHM.** Lorsqu'un opérateur supprime un commentaire, l'IHM/API Centreon
+     envoie une commande externe `DEL_HOST_COMMENT` / `DEL_SVC_COMMENT` portant l'**`internal_id`** —
+     et *non* la PK `comment_id` (`www/include/monitoring/comments/common-Func.php`). Engine relaie cet
+     id ; Broker supprime la ligne dont l'`internal_id` correspond.
+  2. **Clé d'idempotence.** Il désambiguïse la clé unique (deux commentaires créés la même seconde sur
+     le même host/service depuis le même poller entreraient sinon en collision) et, comme l'`INSERT
+     ... ON DUPLICATE KEY UPDATE` de création n'écrit jamais `comment_id`, c'est lui qui fait qu'un
+     `pb_comment` rejoué par BBDO fait un upsert sur place au lieu de dupliquer.
 
-**Cible** : confier l'identité à la PK `comment_id`. À noter que ce n'est **pas un changement
-Broker-only** — c'est une **migration cross-repo** coordonnée (Centreon web PHP + Broker),
-précisément parce que l'IHM adresse les commentaires par `internal_id` aujourd'hui :
-
-1. **PHP/IHM** : lire et envoyer `comment_id` (au lieu d'`internal_id`) dans le chemin de suppression
-   — soit dans `DEL_*_COMMENT` (Engine route alors dessus), soit en parlant directement à Broker.
-2. **Broker** : ajouter un chemin « delete-by-id » exécutant `UPDATE comments SET deletion_time = ...
-   WHERE comment_id = X`.
-3. À la création, Engine n'attribue plus d'ID : Broker laisse la PK auto-increment décider.
-4. **L'idempotence doit être préservée** : tant qu'Engine reste le *producteur* des commentaires et
-   que BBDO peut rejouer les événements, une clé stable côté producteur reste nécessaire pour éviter
-   les lignes dupliquées — donc `internal_id` (ou un équivalent) survit dans le rôle (2) même après
-   que le rôle (1) ait basculé sur `comment_id`. Il ne disparaît totalement que si l'**origination**
-   des commentaires migre elle-même dans Broker.
-
-Une fois les rôles (1) et (2) traités, Engine n'a plus besoin de minter et stocker des ID, et la map
-mémoire `comment::comments` peut disparaître — à condition de migrer aussi vers Broker l'expiration
-et les suppressions en masse (cf. ci-dessus).
-
-### Piloter le manager depuis les événements BBDO
-
-| Contenu de l'événement BBDO `pb_comment` | Appel `comment_manager` |
-|---|---|
-| `deletion_time` non positionné | `add_comment(...)` |
-| `deletion_time` positionné | `delete_comment(id)` |
-
-### Rétention
-
-Engine persiste aujourd'hui les commentaires et `next_comment_id` dans son fichier de rétention.
-Si Broker devient propriétaire des commentaires, cette persistance devient redondante avec la table
-`comments` : Broker recharge depuis la DB plutôt que depuis un fichier de rétention, et
-`next_comment_id` disparaît (remplacé par l'auto-increment).
+**Évolution future possible (non faite) :** confier l'identité à la PK `comment_id`. C'est une
+**migration cross-repo** coordonnée (Centreon web PHP + Broker), précisément parce que l'IHM adresse
+les commentaires par `internal_id` aujourd'hui : l'IHM enverrait `comment_id`, Broker supprimerait par
+`comment_id`, et Engine cesserait de minter les ids. Même alors, `internal_id` (ou une clé stable
+équivalente) reste nécessaire pour l'idempotence tant qu'Engine est le *producteur* et que BBDO peut
+rejouer — il ne disparaît que si l'**origination** des commentaires migre elle-même dans Broker.
 
 ---
 
-## Différences clés avec l'implémentation engine
+## Avant / après
 
-| Aspect | Engine (actuel) | Broker (cible) |
+| Aspect | Engine avant | Engine maintenant |
 |---|---|---|
-| Stockage | Map statique `comment::comments` | Table `comments` + cache |
-| Identifiant | `comment_id` minté par Engine → `internal_id` en base | PK `comment_id` auto-increment |
-| Handle de suppression IHM | `internal_id` (via commande externe `DEL_*_COMMENT`) | `comment_id` (nécessite un changement PHP/IHM) |
-| Clé d'idempotence (replay) | `internal_id` dans la clé unique (upsert) | toujours nécessaire tant qu'Engine produit — conservé |
-| Lookup d'objet | `host::hosts`, `service::services` | Cache global (`broker_cache`) |
-| Suppression par id | `delete_comment(id)` reconstruit le tuple complet | `UPDATE ... WHERE comment_id = X` |
-| Suppression en masse | Itération de la map | `UPDATE ... WHERE host_id = ...` |
-| Expiration | `EVENT_EXPIRE_COMMENT` (boucle d'événements) | Timer one-shot `io_context` |
-| Type ADD vs LOAD | Émis distinctement, équivalents en aval | Fusionnables (un seul « insert ») |
-| Notification broker | Publie un `pb_comment` *vers* Broker | Met à jour la DB / publie vers les clients |
-| Rétention | Fichier + `next_comment_id` | Rechargement depuis la table `comments` |
+| Stockage | map statique `comment::comments` | aucun — Broker possède la table `comments` |
+| Objet `comment` | gardé dans la map | éphémère (émet son événement de création, puis détruit) |
+| Minting d'id | `next_comment_id` + scan de map | `next_comment_id++` monotone |
+| Suppression par id | reconstruit le tuple complet depuis la map | émet seulement `internal_id` ; Broker `UPDATE ... WHERE internal_id AND instance_id` |
+| Suppression en masse | itération de map, un événement par commentaire | un événement (`internal_id = 0`) ; Broker `UPDATE ... WHERE host_id [AND service_id]` |
+| Suppression d'acquittement | scan de la map par `entry_type == ack` | suppression par id stocké sur le notifier |
+| Expiration | `EVENT_EXPIRE_COMMENT` (jamais déclenché) | supprimée (code mort) |
+| Rétention | liste complète des commentaires + `next_comment_id` | ids sur les objets host/service + `next_comment_id` |
+| status.dat | commentaires écrits | commentaires non écrits |

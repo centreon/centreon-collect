@@ -2734,6 +2734,10 @@ La classe de base `state` fournit une implémentation virtuelle vide de `set_ins
 
 > Pour le détail de la librairie de planification partagée et des callbacks à implémenter côté
 > Broker, voir [Librairie downtimes — Guide d'intégration Broker](./downtimes-integration-fr.md).
+>
+> Pour la façon dont les commentaires ont été sortis de la mémoire d'Engine afin que Broker en soit
+> propriétaire (objets commentaire éphémères, suppression par id / en masse, ids portés par la
+> rétention), voir [Commentaires — intégration Engine ↔ Broker](./comments-integration-fr.md).
 
 ## Problème
 
