@@ -27,7 +27,7 @@ namespace com::centreon::engine {
 namespace retention {
 class anomalydetection : public service {
  protected:
-  opt<double> _sensitivity;
+  std::optional<double> _sensitivity;
 
  public:
   using pointer = std::shared_ptr<anomalydetection>;
@@ -39,13 +39,13 @@ class anomalydetection : public service {
   bool operator!=(anomalydetection const& right) const noexcept;
   bool set(char const* key, char const* value) override;
 
-  opt<double> const& sensitivity() const { return _sensitivity; }
+  std::optional<double> const& sensitivity() const { return _sensitivity; }
 };
 
 typedef std::list<anomalydetection::pointer> list_anomalydetection;
 
 }  // namespace retention
 
-}
+}  // namespace com::centreon::engine
 
 #endif

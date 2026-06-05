@@ -174,7 +174,8 @@ bool program::set(char const* key, char const* value) {
  *
  *  @return The active_host_checks_enabled.
  */
-opt<bool> const& program::active_host_checks_enabled() const noexcept {
+std::optional<bool> const& program::active_host_checks_enabled()
+    const noexcept {
   return (_active_host_checks_enabled);
 }
 
@@ -183,7 +184,8 @@ opt<bool> const& program::active_host_checks_enabled() const noexcept {
  *
  *  @return The active_service_checks_enabled.
  */
-opt<bool> const& program::active_service_checks_enabled() const noexcept {
+std::optional<bool> const& program::active_service_checks_enabled()
+    const noexcept {
   return (_active_service_checks_enabled);
 }
 
@@ -192,7 +194,7 @@ opt<bool> const& program::active_service_checks_enabled() const noexcept {
  *
  *  @return The check_host_freshness.
  */
-opt<bool> const& program::check_host_freshness() const noexcept {
+std::optional<bool> const& program::check_host_freshness() const noexcept {
   return (_check_host_freshness);
 }
 
@@ -201,7 +203,7 @@ opt<bool> const& program::check_host_freshness() const noexcept {
  *
  *  @return The check_service_freshness.
  */
-opt<bool> const& program::check_service_freshness() const noexcept {
+std::optional<bool> const& program::check_service_freshness() const noexcept {
   return (_check_service_freshness);
 }
 
@@ -210,7 +212,7 @@ opt<bool> const& program::check_service_freshness() const noexcept {
  *
  *  @return The enable_event_handlers.
  */
-opt<bool> const& program::enable_event_handlers() const noexcept {
+std::optional<bool> const& program::enable_event_handlers() const noexcept {
   return (_enable_event_handlers);
 }
 
@@ -219,7 +221,7 @@ opt<bool> const& program::enable_event_handlers() const noexcept {
  *
  *  @return The enable_flap_detection.
  */
-opt<bool> const& program::enable_flap_detection() const noexcept {
+std::optional<bool> const& program::enable_flap_detection() const noexcept {
   return (_enable_flap_detection);
 }
 
@@ -228,7 +230,7 @@ opt<bool> const& program::enable_flap_detection() const noexcept {
  *
  *  @return The enable_notifications.
  */
-opt<bool> const& program::enable_notifications() const noexcept {
+std::optional<bool> const& program::enable_notifications() const noexcept {
   return (_enable_notifications);
 }
 
@@ -237,7 +239,8 @@ opt<bool> const& program::enable_notifications() const noexcept {
  *
  *  @return The global_host_event_handler.
  */
-opt<std::string> const& program::global_host_event_handler() const noexcept {
+std::optional<std::string> const& program::global_host_event_handler()
+    const noexcept {
   return (_global_host_event_handler);
 }
 
@@ -246,7 +249,8 @@ opt<std::string> const& program::global_host_event_handler() const noexcept {
  *
  *  @return The global_service_event_handler.
  */
-opt<std::string> const& program::global_service_event_handler() const noexcept {
+std::optional<std::string> const& program::global_service_event_handler()
+    const noexcept {
   return (_global_service_event_handler);
 }
 
@@ -255,7 +259,8 @@ opt<std::string> const& program::global_service_event_handler() const noexcept {
  *
  *  @return The modified_host_attributes.
  */
-opt<unsigned long> const& program::modified_host_attributes() const noexcept {
+std::optional<unsigned long> const& program::modified_host_attributes()
+    const noexcept {
   return (_modified_host_attributes);
 }
 
@@ -264,7 +269,8 @@ opt<unsigned long> const& program::modified_host_attributes() const noexcept {
  *
  *  @return The modified_service_attributes.
  */
-opt<unsigned long> const& program::modified_service_attributes() const noexcept {
+std::optional<unsigned long> const& program::modified_service_attributes()
+    const noexcept {
   return (_modified_service_attributes);
 }
 
@@ -273,7 +279,7 @@ opt<unsigned long> const& program::modified_service_attributes() const noexcept 
  *
  *  @return The next_comment_id.
  */
-opt<unsigned long> const& program::next_comment_id() const noexcept {
+std::optional<unsigned long> const& program::next_comment_id() const noexcept {
   return (_next_comment_id);
 }
 
@@ -282,7 +288,7 @@ opt<unsigned long> const& program::next_comment_id() const noexcept {
  *
  *  @return The next_downtime_id.
  */
-opt<unsigned long> const& program::next_downtime_id() const noexcept {
+std::optional<unsigned long> const& program::next_downtime_id() const noexcept {
   return (_next_downtime_id);
 }
 
@@ -291,7 +297,7 @@ opt<unsigned long> const& program::next_downtime_id() const noexcept {
  *
  *  @return The next_event_id.
  */
-opt<unsigned long> const& program::next_event_id() const noexcept {
+std::optional<unsigned long> const& program::next_event_id() const noexcept {
   return (_next_event_id);
 }
 
@@ -300,7 +306,8 @@ opt<unsigned long> const& program::next_event_id() const noexcept {
  *
  *  @return The next_notification_id.
  */
-opt<unsigned long> const& program::next_notification_id() const noexcept {
+std::optional<unsigned long> const& program::next_notification_id()
+    const noexcept {
   return (_next_notification_id);
 }
 
@@ -309,7 +316,7 @@ opt<unsigned long> const& program::next_notification_id() const noexcept {
  *
  *  @return The next_problem_id.
  */
-opt<unsigned long> const& program::next_problem_id() const noexcept {
+std::optional<unsigned long> const& program::next_problem_id() const noexcept {
   return (_next_problem_id);
 }
 
@@ -318,7 +325,7 @@ opt<unsigned long> const& program::next_problem_id() const noexcept {
  *
  *  @return The obsess_over_hosts.
  */
-opt<bool> const& program::obsess_over_hosts() const noexcept {
+std::optional<bool> const& program::obsess_over_hosts() const noexcept {
   return (_obsess_over_hosts);
 }
 
@@ -327,7 +334,7 @@ opt<bool> const& program::obsess_over_hosts() const noexcept {
  *
  *  @return The obsess_over_services.
  */
-opt<bool> const& program::obsess_over_services() const noexcept {
+std::optional<bool> const& program::obsess_over_services() const noexcept {
   return (_obsess_over_services);
 }
 
@@ -336,7 +343,8 @@ opt<bool> const& program::obsess_over_services() const noexcept {
  *
  *  @return The passive_host_checks_enabled.
  */
-opt<bool> const& program::passive_host_checks_enabled() const noexcept {
+std::optional<bool> const& program::passive_host_checks_enabled()
+    const noexcept {
   return (_passive_host_checks_enabled);
 }
 
@@ -345,7 +353,8 @@ opt<bool> const& program::passive_host_checks_enabled() const noexcept {
  *
  *  @return The passive_service_checks_enabled.
  */
-opt<bool> const& program::passive_service_checks_enabled() const noexcept {
+std::optional<bool> const& program::passive_service_checks_enabled()
+    const noexcept {
   return (_passive_service_checks_enabled);
 }
 
@@ -354,7 +363,7 @@ opt<bool> const& program::passive_service_checks_enabled() const noexcept {
  *
  *  @return The process_performance_data.
  */
-opt<bool> const& program::process_performance_data() const noexcept {
+std::optional<bool> const& program::process_performance_data() const noexcept {
   return (_process_performance_data);
 }
 

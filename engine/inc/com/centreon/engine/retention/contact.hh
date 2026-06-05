@@ -20,11 +20,9 @@
 #ifndef CCE_RETENTION_CONTACT_HH
 #define CCE_RETENTION_CONTACT_HH
 
-#include "com/centreon/common/opt.hh"
+#include <optional>
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/retention/object.hh"
-
-using com::centreon::common::opt;
 
 namespace com::centreon::engine {
 
@@ -41,15 +39,17 @@ class contact : public object {
 
   std::string const& contact_name() const noexcept;
   map_customvar const& customvariables() const noexcept;
-  opt<std::string> const& host_notification_period() const noexcept;
-  opt<bool> const& host_notifications_enabled() const noexcept;
-  opt<time_t> const& last_host_notification() const noexcept;
-  opt<time_t> const& last_service_notification() const noexcept;
-  opt<unsigned long> const& modified_attributes() const noexcept;
-  opt<unsigned long> const& modified_host_attributes() const noexcept;
-  opt<unsigned long> const& modified_service_attributes() const noexcept;
-  opt<std::string> const& service_notification_period() const noexcept;
-  opt<bool> const& service_notifications_enabled() const noexcept;
+  std::optional<std::string> const& host_notification_period() const noexcept;
+  std::optional<bool> const& host_notifications_enabled() const noexcept;
+  std::optional<time_t> const& last_host_notification() const noexcept;
+  std::optional<time_t> const& last_service_notification() const noexcept;
+  std::optional<unsigned long> const& modified_attributes() const noexcept;
+  std::optional<unsigned long> const& modified_host_attributes() const noexcept;
+  std::optional<unsigned long> const& modified_service_attributes()
+      const noexcept;
+  std::optional<std::string> const& service_notification_period()
+      const noexcept;
+  std::optional<bool> const& service_notifications_enabled() const noexcept;
 
  private:
   struct setters {
@@ -70,15 +70,15 @@ class contact : public object {
 
   std::string _contact_name;
   map_customvar _customvariables;
-  opt<std::string> _host_notification_period;
-  opt<bool> _host_notifications_enabled;
-  opt<time_t> _last_host_notification;
-  opt<time_t> _last_service_notification;
-  opt<unsigned long> _modified_attributes;
-  opt<unsigned long> _modified_host_attributes;
-  opt<unsigned long> _modified_service_attributes;
-  opt<std::string> _service_notification_period;
-  opt<bool> _service_notifications_enabled;
+  std::optional<std::string> _host_notification_period;
+  std::optional<bool> _host_notifications_enabled;
+  std::optional<time_t> _last_host_notification;
+  std::optional<time_t> _last_service_notification;
+  std::optional<unsigned long> _modified_attributes;
+  std::optional<unsigned long> _modified_host_attributes;
+  std::optional<unsigned long> _modified_service_attributes;
+  std::optional<std::string> _service_notification_period;
+  std::optional<bool> _service_notifications_enabled;
   static setters const _setters[];
 };
 
