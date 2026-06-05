@@ -191,12 +191,15 @@ RUN mkdir -p /etc/centreon/config.d/ \
     chown -R centreon-gorgone:centreon /var/lib/centreon/ && \
     chmod -R 775 /var/lib/centreon/ && \
     chown -R centreon-engine:centreon-engine /var/lib/centreon-engine && \
+    chmod 0755 /var/lib/centreon-engine && \
     chmod 775 /var/lib/centreon-engine/rw && \
     chown -R centreon-gorgone:centreon-gorgone \
               /var/lib/centreon-gorgone \
               /var/log/centreon-gorgone && \
     chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone && \
     chmod 755 /var/lib/centreon-gorgone/.keys && \
+    chmod 0755 /var/spool/centreon && \
+    chmod 0755 /var/lib/centreon-broker && \
     rm -f /bin/systemctl
 
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
