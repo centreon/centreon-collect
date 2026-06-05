@@ -56,6 +56,9 @@ service::setters const service::_setters[] = {
     {"host_id", SETTER(uint64_t, _set_host_id)},
     {"host_name", SETTER(std::string const&, _set_host_name)},
     {"is_flapping", SETTER(bool, _set_is_flapping)},
+    {"flapping_comment_id", SETTER(uint64_t, _set_flapping_comment_id)},
+    {"acknowledgement_comment_id",
+     SETTER(uint64_t, _set_acknowledgement_comment_id)},
     {"last_acknowledgement", SETTER(time_t, _set_last_acknowledgement)},
     {"last_check", SETTER(time_t, _set_last_check)},
     {"last_event_id", SETTER(uint64_t, _set_last_event_id)},
@@ -160,6 +163,8 @@ service& service::operator=(const service& right) {
     _host_id = right._host_id;
     _host_name = right._host_name;
     _is_flapping = right._is_flapping;
+    _flapping_comment_id = right._flapping_comment_id;
+    _acknowledgement_comment_id = right._acknowledgement_comment_id;
     _last_acknowledgement = right._last_acknowledgement;
     _last_check = right._last_check;
     _last_event_id = right._last_event_id;
@@ -538,6 +543,24 @@ opt<bool> const& service::is_flapping() const throw() {
  */
 opt<time_t> const& service::last_acknowledgement() const throw() {
   return _last_acknowledgement;
+}
+
+/**
+ *  Get flapping_comment_id.
+ *
+ *  @return The flapping comment id.
+ */
+opt<uint64_t> const& service::flapping_comment_id() const throw() {
+  return _flapping_comment_id;
+}
+
+/**
+ *  Get acknowledgement_comment_id.
+ *
+ *  @return The acknowledgement comment id.
+ */
+opt<uint64_t> const& service::acknowledgement_comment_id() const throw() {
+  return _acknowledgement_comment_id;
 }
 
 /**
@@ -1073,6 +1096,26 @@ bool service::_set_host_name(std::string const& value) {
  */
 bool service::_set_is_flapping(bool value) {
   _is_flapping = value;
+  return true;
+}
+
+/**
+ *  Set flapping_comment_id.
+ *
+ *  @param[in] value The new flapping_comment_id.
+ */
+bool service::_set_flapping_comment_id(uint64_t value) {
+  _flapping_comment_id = value;
+  return true;
+}
+
+/**
+ *  Set acknowledgement_comment_id.
+ *
+ *  @param[in] value The new acknowledgement_comment_id.
+ */
+bool service::_set_acknowledgement_comment_id(uint64_t value) {
+  _acknowledgement_comment_id = value;
   return true;
 }
 
