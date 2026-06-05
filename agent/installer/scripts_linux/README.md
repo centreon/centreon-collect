@@ -58,16 +58,13 @@ sequenceDiagram
     participant Script
     participant GitHub API
     participant GitHub Releases
-    
-    Script->>GitHub API: GET /repos/centreon/centreon-collect/git/refs/tags/{version}-latest
-    GitHub API-->>Script: Commit SHA
-    
+
     loop Paginated Search
         Script->>GitHub API: GET /repos/centreon/centreon-collect/tags?per_page=100&page={n}
         GitHub API-->>Script: List of tags
-        Script->>Script: Search for CMA tag with matching SHA
+        Script->>Script: Filter tags matching centreon-monitoring-agent-{version}, keep highest version
     end
-    
+
     Script->>Script: Build download URL
     Script->>GitHub Releases: Download package (RPM or DEB)
     GitHub Releases-->>Script: Package file
@@ -140,28 +137,28 @@ Preview what the script will do without making changes:
 
 ## Command-Line Options
 
-| Option | Description | Required | Default |
-|--------|-------------|----------|---------|
-| `-e, --endpoint` | OpenTelemetry endpoint (host:port) | ✅ | - |
-| `-t, --token` | Authentication token | ✅ | - |
-| `-n, --host` | Custom hostname for Centreon | ❌ | System hostname |
-| `-v, --version` | Centreon version | ❌ | 25.10 |
-| `-c, --encryption` | Encryption mode: full, insecure, no | ❌ | full |
-| `-r, --reverse` | Enable reverse mode | ❌ | false |
-| `-a, --ca` | CA certificate path | ❌ | - |
-| `-N, --commonname` | CA common name | ❌ | - |
-| `-C, --cert` | Public certificate path | ❌ | - |
-| `-k, --key` | Private key path | ❌ | - |
-| `-f, --fingerprint` | Certificate fingerprint | ❌ | - |
-| `-T, --logtype` | Log type: file, stdout | ❌ | file |
-| `-L, --logfile` | Log file path | ❌ | /var/log/centreon-monitoring-agent/centagent.log |
-| `-l, --loglevel` | Log level: off, critical, error, warning, info, debug, trace | ❌ | error |
-| `-M, --max-file-size` | Max log file size in bytes | ❌ | 10 |
-| `-m, --max-number` | Max number of log files | ❌ | 3 |
-| `-x, --custom-check` | Custom check file path | ❌ | - |
-| `-p, --components` | Components to install: agent,plugin | ❌ | agent,plugin |
-| `-d, --dry-run` | Preview without making changes | ❌ | false |
-| `-h, --help` | Display help message | ❌ | - |
+| Option                | Description                                                  | Required | Default                                          |
+| --------------------- | ------------------------------------------------------------ | -------- | ------------------------------------------------ |
+| `-e, --endpoint`      | OpenTelemetry endpoint (host:port)                           | ✅        | -                                                |
+| `-t, --token`         | Authentication token                                         | ✅        | -                                                |
+| `-n, --host`          | Custom hostname for Centreon                                 | ❌        | System hostname                                  |
+| `-v, --version`       | Centreon version                                             | ❌        | 25.10                                            |
+| `-c, --encryption`    | Encryption mode: full, insecure, no                          | ❌        | full                                             |
+| `-r, --reverse`       | Enable reverse mode                                          | ❌        | false                                            |
+| `-a, --ca`            | CA certificate path                                          | ❌        | -                                                |
+| `-N, --commonname`    | CA common name                                               | ❌        | -                                                |
+| `-C, --cert`          | Public certificate path                                      | ❌        | -                                                |
+| `-k, --key`           | Private key path                                             | ❌        | -                                                |
+| `-f, --fingerprint`   | Certificate fingerprint                                      | ❌        | -                                                |
+| `-T, --logtype`       | Log type: file, stdout                                       | ❌        | file                                             |
+| `-L, --logfile`       | Log file path                                                | ❌        | /var/log/centreon-monitoring-agent/centagent.log |
+| `-l, --loglevel`      | Log level: off, critical, error, warning, info, debug, trace | ❌        | error                                            |
+| `-M, --max-file-size` | Max log file size in bytes                                   | ❌        | 10                                               |
+| `-m, --max-number`    | Max number of log files                                      | ❌        | 3                                                |
+| `-x, --custom-check`  | Custom check file path                                       | ❌        | -                                                |
+| `-p, --components`    | Components to install: agent,plugin                          | ❌        | agent,plugin                                     |
+| `-d, --dry-run`       | Preview without making changes                               | ❌        | false                                            |
+| `-h, --help`          | Display help message                                         | ❌        | -                                                |
 
 ## Test Infrastructure
 
