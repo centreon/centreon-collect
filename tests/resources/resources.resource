@@ -157,8 +157,11 @@ Ctn Kindly Stop Broker
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
-    ${b1_obj}    Get Process Object   b1
-    IF    "${b1_obj}" == "${None}"
+    #Get Process Object raises "Non-existing index or alias" when b1 was never
+    #started, so we have to ignore that error instead of comparing to None.
+    ${status}    ${b1_obj}    Run Keyword And Ignore Error    Get Process Object    b1
+    IF    "${status}" == "FAIL"    RETURN
+    IF    ${{$b1_obj is None}}
         Log To Console    "central broker not started"
         RETURN
     END
@@ -339,10 +342,22 @@ Ctn Stop Engine
         Log To Console    No engine to stop
         RETURN
     END
+    # Some tests configure engine instances without starting them (broker only
+    # tests). Only act on the instances whose process alias was really started,
+    # otherwise the Process library raises 'Non-existing index or alias'.
+    @{started}    Create List
     FOR    ${idx}    IN RANGE    0    ${count}
+        ${status}    ${pid}    Run Keyword And Ignore Error    Get Process Id    e${idx}
+        IF    "${status}" == "PASS"    Append To List    ${started}    ${idx}
+    END
+    IF    len($started) == 0
+        Log To Console    No running engine to stop
+        RETURN
+    END
+    FOR    ${idx}    IN    @{started}
         Send Signal To Process    SIGTERM    e${idx}
     END
-    FOR    ${idx}    IN RANGE    0    ${count}
+    FOR    ${idx}    IN    @{started}
         ${result}    Wait For Process    e${idx}    timeout=60s
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
@@ -595,8 +610,9 @@ Ctn Kindly Stop Agent
     END
 
     #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
+    ${status}    ${centreon_agent_process}    Run Keyword And Ignore Error    Get Process Object    centreon_agent
 
+    IF  "${status}" == "FAIL"  RETURN
     IF  ${{$centreon_agent_process is None}}  RETURN
 
     Send Signal To Process    SIGTERM    centreon_agent
