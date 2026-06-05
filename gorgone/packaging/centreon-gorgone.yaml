@@ -159,6 +159,7 @@ overrides:
   rpm:
     depends:
       - centreon-perl-libs-common
+      - centreon-gorgone-centreon-config = ${VERSION}-${RELEASE}${DIST}
       - bzip2
       - initscripts
       - perl-Libssh-Session >= 0.8
@@ -204,6 +205,7 @@ overrides:
   deb:
     depends:   # those dependencies are taken from centreon-gorgone/packaging/debian/control
       - centreon-perl-libs-common
+      - centreon-gorgone-centreon-config (= ${VERSION}-${RELEASE}${DIST})
       - libdatetime-perl
       - libtime-parsedate-perl
       - libtry-tiny-perl

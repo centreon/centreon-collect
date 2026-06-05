@@ -150,8 +150,6 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
       - mariadb-connector-c >= 3.1.10
     conflicts:
@@ -173,8 +171,6 @@ overrides:
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
       - libgnutls30
       - libssl1.1 | libssl3
       - libmariadb3
