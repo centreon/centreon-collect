@@ -8,6 +8,7 @@ Négociation entre Engine et Broker
   * [`cbmod` devient une librairie](#cbmod-devient-une-librairie)
   * [Nouveaux paramètres pour Engine/cbmod](#nouveaux-paramètres-pour-enginecbmod)
   * [Nouveaux paramètres pour Broker](#nouveaux-paramètres-pour-broker)
+  * [Vue d'ensemble : qui gère quoi, selon la configuration](#vue-densemble--qui-gère-quoi-selon-la-configuration)
   * [La négociation](#la-négociation)
     * [Nouvelle fonctionnalité de Broker](#nouvelle-fonctionnalité-de-broker)
     * [Engine initie la connexion](#engine-initie-la-connexion)
@@ -24,6 +25,7 @@ Négociation entre Engine et Broker
   * [De la nécessité du cache centralisé](#de-la-nécessité-du-cache-centralisé)
   * [Quelques points plus techniques](#quelques-points-plus-techniques)
   * [Split de broker::config::applier::state](#split-de-brokerconfigapplierstate)
+    * [Cycle de vie de broker\_state, du cache et du downtime\_manager](#cycle-de-vie-de-broker_state-du-cache-et-du-downtime_manager)
 * [Streams sql/storage](#streams-sqlstorage)
 * [Cache centralisé Broker](#cache-centralisé-broker)
   * [Fonctionnement en configuration centralisée](#fonctionnement-en-configuration-centralisée)
@@ -76,6 +78,7 @@ Négociation entre Engine et Broker
   * [Endpoint gRPC GetTopology](#endpoint-grpc-gettopology)
   * [Stockage des fichiers .prot](#stockage-des-fichiers-prot)
   * [Évolution de broker\_state](#évolution-de-broker_state)
+    * [Sémantique du champ `running` et de `has_connection_from_poller`](#sémantique-du-champ-running-et-de-has_connection_from_poller)
   * [Modifications nécessaires](#modifications-nécessaires)
   * [Mise en place](#mise-en-place)
     * [Étape 1 — Nouveaux messages BBDO (✅ implémenté)](#étape-1--nouveaux-messages-bbdo--implémenté)
@@ -98,7 +101,7 @@ Négociation entre Engine et Broker
     * [Implémentation](#implémentation)
       * [Conteneur : `std::deque` + index `size_t`](#conteneur--stddeque--index-size_t)
       * [Classification à l'insertion](#classification-à-linsertion)
-      * [Acquittement : `pb_ack` à deux compteurs](#acquittement--pb_ack-à-deux-compteurs)
+      * [Acquittement](#acquittement)
       * [Débordement sur disque (rétention)](#débordement-sur-disque-rétention)
       * [Résultats de benchmark](#résultats-de-benchmark)
       * [Type d'entrée : struct vs pair, emplace_back vs push_back](#type-dentrée--struct-vs-pair-emplace_back-vs-push_back)
@@ -263,6 +266,10 @@ stateDiagram-v2
 
 ## Nouveaux paramètres pour Broker
 
+> Pour le volet PHP de ces paramètres — lesquels les formulaires de configuration web
+> doivent exposer, et comment les commandes externes passent à gRPC — voir
+> [Évolutions PHP](./php-evolutions-fr.md).
+
 `Broker` a deux nouveaux paramètres que l’on retrouve dans son fichier
 de configuration qui sont :
 
@@ -311,6 +318,42 @@ Un exemple de répertoire `pollers_config_directory`:
 * pollers-configuration:
   * 1.prot
   * 2.prot
+
+## Vue d'ensemble : qui gère quoi, selon la configuration
+
+Deux responsabilités peuvent vivre soit côté **Engine**, soit côté **Broker**, et chacune est
+pilotée par son propre paramètre — les deux choix sont **indépendants** :
+
+| Responsabilité | Paramètre(s) | Où ça vit |
+|---|---|---|
+| **Configuration Engine** | `bbdo_version` (≥ 3) + `cache_config_directory` (Broker) + Engine démarré avec `-p /var/lib/centreon-engine` | Si tout est positionné → **Broker** possède la configuration Engine (centralisée : il en calcule le diff et envoie un `DiffState` à Engine). Sinon → **Engine** lit son propre `centengine.cfg` (legacy). |
+| **Rôle de Broker** (uniquement en centralisé) | `pollers_config_directory` (Broker) | Positionné → **central** (possède les `.prot`). Vide → **relais** (transmet les demandes de config en amont). |
+| **Downtimes** | `notification_mode` (Broker) | `broker` → **Broker** gère les downtimes (charge le `downtime_manager` ; les inherited downtimes BAM sont programmés dans Broker ; Broker est seul écrivain de `scheduled_downtime_depth`). Toute autre valeur / absent (défaut `engine`) → **Engine** gère les downtimes (BAM envoie `SCHEDULE_SVC_DOWNTIME` à Engine). |
+
+```mermaid
+flowchart TD
+    classDef engine fill:#e2725b,color:#fff;
+    classDef broker fill:#4a90d9,color:#fff;
+
+    subgraph CONF["Configuration Engine — qui la possède"]
+        direction TB
+        Q1{"BBDO ≥ 3.0<br/>ET cache_config_directory (Broker) positionné<br/>ET Engine démarré avec -p ?"}
+        Q1 -- "non (legacy)" --> ENGCONF["Engine lit et possède son centengine.cfg"]:::engine
+        Q1 -- "oui (centralisé)" --> Q2{"pollers_config_directory (Broker) positionné ?"}
+        Q2 -- "oui" --> CENTRAL["Broker = CENTRAL<br/>possède les .prot, calcule le diff,<br/>envoie DiffState à Engine"]:::broker
+        Q2 -- "non" --> RELAY["Broker = RELAIS<br/>transmet les demandes de config en amont"]:::broker
+    end
+
+    subgraph DT["Downtimes — qui les gère"]
+        direction TB
+        Q3{"notification_mode (Broker) ?"}
+        Q3 -- "broker" --> DTBROKER["Broker gère les downtimes<br/>downtime_manager chargé · inherited downtimes BAM<br/>programmés dans Broker · Broker seul écrivain de la profondeur"]:::broker
+        Q3 -- "engine / absent (défaut)" --> DTENGINE["Engine gère les downtimes<br/>BAM envoie SCHEDULE_SVC_DOWNTIME à Engine"]:::engine
+    end
+```
+
+> Les deux axes sont orthogonaux : on peut p.ex. être en configuration centralisée (possédée par
+> Broker) tout en laissant les downtimes gérés par Engine, ou l'inverse.
 
 ## La négociation
 
@@ -1252,6 +1295,177 @@ classDiagram
     basic_stream <|-- stream
     stream <|-- broker_stream
     stream <|-- cbmod_stream
+```
+
+### Cycle de vie de broker_state, du cache et du downtime_manager
+
+`broker_state` orchestre deux objets à longue durée de vie dont l'ordre de
+création et de destruction est important :
+
+* le **cache global** (`broker_cache`, possédé par la classe de base `state` via
+  `_global_cache`), persisté dans `<cache_dir>.cache` et rechargé au démarrage
+  suivant ;
+* le **gestionnaire de downtimes**
+  (`com::centreon::common::downtimes::downtime_manager`, un singleton), chargé
+  **uniquement** lorsque `notification_mode=broker`. Il possède les downtimes
+  in-process (planifiés via gRPC et downtimes hérités de BAM).
+
+Quand Broker gère les downtimes, les downtimes *démarrés* (en cours) doivent
+survivre à un redémarrage de `cbd` : ils sont sauvegardés avec le cache à l'arrêt
+et réinjectés dans le gestionnaire au démarrage suivant. Les downtimes non
+démarrés peuvent être perdus ; le `scheduled_downtime_depth` est recalculé de
+façon idempotente (un comptage par ressource), il n'est pas incrémenté
+aveuglément.
+
+#### Démarrage
+
+La subtilité clé : le cache est créé **à l'intérieur** de `state::apply()`
+(`initialize_cache()`), et `_global_cache` n'est affecté qu'une fois le
+constructeur de `broker_cache` terminé. Le chemin de réinjection rappelle
+`config::applier::state::instance().cache()` (via le `resource_exists()` des
+callbacks de downtime), il ne **doit donc pas** s'exécuter depuis le constructeur
+— sinon il déréférencerait un `_global_cache` non encore affecté et provoquerait
+un `abort`. Le constructeur se contente donc de charger les downtimes persistés
+dans une liste en attente, et la réinjection a lieu plus tard, une fois
+`_global_cache` en place.
+
+```mermaid
+sequenceDiagram
+    participant main as cbd main
+    participant BS as broker_state
+    participant S as state (base)
+    participant CACHE as broker_cache
+    participant DM as downtime_manager
+    participant ENG as Engine (centralisé)
+
+    main->>BS: apply(config s, run_mux)
+    Note over BS: lecture params["notification_mode"]
+    alt notification_mode == broker
+        BS->>DM: load(broker_downtime_callbacks(io_context))
+        BS-->>main: log CORE "downtime management enabled,<br/>downtime manager loaded"
+    end
+
+    BS->>S: state::apply(s, run_mux)
+    S->>S: _modules.apply(...)
+    S->>CACHE: initialize_cache() → make_unique<broker_cache>()
+    activate CACHE
+    CACHE->>CACHE: _load_cache() lit <cache_dir>.cache
+    Note over CACHE: remplit seulement _pending_active_downtimes<br/>PAS de réinjection ici :<br/>_global_cache pas encore affecté
+    deactivate CACHE
+    S->>S: endpoint::apply(); arme la barrière de readiness<br/>(le démarrage du moteur est différé, voir plus bas)
+    S-->>BS: retour (_global_cache désormais affecté)
+
+    alt notification_mode == broker (depuis _on_barrier_released(), une fois la barrière levée)
+        BS->>CACHE: reinject_pending_downtimes()
+        Note over CACHE: mode legacy : ressources connues → réinjection immédiate<br/>mode centralisé : ressources inconnues → no-op (différé)
+    end
+
+    Note over ENG,CACHE: mode centralisé : les ressources arrivent plus tard
+    ENG->>CACHE: pb_engine_state → merge(State)
+    CACHE->>CACHE: reinject_pending_downtimes()
+    loop chaque downtime en attente dont le host/service existe désormais
+        CACHE->>DM: reload_started_downtime(...) (conserve l'id sauvegardé)
+        DM->>DM: downtime::reload() (passe in-effect, planifie seulement le check de fin)
+    end
+    CACHE->>CACHE: recalcule depth = comptage par (host,service), pose dans le cache
+    CACHE-->>ENG: publie pb_adaptive_{host,service}_status (depth restaurée)
+```
+
+#### Barrière de readiness au démarrage
+
+Le moteur de multiplexing n'est **pas** démarré à la fin de `state::apply()` dès
+que les endpoints sont créés. Le faire entre en course avec le démarrage des
+streams de sortie : un output (par ex. le `monitoring_stream` BAM) s'ouvre sur son
+thread de `failover` et publie ses *définitions* de démarrage (comme le service
+virtuel de la BA, avec `scheduled_downtime_depth=0`) tandis que, en parallèle, le
+moteur est démarré et l'état persisté réinjecté. Une définition périmée traitée
+*après* la profondeur de downtime hérité réinjectée l'écraserait (profondeur de la
+BA de retour à 0).
+
+Pour rendre l'ordre déterministe, la base `state` installe une **barrière de
+readiness au démarrage**. Elle vit volontairement dans la classe de base, afin de
+protéger à la fois `cbd` et `cbmod` — par ex. un output Lua chargé sur `cbmod` qui
+restaure un état est protégé de la même manière :
+
+* à la fin d'`apply()`, au lieu de démarrer le moteur, `_enable_multiplexing()`
+  recense l'ensemble des endpoints de **sortie** qui viennent d'être créés et arme
+  la barrière (en mode `--check`, `run_mux=false`, elle ne fait rien) ;
+* chaque stream de sortie, une fois que son `failover` a terminé sa **première**
+  tentative d'`open()` — succès *ou* échec, pour qu'une base/un pair down ne bloque
+  pas le démarrage — appelle `state::notify_output_ready(name)` exactement une fois
+  (one-shot par failover) ;
+* quand tous les outputs attendus se sont enregistrés, `_maybe_release_barrier()`
+  démarre le moteur de multiplexing **une seule fois**, ce qui flushe les
+  événements bufferisés tant qu'il était `not_started` (les définitions de
+  démarrage), puis invoque le hook `_on_barrier_released()` ;
+* un **timeout** (60 s) lève la barrière de toute façon, pour que Broker/Engine ne
+  reste jamais muet si un output ne s'ouvre jamais.
+
+Comme le moteur bufferise tout tant qu'il est `not_started`, les définitions de
+démarrage sont flushées en premier ; la réinjection — publiée soit réactivement
+quand la configuration Engine arrive (mode centralisé), soit depuis
+`_on_barrier_released()` (mode broker legacy) — est donc toujours ordonnée
+**après** elles, et la `scheduled_downtime_depth` restaurée l'emporte.
+
+`_on_barrier_released()` est la seule partie de la barrière spécifique à une
+sous-classe : `broker_state` la surcharge pour appeler
+`reinject_pending_downtimes()` ; la base (et `cbmod_state`) la laissent vide.
+
+```mermaid
+sequenceDiagram
+    participant S as state::apply (base)
+    participant EP as endpoint::apply
+    participant FO as failover (par output, thread worker)
+    participant B as barrière (dans la base state)
+    participant ENG as moteur de multiplexing
+
+    S->>EP: crée les streams de sortie (les threads failover démarrent)
+    S->>B: _enable_multiplexing() : arme avec expected = noms des endpoints de sortie
+    par chaque output, sur son propre thread failover
+        FO->>FO: open() (charge DB/cache ou se connecte) + publie les définitions de démarrage
+        FO->>B: notify_output_ready(name) (one-shot, après la 1ʳᵉ tentative d'open)
+    end
+    Note over B: tous les attendus prêts, ou timeout 60 s
+    B->>ENG: start() (flushe les définitions de démarrage bufferisées)
+    B->>S: _on_barrier_released() (broker_state → reinject_pending_downtimes)
+```
+
+#### Arrêt
+
+`broker_state` est détruit via `state::unload()` (`delete gl_state`). Le
+destructeur dérivé `~broker_state` s'exécute **avant** la base `~state`, donc le
+cache est encore vivant quand `~broker_state` lui transmet les downtimes
+démarrés. Le cache est ensuite persisté par `~broker_cache` (appelé depuis
+`~state`), dans les **deux** modes de configuration — seules les sections lourdes
+(hosts, services, groupes…) restent réservées au mode legacy ; les downtimes
+actifs sont toujours sauvegardés.
+
+```mermaid
+sequenceDiagram
+    participant main as cbd main
+    participant BS as broker_state (~broker_state)
+    participant DM as downtime_manager
+    participant CACHE as broker_cache
+    participant S as state (~state, base)
+
+    main->>BS: state::unload() → delete gl_state
+    BS->>BS: annule _watch_engine_conf_timer
+    BS->>BS: save_topology_cache()
+    alt downtime_manager::is_loaded()
+        BS->>DM: get_scheduled_downtimes()
+        DM-->>BS: tous les downtimes planifiés
+        Note over BS: garde seulement is_in_effect()<br/>construit les Downtime protos (id, depth, dates…)
+        BS->>CACHE: set_active_downtimes(active)
+    end
+    BS->>DM: unload() (détruit le gestionnaire + callbacks)
+    Note over BS: corps de ~broker_state terminé
+
+    BS->>S: ~state (destructeur de base)
+    S->>CACHE: destruction de _global_cache → ~broker_cache
+    activate CACHE
+    CACHE->>CACHE: _save_cache() → écrit <cache_dir>.cache
+    Note over CACHE: active_downtimes persistés dans les deux modes<br/>sections lourdes seulement en mode legacy
+    deactivate CACHE
 ```
 
 # Streams sql/storage
@@ -2734,6 +2948,15 @@ La classe de base `state` fournit une implémentation virtuelle vide de `set_ins
 
 > Pour le détail de la librairie de planification partagée et des callbacks à implémenter côté
 > Broker, voir [Librairie downtimes — Guide d'intégration Broker](./downtimes-integration-fr.md).
+>
+> Pour la façon dont les commentaires ont été sortis de la mémoire d'Engine afin que Broker en soit
+> propriétaire (objets commentaire éphémères, suppression par id / en masse, ids portés par la
+> rétention), voir [Commentaires — intégration Engine ↔ Broker](./comments-integration-fr.md).
+>
+> Pour la façon dont le suivi des acquittements est passé de cbmod au cache global de Broker
+> (stockage, fermeture dérivée du status de la ressource, persistance au redémarrage de cbd, et le
+> point d'entrée GetAcknowledgements), voir
+> [Acquittements — intégration Engine ↔ Broker](./acknowledgements-integration-fr.md).
 
 ## Problème
 
@@ -3264,6 +3487,17 @@ Une fois les deux modes stables, le Poller HA peut être implémenté avec la ce
 l'infrastructure de notification et de downtime est solide.
 
 # Poller HA
+
+> Ce chapitre décrit le **mécanisme** de la HA des pollers (zones,
+> auto-surveillance, table d'affectation, distribution et rééquilibrage). Pour
+> l'**architecture cible** plus large qu'il sert — pourquoi la ressource devient
+> une identité *logique*, comment les commandes externes, les commentaires et la
+> notification migrent progressivement vers le centre, et pourquoi le centre doit
+> alors devenir durable et hautement disponible lui-même — voir
+> [Architecture cible — vers la HA des pollers](./ha-target-architecture-fr.md).
+> La persistance des downtimes déjà livrée est la première brique concrète de
+> cette histoire plus vaste.
+
 ## Arborescence de configuration des pollers
 
 Sans parler HA, on a la structure de fichiers suivante :
@@ -4215,4 +4449,8 @@ leur sens par exemple pour accéder aux logs.
 ## Déplacement de l'envoi des commandes externes sur Broker
 On crée les points d'entrée pour toutes les commandes externes Engine sur Broker.
 Et Broker, en interne, envoie la demande au poller concerné.
+
+> Pour le passage des commandes externes à gRPC côté PHP et la règle de routage
+> Engine/Broker selon `notification_mode`, voir
+> [Évolutions PHP — Commandes externes via gRPC](./php-evolutions-fr.md#évolution-2--commandes-externes-via-grpc).
 

@@ -27,6 +27,16 @@
     * [Broker notification](#broker-notification)
   * [Driving the manager from BBDO events](#driving-the-manager-from-bbdo-events)
   * [Retention](#retention)
+* [Depth ownership when Broker manages downtimes](#depth-ownership-when-broker-manages-downtimes)
+* [BAM inherited downtimes](#bam-inherited-downtimes)
+* [Comments for Broker-managed downtimes](#comments-for-broker-managed-downtimes)
+  * [The internal_id problem](#the-internal_id-problem)
+  * [Design](#design)
+    * [Restoring the comment id across a cbd restart](#restoring-the-comment-id-across-a-cbd-restart)
+  * [Triggered, flexible and BAM cases](#triggered-flexible-and-bam-cases)
+  * [Decisions](#decisions)
+  * [Relation to internal_id deprecation](#relation-to-internal_id-deprecation)
+* [Shutdown safety](#shutdown-safety)
 * [Key differences from the engine implementation](#key-differences-from-the-engine-implementation)
 <!-- TOC -->
 
@@ -498,6 +508,242 @@ calls `schedule_downtime()` for each entry (with `triggered_by` preserved) follo
 
 ---
 
+## Depth ownership when Broker manages downtimes
+
+When `notification_mode = broker` (the `downtime_manager` singleton is loaded), **Broker is the
+sole writer** of `scheduled_downtime_depth` (table `services`/`hosts`) and `in_downtime`
+(table `resources`). Broker sets them through the adaptive status published by
+`broker_downtime_callbacks` (start/end of a downtime).
+
+The decision is taken **locally inside Broker** — Engine is never told. Every consumer simply
+checks `com::centreon::common::downtimes::downtime_manager::is_loaded()`:
+
+* **`unified_sql`** — the full host/service status statements use
+  `scheduled_downtime_depth = COALESCE(?, scheduled_downtime_depth)` and
+  `in_downtime = COALESCE(?, in_downtime)`. In broker mode the status binds **NULL** for those
+  columns, so the `COALESCE` keeps Broker's value; in engine mode it binds the real value. This is
+  required because Engine status updates are written in **bulk (deferred)** while the adaptive
+  depth update is a **direct (immediate)** query: without this, a stale bulk status bound before a
+  downtime started could flush *after* the adaptive update and overwrite the depth (a hard-to-spot,
+  intermittent clobber).
+* **`broker_cache`** — a host/service status from Engine does not overwrite the cached
+  `scheduled_downtime_depth` in broker mode (the cache counter is maintained by
+  `broker_downtime_callbacks` and feeds its inc/dec logic).
+* **`_clean_tables`** (poller disable, e.g. Engine restart) must **not** cancel downtimes
+  (`UPDATE downtimes SET cancelled=1 ... WHERE instance_id=`): the downtimes belong to Broker's
+  `downtime_manager`, not to the poller, and must survive a poller restart.
+
+> Engine keeps emitting `scheduled_downtime_depth` as usual; Broker just ignores it in this mode.
+> An earlier design that propagated a `broker_manages_downtimes` flag to Engine (so it would omit
+> the field) was dropped in favour of this self-contained, Broker-local approach.
+
+> **Known limitation.** A downtime scheduled *before* the target service row exists in the DB makes
+> the adaptive direct `UPDATE ... WHERE host_id=? AND service_id=?` match 0 rows, so the depth is
+> lost. This does not happen in practice (configuration is pushed before any downtime is
+> schedulable) and is not covered.
+
+## BAM inherited downtimes
+
+A Business Activity can propagate an *inherited downtime* to its virtual service
+(`_Module_BAM_<poller>` / `ba_<id>`). `bam::monitoring_stream::_handle_inherited_downtime()` routes
+it according to who owns downtimes:
+
+* **Engine-managed** (default): an external command is sent to Engine
+  (`SCHEDULE_SVC_DOWNTIME` / `DEL_SVC_DOWNTIME_FULL`), exactly as historically.
+* **Broker-managed** (`downtime_manager::is_loaded()`): the downtime is created/removed directly in
+  the in-process `downtime_manager` — `schedule_downtime(service_downtime, ba->get_host_id(),
+  ba->get_service_id(), ...)` and removal via
+  `delete_downtime_by_hostname_service_description_start_time_comment()` matching the fixed comment
+  *"Automatic downtime triggered by BA downtime inheritance"*. No external command is sent to Engine.
+
+To make inherited downtimes survive an **Engine restart**, `monitoring_stream` must **not** call
+`book_service().reset_downtime_state()` on poller stop when in broker mode (Broker keeps the
+downtimes; Engine does not re-send them).
+
+## Comments for Broker-managed downtimes
+
+> **Status: implemented.** `broker_downtime_callbacks::create_downtime_comment()` /
+> `delete_downtime_comment()` publish `pb_comment` events, so a downtime scheduled by
+> Broker carries a `comments` row identical to an Engine-scheduled one. This section
+> describes the design.
+
+When Engine schedules a downtime, `downtime::subscribe()` creates an internal comment
+(`entry_type = downtime`) through `create_downtime_comment()`; the returned id is
+stored in `downtime::_comment_id` and the comment is removed from the destructor via
+`delete_downtime_comment()`. In broker mode the same callbacks must produce and
+remove a real `comments` row so the UI shows the downtime's comment.
+
+> **What the comment actually contains.** The comment text and author are **hard-coded
+> in the shared library** (`downtime::subscribe()`), they are *not* the `author` /
+> `comment_data` of the request:
+>
+> ```cpp
+> msg = "This host has been scheduled for fixed downtime from … to …";   // generated
+> _comment_id = callbacks().create_downtime_comment(
+>     _host_id, _service_id, "(Centreon Engine Process)", msg);            // fixed author
+> ```
+>
+> The request's `author` / `comment_data` populate the **downtime** record
+> (`_author` / `_comment`, carried by `notify_broker()`), **not** the `comments` row.
+> So a Broker-scheduled downtime produces a comment authored
+> *"(Centreon Engine Process)"*.
+
+**Requirement (first step): byte-for-byte identical comments.** Broker must emit the
+**exact same** comment content as Engine — same hard-coded author
+*"(Centreon Engine Process)"*, same generated `data`, same `entry_type = DOWNTIME`,
+`source = INTERNAL`, `persistent = false`. This is free: both sides already go through
+the same shared-library `subscribe()`, so it suffices for Broker to *emit* the comment
+(instead of the current no-op) **without touching its content**. The only field that
+differs is `internal_id` (the high partition range below), which is exactly why PHP
+must not rely on its value or ordering. Keeping the content identical avoids any PHP
+test asserting on the comment author/text from failing depending on who scheduled the
+downtime.
+
+### The internal_id problem
+
+`comments.internal_id` is a **signed `int(11)`**, and the table's unique key is
+`(entry_time, host_id, service_id, instance_id, internal_id)`. `internal_id` is
+therefore unique only **within an `instance_id`** — it is not a global sequence.
+Engine generates it from a per-poller `next_comment_id` counter that starts at 1 and
+**resets to 1 on configuration reload**.
+
+Broker cannot continue Engine's counter (it lives in Engine's retention, per poller).
+It must instead generate ids in a range that can never collide with Engine's.
+
+### Design
+
+* **Partitioned id range.** Broker generates `internal_id` from `INT32_MAX / 2`
+  (`1 073 741 823`) upward, using its own monotonic counter **persisted in the global
+  cache** (alongside the active downtimes). Engine never reaches that range (it stays
+  near 1), so the two producers are disjoint. Starting at `INT32_MAX/2` keeps the
+  value positive (the column is signed) and still leaves ~1.07 billion ids of
+  headroom.
+* **Counter thread-safety and persistence.** `create_downtime_comment()` runs on the
+  `io_context` threads, so the counter must be **atomic / locked**. Its current value
+  must be **saved with the cache and restored at startup** so it stays monotonic
+  across a `cbd` restart (otherwise a reused id would re-emit / clobber an existing
+  comment).
+* **`instance_id` = the host's poller.** The comment is attributed to the real poller
+  `instance_id` of its host (it exists in `instances`, the FK holds, and the UI shows
+  the comment under the right poller). `instance_id` must be **non-NULL** — a NULL
+  would defeat the `ON DUPLICATE KEY` upsert (NULL ≠ NULL in a MySQL unique key) and
+  break idempotency.
+* **Publication.** `create_downtime_comment()` builds a `neb::pb_comment`
+  (`entry_type = DOWNTIME`, `source = INTERNAL`) and publishes it through
+  `multiplexing::publisher`, exactly as `notify_broker()` publishes `pb_downtime`.
+  `delete_downtime_comment()` publishes a delete-by-id `pb_comment` (`internal_id` +
+  `deletion_time`). `unified_sql` already handles both (`_process_pb_comment`).
+* **FK ordering (known limitation).** `comments_ibfk_1` requires the `hosts` row to
+  exist before the comment `INSERT`. A downtime scheduled before its resource row
+  exists in the DB would lose its comment — the same known limitation already noted
+  for `scheduled_downtime_depth` (see
+  [Depth ownership](#depth-ownership-when-broker-manages-downtimes)).
+* **Restart purge guard.** `_clean_tables` purges a poller's non-persistent comments
+  on its restart. Broker-owned downtime comments must survive an Engine restart (the
+  downtime itself does — see
+  [Depth ownership](#depth-ownership-when-broker-manages-downtimes)), so when
+  `downtime_manager::is_loaded()` the purge must exclude them:
+  ```sql
+  UPDATE comments SET deletion_time=? WHERE instance_id=? AND persistent=0
+    AND (deletion_time IS NULL OR deletion_time=0)
+    AND entry_type <> 2   -- DOWNTIME comments belong to Broker
+  ```
+  This mirrors the existing guard that already stops `_clean_tables` from cancelling
+  Broker-owned downtimes.
+
+#### Restoring the comment id across a `cbd` restart
+
+Persisting the comment is necessary but **not sufficient** to be able to *delete* it
+later. The reinjection path does **not** recreate the comment (good — no duplicate),
+but it also does **not** restore `_comment_id`:
+
+* `downtime::reload()` (`downtime.cc`) only sets the downtime in effect and calls
+  `notify_broker_load()`; it never calls `create_downtime_comment()`, so the comment
+  row already in the DB is reused as-is;
+* but `reload_started_downtime()` (`downtime_manager.cc`) is fed from the cache
+  `Downtime` proto, which carries `host_id, service_id, entry_time, author,
+  comment_data, start_time, end_time, fixed, triggered_by, duration, id` — **no
+  `comment_id`**. The reloaded downtime therefore keeps `_comment_id = 0`, and at its
+  end `delete_downtime_comment(0)` deletes nothing → **orphaned comment**.
+
+This is closed by three coordinated changes (implemented):
+
+1. `comment_id` was added to the cache `Downtime` message and is written when active
+   downtimes are saved (`set_active_downtimes()` at shutdown);
+2. it is threaded through `reload_started_downtime()`;
+3. it is set back on the reloaded `downtime` object (`downtime::set_comment_id()`), so
+   the eventual `delete_downtime_comment()` targets the right row. Because the callback
+   now also receives `host_id`/`service_id`, the delete event resolves the same
+   `instance_id` as on creation.
+
+### Triggered, flexible and BAM cases
+
+* **Triggered and anomaly-detection children.** Each child is a separate `downtime`
+  that runs its own `subscribe()` → **one comment per child** (a host downtime with
+  N triggered children produces N+1 comments). This matches Engine; all of them go
+  through the same partitioned-id / `instance_id` path.
+* **Flexible downtimes.** The comment is created at **scheduling** time
+  (`subscribe()`), like a fixed downtime — not at activation. If a flexible downtime
+  expires without ever starting, it is destroyed and `delete_downtime_comment()`
+  removes the comment through the normal destructor path.
+* **BAM inherited downtimes.** These target the BAM pseudo-services
+  (`_Module_BAM_*` / `ba_*`). In **Engine mode** the inherited downtime is scheduled
+  through an external `SCHEDULE_SVC_DOWNTIME` command, so Engine's `subscribe()`
+  **creates a comment** for the BA pseudo-service. In **Broker mode** the
+  `downtime_manager` is driven directly and the current no-op callback creates **none**
+  — an asymmetry. To keep comments identical, Broker **must create the comment too**
+  (it must *not* skip BAM pseudo-services for comment creation — the
+  `service_downtime::print()` / `retention()` skip is about retention/`status.dat`
+  serialisation only, not the comment). See [Decisions](#decisions).
+* **Host/service removed from configuration.** `comments_ibfk_1 ON DELETE CASCADE`
+  removes the comment rows, while the `downtime_manager` may still hold the downtime
+  with a now-stale `_comment_id`; the later delete-by-id is then a harmless no-op
+  (0 rows). No special handling needed.
+* **HA (several active brokers).** Two brokers both generating ids from `INT32_MAX/2`
+  could collide. Out of scope here, but to be addressed in the HA design (see
+  [ha-target-architecture](ha-target-architecture-en.md)).
+
+### Decisions
+
+* **Comment author / text — decided: keep identical to Engine.** The hard-coded
+  *"(Centreon Engine Process)"* author and the generated description are reused
+  **verbatim** on the Broker side (no parameterisation), so a downtime comment is
+  byte-for-byte identical whoever scheduled it. This is the first-step requirement
+  above, taken to avoid PHP tests asserting on comment content from failing.
+* **BAM inherited downtimes — decided: create the comment, like Engine.** Today Engine
+  mode creates a comment for the BA pseudo-service (via the external
+  `SCHEDULE_SVC_DOWNTIME` command) while Broker mode creates none (no-op callback).
+  Broker must align on Engine and **create the comment**, so an inherited downtime
+  carries the same comment whoever owns downtimes. The BAM pseudo-service skip in
+  `service_downtime::print()` / `retention()` stays as-is (retention/`status.dat`
+  only); it does **not** extend to comment creation.
+
+### Relation to internal_id deprecation
+
+This partitioning is a self-contained bridge — **no PHP change, no schema change**.
+For a downtime comment, `internal_id` is never a UI deletion handle (deletion is
+driven by the downtime lifecycle, not by a `DEL_*_COMMENT` carrying the id); it only
+serves upsert idempotency and Broker-internal bookkeeping. It stays compatible with
+the documented future move to address comments by the `comment_id` primary key (see
+[comments-integration](comments-integration-en.md#comment-identity-comment_id-vs-internal_id))
+— the high-range ids are trivial to identify and migrate when that cross-repo change
+happens.
+
+> **PHP consequence.** Because Broker-originated comments use a discontinuous high
+> `internal_id` range, the comment list must **not** be ordered by `internal_id`. See
+> [PHP evolutions](php-evolutions-en.md#ordering-comments--do-not-rely-on-internal_id).
+
+---
+
+## Shutdown safety
+
+`downtime::~downtime()` notifies Broker via `downtime_manager::instance().callbacks()`. At shutdown
+`downtime_manager::unload()` resets the singleton **before** the remaining scheduled downtimes are
+destroyed, so the destructor must early-return when `!downtime_manager::is_loaded()` — otherwise
+`cbd` aborts when stopped while a downtime is still active.
+
+---
+
 ## Key differences from the engine implementation
 
 | Aspect | Engine | Broker |
@@ -508,5 +754,5 @@ calls `schedule_downtime()` for each entry (with `triggered_by` preserved) follo
 | Downtime effect | `inc/dec_scheduled_downtime_depth()` on engine objects | DB update + cache counter |
 | `start/end_downtime_effect` | Triggers engine notification pipeline | Updates `hosts`/`services` table and cache |
 | `notify_broker` | Publishes BBDO event *to* Broker | Updates DB and/or publishes to clients |
-| Comment creation | Internal engine comment map | Can be omitted or stored in DB |
+| Comment creation | Internal engine comment map | `pb_comment` row in DB; `internal_id` from a disjoint high range (see [Comments for Broker-managed downtimes](#comments-for-broker-managed-downtimes)) |
 | `host_downtime` / `service_downtime` sources | Compiled with engine objects | Must have broker-specific specialisations |
