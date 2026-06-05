@@ -18,7 +18,6 @@
  */
 #include "com/centreon/engine/retention/anomalydetection.hh"
 
-using com::centreon::common::opt;
 using com::centreon::engine::map_customvar;
 using namespace com::centreon::engine::retention;
 
@@ -33,7 +32,8 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& right) {
   return *this;
 }
 
-bool anomalydetection::operator==(anomalydetection const& right) const noexcept {
+bool anomalydetection::operator==(
+    anomalydetection const& right) const noexcept {
   if (!(static_cast<const service&>(*this) ==
         static_cast<const service&>(right))) {
     return false;
@@ -41,7 +41,8 @@ bool anomalydetection::operator==(anomalydetection const& right) const noexcept 
   return _sensitivity == right._sensitivity;
 }
 
-bool anomalydetection::operator!=(anomalydetection const& right) const noexcept {
+bool anomalydetection::operator!=(
+    anomalydetection const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -50,7 +51,7 @@ bool anomalydetection::set(char const* key, char const* value) {
   if (_sensitivity_key == key) {
     double sensitivity;
     if (absl::SimpleAtod(value, &sensitivity)) {
-      _sensitivity.set(sensitivity);
+      _sensitivity = sensitivity;
       return true;
     }
     return false;
