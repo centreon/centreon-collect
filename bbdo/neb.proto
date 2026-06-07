@@ -531,6 +531,10 @@ message Downtime {
   bool started = 16;
   bool cancelled = 17;
   bool fixed = 18;
+  /* internal_id of the associated comment row. Only persisted in the broker
+   * cache (notification_mode=broker) so a reloaded downtime can delete its
+   * comment at the end; unused in the BBDO pb_downtime event flow. */
+  uint64 comment_id = 19;
 }
 
 /* io::neb, neb::de_pb_custom_variable, 13 */
@@ -902,6 +906,16 @@ message BrokerCache {
     repeated HostServiceId services = 3;
   }
   repeated ServiceGroupPair servicegroups = 7;
+
+  /* Active (started, not yet ended) downtimes, persisted so that Broker can
+   * re-establish them in the downtime_manager after a restart (only meaningful
+   * when notification_mode=broker). */
+  repeated Downtime active_downtimes = 8;
+
+  /* Next internal_id to mint for a Broker-originated downtime comment. Persisted
+   * so the partitioned counter (>= INT32_MAX/2) stays monotonic across restarts
+   * (only meaningful when notification_mode=broker). */
+  uint64 next_downtime_comment_id = 9;
 }
 
 /* Ignore */

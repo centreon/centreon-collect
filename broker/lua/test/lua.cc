@@ -57,12 +57,17 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
+    _logger = log_v2::instance().get(log_v2::LUA);
+
     std::error_code ec;
     std::filesystem::remove("/tmp/broker_test.cache", ec);
     if (ec)
       _logger->error("Failed to remove .cache directory: {}", ec.message());
 
-    _logger = log_v2::instance().get(log_v2::LUA);
+    /* Many tests make the Lua script log into /tmp/log and then parse it. A
+     * test failing before its own cleanup would leave the file behind and the
+     * next test would parse the previous one's output. */
+    std::filesystem::remove("/tmp/log", ec);
 
     try {
       config::applier::init<
@@ -4352,14 +4357,22 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
-        *it1 == "is_volatile" || *it1 == "long_output" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type") {
+    if (*it1 == "dependent_service_id" || *it1 == "host_name" ||
+        *it1 == "icon_id" || *it1 == "internal_id" || *it1 == "is_volatile" ||
+        *it1 == "long_output" || *it1 == "severity_id" || *it1 == "tags" ||
+        *it1 == "type") {
       ++it1;
       continue;
     }
+    /* Reported without ASSERT_TRUE so that the cleanup below still runs: a
+     * leaked /tmp/log would be read by the next test and make it fail too. The
+     * bound check also comes first, l1.end() must not be dereferenced. */
+    if (it == l1.end() || *it1 < *it) {
+      ADD_FAILURE() << "key '" << *it1
+                    << "' has no counterpart in the other BBDO version";
+      break;
+    }
     std::cout << *it << " <=> " << *it1 << std::endl;
-    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
     if (*it1 == *it) {
       ++it;
       ++it1;
@@ -4438,8 +4451,15 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
       ++it1;
       continue;
     }
+    /* Reported without ASSERT_TRUE so that the cleanup below still runs: a
+     * leaked /tmp/log would be read by the next test and make it fail too. The
+     * bound check also comes first, l1.end() must not be dereferenced. */
+    if (it == l1.end() || *it1 < *it) {
+      ADD_FAILURE() << "key '" << *it1
+                    << "' has no counterpart in the other BBDO version";
+      break;
+    }
     std::cout << *it << " <=> " << *it1 << std::endl;
-    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
     if (*it1 == *it) {
       ++it;
       ++it1;
@@ -4517,8 +4537,15 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
       ++it1;
       continue;
     }
+    /* Reported without ASSERT_TRUE so that the cleanup below still runs: a
+     * leaked /tmp/log would be read by the next test and make it fail too. The
+     * bound check also comes first, l1.end() must not be dereferenced. */
+    if (it == l1.end() || *it1 < *it) {
+      ADD_FAILURE() << "key '" << *it1
+                    << "' has no counterpart in the other BBDO version";
+      break;
+    }
     std::cout << *it << " <=> " << *it1 << std::endl;
-    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
     if (*it1 == *it) {
       ++it;
       ++it1;
@@ -4594,8 +4621,15 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
       ++it1;
       continue;
     }
+    /* Reported without ASSERT_TRUE so that the cleanup below still runs: a
+     * leaked /tmp/log would be read by the next test and make it fail too. The
+     * bound check also comes first, l1.end() must not be dereferenced. */
+    if (it == l1.end() || *it1 < *it) {
+      ADD_FAILURE() << "key '" << *it1
+                    << "' has no counterpart in the other BBDO version";
+      break;
+    }
     std::cout << *it << " <=> " << *it1 << std::endl;
-    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
     if (*it1 == *it) {
       ++it;
       ++it1;
