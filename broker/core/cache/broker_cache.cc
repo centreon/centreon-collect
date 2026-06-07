@@ -26,6 +26,7 @@
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
 #include "com/centreon/broker/neb/internal.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/state.pb.h"
 
 namespace com::centreon::broker::cache {
@@ -1438,7 +1439,11 @@ void broker_cache::update_host(
       hst.set_last_notification(hs.last_notification());
       hst.set_next_host_notification(hs.next_host_notification());
       hst.set_acknowledgement_type(hs.acknowledgement_type());
-      hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      /* When Broker owns downtime management, the cached depth is authoritative
+       * (maintained by broker_downtime_callbacks); don't let an Engine status
+       * overwrite it. */
+      if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+        hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
       updated = true;
     } else {
       SPDLOG_LOGGER_WARN(_logger,
@@ -1626,7 +1631,11 @@ void broker_cache::update_service(
   svc.set_last_notification(obj.last_notification());
   svc.set_next_notification(obj.next_notification());
   svc.set_acknowledgement_type(obj.acknowledgement_type());
-  svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+  /* When Broker owns downtime management, the cached scheduled_downtime_depth
+   * is authoritative (maintained by broker_downtime_callbacks). A status from
+   * Engine must not overwrite it. */
+  if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
 }
 
 /**

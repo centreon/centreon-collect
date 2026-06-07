@@ -34,6 +34,8 @@
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/common/pool.hh"
+#include "common/downtimes/downtime.hh"
+#include "common/downtimes/downtime_manager.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -562,54 +564,21 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       commit_if_needed();
       break;
     case inherited_downtime::static_type(): {
-      std::string cmd;
-      timestamp now = timestamp::now();
       inherited_downtime const& dwn =
           *std::static_pointer_cast<inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing inherited downtime (ba id {}, now {}",
-          dwn.ba_id, now);
-      if (dwn.in_downtime)
-        cmd = fmt::format(
-            "[{}] "
-            "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id, now,
-            4102444799);
-      else
-        cmd = fmt::format(
-            "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(), dwn.ba_id);
-      _write_external_command(cmd);
+          _logger, "BAM: processing inherited downtime (ba id {}, in downtime {})",
+          dwn.ba_id, dwn.in_downtime);
+      _handle_inherited_downtime(dwn.ba_id, dwn.in_downtime);
     } break;
     case pb_inherited_downtime::static_type(): {
-      std::string cmd;
-      timestamp now = timestamp::now();
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: processing pb inherited downtime (ba id {}, "
-                          "now {}, in downtime {})",
-                          dwn.obj().ba_id(), now, dwn.obj().in_downtime());
-      if (dwn.obj().in_downtime())
-        cmd = fmt::format(
-            "[{}] "
-            "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
-            dwn.obj().ba_id(), now, 4102444799);
-      else
-        cmd = fmt::format(
-            "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;Centreon "
-            "Broker BAM Module;Automatic downtime triggered by BA downtime "
-            "inheritance\n",
-            now, config::applier::state::instance().poller_id(),
-            dwn.obj().ba_id());
-      _write_external_command(cmd);
+                          "in downtime {})",
+                          dwn.obj().ba_id(), dwn.obj().in_downtime());
+      _handle_inherited_downtime(dwn.obj().ba_id(), dwn.obj().in_downtime());
     } break;
     case neb::pb_instance::static_type(): {
       auto inst = std::static_pointer_cast<neb::pb_instance>(data);
@@ -618,7 +587,13 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
         config::applier::state::instance().set_instance_running(instance_id,
                                                                 true);
       } else {
-        if (config::applier::state::instance().has_connection_from_poller(
+        /* When Broker owns downtime management, the downtimes live in the
+         * Broker downtime_manager and are NOT re-sent by Engine after a
+         * restart. Resetting the KPI downtime state on poller stop would then
+         * wrongly drop inherited downtimes that must survive the restart, so we
+         * only reset it in the Engine-managed case. */
+        if (!com::centreon::common::downtimes::downtime_manager::is_loaded() &&
+            config::applier::state::instance().has_connection_from_poller(
                 instance_id)) {
           _logger->debug(
               "BAM: poller instance {} stopped, resetting downtime state",
@@ -849,6 +824,84 @@ void monitoring_stream::_write_external_command(const std::string& cmd) {
         if (!ec)
           _async_write_external_commands();
       });
+}
+
+/**
+ * @brief Apply (or remove) the inherited downtime of a BA on its virtual
+ * service.
+ *
+ * Two modes are supported, depending on who owns downtime management:
+ *  - Engine (default): an external command (SCHEDULE_SVC_DOWNTIME /
+ *    DEL_SVC_DOWNTIME_FULL) is sent to Engine, exactly as historically done.
+ *  - Broker (notification_mode=broker, i.e. the downtime_manager singleton is
+ *    loaded): the downtime is scheduled/removed directly through the in-process
+ *    downtime_manager, no external command is sent to Engine.
+ *
+ * @param ba_id        The BA identifier.
+ * @param in_downtime  true to set the inherited downtime, false to remove it.
+ */
+void monitoring_stream::_handle_inherited_downtime(uint32_t ba_id,
+                                                   bool in_downtime) {
+  namespace dt = com::centreon::common::downtimes;
+  static const std::string author{"Centreon Broker BAM Module"};
+  static const std::string comment{
+      "Automatic downtime triggered by BA downtime inheritance"};
+
+  if (!dt::downtime_manager::is_loaded()) {
+    // Mode 1: Engine owns downtimes -> historical external command path.
+    timestamp now = timestamp::now();
+    std::string cmd;
+    if (in_downtime)
+      cmd = fmt::format(
+          "[{}] "
+          "SCHEDULE_SVC_DOWNTIME;_Module_BAM_{};ba_{};{};{};1;0;0;{};{}\n",
+          now, config::applier::state::instance().poller_id(), ba_id, now,
+          4102444799, author, comment);
+    else
+      cmd = fmt::format(
+          "[{}] DEL_SVC_DOWNTIME_FULL;_Module_BAM_{};ba_{};;;1;0;;{};{}\n", now,
+          config::applier::state::instance().poller_id(), ba_id, author,
+          comment);
+    _write_external_command(cmd);
+    return;
+  }
+
+  // Mode 2: Broker owns downtimes -> drive the downtime_manager directly.
+  if (in_downtime) {
+    auto b = _applier.find_ba(ba_id);
+    if (!b) {
+      _logger->error(
+          "BAM: BA {} not found, cannot schedule inherited downtime", ba_id);
+      return;
+    }
+    time_t now = time(nullptr);
+    uint64_t new_id = 0;
+    _logger->debug(
+        "BAM: scheduling broker-managed inherited downtime for BA {} "
+        "(host {}, service {})",
+        ba_id, b->get_host_id(), b->get_service_id());
+    dt::downtime_manager::instance().schedule_downtime(
+        dt::downtime::service_downtime, b->get_host_id(), b->get_service_id(),
+        now /*entry_time*/, author, comment, now /*start_time*/,
+        4102444799 /*end_time*/, true /*fixed*/, 0 /*triggered_by*/,
+        0 /*duration*/, &new_id);
+  } else {
+    std::pair<std::string, std::string> names = _ba_mapping.get_service(ba_id);
+    if (names.first.empty() || names.second.empty()) {
+      _logger->error(
+          "BAM: BA {} virtual service mapping not found, cannot remove "
+          "inherited downtime",
+          ba_id);
+      return;
+    }
+    _logger->debug(
+        "BAM: removing broker-managed inherited downtime for BA {} "
+        "(host '{}', service '{}')",
+        ba_id, names.first, names.second);
+    dt::downtime_manager::instance()
+        .delete_downtime_by_hostname_service_description_start_time_comment(
+            names.first, names.second, std::nullopt /*start_time*/, comment);
+  }
 }
 
 void monitoring_stream::_async_write_external_commands() {

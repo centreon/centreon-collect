@@ -1317,7 +1317,9 @@ void stream::_init_statements() {
       "next_host_notification=?,"    // 23: next_notification
       "acknowledged=?,"              // 24: acknowledgement_type != NONE
       "acknowledgement_type=?,"      // 25: acknowledgement_type
-      "scheduled_downtime_depth=? "  // 26: downtime_depth
+      // 26: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
+      // keeps the depth already set by Broker instead of overwriting it.
+      "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
       "WHERE host_id=?"              // 27: host_id
   );
 
@@ -1350,7 +1352,9 @@ void stream::_init_statements() {
       "next_notification=?,"                // 24: next_notification
       "acknowledged=?,"                     // 25: acknowledgement_type != NONE
       "acknowledgement_type=?,"             // 26: acknowledgement_type
-      "scheduled_downtime_depth=? "         // 27: downtime_depth
+      // 27: downtime_depth. COALESCE so a NULL bind (Broker owns downtimes)
+      // keeps the depth already set by Broker instead of overwriting it.
+      "scheduled_downtime_depth=COALESCE(?,scheduled_downtime_depth) "
       "WHERE host_id=? AND service_id=?");  // 28, 29
 
   const std::string hscr_resources_query(
@@ -1358,7 +1362,9 @@ void stream::_init_statements() {
       "status=?,"                     // 0: current_state
       "status_ordered=?,"             // 1: obtained from current_state
       "last_status_change=?,"         // 2: last_state_change
-      "in_downtime=?,"                // 3: downtime_depth() > 0
+      // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
+      // downtimes) keeps the in_downtime flag set by Broker.
+      "in_downtime=COALESCE(?,in_downtime),"
       "acknowledged=?,"               // 4: acknowledgement_type != NONE
       "status_confirmed=?,"           // 5: state_type == HARD
       "check_attempts=?,"             // 6: current_check_attempt
@@ -1375,7 +1381,9 @@ void stream::_init_statements() {
       "status=?,"                     // 0: current_state
       "status_ordered=?,"             // 1: obtained from current_state
       "last_status_change=?,"         // 2: last_state_change
-      "in_downtime=?,"                // 3: downtime_depth() > 0
+      // 3: downtime_depth() > 0. COALESCE so a NULL bind (Broker owns
+      // downtimes) keeps the in_downtime flag set by Broker.
+      "in_downtime=COALESCE(?,in_downtime),"
       "acknowledged=?,"               // 4: acknowledgement_type != NONE
       "status_confirmed=?,"           // 5: state_type == HARD
       "check_attempts=?,"             // 6: current_check_attempt

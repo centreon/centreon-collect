@@ -115,6 +115,7 @@ class monitoring_stream : public io::stream {
   void _update_status(std::string const& status);
   void _async_write_external_commands();
   void _write_external_command(const std::string& cmd);
+  void _handle_inherited_downtime(uint32_t ba_id, bool in_downtime);
 
   void _read_cache();
   void _write_cache();

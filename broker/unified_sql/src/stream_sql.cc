@@ -30,6 +30,7 @@
 #include "com/centreon/broker/unified_sql/database_configurator.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
+#include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -144,16 +145,20 @@ void stream::clean_tables(uint32_t instance_id) {
   query = fmt::format("DELETE FROM modules WHERE instance_id={}", instance_id);
   _mysql.run_query(query, database::mysql_error::clean_modules, 0);
 
-  // Cancellation of downtimes.
-  SPDLOG_LOGGER_DEBUG(
-      _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
-      instance_id);
-  query = fmt::format(
-      "UPDATE downtimes SET cancelled=1, actual_end_time={0}, "
-      "deletion_time={0} WHERE cancelled=0 AND instance_id={1}",
-      time(nullptr), instance_id);
+  // Cancellation of downtimes. When Broker owns downtime management, the
+  // downtimes belong to the Broker downtime_manager (not to the poller) and
+  // must survive a poller restart, so we must NOT cancel them here.
+  if (!com::centreon::common::downtimes::downtime_manager::is_loaded()) {
+    SPDLOG_LOGGER_DEBUG(
+        _logger_sql, "unified_sql: Cancellation of downtimes (instance_id: {})",
+        instance_id);
+    query = fmt::format(
+        "UPDATE downtimes SET cancelled=1, actual_end_time={0}, "
+        "deletion_time={0} WHERE cancelled=0 AND instance_id={1}",
+        time(nullptr), instance_id);
 
-  _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
+    _mysql.run_query(query, database::mysql_error::clean_downtimes, 0);
+  }
 
   // Remove comments.
   SPDLOG_LOGGER_DEBUG(_logger_sql,
@@ -2133,6 +2138,12 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
   auto h{static_cast<const neb::pb_host_status*>(d.get())};
   auto& hscr = h->obj();
 
+  /* When Broker owns downtime management, it is the sole writer of
+   * scheduled_downtime_depth / in_downtime; a host status from Engine must not
+   * touch them (bind NULL -> COALESCE keeps Broker's value). */
+  const bool broker_owns_downtimes =
+      com::centreon::common::downtimes::downtime_manager::is_loaded();
+
   SPDLOG_LOGGER_DEBUG(_logger_sql,
                       "unified_sql: pb host {} status check result output: "
                       "<<{}>> - last_check: {} - state: {}",
@@ -2213,7 +2224,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_bool(24, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(25, hscr.acknowledgement_type());
-        b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
+        if (broker_owns_downtimes)
+          b->set_null_i32(26);
+        else
+          b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, hscr.host_id());
         b->next_row();
         SPDLOG_LOGGER_TRACE(_logger_sql,
@@ -2265,7 +2279,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_update->bind_value_as_bool(
             24, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
-        _hscr_update->bind_value_as_i32(26, hscr.scheduled_downtime_depth());
+        if (broker_owns_downtimes)
+          _hscr_update->bind_null_i32(26);
+        else
+          _hscr_update->bind_value_as_i32(26, hscr.scheduled_downtime_depth());
         _hscr_update->bind_value_as_i32(27, hscr.host_id());
 
         _mysql.run_statement(*_hscr_update,
@@ -2283,7 +2300,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
         b->set_value_as_u64(2, hscr.last_state_change(),
                             mapping::entry::invalid_on_zero);
-        b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
+        if (broker_owns_downtimes)
+          b->set_null_bool(3);
+        else
+          b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
         b->set_value_as_u32(6, hscr.check_attempt());
@@ -2304,8 +2324,11 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
             1, hst_ordered_status[hscr.state()]);
         _hscr_resources_update->bind_value_as_u64_ext(
             2, hscr.last_state_change(), mapping::entry::invalid_on_zero);
-        _hscr_resources_update->bind_value_as_bool(
-            3, hscr.scheduled_downtime_depth() > 0);
+        if (broker_owns_downtimes)
+          _hscr_resources_update->bind_null_bool(3);
+        else
+          _hscr_resources_update->bind_value_as_bool(
+              3, hscr.scheduled_downtime_depth() > 0);
         _hscr_resources_update->bind_value_as_bool(
             4, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_resources_update->bind_value_as_bool(
@@ -3866,6 +3889,15 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();
 
+  /* When Broker owns downtime management (notification_mode=broker), Broker is
+   * the sole writer of scheduled_downtime_depth / in_downtime (it sets them
+   * through the adaptive status published by broker_downtime_callbacks). A
+   * service status coming from Engine must therefore NOT touch these columns:
+   * we bind NULL so the COALESCE in the prepared statement keeps Broker's
+   * value instead of overwriting it (which would race with Broker's update). */
+  const bool broker_owns_downtimes =
+      com::centreon::common::downtimes::downtime_manager::is_loaded();
+
   SPDLOG_LOGGER_DEBUG(
       _logger_sql,
       "unified_sql: processing pb service status of ({}, {}) - "
@@ -3946,10 +3978,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
                             mapping::entry::invalid_on_zero);
         b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(26, sscr.acknowledgement_type());
-        _logger_sql->debug("service3 ({}, {}) scheduled_downtime_depth: {}",
-                           sscr.host_id(), sscr.service_id(),
-                           sscr.scheduled_downtime_depth());
-        b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
+        if (broker_owns_downtimes)
+          b->set_null_i32(27);
+        else
+          b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
         b->set_value_as_i32(28, sscr.host_id());
         b->set_value_as_i32(29, sscr.service_id());
         b->next_row();
@@ -4004,10 +4036,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update->bind_value_as_bool(
             25, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
-        _logger_sql->debug("service4 ({}, {}) scheduled_downtime_depth: {}",
-                           sscr.host_id(), sscr.service_id(),
-                           sscr.scheduled_downtime_depth());
-        _sscr_update->bind_value_as_i32(27, sscr.scheduled_downtime_depth());
+        if (broker_owns_downtimes)
+          _sscr_update->bind_null_i32(27);
+        else
+          _sscr_update->bind_value_as_i32(27, sscr.scheduled_downtime_depth());
         _sscr_update->bind_value_as_i32(28, sscr.host_id());
         _sscr_update->bind_value_as_i32(29, sscr.service_id());
 
@@ -4035,10 +4067,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
         b->set_value_as_u64(2, sscr.last_state_change(),
                             mapping::entry::invalid_on_zero);
-        _logger_sql->debug("service5 ({}, {}) scheduled_downtime_depth: {}",
-                           sscr.host_id(), sscr.service_id(),
-                           sscr.scheduled_downtime_depth());
-        b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
+        if (broker_owns_downtimes)
+          b->set_null_bool(3);
+        else
+          b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
                              sscr.state_type() == ServiceStatus_StateType_HARD);
@@ -4069,11 +4101,11 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             1, svc_ordered_status[sscr.state()]);
         _sscr_resources_update->bind_value_as_u64_ext(
             2, sscr.last_state_change(), mapping::entry::invalid_on_zero);
-        _logger_sql->debug("service6 ({}, {}) scheduled_downtime_depth: {}",
-                           sscr.host_id(), sscr.service_id(),
-                           sscr.scheduled_downtime_depth());
-        _sscr_resources_update->bind_value_as_bool(
-            3, sscr.scheduled_downtime_depth() > 0);
+        if (broker_owns_downtimes)
+          _sscr_resources_update->bind_null_bool(3);
+        else
+          _sscr_resources_update->bind_value_as_bool(
+              3, sscr.scheduled_downtime_depth() > 0);
         _sscr_resources_update->bind_value_as_bool(
             4, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_resources_update->bind_value_as_bool(
