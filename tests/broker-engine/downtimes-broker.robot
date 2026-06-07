@@ -34,6 +34,7 @@ BEBDTMASS1
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${3}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     # Schedule host downtimes via Broker gRPC — each creates 1 host + 20 service downtimes
     # 50 hosts total: poller0=host_1..17, poller1=host_18..34, poller2=host_35..50
@@ -84,6 +85,7 @@ BEBDTSVCFIXED
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     ${start}    Ctn Get Round Current Date
     ${dt_id}    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600}
@@ -120,6 +122,7 @@ BEBDTSVCFIXED_CHECK_DEPTH
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     ${dt_id}    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600}
 
@@ -155,6 +158,7 @@ BEBDTHOSTFIXED
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     ${start}    Ctn Get Round Current Date
     ${dt_id}    Ctn Broker Schedule Host Downtime    host_1    ${3600}
@@ -192,6 +196,7 @@ BEBDTSVCREN
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     ${start}    Ctn Get Round Current Date
     ${dt_id}    Ctn Broker Schedule Service Downtime    host_1    service_1    ${3600}
@@ -233,6 +238,7 @@ BEBDTIM
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${5}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     # Schedule host downtimes via Broker gRPC — 250 hosts × 21 downtimes = 5250
     @{dt_ids}    Create List
@@ -284,6 +290,7 @@ BEBDRRD1
     Ctn Start Broker
     Ctn Start Engine
     Ctn Wait For Engine To Be Ready    ${start}    ${1}
+    Ctn Wait For Broker Downtime Manager    ${start}
 
     Ctn Process Service Check Result With Metrics    host_1    service_1    2    host_1:service_1 is CRITICAL HARD    20
     Sleep    1s
@@ -331,6 +338,16 @@ BEBDRRD1
     Ctn Kindly Stop Broker
 
 *** Keywords ***
+Ctn Wait For Broker Downtime Manager
+    [Documentation]    Wait until Broker has loaded its downtime_manager
+    ...    (notification_mode=broker) so the gRPC ScheduleDowntime/DeleteDowntime
+    ...    endpoints are usable. Avoids a startup race where a gRPC call would be
+    ...    rejected with "Downtime management is not enabled".
+    [Arguments]    ${start}    ${timeout}=${60}
+    ${content}    Create List    downtime management enabled, downtime manager loaded
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    ${timeout}
+    Should Be True    ${result}    Broker did not enable downtime management (notification_mode=broker) in time
+
 Ctn Clean Downtimes Before Suite
     [Documentation]    Run suite setup and clear all downtimes before starting the suite.
     Ctn Clean Before Suite
