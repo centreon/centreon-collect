@@ -163,6 +163,9 @@ std::vector<uint64_t> broker_downtime_callbacks::get_anomaly_detection_services(
  * downtime check. Cancels the timer if the schedule is empty.
  */
 void broker_downtime_callbacks::_arm_timer() {
+  /* Must be called WITHOUT _scheduled_downtimes_m held: it acquires it itself
+   * (guarding both the map read and the timer arming). */
+  absl::MutexLock lock(&_scheduled_downtimes_m);
   if (_scheduled_downtimes.empty()) {
     _downtime_timer.cancel();
     return;
@@ -183,11 +186,24 @@ void broker_downtime_callbacks::_arm_timer() {
  */
 void broker_downtime_callbacks::_on_timer() {
   time_t now = time(nullptr);
-  while (!_scheduled_downtimes.empty() &&
-         _scheduled_downtimes.begin()->first <= now) {
-    auto it = _scheduled_downtimes.begin();
-    auto dt = it->second;
-    _scheduled_downtimes.erase(it);
+  /* Pop ready entries one at a time UNDER the lock, but run the (potentially
+   * re-entrant) callbacks OUTSIDE the lock: handle_scheduled_downtime_by_id()
+   * ends up calling schedule_downtime_check(), which takes the same lock. */
+  while (true) {
+    std::shared_ptr<com::centreon::common::downtimes::downtime> dt;
+    bool has_entry = false;
+    {
+      absl::MutexLock lock(&_scheduled_downtimes_m);
+      if (!_scheduled_downtimes.empty() &&
+          _scheduled_downtimes.begin()->first <= now) {
+        auto it = _scheduled_downtimes.begin();
+        dt = it->second;
+        _scheduled_downtimes.erase(it);
+        has_entry = true;
+      }
+    }
+    if (!has_entry)
+      break;
     if (dt)
       handle_scheduled_downtime_by_id(dt->get_downtime_id());
     else
@@ -209,9 +225,13 @@ void broker_downtime_callbacks::schedule_downtime_check(uint64_t downtime_id,
       downtime::any_downtime, downtime_id);
   if (!dt)
     return;
-  bool rearm = _scheduled_downtimes.empty() ||
-               when < _scheduled_downtimes.begin()->first;
-  _scheduled_downtimes.insert({when, dt});
+  bool rearm;
+  {
+    absl::MutexLock lock(&_scheduled_downtimes_m);
+    rearm = _scheduled_downtimes.empty() ||
+            when < _scheduled_downtimes.begin()->first;
+    _scheduled_downtimes.insert({when, dt});
+  }
   if (rearm)
     _arm_timer();
 }
@@ -223,9 +243,13 @@ void broker_downtime_callbacks::schedule_downtime_check(uint64_t downtime_id,
  * @param when Unix timestamp at which the sweep should run.
  */
 void broker_downtime_callbacks::schedule_expire_downtime(time_t when) {
-  bool rearm = _scheduled_downtimes.empty() ||
-               when < _scheduled_downtimes.begin()->first;
-  _scheduled_downtimes.insert({when, nullptr});
+  bool rearm;
+  {
+    absl::MutexLock lock(&_scheduled_downtimes_m);
+    rearm = _scheduled_downtimes.empty() ||
+            when < _scheduled_downtimes.begin()->first;
+    _scheduled_downtimes.insert({when, nullptr});
+  }
   if (rearm)
     _arm_timer();
 }
@@ -237,16 +261,22 @@ void broker_downtime_callbacks::schedule_expire_downtime(time_t when) {
  * @param downtime_id The downtime whose scheduled event should be cancelled.
  */
 void broker_downtime_callbacks::remove_downtime_check(uint64_t downtime_id) {
-  for (auto it = _scheduled_downtimes.begin();
-       it != _scheduled_downtimes.end(); ++it) {
-    if (it->second && it->second->get_downtime_id() == downtime_id) {
-      bool was_first = it == _scheduled_downtimes.begin();
-      _scheduled_downtimes.erase(it);
-      if (was_first)
-        _arm_timer();
-      return;
+  bool was_first = false;
+  bool found = false;
+  {
+    absl::MutexLock lock(&_scheduled_downtimes_m);
+    for (auto it = _scheduled_downtimes.begin();
+         it != _scheduled_downtimes.end(); ++it) {
+      if (it->second && it->second->get_downtime_id() == downtime_id) {
+        was_first = it == _scheduled_downtimes.begin();
+        _scheduled_downtimes.erase(it);
+        found = true;
+        break;
+      }
     }
   }
+  if (found && was_first)
+    _arm_timer();
 }
 
 /**

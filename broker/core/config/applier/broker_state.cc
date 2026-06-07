@@ -57,10 +57,20 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
                              ? notification_mode_broker
                              : notification_mode_engine;
   }
-  if (_notification_mode == notification_mode_broker)
+  if (_notification_mode == notification_mode_broker) {
     com::centreon::common::downtimes::downtime_manager::load(
         std::make_unique<broker_downtime_callbacks>(
             com::centreon::common::pool::instance().io_context()));
+    /* This message is the signal that Broker now owns downtime management and
+     * that the gRPC ScheduleDowntime/DeleteDowntime endpoints are usable. It
+     * goes to the CORE logger (enabled at info by default) rather than the
+     * CONFIG logger (error by default) so it is reliably observable. */
+    com::centreon::common::log_v2::log_v2::instance()
+        .get(com::centreon::common::log_v2::log_v2::CORE)
+        ->info(
+            "notification_mode=broker: downtime management enabled, downtime "
+            "manager loaded");
+  }
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).

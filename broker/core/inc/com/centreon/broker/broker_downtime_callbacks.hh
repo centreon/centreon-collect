@@ -54,16 +54,25 @@ class broker_downtime_callbacks
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, int32_t>
       _pending_flex_downtimes ABSL_GUARDED_BY(_pending_flex_m);
 
+  /** Guards _scheduled_downtimes and the arming of _downtime_timer: these are
+   *  touched both by the io_context timer thread (_on_timer/_arm_timer) and by
+   *  gRPC handler threads (schedule_downtime_check/remove_downtime_check via the
+   *  downtime_manager), so they need mutual exclusion. */
+  mutable absl::Mutex _scheduled_downtimes_m;
   /** Scheduled downtime events, keyed by fire time.
    *  A nullptr value is a sentinel for expire-downtime sweeps. */
   absl::btree_multimap<
       time_t,
       std::shared_ptr<com::centreon::common::downtimes::downtime>>
-      _scheduled_downtimes;
+      _scheduled_downtimes ABSL_GUARDED_BY(_scheduled_downtimes_m);
   boost::asio::steady_timer _downtime_timer;
 
-  void _arm_timer();
-  void _on_timer();
+  /* Both acquire _scheduled_downtimes_m internally, so they must be called
+   * WITHOUT it held (they also call each other / the re-entrant
+   * schedule_downtime_check). ABSL_LOCKS_EXCLUDED documents and lets the thread
+   * safety analysis enforce this, preventing a re-entrant deadlock. */
+  void _arm_timer() ABSL_LOCKS_EXCLUDED(_scheduled_downtimes_m);
+  void _on_timer() ABSL_LOCKS_EXCLUDED(_scheduled_downtimes_m);
 
  public:
   broker_downtime_callbacks(boost::asio::io_context& io_context);

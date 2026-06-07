@@ -80,6 +80,12 @@ downtime::downtime(uint64_t host_id,
  *        the downtime deletion.
  */
 downtime::~downtime() {
+  /* When the downtime_manager itself is being torn down (unload()), its
+   * _instance is already null while the remaining scheduled downtimes are
+   * destroyed. Calling instance() then would assert. In that case there is
+   * nothing/no one left to notify, so just skip. */
+  if (!downtime_manager::is_loaded())
+    return;
   downtime_manager::instance().callbacks().delete_downtime_comment(
       _get_comment_id());
   /* send data to event broker */
