@@ -1,18 +1,39 @@
 
 INSERT IGNORE INTO `nagios_server` (
-       id, name, localhost, is_default, last_restart, ns_ip_address,
-       ns_activate, ns_status,
+       id, name, localhost, is_default,
        ssh_port, gorgone_communication_type, gorgone_port, uid,
-       init_script_centreontrapd, snmp_trapd_path_conf, centreonbroker_cfg_path, engine_name, engine_version, centreonbroker_logs_path, remote_id, remote_server_use_as_proxy,updated)
+       last_restart, ns_ip_address,
+       ns_activate, ns_status, engine_start_command,
+       engine_stop_command,engine_restart_command, engine_reload_command, nagios_bin, nagiostats_bin, nagios_perfdata,
+       broker_reload_command, centreonbroker_cfg_path, centreonbroker_module_path, centreonconnector_path,
+       init_script_centreontrapd, snmp_trapd_path_conf, engine_name, engine_version, centreonbroker_logs_path, remote_id, remote_server_use_as_proxy,updated)
   VALUES
   (
-    2, 'pullwsspoller', '0', 0, NULL, '127.0.0.1',
-    '1', '0', 22, '4', 443, 42992345, 'centreontrapd', '/etc/snmp/centreon_traps/','/etc/centreon-broker',
+    2, 'pullwsspoller', '0', 0,
+    22, '4', 443, 42992345,
+    NULL, '127.0.0.1',
+    '1', '0', 'service centengine start',
+    'service centengine stop', 'service centengine restart',
+    'service centengine reload', '/usr/sbin/centengine',
+    '/usr/sbin/centenginestats', '/var/log/centreon-engine/service-perfdata',
+    'service cbd reload', '/etc/centreon-broker',
+    '/usr/share/centreon/lib/centreon-broker',
+    '/usr/lib64/centreon-connector',
+    'centreontrapd', '/etc/snmp/centreon_traps/',
     NULL, NULL, '/var/log/centreon-broker/',
     NULL, '1', '0'
-  ), (
-    4, 'pullwsspoller_4', '0', 0, NULL, '127.0.0.1',
-    '1', '0', 22, '4', 443, 44992764, 'centreontrapd', '/etc/snmp/centreon_traps/', '/etc/centreon-broker',
+  ),(
+    4, 'pullwsspoller_4', '0', 0,
+    22, '4', 443, 44992764,
+    NULL, '127.0.0.1',
+    '1', '0', 'service centengine start',
+    'service centengine stop', 'service centengine restart',
+    'service centengine reload', '/usr/sbin/centengine',
+    '/usr/sbin/centenginestats', '/var/log/centreon-engine/service-perfdata',
+    'service cbd reload', '/etc/centreon-broker',
+    '/usr/share/centreon/lib/centreon-broker',
+    '/usr/lib64/centreon-connector',
+    'centreontrapd', '/etc/snmp/centreon_traps/',
     NULL, NULL, '/var/log/centreon-broker/',
     NULL, '1', '0'
   );

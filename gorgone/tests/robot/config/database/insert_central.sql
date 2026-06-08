@@ -8,16 +8,20 @@
 -- TODO, we need a script that work when the value is already present.
 
 INSERT IGNORE INTO `nagios_server` (
-       id, name, localhost, is_default, last_restart, ns_ip_address,
+       id, name, localhost, is_default,
+       ssh_port,gorgone_communication_type,gorgone_port, uid,
+       last_restart, ns_ip_address,
        ns_activate, ns_status, engine_start_command,
        engine_stop_command,engine_restart_command,
        engine_reload_command, nagios_bin,
        nagiostats_bin, nagios_perfdata,
-       broker_reload_command, centreonbroker_cfg_path, centreonbroker_module_path, centreonconnector_path, ssh_port,gorgone_communication_type,gorgone_port,
+       broker_reload_command, centreonbroker_cfg_path, centreonbroker_module_path, centreonconnector_path,
        init_script_centreontrapd, snmp_trapd_path_conf, engine_name, engine_version, centreonbroker_logs_path, remote_id, remote_server_use_as_proxy,updated)
   VALUES
   (
-    1, 'Central', '1', 1, 1711560733, '127.0.0.1',
+    1, 'Central', '1', 1,
+    22, '1', 5556, 123456789,
+    1711560733, '127.0.0.1',
     '1', '0', 'service centengine start',
     'service centengine stop', 'service centengine restart',
     'service centengine reload', '/usr/sbin/centengine',
@@ -25,7 +29,7 @@ INSERT IGNORE INTO `nagios_server` (
     'service cbd reload', '/etc/centreon-broker',
     '/usr/share/centreon/lib/centreon-broker',
     '/usr/lib64/centreon-connector',
-    22, '1', 5556, 'centreontrapd', '/etc/snmp/centreon_traps/',
+     'centreontrapd', '/etc/snmp/centreon_traps/',
     NULL, NULL, NULL, NULL, '1', '0'
   );
 
