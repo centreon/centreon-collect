@@ -16,10 +16,9 @@
  * For more information : contact@centreon.com
  */
 
-#include <absl/synchronization/mutex.h>
 #include <gtest/gtest.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <fstream>
+#include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
 #include "common/crypto/aes256.hh"
 
@@ -176,7 +175,7 @@ TEST_F(process_test, stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("hello{}\n", ii));
     expected += fmt::format("receive hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -197,7 +196,7 @@ TEST_F(process_test, shell_stdin_to_stdout) {
       // in order to let some async_read_some complete
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    loopback->write_to_stdin(fmt::format("echo hello{}\n", ii));
+    loopback->write_to_child_stdin(fmt::format("echo hello{}\n", ii));
     expected += fmt::format("hello{}\n", ii);
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -302,9 +301,14 @@ static void run_with_streaming_handler(const std::string& cmd,
   chunk_count_out = 0;
   size_t expected_pos = 0;
 
-  using reader_type = std::function<void(const std::string_view&)>;
+  using reader_type = std::function<void(const boost::system::error_code&,
+                                         const std::string_view&)>;
 
-  reader_type chunk_handler = [&](const std::string_view& data) {
+  reader_type chunk_handler = [&](const boost::system::error_code& err,
+                                  const std::string_view& data) {
+    if (err) {
+      return;
+    }
     absl::MutexLock l(&mutex);
     ++chunk_count_out;
     for (unsigned char c : data) {
@@ -316,7 +320,8 @@ static void run_with_streaming_handler(const std::string& cmd,
     accumulated_out.append(data);
   };
 
-  reader_type noop_handler = [](const std::string_view&) {};
+  reader_type noop_handler = [](const boost::system::error_code&,
+                                const std::string_view&) {};
 
   auto proc = std::make_shared<process<true>>(g_io_context, _logger, cmd, true,
                                               false, nullptr);

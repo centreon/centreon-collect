@@ -16,15 +16,18 @@
  * For more information : contact@centreon.com
  *
  */
+#include <absl/time/time.h>
 #include <gtest/gtest.h>
 
-#include <fstream>
+#include <boost/system/detail/error_code.hpp>
+#include <chrono>
+#include <ostream>
+#include <thread>
 
-#include "com/centreon/clib.hh"
+#include "com/centreon/common/process/process.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/file_stream.hh"
-#include "com/centreon/misc/command_line.hh"
 
 using namespace com::centreon::connector;
 using namespace com::centreon::exceptions;
@@ -36,6 +39,10 @@ using duration = system_clock::duration;
 static std::string perl_connector = BUILD_PATH
     "/connectors/perl/"
     "centreon_connector_perl --debug --log-file=/tmp/connector.log";
+
+static std::string perl_connector_without_log = BUILD_PATH
+    "/connectors/perl/"
+    "centreon_connector_perl --debug";
 
 static constexpr const char cmd1[] =
     "2\x00"
@@ -105,16 +112,8 @@ static constexpr const char scripts[] =
   "3\0"                   \
   "4242\0"                \
   "1\0"                   \
-  "9\0"                   \
-  " time out time out\0"  \
-  " \0\0\0\0"
-
-#define TimeoutKillTermRESULT \
-  "3\0"                       \
-  "4242\0"                    \
-  "1\0"                       \
-  "15\0"                      \
-  " time out\0"               \
+  "3\0"                   \
+  "(Process Timeout)\0"   \
   " \0\0\0\0"
 
 #define TimeoutTermCMD \
@@ -130,224 +129,93 @@ using work_guard =
 static shared_io_context _io_context(std::make_shared<asio::io_context>());
 static std::unique_ptr<work_guard> _work_guard;
 
-class process : public std::enable_shared_from_this<process> {
-  shared_io_context _io_context;
-  asio::readable_pipe _out, _err;
-  asio::writable_pipe _in;
+class process : public com::centreon::common::process<true> {
+  std::string _read_stdout ABSL_GUARDED_BY(_read_stdout_m);
+  boost::system::error_code _read_stdout_err ABSL_GUARDED_BY(_read_stdout_m);
+  absl::Mutex _read_stdout_m;
 
-  std::string _cmd_line;
-  pid_t _child;
+  std::optional<int> _exit_code ABSL_GUARDED_BY(_exit_code_m);
+  absl::Mutex _exit_code_m;
 
-  mutable std::mutex _protect;
-  mutable std::condition_variable _wait_for_completion;
+  void _on_read_stdout(const boost::system::error_code& err,
+                       const std::string_view& data);
 
  public:
   using pointer = std::shared_ptr<process>;
-
-  process(const std::string& cmd_line, const shared_io_context& io_context);
-  ~process() { kill(SIGKILL); }
+  process(const std::string& cmd_line, const shared_io_context& io_context)
+      : com::centreon::common::process<true>(io_context,
+                                             log::core(),
+                                             cmd_line,
+                                             false,
+                                             true,
+                                             {}) {}
 
   void start();
-  void close_std_in() { _in.close(); }
-  void kill(int signal);
-  void write(const std::string& data, const duration& time_out);
+
+  std::shared_ptr<process> shared_from_this() {
+    return std::static_pointer_cast<process>(
+        com::centreon::common::process<true>::shared_from_this());
+  }
+
+  std::string read_stdout(const duration& time_out);
+
   int get_exit_code();
-  std::string read_std_out(const duration& time_out);
-  std::string read_std_err(const duration& time_out);
 };
 
-process::process(const std::string& cmd_line,
-                 const shared_io_context& io_context)
-    : _io_context(io_context),
-      _out(*io_context),
-      _err(*io_context),
-      _in(*io_context),
-      _cmd_line(cmd_line),
-      _child(-1) {}
-
 void process::start() {
-  // Open pipes.
-  int in_pipe[2];
-  int err_pipe[2];
-  int out_pipe[2];
-  if (pipe(in_pipe)) {
-    char const* msg(strerror(errno));
-    throw msg_fmt("{}", msg);
-  } else if (pipe(err_pipe)) {
-    char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    throw msg_fmt("{}", msg);
-  }
-  if (pipe(out_pipe)) {
-    char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    close(err_pipe[0]);
-    close(err_pipe[1]);
-    throw msg_fmt("{}", msg);
-  }
+  com::centreon::common::process<true>::start_process(
+      [me = shared_from_this()](const com::centreon::common::process<true>&,
+                                int exit_code,
+                                com::centreon::common::e_exit_status,
+                                const std::string& stdout, const std::string&) {
+        absl::MutexLock l(&me->_exit_code_m);
+        me->_exit_code = exit_code;
+      },
+      [me = shared_from_this()](const boost::system::error_code& err,
+                                const std::string_view& data) {
+        me->_on_read_stdout(err, data);
+      },
+      [](const boost::system::error_code&, const std::string_view&) {}, {});
+}
 
-  _io_context->notify_fork(asio::io_context::fork_prepare);
-  // Execute Perl file.
-  _child = fork();
-  if (_child > 0) {  // Parent
-    _io_context->notify_fork(asio::io_context::fork_parent);
-    log::core()->info("start child pid={}", _child);
-    close(in_pipe[0]);
-    close(err_pipe[1]);
-    close(out_pipe[1]);
-    _in.assign(in_pipe[1]);
-    _out.assign(out_pipe[0]);
-    _err.assign(err_pipe[0]);
-  } else if (!_child) {  // Child
-    _io_context->notify_fork(asio::io_context::fork_child);
-    _io_context->stop();
-    // Setup process.
-    close(in_pipe[1]);
-    close(err_pipe[0]);
-    close(out_pipe[0]);
-    if (dup2(in_pipe[0], STDIN_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(in_pipe[0]);
-      close(err_pipe[1]);
-      close(out_pipe[1]);
-      exit(3);
-    }
-    close(in_pipe[0]);
-    if (dup2(err_pipe[1], STDERR_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(err_pipe[1]);
-      close(out_pipe[1]);
-      exit(3);
-    }
-    close(err_pipe[1]);
-    if (dup2(out_pipe[1], STDOUT_FILENO) < 0) {
-      char const* msg(strerror(errno));
-      std::cerr << "dup2 error: " << msg << std::endl;
-      close(out_pipe[1]);
-      exit(3);
-    }
-    close(out_pipe[1]);
-
-    com::centreon::misc::command_line cmdline(_cmd_line);
-    char* const* args = cmdline.get_argv();
-
-    static char* env[] = {nullptr};
-
-    ::execve(args[0], args, env);
-
-    exit(EXIT_SUCCESS);
-
-  } else if (_child < 0) {  // Error
-    char const* msg(strerror(errno));
-    close(in_pipe[0]);
-    close(in_pipe[1]);
-    close(out_pipe[0]);
-    close(out_pipe[1]);
-    close(err_pipe[0]);
-    close(err_pipe[1]);
-    throw msg_fmt("{}", msg);
+void process::_on_read_stdout(const boost::system::error_code& err,
+                              const std::string_view& data) {
+  absl::MutexLock l(&_read_stdout_m);
+  _read_stdout_err = err;
+  if (err == asio::error::eof) {
+    _read_stdout = "eof";
+  } else {
+    _read_stdout += data;
   }
 }
 
-void process::kill(int signal) {
-  if (_child > 0) {
-    ::kill(_child, signal);
+std::string process::read_stdout(const duration& timeout) {
+  absl::MutexLock l(&_read_stdout_m);
+  if (!_read_stdout.empty()) {
+    return std::move(_read_stdout);
   }
-}
-
-void process::write(const std::string& data, const duration& time_out) {
-  using err_buff_pair = std::pair<boost::system::error_code, std::string>;
-  std::shared_ptr<err_buff_pair> buff(
-      std::make_shared<err_buff_pair>(boost::system::error_code(), data));
-
-  asio::async_write(_in,
-                    asio::buffer(buff->second.c_str(), buff->second.length()),
-                    [me = shared_from_this(), this, buff](
-                        const boost::system::error_code& err, size_t) {
-                      buff->first = err;
-                      std::unique_lock<std::mutex> l(_protect);
-                      _wait_for_completion.notify_one();
-                    });
-
-  std::unique_lock<std::mutex> l(_protect);
-  _wait_for_completion.wait_for(l, time_out);
-  if (buff->first) {
-    throw msg_fmt("fail to write:{}", buff->first.message());
-  }
-}
-
-std::string process::read_std_out(const duration& time_out) {
-  using recv_data =
-      std::tuple<boost::system::error_code, size_t, std::array<char, 4096>>;
-  std::shared_ptr<recv_data> data(std::make_shared<recv_data>());
-  _out.async_read_some(
-      asio::buffer(std::get<2>(*data)),
-      [me = shared_from_this(), this, data](
-          const boost::system::error_code& err, size_t nb_recv) {
-        std::get<0>(*data) = err;
-        std::get<1>(*data) = nb_recv;
-        std::unique_lock<std::mutex> l(_protect);
-        _wait_for_completion.notify_one();
-      });
-  std::unique_lock<std::mutex> l(_protect);
-  _wait_for_completion.wait_for(l, time_out);
-  if (std::get<0>(*data)) {
-    if (std::get<0>(*data) == asio::error::eof) {
-      return "eof";
-    }
-    log::core()->error("fail to read from std_out:{}",
-                       std::get<0>(*data).message());
-    throw msg_fmt("fail to read from std_out:{}", std::get<0>(*data).message());
-  }
-  return std::string(std::get<2>(*data).data(),
-                     std::get<2>(*data).data() + std::get<1>(*data));
-}
-
-std::string process::read_std_err(const duration& time_out) {
-  using recv_data =
-      std::tuple<boost::system::error_code, size_t, std::array<char, 4096>>;
-  std::shared_ptr<recv_data> data(std::make_shared<recv_data>());
-  _out.async_read_some(
-      asio::buffer(std::get<2>(*data)),
-      [me = shared_from_this(), this, data](
-          const boost::system::error_code& err, size_t nb_recv) {
-        std::get<0>(*data) = err;
-        std::get<1>(*data) = nb_recv;
-        std::unique_lock<std::mutex> l(_protect);
-        _wait_for_completion.notify_one();
-      });
-  std::unique_lock<std::mutex> l(_protect);
-  _wait_for_completion.wait_for(l, time_out);
-  if (std::get<0>(*data)) {
-    if (std::get<0>(*data) == asio::error::eof) {
-      return "eof";
-    }
-    log::core()->error("fail to read from std_err:{}",
-                       std::get<0>(*data).message());
-    throw msg_fmt("fail to read from std_err:{}", std::get<0>(*data).message());
-  }
-  return std::string(std::get<2>(*data).data(),
-                     std::get<2>(*data).data() + std::get<1>(*data));
+  _read_stdout_m.AwaitWithTimeout(
+      absl::Condition(
+          +[](process* proc) { return !proc->_read_stdout.empty(); }, this),
+      absl::Seconds(
+          std::chrono::duration_cast<std::chrono::seconds>(timeout).count()));
+  return std::move(_read_stdout);
 }
 
 int process::get_exit_code() {
-  if (_child <= 0) {
-    log::core()->error("son not started");
-    return -1;
+  absl::MutexLock l(&_exit_code_m);
+  if (_exit_code) {
+    return *_exit_code;
   }
-  int status;
-  waitpid(_child, &status, 0);
-  return status;
+  _exit_code_m.Await(absl::Condition(
+      +[](process* proc) { return proc->_exit_code.has_value(); }, this));
+  return *_exit_code;
 }
 
 class TestConnector : public testing::Test {
  public:
-  void SetUp() override{};
-  void TearDown() override{};
+  void SetUp() override {};
+  void TearDown() override {};
   static void SetUpTestSuite() {
     _work_guard = std::make_unique<work_guard>(_io_context->get_executor());
     std::thread t([]() { _io_context->run(); });
@@ -358,12 +226,12 @@ class TestConnector : public testing::Test {
   int wait_for_termination(process& p) { return p.get_exit_code(); }
 
   void write_cmd(process& p, std::string const& cmd) {
-    p.write(cmd, std::chrono::seconds(1));
-    p.close_std_in();
+    p.write_to_child_stdin(cmd);
+    // p.close_stdin();
   }
 
   std::string read_reply(process& p) {
-    return p.read_std_out(std::chrono::seconds(5));
+    return p.read_stdout(std::chrono::seconds(5));
   }
 
   static void _write_file(const char* filename,
@@ -398,6 +266,7 @@ TEST_F(TestConnector, EofOnStdin) {
   process::pointer p = std::make_shared<process>(perl_connector, _io_context);
   p->start();
   write_cmd(*p, "");
+  p->close_stdin();
 
   int retval = wait_for_termination(*p);
 
@@ -431,6 +300,7 @@ TEST_F(TestConnector, ExecuteModuleLoading) {
   // Read reply.
   std::string output{read_reply(*p)};
 
+  p->close_stdin();
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
@@ -473,11 +343,15 @@ TEST_F(TestConnector, ExecuteMultipleScripts) {
   // Read reply.
 
   std::string output, out_read;
-  do {
+  while (true) {
     out_read = read_reply(*p);
+    if (out_read.empty()) {
+      break;
+    }
     output += out_read;
-  } while (out_read != "eof");
+  }
 
+  p->close_stdin();
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
@@ -517,6 +391,7 @@ TEST_F(TestConnector, ExecuteSingleScript) {
   // Read reply.
   std::string output{read_reply(*p)};
 
+  p->close_stdin();
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
@@ -550,6 +425,8 @@ TEST_F(TestConnector, ExecuteSingleWarningScript) {
 
   // Read reply.
   std::string output{read_reply(*p)};
+
+  p->close_stdin();
 
   int retval{wait_for_termination(*p)};
 
@@ -586,6 +463,8 @@ TEST_F(TestConnector, ExecuteSingleCriticalScript) {
   // Read reply.
   std::string output{read_reply(*p)};
 
+  p->close_stdin();
+
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
@@ -616,7 +495,7 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
 
   // Process.
   process::pointer p = std::make_shared<process>(
-      perl_connector + " --log-file /tmp/log_file", _io_context);
+      perl_connector_without_log + " --log-file /tmp/log_file", _io_context);
   p->start();
 
   // Write command.
@@ -628,6 +507,8 @@ TEST_F(TestConnector, ExecuteSingleScriptLogFile) {
 
   // Read reply.
   std::string output{read_reply(*p)};
+
+  p->close_stdin();
 
   int retval{wait_for_termination(*p)};
 
@@ -677,6 +558,8 @@ TEST_F(TestConnector, ExecuteWithAdditionalCode) {
   // Read reply.
   std::string output{read_reply(*p)};
 
+  p->close_stdin();
+
   int retval{wait_for_termination(*p)};
 
   // Remove temporary files.
@@ -700,11 +583,12 @@ TEST_F(TestConnector, NonExistantScript) {
   // Read reply.
   std::string output{read_reply(*p)};
 
+  p->close_stdin();
+
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  ASSERT_NE(output.find("Embedded Perl error: failed to open Perl file"),
-            std::string::npos);
+  ASSERT_NE(output.find("failed to open Perl file"), std::string::npos);
   ASSERT_FALSE(memcmp(output.c_str(), NonExistantRESULT,
                       12));  // 12 is the length of beginning of the response
                              // without error message
@@ -726,7 +610,11 @@ TEST_F(TestConnector, TimeoutKill) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output(p->read_std_out(std::chrono::seconds(25)));
+  std::string output(p->read_stdout(std::chrono::seconds(25)));
+
+  std::this_thread::sleep_for(std::chrono::seconds(15));
+
+  p->close_stdin();
 
   int retval{wait_for_termination(*p)};
 
@@ -748,13 +636,14 @@ TEST_F(TestConnector, TimeoutTerm) {
   write_cmd(*p, oss.str());
 
   // Read reply.
-  std::string output(p->read_std_out(std::chrono::seconds(5)));
+  std::string output(p->read_stdout(std::chrono::seconds(5)));
+
+  p->close_stdin();
 
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  std::string expected(
-      TimeoutKillTermRESULT,
-      TimeoutKillTermRESULT + sizeof(TimeoutKillTermRESULT) - 1);
+  std::string expected(TimeoutKillRESULT,
+                       TimeoutKillRESULT + sizeof(TimeoutKillRESULT) - 1);
   ASSERT_EQ(output, expected);
 }

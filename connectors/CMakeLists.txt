@@ -3,6 +3,7 @@ project(connectors CXX)
 
 set(CONNECTOR_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${CONNECTOR_VERSION}\")
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/Findperl.cmake)
 
@@ -49,22 +50,27 @@ if(WITH_TESTING)
                               PROPERTIES GENERATED TRUE)
   include_directories(/usr/lib64/perl5/CORE)
 
-  include_directories(${PROJECT_SOURCE_DIR}/perl/inc)
-  include_directories(${PROJECT_SOURCE_DIR}/ssh/inc)
-  include_directories(${Libssh2_INCLUDE_DIR})
+  include_directories(${PROJECT_SOURCE_DIR}/perl/inc 
+    ${CMAKE_SOURCE_DIR}/common/process/inc 
+    ${PROJECT_SOURCE_DIR}/ssh/inc
+    ${Libssh2_INCLUDE_DIR}
+    ${CMAKE_BINARY_DIR}/connectors/perl)
 
   add_definitions(-DBUILD_PATH="${CMAKE_BINARY_DIR}")
 
   add_executable(
     ut_connector
     # Core sources
-    ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
     ${PROJECT_SOURCE_DIR}/common/src/log.cc
     ${PROJECT_SOURCE_DIR}/common/src/result.cc
     ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
     ${PROJECT_SOURCE_DIR}/common/src/parser.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
-    ${PROJECT_SOURCE_DIR}/perl/src/script.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/config.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
+    ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
     ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/checks/check.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/orders/options.cc
@@ -72,9 +78,11 @@ if(WITH_TESTING)
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/credentials.cc
     ${PROJECT_SOURCE_DIR}/ssh/src/sessions/session.cc
     # Test sources.
-    ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/perl/test/connector.cc
-    ${PROJECT_SOURCE_DIR}/perl/test/embedded_perl.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/script_child_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/policy_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/protocol_test.cc
+    ${PROJECT_SOURCE_DIR}/perl/test/main.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/buffer_handle.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/checks.cc
     ${PROJECT_SOURCE_DIR}/ssh/test/connector.cc
@@ -91,10 +99,20 @@ if(WITH_TESTING)
     ut_connector PRIVATE
     GTest::gtest GTest::gtest_main GTest::gmock GTest::gmock_main
     centreon_clib
+    centreon_process_no_crypto
+    centreon_hexdump
+    centreon_file_system
+    process_stat
+    pb_perl_connector_lib
+    protobuf::libprotobuf
+    Boost::process
+    Boost::program_options
+    re2::re2
     ${PERL_LIBRARIES}
     fmt::fmt
     spdlog::spdlog
     ssh2
+    OpenSSL::SSL
     absl::any absl::log absl::base absl::bits
     absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
     )

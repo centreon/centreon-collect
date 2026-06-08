@@ -49,6 +49,10 @@
       "platform": "linux"
     },
     {
+      "name": "boost-icl",
+      "platform": "linux"
+    },
+    {
       "name": "boost-parser",
       "platform": "windows"
     },
