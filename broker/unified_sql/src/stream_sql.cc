@@ -165,10 +165,18 @@ void stream::clean_tables(uint32_t instance_id) {
                       "unified sql: remove comments (instance_id: {})",
                       instance_id);
 
+  /* When Broker owns downtimes, the downtime comments (entry_type=2) belong to
+   * Broker's downtime_manager and must survive a poller restart, just like the
+   * downtimes themselves (see the downtime-cancellation guard above). So we keep
+   * them out of the per-instance purge. */
+  const char* keep_downtime_comments =
+      com::centreon::common::downtimes::downtime_manager::is_loaded()
+          ? " AND entry_type<>2"
+          : "";
   query = fmt::format(
       "UPDATE comments SET deletion_time={} WHERE instance_id={} AND "
-      "persistent=0 AND (deletion_time IS NULL OR deletion_time=0)",
-      time(nullptr), instance_id);
+      "persistent=0 AND (deletion_time IS NULL OR deletion_time=0){}",
+      time(nullptr), instance_id, keep_downtime_comments);
 
   _mysql.run_query(query, database::mysql_error::clean_comments, 0);
 
@@ -4504,6 +4512,10 @@ void stream::_process_engine_state(const std::shared_ptr<io::data>& d) {
   cfg.process_state(state->obj());
   auto& cache = config::applier::state::instance().cache();
   cache.merge(state->obj());
+  /* The cache now knows this poller's hosts/services: re-inject any active
+   * downtimes that were persisted across a Broker restart and were waiting for
+   * their resource to be known (centralized mode). */
+  cache.reinject_pending_downtimes();
 }
 
 /**

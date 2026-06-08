@@ -99,6 +99,18 @@ class downtime_manager {
                          uint64_t triggered_by,
                          uint32_t duration,
                          uint64_t* new_downtime_id);
+  void reload_started_downtime(uint64_t host_id,
+                               uint64_t service_id,
+                               time_t entry_time,
+                               const std::string& author,
+                               const std::string& comment_data,
+                               time_t start_time,
+                               time_t end_time,
+                               bool fixed,
+                               uint64_t triggered_by,
+                               uint32_t duration,
+                               uint64_t downtime_id,
+                               uint64_t comment_id);
   downtime_callbacks& callbacks() const;
 };
 }  // namespace com::centreon::common::downtimes

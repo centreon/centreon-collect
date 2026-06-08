@@ -488,7 +488,10 @@ uint64_t engine_downtime_callbacks::create_downtime_comment(
  *
  * @param comment_id The comment ID to delete.
  */
-void engine_downtime_callbacks::delete_downtime_comment(uint64_t comment_id) {
+void engine_downtime_callbacks::delete_downtime_comment(
+    uint64_t comment_id,
+    uint64_t /*host_id*/,
+    uint64_t /*service_id*/) {
   comment::delete_comment(comment_id);
 }
 

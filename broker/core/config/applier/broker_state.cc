@@ -18,6 +18,7 @@
 
 #include "broker/core/config/applier/broker_state.hh"
 #include "bbdo/bbdo.pb.h"
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
@@ -37,6 +38,37 @@ broker_state::~broker_state() {
     _watch_engine_conf_timer->cancel();
   }
   save_topology_cache();
+  /* Hand the started downtimes over to the global cache so they are persisted
+   * with it and can be re-injected on the next start. This must happen BEFORE
+   * unload() (which destroys the manager) and while the cache is still alive
+   * (the base state destructor, which owns it, runs after this one). */
+  if (com::centreon::common::downtimes::downtime_manager::is_loaded()) {
+    std::vector<Downtime> active;
+    for (const auto& [_, dt] : com::centreon::common::downtimes::
+             downtime_manager::instance().get_scheduled_downtimes()) {
+      if (!dt->is_in_effect())
+        continue;
+      Downtime d;
+      d.set_id(dt->get_downtime_id());
+      d.set_host_id(dt->host_id());
+      d.set_service_id(dt->service_id());
+      d.set_author(dt->get_author());
+      d.set_comment_data(dt->get_comment());
+      d.set_entry_time(dt->get_entry_time());
+      d.set_start_time(dt->get_start_time());
+      d.set_end_time(dt->get_end_time());
+      d.set_fixed(dt->is_fixed());
+      d.set_triggered_by(dt->get_triggered_by());
+      d.set_duration(dt->get_duration());
+      d.set_started(true);
+      d.set_comment_id(dt->get_comment_id());
+      d.set_type(dt->service_id() == 0 ? Downtime_DowntimeType_HOST
+                                       : Downtime_DowntimeType_SERVICE);
+      active.push_back(std::move(d));
+    }
+    config::applier::state::instance().cache().set_active_downtimes(
+        std::move(active));
+  }
   com::centreon::common::downtimes::downtime_manager::unload();
 }
 
@@ -48,9 +80,10 @@ broker_state::~broker_state() {
  */
 void broker_state::apply(const com::centreon::broker::config::state& s,
                          bool run_mux) {
-  state::apply(s, run_mux);
-
-  // FIXME DBO: before modules application, or this can be later?
+  /* Load the downtime_manager BEFORE state::apply(): the latter initializes
+   * (and, in legacy mode, loads from disk) the global cache, and the cache
+   * load re-injects the persisted active downtimes into the manager — so the
+   * manager must already exist at that point. */
   {
     auto it = s.params().find("notification_mode");
     _notification_mode = (it != s.params().end() && it->second == "broker")
@@ -71,6 +104,20 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
             "notification_mode=broker: downtime management enabled, downtime "
             "manager loaded");
   }
+
+  state::apply(s, run_mux);
+
+  /* Re-inject the active downtimes persisted with the cache now that the global
+   * cache exists (state::apply() created it). This is broker-specific behaviour,
+   * hence here and not in the base state. It must run after the cache is
+   * assigned: the re-injection path calls back into state::instance().cache()
+   * (downtime callbacks' resource_exists()), so it cannot run from inside the
+   * broker_cache constructor. In legacy mode the resources are already loaded
+   * and this re-injects them; in centralized mode the resources are not known
+   * yet, so this is a no-op and the pending downtimes are re-injected later from
+   * _process_engine_state (after merge). */
+  if (_notification_mode == notification_mode_broker)
+    cache().reinject_pending_downtimes();
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
