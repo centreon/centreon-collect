@@ -1136,6 +1136,35 @@ grpc::Status broker_impl::GetTags(grpc::ServerContext* context [[maybe_unused]],
   return grpc::Status::OK;
 }
 
+/**
+ * @brief gRPC handler: list the acknowledgements held in the Broker cache.
+ *
+ * @param context The gRPC server context (unused).
+ * @param request An empty request (unused).
+ * @param response An AcknowledgementList filled with one Acknowledgement per
+ * cached acknowledgement (host acks carry service_id 0).
+ * @return grpc::Status::OK, or UNAVAILABLE when neither the host nor the
+ * service cache section is enabled.
+ */
+grpc::Status broker_impl::GetAcknowledgements(
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
+    AcknowledgementList* response) {
+  auto& cache = config::applier::state::instance().cache();
+  /* Acks are stored under CACHE_HOSTS (host acks) and CACHE_SERVICES (service
+   * acks); if neither is enabled the map is always empty. */
+  if (!cache.section_enabled(cache::broker_cache::CACHE_HOSTS) &&
+      !cache.section_enabled(cache::broker_cache::CACHE_SERVICES))
+    return grpc::Status(
+        grpc::StatusCode::UNAVAILABLE,
+        "Acknowledgement cache is not enabled in this broker instance");
+  auto acks = cache.acknowledgements();
+  response->mutable_entries()->Reserve(acks.size());
+  for (const auto& ack : acks)
+    response->add_entries()->CopyFrom(ack->obj());
+  return grpc::Status::OK;
+}
+
 grpc::Status broker_impl::GetTopology(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const ::google::protobuf::Empty* request

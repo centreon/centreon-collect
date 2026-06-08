@@ -37,11 +37,6 @@ class cbmod {
   std::unique_ptr<cbmodimpl> _impl;
   bool _use_protobuf;
 
-  // Acknowledgements list.
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                      std::shared_ptr<pb_acknowledgement>>
-      _acknowledgements;
-
   // Unstarted downtimes.
   std::unordered_map<uint64_t, std::shared_ptr<neb::pb_downtime>> _downtimes;
   bool _centralized_conf = false;
@@ -60,13 +55,6 @@ class cbmod {
 
   const bbdo::bbdo_version bbdo_version() const;
   bool use_protobuf() const;
-  void add_acknowledgement(const std::shared_ptr<neb::acknowledgement>& ack);
-  void add_acknowledgement(const std::shared_ptr<neb::pb_acknowledgement>& ack);
-  std::shared_ptr<pb_acknowledgement> find_acknowledgement(
-      uint64_t host_id,
-      uint64_t service_id) const;
-  void remove_acknowledgement(uint64_t host_id, uint64_t service_id);
-  size_t acknowledgements_count() const;
   void add_downtime(uint64_t downtime_id,
                     uint64_t host_id,
                     uint64_t service_id,

@@ -2352,6 +2352,42 @@ def ctn_get_service_command_id(service: int):
     return engine.service_cmd[service][8:]
 
 
+def ctn_wait_for_external_command_pipe(config: int = 0, timeout: int = TIMEOUT):
+    """
+    Wait until the engine external command named pipe of the given config is
+    a FIFO and is open for reading (i.e. the engine is actually consuming
+    external commands).
+
+    The 'check_for_external_commands()' log line only tells the checker started;
+    on a consecutive test the pipe may not yet be ready to be read, so a result
+    submitted right after can be written to a pipe with no reader (or, worse, to
+    a stale regular file created before the engine made the FIFO) and silently
+    lost. A non-blocking O_WRONLY open succeeds only when a reader has the FIFO
+    open (otherwise it raises ENXIO), which is the reliable readiness signal.
+
+    Args:
+        config (int): The engine config index (default 0).
+        timeout (int): A timeout in seconds.
+
+    Returns:
+        True if the pipe is a FIFO open for reading within the timeout, else
+        False.
+    """
+    pipe = f"{VAR_ROOT}/lib/centreon-engine/config{config}/rw/centengine.cmd"
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        try:
+            if stat.S_ISFIFO(os.stat(pipe).st_mode):
+                fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK)
+                os.close(fd)
+                return True
+        except OSError:
+            # ENOENT: FIFO not created yet; ENXIO: FIFO exists but no reader yet.
+            pass
+        time.sleep(0.5)
+    return False
+
+
 def ctn_get_host_command(host: int):
     """
     Get the command of the host with the given ID.

@@ -916,7 +916,7 @@ void monitoring_stream::_async_write_external_commands() {
   _logger->debug("BAM: sending {} external commands", local_queue.size());
   for (auto& cmd : local_queue) {
     misc::fifo_client fc(_ext_cmd_file);
-    uint32_t ret = fc.write(cmd);
+    int32_t ret = fc.write(cmd);
     if (ret >= 0)
       _logger->info("BAM: external command '{}' sent to command file '{}'", cmd,
                     _ext_cmd_file);

@@ -916,6 +916,11 @@ message BrokerCache {
    * so the partitioned counter (>= INT32_MAX/2) stays monotonic across restarts
    * (only meaningful when notification_mode=broker). */
   uint64 next_downtime_comment_id = 9;
+
+  /* Open acknowledgements held in the cache, persisted so Broker can still
+   * close them on recovery after a restart (host acks carry service_id 0). The
+   * DB rows already exist; this only restores the in-memory tracking. */
+  repeated Acknowledgement acknowledgements = 10;
 }
 
 /* Ignore */

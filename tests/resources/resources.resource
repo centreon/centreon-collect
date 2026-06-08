@@ -564,6 +564,14 @@ Ctn Wait For Engine To Be Ready
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+        # The log line only means the external command checker started; make sure
+        # the command named pipe is actually a FIFO open for reading before
+        # returning, otherwise a result submitted right after can be written to a
+        # pipe with no reader (or a stale regular file) and silently lost.
+        ${pipe_ready}    Ctn Wait For External Command Pipe    ${i}    30
+        Should Be True
+        ...    ${pipe_ready}
+        ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
 
 Ctn Wait For Engine Configuration To Be Applied
