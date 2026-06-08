@@ -251,6 +251,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   param.buffer += std::to_string(offset);
   client->write(create_event(param));
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  _logger->debug("shutdown relay");
   relay->shutdown_relays();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
 
