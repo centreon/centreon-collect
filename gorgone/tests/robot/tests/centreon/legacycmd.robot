@@ -44,6 +44,7 @@ Legacycmd Teardown
     Run    rm -rf /etc/centreon/centreon_vmware.json
     Run    rm -rf /etc/centreon-engine/randomBigFile.cfg
     Run    rm -rf /etc/centreon-engine/engine-hosts.cfg
+    Run    rm -rf /etc/centreon-broker/broker.cfg
     Run    rm -f /etc/snmp/centreon_traps/centreontrapd.sdb
     
 Push Engine And vmware Configuration

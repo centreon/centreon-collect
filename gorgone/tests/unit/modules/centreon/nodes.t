@@ -21,32 +21,37 @@ my $check_action_ran = {};
 my $action_expected = {
     'SETCOREID'     => { id => 1 },
     'UNREGISTERNODES'     => { nodes =>[]},
-    'REGISTERNODES' => {
+    'REGISTERNODESFROMDB' => {
         'nodes' => [
             {
                 'address' => '127.0.0.2',
                 'type'    => 'push_zmq',
                 'port'    => 5556,
-                'id'      => 11
+                'id'      => 11,
+                'token'   => '',
+                'uid'     => '',
             },
             {
                 'id'           => 12,
                 'ssh_username' => undef,
                 'address'      => '127.0.0.3',
                 'type'         => 'push_ssh',
-                'ssh_port'     => 22
+                'ssh_port'     => 22,
+                'uid'          => '',
             },
             {
                 'port'    => undef,
                 'id'      => 13,
-                'token'   => "TokenPull",
+                'uid'   => 3999456,
                 'address' => '127.0.0.4',
+
                 'type'    => 'pull'
             },
             {
                 'id'    => 14,
-                'token' => 'TokenPullWss',
-                'type'  => 'pullwss'
+                'uid' => 499456456,
+                'type'  => 'pullwss',
+                'token' => '',
             },
 
         ] } };
@@ -59,7 +64,7 @@ sub test_centreonnodessync {
         if ($action_name eq 'SETCOREID') {
             is($_[1]->{data}, $action_expected->{ $action_name }, "checking action " . $_[1]->{action});
         }
-        elsif ($action_name eq 'REGISTERNODES' or $action_name eq 'UNREGISTERNODES') {
+        elsif ($action_name eq 'REGISTERNODESFROMDB' or $action_name eq 'UNREGISTERNODES') {
             # let's sort nodes array before comparing
             my @got_nodes = sort {$a->{id} <=> $b->{id}} @{$_[1]->{data}->{nodes}};
             is(\@got_nodes, $action_expected->{ $action_name}->{nodes}, "checking action " . $_[1]->{action});
@@ -73,18 +78,17 @@ sub test_centreonnodessync {
 
 
     my $sqlquery = prepare_db($logger);
-    $logger->writeLogError("entering real function test");
 
     my $self = bless { logger => $logger, class_object => $sqlquery }, "gorgone::modules::centreon::nodes::class";
     $logger->writeLogInfo("entering real function test");
     $self->action_centreonnodessync();
 
     # some action must have been called, checking they had now.
-    is($check_action_ran->{REGISTERNODES},1, "REGISTERNODES action was called");
+    is($check_action_ran->{REGISTERNODESFROMDB},1, "REGISTERNODESFROMDB action was called");
 
     # let's delete all nodes except central and check again.
     $sqlquery->do(request =>  "DELETE FROM nagios_server WHERE id != 1;");
-    $action_expected->{REGISTERNODES}->{nodes} = [ ];; # expecting no nodes now.
+    $action_expected->{REGISTERNODESFROMDB}->{nodes} = [ ];; # expecting no nodes now.
     $check_action_ran = {};
     $action_expected->{UNREGISTERNODES} = { nodes => [
             { id => 11 },
@@ -136,7 +140,7 @@ sub prepare_db {
         CHECK (gorgone_communication_type IN ('1','2','3','4'))
         DEFAULT '1',
     gorgone_port INTEGER,
-    gorgone_auth_token TEXT,
+    uid BIGINT DEFAULT NULL,
     remote_id INTEGER,
 
     FOREIGN KEY (remote_id)
@@ -148,8 +152,8 @@ sub prepare_db {
 (1,'central','1',1,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (11,'poller_push','0',0,NULL,'127.0.0.2','1',22,'1',5556,'',NULL),
 (12,'poller_ssh','0',0,NULL,'127.0.0.3','1',22,'2',22,'',NULL),
-(13,'poller_pull','0',0,NULL,'127.0.0.4','1',22,'3',NULL,'TokenPull',NULL),
-(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,'TokenPullWss',NULL);");
+(13,'poller_pull','0',0,NULL,'127.0.0.4','1',22,'3',NULL,3999456,NULL),
+(14,'poller_pullwss','0',0,NULL,'127.0.0.5','1',22,'4',NULL,499456456,NULL);");
 return $sqlquery;
 }
 &main;

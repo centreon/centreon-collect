@@ -70,6 +70,7 @@ Test Setup
     Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
     Setup Vault
 
+    Ctn Init Tests
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
 
     @{central_config}    Create List    ${ROOT_CONFIG}autodiscovery${/}configuration-autodiscovery.yaml    ${ROOT_CONFIG}actions.yaml
