@@ -17,7 +17,6 @@
  */
 
 #include <boost/process/v2/process.hpp>
-#include <optional>
 
 #include "com/centreon/common/process/detail/boost_process.hh"
 #include "com/centreon/common/process/fork.hh"

@@ -541,7 +541,7 @@ void script_child::_every_second_timer_handler() {
         time(nullptr) - 60 * _config.minute_idle_check_child_ttl());
     for (auto to_kill = last_used_index.begin(); to_kill != too_idle;
          ++to_kill) {
-      _kill_check_child(true, true, to_kill->child);
+      _kill_check_child(false, true, to_kill->child);
     }
     last_used_index.erase(last_used_index.begin(), too_idle);
   }
