@@ -14,7 +14,6 @@ ${pull_poller_config}         ${ROOT_CONFIG}pull_poller_config.yaml
 ${pullwss_central_config}     ${ROOT_CONFIG}pullwss_central_config.yaml
 ${pullwss_remote_config}     ${ROOT_CONFIG}pullwss_remote_config.yaml
 ${pullwss_poller_config}      ${ROOT_CONFIG}pullwss_poller_config.yaml
-${pullwss_uid_poller_config}      ${ROOT_CONFIG}pullwss_uid_poller_config.yaml
 ${push_central_config}        ${ROOT_CONFIG}push_central_config.yaml
 ${push_poller_config}         ${ROOT_CONFIG}push_poller_config.yaml
 ${gorgone_core_config}        ${ROOT_CONFIG}gorgone_core_central.yaml
@@ -123,6 +122,7 @@ Gorgone Execute Sql
     END
 
 Setup Gorgone Config
+    [Documentation]    setup a gorgone configuration with file given as parameter, then sed the various options as database name. user can add and override replacement by passing array to replace_from and replace_to optionnal parameter.
     [Arguments]        ${file_list}    ${gorgone_name}=gorgone_process_name        ${sql_file}=    ${replace_from}=@{EMPTY}    ${replace_to}=@{EMPTY}
     Gorgone Execute Sql    ${sql_file}
     Run    rm -rf /etc/centreon-gorgone/${gorgone_name}/*
@@ -147,6 +147,8 @@ Setup Gorgone Config
     ...    -e 's/@DBHOST@/${DBHOST}/g'
     ...    -e 's/@DBPASSWORD@/${DBPASSWORD}/g'
     ...    -e 's/@DBUSER@/${DBUSER}/g'
+    ...    -e 's/@PULLWSS_PORT@/8086/g'
+    ...    -e 's/@POLLERID@/2/g'
     ...    -e 's/@UNIQ_ID_FROM_ROBOT_TESTING_CONFIG_FILE@/${gorgone_name}/g'
     ...    /etc/centreon-gorgone/${gorgone_name}/config.d/*.yaml
 
@@ -223,10 +225,13 @@ Setup Remote And Poller And Central Instances
 
     @{poller_pullwss_config}=    Copy List    ${poller_config}
     
+    ${poller_id}=    Set Variable    2
     IF    '${communication_mode}' == 'pullwss'
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
-        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_uid_poller_config}
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
+        ${poller_id}=    Set Variable    42992345
+
     ELSE IF   '${communication_mode}' == 'pull'
         ${C_port}    Set Variable    5556
         ${R_port}=     Set Variable    5566
@@ -242,7 +247,7 @@ Setup Remote And Poller And Central Instances
 
     Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}
     Setup Gorgone Config    ${remote_pullwss_config}     gorgone_name=${remote_name}    replace_from=${{['@DBNAME@']}}    replace_to=${{['${DBNAME_REMOTE}']}}
-    Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@PULLWSS_PORT@']}}    replace_to=${{['${R_port}']}}
+    Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@PULLWSS_PORT@','@POLLERID@']}}    replace_to=${{['${R_port}','${poller_id}']}}
 
     Start Gorgone    debug    ${central_name}
     Wait Until Port Is Bind    ${C_port}
@@ -312,10 +317,12 @@ Setup Two Gorgone Instances
         Append To List    ${central_pullwss_config}    ${pullwss_central_config}    ${gorgone_core_config}
 
         @{poller_pullwss_config}=    Copy List    ${poller_config}
-        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_uid_poller_config}
+        Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
+
+        ${poller_id}=    Set Variable    2
 
         Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
-        Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}
+        Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
 
         Start Gorgone    debug    ${central_name}
         Wait Until Port Is Bind    8086

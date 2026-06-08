@@ -7,7 +7,7 @@ INSERT IGNORE INTO `nagios_server` (
   (
     3, 'remote', '0', 0, 1711560733, '127.0.0.1',
     '1', '0',
-    22, '4', 443, 4994325, 'centreontrapd', '/etc/snmp/centreon_traps/',
+    22, '4', 443, 43994325, 'centreontrapd', '/etc/snmp/centreon_traps/',
     NULL, NULL, NULL, NULL, '1', '0'
   );
 
