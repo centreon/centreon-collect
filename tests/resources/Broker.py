@@ -4041,6 +4041,96 @@ def ctn_get_tags(port: int, timeout=TIMEOUT):
     return None
 
 
+def ctn_get_acknowledgements(port: int, timeout=TIMEOUT):
+    """
+    Return all acknowledgements currently held in the Broker cache via the gRPC
+    GetAcknowledgements endpoint.
+
+    Args:
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        A list of Acknowledgement objects (host acks carry service_id 0), or
+        None if the gRPC server is not reachable. Note: the endpoint returns
+        UNAVAILABLE (treated here as not-ready) when neither the host nor the
+        service cache section is enabled, i.e. without a unified_sql output.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                return list(res.entries)
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return None
+
+
+def ctn_check_acknowledgements_count_with_timeout(expected: int, port: int, timeout=TIMEOUT):
+    """
+    Poll the Broker GetAcknowledgements endpoint until the number of cached
+    acknowledgements equals expected, or the timeout expires.
+
+    Args:
+        expected: The expected number of acknowledgements in the cache.
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the count matched expected within the timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                if len(res.entries) == expected:
+                    return True
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return False
+
+
+def ctn_check_acknowledgement_in_cache_with_timeout(host_id: int, service_id: int, port: int, timeout=TIMEOUT):
+    """
+    Poll GetAcknowledgements until an acknowledgement for (host_id, service_id)
+    appears in the Broker cache (service_id 0 for a host acknowledgement).
+
+    Args:
+        host_id: The host id.
+        service_id: The service id, or 0 for a host acknowledgement.
+        port: The gRPC port to use (central broker, usually 51001).
+        timeout: A timeout in seconds.
+
+    Returns:
+        True if the acknowledgement is found within the timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetAcknowledgements(empty_pb2.Empty())
+                for a in res.entries:
+                    if a.host_id == host_id and a.service_id == service_id:
+                        return True
+            except grpc.RpcError as e:
+                logger.console(f"gRPC error: {e}")
+            except Exception:
+                logger.console("gRPC server not ready")
+        time.sleep(1)
+    return False
+
+
 def ctn_check_tags_empty_with_timeout(port: int, timeout=TIMEOUT):
     """
     Poll the Broker cache until GetTags returns an empty list, or timeout.

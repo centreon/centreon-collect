@@ -382,8 +382,107 @@ BEACK8
     ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    40
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
-    ${content}    Create List    Still 0 running acknowledgements
-    Ctn Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
+
+BEACK9
+    [Documentation]    Scenario: the Broker cache exposes acknowledgements through gRPC.
+    ...                Given a BBDO3 configuration (unified_sql, so the cache is enabled)
+    ...                When a critical service is acknowledged
+    ...                Then the GetAcknowledgements gRPC endpoint lists it in the Broker cache
+    ...                When the service recovers
+    ...                Then the acknowledgement leaves the Broker cache (and is not re-ingested).
+    [Tags]    broker    engine    services    extcmd    grpc    cache
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Broker Cache
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${cmd_id}    Ctn Get Service Command Id    ${10}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    Ctn Process Service Result Hard    host_1    service_10    ${2}    (1;10) is critical
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_10    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;10) should be critical HARD
+
+    ${d}    Ctn Get Round Current Date
+    Ctn Acknowledge Service Problem    host_1    service_10
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_10    ${d}    2    60    HARD
+    Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 10).
+
+    # The acknowledgement is visible in the Broker cache via gRPC.
+    ${result}    Ctn Check Acknowledgement In Cache With Timeout    ${1}    ${10}    ${51001}    30
+    Should Be True    ${result}    Acknowledgement (1;10) should be in the Broker cache.
+    ${result}    Ctn Check Acknowledgements Count With Timeout    ${1}    ${51001}    30
+    Should Be True    ${result}    Exactly one acknowledgement should be in the Broker cache.
+
+    # The service recovers: the acknowledgement leaves the cache and is not re-ingested.
+    Ctn Set Command Status    ${cmd_id}    ${0}
+    Ctn Process Service Result Hard    host_1    service_10    ${0}    (1;10) is OK
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_10    ${0}    60    HARD
+    Should Be True    ${result}    Service (1;10) should be OK HARD
+
+    ${result}    Ctn Check Acknowledgements Count With Timeout    ${0}    ${51001}    30
+    Should Be True    ${result}    The Broker cache should hold no acknowledgement after recovery.
+
+
+BEACK10
+    [Documentation]    Scenario: acknowledgements survive a Broker restart (cache persistence).
+    ...                Given a BBDO3 configuration and an acknowledged critical service
+    ...                When Broker is restarted while Engine keeps running
+    ...                Then GetAcknowledgements still lists it (restored from the persisted cache, not re-sent by Engine)
+    ...                When the service recovers
+    ...                Then the restored acknowledgement is closed and leaves the cache.
+    [Tags]    broker    engine    services    extcmd    grpc    cache
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Clear Broker Cache
+    # Scope the RRD duplicate check (Ctn Kindly Stop Broker below) to this test's
+    # own broker session: the shared RRD log otherwise accumulates "ignored
+    # update" errors from the ungraceful broker kills between the previous tests
+    # (on service_1), unrelated to this test's graceful restart.
+    Remove File    ${rrdLog}
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    ${cmd_id}    Ctn Get Service Command Id    ${11}
+    Ctn Set Command Status    ${cmd_id}    ${2}
+    Ctn Process Service Result Hard    host_1    service_11    ${2}    (1;11) is critical
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_11    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;11) should be critical HARD
+
+    ${d}    Ctn Get Round Current Date
+    Ctn Acknowledge Service Problem    host_1    service_11
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_11    ${d}    2    60    HARD
+    Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 11).
+    ${result}    Ctn Check Acknowledgements Count With Timeout    ${1}    ${51001}    30
+    Should Be True    ${result}    Exactly one acknowledgement should be in the Broker cache.
+
+    # Restart Broker only; Engine keeps running. The cache is persisted on clean stop.
+    Ctn Kindly Stop Broker
+    Ctn Start Broker
+
+    # The acknowledgement is restored from the persisted cache (Engine did not re-send it).
+    ${result}    Ctn Check Acknowledgement In Cache With Timeout    ${1}    ${11}    ${51001}    60
+    Should Be True    ${result}    Acknowledgement (1;11) should be restored in the Broker cache after restart.
+
+    # The restored acknowledgement can still be closed on recovery.
+    Ctn Set Command Status    ${cmd_id}    ${0}
+    Ctn Process Service Result Hard    host_1    service_11    ${0}    (1;11) is OK
+    ${result}    Ctn Check Acknowledgements Count With Timeout    ${0}    ${51001}    60
+    Should Be True    ${result}    The restored acknowledgement should be closed after recovery.
 
 
 *** Keywords ***

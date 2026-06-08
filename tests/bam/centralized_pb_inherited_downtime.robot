@@ -25,6 +25,7 @@ BECBAMIDTU1
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    bam    trace
     Log To Console    Configuring core logger to info
     Ctn Broker Config Log    central    core    info
@@ -58,14 +59,21 @@ BECBAMIDTU1
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
-    Ctn Schedule Service Downtime    host_16    service_314    3600
+    ${dt_id}    Ctn Broker Schedule Service Downtime    host_16    service_314    3600
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
+    # Broker creates downtime comments (entry_type=2) like Engine, for the
+    # service and for the inherited BA downtime.
+    ${svc_cmt}    Ctn Check Comment    host_16    service_314    2    ${start}
+    Should Be True    ${svc_cmt} > 0    No downtime comment was created for the service
+    ${ba_cmt}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${start}
+    Should Be True    ${ba_cmt} > 0    No downtime comment was created for the inherited BA downtime
+
     # The downtime is deleted
-    Ctn Delete Service Downtime    host_16    service_314
+    Ctn Broker Delete Downtime    ${dt_id}
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
 
@@ -73,6 +81,12 @@ BECBAMIDTU1
     Should Be True    ${result}    No downtime should still be running.
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
+
+    # The downtime comments are removed along with the downtimes.
+    ${result}    Ctn Check Comment    host_16    service_314    2    ${start}    exists=False
+    Should Be True    ${result}    The service downtime comment was not deleted
+    ${result}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${start}    exists=False
+    Should Be True    ${result}    The inherited BA downtime comment was not deleted
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -96,6 +110,7 @@ BECBAMIDTU2
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    debug
     Ctn Broker Config Log    central    core    error
@@ -132,13 +147,22 @@ BECBAMIDTU2
 
     # A downtime is put on service_314
     Log To Console    A downtime is put on service_314
-    Ctn Schedule Service Downtime    host_16    service_314    3600
+    # Stable reference for the comment lookups: ${start} is reassigned in the
+    # restart loop below, so we cannot reuse it after the loop.
+    ${cmt_ref}    Ctn Get Round Current Date
+    ${dt_id}    Ctn Broker Schedule Service Downtime    host_16    service_314    3600
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
 
     Log To Console    An inherited downtime is propagated to the BA ba_1
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
     Should Be True    ${result}    The BA ba_1 is not in downtime as it should
+
+    # Broker created the downtime comments (entry_type=2), like Engine.
+    ${svc_cmt}    Ctn Check Comment    host_16    service_314    2    ${cmt_ref}
+    Should Be True    ${svc_cmt} > 0    No downtime comment was created for the service
+    ${ba_cmt}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${cmt_ref}
+    Should Be True    ${ba_cmt} > 0    No downtime comment was created for the inherited BA downtime
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
     Log To Console    We should have two downtimes (1)
@@ -177,11 +201,17 @@ BECBAMIDTU2
     Should Be True    ${result}    We should only have two downtimes
 
     # The downtime is deleted
-    Ctn Delete Service Downtime    host_16    service_314
+    Ctn Broker Delete Downtime    ${dt_id}
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
+
+    # The downtime comments survived the restart and are deleted with the downtimes.
+    ${result}    Ctn Check Comment    host_16    service_314    2    ${cmt_ref}    exists=False
+    Should Be True    ${result}    The service downtime comment was not deleted
+    ${result}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${cmt_ref}    exists=False
+    Should Be True    ${result}    The inherited BA downtime comment was not deleted
 
     # We should have no more downtime
     ${result}    Ctn Number Of Downtimes Is    0    60
@@ -205,6 +235,7 @@ BECBAMIGNDTU1
     Ctn Config Broker    module
     Ctn Config Broker    central
     Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    notification_mode    broker
     Ctn Broker Config Log    central    bam    trace
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Flush Log    module0    0
@@ -253,12 +284,12 @@ BECBAMIGNDTU1
     Log To Console    The BA is critical.
 
     # Two downtimes are applied on service_314
-    Ctn Schedule Service Downtime    host_16    service_314    3600
+    ${dt_id1}    Ctn Broker Schedule Service Downtime    host_16    service_314    3600
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    One downtime applied to service_314.
 
-    Ctn Schedule Service Downtime    host_16    service_314    1800
+    ${dt_id2}    Ctn Broker Schedule Service Downtime    host_16    service_314    1800
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log To Console    Two downtimes applied to service_314.
@@ -267,12 +298,18 @@ BECBAMIGNDTU1
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
 
+    # The service carries downtime comments; the ignored BA has none.
+    ${svc_cmt}    Ctn Check Comment    host_16    service_314    2    ${start}
+    Should Be True    ${svc_cmt} > 0    No downtime comment was created for the service
+    ${result}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${start}    exists=False    timeout=15
+    Should Be True    ${result}    The ignored BA must not carry a downtime comment
+
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log To Console    The BA is OK, since the critical service is in downtime.
 
     # The first downtime is deleted
-    Ctn Delete Service Downtime    host_16    service_314
+    Ctn Broker Delete Downtime    ${dt_id1}
 
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
@@ -286,11 +323,15 @@ BECBAMIGNDTU1
     Should Be True    ${result}    We should have one running downtime
 
     # The second downtime is deleted
-    Ctn Delete Service Downtime    host_16    service_314
+    Ctn Broker Delete Downtime    ${dt_id2}
 
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 0 downtime as it should
     Log To Console    No more downtime applied to service_314.
+
+    # Both downtimes gone, so both downtime comments are deleted too.
+    ${result}    Ctn Check Comment    host_16    service_314    2    ${start}    exists=False
+    Should Be True    ${result}    The service downtime comments were not all deleted
 
     ${result}    Ctn Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more running downtimes
@@ -327,6 +368,7 @@ BECBAMIGNDTU2
     Ctn Broker Config Log    central    core    error
     Ctn Broker Config Log    central    bam    trace
     Ctn Config Broker    rrd
+    Ctn Broker Config Add Item    central    notification_mode    broker
 
     Ctn Clone Engine Config To Db
     Ctn Add Bam Config To Engine
@@ -366,8 +408,8 @@ BECBAMIGNDTU2
     # Two downtimes are applied on service_314 back-to-back: one 120s, one 60s.
     # Scheduling them together ensures both ADD events land in the same 10s flush
     # batch, so the DB shows depth=2 well before either downtime expires.
-    Ctn Schedule Service Downtime    host_16    service_314    120
-    Ctn Schedule Service Downtime    host_16    service_314    60
+    ${dt_id1}    Ctn Broker Schedule Service Downtime    host_16    service_314    120
+    ${dt_id2}    Ctn Broker Schedule Service Downtime    host_16    service_314    60
     Ctn Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Ctn Check Service Downtime With Timeout    host_16    service_314    2    60
@@ -377,6 +419,12 @@ BECBAMIGNDTU2
     ${result}    Ctn Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log To Console    The BA is configured to ignore kpis in downtime
+
+    # The service carries downtime comments; the ignored BA has none.
+    ${svc_cmt}    Ctn Check Comment    host_16    service_314    2    ${start}
+    Should Be True    ${svc_cmt} > 0    No downtime comment was created for the service
+    ${result}    Ctn Check Comment    _Module_BAM_1    ba_1    2    ${start}    exists=False    timeout=15
+    Should Be True    ${result}    The ignored BA must not carry a downtime comment
 
     ${result}    Ctn Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
@@ -397,6 +445,10 @@ BECBAMIGNDTU2
     ${result}    Ctn Check Ba Status With Timeout    test    2    90
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log To Console    The BA is now critical (no more downtime)
+
+    # Comments are removed when their downtimes expire, like Engine does.
+    ${result}    Ctn Check Comment    host_16    service_314    2    ${start}    exists=False
+    Should Be True    ${result}    The service downtime comments were not deleted when the downtimes expired
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker

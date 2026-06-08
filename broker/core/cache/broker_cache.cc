@@ -1410,9 +1410,11 @@ void broker_cache::update_host(
     const std::shared_ptr<neb::pb_host_status>& status) {
   if (!section_enabled(CACHE_HOSTS))
     return;
+
   auto& hs = status->obj();
   uint64_t host_id = hs.host_id();
   bool updated = false;
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
   {
     absl::WriterMutexLock l{&_mutex};
     auto& index = _hosts.get<by_id>();
@@ -1450,12 +1452,22 @@ void broker_cache::update_host(
       if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
         hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
       updated = true;
+
+      /* Acknowledgement event: decide under the lock, publish after release. */
+      ack_to_close =
+          _take_expired_acknowledgement(host_id, 0u, hst.acknowledgement_type(),
+                                        static_cast<uint16_t>(hst.state()));
     } else {
       SPDLOG_LOGGER_WARN(_logger,
                          "Attempt to update host ({}) in Broker cache, but "
                          "it does not exist.",
                          host_id);
     }
+  }
+
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
   }
 
   if (updated)
@@ -1533,26 +1545,40 @@ void broker_cache::update_host(
     const std::shared_ptr<neb::pb_adaptive_host_status>& status) {
   if (!section_enabled(CACHE_HOSTS))
     return;
-  absl::WriterMutexLock l{&_mutex};
-  auto& hs = status->obj();
-  auto& index = _hosts.get<by_id>();
-  auto found = index.find(hs.host_id());
-  if (found != index.end()) {
-    auto& hst = found->get()->mut_obj();
-    SPDLOG_LOGGER_DEBUG(
-        _logger, "Updating adaptive host status for host '{}' in Broker cache.",
-        hs.host_id());
-    if (hs.has_scheduled_downtime_depth())
-      hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
-    if (hs.has_acknowledgement_type())
-      hst.set_acknowledgement_type(hs.acknowledgement_type());
-    if (hs.has_notification_number())
-      hst.set_notification_number(hs.notification_number());
-  } else {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update host ({}) in Broker cache, but it does not exist.",
-        hs.host_id());
+
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{&_mutex};
+    auto& hs = status->obj();
+    auto& index = _hosts.get<by_id>();
+    auto found = index.find(hs.host_id());
+    if (found != index.end()) {
+      auto& hst = found->get()->mut_obj();
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "Updating adaptive host status for host '{}' in Broker cache.",
+          hs.host_id());
+      if (hs.has_scheduled_downtime_depth())
+        hst.set_scheduled_downtime_depth(hs.scheduled_downtime_depth());
+      if (hs.has_acknowledgement_type())
+        hst.set_acknowledgement_type(hs.acknowledgement_type());
+      if (hs.has_notification_number())
+        hst.set_notification_number(hs.notification_number());
+
+      /* Acknowledgement event: decide under the lock, publish after release. */
+      ack_to_close = _take_expired_acknowledgement(
+          hs.host_id(), 0u, hst.acknowledgement_type(),
+          static_cast<uint16_t>(hst.state()));
+    } else {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update host ({}) in Broker cache, but it does not exist.",
+          hs.host_id());
+    }
+  }
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
   }
 }
 
@@ -1593,54 +1619,165 @@ void broker_cache::update_service(
     const std::shared_ptr<neb::pb_service_status>& status) {
   if (!section_enabled(CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
 
-  const auto& obj = status->obj();
-  SPDLOG_LOGGER_DEBUG(_logger, "Processing service status ({}, {})",
-                      obj.host_id(), obj.service_id());
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{&_mutex};
 
-  auto& index = _services.get<by_id>();
-  auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
-  if (it == index.end()) {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update service ({}, {}) in cache, but it does not exist.",
-        obj.host_id(), obj.service_id());
-    return;
+    const auto& obj = status->obj();
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing service status ({}, {})",
+                        obj.host_id(), obj.service_id());
+
+    auto& index = _services.get<by_id>();
+    auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
+    if (it == index.end()) {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update service ({}, {}) in cache, but it does not exist.",
+          obj.host_id(), obj.service_id());
+      return;
+    }
+
+    auto& svc = it->get()->mut_obj();
+
+    svc.set_checked(obj.checked());
+    svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
+    svc.set_state(static_cast<Service_State>(obj.state()));
+    svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
+    svc.set_last_state_change(obj.last_state_change());
+    svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
+    svc.set_last_hard_state_change(obj.last_hard_state_change());
+    svc.set_last_time_ok(obj.last_time_ok());
+    svc.set_last_time_warning(obj.last_time_warning());
+    svc.set_last_time_critical(obj.last_time_critical());
+    svc.set_last_time_unknown(obj.last_time_unknown());
+    svc.set_output(obj.output());
+    svc.set_perfdata(obj.perfdata());
+    svc.set_flapping(obj.flapping());
+    svc.set_percent_state_change(obj.percent_state_change());
+    svc.set_latency(obj.latency());
+    svc.set_execution_time(obj.execution_time());
+    svc.set_last_check(obj.last_check());
+    svc.set_next_check(obj.next_check());
+    svc.set_should_be_scheduled(obj.should_be_scheduled());
+    svc.set_check_attempt(obj.check_attempt());
+    svc.set_notification_number(obj.notification_number());
+    svc.set_no_more_notifications(obj.no_more_notifications());
+    svc.set_last_notification(obj.last_notification());
+    svc.set_next_notification(obj.next_notification());
+    svc.set_acknowledgement_type(obj.acknowledgement_type());
+    /* When Broker owns downtime management, the cached scheduled_downtime_depth
+     * is authoritative (maintained by broker_downtime_callbacks). A status from
+     * Engine must not overwrite it. */
+    if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
+      svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+
+    /* Acknowledgement event: decide under the lock, publish after release. */
+    ack_to_close = _take_expired_acknowledgement(
+        obj.host_id(), obj.service_id(), svc.acknowledgement_type(),
+        static_cast<uint16_t>(svc.state()));
   }
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
+  }
+}
 
-  auto& svc = it->get()->mut_obj();
-  svc.set_checked(obj.checked());
-  svc.set_check_type(static_cast<Service_CheckType>(obj.check_type()));
-  svc.set_state(static_cast<Service_State>(obj.state()));
-  svc.set_state_type(static_cast<Service_StateType>(obj.state_type()));
-  svc.set_last_state_change(obj.last_state_change());
-  svc.set_last_hard_state(static_cast<Service_State>(obj.last_hard_state()));
-  svc.set_last_hard_state_change(obj.last_hard_state_change());
-  svc.set_last_time_ok(obj.last_time_ok());
-  svc.set_last_time_warning(obj.last_time_warning());
-  svc.set_last_time_critical(obj.last_time_critical());
-  svc.set_last_time_unknown(obj.last_time_unknown());
-  svc.set_output(obj.output());
-  svc.set_perfdata(obj.perfdata());
-  svc.set_flapping(obj.flapping());
-  svc.set_percent_state_change(obj.percent_state_change());
-  svc.set_latency(obj.latency());
-  svc.set_execution_time(obj.execution_time());
-  svc.set_last_check(obj.last_check());
-  svc.set_next_check(obj.next_check());
-  svc.set_should_be_scheduled(obj.should_be_scheduled());
-  svc.set_check_attempt(obj.check_attempt());
-  svc.set_notification_number(obj.notification_number());
-  svc.set_no_more_notifications(obj.no_more_notifications());
-  svc.set_last_notification(obj.last_notification());
-  svc.set_next_notification(obj.next_notification());
-  svc.set_acknowledgement_type(obj.acknowledgement_type());
-  /* When Broker owns downtime management, the cached scheduled_downtime_depth
-   * is authoritative (maintained by broker_downtime_callbacks). A status from
-   * Engine must not overwrite it. */
-  if (!com::centreon::common::downtimes::downtime_manager::is_loaded())
-    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+/**
+ * @brief Insert or remove an acknowledgement in the cache from an
+ * acknowledgement event flowing through the multiplexer.
+ *
+ * Gated on the section matching the acked resource (CACHE_HOSTS for a host ack,
+ * CACHE_SERVICES for a service ack). An open acknowledgement (deletion_time
+ * == 0) is stored; a closing one (deletion_time > 0) removes the entry, so the
+ * closure event republished by an expiration is not re-ingested as a new ack.
+ *
+ * @param ack The acknowledgement event (host acks carry service_id 0).
+ */
+void broker_cache::update_acknowledgement(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack) {
+  const auto& obj = ack->obj();
+  /* Gate on the section matching the acked resource: a host ack (service_id 0)
+   * is only relevant when CACHE_HOSTS is enabled, a service ack when
+   * CACHE_SERVICES is. This MUST match the gating of the update_host() /
+   * update_service() expiration paths, otherwise an ack could be stored but
+   * never expired (or looked up but never stored). */
+  if (!section_enabled(obj.service_id() == 0 ? CACHE_HOSTS : CACHE_SERVICES))
+    return;
+  absl::WriterMutexLock l{&_mutex};
+  /* A closing acknowledgement (deletion_time set) must not repopulate the map:
+   * the closure published by _take_expired_acknowledgement()'s caller is fed
+   * back here through the multiplexer, so treat it as a removal, not an
+   * insertion. Open acks have deletion_time == 0 on both the native and the
+   * bbdo2-converted paths. */
+  if (obj.deletion_time() > 0)
+    _acknowledgements.erase({obj.host_id(), obj.service_id()});
+  else
+    _acknowledgements.insert_or_assign({obj.host_id(), obj.service_id()}, ack);
+}
+
+/**
+ * @brief Return a snapshot of the acknowledgements currently held in the cache.
+ *
+ * @return A vector with one shared_ptr per cached acknowledgement.
+ */
+std::vector<std::shared_ptr<neb::pb_acknowledgement>>
+broker_cache::acknowledgements() const {
+  absl::ReaderMutexLock lck{&_mutex};
+  std::vector<std::shared_ptr<neb::pb_acknowledgement>> result;
+  result.reserve(_acknowledgements.size());
+  for (const auto& it : _acknowledgements)
+    result.push_back(it.second);
+  return result;
+}
+
+/**
+ * @brief Detect and remove an expired acknowledgement for a resource.
+ *
+ * Must be called with _mutex held. When the resource is no longer acknowledged
+ * (@p ack_type == NONE) and a matching ack is cached, the entry is removed from
+ * _acknowledgements; if the ack must be closed (it did not merely expire on
+ * recovery), its deletion_time is stamped and the ack is returned so the CALLER
+ * publishes it AFTER releasing _mutex. Publishing under the cache lock would
+ * feed the event back into _publish()/update_acknowledgement() and risk a
+ * re-entrant / lock-order deadlock with the multiplexer.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id, or 0 for a host acknowledgement.
+ * @param ack_type The resource's current acknowledgement type.
+ * @param state The resource's current state.
+ * @return The acknowledgement to publish (deletion_time set), or nullptr when
+ * there is nothing to publish.
+ */
+std::shared_ptr<neb::pb_acknowledgement>
+broker_cache::_take_expired_acknowledgement(uint64_t host_id,
+                                            uint64_t service_id,
+                                            AckType ack_type,
+                                            uint16_t state) {
+  if (ack_type != AckType::NONE)
+    return nullptr;
+  SPDLOG_LOGGER_DEBUG(_logger, "Looking for acknowledgement on ({}:{})",
+                      host_id, service_id);
+  auto it = _acknowledgements.find({host_id, service_id});
+  if (it == _acknowledgements.end())
+    return nullptr;
+
+  auto ack = it->second;
+  _acknowledgements.erase(it);
+  SPDLOG_LOGGER_DEBUG(_logger, "acknowledgement found on ({}:{})", host_id,
+                      service_id);
+  auto& ack_obj = ack->mut_obj();
+  /* Close the ack (and ask the caller to publish it) unless the resource just
+   * recovered (state OK) or a non-sticky ack moved to a different state. */
+  if (!(!state  // !(OK or (normal ack and NOK))
+        || (!ack_obj.sticky() && state != ack_obj.state()))) {
+    SPDLOG_LOGGER_DEBUG(_logger,
+                        "Set deletion time for acknowledgement on ({}:{})",
+                        host_id, service_id);
+    ack_obj.set_deletion_time(time(nullptr));
+    return ack;
+  }
+  return nullptr;
 }
 
 /**
@@ -1707,31 +1844,44 @@ void broker_cache::update_service(
     const std::shared_ptr<neb::pb_adaptive_service_status>& ass) {
   if (!section_enabled(CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
 
-  const auto& obj = ass->obj();
+  std::shared_ptr<neb::pb_acknowledgement> ack_to_close;
+  {
+    absl::WriterMutexLock l{&_mutex};
 
-  SPDLOG_LOGGER_DEBUG(_logger, "Processing adaptive service status ({}, {})",
-                      obj.host_id(), obj.service_id());
-  auto& index = _services.get<by_id>();
+    const auto& obj = ass->obj();
 
-  auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
-  if (it == _services.end()) {
-    SPDLOG_LOGGER_WARN(
-        _logger,
-        "Attempt to update service ({}, {}) in global cache, but it does not "
-        "exist.",
-        obj.host_id(), obj.service_id());
-    return;
+    SPDLOG_LOGGER_DEBUG(_logger, "Processing adaptive service status ({}, {})",
+                        obj.host_id(), obj.service_id());
+    auto& index = _services.get<by_id>();
+
+    auto it = index.find(std::make_pair(obj.host_id(), obj.service_id()));
+    if (it == _services.end()) {
+      SPDLOG_LOGGER_WARN(
+          _logger,
+          "Attempt to update service ({}, {}) in global cache, but it does not "
+          "exist.",
+          obj.host_id(), obj.service_id());
+      return;
+    }
+
+    auto& svc = it->get()->mut_obj();
+    if (obj.has_acknowledgement_type())
+      svc.set_acknowledgement_type(obj.acknowledgement_type());
+    if (obj.has_scheduled_downtime_depth())
+      svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
+    if (obj.has_notification_number())
+      svc.set_notification_number(obj.notification_number());
+
+    /* Acknowledgement event: decide under the lock, publish after release. */
+    ack_to_close = _take_expired_acknowledgement(
+        obj.host_id(), obj.service_id(), svc.acknowledgement_type(),
+        static_cast<uint16_t>(svc.state()));
   }
-
-  auto& svc = it->get()->mut_obj();
-  if (obj.has_acknowledgement_type())
-    svc.set_acknowledgement_type(obj.acknowledgement_type());
-  if (obj.has_scheduled_downtime_depth())
-    svc.set_scheduled_downtime_depth(obj.scheduled_downtime_depth());
-  if (obj.has_notification_number())
-    svc.set_notification_number(obj.notification_number());
+  if (ack_to_close) {
+    multiplexing::publisher pblshr;
+    pblshr.write(std::move(ack_to_close));
+  }
 }
 
 /**
@@ -2581,6 +2731,14 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
     case neb::pb_instance::static_type():
       update_instance(std::static_pointer_cast<neb::pb_instance>(evt));
       break;
+    case make_type(io::neb, neb::de_service_status):
+      update_service(std::static_pointer_cast<neb::pb_service_status>(
+          neb::bbdo2_to_bbdo3(evt)));
+      break;
+    case make_type(io::neb, neb::de_host_status):
+      update_host(std::static_pointer_cast<neb::pb_host_status>(
+          neb::bbdo2_to_bbdo3(evt)));
+      break;
     case make_type(io::neb, neb::de_instance):
       update_instance(
           std::static_pointer_cast<neb::pb_instance>(neb::bbdo2_to_bbdo3(evt)));
@@ -2670,6 +2828,14 @@ void broker_cache::_publish(const std::shared_ptr<io::data>& evt) {
       break;
     case make_type(io::neb, neb::de_pb_tag):
       update_tag(std::static_pointer_cast<neb::pb_tag>(evt));
+      break;
+    case make_type(io::neb, neb::de_acknowledgement):
+      update_acknowledgement(std::static_pointer_cast<neb::pb_acknowledgement>(
+          neb::bbdo2_to_bbdo3(evt)));
+      break;
+    case make_type(io::neb, neb::de_pb_acknowledgement):
+      update_acknowledgement(
+          std::static_pointer_cast<neb::pb_acknowledgement>(evt));
       break;
     default:
       break;
@@ -2830,10 +2996,20 @@ void broker_cache::_load_cache() {
       _pending_active_downtimes.assign(to_load.active_downtimes().begin(),
                                        to_load.active_downtimes().end());
       /* Restore the downtime-comment id counter; ignore 0 / a value below the
-       * partition base (old cache file) so we never regress into Engine's range. */
+       * partition base (old cache file) so we never regress into Engine's
+       * range. */
       if (to_load.next_downtime_comment_id() > _downtime_comment_id_base)
         _next_downtime_comment_id.store(to_load.next_downtime_comment_id(),
                                         std::memory_order_relaxed);
+      /* Restore open acknowledgements into the tracking map (both modes) so the
+       * cache can still close them on recovery after a restart. Not
+       * republished: the DB rows already exist; this only rebuilds the
+       * in-memory state. */
+      for (const auto& a : to_load.acknowledgements()) {
+        auto ack = std::make_shared<neb::pb_acknowledgement>();
+        ack->mut_obj().CopyFrom(a);
+        _acknowledgements.insert_or_assign({a.host_id(), a.service_id()}, ack);
+      }
       SPDLOG_LOGGER_INFO(_logger, "broker_cache: cache loaded from file '{}'",
                          _cache_file.string());
     }
@@ -2914,9 +3090,15 @@ void broker_cache::_save_cache() {
      * they can be re-injected into the downtime_manager on the next start. */
     for (const auto& d : _active_downtimes_to_save)
       to_save.add_active_downtimes()->CopyFrom(d);
-    /* Keep the downtime-comment internal_id counter monotonic across restarts. */
+    /* Keep the downtime-comment internal_id counter monotonic across restarts.
+     */
     to_save.set_next_downtime_comment_id(
         _next_downtime_comment_id.load(std::memory_order_relaxed));
+    /* Open acknowledgements are persisted (both modes) so the cache can still
+     * close them on recovery after a restart; the DB rows already exist, this
+     * only persists the in-memory tracking. */
+    for (const auto& it : _acknowledgements)
+      to_save.add_acknowledgements()->CopyFrom(it.second->obj());
   }
   /* Saving the BrokerCache */
   std::ofstream ofs{_cache_file, std::ios::binary | std::ios::trunc};
@@ -3059,4 +3241,5 @@ void broker_cache::remove_index_mapping(uint64_t host_id, uint64_t service_id) {
   auto& index = _index_mappings.get<by_service>();
   index.erase(std::make_pair(host_id, service_id));
 }
+
 }  // namespace com::centreon::broker::cache
