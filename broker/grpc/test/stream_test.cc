@@ -250,10 +250,10 @@ TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   param.buffer += "_";
   param.buffer += std::to_string(offset);
   client->write(create_event(param));
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
   _logger->debug("shutdown relay");
   relay->shutdown_relays();
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   read_ret = accepted->read(receive, time(nullptr) + 2);
   COMPARE_EVENT(read_ret, receive, param);
@@ -279,9 +279,9 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
                  read_ret, param.data_type);
   COMPARE_EVENT(read_ret, receive, param);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
   relay->shutdown_relays();
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   ASSERT_THROW(client->read(receive, time(nullptr) + 2), msg_fmt);
   unsigned offset = rand();
@@ -332,9 +332,9 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   param.buffer += "_";
   param.buffer += std::to_string(offset);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
   relay->shutdown_relays();
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   EXPECT_THROW(accepted->write(create_event(param)), msg_fmt);
   ASSERT_THROW(client->read(receive, time(nullptr) + 2), msg_fmt);
