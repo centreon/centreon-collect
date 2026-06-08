@@ -518,6 +518,7 @@ sub close_websocket {
     }});
     $self->clean_websocket(ws_id => $options{ws_id}, finish => $options{finish});
 }
+# helper function to clean websocket
 sub get_poller_id{
     my ($self, $value) = @_;
     if ($self->{nodes}->{$value} and $self->{nodes}->{$value}->{id} ) {
