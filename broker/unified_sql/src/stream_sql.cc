@@ -1084,10 +1084,10 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 }
 
 bool stream::_host_instance_known(uint64_t host_id) const {
-  bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
-                _cache_host_instance.end();
+  bool retval =
+      _cache_host_instance.find(host_id) != _cache_host_instance.end();
   if (retval)
-    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
+    assert(_cache_host_instance.at(host_id) > 0);
   return retval;
 }
 
@@ -2556,7 +2556,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_hscr_bind);
         if (!_hscr_bind->bind(conn))
@@ -2670,7 +2670,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
         if (!_hscr_resources_bind->bind(conn))
@@ -2863,13 +2863,13 @@ void stream::_process_pb_adaptive_host_status(
   }
 
   int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      _cache_host_instance[hscr.host_id()]);
 
   if (_store_in_hosts_services) {
     bool update_in_hscr_bind = false;
     if (_bulk_prepared_statement && _hscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       std::lock_guard<bulk_bind> lck(*_hscr_bind);
       if (!_hscr_bind->bind(conn))
         _hscr_bind->init_from_stmt(conn);
@@ -2918,7 +2918,7 @@ void stream::_process_pb_adaptive_host_status(
     bool update_in_hscr_resources_bind = false;
     if (_bulk_prepared_statement && _hscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
       if (!_hscr_resources_bind->bind(conn))
         _hscr_resources_bind->init_from_stmt(conn);
@@ -4197,8 +4197,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                        as.host_id(), as.service_id());
     return;
   }
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
+  int32_t conn =
+      _mysql.choose_connection_by_instance(_cache_host_instance[as.host_id()]);
 
   if (_store_in_hosts_services) {
     // first we check that this service is not yet in update bulk request
@@ -4528,7 +4528,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_sscr_bind);
         if (!_sscr_bind->bind(conn))
@@ -4656,7 +4656,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       size_t output_size = common::adjust_size_utf8(
           sscr.output(), get_centreon_storage_resources_col_size(
                              centreon_storage_resources_output));
@@ -4901,7 +4901,7 @@ void stream::_process_pb_adaptive_service_status(
     bool update_in_sscr_bind = false;
     if (_bulk_prepared_statement && _sscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       std::lock_guard lck(*_sscr_bind);
       if (!_sscr_bind->bind(conn))
         _sscr_bind->init_from_stmt(conn);
@@ -4957,7 +4957,7 @@ void stream::_process_pb_adaptive_service_status(
     bool update_in_sscr_resources_bind = false;
     if (_bulk_prepared_statement && _sscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       std::lock_guard lck(*_sscr_resources_bind);
       if (!_sscr_resources_bind->bind(conn))
         _sscr_resources_bind->init_from_stmt(conn);
