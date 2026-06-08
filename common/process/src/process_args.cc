@@ -194,6 +194,7 @@ void process_args::dump(std::string* output) const {
   output->push_back(']');
 }
 
+#ifndef PROCESS_NO_CRYPTO
 /**
  * @brief encrypt all arguments, exe_path is not encrypted
  *
@@ -233,6 +234,8 @@ void process_args::clear_unencrypted_args() {
     s.clear();
   }
 }
+
+#endif
 
 /**
  * @brief Add an argument to command at the end of the command

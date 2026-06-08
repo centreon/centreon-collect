@@ -64,6 +64,17 @@ if(WITH_ASAN)
   endif()
 endif()
 
+# With ASIO DEBUGGING ENABLED
+option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
+
+if(WITH_DEBUG_ASIO)
+  message(STATUS "compilation with asio debug")
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_ASIO_ENABLE_BUFFER_DEBUGGING -DBOOST_ASIO_ENABLE_HANDLER_TRACKING"
+  )
+endif()
+
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")

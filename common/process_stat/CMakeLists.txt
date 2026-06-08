@@ -32,7 +32,6 @@ add_custom_command(
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_library(process_stat STATIC
-  ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.grpc.pb.cc
   ${CMAKE_BINARY_DIR}/common/process_stat/process_stat.pb.cc
   process_stat.cc
 )

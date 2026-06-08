@@ -72,12 +72,13 @@ class process_args {
     _copy_from(from);
     return *this;
   }
-
+#ifndef PROCESS_NO_CRYPTO
   void encrypt_args(const crypto::aes256& crypto);
 
   void decrypt_args(const crypto::aes256& crypto);
 
   void clear_unencrypted_args();
+#endif
 
   void add_arg(const std::string& arg);
 
