@@ -732,12 +732,7 @@ sub ping_send {
     my $nodes_id = [keys %$register_nodes];
     $nodes_id = [$options{node_id}] if (defined($options{node_id}));
     my $current_time = time();
-    $options{logger}->writeLogError("EVAN - constatus_ping is : " . Dumper($constatus_ping));
     foreach my $id (@$nodes_id) {
-
-        $options{logger}->writeLogError("EVAN - checking node $id");
-
-
 
         next if ($constatus_ping->{$id}->{in_progress_ping} == 1 || $current_time < $constatus_ping->{$id}->{next_ping});
 
