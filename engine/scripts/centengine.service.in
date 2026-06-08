@@ -1,5 +1,5 @@
 ##
-## Copyright 2016 Centreon
+## Copyright 2016-2026 Centreon
 ##
 ## Licensed under the Apache License, Version 2.0 (the "License");
 ## you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ ExecStart=@CMAKE_INSTALL_FULL_SBINDIR@/centengine @PREFIX_ENGINE_CONF@/centengin
 ExecReload=/bin/kill -HUP $MAINPID
 Type=simple
 User=centreon-engine
+Restart=on-success
 
 [Install]
 WantedBy=centreon.service

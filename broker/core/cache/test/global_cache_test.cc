@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <boost/interprocess/exceptions.hpp>
 
 #include "bbdo/neb.pb.h"
 
@@ -195,8 +196,16 @@ TEST_F(global_cache_test, CanBeMoved) {
   ::remove(temp_path);
 
   // use old map address to force global cache to use another one
-  boost::interprocess::managed_mapped_file dummy2(
-      interprocess::create_only, temp_path, 0x10000, mapping_begin);
+  try {
+    // sometimes, OS refuses to do this fixed mapping
+    boost::interprocess::managed_mapped_file dummy2(
+        interprocess::create_only, temp_path, 0x10000, mapping_begin);
+  } catch (const boost::interprocess::interprocess_exception& err) {
+    std::cout << "[   WARNING   ] we can't create dummy mapping => we skip "
+                 "this test: "
+              << err.what() << std::endl;
+    return;
+  }
 
   obj = global_cache::load(g_io_context, "/tmp/cache_test");
   mapping_begin = obj->get_address();
