@@ -42,7 +42,7 @@ my ($connector);
 websocket '/' => sub {
     my $mojo = shift;
 
-    $connector->{logger}->writeLogDebug('[proxy] httpserver websocket client connected: ' . $mojo->tx->connection);
+    $connector->{logger}->writeLogDebug('[proxy-httpserver] httpserver websocket client connected: ' . $mojo->tx->connection);
 
     $connector->{ws_clients}->{ $mojo->tx->connection } = {
         tx => $mojo->tx,
@@ -58,7 +58,7 @@ websocket '/' => sub {
 
         $connector->{ws_clients}->{ $mojo->tx->connection }->{last_update} = time();
 
-        $connector->{logger}->writeLogDebug("[proxy] httpserver receiving message: " . $msg);
+        $connector->{logger}->writeLogDebug("[proxy-httpserver] receiving message: " . $msg);
 
         my $rv = $connector->is_logged_websocket(ws_id => $mojo->tx->connection, data => $msg);
         return if ($rv == 0);
@@ -69,7 +69,7 @@ websocket '/' => sub {
     $mojo->on(finish => sub {
         my ($mojo, $code, $reason) = @_;
 
-        $connector->{logger}->writeLogDebug('[proxy] httpserver websocket client disconnected: ' . $mojo->tx->connection);
+        $connector->{logger}->writeLogDebug('[proxy-httpserver] websocket client disconnected: ' . $mojo->tx->connection);
         $connector->clean_websocket(ws_id => $mojo->tx->connection, finish => 1);
     });
 };
@@ -126,12 +126,12 @@ sub run {
     if ($self->{config}->{httpserver}->{ssl} eq 'true') {
         if (!defined($self->{config}->{httpserver}->{ssl_cert_file}) || $self->{config}->{httpserver}->{ssl_cert_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_cert_file}") {
-            $connector->{logger}->writeLogError("[proxy] httpserver cannot read/find ssl-cert-file");
+            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-cert-file");
             exit(1);
         }
         if (!defined($self->{config}->{httpserver}->{ssl_key_file}) || $self->{config}->{httpserver}->{ssl_key_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_key_file}") {
-            $connector->{logger}->writeLogError("[proxy] httpserver cannot read/find ssl-key-file");
+            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-key-file");
             exit(1);
         }
         $listen .= '&cert=' . $self->{config}->{httpserver}->{ssl_cert_file} . '&key=' . $self->{config}->{httpserver}->{ssl_key_file};
@@ -186,11 +186,11 @@ sub run {
     #Mojo::IOLoop->singleton->reactor->watch($socket, 1, 0);
 
     Mojo::IOLoop->singleton->recurring(60 => sub {
-        $connector->{logger}->writeLogDebug('[proxy] httpserver recurring timeout loop');
+        $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring timeout loop');
         my $ctime = time();
         foreach my $ws_id (keys %{$connector->{ws_clients}}) {
             if (($ctime - $connector->{ws_clients}->{$ws_id}->{last_update}) > 300) {
-                $connector->{logger}->writeLogDebug('[proxy] httpserver websocket client timeout reached: ' . $ws_id);
+                $connector->{logger}->writeLogDebug('[proxy-httpserver] websocket client timeout reached: ' . $ws_id);
                 $connector->close_websocket(
                     code => 500,
                     message  => 'timeout reached',
@@ -265,7 +265,7 @@ sub action_proxyaddnode {
     my ($self, %options) = @_;
     my $nodes = $options{data};
     if ( is_empty($nodes) ) {
-          $self->{logger}->writeLogError("Can't decode a proxyaddnode message data: no data");
+          $self->{logger}->writeLogError("[proxy-httpserver] Can't decode a proxyaddnode message data: no data");
           return 1;
     }
     # let's loop on the nodes and delete any non wss. if uid is undef it mean message don't come from the nodes module but from the register module.
@@ -273,7 +273,7 @@ sub action_proxyaddnode {
     for my $node (@{$nodes}){
         next if $node->{type} !~ /wss/;
         if (!$node->{uid}){
-            $self->{logger}->writeLogInfo("EVAN] Not uid for the node $node->{id}, so this message might be the poller message, throwing it away.");
+            $self->{logger}->writeLogInfo("[proxy-httpserver] No uid for the node $node->{id}, so this message might be the poller message, throwing it away.");
             return 1;
         }
 
@@ -289,8 +289,6 @@ sub action_proxyaddnode {
     for my $delete_node (keys %{$self->{nodes}}){
         next if $temp_nodes->{$delete_node};
 
-        $self->{logger}->writeLogInfo("[EVAN] trying to see node $delete_node, identities is : " . Dumper($self->{identities}));
-        $self->{logger}->writeLogInfo("[EVAN] temp_node : " . Dumper($temp_nodes));
         my $ws_id = $self->{identities}->{ $delete_node };
         next if !defined($ws_id);
         $self->{logger}->writeLogInfo("[proxy-httpserver] node " . $delete_node . " don't exist anymore, disconnecting client " . $ws_id );
