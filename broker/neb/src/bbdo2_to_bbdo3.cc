@@ -25,6 +25,7 @@
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -442,6 +443,41 @@ static std::shared_ptr<io::data> _downtime_to_pb(
  *
  * @return Converted event
  */
+/**
+ * @brief Convert a legacy (bbdo2) acknowledgement event into its protobuf
+ * (bbdo3) pb_acknowledgement counterpart.
+ *
+ * @param d The legacy neb::acknowledgement event.
+ * @return A neb::pb_acknowledgement carrying the same data.
+ */
+static std::shared_ptr<io::data> _acknowledgement_to_pb(
+    const std::shared_ptr<io::data>& d) {
+  const auto& in = *std::static_pointer_cast<neb::acknowledgement>(d).get();
+  auto pb = std::make_shared<neb::pb_acknowledgement>();
+  pb->destination_id = d->destination_id;
+  pb->source_id = d->source_id;
+  Acknowledgement& obj = pb->mut_obj();
+  obj.set_host_id(in.host_id);
+  obj.set_service_id(in.service_id);
+  obj.set_instance_id(in.poller_id);
+  obj.set_type(static_cast<Acknowledgement_ResourceType>(in.acknowledgement_type));
+  obj.set_author(in.author);
+  obj.set_comment_data(in.comment);
+  obj.set_sticky(in.is_sticky);
+  obj.set_notify_contacts(in.notify_contacts);
+  obj.set_entry_time(in.entry_time);
+  /* The legacy timestamp default is (time_t)-1 (unset). Leave deletion_time at
+   * its proto default (0) for an open acknowledgement so that downstream
+   * consumers can reliably tell an open ack (deletion_time == 0) from a closing
+   * one (deletion_time > 0). */
+  if (in.deletion_time.get_time_t() != static_cast<std::time_t>(-1))
+    obj.set_deletion_time(in.deletion_time);
+  obj.set_persistent_comment(in.persistent_comment);
+  obj.set_state(in.state);
+
+  return pb;
+}
+
 std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
     const std::shared_ptr<io::data>& d) {
   if (!d) {
@@ -484,6 +520,8 @@ std::shared_ptr<io::data> com::centreon::broker::neb::bbdo2_to_bbdo3(
       return _inherited_downtime_to_pb(d);
     case neb::downtime::static_type():
       return _downtime_to_pb(d);
+    case neb::acknowledgement::static_type():
+      return _acknowledgement_to_pb(d);
     default:
       return d;
   }
