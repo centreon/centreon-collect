@@ -95,7 +95,9 @@ class broker_downtime_callbacks
                                    uint64_t service_id,
                                    const std::string& author,
                                    const std::string& comment_data) override;
-  void delete_downtime_comment(uint64_t comment_id) override;
+  void delete_downtime_comment(uint64_t comment_id,
+                               uint64_t host_id,
+                               uint64_t service_id) override;
 
   /* --- Anomaly detection lookup --- */
 

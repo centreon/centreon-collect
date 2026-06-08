@@ -87,7 +87,7 @@ downtime::~downtime() {
   if (!downtime_manager::is_loaded())
     return;
   downtime_manager::instance().callbacks().delete_downtime_comment(
-      _get_comment_id());
+      _get_comment_id(), _host_id, _service_id);
   /* send data to event broker */
   downtime_manager::instance().callbacks().notify_broker(
       downtime_callbacks::DELETE, downtime_callbacks::ATTR_NONE, _host_id,
@@ -153,6 +153,19 @@ void downtime::_set_in_effect(bool in_effect) {
 
 uint64_t downtime::_get_comment_id() const {
   return _comment_id;
+}
+
+uint64_t downtime::get_comment_id() const {
+  return _comment_id;
+}
+
+/**
+ * @brief Set the comment id, used when re-establishing a downtime from the
+ *        persisted cache so it can delete its comment at the end (the comment
+ *        row itself already survives in the DB; reload() does not recreate it).
+ */
+void downtime::set_comment_id(uint64_t comment_id) {
+  _comment_id = comment_id;
 }
 
 void downtime::start_flex_downtime() {
@@ -277,6 +290,39 @@ bool downtime::subscribe() {
   if (_triggered_by == 0)
     downtime_manager::instance().callbacks().schedule_downtime_check(
         _downtime_id, _start_time);
+
+  return true;
+}
+
+/**
+ * @brief Re-establish a downtime that was already in effect before a Broker
+ *        restart, WITHOUT re-applying the start effect.
+ *
+ * Used when reloading persisted active downtimes: the downtime is marked in
+ * effect, the broker is notified (LOAD, preserving the original id so the DB
+ * row is updated, not duplicated), and the end-time check is scheduled so the
+ * downtime ends normally. The scheduled_downtime_depth is restored separately
+ * (re-derived from the set of reloaded downtimes), so it is NOT touched here.
+ *
+ * @return true on success, false if the target object no longer exists.
+ */
+bool downtime::reload() {
+  _logger->trace("downtime::reload() id={}", _downtime_id);
+
+  if (!downtime_manager::instance().callbacks().resource_exists(_host_id,
+                                                                _service_id))
+    return false;
+
+  _set_in_effect(true);
+
+  /* Advertise the reloaded downtime to clients/DB (LOAD keeps the same id). */
+  notify_broker_load();
+
+  /* Schedule the end-time check so the downtime stops normally. Triggered
+   * downtimes are handled by their parent. */
+  if (_triggered_by == 0)
+    downtime_manager::instance().callbacks().schedule_downtime_check(
+        _downtime_id, (_end_time == INT64_MAX) ? _end_time : _end_time + 1);
 
   return true;
 }

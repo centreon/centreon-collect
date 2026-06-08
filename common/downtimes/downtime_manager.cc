@@ -321,6 +321,42 @@ int downtime_manager::
 }
 
 /**
+ * @brief Re-establish a downtime that was already started before a Broker
+ *        restart (loaded from the persisted cache), preserving its id.
+ *
+ * The downtime is created with the saved id, inserted in the schedule, marked
+ * in effect and its end-time check scheduled (via downtime::reload()), WITHOUT
+ * re-applying the start effect. If the target resource no longer exists, the
+ * entry is dropped. The next get_next_downtime_id() rescan keeps new ids above
+ * the reloaded ones.
+ */
+void downtime_manager::reload_started_downtime(uint64_t host_id,
+                                               uint64_t service_id,
+                                               time_t entry_time,
+                                               const std::string& author,
+                                               const std::string& comment_data,
+                                               time_t start_time,
+                                               time_t end_time,
+                                               bool fixed,
+                                               uint64_t triggered_by,
+                                               uint32_t duration,
+                                               uint64_t downtime_id,
+                                               uint64_t comment_id) {
+  auto dt = std::make_shared<downtime>(
+      host_id, service_id, entry_time, author, comment_data, start_time,
+      end_time, fixed, triggered_by, duration, downtime_id, _logger);
+  /* The comment row already survives in the DB; keep its id so the downtime can
+   * delete it at the end (reload() does not recreate it). */
+  dt->set_comment_id(comment_id);
+  add_downtime(dt);
+  if (!dt->reload())
+    delete_downtime(downtime_id);
+  /* Force a rescan of the id counter so new downtimes get ids above the
+   * reloaded ones. */
+  _next_id = 0;
+}
+
+/**
  * @brief Initializes downtime data: removes stale entries and resets the ID
  * counter so the next call to get_next_downtime_id() rescans.
  */

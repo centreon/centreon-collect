@@ -119,24 +119,82 @@ broker_downtime_callbacks::get_host_and_service_names(
 }
 
 /**
- * @brief No-op: Broker does not create Engine-style comments for downtimes.
+ * @brief Create the downtime comment row in the DB (notification_mode=broker).
  *
- * @return Always 0 (this function does nothing but otherwise it'd return a
- * comment ID).
+ * Publishes a pb_comment (entry_type=DOWNTIME, source=INTERNAL, non-persistent)
+ * so unified_sql inserts it. The content (author, data) is the one built by the
+ * shared library's subscribe(), so a Broker-scheduled downtime gets a comment
+ * identical to an Engine-scheduled one. The internal_id is drawn from Broker's
+ * partitioned range (>= INT32_MAX/2) so it can never collide with the per-poller
+ * ids Engine mints. instance_id is the host's poller, so the row is addressable
+ * and survives correctly (see the clean_comments guard in unified_sql).
+ *
+ * @return The internal_id of the created comment (stored on the downtime).
  */
 uint64_t broker_downtime_callbacks::create_downtime_comment(
-    uint64_t /*host_id*/,
-    uint64_t /*service_id*/,
-    const std::string& /*author*/,
-    const std::string& /*comment_data*/) {
-  return 0;
+    uint64_t host_id,
+    uint64_t service_id,
+    const std::string& author,
+    const std::string& comment_data) {
+  auto& cache = config::applier::state::instance().cache();
+  uint64_t internal_id = cache.next_downtime_comment_id();
+  auto h = cache.host(host_id);
+  uint32_t inst_id = (h && h->obj().instance_id() != 0)
+                         ? h->obj().instance_id()
+                         : cache.first_active_instance_id();
+
+  auto ev = std::make_shared<neb::pb_comment>();
+  auto& obj = ev->mut_obj();
+  obj.set_author(author);
+  obj.set_type(service_id == 0 ? Comment_Type_HOST : Comment_Type_SERVICE);
+  obj.set_data(comment_data);
+  obj.set_entry_time(time(nullptr));
+  obj.set_entry_type(Comment_EntryType_DOWNTIME);
+  obj.set_host_id(host_id);
+  obj.set_internal_id(internal_id);
+  obj.set_persistent(false);
+  if (inst_id != 0)
+    obj.set_instance_id(inst_id);
+  obj.set_service_id(service_id);
+  obj.set_source(Comment_Src_INTERNAL);
+
+  multiplexing::publisher pblshr;
+  pblshr.write(ev);
+  return internal_id;
 }
 
 /**
- * @brief No-op: Broker does not manage Engine-style comments for downtimes.
+ * @brief Delete the downtime comment row (notification_mode=broker).
+ *
+ * Publishes a delete-by-id pb_comment. unified_sql matches the row on
+ * (internal_id, instance_id), so the host's poller instance_id is resolved from
+ * host_id, exactly as on creation.
+ *
+ * @param comment_id The internal_id returned by create_downtime_comment().
+ * @param host_id    The downtime's host (to resolve the instance_id).
+ * @param service_id The downtime's service (0 for a host downtime).
  */
-void broker_downtime_callbacks::delete_downtime_comment(
-    uint64_t /*comment_id*/) {}
+void broker_downtime_callbacks::delete_downtime_comment(uint64_t comment_id,
+                                                        uint64_t host_id,
+                                                        uint64_t /*service_id*/) {
+  if (comment_id == 0)
+    return;
+  auto& cache = config::applier::state::instance().cache();
+  auto h = cache.host(host_id);
+  uint32_t inst_id = (h && h->obj().instance_id() != 0)
+                         ? h->obj().instance_id()
+                         : cache.first_active_instance_id();
+
+  auto ev = std::make_shared<neb::pb_comment>();
+  auto& obj = ev->mut_obj();
+  obj.set_internal_id(comment_id);
+  if (inst_id != 0)
+    obj.set_instance_id(inst_id);
+  obj.set_deletion_time(time(nullptr));
+
+  multiplexing::publisher pblshr;
+  pblshr.write(ev);
+}
 
 /* --- Anomaly detection lookup --- */
 

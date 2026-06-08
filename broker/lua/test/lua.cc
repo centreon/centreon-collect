@@ -4354,12 +4354,14 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   for (auto it1 = l2.begin(); it1 != l2.end();) {
     if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
         *it1 == "is_volatile" || *it1 == "long_output" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type") {
+        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type" ||
+        *it1 == "dependent_service_id") {
       ++it1;
       continue;
     }
     std::cout << *it << " <=> " << *it1 << std::endl;
-    ASSERT_TRUE(it != l1.end() && *it1 >= *it);
+    ASSERT_TRUE(it != l1.end() && *it1 == *it)
+        << " (expected: " << *it << ", got: " << *it1 << ")";
     if (*it1 == *it) {
       ++it;
       ++it1;
