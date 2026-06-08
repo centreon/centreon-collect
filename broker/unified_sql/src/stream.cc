@@ -454,8 +454,8 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_hi.get());
     while (_mysql.fetch_row(res)) {
-      int32_t host_id = res.value_as_i32(0);
-      int32_t instance_id = res.value_as_i32(1);
+      uint64_t host_id = res.value_as_u64(0);
+      uint64_t instance_id = res.value_as_u64(1);
       if (host_id > 0 && instance_id > 0)
         _cache_host_instance[host_id] = instance_id;
       else {

@@ -153,7 +153,7 @@ message Service {
    * here. */
   uint64 internal_id = 86;
   uint64 icon_id = 87;
-  int32 instance_id = 88;
+  uint64 instance_id = 88;
 }
 
 /**

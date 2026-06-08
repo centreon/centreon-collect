@@ -375,7 +375,7 @@ void conflict_manager::_load_caches() {
   try {
     mysql_result res(future_hst.get());
     while (_mysql.fetch_row(res))
-      _cache_host_instance[res.value_as_u32(0)] = res.value_as_u32(1);
+      _cache_host_instance[res.value_as_u64(0)] = res.value_as_u64(1);
   } catch (std::exception const& e) {
     throw msg_fmt("SQL: could not get the list of host/instance pairs: {}",
                   e.what());

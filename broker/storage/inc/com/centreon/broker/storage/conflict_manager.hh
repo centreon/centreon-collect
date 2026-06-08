@@ -185,7 +185,7 @@ class conflict_manager {
   std::atomic<uint32_t> _ref_count;
 
   std::unordered_set<uint64_t> _cache_deleted_instance_id;
-  std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
+  std::unordered_map<uint64_t, uint64_t> _cache_host_instance;
   std::unordered_map<uint64_t, size_t> _cache_hst_cmd;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
   std::unordered_map<std::pair<uint64_t, uint64_t>,
