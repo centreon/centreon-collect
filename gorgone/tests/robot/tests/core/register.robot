@@ -17,7 +17,7 @@ poller defined in push in database should be overridden by register module to pu
     Log To Console    \nStarting the gorgone setup
     ${central_config}    Create List    ${ROOT_CONFIG}register_module.yaml    ${ROOT_CONFIG}register_pull_node.yaml
 
-    ${result}    Run    perl /usr/local/bin/gorgone_key_generation.pl
+    ${result}    Run    perl /usr/bin/gorgone_key_generation.pl
     # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
     # this should not stay after merge on develop
     Gorgone Fix Schema
