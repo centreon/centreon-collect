@@ -30,6 +30,24 @@ namespace detail {
  *  @return Midnight of the day in skip seconds.
  */
 time_t add_round_days_to_midnight(time_t midnight, time_t skip) {
+  // Normalize to the midnight of the same calendar day.  When callers pass a
+  // value that is not at midnight (e.g. 13:00 because mktime DST-adjusted a
+  // struct tm with hour=0, or because calculate_time_from_day_of_month left
+  // tm_hour non-zero from a prior iteration), the noon-trick below would
+  // overshoot by one extra day.  Truncating first ensures the trick always
+  // starts from hour=0 of the intended day.
+  {
+    struct tm t;
+    localtime_r(&midnight, &t);
+    if (t.tm_hour || t.tm_min || t.tm_sec) {
+      t.tm_hour = 0;
+      t.tm_min = 0;
+      t.tm_sec = 0;
+      t.tm_isdst = -1;
+      midnight = mktime(&t);
+    }
+  }
+
   // Compute expected time with no DST.
   time_t next_day_time(midnight + skip);
   struct tm next_day;
@@ -124,13 +142,6 @@ time_t calculate_time_from_weekday_of_month(int year,
                                             int weekday_offset) {
   // Compute first day of month (to get weekday).
   struct tm t {};
-  t.tm_sec = 0;
-  t.tm_min = 0;
-  t.tm_hour = 0;
-  t.tm_year = year;
-  t.tm_mon = month;
-  t.tm_mday = 1;
-  t.tm_isdst = -1;
   mktime(&t);
 
   // How many days must we advance to reach the first instance of the
@@ -284,7 +295,7 @@ bool daterange_month_day_to_time_t(const Daterange& r,
       decay = false;
   } else {
     if (r.emday() >= 0)
-      decay = (r.smday() > r.emday());
+      decay = false;
     else
       decay = true;
   }

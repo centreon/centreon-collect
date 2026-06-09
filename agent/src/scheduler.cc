@@ -17,7 +17,6 @@
  */
 
 #include "scheduler.hh"
-#include <vector>
 #include "check.hh"
 #include "check_cpu.hh"
 #include "check_health.hh"
@@ -128,7 +127,7 @@ void scheduler::_start_send_timer() {
  * @param err
  */
 void scheduler::_send_timer_handler(const boost::system::error_code& err) {
-  if (err) {
+  if (err || !_alive) {
     return;
   }
   if (_current_request->mutable_otel_request()->resource_metrics_size() > 0) {
@@ -182,7 +181,7 @@ void scheduler::_start_check_timer() {
  * @param err
  */
 void scheduler::_check_timer_handler(const boost::system::error_code& err) {
-  if (err) {
+  if (err || !_alive) {
     return;
   }
   _start_waiting_check();
@@ -214,30 +213,40 @@ void scheduler::_start_waiting_check() {
           to_check->second->get_service(),
           period_name.empty() ? "(none)" : period_name, now_t, in_period);
       if (!in_period) {
-        // Compute when the period next opens and defer the check there.
+        // next_valid_time_in_period_by_name returns now_t (= orig) when no
+        // valid slot is found in the next 366 days (get_next_valid_time uses
+        // notif=false, which falls back to orig on failure).  Comparing
+        // next_t > now_t therefore distinguishes a real future opening from
+        // the "period has no active windows" sentinel.
         const time_t next_t =
             com::centreon::common::next_valid_time_in_period_by_name(
                 now_t, period_name, _timeperiods);
         const check::pointer deferred = to_check->second;
         to_check = _waiting_check_queue.erase(to_check);
-        if (next_t != (time_t)-1) {
+        time_step slot(_check_time_step);
+        if (next_t > now_t) {
           SPDLOG_LOGGER_DEBUG(
               _logger,
               "service '{}': outside period '{}', next open at {} ({}s from "
               "now)",
               deferred->get_service(), period_name, next_t, next_t - now_t);
-          const auto next_tp = std::chrono::system_clock::from_time_t(next_t);
-          time_step slot(_check_time_step);
-          slot.increment_to_after_min(next_tp);
-          uint64_t steps = slot.get_step_index();
-          save_defer_checks.push_back(std::pair(deferred, steps));
+          slot.increment_to_after_min(
+              std::chrono::system_clock::from_time_t(next_t));
         } else {
-          // Period is never active drop the check.
+          // next_t == now_t: no valid window in the next 366 days.
+          // Defer by the same horizon so we do not spin wastefully.  Any
+          // engine config update triggers update() which rebuilds the queue,
+          // so a corrected period will be picked up regardless.
+          static constexpr auto one_year =
+              std::chrono::seconds(366 * 24 * 60 * 60);
           SPDLOG_LOGGER_DEBUG(
               _logger,
-              "service '{}': period '{}' is never active, check dropped",
+              "service '{}': period '{}' has no active time in the next "
+              "year, deferring by one year",
               deferred->get_service(), period_name);
+          slot.increment_to_after_min(now + one_year);
         }
+        save_defer_checks.push_back(std::pair(deferred, slot.get_step_index()));
         continue;
       }
       SPDLOG_LOGGER_DEBUG(_logger,

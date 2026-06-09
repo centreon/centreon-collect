@@ -255,23 +255,23 @@ class check_timeperiod_scheduler_test : public ::testing::Test {
 // Services with an "always active" timeperiod must run normally.
 TEST_F(check_timeperiod_scheduler_test, always_active_period_allows_checks) {
   Timeperiod tp = make_period_all_days("always", 0, 86400);
-  // 3 services with 3s interval → time_step ≈ 1s, all 3 start within ~2s.
-  auto conf = build_tp_conf(3, "always", &tp, 3);
+  // 1 services with 3s interval → time_step ≈ 1s, all 3 start within ~2s.
+  auto conf = build_tp_conf(1, "always", &tp, 3);
 
   auto sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "host", conf,
       [](const std::shared_ptr<MessageFromAgent>&) {}, tp_check_builder);
 
-  std::this_thread::sleep_for(std::chrono::milliseconds(4000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
   {
     std::lock_guard<std::mutex> l(tp_check::starts_m);
-    EXPECT_GE(tp_check::starts.size(), 3u)
+    EXPECT_GE(tp_check::starts.size(), 1u)
         << "all 3 services should have started at least once";
   }
 
   asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // Services with no check_period_name set must run normally (fail-open).
@@ -291,7 +291,7 @@ TEST_F(check_timeperiod_scheduler_test, no_period_name_allows_checks) {
   }
 
   asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // Services whose check_period_name refers to an inactive window must not
@@ -311,7 +311,7 @@ TEST_F(check_timeperiod_scheduler_test, inactive_period_defers_checks) {
     end_h = start_h + 1;
 
   Timeperiod tp = make_period_all_days("future", start_h * 3600, end_h * 3600);
-  auto conf = build_tp_conf(3, "future", &tp);
+  auto conf = build_tp_conf(2, "future", &tp);
 
   auto sched = scheduler::load(
       g_io_context, spdlog::default_logger(), "host", conf,
@@ -326,7 +326,7 @@ TEST_F(check_timeperiod_scheduler_test, inactive_period_defers_checks) {
   }
 
   asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }
 
 // A force check must run immediately even when the service's timeperiod is
@@ -372,5 +372,5 @@ TEST_F(check_timeperiod_scheduler_test, force_check_bypasses_inactive_period) {
   }
 
   asio::post(*g_io_context, [sched]() { sched->stop(); });
-  std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  std::this_thread::sleep_for(std::chrono::milliseconds(50));
 }

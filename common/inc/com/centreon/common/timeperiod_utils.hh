@@ -26,64 +26,101 @@ using Daterange = com::centreon::engine::configuration::Daterange;
 using Timeperiod = com::centreon::engine::configuration::Timeperiod;
 using Timerange = com::centreon::engine::configuration::Timerange;
 
+// Snapshot of time information computed once per loop iteration.
 struct time_info {
   time_t preferred_time;
   struct tm preftime;
   time_t midnight;
 };
 
+// Advances midnight by skip seconds and truncates back to midnight,
+// absorbing any DST offset introduced by the addition.
 time_t add_round_days_to_midnight(time_t midnight, time_t skip);
+
+// Returns the epoch of the given day-of-month in year/month,
+// or (time_t)-1 if monthday is out of range for that month.
 time_t calculate_time_from_day_of_month(int year, int month, int monthday);
+
+// Returns the epoch of the (offset)th occurrence of weekday in year/month.
+// Negative offset counts backward from the last occurrence in the month.
 time_t calculate_time_from_weekday_of_month(int year,
                                             int month,
                                             int weekday,
                                             int offset);
 
+// Computes start/end epoch for a CALENDAR_DATE daterange relative to ti.
+// Returns false if the daterange cannot produce a valid interval.
 bool daterange_calendar_date_to_time_t(const Daterange& r,
                                        const time_info& ti,
                                        time_t& start,
                                        time_t& end);
+
+// Computes start/end epoch for a MONTH_DATE daterange (month/day, yearly repeat).
+// Returns false if the daterange cannot produce a valid interval.
 bool daterange_month_date_to_time_t(const Daterange& r,
                                     const time_info& ti,
                                     time_t& start,
                                     time_t& end);
+
+// Computes start/end epoch for a MONTH_DAY daterange (Nth day of a month).
+// Returns false if the daterange cannot produce a valid interval.
 bool daterange_month_day_to_time_t(const Daterange& r,
                                    const time_info& ti,
                                    time_t& start,
                                    time_t& end);
+
+// Computes start/end epoch for a MONTH_WEEK_DAY daterange
+// (e.g., "2nd Monday of January"). Returns false on failure.
 bool daterange_month_week_day_to_time_t(const Daterange& r,
                                         const time_info& ti,
                                         time_t& start,
                                         time_t& end);
+
+// Computes start/end epoch for a WEEK_DAY daterange
+// (e.g., "2nd Monday"). Returns false on failure.
 bool daterange_week_day_to_time_t(const Daterange& r,
                                   const time_info& ti,
                                   time_t& start,
                                   time_t& end);
+
+// Dispatches to the appropriate daterange_*_to_time_t function based on type.
+// Returns false if the daterange cannot produce a valid interval.
 bool daterange_to_time_t(const Daterange& r,
                          int type,
                          const time_info& ti,
                          time_t& start,
                          time_t& end);
+
+// Returns the earliest midnight >= pref that falls within [dr_start, dr_end),
+// advancing by the daterange's skip period. Returns (time_t)-1 if none found.
 time_t earliest_midnight_in_daterange(time_t pref,
                                       const Daterange& dr,
                                       time_t dr_start,
                                       time_t dr_end);
+
+// Converts a Timerange (HH:MM–HH:MM) relative to midnight to absolute epoch
+// range_start/range_end. Returns false if the conversion fails.
 bool timerange_to_time_t(const Timerange& tr,
                          const struct tm* midnight,
                          time_t& range_start,
                          time_t& range_end);
 
+// Returns the Timerange list for wday (0=Sunday) from a DaysArray proto.
 const google::protobuf::RepeatedPtrField<Timerange>& days_array_for_wday(
     const com::centreon::engine::configuration::DaysArray& days,
     int wday);
 
 /**
- *  Get the next valid time from timeranges.
+ * @brief Find the earliest time >= pref within a set of time ranges on the
+ * same calendar day.
  *
- *  @param[in] preferred_time  Preferred time.
- *  @param[in] timeranges      Time ranges.
+ * Iterates over ranges anchored to the midnight of pref. Returns pref if it
+ * already falls inside a range, otherwise returns the start of the next
+ * upcoming range, or (time_t)-1 if no range is active or upcoming that day.
  *
- *  @return The next valid time found within the day.
+ * @param[in] pref    Lower bound for the search (epoch seconds).
+ * @param[in] ranges  Collection of Timerange objects for a single day.
+ * @return Earliest valid epoch >= pref, or (time_t)-1 if none found.
  */
 template <typename Ranges>
 time_t get_next_valid_time_in_timeranges(time_t pref, const Ranges& ranges) {
@@ -105,7 +142,7 @@ time_t get_next_valid_time_in_timeranges(time_t pref, const Ranges& ranges) {
 
     }  // Preferred time is within the range.
     else if (pref < range_end) {
-      earliest_time = pref;
+      return pref;
     }
   }
   return earliest_time;
@@ -129,6 +166,25 @@ void get_next_valid_time_per_timeperiod_impl(
     bool notif,
     ExclusionResolver resolve_exclusion);
 
+/**
+ * @brief Find the next time >= preferred_time that falls OUTSIDE the
+ * timeperiod.
+ *
+ * Used internally to compute exclusion windows: given an excluded timeperiod,
+ * this function determines when its validity ends so the outer search can skip
+ * past it. Walks forward through exceptions (highest-precedence first) then the
+ * weekly schedule, capped at 366 days to prevent infinite loops on always-valid
+ * periods. If preferred_time is already outside every defined range the original
+ * preferred_time is returned unchanged.
+ *
+ * @param[in]  tp                Timeperiod to evaluate.
+ * @param[in]  preferred_time    Start of the search (epoch seconds).
+ * @param[out] invalid_time      Set to the next time outside the period,
+ *                               or to @p preferred_time if none found.
+ * @param[in]  notif             Passed through to nested valid-time queries.
+ * @param[in]  resolve_exclusion Callable(const std::string&) → const
+ *                               Timeperiod*, used to look up excluded periods.
+ */
 template <typename ExclusionResolver>
 void get_next_invalid_time_per_timeperiod(
     const com::centreon::engine::configuration::Timeperiod& tp,
@@ -271,6 +327,31 @@ void get_next_invalid_time_per_timeperiod(
     *invalid_time = preferred_time;
 }
 
+/**
+ * @brief Find the next valid time at or after @p preferred_time within a
+ * timeperiod.
+ *
+ * Walks forward day by day (up to 366 days) checking exceptions first
+ * (calendar_date > month_date > month_day > month_week_day > week_day) then
+ * the regular weekly schedule. Exclusion timeperiods are resolved via
+ * @p resolve_exclusion and subtracted from valid windows: if an exclusion
+ * covers the earliest candidate, the search resumes from the end of that
+ * exclusion window.
+ *
+ * @param[in]  tp                Timeperiod to evaluate.
+ * @param[in]  preferred_time    Earliest acceptable time (epoch seconds).
+ * @param[out] valid_time        Set to the next valid time found, or to
+ *                               @p preferred_time when @p notif is false and
+ *                               no valid time exists within the search window,
+ *                               or to (time_t)-1 when @p notif is true and
+ *                               no valid time exists.
+ * @param[in]  notif             When true, return (time_t)-1 instead of the
+ *                               original preferred_time on failure (used for
+ *                               notification scheduling).
+ * @param[in]  resolve_exclusion Callable(const std::string& name) returning a
+ *                               const Timeperiod* for excluded timeperiod
+ *                               lookup, or nullptr if not found.
+ */
 template <typename ExclusionResolver>
 void get_next_valid_time_per_timeperiod_impl(
     const com::centreon::engine::configuration::Timeperiod& tp,
@@ -390,6 +471,12 @@ void get_next_valid_time_per_timeperiod_impl(
 
 }  // namespace detail
 
+/**
+ * @brief Public wrapper: find the next valid time at or after preferred_time.
+ *
+ * Delegates to detail::get_next_valid_time_per_timeperiod_impl.
+ * See that function for full parameter documentation.
+ */
 template <typename ExclusionResolver>
 inline void get_next_valid_time_per_timeperiod(
     const com::centreon::engine::configuration::Timeperiod& tp,
@@ -401,6 +488,12 @@ inline void get_next_valid_time_per_timeperiod(
       tp, preferred_time, valid_time, notif, resolve_exclusion);
 }
 
+/**
+ * @brief Returns true if test_time falls within a valid window of tp.
+ *
+ * Uses notif=false so the search falls back to test_time on failure,
+ * then checks equality to distinguish "valid now" from "no period defined."
+ */
 template <typename ExclusionResolver>
 inline bool check_time_against_period(
     time_t test_time,
@@ -412,6 +505,13 @@ inline bool check_time_against_period(
   return v == test_time;
 }
 
+/**
+ * @brief Returns true if test_time falls within a valid window of tp,
+ * using notification semantics (returns (time_t)-1 when no period is defined).
+ *
+ * Differs from check_time_against_period only in the notif=true flag,
+ * which distinguishes "always open" from "never open" timeperiods.
+ */
 template <typename ExclusionResolver>
 inline bool check_time_against_period_for_notif(
     time_t test_time,
@@ -423,6 +523,19 @@ inline bool check_time_against_period_for_notif(
   return v == test_time;
 }
 
+/**
+ * @brief Find the next valid time at or after pref_time, clamped to now.
+ *
+ * If tp is null every time is considered valid and preferred is returned
+ * immediately. Otherwise delegates to get_next_valid_time_per_timeperiod_impl
+ * with notif=false (falls back to pref_time when no period is defined).
+ *
+ * @param[in]  pref_time         Desired start time; clamped to now if in the
+ *                               past.
+ * @param[out] valid_time        Set to the next valid epoch.
+ * @param[in]  tp                Timeperiod to apply, or nullptr for no gating.
+ * @param[in]  resolve_exclusion Callable for excluded timeperiod lookup.
+ */
 template <typename ExclusionResolver>
 inline void get_next_valid_time(
     time_t pref_time,
