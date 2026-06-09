@@ -12,5 +12,4 @@ gorgone:
     - name: pullwss
       package: "gorgone::modules::core::pullwss::hooks"
       enable: true
-      ssl: false
-      port: 8086
+      ssl: true
