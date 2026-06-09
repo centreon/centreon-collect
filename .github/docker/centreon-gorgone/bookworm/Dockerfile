@@ -216,6 +216,12 @@ COPY --from=centreon-perl-selected /centreon-modules/ /usr/share/perl5/centreon/
 COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /gorgone-config/ /etc/centreon-gorgone/
 
+# Static poller config — dynamic params (id, token, address, port) are injected via env vars
+# (GORGONE_UID, GORGONE_TOKEN, CENTRAL_HOST, CENTRAL_PORT) using load_env_config at startup
+COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
+     .github/docker/centreon-gorgone/bookworm/40-gorgoned.yaml \
+     /etc/centreon-gorgone/config.d/40-gorgoned.yaml
+
 # Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
 RUN ARCH=$(dpkg --print-architecture) && \
     case "$ARCH" in \

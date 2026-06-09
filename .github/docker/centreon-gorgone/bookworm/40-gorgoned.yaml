@@ -1,0 +1,16 @@
+gorgone:
+  gorgonecore:
+    privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem
+    pubkey: /var/lib/centreon-gorgone/.keys/rsakey.pub.pem
+
+  modules:
+    - name: engine
+      package: gorgone::modules::centreon::engine::hooks
+      enable: true
+      command_file: "/var/lib/centreon-engine/rw/centengine.cmd"
+
+    - name: pullwss
+      package: "gorgone::modules::core::pullwss::hooks"
+      enable: true
+      ssl: false
+      port: 8086
