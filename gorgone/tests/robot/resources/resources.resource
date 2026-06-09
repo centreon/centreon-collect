@@ -120,6 +120,7 @@ Gorgone Execute Sql
         Log To Console    Executing sql file ${sql_file}
         Execute SQL Script    ${sql_file}    alias=${alias}
     END
+    Sleep    2s
 
 Setup Gorgone Config
     [Documentation]    setup a gorgone configuration with file given as parameter, then sed the various options as database name. user can add and override replacement by passing array to replace_from and replace_to optionnal parameter.
