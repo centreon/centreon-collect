@@ -42,16 +42,6 @@ if(WITH_LIBCXX)
   # -fno-omit-frame-pointer")
 endif()
 
-# With ASIO DEBUGGING ENABLED
-option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
-
-if(WITH_DEBUG_ASIO)
-  set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_ASIO_ENABLE_BUFFER_DEBUGGING -DBOOST_ASIO_ENABLE_HANDLER_TRACKING"
-  )
-endif()
-
 # With libasan
 option(WITH_ASAN
        "Add the libasan to check memory leaks and other memory issues." OFF)
@@ -427,6 +417,8 @@ target_link_libraries(
   multiplexing
   centreon_common
   centreon_process
+  centreon_hexdump
+  centreon_file_system
   pb_neb_lib
   pb_bam_lib
   pb_storage_lib

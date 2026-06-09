@@ -56,6 +56,7 @@ if(WITH_TESTING)
     -Wl,--whole-archive
     log_v2 
     centreon_grpc
+    centreon_file_system
     gRPC::grpc++
     stdc++fs
     -Wl,--no-whole-archive
@@ -194,16 +195,17 @@ if(WITH_TESTING)
     PRIVATE
     enginerpc
     ut_engine_utils
-    centreon_process
     pb_open_telemetry_lib
     centagent_lib
+    centreon_process
+    centreon_hexdump
     centreon_grpc
     centreon_http
-    centreon_process
     -Wl,-whole-archive
     cce_core
     log_v2
     opentelemetry
+    centreon_file_system
     ctncrypto
     gRPC::grpc++
     Boost::program_options

@@ -67,7 +67,7 @@ sub parseFile {
 						$connProfiles{$base."_port"} = '3306';
 					}
 					$connProfiles{$base."_db"} = $3;
-				   $connProfiles{$base."_db"} =~ s/\?autoReconnect\=true//;
+				   $connProfiles{$base."_db"} =~ s/[?&].*//;
 				}
 			}
 			if ($name eq 'odaUser') {

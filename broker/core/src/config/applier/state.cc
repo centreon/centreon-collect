@@ -222,7 +222,7 @@ bool state::loaded() {
  *
  *  @return Poller ID of this Broker instance.
  */
-uint32_t state::poller_id() const noexcept {
+uint64_t state::poller_id() const noexcept {
   return _poller_id;
 }
 

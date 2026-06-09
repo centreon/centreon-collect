@@ -26,6 +26,7 @@
 #include <unistd.h>
 #include <csignal>
 #include <cstddef>
+#include <set>
 #include <string>
 #include <string_view>
 #include <thread>

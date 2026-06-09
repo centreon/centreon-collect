@@ -199,6 +199,17 @@ void mysql_stmt::operator<<(io::data const& d) {
               else
                 bind_value_as_u32_k(field, v);
             } break;
+            case mapping::source::ULONG: {
+              uint64_t v = current_entry->get_ulong(d);
+              uint32_t attr = current_entry->get_attribute();
+
+              if (((attr & mapping::entry::invalid_on_zero) && v == 0) ||
+                  ((attr & mapping::entry::invalid_on_minus_one) &&
+                   v == static_cast<uint64_t>(-1)))
+                bind_null_u64_k(field);
+              else
+                bind_value_as_u64_k(field, v);
+            } break;
             default:  // Error in one of the mappings.
               throw msg_fmt(
                   "invalid mapping for object "

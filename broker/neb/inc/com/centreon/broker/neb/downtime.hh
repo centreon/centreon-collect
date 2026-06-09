@@ -62,7 +62,7 @@ class downtime : public io::data {
   bool fixed;
   uint32_t host_id;
   uint32_t internal_id;
-  uint32_t poller_id;
+  uint64_t poller_id;
   uint32_t service_id;
   timestamp start_time;
   uint32_t triggered_by;

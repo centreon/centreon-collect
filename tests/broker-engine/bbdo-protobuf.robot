@@ -329,3 +329,35 @@ GRPC_RECONNECT
     Should Be True    ${result}    The service (host_1,service_2) is not CRITICAL as expected
 
     [Teardown]    Ctn Stop Engine Broker And Save Logs    True
+
+BEPBUID1
+    [Documentation]    uid > 2^32 in broker module config overrides poller_id.
+    ...    The instances, hosts and resources tables must store this 64-bit value.
+    [Tags]    broker    engine    protobuf    bbdo    MON-200521
+    Ctn Config Engine    ${1}    ${2}    ${5}
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Config Broker Sql Output    central    unified_sql
+    Ctn Broker Config Add Item    module0    uid    ${5000000000}
+    Ctn Clear Retention
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker    True
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}    ${1}
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Check Row Count
+    ...    SELECT instance_id FROM instances WHERE instance_id=5000000000 AND running=1
+    ...    ==    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT instance_id FROM hosts WHERE instance_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Check Row Count
+    ...    SELECT id FROM resources WHERE poller_id=5000000000 AND enabled=1
+    ...    >=    1    retry_timeout=60s    retry_pause=2s
+    Disconnect From Database    pymysql
+
+    [Teardown]    Ctn Stop Engine Broker And Save Logs    True

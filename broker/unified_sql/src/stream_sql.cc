@@ -28,7 +28,7 @@
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
-#include "com/centreon/common/file.hh"
+#include "com/centreon/common/file_system.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/engine/host.hh"
 #include "common/engine_conf/parser.hh"
@@ -70,7 +70,7 @@ static const std::string _insert_or_update_nothing_tags =
  *
  *  @param[in] instance_id Instance ID to remove.
  */
-void stream::_clean_tables(uint32_t instance_id) {
+void stream::_clean_tables(uint64_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
     absl::MutexLock l(&_timer_m);
@@ -254,9 +254,7 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
 
   std::lock_guard<std::mutex> l(_stored_timestamps_m);
   /* Update unresponsive instances which were responsive */
-  for (std::unordered_map<uint32_t, stored_timestamp>::iterator
-           it = _stored_timestamps.begin(),
-           end = _stored_timestamps.end();
+  for (auto it = _stored_timestamps.begin(), end = _stored_timestamps.end();
        it != end; ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         it->second.timestamp_outdated(_instance_timeout)) {
@@ -267,9 +265,7 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
 
   // Update new oldest timestamp
   _oldest_timestamp = timestamp(std::numeric_limits<time_t>::max());
-  for (std::unordered_map<uint32_t, stored_timestamp>::iterator
-           it = _stored_timestamps.begin(),
-           end = _stored_timestamps.end();
+  for (auto it = _stored_timestamps.begin(), end = _stored_timestamps.end();
        it != end; ++it) {
     if (it->second.get_state() == stored_timestamp::responsive &&
         _oldest_timestamp > it->second.get_timestamp())
@@ -283,7 +279,7 @@ void stream::_update_hosts_and_services_of_unresponsive_instances() {
  *  @param[in] id         The instance id.
  *  @param[in] responsive True if the instance is responsive, false otherwise.
  */
-void stream::_update_hosts_and_services_of_instance(uint32_t id,
+void stream::_update_hosts_and_services_of_instance(uint64_t id,
                                                     bool responsive) {
   // In order to not have following requests erased by waiting bulks, we flush
   // and commit before
@@ -410,11 +406,10 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
  *
  *  @param instance_id The id of the instance to have its timestamp updated.
  */
-void stream::_update_timestamp(uint32_t instance_id) {
+void stream::_update_timestamp(uint64_t instance_id) {
   std::lock_guard<std::mutex> l(_stored_timestamps_m);
   // Find the state of an existing timestamp if it exists.
-  std::unordered_map<uint32_t, stored_timestamp>::iterator found =
-      _stored_timestamps.find(instance_id);
+  auto found = _stored_timestamps.find(instance_id);
   if (found != _stored_timestamps.end()) {
     // Update a suddenly alive instance
     if (found->second.get_state() == stored_timestamp::unresponsive) {
@@ -431,7 +426,7 @@ void stream::_update_timestamp(uint32_t instance_id) {
     _oldest_timestamp = timestamp.get_timestamp();
 }
 
-bool stream::_is_valid_poller(uint32_t instance_id) {
+bool stream::_is_valid_poller(uint64_t instance_id) {
   /* Check if the poller of id instance_id is deleted. */
   bool deleted = false;
   if (_cache_deleted_instance_id.contains(instance_id)) {
@@ -646,7 +641,7 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
       b.set_value_as_i64(9, cmmnt.internal_id);
       b.set_value_as_tiny(10, cmmnt.persistent);
-      b.set_value_as_i64(11, cmmnt.poller_id, mapping::entry::invalid_on_zero);
+      b.set_value_as_u64(11, cmmnt.poller_id, mapping::entry::invalid_on_zero);
       b.set_value_as_i64(12, cmmnt.service_id);
       b.set_value_as_i32(13, cmmnt.source);
       b.next_row();
@@ -765,7 +760,7 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       b.set_value_as_i64(8, cmmnt.host_id(), mapping::entry::invalid_on_zero);
       b.set_value_as_i64(9, cmmnt.internal_id());
       b.set_value_as_tiny(10, cmmnt.persistent());
-      b.set_value_as_i64(11, cmmnt.instance_id(),
+      b.set_value_as_u64(11, cmmnt.instance_id(),
                          mapping::entry::invalid_on_zero);
       b.set_value_as_i64(12, cmmnt.service_id());
       b.set_value_as_i32(13, cmmnt.source());
@@ -960,7 +955,7 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           b.set_value_as_i64(7, dd.entry_time);
         b.set_value_as_tiny(8, int(dd.fixed));
         b.set_value_as_i64(9, dd.host_id);
-        b.set_value_as_i64(10, dd.poller_id);
+        b.set_value_as_u64(10, dd.poller_id);
         b.set_value_as_i64(11, dd.internal_id);
         b.set_value_as_i64(12, dd.service_id);
         if (dd.start_time.is_null())
@@ -1048,7 +1043,7 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
                            mapping::entry::invalid_on_minus_one);
         b.set_value_as_tiny(8, int(dt_obj.fixed()));
         b.set_value_as_i64(9, dt_obj.host_id());
-        b.set_value_as_i64(10, dt_obj.instance_id());
+        b.set_value_as_u64(10, dt_obj.instance_id());
         b.set_value_as_i64(11, dt_obj.id());
         b.set_value_as_i64(12, dt_obj.service_id());
         b.set_value_as_i64(13, dt_obj.start_time(),
@@ -1089,10 +1084,10 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 }
 
 bool stream::_host_instance_known(uint64_t host_id) const {
-  bool retval = _cache_host_instance.find(static_cast<uint32_t>(host_id)) !=
-                _cache_host_instance.end();
+  bool retval =
+      _cache_host_instance.find(host_id) != _cache_host_instance.end();
   if (retval)
-    assert(_cache_host_instance.at(static_cast<uint32_t>(host_id)) > 0);
+    assert(_cache_host_instance.at(host_id) > 0);
   return retval;
 }
 
@@ -2561,7 +2556,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_hscr_bind);
         if (!_hscr_bind->bind(conn))
@@ -2675,7 +2670,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
 
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
         if (!_hscr_resources_bind->bind(conn))
@@ -2868,13 +2863,13 @@ void stream::_process_pb_adaptive_host_status(
   }
 
   int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+      _cache_host_instance[hscr.host_id()]);
 
   if (_store_in_hosts_services) {
     bool update_in_hscr_bind = false;
     if (_bulk_prepared_statement && _hscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       std::lock_guard<bulk_bind> lck(*_hscr_bind);
       if (!_hscr_bind->bind(conn))
         _hscr_bind->init_from_stmt(conn);
@@ -2923,7 +2918,7 @@ void stream::_process_pb_adaptive_host_status(
     bool update_in_hscr_resources_bind = false;
     if (_bulk_prepared_statement && _hscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
+          _cache_host_instance[hscr.host_id()]);
       std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
       if (!_hscr_resources_bind->bind(conn))
         _hscr_resources_bind->init_from_stmt(conn);
@@ -4202,8 +4197,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                        as.host_id(), as.service_id());
     return;
   }
-  int32_t conn = _mysql.choose_connection_by_instance(
-      _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
+  int32_t conn =
+      _mysql.choose_connection_by_instance(_cache_host_instance[as.host_id()]);
 
   if (_store_in_hosts_services) {
     // first we check that this service is not yet in update bulk request
@@ -4533,7 +4528,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
     // Processing.
     if (_store_in_hosts_services) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       if (_bulk_prepared_statement) {
         std::lock_guard<bulk_bind> lck(*_sscr_bind);
         if (!_sscr_bind->bind(conn))
@@ -4661,7 +4656,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
 
     if (_store_in_resources) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       size_t output_size = common::adjust_size_utf8(
           sscr.output(), get_centreon_storage_resources_col_size(
                              centreon_storage_resources_output));
@@ -4906,7 +4901,7 @@ void stream::_process_pb_adaptive_service_status(
     bool update_in_sscr_bind = false;
     if (_bulk_prepared_statement && _sscr_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       std::lock_guard lck(*_sscr_bind);
       if (!_sscr_bind->bind(conn))
         _sscr_bind->init_from_stmt(conn);
@@ -4962,7 +4957,7 @@ void stream::_process_pb_adaptive_service_status(
     bool update_in_sscr_resources_bind = false;
     if (_bulk_prepared_statement && _sscr_resources_bind) {
       int32_t conn = _mysql.choose_connection_by_instance(
-          _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
+          _cache_host_instance[sscr.host_id()]);
       std::lock_guard lck(*_sscr_resources_bind);
       if (!_sscr_resources_bind->bind(conn))
         _sscr_resources_bind->init_from_stmt(conn);
@@ -5260,7 +5255,7 @@ void stream::_process_agent_stats(const std::shared_ptr<io::data>& d) {
   }
   int32_t conn = _mysql.choose_connection_by_instance(stats.poller_id());
 
-  _agent_information_insert_update.bind_value_as_u32(0, stats.poller_id());
+  _agent_information_insert_update.bind_value_as_u64(0, stats.poller_id());
   _agent_information_insert_update.bind_value_as_bool(1, true);
   _agent_information_insert_update.bind_value_as_str(2, out_buff.GetString());
   _mysql.run_statement(_agent_information_insert_update,
