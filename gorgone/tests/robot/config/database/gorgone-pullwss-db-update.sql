@@ -8,7 +8,3 @@
 ALTER TABLE `nagios_server`
     MODIFY `gorgone_communication_type` ENUM('1','2','3', '4')
         NOT NULL DEFAULT '1';
-
-ALTER TABLE `nagios_server`
-    ADD COLUMN `uid` BIGINT UNSIGNED DEFAULT NULL COMMENT 'Snowflake 64-bit unique identifier',
-    ADD UNIQUE KEY `uniq_uid` (`uid`)
