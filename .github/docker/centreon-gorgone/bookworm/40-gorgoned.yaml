@@ -1,3 +1,5 @@
+name: Poller-docker
+description: Poller docker configuration
 gorgone:
   gorgonecore:
     privkey: /var/lib/centreon-gorgone/.keys/rsakey.priv.pem

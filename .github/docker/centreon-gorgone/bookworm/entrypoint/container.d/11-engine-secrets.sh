@@ -26,7 +26,4 @@ printf '{"app_secret":"%s","salt":"%s"}\n' "$APP_SECRET" "$SALT" > "$ENGINE_CONT
 chmod 640 "$ENGINE_CONTEXT"
 
 echo "✓ Engine secrets written to $ENGINE_CONTEXT"
-if [ "${DEBUG}" = "true" ] || [ "${DEBUG}" = "1" ]; then
-    echo "Debug: $(cat "$ENGINE_CONTEXT")"
-fi
 echo ""
