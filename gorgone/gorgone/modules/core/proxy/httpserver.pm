@@ -494,6 +494,7 @@ sub is_logged_websocket {
 sub clean_websocket {
     my ($self, %options) = @_;
 
+
     return if (!defined($self->{ws_clients}->{ $options{ws_id} }));
 
     $self->{ws_clients}->{ $options{ws_id} }->{tx}->finish() if (!defined($options{finish}));
