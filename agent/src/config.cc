@@ -32,7 +32,7 @@ const std::string_view config::config_schema(R"(
         "host": {
             "description": "Name of the host as it is configured in centreon. If omitted, the system hostname will be used",
             "type": "string",
-            "minLength": 5
+            "minLength": 1
         },
         "host_template": {
             "description": "type of host such as linux_web_server ...",
