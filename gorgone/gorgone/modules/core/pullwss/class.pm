@@ -159,7 +159,7 @@ sub wss_connect {
     my $proto = 'ws';
     if (defined($self->{config}->{ssl}) && $self->{config}->{ssl} eq 'true') {
         $proto = 'wss';
-        $self->{ua}->insecure(1);
+        $self->{ua}->insecure($self->{config}->{https_cert_no_verify} // 1);
     }
 
     $self->{ua}->websocket(

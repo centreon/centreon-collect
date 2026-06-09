@@ -173,6 +173,7 @@ sub init {
         # the filter is used to remove anything from the configuration not related to gorgone or centreon
         filter => '!($ariane eq "configuration##" || $ariane =~ /^configuration##(?:gorgone|centreon)##/)'
     );
+    $self->load_env_config();
 
     $self->init_server_keys();
     $self->{config}->{configuration}->{gorgone}->{gorgonecore}->{external_com_zmq_tcp_keepalive} =
