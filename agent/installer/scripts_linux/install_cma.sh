@@ -34,7 +34,7 @@
 # Options:
 #   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED]
 #   -t, --token          Authentication token (can be entered interactively if not provided)
-#   -n, --hostname       Host name as defined in Centreon (default: system hostname)
+#   -n, --host           Host name as defined in Centreon (default: system hostname)
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
 #   -c, --encryption     Encryption mode: full, insecure, or no (default: no)
 #   -r, --reverse        Enable poller-initiated (reversed) connection mode
@@ -170,12 +170,12 @@ REQUIRED OPTIONS:
 
 OPTIONAL OPTIONS:
     -t, --token <TOKEN>           Authentication token (can be entered interactively if not provided)
-    -n, --hostname <NAME>         Host name as defined in Centreon (default: system hostname)
+    -n, --host <NAME>             Host name as defined in Centreon (default: system hostname)
     -v, --version <VERSION>       Centreon version: 24.10 or 25.10 (default: ${DEFAULT_CENTREON_VERSION})
     -c, --encryption <MODE>       Encryption mode: full, insecure, or no (default: ${DEFAULT_ENCRYPTION})
     -r, --reverse                 Enable poller-initiated (reversed) connection mode
-    -a, --ca <PATH>          Path to CA certificate file (used with encryption=full/insecure)
-    -N, --common-name <NAME>          CA common name (optional, used with encryption=full/insecure)
+    -a, --ca <PATH>               Path to CA certificate file (used with encryption=full/insecure)
+    -N, --common-name <NAME>      CA common name (optional, used with encryption=full/insecure)
     -C, --cert <PATH>             Path to public certificate file (required for TLS in reverse mode)
     -k, --key <PATH>              Path to private key file (required for TLS in reverse mode)
     -f, --fingerprint <STRING>    Certificate fingerprint for validation

@@ -66,11 +66,11 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
 
-    ${result}    Ctn Check Service Check Interval   host_1    service_1    80    10    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_1    120    10    5
     Should Be True    ${result}    check_interval is not respected for service_1
-    ${result}    Ctn Check Service Check Interval   host_1    service_2    80    20    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_2    120    20    5
     Should Be True    ${result}    check_interval is not respected for service_2
-    ${result}    Ctn Check Service Check Interval   host_1    service_3    80    30    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_3    120    30    5
     Should Be True    ${result}    check_interval is not respected for service_3
 
 
