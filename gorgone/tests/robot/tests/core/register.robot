@@ -11,13 +11,14 @@ Test Timeout        220s
 poller defined in push in database should be overridden by register module to pullwss
     [Tags]    register
     [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}        sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+
     ${central_name}    Set Variable    ${mode}_gorgone_register_central
     ${poller_name}    Set Variable    ${mode}_gorgone_register_poller_2
     @{process_list}    Set Variable    ${central_name}    ${poller_name}
     Log To Console    \nStarting the gorgone setup
     ${central_config}    Create List    ${ROOT_CONFIG}register_module.yaml    ${ROOT_CONFIG}register_pull_node.yaml
 
-    ${result}    Run    perl /usr/bin/gorgone_key_generation.pl
+    Ctn Init Tests
     # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
     # this should not stay after merge on develop
     Gorgone Fix Schema
