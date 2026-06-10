@@ -80,8 +80,10 @@ void scheduler::check_host_timezone(
   // POSIX: tm_gmtoff already folds in any active DST.
   const time_t now = time(nullptr);
   struct tm tmv = {};
-  if (!localtime_r(&now, &tmv))
-    return tz_match::unknown;
+  if (!localtime_r(&now, &tmv)) {
+    SPDLOG_LOGGER_ERROR(logger, "cannot retreive the timezone information");
+    return;
+  }
   host_off = static_cast<int32_t>(tmv.tm_gmtoff);
   host_dst = tmv.tm_isdst > 0;
 #endif
