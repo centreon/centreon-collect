@@ -17,6 +17,11 @@
  */
 
 #pragma once
+
+#ifdef _WIN32
+#include "com/centreon/common/time_compat.hh"  // localtime_r on Windows
+#endif
+
 #include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::common {
@@ -55,8 +60,8 @@ bool daterange_calendar_date_to_time_t(const Daterange& r,
                                        time_t& start,
                                        time_t& end);
 
-// Computes start/end epoch for a MONTH_DATE daterange (month/day, yearly repeat).
-// Returns false if the daterange cannot produce a valid interval.
+// Computes start/end epoch for a MONTH_DATE daterange (month/day, yearly
+// repeat). Returns false if the daterange cannot produce a valid interval.
 bool daterange_month_date_to_time_t(const Daterange& r,
                                     const time_info& ti,
                                     time_t& start,
@@ -174,8 +179,8 @@ void get_next_valid_time_per_timeperiod_impl(
  * this function determines when its validity ends so the outer search can skip
  * past it. Walks forward through exceptions (highest-precedence first) then the
  * weekly schedule, capped at 366 days to prevent infinite loops on always-valid
- * periods. If preferred_time is already outside every defined range the original
- * preferred_time is returned unchanged.
+ * periods. If preferred_time is already outside every defined range the
+ * original preferred_time is returned unchanged.
  *
  * @param[in]  tp                Timeperiod to evaluate.
  * @param[in]  preferred_time    Start of the search (epoch seconds).

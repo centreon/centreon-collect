@@ -198,6 +198,7 @@ include_directories(
   ${CMAKE_SOURCE_DIR}/common/inc
   ${CMAKE_SOURCE_DIR}/common/grpc/inc
   ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_BINARY_DIR}
   ${CMAKE_BINARY_DIR}/common/engine_conf
 )
 
@@ -229,11 +230,14 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     fmt::fmt
     stdc++fs)
 else()
+  add_dependencies(centagent_lib target_timeperiod_proto)
+
   add_executable(${CENTREON_AGENT} ${SRC_DIR}/main_win.cc  ${SRC_DIR}/agent.rc)
 
   target_link_libraries(
     ${CENTREON_AGENT} PRIVATE
     centagent_lib
+    centreon_common_timeperiod
     centreon_common
     centreon_grpc
     centreon_process

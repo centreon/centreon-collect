@@ -84,6 +84,7 @@ else()
   target_link_libraries(
     ut_agent
     PRIVATE centagent_lib
+            centreon_common_timeperiod
             centreon_common
             centreon_process
             centreon_hexdump
@@ -98,7 +99,8 @@ else()
             pdh
             taskschd
             Version.lib)
-  add_dependencies(ut_agent centreon_common centreon_hexdump centagent_lib)
+  add_dependencies(ut_agent centreon_common centreon_hexdump centagent_lib
+                   target_timeperiod_proto)
 endif()
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)
