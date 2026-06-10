@@ -647,7 +647,9 @@ sub message_run {
     my ($action, $token, $target) = ($options->{frame}->getAction(), $options->{frame}->getToken(), $options->{frame}->getTarget());
 
     # Check if not myself ;)
-    if (defined($target) && ($target eq '' || (defined($self->{id}) && $target eq $self->{id}))) {
+    if (defined($target) && ($target eq '' ||
+        (defined($self->{id})  && $target eq $self->{id}) ||
+        (defined($self->{uid}) && $target eq $self->{uid}))) {
         $target = undef;
     }
 
