@@ -7,7 +7,8 @@ install_from_json() {
     PKGS=$(python3 /var/lib/centreon-engine/check_plugins.py "$PLUGINS_JSON")
     if [ -n "$PKGS" ]; then
         echo "plugins.json changed — installing: $PKGS"
-        DEBIAN_FRONTEND=noninteractive eval "sudo apt-get install -y $PKGS" > /proc/1/fd/1 2>&1 || true
+        # shellcheck disable=SC2086
+        DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -- $PKGS > /proc/1/fd/1 2>&1 || true
     else
         echo "plugins.json changed — all plugins already up-to-date, skipping install"
     fi

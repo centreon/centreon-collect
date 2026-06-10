@@ -8,8 +8,11 @@ Usage: check_plugins.py <plugins_json_path>
 """
 
 import json
+import re
 import subprocess
 import sys
+
+PKG_RE = re.compile(r'^[a-z0-9][a-z0-9+\-.]+$')
 
 
 def main():
@@ -26,6 +29,9 @@ def main():
 
     to_install = []
     for pkg, ver in plugins.items():
+        if not PKG_RE.match(pkg):
+            print(f'  {pkg}: invalid package name, skipping', file=sys.stderr)
+            continue
         ver_str = str(ver)
         result = subprocess.run(
             ['dpkg-query', '-W', '-f=${Version}', pkg],
