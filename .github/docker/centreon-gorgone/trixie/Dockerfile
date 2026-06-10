@@ -141,7 +141,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     libssh2-1t64 \
     libzmq5 \
-    libmariadb3t64 \
+    libmariadb3 \
     libgnutls30t64 \
     sudo \
     lsb-release \
