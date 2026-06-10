@@ -4,7 +4,7 @@ ARG USE_SOURCE_GORGONE=false
 #############################################
 # Stage 1: Extract files from .deb packages
 #############################################
-FROM debian:12-slim AS extractor
+FROM debian:13-slim AS extractor
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     dpkg \
@@ -69,9 +69,9 @@ ARG USE_SOURCE_GORGONE=false
 FROM gorgone-config-${USE_SOURCE_GORGONE} AS gorgone-config-selected
 
 #############################################
-# Stage 2: Runtime - Debian 12 slim image
+# Stage 2: Runtime - Debian 13 slim image
 #############################################
-FROM debian:12-slim AS gorgone
+FROM debian:13-slim AS gorgone
 
 # Documented image contract — values are normally injected via docker compose / -e flags.
 # Declared here so `docker inspect` lists them and `docker exec -it ... bash` sees them.
@@ -106,7 +106,7 @@ RUN groupadd -g 33 www-data 2>/dev/null || true && \
 
 # Add Centreon plugins-stable repository (amd64 only — arm64 packages not published there)
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates && \
-    echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ bookworm main" \
+    echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
         > /etc/apt/sources.list.d/centreon-plugins.list && \
     wget -O- https://apt-key.centreon.com | gpg --dearmor \
         | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
@@ -139,10 +139,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rrdtool \
     curl \
     openssl \
-    libssh2-1 \
+    libssh2-1t64 \
     libzmq5 \
-    libmariadb3 \
-    libgnutls30 \
+    libmariadb3t64 \
+    libgnutls30t64 \
     sudo \
     lsb-release \
     iputils-ping \
@@ -219,7 +219,7 @@ COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --
 # Static poller config — dynamic params (id, token, address, port) are injected via env vars
 # (GORGONE_UID, GORGONE_TOKEN, CENTRAL_HOST, CENTRAL_PORT) using load_env_config at startup
 COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
-     .github/docker/centreon-gorgone/bookworm/40-gorgoned.yaml \
+     .github/docker/centreon-gorgone/trixie/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
@@ -239,14 +239,14 @@ COPY --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/
 COPY --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
-COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/systemctl /usr/bin/systemctl
-COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/entrypoint /usr/local/lib/centreon-gorgone/
-COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/centreon /etc/sudoers.d/centreon
+COPY --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
+COPY --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
+COPY --chmod=600 .github/docker/centreon-gorgone/trixie/centreon /etc/sudoers.d/centreon
 COPY --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
-COPY --chmod=600 .github/docker/centreon-gorgone/bookworm/sudoersCentreon /etc/sudoers.d/centreon-docker
+COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoersCentreon /etc/sudoers.d/centreon-docker
 COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/bin/gorgone_install_plugins.pl
 # TODO: remove if centenginestats is no longer needed
-# COPY --chmod=755 .github/docker/centreon-gorgone/bookworm/centenginestats /usr/sbin/centenginestats
+# COPY --chmod=755 .github/docker/centreon-gorgone/trixie/centenginestats /usr/sbin/centenginestats
 
 # Perl library path for Debian
 ENV PERL5LIB=/usr/share/perl5:/usr/lib/perl5

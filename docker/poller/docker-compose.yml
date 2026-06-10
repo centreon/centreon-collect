@@ -14,10 +14,11 @@ services:
       TZ: "${TZ:-UTC}"
       DEBUG: "${DEBUG:-false}"
       TYPE: poller
-      UUID: "${UUID}"
+      GORGONE_UID: "${GORGONE_UID}"
       NAME: "${NAME}"
-      POLLER_TOKEN: "${POLLER_TOKEN}"
-      CENTRAL_URL: "${CENTRAL_URL}"
+      GORGONE_TOKEN: "${GORGONE_TOKEN}"
+      CENTRAL_HOST: "${CENTRAL_HOST}"
+      CENTRAL_PORT: "${CENTRAL_PORT:-8086}"
       APP_SECRET: "${APP_SECRET}"
       SALT: "${SALT}"
     volumes:
