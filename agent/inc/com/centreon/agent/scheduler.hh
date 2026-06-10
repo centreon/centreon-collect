@@ -106,12 +106,6 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
                       const com::centreon::engine::configuration::Timeperiod*>
       _timeperiods;
 
-  // Local timezone name detected once at construction time.
-  std::string _local_tz_name;
-
-  static std::string _normalize_tz(std::string_view tz);
-  static std::string _detect_local_tz_name();
-
   void _start();
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
@@ -184,6 +178,12 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   static std::shared_ptr<com::centreon::agent::MessageToAgent> default_config();
 
+  // Compare the host's configured timezone vs agent timezone
+  static void check_host_timezone(const std::shared_ptr<spdlog::logger>& logger,
+                                  int32_t cfg_offset,
+                                  bool cfg_dst,
+                                  const std::string& cfg_tz_name);
+
   template <typename sender, typename chck_builder>
   static std::shared_ptr<scheduler> load(
       const std::shared_ptr<asio::io_context>& io_context,
@@ -234,8 +234,7 @@ scheduler::scheduler(
       _check_timer(*io_context),
       _check_builder(builder),
       _conf(config),
-      _average_metric_length(0),
-      _local_tz_name(_detect_local_tz_name()) {}
+      _average_metric_length(0) {}
 
 /**
  * @brief create and start a new scheduler

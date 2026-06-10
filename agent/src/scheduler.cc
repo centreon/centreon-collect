@@ -41,47 +41,84 @@
 
 using namespace com::centreon::agent;
 
-// Strip the POSIX ':' prefix from a timezone string (":Europe/Paris" ->
-// "Europe/Paris").
-std::string scheduler::_normalize_tz(std::string_view tz) {
-  if (!tz.empty() && tz[0] == ':')
-    tz.remove_prefix(1);
-  return std::string(tz);
+namespace {
+// Format a UTC offset given in seconds east of UTC as a signed "+HH:MM" /
+// "-HH:MM" string for human-readable diagnostics.
+std::string format_utc_offset(int32_t off) {
+  const char sign = off < 0 ? '-' : '+';
+  const int abs_s = off < 0 ? -off : off;
+  auto two = [](int v) {
+    const std::string s = std::to_string(v);
+    return s.size() < 2 ? "0" + s : s;
+  };
+  return std::string(1, sign) + two(abs_s / 3600) + ":" +
+         two((abs_s % 3600) / 60);
 }
+}  // namespace
 
-std::string scheduler::_detect_local_tz_name() {
+void scheduler::check_host_timezone(
+    const std::shared_ptr<spdlog::logger>& logger,
+    int32_t cfg_offset,
+    bool cfg_dst,
+    const std::string& cfg_tz_name) {
+  // --- Read this host's current local UTC offset + DST (platform-specific).
+  int32_t host_off = 0;
+  bool host_dst = false;
 #ifdef _WIN32
-  // Windows timezone key names are not IANA names — skip the comparison.
-  return {};
+  TIME_ZONE_INFORMATION tzi;
+  const DWORD id = GetTimeZoneInformation(&tzi);
+  if (id == TIME_ZONE_ID_INVALID) {
+    SPDLOG_LOGGER_ERROR(
+        logger, "cannot retreive the timezone information form api windows");
+    return;
+  }
+  const long active_bias =
+      (id == TIME_ZONE_ID_DAYLIGHT) ? tzi.DaylightBias : tzi.StandardBias;
+  host_off = -static_cast<int32_t>((tzi.Bias + active_bias) * 60);
+  host_dst = (id == TIME_ZONE_ID_DAYLIGHT);
 #else
-  // Prefer $TZ if it looks like an IANA name (contains '/'), strip ':' prefix.
-  const char* tz_env = ::getenv("TZ");
-  if (tz_env && *tz_env) {
-    std::string name = _normalize_tz(tz_env);
-    if (name.find('/') != std::string::npos)
-      return name;
-  }
-
-  // Resolve /etc/localtime symlink to extract the IANA name from the path
-  // (e.g. /usr/share/zoneinfo/Europe/Paris → "Europe/Paris").
-  char buf[256];
-  ssize_t len = ::readlink("/etc/localtime", buf, sizeof(buf) - 1);
-  if (len > 0) {
-    buf[len] = '\0';
-    const char* marker = "zoneinfo/";
-    const char* pos = ::strstr(buf, marker);
-    if (pos)
-      return pos + ::strlen(marker);
-  }
-
-  // Fallback: /etc/timezone (Debian/Ubuntu systems).
-  std::ifstream tz_file("/etc/timezone");
-  std::string name;
-  if (tz_file && std::getline(tz_file, name) && !name.empty())
-    return name;
-
-  return {};
+  // POSIX: tm_gmtoff already folds in any active DST.
+  const time_t now = time(nullptr);
+  struct tm tmv = {};
+  if (!localtime_r(&now, &tmv))
+    return tz_match::unknown;
+  host_off = static_cast<int32_t>(tmv.tm_gmtoff);
+  host_dst = tmv.tm_isdst > 0;
 #endif
+
+  // Strip a leading POSIX ':' (":Europe/Paris") for a cleaner message.
+  std::string_view tz = cfg_tz_name;
+  if (!tz.empty() && tz.front() == ':')
+    tz.remove_prefix(1);
+
+  // not the same offset
+  if (cfg_offset != host_off) {
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "host timezone mismatch - configured zone '{}' is at UTC{} (DST {}) "
+        "but the agent host is at UTC{} (DST {}); timeperiod checks may be "
+        "evaluated at the wrong local time",
+        tz, format_utc_offset(cfg_offset), cfg_dst ? "on" : "off",
+        format_utc_offset(host_off), host_dst ? "on" : "off");
+    return;
+  }
+  // not same dst (daylight save time)
+  if (cfg_dst != host_dst) {
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "configured zone '{}' and the agent host currently agree at UTC{} but "
+        "handle DST differently (configured DST {}, host DST {}); timeperiod "
+        "checks may diverge at the next DST transition",
+        tz, format_utc_offset(host_off), cfg_dst ? "on" : "off",
+        host_dst ? "on" : "off");
+    return;
+  }
+  SPDLOG_LOGGER_DEBUG(
+      logger,
+      "host timezone match - configured zone '{}' and the agent host are both "
+      "at UTC{} (DST {})",
+      tz, format_utc_offset(host_off), host_dst ? "on" : "off");
+  return;
 }
 
 /**
@@ -325,22 +362,11 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       if (serv.max_attempts() == 0) {
         serv.set_max_attempts(3);  // three attempt by default
       }
-      const std::string serv_tz = _normalize_tz(serv.timezone());
-      if (!serv_tz.empty() && !_local_tz_name.empty()) {
-        if (serv_tz != _local_tz_name) {
-          SPDLOG_LOGGER_ERROR(
-              _logger,
-              "service '{}': timezone mismatch - service configured with '{}' "
-              "but agent is running in '{}'; timeperiod checks may be "
-              "incorrect",
-              serv.service_description(), serv_tz, _local_tz_name);
-        } else {
-          SPDLOG_LOGGER_DEBUG(
-              _logger,
-              "service '{}': timezone match - service configured with '{}' "
-              "and agent is running in '{}'",
-              serv.service_description(), serv_tz, _local_tz_name);
-        }
+      // An empty service_description is the host check
+      // note: older engines that don't send the field.
+      if (serv.service_description().empty() && serv.has_utc_offset()) {
+        check_host_timezone(_logger, serv.utc_offset(), serv.dst_active(),
+                            serv.timezone());
       }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();
