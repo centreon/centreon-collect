@@ -419,12 +419,15 @@ sub setmodulekey {
 sub setcoreid {
     my (%options) = @_;
 
+    my $data = $options{frame}->decodeData();
+    if (defined($data) && defined($data->{uid})) {
+        $options{gorgone}->{uid} = $data->{uid};
+    }
+
     if (defined($options{gorgone}->{config}->{configuration}->{gorgone}->{gorgonecore}->{id}) &&
         $options{gorgone}->{config}->{configuration}->{gorgone}->{gorgonecore}->{id} =~ /\d+/) {
         return (GORGONE_ACTION_FINISH_OK, { action => 'setcoreid', message => 'setcoreid unchanged, use config value' })
     }
-
-    my $data = $options{frame}->decodeData();
     if (!defined($data)) {
         return (GORGONE_ACTION_FINISH_KO, { message => 'request not well formatted' });
     }

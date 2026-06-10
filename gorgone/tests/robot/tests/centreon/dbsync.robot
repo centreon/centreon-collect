@@ -8,7 +8,7 @@ Test Timeout        500s
 *** Test Cases ***
 send many log by ${communication_mode}, expect all of them on the central
     [Tags]    overflow
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     ${central_name}    Set Variable    ${communication_mode}_gorgone_dbsync_central
     ${poller_name}    Set Variable    ${communication_mode}_gorgone_dbsync_poller
     @{process_list}    Set Variable    ${poller_name}    ${central_name}
@@ -58,6 +58,7 @@ send many log by ${communication_mode}, expect all of them on the central
         ...    push_zmq
         ...    pull
         ...    pullwss
+        ...    pullwss_uid
 
 *** Keywords ***
 Get Log From Central

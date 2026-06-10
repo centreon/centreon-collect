@@ -26,7 +26,7 @@ Test Timeout        220s
 action module with ${communication_mode} communcation mode
     [Documentation]    test action on distant node, no whitelist configured
     @{process_list}    Create List    ${communication_mode}_gorgone_central    ${communication_mode}_gorgone_poller_2
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Run    rm /tmp/actionLogs
 
     @{central_config}    Create List    ${ROOT_CONFIG}actions.yaml
@@ -73,6 +73,7 @@ action module with ${communication_mode} communcation mode
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***

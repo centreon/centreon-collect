@@ -12,7 +12,7 @@ check statistic module add all centengine data in db ${communication_mode}
     ${central}=    Set Variable    ${communication_mode}_gorgone_central_statistics
     ${poller}=    Set Variable    ${communication_mode}_gorgone_poller2_statistics
     @{process_list}    Create List    ${central}    ${poller}
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
     ${date}    Get Current Date    increment=-1s
     @{central_config}    Create List    ${ROOT_CONFIG}statistics.yaml    ${ROOT_CONFIG}actions.yaml
@@ -46,6 +46,8 @@ check statistic module add all centengine data in db ${communication_mode}
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
+        ...    pull
 
 *** Keywords ***
 

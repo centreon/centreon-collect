@@ -1,12 +1,12 @@
 gorgone:
   gorgonecore:
-    id: @POLLERID@
+    id: 4991234
   modules:
     - name: pullwss
       package: "gorgone::modules::core::pullwss::hooks"
       enable: true
       ssl: false
-      port: @PULLWSS_PORT@
+      port: 8086
       token: "secret_token"
       address: 127.0.0.1
       ping: 1
