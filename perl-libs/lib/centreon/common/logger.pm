@@ -71,7 +71,8 @@ my %human_severities = (
     4 => 'WARNING',
     5 => 'NOTICE',
     6 => 'INFO',
-    7 => 'DEBUG'
+    7 => 'DEBUG',
+    8 => 'TRACE'
 );
 
 sub new {
@@ -103,12 +104,16 @@ sub file_mode($$) {
     if (defined($self->{filehandler})) {
         $self->{filehandler}->close();
     }
+    # Use umask to set the file permissions to 0640 and reset it right after to avoid changing other code area.
+    my $old_umask = umask(0027);
     if (open($self->{filehandler}, ">>", $file)){
+        umask($old_umask);
         $self->{log_mode} = 1;
         $self->{filehandler}->autoflush(1);
         $self->{file_name} = $file;
         return 1;
     }
+    umask($old_umask);
     $self->{filehandler} = undef;
     print STDERR "Cannot open file $file: $!\n";
     return 0;
@@ -192,6 +197,8 @@ sub severity {
             $self->{severity} = 6;
         } elsif ($input_severity eq "debug") {
             $self->{severity} = 7;
+        }elsif ($input_severity eq "trace") {
+            $self->{severity} = 8;
         } else {
             $self->writeLogError("Wrong severity value set.");
             return -1;
@@ -252,6 +259,10 @@ sub writeLog($$$%) {
     } else {
         print STDERR "Unknown log mode '$self->{log_mode}' or log file unavailable for the following log :\n $datedmsg\n";
     }
+}
+
+sub writeLogTrace {
+    shift->writeLog(8, @_);
 }
 
 sub writeLogDebug {
