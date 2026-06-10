@@ -115,6 +115,8 @@ message Service {
   uint64 max_attempts = 8;
   string check_period_name = 9;
   string timezone = 10;
+  optional sint32 utc_offset = 11;
+  optional bool dst_active = 12;
 }
 
 // message used by engine to make agent do a force check
