@@ -21,9 +21,6 @@ jobs:
       matrix:
         include:
           - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
-          - package_extension: deb
             image: packaging-centreon-collect-trixie
             distrib: trixie
     runs-on: ubuntu-24.04
@@ -87,7 +84,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        operating_system: [bookworm, trixie]
+        operating_system: [trixie]
     name: dockerize centreon-gorgone-${{ matrix.operating_system }}
     env:
       project: centreon-gorgone

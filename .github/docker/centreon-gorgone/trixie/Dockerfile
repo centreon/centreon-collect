@@ -219,7 +219,7 @@ COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --
 # Static poller config — dynamic params (id, token, address, port) are injected via env vars
 # (GORGONE_UID, GORGONE_TOKEN, CENTRAL_HOST, CENTRAL_PORT) using load_env_config at startup
 COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
-     .github/docker/centreon-gorgone/trixie/40-gorgoned.yaml \
+     .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
@@ -241,12 +241,10 @@ COPY --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engi
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
 COPY --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
 COPY --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
-COPY --chmod=600 .github/docker/centreon-gorgone/trixie/centreon /etc/sudoers.d/centreon
+COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
 COPY --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
-COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoersCentreon /etc/sudoers.d/centreon-docker
+COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/sudoersCentreon /etc/sudoers.d/centreon-docker
 COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/bin/gorgone_install_plugins.pl
-# TODO: remove if centenginestats is no longer needed
-# COPY --chmod=755 .github/docker/centreon-gorgone/trixie/centenginestats /usr/sbin/centenginestats
 
 # Perl library path for Debian
 ENV PERL5LIB=/usr/share/perl5:/usr/lib/perl5
