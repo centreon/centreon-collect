@@ -940,20 +940,6 @@ TEST_F(TcpAcceptor, CloseRead) {
   }
 }
 
-TEST_F(TcpAcceptor, ChildsAndStats) {
-  tcp::acceptor acc(test_conf);
-
-  acc.add_child("child1");
-  acc.add_child("child2");
-  acc.add_child("child3");
-  acc.remove_child("child2");
-
-  nlohmann::json obj;
-  acc.stats(obj);
-  ASSERT_TRUE(obj.dump() == "{\"peers\":\"2: child1, child3\"}" ||
-              obj.dump() == "{\"peers\":\"2: child3, child1\"}");
-}
-
 TEST_F(TcpAcceptor, QuestionAnswerMultiple) {
   constexpr int nb_connections = 5;
   constexpr int rep = 100;
@@ -971,6 +957,14 @@ TEST_F(TcpAcceptor, QuestionAnswerMultiple) {
       do {
         u_cbd = endp->open();
       } while (!u_cbd);
+
+      nlohmann::json obj;
+      endp->stats(obj);
+      std::string stats = obj.dump();
+
+      std::cout << "stats:" << stats << std::endl;
+
+      EXPECT_NE(stats.find("{\"peers\":\"1:"), std::string::npos);
 
       std::shared_ptr<io::data> data_read;
       std::shared_ptr<io::raw> data_write;

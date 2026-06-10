@@ -84,8 +84,10 @@ class stream : public io::stream,
    * by grpc layers. We allocate this container and never free this because
    * threads terminate in unknown order.
    */
-  static std::set<std::shared_ptr<stream>>* _instances;
-  static std::mutex _instances_m;
+  static absl::flat_hash_set<std::shared_ptr<stream>>* _instances;
+  static absl::Mutex _instances_m;
+
+  const io::endpoint* _parent;
 
   using read_queue = std::queue<event_ptr>;
   using write_queue = std::queue<event_with_data::pointer>;
@@ -112,7 +114,8 @@ class stream : public io::stream,
   void start_write();
 
  protected:
-  stream(const grpc_config::pointer& conf,
+  stream(const io::endpoint* parent,
+         const grpc_config::pointer& conf,
          const std::string_view& class_name,
          const std::string& peer);
 
@@ -151,6 +154,7 @@ class stream : public io::stream,
 
   int32_t flush() override;
   int32_t stop() override;
+  const io::endpoint* parent() const { return _parent; }
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
@@ -165,7 +169,7 @@ class stream : public io::stream,
 template <class bireactor_class>
 template <class visitor>
 void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
-  std::lock_guard l(_instances_m);
+  absl::MutexLock l(&_instances_m);
   for (const auto& inst : *_instances) {
     visit(*inst);
   }

@@ -60,16 +60,6 @@ acceptor::~acceptor() noexcept {
 }
 
 /**
- *  Add a child to this acceptor.
- *
- *  @param[in] child  Child name.
- */
-void acceptor::add_child(std::string const& child) {
-  std::lock_guard<std::mutex> lock(_childrenm);
-  _children.insert(child);
-}
-
-/**
  *  Start connection acception.
  *
  */
@@ -86,8 +76,7 @@ std::shared_ptr<io::stream> acceptor::open() {
     assert(conn->port());
     auto logger = log_v2::instance().get(log_v2::TCP);
     logger->info("acceptor gets a new connection from {}", conn->peer());
-    add_child(conn->peer());
-    return std::make_shared<stream>(conn, _conf);
+    return std::make_shared<stream>(this, conn, _conf);
   }
   return nullptr;
 }
@@ -98,22 +87,23 @@ bool acceptor::is_ready() const {
 }
 
 /**
- *  Remove child of this socket.
- *
- *  @param[in] child  Child to remove.
- */
-void acceptor::remove_child(std::string const& child) {
-  std::lock_guard<std::mutex> lock(_childrenm);
-  _children.erase(child);
-}
-
-/**
  *  Get statistics about this TCP acceptor.
  *
  *  @param[out] tree Buffer in which statistics will be written.
  */
 void acceptor::stats(nlohmann::json& tree) {
-  std::lock_guard<std::mutex> children_lock(_childrenm);
-  tree["peers"] =
-      fmt::format("{}: {}", _children.size(), fmt::join(_children, ", "));
+  unsigned counter = 0;
+  std::string sep;
+  std::string childs;
+  stream::visit_all_instances([&](const stream& st) {
+    if (st.parent() == this) {
+      ++counter;
+      childs += sep;
+      childs += st.peer();
+      if (sep.empty()) {
+        sep = ", ";
+      }
+    }
+  });
+  tree["peers"] = fmt::format("{}: {}", counter, childs);
 }

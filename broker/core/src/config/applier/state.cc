@@ -320,7 +320,7 @@ void state::remove_peer(uint64_t poller_id,
     _connected_peers.erase(found);
   } else {
     logger->warn(
-        "Peer poller: '{}' - broker: '{}' with id {} and type '{}' not found "
+        "Peer poller: '{}' - broker: '{}' with id {} not found "
         "in connected peers",
         poller_name, broker_name, poller_id);
   }

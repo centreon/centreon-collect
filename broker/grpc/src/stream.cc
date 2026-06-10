@@ -103,12 +103,12 @@ const std::string com::centreon::broker::grpc::authorization_header(
  * @tparam bireactor_class
  */
 template <class bireactor_class>
-std::set<std::shared_ptr<stream<bireactor_class>>>*
+absl::flat_hash_set<std::shared_ptr<stream<bireactor_class>>>*
     stream<bireactor_class>::_instances =
-        new std::set<std::shared_ptr<stream<bireactor_class>>>;
+        new absl::flat_hash_set<std::shared_ptr<stream<bireactor_class>>>;
 
 template <class bireactor_class>
-std::mutex stream<bireactor_class>::_instances_m;
+absl::Mutex stream<bireactor_class>::_instances_m;
 
 /**
  * @brief Construct a new stream<bireactor class>::stream object
@@ -118,10 +118,12 @@ std::mutex stream<bireactor_class>::_instances_m;
  * @param class_name used by logs to identify server or client case
  */
 template <class bireactor_class>
-stream<bireactor_class>::stream(const grpc_config::pointer& conf,
+stream<bireactor_class>::stream(const io::endpoint* parent,
+                                const grpc_config::pointer& conf,
                                 const std::string_view& class_name,
                                 const std::string& peer)
     : io::stream("GRPC"),
+      _parent(parent),
       _conf(conf),
       _class_name(class_name),
       _peer(peer),
@@ -150,7 +152,7 @@ stream<bireactor_class>::~stream() {
 template <class bireactor_class>
 void stream<bireactor_class>::register_stream(
     const std::shared_ptr<stream<bireactor_class>>& strm) {
-  std::lock_guard l(_instances_m);
+  absl::MutexLock l(&_instances_m);
   _instances->insert(strm);
 }
 
@@ -381,7 +383,7 @@ void stream<bireactor_class>::OnDone() {
              [me = std::enable_shared_from_this<
                   stream<bireactor_class>>::shared_from_this(),
               logger = _logger]() {
-               std::lock_guard l(_instances_m);
+               absl::MutexLock l(&_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                                    static_cast<void*>(me.get()));
                _instances->erase(
@@ -408,7 +410,7 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
              [me = std::enable_shared_from_this<
                   stream<bireactor_class>>::shared_from_this(),
               status, logger = _logger]() {
-               std::lock_guard l(_instances_m);
+               absl::MutexLock l(&_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                                    static_cast<void*>(me.get()),
                                    status.error_message(),
