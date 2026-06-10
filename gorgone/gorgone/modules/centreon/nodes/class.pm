@@ -225,6 +225,7 @@ sub action_centreonnodessync {
         for my $arr (@$register_nodes) {
             if ($arr->{id} == $file_node->{id}){
                 $db_node = $arr;
+                last
             }
         }
         $self->{logger}->writeLogInfo("[nodes] updating node " . $file_node->{id} . " info from database with register configuration");
@@ -263,6 +264,7 @@ sub get_register_module_config {
         next if $module->{package} ne 'gorgone::modules::core::register::hooks';
         next if $module->{enable} !~ /true|1/;
         $file_path = $module->{config_file};
+        last
     }
     return undef if !defined($file_path);
 

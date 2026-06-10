@@ -937,7 +937,7 @@ sub get_constatus_result {
     # This loop avoid showing a poller from 2 time from both id and uid point of view.
     my $res = {};
     while (my ($key, $elem) = each %$constatus_ping){
-        if ($key =~ /^\d*$/ and $key == $elem->{id}){
+        if ($key =~ /^\d+$/ && $key == $elem->{id}){
             $res->{$key} = $elem;
         }
     }
@@ -1039,7 +1039,7 @@ sub register_nodes {
 sub register_nodes_from_db {
     my (%options) = @_;
 
-    return if (!defined($options{data}->{nodes}) or !$options{data}->{nodes});
+    return if (!defined($options{data}->{nodes}) || !$options{data}->{nodes});
 
     # send all data to proxy-httpserver, which manage pullwss nodes.
     # need to send the complete list in one message to be able to delete node when they are removed from the db.
