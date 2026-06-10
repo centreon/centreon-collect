@@ -146,13 +146,12 @@ sub action_centreonnodessync {
         return 1;
     }
 
-    my ($core_id, $core_uid);
+    my $core_id;
     my $register_temp = {};
     my $register_nodes = [];
     foreach my $node (values %$datas) {
         if ($node->{localhost} == 1) {
-            $core_id  = $node->{id};
-            $core_uid = $node->{uid};
+            $core_id = $node->{id};
             next;
         }
 
@@ -219,7 +218,7 @@ sub action_centreonnodessync {
     # as we can now specify communication type in the database, the register module become useless.
     # to avoid breaking existing config, the node module now read the register config file and apply it.
     # using a single module allows to simplify the overriding compute, and stop doing it in multiples interposed zmq messages.
-    my $file_nodes = $self->get_register_module_config() // [];
+    my $file_nodes = $self->get_register_module_config();
     for my $file_node (@$file_nodes) {
         next unless $file_node->{prevail};
         my $db_node;
@@ -247,7 +246,7 @@ sub action_centreonnodessync {
         scalar(@$unregister_nodes)));
 
 
-    $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id, uid => $core_uid } }) if (defined($core_id));
+    $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id } }) if (defined($core_id));
     $self->send_internal_action({ action => 'REGISTERNODESFROMDB', data => { nodes => $register_nodes } });
     $self->send_internal_action({ action => 'UNREGISTERNODES', data => { nodes => $unregister_nodes } });
 

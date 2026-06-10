@@ -19,7 +19,7 @@ sub main {
 
 my $check_action_ran = {};
 my $action_expected = {
-    'SETCOREID'     => { id => 1, uid => '' },
+    'SETCOREID'     => { id => 1 },
     'UNREGISTERNODES'     => { nodes =>[]},
     'REGISTERNODESFROMDB' => {
         'nodes' => [
