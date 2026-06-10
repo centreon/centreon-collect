@@ -29,7 +29,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 
 constexpr const char* mysql_error::msg[];
 
-const int MAX_ATTEMPTS = 2;
+const int MAX_ATTEMPTS = 3;
 
 void (mysql_connection::*const mysql_connection::_task_processing_table[])(
     mysql_task* task) = {
@@ -482,7 +482,7 @@ int get_error_code(const mysql_task_statement* task) {
  * success handler on success or setting an exception on the task on failure.
  *
  * Attempts to execute the prepared statement identified by task->statement_id
- * up to MAX_ATTEMPTS times, with exponential back-off (500 ms * 2^attempt)
+ * up to MAX_ATTEMPTS times, with exponential back-off (100 ms * 2^attempt)
  * between retries.
  *
  * Error handling:
@@ -525,6 +525,10 @@ void mysql_connection::_execute_stmt(task_type* task,
         SPDLOG_LOGGER_ERROR(_logger,
                             "mysql_connection: errno=0, so we simulate a "
                             "server error CR_SERVER_LOST");
+        err_msg = fmt::format(
+            "{} mysql_connection: errno=0, so we simulate a "
+            "server error CR_SERVER_LOST",
+            mysql_error::msg[get_error_code(task)]);
         stmt_error = CR_SERVER_LOST;
       } else {
         SPDLOG_LOGGER_ERROR(
@@ -546,10 +550,8 @@ void mysql_connection::_execute_stmt(task_type* task,
               _logger,
               "connection fail commit after execute statement failure {:p}",
               static_cast<const void*>(this));
-          if (_server_error(mysql_errno(_conn))) {
-            set_error_message("Commit failed after executing statement: {}",
-                              ::mysql_error(_conn));
-          }
+          set_error_message("Commit failed after executing statement: {}",
+                            ::mysql_error(_conn));
           set_exception(task, msg_fmt("Failed to execute statement because of "
                                       "deadlock and failed to "
                                       "commit: {}",
@@ -582,7 +584,7 @@ void mysql_connection::_execute_stmt(task_type* task,
       return;
     }
     std::this_thread::sleep_for(
-        std::chrono::milliseconds(500 * (1 << attempts)));
+        std::chrono::milliseconds(100 * (1 << attempts)));
   }
 }
 
@@ -670,7 +672,6 @@ void mysql_connection::_statement_res(mysql_task* t) {
     _execute_stmt(task, [&]() {
       _last_access = time(nullptr);
       mysql_result res(this, task->statement_id);
-      MYSQL_STMT* stmt(_stmt[task->statement_id]);
       MYSQL_RES* prepare_meta_result(mysql_stmt_result_metadata(stmt));
       if (prepare_meta_result == nullptr) {
         if (mysql_stmt_errno(stmt)) {
