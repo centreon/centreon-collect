@@ -9,7 +9,7 @@ Test Timeout        220s
 
 *** Test Cases ***
 connect 1 poller to a central
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
     Log To Console    \nStarting the gorgone setup
     Setup Two Gorgone Instances    communication_mode=push_zmq     central_name=push_zmq_gorgone_central    poller_name=push_zmq_gorgone_poller_2
@@ -19,10 +19,11 @@ connect 1 poller to a central
 check central don't eat cpu when poller is not connected
     [Tags]    long_tests    MON-130747
     ${central_name}=    Set Variable    push_zmq_gorgone_central
-    [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    [Teardown]    Stop Gorgone And Remove Gorgone Config    push_zmq_gorgone_central    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
 
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
     @{central_push_config}=    Create List    ${push_central_config}    ${gorgone_core_config}
-    Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}db_add_1_poller.sql
+    Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}/database/insert_push_poller.sql
     Start Gorgone    debug    ${central_name}
     Wait Until Port Is Bind    8085
     Ctn Wait Until Poller Fail To Connect    1

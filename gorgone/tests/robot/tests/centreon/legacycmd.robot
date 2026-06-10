@@ -30,6 +30,7 @@ Legacycmd with ${communication_mode} communication
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
         
 *** Keywords ***
@@ -37,12 +38,13 @@ Legacycmd Teardown
     [Arguments]    ${central}    ${poller}    ${comm}
     @{process_list}    Create List    ${central}    ${poller}
 
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Terminate Process    pipeWatcher_${comm}
     Run    rm -rf /var/cache/centreon/config
     Run    rm -rf /etc/centreon/centreon_vmware.json
     Run    rm -rf /etc/centreon-engine/randomBigFile.cfg
     Run    rm -rf /etc/centreon-engine/engine-hosts.cfg
+    Run    rm -rf /etc/centreon-broker/broker.cfg
     Run    rm -f /etc/snmp/centreon_traps/centreontrapd.sdb
     
 Push Engine And vmware Configuration
@@ -55,7 +57,7 @@ Push Engine And vmware Configuration
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/vmware/${poller_id}/centreon_vmware.json
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/broker/${poller_id}/broker.cfg
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/engine/${poller_id}/engine-hosts.cfg
-    Run    dd if=/dev/urandom of=/var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg bs=200MB count=1 iflag=fullblock
+    Run    dd if=/dev/urandom of=/var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg bs=60MB count=1 iflag=fullblock
     ${MD5Start}=    Run    md5sum /var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg | cut -f 1 -d " "
     Run    chown www-data:www-data /var/cache/centreon/config/*/${poller_id}/*
     Run    chmod 644 /var/cache/centreon/config/*/${poller_id}/*

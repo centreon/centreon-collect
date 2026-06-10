@@ -23,6 +23,7 @@ check autodiscovery ${communication_mode}
     Examples:    communication_mode   --
         ...    push_zmq
         ...    pullwss
+        ...    pullwss_uid
         ...    pull
 
 *** Keywords ***
@@ -61,7 +62,7 @@ Test Host disco
 Test Teardown
     [Arguments]    @{process_list}
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
-    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}db_delete_poller.sql
+    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database/delete_pollers.sql
     Stop Mockoon
 
 Test Setup
@@ -69,6 +70,7 @@ Test Setup
     Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
     Setup Vault
 
+    Ctn Init Tests
     Gorgone Execute Sql    ${ROOT_CONFIG}autodiscovery${/}db-delete-autodiscovery.sql
 
     @{central_config}    Create List    ${ROOT_CONFIG}autodiscovery${/}configuration-autodiscovery.yaml    ${ROOT_CONFIG}actions.yaml

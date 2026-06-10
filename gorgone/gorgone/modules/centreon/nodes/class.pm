@@ -134,11 +134,11 @@ sub action_centreonnodessync {
     }
 
     $request = "
-        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type
+        SELECT id, name, localhost, ns_ip_address, gorgone_port, remote_id, remote_server_use_as_proxy, gorgone_communication_type, uid
         FROM nagios_server
         WHERE ns_activate = '1'
     ";
-    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 2);
+    ($status, $datas) = $self->{class_object}->custom_execute(request => $request, mode => 1, keys => 'id');
     if ($status == -1) {
         $self->{resync_time} = 10;
         $self->send_log(code => GORGONE_ACTION_FINISH_KO, token => $options{token}, data => { message => 'cannot find nodes configuration' });
@@ -149,34 +149,53 @@ sub action_centreonnodessync {
     my $core_id;
     my $register_temp = {};
     my $register_nodes = [];
-    foreach (@$datas) {
-        if ($_->[2] == 1) {
-            $core_id = $_->[0];
+    foreach my $node (values %$datas) {
+        if ($node->{localhost} == 1) {
+            $core_id = $node->{id};
             next;
         }
 
         # remote_server_use_as_proxy = 1 means: pass through the remote. otherwise directly.
-        if (defined($_->[5]) && $_->[5] =~ /\d+/ && $_->[6] == 1) {
-            $register_subnodes->{$_->[5]} = [] if (!defined($register_subnodes->{$_->[5]}));
-            unshift @{$register_subnodes->{$_->[5]}}, { id => $_->[0], pathscore => 1 };
+        if (defined($node->{remote_id}) && $node->{remote_id} =~ /\d+/ && $node->{remote_server_use_as_proxy} == 1) {
+            $register_subnodes->{$node->{remote_id}} = [] if (!defined($register_subnodes->{$node->{remote_id}}));
+            unshift @{$register_subnodes->{$node->{remote_id}}}, { id => $node->{id}, pathscore => 1 };
             next;
         }
-        $self->{register_nodes}->{$_->[0]} = 1;
-        $register_temp->{$_->[0]} = 1;
-        if ($_->[7] == 2) {
+        $self->{register_nodes}->{$node->{id}} = 1;
+        $register_temp->{$node->{id}} = 1;
+        if ($node->{gorgone_communication_type} == 2) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
                 type => 'push_ssh',
-                address => $_->[3],
-                ssh_port => $_->[4],
-                ssh_username => $self->{config}->{ssh_username}
+                address => $node->{ns_ip_address},
+                ssh_port => $node->{gorgone_port},
+                ssh_username => $self->{config}->{ssh_username},
+                uid => $node->{uid},
             };
-        } else {
+        } elsif($node->{gorgone_communication_type} == 3) {
             push @$register_nodes, {
-                id => $_->[0],
+                id => $node->{id},
+                type => 'pull', # this is ZMQ where node is initiating connection.
+                # Letting address and port for consistency and if in the future we want to validate source ip/port
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port},
+                uid => $node->{uid},
+            };
+        } elsif($node->{gorgone_communication_type} == 4) {
+            push @$register_nodes, {
+                id    => $node->{id},
+                type  => 'pullwss',
+                uid => $node->{uid},
+                token => $node->{gorgone_auth_token} // "",
+            };
+        } else{ # value 1 and unknown is zmq push
+            push @$register_nodes, {
+                id => $node->{id},
                 type => 'push_zmq',
-                address => $_->[3],
-                port => $_->[4]
+                address => $node->{ns_ip_address},
+                port => $node->{gorgone_port},
+                uid => $node->{uid},
+                token => $node->{gorgone_auth_token} // "",
             };
         }
     }
@@ -196,8 +215,39 @@ sub action_centreonnodessync {
         }
     }
 
+    # as we can now specify communication type in the database, the register module become useless.
+    # to avoid breaking existing config, the node module now read the register config file and apply it.
+    # using a single module allows to simplify the overriding compute, and stop doing it in multiples interposed zmq messages.
+    my $file_nodes = $self->get_register_module_config();
+    for my $file_node (@$file_nodes) {
+        next unless $file_node->{prevail};
+        my $db_node;
+        for my $arr (@$register_nodes) {
+            if ($arr->{id} == $file_node->{id}){
+                $db_node = $arr;
+                last
+            }
+        }
+        $self->{logger}->writeLogInfo("[nodes] updating node " . $file_node->{id} . " info from database with register configuration");
+        if (!defined($db_node)) {
+            $db_node = {};
+            push @$register_nodes, $db_node;
+        }
+        for my $key ("type", "address", "port", "server_pubkey", "client_pubkey", "client_privkey", "cipher", "vector", "nodes") {
+            $file_node->{$key} and $db_node->{$key} = $file_node->{$key};
+        }
+    }
+
+
+    $self->{logger}->writeLogInfo(sprintf(
+        "[nodes] retrieved %s nodes from DB and/or register configuration file, %s new and %s to delete. Sending to other gorgone modules",
+        scalar( keys %$datas),
+        scalar(@$register_nodes),
+        scalar(@$unregister_nodes)));
+
+
     $self->send_internal_action({ action => 'SETCOREID', data => { id => $core_id } }) if (defined($core_id));
-    $self->send_internal_action({ action => 'REGISTERNODES', data => { nodes => $register_nodes } });
+    $self->send_internal_action({ action => 'REGISTERNODESFROMDB', data => { nodes => $register_nodes } });
     $self->send_internal_action({ action => 'UNREGISTERNODES', data => { nodes => $unregister_nodes } });
 
     $self->{logger}->writeLogDebug("[nodes] Finish resync");
@@ -206,7 +256,28 @@ sub action_centreonnodessync {
     $self->{resync_time} = $self->{default_resync_time};
     return 0;
 }
+sub get_register_module_config {
+    my ($self, %options) = @_;
+    # first we check if the register module is enabled, and exit if not.
+    my $file_path;
+    for my $module (@{$self->{config_core}->{modules}}){
+        next if $module->{package} ne 'gorgone::modules::core::register::hooks';
+        next if $module->{enable} !~ /true|1/;
+        $file_path = $module->{config_file};
+        last
+    }
+    return undef if !defined($file_path);
 
+    my $file_conf = gorgone::standard::library::read_config(
+        config_file => $file_path,
+        logger => $self->{logger}
+    );
+    if (!$file_conf or !$file_conf->{nodes}){
+        return undef;
+    }
+    return $file_conf->{nodes};
+
+}
 sub periodic_exec {
     my ($self, %options) = @_;
 

@@ -1,7 +1,16 @@
 gorgone:
   gorgonecore:
-    id: 1
+    id: 3
   modules:
+    - name: pullwss
+      package: "gorgone::modules::core::pullwss::hooks"
+      enable: true
+      ssl: false
+      port: 8086
+      token: "secret_token"
+      address: 127.0.0.1
+      ping: 1
+
     - name: proxy
       package: "gorgone::modules::core::proxy::hooks"
       enable: true
@@ -12,7 +21,7 @@ gorgone:
         #ssl_key_file: /etc/centreon-gorgone/keys/private.key
         token: "secret_token"
         address: "0.0.0.0"
-        port: 8086
+        port: 8096
 
     - name: nodes
       package: "gorgone::modules::centreon::nodes::hooks"
@@ -22,7 +31,7 @@ gorgone:
       package: "gorgone::modules::core::httpserver::hooks"
       enable: true
       address: "0.0.0.0"
-      port: "8085"
+      port: "8095"
       ssl: false
       auth:
         enabled: false
