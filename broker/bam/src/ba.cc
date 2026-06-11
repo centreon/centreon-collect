@@ -278,10 +278,28 @@ void ba::visit(io::stream* visitor) {
     auto status{_generate_ba_status(state_changed)};
     visitor->write(status);
 
-    // Generate virtual service status event.
+    // Generate virtual service status event, unless it would duplicate the last
+    // one published. A forced check or a reload re-runs visit() without any KPI
+    // change, keeping last_check (== _last_kpi_update) constant; re-emitting the
+    // same status makes RRD log an "ignored update error" on a timestamp it
+    // already stored (see BAWORST). We still emit whenever the hard state or the
+    // downtime depth changed, even at a constant last_check.
     if (_generate_virtual_status) {
-      auto status{_generate_virtual_service_status()};
-      visitor->write(status);
+      timestamp check_time =
+          _event ? timestamp(_event->obj().start_time()) : _last_kpi_update;
+      if (check_time != _last_published_service_check ||
+          hard_state != _last_published_service_state ||
+          _in_downtime != _last_published_service_downtime) {
+        _last_published_service_check = check_time;
+        _last_published_service_state = hard_state;
+        _last_published_service_downtime = _in_downtime;
+        visitor->write(_generate_virtual_service_status());
+      } else {
+        SPDLOG_LOGGER_TRACE(
+            _logger,
+            "BAM: skipping duplicate virtual service status for BA {} at {}",
+            _id, check_time.get_time_t());
+      }
     }
   }
 }
