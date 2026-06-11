@@ -37,6 +37,7 @@ class service_impl
     : public com::centreon::broker::stream::centreon_bbdo::Service,
       public std::enable_shared_from_this<service_impl> {
   grpc_config::pointer _conf;
+  const io::endpoint* _parent;
 
   std::set<std::shared_ptr<io::stream>> _accepted;
   mutable std::mutex _accepted_m;
@@ -45,7 +46,7 @@ class service_impl
   mutable std::mutex _wait_m;
 
  public:
-  service_impl(const grpc_config::pointer& conf);
+  service_impl(const io::endpoint* parent, const grpc_config::pointer& conf);
 
   void init();
 

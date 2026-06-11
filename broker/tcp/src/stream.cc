@@ -17,8 +17,6 @@
  *
  */
 
-#include "com/centreon/broker/tcp/stream.hh"
-
 #include <sys/socket.h>
 #include <sys/time.h>
 
@@ -31,12 +29,21 @@
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
+#include "com/centreon/broker/tcp/stream.hh"
+
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-std::atomic<size_t> stream::_total_tcp_count{0};
+/**
+ * @brief voluntary memory leak in order to have this container valid until
+ * death
+ *
+ */
+absl::flat_hash_set<const stream*>* stream::_instances =
+    new absl::flat_hash_set<const stream*>();
+absl::Mutex stream::_instances_m;
 
 /**
  * @brief Stream constructor used by a connector. The stream establishes a
@@ -47,17 +54,18 @@ std::atomic<size_t> stream::_total_tcp_count{0};
  * @param port The port used by the host to listen.
  * @param read_timeout The read_timeout in seconds or -1 if no timeout.
  */
-stream::stream(const tcp_config::pointer& conf)
+stream::stream(const io::endpoint* parent, const tcp_config::pointer& conf)
     : io::stream("TCP"),
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
-      _parent(nullptr),
+      _parent(parent),
       _logger{log_v2::instance().get(log_v2::TCP)} {
   assert(_connection->port());
-  _total_tcp_count++;
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
+  absl::MutexLock l(&_instances_m);
+  _instances->insert(this);
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
-                static_cast<uint32_t>(_total_tcp_count),
+                _instances->size(),
                 com::centreon::common::pool::instance().get_pool_size());
 }
 
@@ -68,18 +76,20 @@ stream::stream(const tcp_config::pointer& conf)
  * @param conn The connection to use by this stream.
  * @param read_timeout A duration in seconds or -1 if no timeout.
  */
-stream::stream(const tcp_connection::pointer& conn,
+stream::stream(const io::endpoint* parent,
+               const tcp_connection::pointer& conn,
                const tcp_config::pointer& conf)
     : io::stream("TCP"),
       _conf(conf),
       _connection(conn),
-      _parent(nullptr),
+      _parent(parent),
       _logger{log_v2::instance().get(log_v2::TCP)} {
   assert(_connection->port());
-  _total_tcp_count++;
+  absl::MutexLock l(&_instances_m);
+  _instances->insert(this);
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
-                static_cast<uint32_t>(_total_tcp_count),
+                _instances->size(),
                 com::centreon::common::pool::instance().get_pool_size());
 }
 
@@ -87,16 +97,14 @@ stream::stream(const tcp_connection::pointer& conn,
  *  Destructor.
  */
 stream::~stream() noexcept {
-  _total_tcp_count--;
+  absl::MutexLock l(&_instances_m);
+  _instances->erase(this);
   _logger->info(
       "TCP stream destroyed. Still {} threads configured on the thread pool",
-      static_cast<uint32_t>(_total_tcp_count));
+      _instances->size());
   _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();
-
-  if (_parent)
-    _parent->remove_child(peer());
 }
 
 /**
@@ -138,15 +146,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   std::shared_ptr<io::raw> data{std::static_pointer_cast<io::raw>(d)};
   _logger->trace("TCP Read done : {} bytes", data->get_buffer().size());
   return !timeout;
-}
-
-/**
- *  Set parent socket.
- *
- *  @param[in,out] parent  Parent socket.
- */
-void stream::set_parent(acceptor* parent) {
-  _parent = parent;
 }
 
 int32_t stream::flush() {
