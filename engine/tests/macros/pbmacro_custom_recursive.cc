@@ -181,6 +181,46 @@ TEST_F(MacroCustomRecursive, ServiceCustomFullExampleEndWithDollar) {
   ASSERT_EQ(out, "http://10.0.0.1:8080/api/status/storage'^/$'");
 }
 
+/* Three dollars with characters between them: $HOSTNAME$ is expanded, the
+ * literal underscore is kept, and the trailing lone $ (no closing pair) is
+ * preserved by the trailing-text path. */
+TEST_F(MacroCustomRecursive, ThreeDollarsWithCharsBetween) {
+  _host->custom_variables["VAL"] = customvariable("$HOSTNAME$_$");
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  mac->host_ptr = _host.get();
+  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  ASSERT_EQ(out, "test_host_$");
+}
+
+/* Unknown $-style tokens inside a custom macro value are NOT removed: they
+ * are kept as-is for backward compatibility (e.g. SQL-like patterns). */
+TEST_F(MacroCustomRecursive, UnknownTokensBetweenDollarsArePreserved) {
+  _host->custom_variables["VAL"] =
+      customvariable("$UNKNOWN$_and_$MISSING$");
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  mac->host_ptr = _host.get();
+  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  ASSERT_EQ(out, "$UNKNOWN$_and_$MISSING$");
+}
+
+/* Hybrid: a custom macro value mixing a real macro ($HOSTNAME$) and an
+ * unknown token ($UNDEFINED$). The real macro is expanded; the unknown
+ * token is kept as-is. */
+TEST_F(MacroCustomRecursive, HybridRealMacroAndUnknownTokenPreserved) {
+  _host->custom_variables["VAL"] =
+      customvariable("$HOSTNAME$_$UNDEFINED$");
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  mac->host_ptr = _host.get();
+  process_macros_r(mac, "$_HOSTVAL$", out, 0);
+  ASSERT_EQ(out, "test_host_$UNDEFINED$");
+}
+
 /* Service custom macro containing a standard service macro. */
 TEST_F(MacroCustomRecursive, ServiceCustomContainsServiceStandard) {
   _svc->custom_variables["INFO"] = customvariable("svc=$SERVICEDESC$");
