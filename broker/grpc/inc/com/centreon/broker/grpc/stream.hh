@@ -19,6 +19,7 @@
 #ifndef CCB_GRPC_STREAM_HH__
 #define CCB_GRPC_STREAM_HH__
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/io/raw.hh"
 #include "grpc_config.hh"
 
@@ -84,7 +85,8 @@ class stream : public io::stream,
    * by grpc layers. We allocate this container and never free this because
    * threads terminate in unknown order.
    */
-  static absl::flat_hash_set<std::shared_ptr<stream>>* _instances;
+  static absl::flat_hash_set<std::shared_ptr<stream>>* _instances
+      ABSL_GUARDED_BY(_instances_m);
   static absl::Mutex _instances_m;
 
   const io::endpoint* _parent;

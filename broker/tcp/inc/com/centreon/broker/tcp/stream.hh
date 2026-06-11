@@ -19,6 +19,7 @@
 #ifndef CCB_TCP_STREAM_HH
 #define CCB_TCP_STREAM_HH
 
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
@@ -36,7 +37,8 @@ class acceptor;
  *  TCP stream.
  */
 class stream : public io::stream {
-  static absl::flat_hash_set<const stream*>* _instances;
+  static absl::flat_hash_set<const stream*>* _instances
+      ABSL_GUARDED_BY(_instances_m);
   static absl::Mutex _instances_m;
 
   tcp_config::pointer _conf;
