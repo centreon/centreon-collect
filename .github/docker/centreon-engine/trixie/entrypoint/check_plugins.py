@@ -29,6 +29,7 @@ def main():
 
     to_install = []
     for pkg, ver in plugins.items():
+        pkg = pkg.lower()
         if not PKG_RE.match(pkg):
             print(f'  {pkg}: invalid package name, skipping', file=sys.stderr)
             continue
