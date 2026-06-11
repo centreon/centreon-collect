@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 # Build arg to select gorgone Perl source: false=use .deb (production), true=use local repo (dev/test)
 ARG USE_SOURCE_GORGONE=false
 
@@ -6,9 +8,12 @@ ARG USE_SOURCE_GORGONE=false
 #############################################
 FROM debian:13-slim AS extractor
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    dpkg \
-    && rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    bash -e <<EOF
+apt-get update
+apt-get install -y --no-install-recommends dpkg
+EOF
 
 # Extract .deb packages (mounted via --mount during build)
 RUN --mount=type=bind,source=packages-centreon,target=/packages \
@@ -90,30 +95,68 @@ ARG IS_CLOUD
 ARG STABILITY
 
 # Create users and groups (Debian style)
-RUN groupadd -g 33 www-data 2>/dev/null || true && \
-    groupadd -g 900 centreon && \
-    useradd -u 900 -g centreon -m -r -d /var/spool/centreon -s /bin/bash centreon && \
-    groupadd -g 901 centreon-engine && \
-    useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -s /bin/bash centreon-engine && \
-    groupadd -g 902 centreon-broker && \
-    useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -s /bin/bash centreon-broker && \
-    groupadd -g 903 centreon-gorgone && \
-    useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone && \
-    usermod -aG centreon centreon-gorgone && \
-    usermod -aG www-data centreon-gorgone && \
-    usermod -aG centreon-engine centreon-gorgone && \
-    usermod -aG centreon-broker centreon-gorgone
+RUN bash -e <<EOF
+groupadd -g 33 www-data 2>/dev/null || true
+groupadd -g 900 centreon
+useradd -u 900 -g centreon -m -r -d /var/spool/centreon -s /bin/bash centreon
+groupadd -g 901 centreon-engine
+useradd -u 901 -g centreon-engine -m -r -d /var/lib/centreon-engine -s /bin/bash centreon-engine
+groupadd -g 902 centreon-broker
+useradd -u 902 -g centreon-broker -m -r -d /var/lib/centreon-broker -s /bin/bash centreon-broker
+groupadd -g 903 centreon-gorgone
+useradd -u 903 -g centreon-gorgone -m -r -d /var/lib/centreon-gorgone -s /bin/bash centreon-gorgone
+usermod -aG centreon centreon-gorgone
+usermod -aG www-data centreon-gorgone
+usermod -aG centreon-engine centreon-gorgone
+usermod -aG centreon-broker centreon-gorgone
+EOF
+
+# Configure APT for optimal container usage
+COPY <<EOF /etc/apt/apt.conf.d/99custom
+Acquire::Retries "10";
+Acquire::https::Timeout "300";
+Acquire::http::Timeout "300";
+APT::Install-Recommends "false";
+APT::Install-Suggests "false";
+EOF
 
 # Add Centreon plugins-stable repository (amd64 only — arm64 packages not published there)
-RUN apt-get update && apt-get install -y --no-install-recommends gnupg wget ca-certificates && \
-    echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
-        > /etc/apt/sources.list.d/centreon-plugins.list && \
-    wget -O- https://apt-key.centreon.com | gpg --dearmor \
-        | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1 && \
-    rm -rf /var/lib/apt/lists/*
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    bash -e <<EOF
+apt-get update
+apt-get install -y --no-install-recommends gnupg wget ca-certificates
+echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
+    > /etc/apt/sources.list.d/centreon-plugins.list
+wget -O- https://apt-key.centreon.com | gpg --dearmor \
+    | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
+EOF
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# amd64: install pre-built Centreon Perl packages.
+# arm64: build from CPAN (no arm64 packages in Centreon repo).
+# Install ONLY runtime dependencies (merged with arch-specific Perl install)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,target=/root/.cpanm \
+    bash -e <<'EOF'
+apt-get update
+ARCH=$(dpkg --print-architecture)
+if [ "$ARCH" = "amd64" ]; then
+    apt-get install -y --no-install-recommends \
+        libnet-curl-perl \
+        libcrypt-openssl-aes-perl \
+        libssh-session-perl \
+        libmojo-ioloop-signal-perl
+else
+    apt-get install -y --no-install-recommends \
+        cpanminus build-essential \
+        libcurl4-openssl-dev libssl-dev libssh-dev
+    cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session Mojo::IOLoop::Signal
+    apt-get remove -y --purge cpanminus build-essential \
+        libcurl4-openssl-dev libssl-dev libssh-dev
+    apt-get autoremove -y
+fi
+apt-get install -y --no-install-recommends \
     perl \
     libdbi-perl \
     libdbd-mysql-perl \
@@ -149,68 +192,51 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     tzdata \
     ca-certificates \
-    libnetaddr-ip-perl && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Perl modules only available in Centreon repo for amd64, or via cpanm for arm64
-RUN ARCH=$(dpkg --print-architecture) && \
-    if [ "$ARCH" = "amd64" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-            libnet-curl-perl \
-            libcrypt-openssl-aes-perl \
-            libssh-session-perl \
-            libmojo-ioloop-signal-perl && \
-        rm -rf /var/lib/apt/lists/*; \
-    else \
-        apt-get update && apt-get install -y --no-install-recommends \
-            cpanminus \
-            build-essential \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libssh-dev && \
-        rm -rf /var/lib/apt/lists/* && \
-        cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session Mojo::IOLoop::Signal; \
-    fi
+    libnetaddr-ip-perl
+rm -rf /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
+EOF
 
 # Create directory structure
-RUN mkdir -p /etc/centreon/config.d/ \
-             /etc/centreon-gorgone/config.d \
-             /var/cache/centreon/ \
-             /var/lib/centreon/centcore/ \
-             /var/lib/centreon-gorgone/.keys \
-             /var/log/centreon-gorgone \
-             /var/lib/centreon-engine/rw \
-             /usr/local/lib/centreon-gorgone && \
-    chown -R centreon-gorgone:centreon /etc/centreon/ && \
-    chmod -R 775 /etc/centreon/ && \
-    chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/ && \
-    chmod -R 775 /etc/centreon-gorgone/ && \
-    chown centreon:centreon /var/cache/centreon && \
-    chmod 775 /var/cache/centreon && \
-    touch /var/lib/centreon/centcore.cmd && \
-    chown -R centreon-gorgone:centreon /var/lib/centreon/ && \
-    chmod -R 775 /var/lib/centreon/ && \
-    chown -R centreon-engine:centreon-engine /var/lib/centreon-engine && \
-    chmod 0755 /var/lib/centreon-engine && \
-    chmod 775 /var/lib/centreon-engine/rw && \
-    chown -R centreon-gorgone:centreon-gorgone \
-              /var/lib/centreon-gorgone \
-              /var/log/centreon-gorgone && \
-    chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone && \
-    chmod 755 /var/lib/centreon-gorgone/.keys && \
-    chmod 0755 /var/spool/centreon && \
-    chmod 0755 /var/lib/centreon-broker && \
-    rm -f /bin/systemctl
+RUN bash -e <<EOF
+mkdir -p /etc/centreon/config.d/ \
+         /etc/centreon-gorgone/config.d \
+         /var/cache/centreon/ \
+         /var/lib/centreon/centcore/ \
+         /var/lib/centreon-gorgone/.keys \
+         /var/log/centreon-gorgone \
+         /var/lib/centreon-engine/rw \
+         /usr/local/lib/centreon-gorgone
+chown -R centreon-gorgone:centreon /etc/centreon/
+chmod -R 775 /etc/centreon/
+chown -R centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/
+chmod -R 775 /etc/centreon-gorgone/
+chown centreon:centreon /var/cache/centreon
+chmod 775 /var/cache/centreon
+touch /var/lib/centreon/centcore.cmd
+chown -R centreon-gorgone:centreon /var/lib/centreon/
+chmod -R 775 /var/lib/centreon/
+chown -R centreon-engine:centreon-engine /var/lib/centreon-engine
+chmod 0755 /var/lib/centreon-engine
+chmod 775 /var/lib/centreon-engine/rw
+chown -R centreon-gorgone:centreon-gorgone \
+          /var/lib/centreon-gorgone \
+          /var/log/centreon-gorgone
+chmod 775 /var/lib/centreon-gorgone /var/log/centreon-gorgone
+chmod 755 /var/lib/centreon-gorgone/.keys
+chmod 0755 /var/spool/centreon
+chmod 0755 /var/lib/centreon-broker
+rm -f /bin/systemctl
+EOF
 
 # Copy ONLY runtime files from extractor (no package metadata, docs, or systemd files)
 
 # Gorgone binaries
-COPY --from=extractor --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
+COPY --from=extractor --link --chmod=755 /extracted/usr/bin/gorgoned /usr/bin/gorgoned
 
 # Perl modules (centreon-gorgone and centreon-perl) - use Debian's perl5 path
 # gorgone modules come from gorgone-perl-selected (either .deb or local repo source)
-COPY --from=gorgone-perl-selected /gorgone-modules/ /usr/share/perl5/gorgone/
-COPY --from=centreon-perl-selected /centreon-modules/ /usr/share/perl5/centreon/
+COPY --from=gorgone-perl-selected --link /gorgone-modules/ /usr/share/perl5/gorgone/
+COPY --from=centreon-perl-selected --link /centreon-modules/ /usr/share/perl5/centreon/
 
 # Configuration files
 COPY --from=gorgone-config-selected --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
@@ -223,28 +249,30 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
-RUN ARCH=$(dpkg --print-architecture) && \
-    case "$ARCH" in \
-        amd64) GRPCURL_ARCH="x86_64" ;; \
-        arm64) GRPCURL_ARCH="arm64" ;; \
-        *) echo "Unsupported arch: $ARCH" && exit 1 ;; \
-    esac && \
-    curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_${GRPCURL_ARCH}.tar.gz" \
-        | tar -xz -C /usr/local/bin/ grpcurl && \
-    chmod +x /usr/local/bin/grpcurl && \
-    mkdir -p /usr/share/centreon-engine/proto
+RUN bash -e <<'EOF'
+ARCH=$(dpkg --print-architecture)
+case "$ARCH" in
+    amd64) GRPCURL_ARCH="x86_64" ;;
+    arm64) GRPCURL_ARCH="arm64" ;;
+    *) echo "Unsupported arch: $ARCH" && exit 1 ;;
+esac
+curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_${GRPCURL_ARCH}.tar.gz" \
+    | tar -xz -C /usr/local/bin/ grpcurl
+chmod +x /usr/local/bin/grpcurl
+mkdir -p /usr/share/centreon-engine/proto
+EOF
 
 # Copy engine proto definitions for grpcurl (no reflection API on centengine)
-COPY --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
-COPY --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
+COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
+COPY --link --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
 
 # Copy entrypoint, systemctl, and sudoers (from source repo, not from .deb packages)
-COPY --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
-COPY --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
-COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
-COPY --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
-COPY --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/sudoersCentreon /etc/sudoers.d/centreon-docker
-COPY --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/bin/gorgone_install_plugins.pl
+COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/systemctl /usr/bin/systemctl
+COPY --link --chmod=755 .github/docker/centreon-gorgone/trixie/entrypoint /usr/local/lib/centreon-gorgone/
+COPY --link --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/centreon /etc/sudoers.d/centreon
+COPY --link --chmod=600 gorgone/packaging/sudoers.d/centreon-gorgone /etc/sudoers.d/centreon-gorgone
+COPY --link --chmod=600 .github/docker/centreon-gorgone/trixie/sudoers/sudoersCentreon /etc/sudoers.d/centreon-docker
+COPY --link --chmod=755 gorgone/contrib/gorgone_install_plugins.pl /usr/bin/gorgone_install_plugins.pl
 
 # Perl library path for Debian
 ENV PERL5LIB=/usr/share/perl5:/usr/lib/perl5
