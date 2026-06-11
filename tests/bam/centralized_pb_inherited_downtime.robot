@@ -185,6 +185,10 @@ BECBAMIDTU2
         Ctn Kindly Stop Broker
         Log To Console    Broker is started
         Ctn Start Broker    newGeneration=True
+        # Ctn Start Broker returns before the gRPC server is listening; wait for
+        # it so the gRPC calls below this loop do not hit a refused connection.
+        ${ready}    Ctn Wait For Broker To Be Ready
+        Should Be True    ${ready}    Broker gRPC server should be ready after restart
 
         Log To Console    We should have two downtimes (3)
         ${result}    Ctn Number Of Downtimes Is    2    30

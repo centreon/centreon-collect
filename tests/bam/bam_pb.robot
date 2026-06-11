@@ -1294,9 +1294,12 @@ BA_IMPACT_IMPACT
 
         ${start}    Ctn Get Round Current Date
         Ctn Reload Broker
-        ${content}    Create List    BA states restored
+        # The BAM endpoint is updated in place on reload (no destroy/recreate), so
+        # the BA state persists in memory and is not restored from cache. Wait for
+        # BAM to reprocess the reload before querying the BA again.
+        ${content}    Create List    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
         Ctn Broker Get Ba    51001    ${parent_ba[0]}    /tmp/parent2.dot
         Wait Until Created    /tmp/parent2.dot

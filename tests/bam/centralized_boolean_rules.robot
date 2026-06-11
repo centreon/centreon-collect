@@ -433,9 +433,12 @@ CBABOOCOMPL_RELOAD
 
         # A reload of cbd should not alter the boolean rules content.
         Ctn Reload Broker
-        ${content}    Create List    BA states restored
+        # The BAM endpoint is updated in place on reload (no destroy/recreate), so
+        # the BA state persists in memory and is not restored from cache. Wait for
+        # BAM to reprocess the reload before querying the BA again.
+        ${content}    Create List    BAM: loading cache
         ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-        Should Be True    ${result}    It seems that no cache has been restored into BAM.
+        Should Be True    ${result}    Broker did not reprocess BAM after the reload.
 
         Ctn Broker Get Ba    51001    ${id_ba__sid[0]}    /tmp/ba${id_ba__sid[0]}_2.dot
 

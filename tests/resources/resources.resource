@@ -56,6 +56,17 @@ Ctn Clean Before Suite
     Ctn Clear Commands Status
     Ctn Clear Engine White List
 
+Ctn Clean Before Test
+    [Documentation]    Per-test isolation for suites that run several tests in a
+    ...    row: wipe the database, the persisted broker cache, the persisted
+    ...    centralized configuration (.prot / state.prot) and the logs, so residue
+    ...    from a previous test (leftover rows, a stale cached host, a previous
+    ...    run's larger Engine state replayed on restart) does not leak into the
+    ...    next one. These suites otherwise only clean at suite start.
+    Ctn Clean Before Suite
+    Ctn Clear Broker Cache
+    Ctn Clear Prot Files
+
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
     Log To Console    Starting RRDCached

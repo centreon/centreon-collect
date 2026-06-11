@@ -124,8 +124,21 @@ class EngineInstance:
         else:
             makedirs(f"{VAR_ROOT}/lib/centreon/config",
                      mode=0o777, exist_ok=True)
-        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
-            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
+        # Wipe the engine runtime dir but keep the rw/ subdirectory: it holds
+        # the live external command FIFO of an already-running engine when
+        # Ctn Config Engine is called again to reconfigure before a reload. The
+        # engine does not recreate the FIFO on reload (open_command_file returns
+        # early once command_file_created is set), so deleting it would leave the
+        # command pipe gone and external commands silently lost.
+        engine_var_dir = f"{VAR_ROOT}/lib/centreon-engine/config0"
+        if exists(engine_var_dir):
+            for item in glob.glob(f"{engine_var_dir}/*"):
+                if os.path.basename(item) == "rw":
+                    continue
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
 
         makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
@@ -936,10 +949,16 @@ define contact {
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "check.sh", "notif.pl", "check_centreon_bam"]:
-                shutil.copyfile(f"{SCRIPT_DIR}/{file}",
-                                f"{ENGINE_HOME}/{file}")
-                chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
-                      stat.S_IRGRP | stat.S_IXGRP)
+                # Copy to a temp file then atomically replace: a check process
+                # spawned by a previous test may still be executing the script,
+                # and truncating it in place raises ETXTBSY (Text file busy).
+                # os.replace swaps the directory entry without touching the
+                # inode the running process holds.
+                dst = f"{ENGINE_HOME}/{file}"
+                tmp = f"{dst}.tmp"
+                shutil.copyfile(f"{SCRIPT_DIR}/{file}", tmp)
+                chmod(tmp, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                os.replace(tmp, dst)
             shutil.copyfile(
                 dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):

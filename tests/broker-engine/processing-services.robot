@@ -5,7 +5,7 @@ Resource    ../resources/import.resource
 
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
+Test Setup    Ctn Clean Before Test
 Test Teardown    Ctn Save Logs If Failed
 
 
@@ -47,7 +47,7 @@ BEPS1
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=30s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    ${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -78,7 +78,6 @@ BEPS2
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -96,7 +95,7 @@ BEPS2
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=30s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    ${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -136,7 +135,6 @@ BEPS3
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    core    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -154,7 +152,7 @@ BEPS3
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    ${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -203,7 +201,6 @@ BEPS3R
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -221,7 +218,7 @@ BEPS3R
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${nb_total}    retry_timeout=60s    retry_pause=1s
             ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
             ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+            ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    ${nb_total}
 
             # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
             ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
@@ -277,7 +274,6 @@ BEPS4
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -313,7 +309,7 @@ BEPS4
         Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id != 0    ==    ${1000}    retry_timeout=30s    retry_pause=1s
         ${svc_ids1}    Query    SELECT host_id, service_id FROM services WHERE enabled = 1 ORDER BY host_id, service_id
         ${svc_ids2}    Query    SELECT parent_id, id FROM resources WHERE parent_id != 0 AND enabled = 1 ORDER BY parent_id, id
-        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}
+        ${svc_ids_cache}    Ctn Get Service Ids    ${51001}    ${1000}
 
         # We check that the (host_id, service_id) pairs in svc_ids1, svc_ids2 and svc_ids_cache are the same.
         ${pairs1_flat}    Evaluate    sorted([(row[0], row[1]) for row in $svc_ids1])
