@@ -18,8 +18,6 @@
 
 #include <google/protobuf/util/message_differencer.h>
 
-#include <ctime>
-
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"

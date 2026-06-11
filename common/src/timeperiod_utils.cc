@@ -142,9 +142,6 @@ time_t calculate_time_from_weekday_of_month(int year,
                                             int weekday_offset) {
   // Compute first day of month (to get weekday).
   struct tm t {};
-  t.tm_sec = 0;
-  t.tm_min = 0;
-  t.tm_hour = 0;
   t.tm_year = year;
   t.tm_mon = month;
   t.tm_mday = 1;
