@@ -175,6 +175,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
     Ctn Engine Config Set Value    0    log_level_checks    trace
 
     Ctn Clear Metrics
+    Ctn Clear Db    resources
 
     Ctn Config Broker    central
     Ctn Config Broker    module
