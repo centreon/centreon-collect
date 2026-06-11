@@ -99,7 +99,7 @@ void acceptor::stats(nlohmann::json& tree) {
     if (st.parent() == this) {
       ++counter;
       childs += sep;
-      childs += st.peer();
+      childs += st.raw_peer();
       if (sep.empty()) {
         sep = ", ";
       }

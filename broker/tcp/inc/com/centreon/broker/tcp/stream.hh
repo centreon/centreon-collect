@@ -55,6 +55,9 @@ class stream : public io::stream {
 
   const io::endpoint* parent() const { return _parent; }
   std::string peer() const override final;
+  std::string raw_peer() const {
+    return _connection ? _connection->peer() : "";
+  }
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   int32_t flush() override;
   int32_t stop() override;
