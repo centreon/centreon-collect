@@ -5,7 +5,7 @@ Resource    ../resources/import.resource
 
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
+Test Setup    Ctn Clean Before Test
 Test Teardown    Ctn Save Logs If Failed
 
 
@@ -44,7 +44,7 @@ BEPH1
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
             ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
-            ${host_ids_cache}    Ctn Get Host Ids    ${51001}
+            ${host_ids_cache}    Ctn Get Host Ids    ${51001}    ${nb_hosts}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
             ${ids1_flat}    Evaluate    [row[0] for row in $host_ids1]
@@ -91,7 +91,7 @@ BEPH2
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
             ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
-            ${host_ids_cache}    Ctn Get Host Ids    ${51001}
+            ${host_ids_cache}    Ctn Get Host Ids    ${51001}    ${nb_hosts}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
             ${ids1_flat}    Evaluate    [row[0] for row in $host_ids1]
@@ -126,7 +126,6 @@ BEPH3
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -142,7 +141,7 @@ BEPH3
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
             ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
-            ${host_ids_cache}    Ctn Get Host Ids    ${51001}
+            ${host_ids_cache}    Ctn Get Host Ids    ${51001}    ${nb_hosts}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
             ${ids1_flat}    Evaluate    [row[0] for row in $host_ids1]
@@ -190,7 +189,6 @@ BEPH3R
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -205,7 +203,7 @@ BEPH3R
             Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${nb_hosts}    retry_timeout=30s    retry_pause=1s
             ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
             ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
-            ${host_ids_cache}    Ctn Get Host Ids    ${51001}
+            ${host_ids_cache}    Ctn Get Host Ids    ${51001}    ${nb_hosts}
 
             # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
             ${ids1_flat}    Evaluate    [row[0] for row in $host_ids1]
@@ -260,7 +258,6 @@ BEPH4
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -296,7 +293,7 @@ BEPH4
         Check Query Result    SELECT COUNT(*) FROM resources WHERE enabled = 1 AND parent_id = 0    ==    ${50}    retry_timeout=30s    retry_pause=1s
         ${host_ids1}    Query    SELECT host_id FROM hosts WHERE enabled = 1 ORDER BY host_id
         ${host_ids2}    Query    SELECT id FROM resources WHERE parent_id=0 AND enabled = 1 ORDER BY id
-        ${host_ids_cache}    Ctn Get Host Ids    ${51001}
+        ${host_ids_cache}    Ctn Get Host Ids    ${51001}    ${50}
 
         # We check that the contents of host_ids1, host_ids2 and host_ids_cache are the same.
         ${ids1_flat}    Evaluate    [row[0] for row in $host_ids1]
