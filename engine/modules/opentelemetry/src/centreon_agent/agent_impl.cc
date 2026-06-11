@@ -21,6 +21,8 @@
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/timeperiod.hh"
+#include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/base64.hh"
 
@@ -214,6 +216,8 @@ static bool add_command_to_agent_conf(
     uint32_t check_interval,
     uint32_t retry_interval,
     uint32_t max_attempts,
+    const std::string& check_period_name,
+    const std::string& timezone,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& peer,
@@ -248,8 +252,43 @@ static bool add_command_to_agent_conf(
   serv->set_check_interval(check_interval * pb_config.interval_length());
   serv->set_retry_interval(retry_interval * pb_config.interval_length());
   serv->set_max_attempts(max_attempts);
+  if (!check_period_name.empty()) {
+    serv->set_check_period_name(check_period_name);
+  }
+  if (!timezone.empty()) {
+    serv->set_timezone(timezone);
+    // Resolve the configured IANA zone to its current effective UTC offset and
+    // DST state.
+    time_t now = ::time(nullptr);
+    struct tm tmv = {};
+    {
+      com::centreon::engine::timezone_locker lock(timezone);
+      ::localtime_r(&now, &tmv);
+    }
+    serv->set_utc_offset(static_cast<int32_t>(tmv.tm_gmtoff));
+    serv->set_dst_active(tmv.tm_isdst > 0);
+  }
 
   return true;
+}
+
+// copy the matching configuration::Timeperiod protos into cnf.
+static void _serialize_timeperiods(
+    com::centreon::agent::AgentConfiguration* cnf) {
+  absl::flat_hash_set<std::string> seen;
+
+  for (const auto& svc : cnf->services()) {
+    if (!svc.check_period_name().empty())
+      seen.insert(svc.check_period_name());
+  }
+
+  for (const auto& tp : pb_config.timeperiods()) {
+    if (!tp.timeperiod_name().empty() &&
+        seen.find(tp.timeperiod_name()) != seen.end()) {
+      auto timeperiod = cnf->add_timeperiods();
+      timeperiod->CopyFrom(tp);
+    }
+  }
 }
 
 /**
@@ -308,12 +347,13 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
               const std::string& cmd_name, const std::string& cmd_line,
               const std::string& service, uint64_t host_id, uint64_t service_id,
               uint32_t check_interval, uint32_t retry_interval,
-              uint32_t max_attempts,
+              uint32_t max_attempts, const std::string& check_period_name,
+              const std::string& timezone,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(
                 cmd_name, cmd_line, service, host_id, service_id,
-                check_interval, retry_interval, max_attempts, cnf, logger, peer,
-                crypt_credentials);
+                check_interval, retry_interval, max_attempts, check_period_name,
+                timezone, cnf, logger, peer, crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (command_added == e_get_otel_commands_ret::no_cma_service) {
@@ -336,6 +376,8 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
         broker_agent_unknown_host(to_send);
       }
     }
+    _serialize_timeperiods(cnf);
+
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(
             *cnf, _last_sent_config->config())) {

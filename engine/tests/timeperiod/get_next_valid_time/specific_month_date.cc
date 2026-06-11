@@ -30,7 +30,7 @@ class GetNextValidTimeSpecificMonthDateTest : public ::testing::Test {
  public:
   void default_data_set() {
     _creator.new_timeperiod();
-    daterange* dr(NULL);
+    configuration::Daterange* dr(NULL);
     // October 25 10:45-14:25
     dr = _creator.new_specific_month_date(9, 25, 9, 25);
     _creator.new_timerange(10, 45, 14, 25, dr);

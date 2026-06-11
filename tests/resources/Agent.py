@@ -19,6 +19,7 @@
 
 from os import makedirs, environ
 import base64
+import datetime
 import hashlib
 import ssl
 import time
@@ -366,3 +367,15 @@ def ctn_get_service():
             service_dict["services.running.count"] = test_args["serv_stat"]["services.running.count"]
             return service_dict
     return None
+
+
+def ctn_build_timeperiod_opening_in(offset_seconds: int, duration_seconds: int = 3600) -> dict:
+    """Build a timeperiod dict (weekday → 'HH:MM-HH:MM') that opens `offset_seconds` from now.
+
+    Returns a dict suitable for Ctn Engine Config Add Timeperiod, covering the single
+    weekday on which the window falls (handles midnight crossover correctly).
+    """
+    open_dt = datetime.datetime.now() + datetime.timedelta(seconds=offset_seconds)
+    close_dt = open_dt + datetime.timedelta(seconds=duration_seconds)
+    weekday = open_dt.strftime("%A").lower()
+    return {weekday: f"{open_dt.strftime('%H:%M')}-{close_dt.strftime('%H:%M')}"}

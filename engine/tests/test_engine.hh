@@ -100,6 +100,9 @@ class TestEngine : public ::testing::Test {
   std::unique_ptr<timeperiod> new_timeperiod_with_timeranges(
       const std::string& name,
       const std::string& alias);
+  static void apply_same_timeranges_to_every_day(
+      timeperiod* tp,
+      const std::vector<std::pair<int, int>>& ranges);
 };
 
 #endif /* !TEST_ENGINE_HH */

@@ -31,7 +31,7 @@ class GetNextValidTimeGenericMonthDateTest : public ::testing::Test {
  public:
   void default_data_set() {
     _creator.new_timeperiod();
-    daterange* dr(NULL);
+    configuration::Daterange* dr(NULL);
     // day 25 10:45-14:25
     dr = _creator.new_generic_month_date(25, 25);
     _creator.new_timerange(10, 45, 14, 25, dr);
