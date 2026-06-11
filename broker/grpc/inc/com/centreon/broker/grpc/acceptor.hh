@@ -37,6 +37,7 @@ class service_impl
     : public com::centreon::broker::stream::centreon_bbdo::Service,
       public std::enable_shared_from_this<service_impl> {
   grpc_config::pointer _conf;
+  const io::endpoint* _parent;
 
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -48,7 +49,8 @@ class service_impl
   mutable std::mutex _wait_m;
 
  public:
-  service_impl(const grpc_config::pointer& conf,
+  service_impl(const io::endpoint* parent,
+               const grpc_config::pointer& conf,
                const std::shared_ptr<asio::io_context> io_context,
                const std::shared_ptr<spdlog::logger>& logger);
 
@@ -93,6 +95,7 @@ class acceptor : public io::endpoint,
 
   std::shared_ptr<io::stream> open() override;
   bool is_ready() const override;
+  void stats(nlohmann::json& tree) override;
 };
 }  // namespace com::centreon::broker::grpc
 

@@ -76,5 +76,5 @@ std::shared_ptr<io::stream> connector::open() {
  * @return std::shared_ptr<stream>
  */
 std::shared_ptr<io::stream> connector::create_stream() {
-  return std::make_shared<stream>(_conf, _logger);
+  return std::make_shared<stream>(this, _conf, _logger);
 }
