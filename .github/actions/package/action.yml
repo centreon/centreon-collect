@@ -67,17 +67,24 @@ runs:
       env:
         RPM_GPG_SIGNING_KEY_ID: ${{ inputs.rpm_gpg_signing_key_id }}
         RPM_GPG_SIGNING_PASSPHRASE: ${{ inputs.rpm_gpg_signing_passphrase }}
+        MAJOR_VERSION: ${{ inputs.major_version }}
+        MINOR_VERSION: ${{ inputs.minor_version }}
+        RELEASE: ${{ inputs.release }}
+        ARCH: ${{ inputs.arch }}
+        PACKAGE_EXTENSION: ${{ inputs.package_extension }}
+        NFPM_FILE_PATTERN: ${{ inputs.nfpm_file_pattern }}
+        DISTRIB: ${{ inputs.distrib }}
+        COMMIT_HASH: ${{ inputs.commit_hash }}
+        PACKAGE_DISTRIB_SEPARATOR: ${{ steps.parse-distrib.outputs.package_distrib_separator }}
+        PACKAGE_DISTRIB_NAME: ${{ steps.parse-distrib.outputs.package_distrib_name }}
       run: |
-        export MAJOR_VERSION="${{ inputs.major_version }}"
-        export VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
-        export RELEASE="${{ inputs.release }}"
-        export ARCH="${{ inputs.arch }}"
+        export VERSION="$MAJOR_VERSION.$MINOR_VERSION"
 
-        if  [ "${{ inputs.package_extension }}" = "rpm" ]; then
-          export DIST="${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}"
+        if  [ "$PACKAGE_EXTENSION" = "rpm" ]; then
+          export DIST="${PACKAGE_DISTRIB_SEPARATOR}${PACKAGE_DISTRIB_NAME}"
         else
           export DIST=""
-          export RELEASE="$RELEASE${{ steps.parse-distrib.outputs.package_distrib_separator }}${{ steps.parse-distrib.outputs.package_distrib_name }}"
+          export RELEASE="${RELEASE}${PACKAGE_DISTRIB_SEPARATOR}${PACKAGE_DISTRIB_NAME}"
         fi
 
         MAJOR_LEFT=$( echo $MAJOR_VERSION | cut -d "." -f1 )
@@ -97,15 +104,16 @@ runs:
         export NFPM_RPM_PASSPHRASE="$RPM_GPG_SIGNING_PASSPHRASE"
 
         REPO_ROOT=$(pwd)
-        for FILE in ${{ inputs.nfpm_file_pattern }}; do
+        for FILE in $NFPM_FILE_PATTERN; do
           DIRNAME=$(dirname $FILE)
           BASENAME=$(basename $FILE)
-          if [ -f $DIRNAME/env/.env.${{ inputs.distrib }} ]; then
-            source $DIRNAME/env/.env.${{ inputs.distrib }}
+          if [ -f "$DIRNAME/env/.env.$DISTRIB" ]; then
+            echo "Loading environment variables from $DIRNAME/env/.env.$DISTRIB"
+            . "$DIRNAME/env/.env.$DISTRIB"
           fi
           cd $DIRNAME
-          sed -i "s/@COMMIT_HASH@/${{ inputs.commit_hash }}/g" $BASENAME
-          if [[ "${{ inputs.package_extension }}" == "deb" ]]; then
+          sed -i "s/@COMMIT_HASH@/$COMMIT_HASH/g" $BASENAME
+          if [[ "$PACKAGE_EXTENSION" == "deb" ]]; then
             PKG_LICENSE=$(grep '^license:' "$BASENAME" | head -1 | sed 's/^license: *//;s/"//g' | xargs)
             COPYRIGHT_SRC=""
             if [[ -f "${REPO_ROOT}/copyright.${PKG_LICENSE}" ]]; then
@@ -121,9 +129,9 @@ runs:
               awk -v pkg="$PACKAGE_NAME" 'BEGIN{in_contents=0;injected=0} /^contents:/{in_contents=1} in_contents && /^[a-z]/ && !/^contents:/ && !injected{print "  - src: ./copyright"; print "    dst: /usr/share/doc/" pkg "/copyright"; print "    packager: deb"; injected=1; in_contents=0} {print} END{if(!injected){if(!in_contents){print "contents:"} print "  - src: ./copyright"; print "    dst: /usr/share/doc/" pkg "/copyright"; print "    packager: deb"}}' "$BASENAME" > "${BASENAME}.tmp" && mv "${BASENAME}.tmp" "$BASENAME"
             fi
           fi
-          nfpm package --config $BASENAME --packager ${{ inputs.package_extension }}
+          nfpm package --config $BASENAME --packager "$PACKAGE_EXTENSION"
           cd -
-          mv $DIRNAME/*.${{ inputs.package_extension }} ./
+          mv "$DIRNAME"/*."$PACKAGE_EXTENSION" ./
         done
       shell: bash
 

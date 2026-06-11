@@ -91,12 +91,17 @@ jobs:
       - name: Check if PR has skip label
         id: has_skip_label
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          IS_PR: ${{ contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) }}
+          WORKFLOW_NAME: ${{ github.workflow }}
         with:
           script: |
             let hasSkipLabel = false;
             let labels = [];
 
-            if (${{ contains(fromJSON('["pull_request", "pull_request_target"]') , github.event_name) }} === true) {
+            const skipLabel = `skip-workflow-${process.env.WORKFLOW_NAME}`;
+
+            if (process.env.IS_PR === 'true') {
               try {
                 const fetchedLabels = await github.rest.issues.listLabelsOnIssue({
                   owner: context.repo.owner,
@@ -105,7 +110,7 @@ jobs:
                 });
                 fetchedLabels.data.forEach(({ name }) => {
                   labels.push(name);
-                  if (name === '${{ format('skip-workflow-{0}', github.workflow) }}') {
+                  if (name === skipLabel) {
                     hasSkipLabel = true;
                   }
                 });
@@ -135,13 +140,16 @@ jobs:
         name: Get workflow triggered paths
         id: get_workflow_triggered_paths
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          GH_REPOSITORY: ${{ github.repository }}
         with:
           script: |
             const fs = require('fs');
 
             let paths = [];
 
-            const workflowFilePath = '${{ github.workflow_ref }}'.replace('${{ github.repository }}/', '').split('@').shift();
+            const workflowFilePath = process.env.WORKFLOW_REF.replace(`${process.env.GH_REPOSITORY}/`, '').split('@').shift();
 
             if (fs.existsSync(workflowFilePath)) {
               const workflowFileContent = fs.readFileSync(workflowFilePath, 'utf8');
@@ -197,19 +205,24 @@ jobs:
       - name: Check if current workflow should be skipped
         id: skip_workflow
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          GH_REF: ${{ github.head_ref || github.ref_name }}
+          HAS_SKIP_LABEL: ${{ steps.has_skip_label.outputs.result }}
+          WORKFLOW_NAME: ${{ github.workflow }}
+          ANY_CHANGED: ${{ steps.get_push_changes.outputs.any_changed }}
         with:
           script: |
-            if (/^bump-.+/.test('${{ github.head_ref || github.ref_name }}')) {
+            if (/^bump-.+/.test(process.env.GH_REF)) {
               core.notice('skipping workflow because it is a bump branch');
               return true;
             }
 
-            if (${{ steps.has_skip_label.outputs.result }} === false) {
+            if (process.env.HAS_SKIP_LABEL === 'false') {
               return false;
             }
 
-            const label = '${{ format('skip-workflow-{0}', github.workflow) }}';
-            if ('${{ steps.get_push_changes.outputs.any_changed }}' === 'true') {
+            const label = `skip-workflow-${process.env.WORKFLOW_NAME}`;
+            if (process.env.ANY_CHANGED === 'true') {
               try {
                 await github.rest.issues.removeLabel({
                   name: label,
@@ -238,9 +251,12 @@ jobs:
         name: Get nested pull request path
         id: pr_path
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          GH_HEAD_REF: ${{ github.head_ref }}
+          GH_BASE_REF: ${{ github.base_ref }}
         with:
           script: |
-            const prPath = ['${{ github.head_ref }}', '${{ github.base_ref }}'];
+            const prPath = [process.env.GH_HEAD_REF, process.env.GH_BASE_REF];
 
             const result = await github.rest.pulls.list({
               owner: context.repo.owner,
@@ -265,6 +281,9 @@ jobs:
       - name: Get stability
         id: get_stability
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          IS_PR: ${{ contains(fromJSON('["pull_request"]') , github.event_name) }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
         with:
           script: |
             const ref = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME;
@@ -320,10 +339,10 @@ jobs:
 
             let isTargetingFeatureBranch = false;
 
-            if (${{ contains(fromJSON('["pull_request"]') , github.event_name) }} === true) {
+            if (process.env.IS_PR === 'true') {
               console.log(`Evaluating pull request target path for feature branch detection`);
               let targetStability = 'canary';
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+              const prPath = JSON.parse(process.env.PR_PATH);
               prPath.shift(); // remove current branch
 
               if (prPath.length && getStability(prPath[0]) === 'canary') {
@@ -351,18 +370,20 @@ jobs:
 
       - name: Get version from ${{ inputs.version_file }}
         id: get_version
+        env:
+          VERSION_FILE: ${{ inputs.version_file }}
         run: |
-          if [[ "${{ inputs.version_file }}" == *.version* ]]; then
+          if [[ "$VERSION_FILE" == *.version* ]]; then
             . .version
-            . ${{ inputs.version_file }}
+            . "$VERSION_FILE"
             VERSION="$MAJOR.$MINOR"
-          elif [[ "${{ inputs.version_file }}" == .version.* ]]; then
+          elif [[ "$VERSION_FILE" == .version.* ]]; then
             . .version
-            . ${{ inputs.version_file }}
+            . "$VERSION_FILE"
             VERSION_MAJOR=`sed -e '/\[[2-9][0-9].[0-9][0-9].[0-9]+\]/p' .version | cut -d '=' -f 2`
-            VERSION_MINOR=`sed -e '/\[[0-9]+\]/p' ${{ inputs.version_file }} | cut -d '=' -f 2`
+            VERSION_MINOR=`sed -e '/\[[0-9]+\]/p' "$VERSION_FILE" | cut -d '=' -f 2`
             VERSION="$VERSION_MAJOR.$VERSION_MINOR"
-          elif [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+          elif [[ "$VERSION_FILE" == CMakeLists.txt ]]; then
             MAJOR=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
             MINOR=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             VERSION="$MAJOR.$MINOR"
@@ -370,7 +391,7 @@ jobs:
             CMA_MINOR=$(awk '$1 ~ "AGENT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
             CMA_VERSION="$CMA_MAJOR.$CMA_MINOR"
           else
-            echo "Unable to parse version file ${{ inputs.version_file }}"
+            echo "Unable to parse version file $VERSION_FILE"
             exit 1
           fi
 
@@ -381,11 +402,11 @@ jobs:
             MAJOR=${a[0]}.${a[1]}
             echo "minor_version=${a[2]}" >> $GITHUB_OUTPUT
           else
-            echo "Cannot parse version number from ${{ inputs.version_file }}"
+            echo "Cannot parse version number from $VERSION_FILE"
             exit 1
           fi
 
-          if [[ "${{ inputs.version_file }}" == CMakeLists.txt ]]; then
+          if [[ "$VERSION_FILE" == CMakeLists.txt ]]; then
             if grep -E '^[2-9][0-9]\.[0-9][0-9]\.[0-9]+' <<<"$CMA_VERSION" >/dev/null 2>&1 ; then
               n=${CMA_VERSION//[!0-9]/ }
               a=(${n//\./ })
@@ -393,7 +414,7 @@ jobs:
               MAJOR=${a[0]}.${a[1]}
               echo "cma_minor_version=${a[2]}" >> $GITHUB_OUTPUT
             else
-              echo "Cannot parse version number from ${{ inputs.version_file }}"
+              echo "Cannot parse version number from $VERSION_FILE"
               exit 1
             fi
           else
@@ -404,11 +425,14 @@ jobs:
 
       - name: "Get release: 1 for testing / stable, <date>.<commit_sha> for others"
         id: get_release
+        env:
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          GH_SHA: ${{ github.sha }}
         run: |
-          if [[ "${{ steps.get_stability.outputs.stability }}" == "testing" || "${{ steps.get_stability.outputs.stability }}" == "stable" ]]; then
+          if [[ "$STABILITY" == "testing" || "$STABILITY" == "stable" ]]; then
             RELEASE="1"
           else
-            RELEASE="$(date +%s).$(echo ${{ github.sha }} | cut -c -7)"
+            RELEASE="$(date +%s).$(echo "$GH_SHA" | cut -c -7)"
           fi
 
           echo "release=$RELEASE" >> $GITHUB_OUTPUT
@@ -416,12 +440,15 @@ jobs:
 
       - name: "Get release type: hotfix, release or not defined if not a release"
         id: get_release_type
+        env:
+          GH_REF: ${{ github.head_ref || github.ref_name }}
+          GH_REF_TYPE: ${{ github.ref_type }}
         run: |
           # Set REF_NAME (branch or tag)
-          REF_NAME="${{ github.head_ref || github.ref_name }}"
+          REF_NAME="$GH_REF"
 
           # Get ref type (branch or tag)
-          REF_TYPE="${{ github.ref_type }}"  # 'branch' or 'tag'
+          REF_TYPE="$GH_REF_TYPE"  # 'branch' or 'tag'
           RELEASE_TYPE=""
 
           # Get release type based on ref type
@@ -453,6 +480,11 @@ jobs:
       - name: "Detect cloud version"
         id: detect_cloud_version
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
+          DEVELOP_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
+          CURRENT_MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -465,8 +497,8 @@ jobs:
 
             // handle if triggering event is a pull_request
             // finalTargetBranch can be develop, dev-XX.YY.x, release-XX.YY-next, hotfix-XX.YY-next
-            if ( "${{ github.event_name }}" === "pull_request" ) {
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+            if ( process.env.EVENT_NAME === "pull_request" ) {
+              const prPath = JSON.parse(process.env.PR_PATH);
               const finalTargetBranch = prPath.pop();
               console.log(`finalTargetBranch is: ${finalTargetBranch}`)
 
@@ -475,8 +507,8 @@ jobs:
                 releaseScope = "cloud";
               } else {
                 // compare developMajorVersion and currentMajorVersion
-                const developMajorVersion = "${{ steps.latest_major_version.outputs.latest_major_version }}";
-                const currentMajorVersion = "${{ steps.get_version.outputs.major_version }}";
+                const developMajorVersion = process.env.DEVELOP_MAJOR_VERSION;
+                const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
 
                 // if major version is higher than develop major version => it is a cloud version
                 // if month number is not 04 or 10 => it is a cloud version
@@ -578,8 +610,8 @@ jobs:
               console.log(`🚀 Push to branch: ${branch}`);
 
               // compare developMajorVersion and curentMajorVersion
-              const developMajorVersion = "${{ steps.latest_major_version.outputs.latest_major_version }}";
-              const currentMajorVersion = "${{ steps.get_version.outputs.major_version }}";
+              const developMajorVersion = process.env.DEVELOP_MAJOR_VERSION;
+              const currentMajorVersion = process.env.CURRENT_MAJOR_VERSION;
 
               // if major version is higher than develop major version => it is a cloud version
               // if month number is not 04 or 10 => it is a cloud version
@@ -625,6 +657,10 @@ jobs:
       - name: Detect operating systems and databases to test
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         id: get_os_database_matrix
+        env:
+          IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
+          HAS_DATABASE_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'database') }}
+          HAS_SYSTEM_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'system') }}
         with:
           script: |
             const alma10_mariadb_10_11 = {
@@ -703,7 +739,7 @@ jobs:
               "databases": [main],
             };
 
-            if ('${{ steps.get_nightly_status.outputs.is_nightly }}' == 'true') {
+            if (process.env.IS_NIGHTLY === 'true') {
               const dailyConfig = getDailyConfig(configs);
 
               matrix = {
@@ -714,8 +750,8 @@ jobs:
             }
 
             if (
-              ${{ contains(steps.has_skip_label.outputs.labels, 'database') && 'true' || 'false' }}
-              || ${{ contains(steps.has_skip_label.outputs.labels, 'system') && 'true' || 'false' }}
+              process.env.HAS_DATABASE_LABEL === 'true'
+              || process.env.HAS_SYSTEM_LABEL === 'true'
             ) {
               matrix = {
                 ...matrix,
@@ -744,35 +780,53 @@ jobs:
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         env:
           VERSION_FILE: ${{ inputs.version_file }}
+          LATEST_MAJOR_VERSION: ${{ steps.latest_major_version.outputs.latest_major_version }}
+          IS_CLOUD: ${{ steps.detect_cloud_version.outputs.isCloud }}
+          MAJOR_VERSION: ${{ steps.get_version.outputs.major_version }}
+          MINOR_VERSION: ${{ steps.get_version.outputs.minor_version }}
+          RELEASE: ${{ steps.get_release.outputs.release }}
+          CMA_MAJOR_VERSION: ${{ steps.get_version.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ steps.get_version.outputs.cma_minor_version }}
+          STABILITY: ${{ steps.get_stability.outputs.stability }}
+          RELEASE_TYPE: ${{ steps.get_release_type.outputs.release_type }}
+          IS_TARGETING_FEATURE_BRANCH: ${{ steps.get_stability.outputs.is_targeting_feature_branch }}
+          IS_NIGHTLY: ${{ steps.get_nightly_status.outputs.is_nightly }}
+          PACKAGING_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.packaging_img_version }}
+          TEST_IMG_VERSION: ${{ steps.get_docker_images_version.outputs.test_img_version }}
+          GORGONE_DOCKER_VERSION: ${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}
+          SKIP_WORKFLOW: ${{ steps.skip_workflow.outputs.result }}
+          TARGET_STABILITY: ${{ steps.get_stability.outputs.target_stability }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_PATH: ${{ steps.pr_path.outputs.result || '[]' }}
         with:
           script: |
             const outputTable = [
               [{data: 'Name', header: true}, {data: 'Value', header: true}],
-              ['latest_major_version', '${{ steps.latest_major_version.outputs.latest_major_version }}'],
-              ['is_cloud', '${{ steps.detect_cloud_version.outputs.isCloud }}'],
-              ['major_version', '${{ steps.get_version.outputs.major_version }}'],
-              ['minor_version', '${{ steps.get_version.outputs.minor_version }}'],
-              ['release', '${{ steps.get_release.outputs.release }}'],
-              ['cma_major_version', '${{ steps.get_version.outputs.cma_major_version }}'],
-              ['cma_minor_version', '${{ steps.get_version.outputs.cma_minor_version }}'],
-              ['stability', '${{ steps.get_stability.outputs.stability }}'],
-              ['release_type', '${{ steps.get_release_type.outputs.release_type || '<em>not defined because this is not a release</em>' }}'],
-              ['is_targeting_feature_branch', '${{ steps.get_stability.outputs.is_targeting_feature_branch }}'],
-              ['is_nightly', '${{ steps.get_nightly_status.outputs.is_nightly }}'],
-              ['packaging_img_version', '${{ steps.get_docker_images_version.outputs.packaging_img_version }}'],
-              ['test_img_version', '${{ steps.get_docker_images_version.outputs.test_img_version }}'],
-              ['gorgone_docker_version', '${{ steps.get_docker_images_version.outputs.gorgone_docker_version }}'],
-              ['skip_workflow', '${{ steps.skip_workflow.outputs.result }}'],
+              ['latest_major_version', process.env.LATEST_MAJOR_VERSION],
+              ['is_cloud', process.env.IS_CLOUD],
+              ['major_version', process.env.MAJOR_VERSION],
+              ['minor_version', process.env.MINOR_VERSION],
+              ['release', process.env.RELEASE],
+              ['cma_major_version', process.env.CMA_MAJOR_VERSION],
+              ['cma_minor_version', process.env.CMA_MINOR_VERSION],
+              ['stability', process.env.STABILITY],
+              ['release_type', process.env.RELEASE_TYPE || '<em>not defined because this is not a release</em>'],
+              ['is_targeting_feature_branch', process.env.IS_TARGETING_FEATURE_BRANCH],
+              ['is_nightly', process.env.IS_NIGHTLY],
+              ['packaging_img_version', process.env.PACKAGING_IMG_VERSION],
+              ['test_img_version', process.env.TEST_IMG_VERSION],
+              ['gorgone_docker_version', process.env.GORGONE_DOCKER_VERSION],
+              ['skip_workflow', process.env.SKIP_WORKFLOW],
             ];
 
-            outputTable.push(['target_stability', '${{ steps.get_stability.outputs.target_stability || '<em>not defined because current run is not triggered by pull request event</em>' }}']);
+            outputTable.push(['target_stability', process.env.TARGET_STABILITY || '<em>not defined because current run is not triggered by pull request event</em>']);
 
             core.summary
               .addHeading(`${context.workflow} environment outputs`)
               .addTable(outputTable);
 
-            if ("${{ github.event_name }}" === "pull_request") {
-              const prPath = ${{ steps.pr_path.outputs.result || '[]' }};
+            if (process.env.EVENT_NAME === "pull_request") {
+              const prPath = JSON.parse(process.env.PR_PATH);
               const mainBranchName = prPath.pop();
               let codeBlock = `
                 %%{ init: { 'gitGraph': { 'mainBranchName': '${mainBranchName}', 'showCommitLabel': false } } }%%

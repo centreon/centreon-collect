@@ -76,13 +76,20 @@ jobs:
           password: ${{ secrets.registry_password }}
 
       - name: load image
+        env:
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          IMAGE_TEST: ${{ inputs.image_test }}
         run: |
-          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker pull "$REGISTRY_URL/$IMAGE_TEST"
         shell: bash
 
       - name: image to disk
+        env:
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          IMAGE: ${{ inputs.image }}
+          IMAGE_TEST: ${{ inputs.image_test }}
         run: |
-          docker save -o ./${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker save -o "./$IMAGE" "$REGISTRY_URL/$IMAGE_TEST"
         shell: bash
 
       - name: image to cache
@@ -103,10 +110,13 @@ jobs:
 
       - name: List features
         id: list-features
+        env:
+          FEATURES_PATTERN_INPUT: ${{ inputs.features_pattern }}
+          DATABASE_TYPE: ${{ inputs.database_type }}
         run: |
           cd tests
           #when tests are executed by github cron, inputs are empty as centreon-collect.yml input default value is not used
-          FEATURES_PATTERN="${{ inputs.features_pattern }}"
+          FEATURES_PATTERN="$FEATURES_PATTERN_INPUT"
           if [ "0" = "0${FEATURES_PATTERN}" ]; then
              FEATURES_PATTERN="^((?!cma).)*$"
           fi
@@ -144,28 +154,35 @@ jobs:
           fail-on-cache-miss: true
 
       - name: load image
+        env:
+          IMAGE: ${{ inputs.image }}
         run: |
-          docker load --input ./${{ inputs.image }}
+          docker load --input "./$IMAGE"
 
       #  pam sshd authentication doesn't work with privileged containers
       - name: ${{ matrix.feature == 'connector_ssh/connector_ssh.robot' && format('Test {0} (without privileges)', matrix.feature) || format('Test {0}', matrix.feature) }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+          FEATURE: ${{ matrix.feature }}
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          IMAGE_TEST: ${{ inputs.image_test }}
+          DATABASE_TYPE: ${{ inputs.database_type }}
+          TESTS_PARAMS: ${{ inputs.tests_params }}
         run: |
           privilege_status=""
-          if [[ ${{ matrix.feature }} != 'connector_ssh/connector_ssh.robot' ]]; then
+          if [[ "$FEATURE" != 'connector_ssh/connector_ssh.robot' ]]; then
             privilege_status="--privileged"
           fi
           docker run --rm $privilege_status --ulimit core=-1 --ulimit nofile=524288:1048576 --security-opt seccomp=unconfined \
-            -v $(pwd):/test_collect  \
-            --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
-            --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+            -v "$(pwd):/test_collect"  \
+            --env "AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID" \
+            --env "AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY" \
             --env AWS_BUCKET=centreon-collect-robot-report \
             --workdir /test_collect \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_test }} \
+            "$REGISTRY_URL/$IMAGE_TEST" \
             ./.github/scripts/collect-test-robot.sh \
-            ${{ matrix.feature }} ${{ inputs.database_type }} ${{ inputs.tests_params }}
+            "$FEATURE" "$DATABASE_TYPE" "$TESTS_PARAMS"
 
       # - name: Generate Xray Token
       #   id: generate-xray-token
@@ -181,9 +198,12 @@ jobs:
 
       - name: Move reports
         if: ${{ failure() }}
+        env:
+          FEATURE: ${{ matrix.feature }}
+          TEST_GROUP_NAME: ${{ inputs.test_group_name }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{ inputs.test_group_name }}
+          FILE_PREFIX=`echo "$FEATURE" | sed -e "s#/#__#g"`-$TEST_GROUP_NAME
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
             cp tests/log.html reports/$FILE_PREFIX-log.html
@@ -193,8 +213,10 @@ jobs:
       - name: Replace / with - in the feature path
         id: feature-path
         if: always()
+        env:
+          FEATURE: ${{ matrix.feature }}
         run: |
-          feature_name="${{ matrix.feature }}"
+          feature_name="$FEATURE"
           feature_name_with_dash="${feature_name//\//-}"
           echo "Modified Feature Name: $feature_name_with_dash"
           echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
@@ -230,9 +252,12 @@ jobs:
           retention-days: 1
 
       - name: Delete separated artifacts
+        env:
+          TEST_GROUP_NAME: ${{ inputs.test_group_name }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPOSITORY: ${{ github.repository }}
         run: |
-          artifact_pattern="reports-${{ inputs.test_group_name }}-"
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          artifact_pattern="reports-$TEST_GROUP_NAME-"
           artifact_exist=true
           while [ "$artifact_exist" = true ] ;do
             artifact_exist=false
@@ -240,7 +265,7 @@ jobs:
                           -H "Accept: application/vnd.github+json" \
                           -H "Authorization: Bearer $TOKEN" \
                           -H "X-GitHub-Api-Version: 2022-11-28" \
-                          "https://api.github.com/repos/${{ github.repository }}/actions/artifacts?per_page=100")
+                          "https://api.github.com/repos/$GH_REPOSITORY/actions/artifacts?per_page=100")
             artifacts=$(echo $artifacts_response | jq -c '.artifacts[]')
             echo "Those are the artifacts : $artifacts"
             while read row; do
@@ -254,7 +279,7 @@ jobs:
                   -H "Accept: application/vnd.github+json" \
                   -H "Authorization: Bearer $TOKEN" \
                   -H "X-GitHub-Api-Version: 2022-11-28" \
-                  "https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${artifact_id}"
+                  "https://api.github.com/repos/$GH_REPOSITORY/actions/artifacts/${artifact_id}"
               fi
             done <<< "$artifacts"
           done
