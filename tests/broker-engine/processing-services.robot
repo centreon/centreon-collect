@@ -5,7 +5,7 @@ Resource    ../resources/import.resource
 
 Suite Setup    Ctn Clean Before Suite
 Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
+Test Setup    Ctn Clean Before Test
 Test Teardown    Ctn Save Logs If Failed
 
 
@@ -78,7 +78,6 @@ BEPS2
     Ctn Config BBDO3    ${1}
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -136,7 +135,6 @@ BEPS3
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    core    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -203,7 +201,6 @@ BEPS3R
     Ctn Broker Config Log    central    sql    trace
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 
@@ -277,7 +274,6 @@ BEPS4
     Ctn Broker Config Log    central    bbdo    debug
     Ctn Broker Config Log    central    sql    trace
     Ctn Clear Retention
-    Ctn Clear Prot Files
     Ctn Start Broker    newGeneration=True
     Ctn Start Engine    newGeneration=True
 

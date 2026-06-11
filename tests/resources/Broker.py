@@ -3450,15 +3450,29 @@ def ctn_wait_for_broker_to_be_ready(port: int = 51001, timeout=TIMEOUT):
     return False
 
 
-def ctn_get_host_ids(port: int, timeout=TIMEOUT):
+def ctn_get_host_ids(port: int, expected_count=None, timeout=TIMEOUT):
     """
-    Get the list of host ids from the Broker.
+    Get the list of host ids from the Broker cache.
+
+    The Broker cache is filled asynchronously after a configuration is applied,
+    so it may still be partially populated right after the database is already
+    up to date. When expected_count is provided, retry until the cache returns
+    that many ids (or the timeout expires), to avoid comparing a fully-applied
+    database against a still-filling cache.
 
     Args:
         port: The gRPC port to use.
+        expected_count: If set, wait until the cache holds this many host ids.
         timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        The list of host ids (the last value read if expected_count is never
+        reached within the timeout).
     """
+    if expected_count is not None:
+        expected_count = int(expected_count)
     limit = time.time() + timeout
+    retval = []
     while time.time() < limit:
         time.sleep(1)
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
@@ -3466,9 +3480,11 @@ def ctn_get_host_ids(port: int, timeout=TIMEOUT):
             try:
                 res = stub.GetHostIds(empty_pb2.Empty())
                 retval = list(res.ids)
-                return retval
+                if expected_count is None or len(retval) == expected_count:
+                    return retval
             except Exception:
                 logger.console("gRPC server not ready")
+    return retval
 
 
 def ctn_get_service_ids(port: int, expected_count=None, timeout=TIMEOUT):
