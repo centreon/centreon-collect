@@ -14,9 +14,10 @@ jobs:
       - name: Delete all caches for closed PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          REPO="${{ github.repository }}"
-          BRANCH="refs/pull/${{ github.event.pull_request.number }}/merge"
+          BRANCH="refs/pull/$PR_NUMBER/merge"
 
           echo "Fetching cache keys for: $BRANCH"
           mapfile -t cache_keys < <(gh cache list --ref "$BRANCH" --json key -q '.[] | .key' -R "$REPO")

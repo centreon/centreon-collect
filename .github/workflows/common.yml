@@ -79,9 +79,12 @@ jobs:
 
       - name: Generate selinux binaries
         if: ${{ matrix.package_extension == 'rpm' }}
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          MINOR_VERSION: ${{ needs.get-environment.outputs.minor_version }}
         run: |
           cd selinux/centreon-common
-          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" *.te
+          sed -i "s/@VERSION@/$MAJOR_VERSION.$MINOR_VERSION/g" *.te
           make -f /usr/share/selinux/devel/Makefile
         shell: bash
 

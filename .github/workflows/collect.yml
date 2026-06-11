@@ -211,9 +211,11 @@ jobs:
         shell: bash
 
       - name: Compile centreon-collect
+        env:
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
+          if [[ "$OPERATING_SYSTEM" == "alma8" || "$OPERATING_SYSTEM" == "alma9" ]]; then
             CMAKE="cmake3"
           fi
 
@@ -372,10 +374,12 @@ jobs:
 
       - name: Prepare packages directory
         if: steps.restore-packages.outputs.cache-hit == 'true'
+        env:
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-${{ needs.get-environment.outputs.major_version }}*.rpm packages-centreon/
+          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
@@ -617,8 +621,10 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: List and delete cache
+        env:
+          GH_REF_NAME: ${{ github.ref_name }}
         run: |
-          mapfile -t cache_keys < <(gh cache list --ref refs/heads/${{ github.ref_name }} --json key -q '.[] | .key')
+          mapfile -t cache_keys < <(gh cache list --ref "refs/heads/$GH_REF_NAME" --json key -q '.[] | .key')
           echo $cache_keys
           while read row; do
             gh cache delete $row
