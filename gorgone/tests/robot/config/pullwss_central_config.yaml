@@ -1,6 +1,14 @@
 gorgone:
   gorgonecore:
     id: 1
+  tpapi:
+    - name: centreonv2
+      base_url: "http://127.0.0.1/centreon/api/latest/"
+      username: "centreon-gorgone"
+      password: "webapiPassword!"
+    - name: clapi
+      username: "centreon-gorgone"
+      password: "webapiPassword!"
   modules:
     - name: proxy
       package: "gorgone::modules::core::proxy::hooks"

@@ -27,6 +27,7 @@ use warnings;
 use gorgone::standard::library;
 use gorgone::standard::constants qw(:all);
 use gorgone::standard::misc;
+use gorgone::class::tpapi::centreonv2;
 use Mojolicious::Lite;
 use Mojo::Server::Daemon;
 use IO::Socket::SSL;
@@ -123,6 +124,19 @@ sub run {
     my ($self, %options) = @_;
 
     my $listen = 'reuse=1';
+
+    # Initialize Centreon API connection
+    $connector->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ?
+        $options{config}->{tpapi_centreonv2} : 'centreonv2';
+    $self->{tpapi_centreonv2} = gorgone::class::tpapi::centreonv2->new();
+    my ($status) = $self->{tpapi_centreonv2}->set_configuration(
+        config => $self->{tpapi}->get_configuration(name => $self->{tpapi_centreonv2_name}),
+        logger => $self->{logger}
+    );
+    if ($status) {
+        $self->{logger}->writeLogError('[PROXY] -is_logged_websocket - configure api centreonv2 - ' . $self->{tpapi_centreonv2}->error());
+    }
+
     if ($self->{config}->{httpserver}->{ssl} eq 'true') {
         if (!defined($self->{config}->{httpserver}->{ssl_cert_file}) || $self->{config}->{httpserver}->{ssl_cert_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_cert_file}") {
@@ -440,8 +454,30 @@ sub is_logged_websocket {
 
     return 1 if ($self->{ws_clients}->{ $options{ws_id} }->{logged} == 1);
 
-    if (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
-        $self->{ws_clients}->{ $options{ws_id} }->{authorization} !~ /^\s*Bearer\s+$self->{config}->{httpserver}->{token}\s*$/) {
+    my $token = $self->{ws_clients}->{ $options{ws_id} }->{authorization};
+    if ($token =~ /^\s*Bearer\s+(\S*)\s*$/) {
+        $token = $1;
+    }
+    $self->{logger}->writeLogDebug("[PROXY] is_logged_websocket: TOKEN = " . $token);
+
+    my $check_conf_token = 1;
+    my ($token_name, $token_value) = split(/:/, $token, 2);
+    if (defined $token_name && defined $token_value) {
+        my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
+            token_name => $token
+        );
+        if ($status != 0) {
+            $self->{logger}->writeLogError('[proxy-httpserver] cannot get token - ' . $self->{tpapi_centreonv2}->error());
+            return 0;
+        }
+        if ($results->{token} =~ $token_value) {
+            my $check_conf_token = 0;
+        }
+    }
+
+    if ($check_conf_token &&
+        !defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
+        $self->{ws_clients}->{ $options{ws_id} }->{authorization} eq $token) {
         $self->close_websocket(
             code    => 500,
             message => 'token authorization unallowed',

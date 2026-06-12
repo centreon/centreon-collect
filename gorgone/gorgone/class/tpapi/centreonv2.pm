@@ -288,6 +288,17 @@ sub get_scheduling_jobs {
     return (0,$response);
 }
 
+sub get_api_token {
+    my ($self, %options) = @_;
+
+    my $endpoint = '/administration/tokens/' . $options{token_name};
+
+    return $self->request(
+        method => 'GET',
+        endpoint => $endpoint
+    );
+}
+
 sub DESTROY {
     my ($self) = @_;
 

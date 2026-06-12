@@ -2,6 +2,10 @@
 Documentation       Start and stop gorgone in pullwss mode
 
 Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
+
+Suite Setup         Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
+Suite Teardown      Stop Mockoon
+
 Test Timeout        220s
 
 *** Variables ***
@@ -76,3 +80,17 @@ check two poller can connect to a central
     Examples:    mode   --
         ...    pullwss_uid
         ...    pullwss
+
+check one poller can connect to a central with env var
+    [Teardown]    Stop Gorgone And Remove Gorgone Config
+    ...    @{process_list}
+    ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+
+    @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
+    Log To Console    \nStarting the gorgone setup
+    Set Environment Variable    GORGONE_TOKEN    poller-1:myPollerToken
+    Setup Two Gorgone Instances    communication_mode=${mode}    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple
+    Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
+    Examples:    mode   --
+        ...    pullwss
+        ...    pullwss_uid

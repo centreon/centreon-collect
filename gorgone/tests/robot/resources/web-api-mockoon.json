@@ -227,6 +227,106 @@
       "responseMode": null,
       "streamingMode": null,
       "streamingInterval": 0
+    },
+    {
+      "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023",
+      "type": "http",
+      "documentation": "",
+      "method": "get",
+      "endpoint": "centreon/api/latest/administration/tokens/:token_name",
+      "responses": [
+        {
+          "uuid": "63de4aa2-3cc2-4939-8043-cd4ad5d49c95",
+          "body": "{\n  \"name\": \"poller-1\",\n  \"creation_date\": \"{{faker 'date.recent'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "token_name",
+              "value": "poller-1",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "e6040a74-02a4-4f7d-be61-61621c67724e",
+          "body": "{\n  \"name\": \"Central-1\",\n  \"creation_date\": \"2026-06-08T11:54:13+02:00\",\n  \"expiration_date\": null,\n  \"type\": \"cma\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"centralCMAtoken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "token_name",
+              "value": "Central-1",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "0fa0168d-5d20-4755-a136-1de4d28b58b9",
+          "body": "{\n  \"code\": 404,\n  \"message\": \"Token not found\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "query",
+              "modifier": "token_name",
+              "value": "poller-1",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "query",
+              "modifier": "token_name",
+              "value": "Central-1",
+              "invert": true,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "AND",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
     }
   ],
   "rootChildren": [
@@ -253,6 +353,10 @@
     {
       "type": "route",
       "uuid": "18c69e8b-3ed3-423b-8aa1-09108774c004"
+    },
+    {
+      "type": "route",
+      "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023"
     }
   ],
   "proxyMode": false,
