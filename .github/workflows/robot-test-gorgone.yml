@@ -62,16 +62,22 @@ jobs:
 
       - name: Load gorgone image
         if: ${{ steps.cache-docker.outputs.cache-hit == 'true' }}
+        env:
+          DISTRIB: ${{ inputs.distrib }}
+          IMAGE_TAG: ${{ github.head_ref || github.ref_name }}
+          REGISTRY_URL: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
         run: |
-          docker load --input ./docker-image/gorgone-testing-${{ inputs.distrib }}.tar
-          docker tag gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
+          docker load --input "./docker-image/gorgone-testing-$DISTRIB.tar"
+          docker tag "gorgone-testing-$DISTRIB:$IMAGE_TAG" "$REGISTRY_URL/gorgone-testing-$DISTRIB:$IMAGE_TAG"
         shell: bash
 
       - name: Replace / with - in the feature path
         id: feature-path
         if: always()
+        env:
+          FEATURE: ${{ matrix.feature }}
         run: |
-          feature_name="${{ matrix.feature }}"
+          feature_name="$FEATURE"
           feature_name_with_dash="${feature_name//\//-}"
           echo "Modified Feature Name: $feature_name_with_dash"
           echo "feature_name_with_dash=$feature_name_with_dash" >> $GITHUB_OUTPUT
@@ -90,11 +96,12 @@ jobs:
         env:
           GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ inputs.distrib }}:${{ github.head_ref || github.ref_name }}
           FEATURE: gorgone/tests/robot/tests/${{ matrix.feature }}
+          FEATURE_NAME_WITH_DASH: ${{ steps.feature-path.outputs.feature_name_with_dash }}
         run: |
-          mkdir -p /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log.html
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/log
-          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone /tmp/gorgone-debug/${{ steps.feature-path.outputs.feature_name_with_dash }}/etc
+          mkdir -p "/tmp/gorgone-debug/$FEATURE_NAME_WITH_DASH"
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/test_gorgone/log.html "/tmp/gorgone-debug/$FEATURE_NAME_WITH_DASH/log.html"
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/var/log/centreon-gorgone "/tmp/gorgone-debug/$FEATURE_NAME_WITH_DASH/log"
+          docker compose -f ./.github/docker/docker-compose.yml cp gorgone:/etc/centreon-gorgone "/tmp/gorgone-debug/$FEATURE_NAME_WITH_DASH/etc"
 
       - name: Upload gorgone and robot debug artifacts
         if: failure()

@@ -92,10 +92,14 @@ jobs:
           ref: v${{ env.major_version }}.${{ env.minor_version }}
 
       - name: Compile lua-curl and prepare packaging
+        env:
+          PACKAGE_EXTENSION: ${{ matrix.package_extension }}
+          LUA_VERSION: ${{ matrix.lua_version }}
+          DISTRIB: ${{ matrix.distrib }}
         run: |
-          if [ "${{ matrix.package_extension }}" == "rpm" ]; then
+          if [ "$PACKAGE_EXTENSION" == "rpm" ]; then
             dnf install -y dnf-plugins-core
-            if [ "${{ matrix.distrib }}" == "el8" ]; then
+            if [ "$DISTRIB" == "el8" ]; then
               dnf config-manager --set-enabled powertools
             else
               dnf config-manager --set-enabled crb
@@ -106,13 +110,13 @@ jobs:
             cd ..
           else
             apt-get update
-            apt-get install -y make gcc openssl libssl-dev libcurl4-openssl-dev lua${{ matrix.lua_version }} liblua${{ matrix.lua_version }} liblua${{ matrix.lua_version }}-dev
+            apt-get install -y make gcc openssl libssl-dev libcurl4-openssl-dev "lua$LUA_VERSION" "liblua$LUA_VERSION" "liblua$LUA_VERSION-dev"
             cd lua-curl-src
-            make LUA_IMPL=lua${{ matrix.lua_version }} LUA_INC=/usr/include/lua${{ matrix.lua_version }}
+            make "LUA_IMPL=lua$LUA_VERSION" "LUA_INC=/usr/include/lua$LUA_VERSION"
             cd ..
           fi
 
-          sed -i "s/@luaver@/${{ matrix.lua_version }}/g" lua-curl/packaging/lua-curl.yaml
+          sed -i "s/@luaver@/$LUA_VERSION/g" lua-curl/packaging/lua-curl.yaml
         shell: bash
 
       - name: Package

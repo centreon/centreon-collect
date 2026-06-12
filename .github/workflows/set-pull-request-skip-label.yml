@@ -11,9 +11,11 @@ jobs:
     steps:
       - name: Set PR skip label
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          WORKFLOW_NAME: ${{ github.workflow }}
         with:
           script: |
-            const label = '${{ format('skip-workflow-{0}', github.workflow) }}';
+            const label = `skip-workflow-${process.env.WORKFLOW_NAME}`;
             try {
               await github.rest.issues.addLabels({
                 owner: context.repo.owner,

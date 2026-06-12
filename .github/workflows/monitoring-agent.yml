@@ -287,9 +287,11 @@ jobs:
         shell: bash
 
       - name: Compile centreon-collect
+        env:
+          DISTRIB: ${{ matrix.distrib }}
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.distrib }}" == "alma8" || "${{ matrix.distrib }}" == "alma9" ]]; then
+          if [[ "$DISTRIB" == "alma8" || "$DISTRIB" == "alma9" ]]; then
             CMAKE="cmake3"
           fi
 
@@ -687,14 +689,18 @@ jobs:
           fail-on-cache-miss: true
 
       - name: Deliver
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
         run: |
-          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
-          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
+          Write-Host "[DEBUG] deliver to testing - Major version: $env:CMA_MAJOR_VERSION"
+          Write-Host "[DEBUG] deliver to testing - Minor version: $env:CMA_MINOR_VERSION"
 
-          $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $STABILITY = "${{ needs.get-environment.outputs.stability }}"
+          $VERSION = "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $STABILITY = "$env:STABILITY"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/$env:CMA_MAJOR_VERSION/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -770,16 +776,21 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Promote testing to stable
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
-          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
-          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
+          Write-Host "[DEBUG] promote to stable - Major version: $env:CMA_MAJOR_VERSION"
+          Write-Host "[DEBUG] promote to stable - Minor version: $env:CMA_MINOR_VERSION"
 
-          $VERSION= "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $STABILITY= "${{ needs.get-environment.outputs.stability }}"
+          $VERSION= "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $MODULE_NAME= "monitoring-agent-$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $STABILITY= "$env:STABILITY"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/windows/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/windows/"
+          $SRC_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/testing/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
