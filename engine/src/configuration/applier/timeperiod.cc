@@ -148,7 +148,7 @@ void applier::timeperiod::remove_object(ssize_t idx) {
 void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
                                          error_cnt& err) {
   // Logging.
-  config_logger->debug("Resolving time period '{}'.", obj.ShortDebugString());
+  config_logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it =

@@ -52,11 +52,6 @@ TIMEPERIOD_INHERITANCE_EXCEPTION
     [Tags]    engine    timeperiod    MON-200794
 
     Ctn Config Engine    ${1}    ${1}    ${2}
-    Ctn Engine Config Set Value    0    log_level_checks    trace
-    Ctn Engine Config Set Value    0    log_level_functions    trace
-    Ctn Engine Config Set Value    0    log_level_config    trace
-    Ctn Engine Config Set Value    0    log_level_runtime    trace
-    Ctn Engine Config Set Value    0    log_level_events    trace
     Ctn Config Broker    rrd
     Ctn Config Broker    central
     Ctn Config Broker    module
@@ -83,7 +78,7 @@ TIMEPERIOD_INHERITANCE_EXCEPTION
 
     ${result}    Ctn Check Service Status With Timeout    host_1    service_1    0    60    HARD
 
-    Should Be True    ${result}       service_1 must remained unknown and not checked
+    Should Be True    ${result}       service_1 must be OK and checked
 
 
 TIMEPERIOD_MERGE
