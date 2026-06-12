@@ -652,13 +652,11 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
   if (days->weekday().empty() && !template_days->weekday().empty()) { \
     days->mutable_##weekday()->Add(template_days->weekday().begin(),  \
                                    template_days->weekday().end());   \
-    msg_helper->set_changed(f->index());                              \
   }
 
 template <class repeated_Daterange_type>
-static bool _merge_exceptions(repeated_Daterange_type* except,
+static void _merge_exceptions(repeated_Daterange_type* except,
                               const repeated_Daterange_type& template_except) {
-  bool at_least_one_added = false;
   for (const Daterange& to_insert : template_except) {
     bool found = false;
     for (const Daterange& to_check : *except) {
@@ -670,10 +668,8 @@ static bool _merge_exceptions(repeated_Daterange_type* except,
     }
     if (!found) {
       except->Add()->CopyFrom(to_insert);
-      at_least_one_added = true;
     }
   }
-  return at_least_one_added;
 }
 
 /**
@@ -842,15 +838,11 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 StringList* lst =
                     static_cast<StringList*>(refl->MutableMessage(msg, f));
                 if (lst->additive()) {
-                  if (!orig_lst->data().empty()) {
-                    for (auto& v : orig_lst->data())
-                      lst->add_data(v);
-                    msg_helper->set_changed(f->index());
-                  }
+                  for (auto& v : orig_lst->data())
+                    lst->add_data(v);
                 } else if (lst->data().empty()) {
                   *lst->mutable_data() = orig_lst->data();
                   lst->set_additive(orig_lst->additive());
-                  msg_helper->set_changed(f->index());
                 }
               } else if (d && d->name() == "PairStringSet") {
                 PairStringSet* orig_pair =
@@ -866,15 +858,12 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                         break;
                       }
                     }
-                    if (!found) {
+                    if (!found)
                       pair->add_data()->CopyFrom(v);
-                      msg_helper->set_changed(f->index());
-                    }
                   }
                 } else if (pair->data().empty()) {
                   *pair->mutable_data() = orig_pair->data();
                   pair->set_additive(orig_pair->additive());
-                  msg_helper->set_changed(f->index());
                 }
               } else if (d && d->name() == "ExceptionArray") {
                 const ExceptionArray* template_exceptions =
@@ -882,26 +871,16 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                         refl->MutableMessage(tmpl, f));
                 ExceptionArray* exceptions =
                     static_cast<ExceptionArray*>(refl->MutableMessage(msg, f));
-                if (_merge_exceptions(exceptions->mutable_calendar_date(),
-                                      template_exceptions->calendar_date())) {
-                  msg_helper->set_changed(f->index());
-                }
-                if (_merge_exceptions(exceptions->mutable_month_date(),
-                                      template_exceptions->month_date())) {
-                  msg_helper->set_changed(f->index());
-                }
-                if (_merge_exceptions(exceptions->mutable_month_day(),
-                                      template_exceptions->month_day())) {
-                  msg_helper->set_changed(f->index());
-                }
-                if (_merge_exceptions(exceptions->mutable_month_week_day(),
-                                      template_exceptions->month_week_day())) {
-                  msg_helper->set_changed(f->index());
-                }
-                if (_merge_exceptions(exceptions->mutable_week_day(),
-                                      template_exceptions->week_day())) {
-                  msg_helper->set_changed(f->index());
-                }
+                _merge_exceptions(exceptions->mutable_calendar_date(),
+                                  template_exceptions->calendar_date());
+                _merge_exceptions(exceptions->mutable_month_date(),
+                                  template_exceptions->month_date());
+                _merge_exceptions(exceptions->mutable_month_day(),
+                                  template_exceptions->month_day());
+                _merge_exceptions(exceptions->mutable_month_week_day(),
+                                  template_exceptions->month_week_day());
+                _merge_exceptions(exceptions->mutable_week_day(),
+                                  template_exceptions->week_day());
               } else if (d && d->name() == "DaysArray") {
                 const DaysArray* template_days = static_cast<const DaysArray*>(
                     refl->MutableMessage(tmpl, f));
@@ -914,7 +893,6 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                 COPY_TIME_RANGE(thursday);
                 COPY_TIME_RANGE(friday);
                 COPY_TIME_RANGE(saturday);
-                msg_helper->set_changed(f->index());
               } else {
                 refl->MutableMessage(msg, f)->CopyFrom(
                     refl->GetMessage(*tmpl, f));
