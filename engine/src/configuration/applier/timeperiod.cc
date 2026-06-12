@@ -154,8 +154,8 @@ void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
   timeperiod_map::iterator it =
       engine::timeperiod::timeperiods.find(obj.timeperiod_name());
   if (engine::timeperiod::timeperiods.end() == it || !it->second)
-    throw engine_error() << "Cannot resolve non-existing " << "time period '"
-                         << obj.timeperiod_name() << "'";
+    throw engine_error() << "Cannot resolve non-existing "
+                         << "time period '" << obj.timeperiod_name() << "'";
 
   // Resolve time period.
   it->second->resolve(err.config_warnings, err.config_errors);
