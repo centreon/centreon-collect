@@ -1332,6 +1332,31 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
         f.writelines(new_lines)
 
 
+def ctn_engine_config_add_timeperiod(idx: int, name: str, alias: str, ranges: dict = None):
+    """
+    Append a timeperiod definition to timeperiods.cfg for the Engine config idx.
+
+    Args:
+        idx (int): Index of the Engine configuration (from 0).
+        name (str): Timeperiod name and internal name.
+        alias (str): Human-readable alias.
+        ranges (dict, optional): Day-name → time-range string, e.g.
+            {"monday": "00:00-24:00", "tuesday": "00:00-24:00"}.
+            Omit or pass None for a period that is never active.
+    """
+    lines = f"""define timeperiod {{
+    name                           {name}
+    timeperiod_name                {name}
+    alias                          {alias}
+"""
+    if ranges:
+        for day, time_range in ranges.items():
+            lines += f"    {day:<30} {time_range}\n"
+    lines += "}\n"
+    with open(f"{CONF_DIR}/config{idx}/timeperiods.cfg", "a") as f:
+        f.write(lines)
+
+
 def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     """
     Add a new command in the commands.cfg for the Engine config idx.

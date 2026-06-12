@@ -1,0 +1,90 @@
+/**
+ * Copyright 2022-2026 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
+
+syntax = "proto3";
+
+package com.centreon.engine.configuration;
+
+message Object {
+  string name = 1;
+  bool register = 2;
+  repeated string use = 3;
+}
+
+message StringSet {
+  repeated string data = 1;
+  bool additive = 2;
+}
+
+message Timerange {
+  uint64 range_start = 1;
+  uint64 range_end = 2;
+}
+
+message Daterange {
+  enum TypeRange {
+    calendar_date = 0;
+    month_date = 1;
+    month_day = 2;
+    month_week_day = 3;
+    week_day = 4;
+    none = 5;  // Instead of -1 in original config
+  }
+  TypeRange type = 1;
+  int32 syear = 2;  // Start year.
+  int32 smon = 3;   // Start month.
+  // Start day of month (may 3rd, last day in feb).
+  int32 smday = 4;
+  int32 swday = 5;  // Start day of week (thursday).
+  // Start weekday offset (3rd thursday, last monday in jan).
+  int32 swday_offset = 6;
+  int32 eyear = 7;
+  int32 emon = 8;
+  int32 emday = 9;
+  int32 ewday = 10;
+  int32 ewday_offset = 11;
+  int32 skip_interval = 12;
+  repeated Timerange timerange = 13;
+}
+
+message DaysArray {
+  repeated Timerange sunday = 1;
+  repeated Timerange monday = 2;
+  repeated Timerange tuesday = 3;
+  repeated Timerange wednesday = 4;
+  repeated Timerange thursday = 5;
+  repeated Timerange friday = 6;
+  repeated Timerange saturday = 7;
+}
+
+message ExceptionArray {
+  repeated Daterange calendar_date = 1;
+  repeated Daterange month_date = 2;
+  repeated Daterange month_day = 3;
+  repeated Daterange month_week_day = 4;
+  repeated Daterange week_day = 5;
+}
+
+message Timeperiod {
+  Object obj = 1;
+  optional string alias = 2;
+  ExceptionArray exceptions = 3;
+  StringSet exclude = 4;
+  optional string timeperiod_name = 5;
+  DaysArray timeranges = 6;
+}

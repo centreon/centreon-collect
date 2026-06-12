@@ -47,6 +47,9 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
  protected:
   static configuration::applier::timeperiod _applier;
   static void SetUpTestSuite() {
+    // Re-assert Europe/Paris: a previous test (agent_to_engine_test).
+    setenv("TZ", ":Europe/Paris", 1);
+    tzset();
     init_config_state();
     com::centreon::engine::timeperiod::timeperiods.clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");

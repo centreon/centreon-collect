@@ -36,32 +36,32 @@ class GetNextValidTimeSkipIntervalTest : public ::testing::Test {
   }
 
   void calendar_date_skip() {
-    daterange* dr(_creator.new_calendar_date(2016, 10, 19, 2017, 10, 1));
+    configuration::Daterange* dr(_creator.new_calendar_date(2016, 10, 19, 2017, 10, 1));
     _creator.new_timerange(8, 0, 17, 0, dr);
     dr->set_skip_interval(5);
   }
 
   void specific_month_date_skip() {
-    daterange* dr(_creator.new_specific_month_date(10, 19, 11, 24));
+    configuration::Daterange* dr(_creator.new_specific_month_date(10, 19, 11, 24));
     _creator.new_timerange(8, 0, 17, 0, dr);
     dr->set_skip_interval(5);
   }
 
   void generic_month_date_skip() {
-    daterange* dr(_creator.new_generic_month_date(19, 30));
+    configuration::Daterange* dr(_creator.new_generic_month_date(19, 30));
     _creator.new_timerange(8, 0, 17, 0, dr);
     dr->set_skip_interval(5);
   }
 
   void offset_weekday_of_specific_month_skip() {
-    daterange* dr(
+    configuration::Daterange* dr(
         _creator.new_offset_weekday_of_specific_month(10, 6, -2, 10, 6, -1));
     _creator.new_timerange(8, 0, 17, 0, dr);
     dr->set_skip_interval(5);
   }
 
   void offset_weekday_of_generic_month_skip() {
-    daterange* dr(_creator.new_offset_weekday_of_generic_month(6, -2, 6, -1));
+    configuration::Daterange* dr(_creator.new_offset_weekday_of_generic_month(6, -2, 6, -1));
     _creator.new_timerange(8, 0, 17, 0, dr);
     dr->set_skip_interval(5);
   }

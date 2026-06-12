@@ -21,8 +21,11 @@ project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
-  add_subdirectory(engine_conf)
 endif()
+
+# engine_conf provides centreon_common_timeperiod
+# (the timeperiod proto + utils), which the agent needs on Windows too.
+add_subdirectory(engine_conf)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")

@@ -43,6 +43,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
+    timeperiod_utils_test.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()

@@ -61,8 +61,7 @@ class HostRecovery : public TestEngine {
     set_time(_current_time);
 
     _tperiod = new_timeperiod_with_timeranges("tperiod", "alias");
-    for (size_t i = 0; i < _tperiod->days.size(); ++i)
-      _tperiod->days[i].emplace_back(0, 86400);
+    apply_same_timeranges_to_every_day(_tperiod.get(), {{0, 86400}});
 
     /* 12345 is here to simulate a key. It won't allow any look up */
     std::unique_ptr<engine::hostescalation> host_escalation{

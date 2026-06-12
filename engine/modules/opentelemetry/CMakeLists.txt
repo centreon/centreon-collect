@@ -42,6 +42,7 @@ endforeach()
 # centagent server and client
 add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT
     "Generating interface files of the conf centreon_agent proto file (grpc)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.grpc.pb.cc
@@ -50,9 +51,11 @@ add_custom_command(
     --plugin=protoc-gen-grpc=${GRPC_CPP_PLUGIN}
     --proto_path=${CMAKE_SOURCE_DIR}/agent/proto
     --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     --grpc_out=${SRC_DIR}/centreon_agent
     ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
   DEPENDS ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
+          ${CMAKE_SOURCE_DIR}/common/engine_conf/timeperiod.proto
   COMMENT
     "Generating interface files of the conf centreon_agent proto file (protobuf)"
   OUTPUT ${SRC_DIR}/centreon_agent/agent.pb.cc
@@ -60,6 +63,7 @@ add_custom_command(
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}/centreon_agent
     --proto_path=${CMAKE_SOURCE_DIR}/agent/proto
     --proto_path=${CMAKE_SOURCE_DIR}/opentelemetry-proto
+    --proto_path=${CMAKE_SOURCE_DIR}/common/engine_conf
     ${CMAKE_SOURCE_DIR}/agent/proto/agent.proto
   WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -99,11 +103,12 @@ target_link_libraries(
           Boost::url
           centreon_http
           pb_open_telemetry_lib
+          centreon_common_timeperiod
           fmt::fmt
           ctncrypto)
 
 add_dependencies(opentelemetry pb_open_telemetry_lib pb_header_lib pb_neb_lib
-                 engine_rpc)
+                 engine_rpc target_timeperiod_proto)
 
 target_include_directories(
   opentelemetry

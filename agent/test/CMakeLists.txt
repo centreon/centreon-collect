@@ -17,7 +17,8 @@
 #
 
 set(SRC_COMMON check_test.cc check_exec_test.cc drive_size_test.cc
-               check_health_test.cc scheduler_test.cc test_main.cc)
+               check_health_test.cc scheduler_test.cc check_timeperiod_test.cc
+               test_main.cc)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SRC ${SRC_COMMON} config_test.cc check_linux_cpu_test.cc)
@@ -60,6 +61,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   target_link_libraries(
     ut_agent
     PRIVATE centagent_lib
+            centreon_common_timeperiod
             centreon_common
             centreon_process
             ctncrypto
@@ -80,6 +82,7 @@ else()
   target_link_libraries(
     ut_agent
     PRIVATE centagent_lib
+            centreon_common_timeperiod
             centreon_common
             centreon_process
             ctncrypto
@@ -93,7 +96,8 @@ else()
             pdh
             taskschd
             Version.lib)
-  add_dependencies(ut_agent centreon_common centagent_lib)
+  add_dependencies(ut_agent centreon_common centagent_lib
+                   target_timeperiod_proto)
 endif()
 
 set_property(TARGET ut_agent PROPERTY POSITION_INDEPENDENT_CODE ON)

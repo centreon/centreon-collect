@@ -22,6 +22,7 @@
 #include <memory>
 #include "check.hh"
 #include "common/crypto/aes256.hh"
+#include "common/engine_conf/timeperiod.pb.h"
 
 namespace com::centreon::agent {
 
@@ -100,6 +101,11 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
 
   std::shared_ptr<common::crypto::aes256> _credentials_decrypt;
 
+  // Map from timeperiod_name to Timeperiod proto pointer
+  absl::flat_hash_map<std::string,
+                      const com::centreon::engine::configuration::Timeperiod*>
+      _timeperiods;
+
   void _start();
   void _start_send_timer();
   void _send_timer_handler(const boost::system::error_code& err);
@@ -171,6 +177,12 @@ class scheduler : public std::enable_shared_from_this<scheduler> {
   void force_check(const engine_to_agent_request_ptr& request);
 
   static std::shared_ptr<com::centreon::agent::MessageToAgent> default_config();
+
+  // Compare the host's configured timezone vs agent timezone
+  static void check_host_timezone(const std::shared_ptr<spdlog::logger>& logger,
+                                  int32_t cfg_offset,
+                                  bool cfg_dst,
+                                  const std::string& cfg_tz_name);
 
   template <typename sender, typename chck_builder>
   static std::shared_ptr<scheduler> load(
