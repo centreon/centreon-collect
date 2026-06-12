@@ -148,14 +148,14 @@ void applier::timeperiod::remove_object(ssize_t idx) {
 void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj,
                                          error_cnt& err) {
   // Logging.
-  config_logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
+  config_logger->debug("Resolving time period '{}'.", obj.ShortDebugString());
 
   // Find time period.
   timeperiod_map::iterator it =
       engine::timeperiod::timeperiods.find(obj.timeperiod_name());
   if (engine::timeperiod::timeperiods.end() == it || !it->second)
-    throw engine_error() << "Cannot resolve non-existing "
-                         << "time period '" << obj.timeperiod_name() << "'";
+    throw engine_error() << "Cannot resolve non-existing " << "time period '"
+                         << obj.timeperiod_name() << "'";
 
   // Resolve time period.
   it->second->resolve(err.config_warnings, err.config_errors);
