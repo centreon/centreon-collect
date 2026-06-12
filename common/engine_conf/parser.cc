@@ -27,6 +27,7 @@
 #include "connector_helper.hh"
 #include "contact_helper.hh"
 #include "contactgroup_helper.hh"
+#include "google/protobuf/util/message_differencer.h"
 #include "host_helper.hh"
 #include "hostdependency_helper.hh"
 #include "hostescalation_helper.hh"
@@ -644,6 +645,34 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
 }
 
 /**
+ * @brief Some helpers to merge timeperiod with ther templates
+ *
+ */
+#define COPY_TIME_RANGE(weekday)                                      \
+  if (days->weekday().empty() && !template_days->weekday().empty()) { \
+    days->mutable_##weekday()->Add(template_days->weekday().begin(),  \
+                                   template_days->weekday().end());   \
+  }
+
+template <class repeated_Daterange_type>
+static void _merge_exceptions(repeated_Daterange_type* except,
+                              const repeated_Daterange_type& template_except) {
+  for (const Daterange& to_insert : template_except) {
+    bool found = false;
+    for (const Daterange& to_check : *except) {
+      if (::google::protobuf::util::MessageDifferencer::Equals(to_insert,
+                                                               to_check)) {
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      except->Add()->CopyFrom(to_insert);
+    }
+  }
+}
+
+/**
  * @brief For each unchanged field in the Protobuf object stored in
  * msg_helper, we copy the corresponding field from tmpl. This is the key for
  * the inheritence with cfg files.
@@ -836,6 +865,34 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
                   *pair->mutable_data() = orig_pair->data();
                   pair->set_additive(orig_pair->additive());
                 }
+              } else if (d && d->name() == "ExceptionArray") {
+                const ExceptionArray* template_exceptions =
+                    static_cast<const ExceptionArray*>(
+                        refl->MutableMessage(tmpl, f));
+                ExceptionArray* exceptions =
+                    static_cast<ExceptionArray*>(refl->MutableMessage(msg, f));
+                _merge_exceptions(exceptions->mutable_calendar_date(),
+                                  template_exceptions->calendar_date());
+                _merge_exceptions(exceptions->mutable_month_date(),
+                                  template_exceptions->month_date());
+                _merge_exceptions(exceptions->mutable_month_day(),
+                                  template_exceptions->month_day());
+                _merge_exceptions(exceptions->mutable_month_week_day(),
+                                  template_exceptions->month_week_day());
+                _merge_exceptions(exceptions->mutable_week_day(),
+                                  template_exceptions->week_day());
+              } else if (d && d->name() == "DaysArray") {
+                const DaysArray* template_days = static_cast<const DaysArray*>(
+                    refl->MutableMessage(tmpl, f));
+                DaysArray* days =
+                    static_cast<DaysArray*>(refl->MutableMessage(msg, f));
+                COPY_TIME_RANGE(sunday);
+                COPY_TIME_RANGE(monday);
+                COPY_TIME_RANGE(tuesday);
+                COPY_TIME_RANGE(wednesday);
+                COPY_TIME_RANGE(thursday);
+                COPY_TIME_RANGE(friday);
+                COPY_TIME_RANGE(saturday);
               } else {
                 refl->MutableMessage(msg, f)->CopyFrom(
                     refl->GetMessage(*tmpl, f));
