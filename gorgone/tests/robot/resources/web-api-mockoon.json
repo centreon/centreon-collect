@@ -233,14 +233,14 @@
       "type": "http",
       "documentation": "",
       "method": "get",
-      "endpoint": "centreon/api/latest/administration/tokens/:token_name",
+      "endpoint": "centreon/api/latest/administration/tokens/:tokenName",
       "responses": [
         {
           "uuid": "63de4aa2-3cc2-4939-8043-cd4ad5d49c95",
           "body": "{\n  \"name\": \"poller-1\",\n  \"creation_date\": \"{{faker 'date.recent'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "",
+          "label": "poller-1",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -248,8 +248,8 @@
           "sendFileAsBody": false,
           "rules": [
             {
-              "target": "query",
-              "modifier": "token_name",
+              "target": "params",
+              "modifier": "tokenName",
               "value": "poller-1",
               "invert": false,
               "operator": "equals"
@@ -263,11 +263,11 @@
           "callbacks": []
         },
         {
-          "uuid": "e6040a74-02a4-4f7d-be61-61621c67724e",
-          "body": "{\n  \"name\": \"Central-1\",\n  \"creation_date\": \"2026-06-08T11:54:13+02:00\",\n  \"expiration_date\": null,\n  \"type\": \"cma\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"centralCMAtoken\"\n}",
+          "uuid": "47ad8f64-2726-4988-b211-4237cacb390d",
+          "body": "{\n  \"name\": \"poller-2\",\n  \"creation_date\": \"{{faker 'date.recent'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": true,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
           "latency": 0,
           "statusCode": 200,
-          "label": "",
+          "label": "poller-2",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -275,8 +275,35 @@
           "sendFileAsBody": false,
           "rules": [
             {
-              "target": "query",
-              "modifier": "token_name",
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-2",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
+          "uuid": "e6040a74-02a4-4f7d-be61-61621c67724e",
+          "body": "{\n  \"name\": \"Central-1\",\n  \"creation_date\": \"2026-06-08T11:54:13+02:00\",\n  \"expiration_date\": null,\n  \"type\": \"cma\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"centralCMAtoken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "Central-1",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
               "value": "Central-1",
               "invert": false,
               "operator": "equals"
@@ -293,8 +320,8 @@
           "uuid": "0fa0168d-5d20-4755-a136-1de4d28b58b9",
           "body": "{\n  \"code\": 404,\n  \"message\": \"Token not found\"\n}",
           "latency": 0,
-          "statusCode": 200,
-          "label": "",
+          "statusCode": 404,
+          "label": "token not found",
           "headers": [],
           "bodyType": "INLINE",
           "filePath": "",
@@ -302,16 +329,23 @@
           "sendFileAsBody": false,
           "rules": [
             {
-              "target": "query",
-              "modifier": "token_name",
+              "target": "params",
+              "modifier": "tokenName",
               "value": "poller-1",
               "invert": true,
               "operator": "equals"
             },
             {
-              "target": "query",
-              "modifier": "token_name",
+              "target": "params",
+              "modifier": "tokenName",
               "value": "Central-1",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-2",
               "invert": true,
               "operator": "equals"
             }

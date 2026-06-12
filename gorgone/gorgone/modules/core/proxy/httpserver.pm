@@ -458,26 +458,34 @@ sub is_logged_websocket {
     if ($token =~ /^\s*Bearer\s+(\S*)\s*$/) {
         $token = $1;
     }
-    $self->{logger}->writeLogDebug("[PROXY] is_logged_websocket: TOKEN = " . $token);
 
     my $check_conf_token = 1;
     my ($token_name, $token_value) = split(/:/, $token, 2);
     if (defined $token_name && defined $token_value) {
         my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
-            token_name => $token
+            token_name => $token_name
         );
         if ($status != 0) {
             $self->{logger}->writeLogError('[proxy-httpserver] cannot get token - ' . $self->{tpapi_centreonv2}->error());
             return 0;
-        }
-        if ($results->{token} =~ $token_value) {
-            my $check_conf_token = 0;
+        } else {
+            $check_conf_token = 0;
+            if ($results->{token} !~ $token_value ||
+                $results->{type} ne "poller" ||
+                $results->{is_revoked}) {
+                $self->close_websocket(
+                    code    => 500,
+                    message => 'token authorization unallowed',
+                    ws_id   => $options{ws_id}
+                );
+                return 0;
+            }
         }
     }
 
-    if ($check_conf_token &&
-        !defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
-        $self->{ws_clients}->{ $options{ws_id} }->{authorization} eq $token) {
+    if ($check_conf_token == 1 &&
+        (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
+        $self->{ws_clients}->{ $options{ws_id} }->{authorization} eq $token)) {
         $self->close_websocket(
             code    => 500,
             message => 'token authorization unallowed',

@@ -25,8 +25,6 @@ check one poller can connect to a central and gorgone central stop first
         ...    pullwss
         ...    pullwss_uid
 
-
-
 check a remote server can hold a poller connection
     [Tags]    remote
     [Teardown]    Stop Gorgone And Remove Gorgone Config
@@ -81,16 +79,19 @@ check two poller can connect to a central
         ...    pullwss_uid
         ...    pullwss
 
-check one poller can connect to a central with env var
+check one poller can connect to a central with env var ${id}
     [Teardown]    Stop Gorgone And Remove Gorgone Config
     ...    @{process_list}
     ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
     @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
-    Set Environment Variable    GORGONE_TOKEN    poller-1:myPollerToken
+    Set Environment Variable    GORGONE_TOKEN    ${env_token}
     Setup Two Gorgone Instances    communication_mode=${mode}    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple
     Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
-    Examples:    mode   --
-        ...    pullwss
-        ...    pullwss_uid
+    Examples:    id    mode         env_token    --
+        ...    1    pullwss        poller-1:myPollerToken
+        ...    2    pullwss_uid    poller-1:myPollerToken
+        ...    3    pullwss        Central-1:centralCMAtoken
+        ...    4    pullwss        poller-2:myPollerToken
+        ...    5    pullwss        poller-3:myPollerToken
