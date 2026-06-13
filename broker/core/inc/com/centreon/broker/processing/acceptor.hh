@@ -48,6 +48,12 @@ class acceptor : public endpoint {
   std::condition_variable _state_cv;
 
   std::atomic_bool _should_exit;
+  /* One-shot guard for the startup readiness barrier. An acceptor has no
+   * outbound state to load and must not gate the multiplexing engine start (it
+   * needs the engine running so its feeders can pump, e.g. to complete the BBDO
+   * handshake over a reactor-driven gRPC stream). It therefore signals
+   * readiness as soon as it starts listening. */
+  std::atomic_bool _barrier_notified{false};
 
   std::shared_ptr<io::endpoint> _endp;
   std::list<std::shared_ptr<processing::feeder>> _feeders;

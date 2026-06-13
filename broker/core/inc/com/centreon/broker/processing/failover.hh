@@ -94,6 +94,9 @@ class failover : public endpoint {
   std::shared_ptr<failover> _failover;
   bool _failover_launched;
   volatile bool _initialized;
+  /* One-shot guard for the startup readiness barrier: this failover notifies
+   * config::applier::state exactly once, after its first open() attempt. */
+  std::atomic_bool _barrier_notified{false};
   time_t _next_timeout;
   volatile time_t _retry_interval = 15;
   std::shared_ptr<multiplexing::muxer> _muxer;

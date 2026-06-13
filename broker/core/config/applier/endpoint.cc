@@ -150,9 +150,9 @@ void endpoint::apply(
         endp_to_create.remove_if([&](const config::endpoint& ep) {
           if (names_to_delete.count(ep.name))
             return false;
-          const char* kind = (ep.get_io_type() == config::endpoint::input)
-                                 ? "input"
-                                 : "output";
+          const std::string_view kind(
+              (ep.get_io_type() == config::endpoint::input) ? "input"
+                                                            : "output");
           SPDLOG_LOGGER_ERROR(
               _logger,
               "endpoint applier: {} '{}' has been added to the configuration "

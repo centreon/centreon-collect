@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/misc/misc.hh"
@@ -206,6 +207,11 @@ void failover::_run() {
         _initialized = true;
         set_last_connection_success(timestamp::now());
       }
+      /* First successful open(): the output stream has loaded its state. Signal
+       * the startup readiness barrier (one-shot; no-op unless broker_state armed
+       * it). */
+      if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
+        config::applier::state::instance().notify_output_ready(_name);
       _update_status("");
       _update = true;
 
@@ -428,6 +434,12 @@ void failover::_run() {
     }
 
     SPDLOG_LOGGER_DEBUG(_logger, "failover {} end of loop => reconnect", _name);
+
+    /* If open() failed on the first attempt (never reached the success path
+     * above), still release the startup barrier so a down output (DB/peer) does
+     * not block Broker startup (one-shot). */
+    if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
+      config::applier::state::instance().notify_output_ready(_name);
 
     // Clear stream.
     {

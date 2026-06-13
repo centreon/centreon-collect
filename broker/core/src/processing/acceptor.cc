@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 
+#include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/processing/feeder.hh"
@@ -197,6 +198,14 @@ void acceptor::_callback() noexcept {
   _state_cv.notify_all();
   lock.unlock();
   auto logger = log_v2::instance().get(log_v2::CORE);
+  /* The acceptor thread is up and about to listen; it has no outbound state to
+   * load, so release the startup readiness barrier right away (one-shot; a
+   * no-op unless the state armed the barrier and this endpoint is one of the
+   * expected outputs). Doing it here lets the multiplexing engine start so the
+   * feeders created for incoming connections can pump and complete their BBDO
+   * handshake. */
+  if (!_barrier_notified.exchange(true) && config::applier::state::loaded())
+    config::applier::state::instance().notify_output_ready(_name);
   // Run as long as no exit request was made.
   while (!_should_exit) {
     try {
