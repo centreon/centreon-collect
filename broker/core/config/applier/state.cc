@@ -16,13 +16,16 @@
  * For more information : contact@centreon.com
  */
 #include <absl/time/time.h>
+#include <algorithm>
 #include "broker/core/config/applier/broker_state.hh"
 #include "broker/core/config/applier/cbmod_state.hh"
 
 #include "bbdo/internal.hh"
 #include "broker/core/config/applier/endpoint.hh"
+#include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/vars.hh"
+#include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -178,9 +181,126 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   // Apply input and output configuration.
   endpoint::instance().apply(st.endpoints(), st.params());
 
-  // Enable multiplexing loop.
-  if (run_mux)
-    com::centreon::broker::multiplexing::engine::instance_ptr()->start();
+  // Enable multiplexing loop. broker_state may defer this behind a startup
+  // readiness barrier; the base starts it immediately.
+  _enable_multiplexing(run_mux);
+}
+
+/**
+ * @brief Arm the startup readiness barrier at the end of apply(): record the
+ * output endpoints just created and defer starting the multiplexing engine
+ * until each of them has registered as ready (notify_output_ready()), or a
+ * timeout expires. If everything is already ready (or there is no output) the
+ * engine is started immediately.
+ *
+ * @param run_mux false in --check mode: the engine is never started and no
+ * barrier is armed.
+ */
+void state::_enable_multiplexing(bool run_mux) {
+  /* --check mode: never start the engine and never arm the barrier. */
+  if (!run_mux)
+    return;
+
+  /* Collect the output endpoints just created: the multiplexing engine is only
+   * started once each of them has registered as ready (notify_output_ready). */
+  absl::flat_hash_set<std::string> expected;
+  {
+    auto& ep = endpoint::instance();
+    std::lock_guard<std::timed_mutex> lock(ep.endpoints_mutex());
+    for (auto it = ep.endpoints_begin(); it != ep.endpoints_end(); ++it)
+      if (it->first.get_io_type() == config::endpoint::output)
+        expected.insert(it->first.name);
+  }
+
+  bool release_now;
+  {
+    absl::MutexLock lk(&_barrier_m);
+    _barrier_expected = std::move(expected);
+    _barrier_armed = true;
+    /* Some outputs may already have registered before we armed: their failover
+     * thread started during endpoint::apply(). */
+    release_now = std::all_of(
+        _barrier_expected.begin(), _barrier_expected.end(),
+        [this](const std::string& n) { return _barrier_ready.contains(n); });
+    if (!release_now) {
+      _barrier_timer = std::make_unique<boost::asio::steady_timer>(
+          com::centreon::common::pool::instance().io_context());
+      _barrier_timer->expires_after(std::chrono::seconds(60));
+      _barrier_timer->async_wait([this](const boost::system::error_code& ec) {
+        if (!ec)
+          _maybe_release_barrier(true);
+      });
+    }
+  }
+
+  if (release_now)
+    _maybe_release_barrier(false);
+}
+
+/**
+ * @brief Called by an output stream's failover once it has completed its first
+ * open() attempt. Records the endpoint as ready and releases the startup
+ * readiness barrier when all expected outputs have registered.
+ *
+ * @param endpoint_name The name of the output endpoint that is ready.
+ */
+void state::notify_output_ready(const std::string& endpoint_name) {
+  bool release = false;
+  {
+    absl::MutexLock lk(&_barrier_m);
+    if (_barrier_released)
+      return;
+    _barrier_ready.insert(endpoint_name);
+    if (_barrier_armed)
+      release = std::all_of(
+          _barrier_expected.begin(), _barrier_expected.end(),
+          [this](const std::string& n) { return _barrier_ready.contains(n); });
+  }
+  if (release)
+    _maybe_release_barrier(false);
+}
+
+/**
+ * @brief Release the startup readiness barrier exactly once: start the
+ * multiplexing engine (which flushes the events buffered while it was
+ * not_started, i.e. the startup definitions), then invoke the
+ * _on_barrier_released() hook.
+ *
+ * @param forced true when released by the timeout (some outputs never became
+ * ready); the missing endpoints are then logged as a warning.
+ */
+void state::_maybe_release_barrier(bool forced) {
+  std::string missing;
+  {
+    absl::MutexLock lk(&_barrier_m);
+    if (_barrier_released)
+      return;
+    _barrier_released = true;
+    if (_barrier_timer)
+      _barrier_timer->cancel();
+    if (forced)
+      for (const auto& n : _barrier_expected)
+        if (!_barrier_ready.contains(n))
+          missing += (missing.empty() ? "" : ", ") + n;
+  }
+
+  if (forced)
+    _logger->warn(
+        "config applier: startup readiness barrier timed out; starting the "
+        "multiplexing engine without these output(s) ready: [{}]",
+        missing);
+  else
+    _logger->info(
+        "config applier: all output streams ready; starting the multiplexing "
+        "engine");
+
+  /* Start the engine: flushes the startup definitions buffered while it was
+   * not_started (e.g. the BA virtual service definitions). */
+  com::centreon::broker::multiplexing::engine::instance_ptr()->start();
+
+  /* Subclass-specific action ordered after the flushed definitions (broker_state
+   * re-injects persisted active downtimes here). */
+  _on_barrier_released();
 }
 
 void state::initialize_cache() {
