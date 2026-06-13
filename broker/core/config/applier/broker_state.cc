@@ -107,17 +107,13 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
 
   state::apply(s, run_mux);
 
-  /* Re-inject the active downtimes persisted with the cache now that the global
-   * cache exists (state::apply() created it). This is broker-specific behaviour,
-   * hence here and not in the base state. It must run after the cache is
-   * assigned: the re-injection path calls back into state::instance().cache()
-   * (downtime callbacks' resource_exists()), so it cannot run from inside the
-   * broker_cache constructor. In legacy mode the resources are already loaded
-   * and this re-injects them; in centralized mode the resources are not known
-   * yet, so this is a no-op and the pending downtimes are re-injected later from
-   * _process_engine_state (after merge). */
-  if (_notification_mode == notification_mode_broker)
-    cache().reinject_pending_downtimes();
+  /* The persisted active downtimes are re-injected from _maybe_release_barrier()
+   * once the startup readiness barrier releases (i.e. after every output stream
+   * has emitted its startup definitions and the engine has flushed them). Doing
+   * it here, before the barrier, would let a stale BA service definition clobber
+   * the re-injected inherited-downtime depth. In centralized mode the resources
+   * are not known yet and the re-injection is a no-op anyway (done later from
+   * _process_engine_state after merge). */
 
   if (s.get_bbdo_version().major_v >= 3) {
     // Configuration cache directory (for broker, from php).
@@ -132,6 +128,18 @@ void broker_state::apply(const com::centreon::broker::config::state& s,
     } else
       set_pollers_config_dir(s.pollers_config_dir());
   }
+}
+
+/**
+ * @brief Invoked by the base startup readiness barrier right after the
+ * multiplexing engine is started. Re-inject the persisted active downtimes so
+ * they are ordered after the startup definitions the engine just flushed (e.g.
+ * the BA virtual service definitions). No-op in centralized mode (resources not
+ * known yet; re-injected later from _process_engine_state after merge).
+ */
+void broker_state::_on_barrier_released() {
+  if (_notification_mode == notification_mode_broker)
+    cache().reinject_pending_downtimes();
 }
 
 /**
