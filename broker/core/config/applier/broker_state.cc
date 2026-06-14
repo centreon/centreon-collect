@@ -17,6 +17,12 @@
  */
 
 #include "broker/core/config/applier/broker_state.hh"
+
+#include <future>
+
+#include <boost/asio/bind_executor.hpp>
+#include <boost/asio/post.hpp>
+
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/neb.pb.h"
 #include "com/centreon/broker/broker_downtime_callbacks.hh"
@@ -36,6 +42,19 @@ broker_state::~broker_state() {
   if (_watch_engine_conf_timer) {
     _watch_engine_conf_stopped.store(true);
     _watch_engine_conf_timer->cancel();
+    /* Drain the watcher: post a barrier on the strand and wait for it. Because
+     * the strand serializes every watcher handler, when the barrier runs no
+     * handler is in flight or queued, so the resources used by the handler
+     * (e.g. _cache_config_dir_watcher) can be destroyed below without a race.
+     * This is deadlock-free here: the pool is still running at shutdown (it is
+     * stopped only after deinit()), this destructor runs on the main thread
+     * (not a pool thread), and it holds no lock the handler could wait on. */
+    if (_watch_strand) {
+      std::promise<void> drained;
+      auto fut = drained.get_future();
+      boost::asio::post(*_watch_strand, [&drained] { drained.set_value(); });
+      fut.wait();
+    }
   }
   save_topology_cache();
   /* Hand the started downtimes over to the global cache so they are persisted
@@ -175,6 +194,9 @@ void broker_state::set_cache_config_dir(
         _cache_config_dir, IN_CREATE | IN_MODIFY | IN_ATTRIB, true);
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");
+      _watch_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          com::centreon::common::pool::instance().io_context().get_executor());
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
@@ -398,6 +420,9 @@ void broker_state::add_peer(uint64_t poller_id,
   if (extended_negotiation) {
     if (!_watch_engine_conf_timer) {
       _logger->debug("Starting engine configuration watcher");
+      _watch_strand = std::make_unique<
+          boost::asio::strand<boost::asio::io_context::executor_type>>(
+          com::centreon::common::pool::instance().io_context().get_executor());
       _watch_engine_conf_timer = std::make_unique<boost::asio::steady_timer>(
           com::centreon::common::pool::instance().io_context());
       _start_watch_engine_conf_timer();
@@ -874,16 +899,23 @@ void broker_state::_start_watch_engine_conf_timer() {
   _logger->trace(
       "Starting watch engine configuration timer with a 5 seconds delay");
   _watch_engine_conf_timer->expires_after(std::chrono::seconds(5));
-  _watch_engine_conf_timer->async_wait(
+  /* The handler is bound to _watch_strand so it is serialized with the drain
+   * barrier posted by the destructor: once that barrier runs, no watcher
+   * handler is in flight or queued and the watched resources can be destroyed
+   * safely. */
+  _watch_engine_conf_timer->async_wait(boost::asio::bind_executor(
+      *_watch_strand,
       [this, logger = _logger](const boost::system::error_code& ec) {
-        if (!ec) {
-          _check_last_engine_conf();
-          _start_watch_engine_conf_timer();
-        } else {
+        if (ec) {
           logger->error("Error in engine configuration watcher: {}",
                         ec.message());
+          return;
         }
-      });
+        if (_watch_engine_conf_stopped.load())
+          return;
+        _check_last_engine_conf();
+        _start_watch_engine_conf_timer();
+      }));
 }
 
 /**
