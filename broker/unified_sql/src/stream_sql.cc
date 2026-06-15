@@ -664,7 +664,7 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
         cmmnt.deletion_time, cmmnt.entry_time, cmmnt.entry_type,
         cmmnt.expire_time, cmmnt.expires, int64_not_minus_one{cmmnt.host_id},
         cmmnt.internal_id, int(cmmnt.persistent),
-        int64_not_minus_one{cmmnt.poller_id}, cmmnt.service_id, cmmnt.source));
+        uint64_not_null_not_neg_1{cmmnt.poller_id}, cmmnt.service_id, cmmnt.source));
   }
 }
 
