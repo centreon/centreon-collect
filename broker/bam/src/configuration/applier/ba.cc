@@ -381,19 +381,6 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
 }
 
 /**
- *  Save inherited downtime to the cache.
- *
- *  @param[in] cache  The cache.
- */
-void applier::ba::save_to_cache(persistent_cache& cache) {
-  for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
-                                                   end = _applied.end();
-       it != end; ++it) {
-    it->second.obj->save_inherited_downtime(cache);
-  }
-}
-
-/**
  *  Load inherited downtime from cache.
  *
  *  @param[in] cache  The cache.
