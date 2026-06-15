@@ -32,7 +32,7 @@
   * [Commentaires des downtimes gérés par Broker](#commentaires-des-downtimes-gérés-par-broker)
     * [Le problème de l'internal_id](#le-problème-de-linternal_id)
     * [Design](#design)
-      * [Restaurer le comment_id à travers un restart cbd](#restaurer-le-comment_id-à-travers-un-restart-cbd)
+      * [Restaurer le comment_id à travers un restart `cbd`](#restaurer-le-comment_id-à-travers-un-restart-cbd)
     * [Cas triggered, flexible et BAM](#cas-triggered-flexible-et-bam)
     * [Décisions](#décisions)
     * [Lien avec la suppression de l'internal_id](#lien-avec-la-suppression-de-linternal_id)
