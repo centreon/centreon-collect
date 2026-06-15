@@ -58,7 +58,7 @@ std::array<notifier::is_viable, 6> const notifier::_is_notification_viable{{
 
 uint64_t notifier::_next_notification_id{1L};
 
-notifier::notifier(notifier::notifier_type notifier_type,
+notifier::notifier(notification::notifier_type notifier_type,
                    const std::string& name,
                    std::string const& display_name,
                    std::string const& check_command,
@@ -213,22 +213,22 @@ void notifier::set_notification_number(int num) {
   _notification_number = num;
 
   /* update the status log with the notifier info */
-  update_status(STATUS_NOTIFICATION_NUMBER);
+  update_status(notification::STATUS_NOTIFICATION_NUMBER);
 }
 
-bool notifier::_is_notification_viable_normal(reason_type type
-                                              __attribute__((unused)),
-                                              notification_option options) {
+bool notifier::_is_notification_viable_normal(
+    notification::reason_type type __attribute__((unused)),
+    notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_normal()");
 
   /* forced notifications bust through everything */
-  uint32_t notification_interval =
-      !_notification[cat_normal]
-          ? _notification_interval
-          : _notification[cat_normal]->get_notification_interval();
+  uint32_t notification_interval = !_notification[notification::cat_normal]
+                                       ? _notification_interval
+                                       : _notification[notification::cat_normal]
+                                             ->get_notification_interval();
 
-  if (options & notification_option_forced) {
+  if (options & notification::notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "This is a forced notification, so we'll send it out.");
     return true;
@@ -321,7 +321,8 @@ bool notifier::_is_notification_viable_normal(reason_type type
   }
 
   uint32_t interval_length = pb_indexed_config.state().interval_length();
-  if (_first_notification_delay > 0 && !_notification[cat_normal] &&
+  if (_first_notification_delay > 0 &&
+      !_notification[notification::cat_normal] &&
       get_last_hard_state_change() +
               _first_notification_delay * interval_length >
           now) {
@@ -341,7 +342,7 @@ bool notifier::_is_notification_viable_normal(reason_type type
     return false;
   }
 
-  if (_notification[cat_normal]) {
+  if (_notification[notification::cat_normal]) {
     /* In the case of a state change, we don't care of the notification interval
      * and we notify as soon as we can */
     if (get_last_hard_state_change() <= _last_notification) {
@@ -368,10 +369,9 @@ bool notifier::_is_notification_viable_normal(reason_type type
   return true;
 }
 
-bool notifier::_is_notification_viable_recovery(reason_type type
-                                                __attribute__((unused)),
-                                                notification_option options
-                                                __attribute__((unused))) {
+bool notifier::_is_notification_viable_recovery(
+    notification::reason_type type __attribute__((unused)),
+    notification::notification_option options __attribute__((unused))) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_recovery()");
   bool retval{true};
@@ -450,7 +450,8 @@ bool notifier::_is_notification_viable_recovery(reason_type type
           "This notifier state is not UP/OK to send a recovery notification");
       retval = false;
       send_later = true;
-    } else if (!(get_notify_on(up) || get_notify_on(ok))) {
+    } else if (!(get_notify_on(notification::up) ||
+                 get_notify_on(notification::ok))) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger,
           "This notifier is not configured to send a recovery notification");
@@ -473,7 +474,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
           "No notification has been sent to "
           "announce a problem. So no recovery notification will be sent");
       retval = false;
-    } else if (!_notification[cat_normal]) {
+    } else if (!_notification[notification::cat_normal]) {
       SPDLOG_LOGGER_DEBUG(notifications_logger,
                           "We should not send a notification "
                           "since no normal notification has"
@@ -484,7 +485,7 @@ bool notifier::_is_notification_viable_recovery(reason_type type
 
   if (!retval) {
     if (!send_later) {
-      _notification[cat_normal].reset();
+      _notification[notification::cat_normal].reset();
       SPDLOG_LOGGER_TRACE(
           notifications_logger,
           " _notification_number _is_notification_viable_recovery: {} => 0",
@@ -497,12 +498,12 @@ bool notifier::_is_notification_viable_recovery(reason_type type
 }
 
 bool notifier::_is_notification_viable_acknowledgement(
-    reason_type type __attribute__((unused)),
-    notification_option options) {
+    notification::reason_type type __attribute__((unused)),
+    notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_acknowledgement()");
   /* forced notifications bust through everything */
-  if (options & notification_option_forced) {
+  if (options & notification::notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "This is a forced notification, so we'll send it out.");
     return true;
@@ -534,12 +535,13 @@ bool notifier::_is_notification_viable_acknowledgement(
   return true;
 }
 
-bool notifier::_is_notification_viable_flapping(reason_type type,
-                                                notification_option options) {
+bool notifier::_is_notification_viable_flapping(
+    notification::reason_type type,
+    notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_flapping()");
   /* forced notifications bust through everything */
-  if (options & notification_option_forced) {
+  if (options & notification::notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "This is a forced notification, so we'll send it out.");
     return true;
@@ -563,13 +565,13 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
   }
 
   /* Don't send a notification if we are not supposed to */
-  notification_flag f;
-  if (type == reason_flappingstart)
-    f = flappingstart;
-  else if (type == reason_flappingstop)
-    f = flappingstop;
+  notification::notification_flag f;
+  if (type == notification::reason_flappingstart)
+    f = notification::flappingstart;
+  else if (type == notification::reason_flappingstop)
+    f = notification::flappingstop;
   else
-    f = flappingdisabled;
+    f = notification::flappingdisabled;
 
   if (!get_notify_on(f)) {
     SPDLOG_LOGGER_DEBUG(
@@ -581,7 +583,8 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
 
   /* Don't send a start notification if a flapping notification is already there
    */
-  if (type == reason_flappingstart && _notification[cat_flapping]) {
+  if (type == notification::reason_flappingstart &&
+      _notification[notification::cat_flapping]) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
         "A flapping notification is already running, we can not send "
@@ -589,9 +592,11 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
     return false;
     /* Don't send a stop/cancel notification if the previous flapping
      * notification is not a start flapping */
-  } else if (type == reason_flappingstop || type == reason_flappingdisabled) {
-    if (!_notification[cat_flapping] ||
-        _notification[cat_flapping]->get_reason() != reason_flappingstart) {
+  } else if (type == notification::reason_flappingstop ||
+             type == notification::reason_flappingdisabled) {
+    if (!_notification[notification::cat_flapping] ||
+        _notification[notification::cat_flapping]->get_reason() !=
+            notification::reason_flappingstart) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger,
           "A stop or cancellation flapping notification can only be sent "
@@ -601,8 +606,8 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
   }
 
   /* Don't send a notification if the same has already been sent previously. */
-  if (_notification[cat_flapping] &&
-      _notification[cat_flapping]->get_reason() == type) {
+  if (_notification[notification::cat_flapping] &&
+      _notification[notification::cat_flapping]->get_reason() == type) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "We shouldn't notify about a {} event: already sent.",
                         tab_notification_str[type]);
@@ -619,14 +624,14 @@ bool notifier::_is_notification_viable_flapping(reason_type type,
   return true;
 }
 
-bool notifier::_is_notification_viable_downtime(reason_type type
-                                                __attribute__((unused)),
-                                                notification_option options) {
+bool notifier::_is_notification_viable_downtime(
+    notification::reason_type type __attribute__((unused)),
+    notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_downtime()");
 
   /* forced notifications bust through everything */
-  if (options & notification_option_forced) {
+  if (options & notification::notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "This is a forced notification, so we'll send it out.");
     return true;
@@ -657,7 +662,7 @@ bool notifier::_is_notification_viable_downtime(reason_type type
   }
 
   /* Don't send a notification if we are not supposed to */
-  if (!get_notify_on(downtime)) {
+  if (!get_notify_on(notification::downtime)) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
         "We shouldn't notify about DOWNTIME events for this notifier.");
@@ -676,13 +681,13 @@ bool notifier::_is_notification_viable_downtime(reason_type type
   return true;
 }
 
-bool notifier::_is_notification_viable_custom(reason_type type
-                                              __attribute__((unused)),
-                                              notification_option options) {
+bool notifier::_is_notification_viable_custom(
+    notification::reason_type type __attribute__((unused)),
+    notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger,
                       "notifier::is_notification_viable_custom()");
   /* forced notifications bust through everything */
-  if (options & notification_option_forced) {
+  if (options & notification::notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "This is a forced notification, so we'll send it out.");
     return true;
@@ -727,8 +732,8 @@ bool notifier::_is_notification_viable_custom(reason_type type
  * @return A set of contacts to notify.
  */
 std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
-    notification_category cat,
-    reason_type type,
+    notification::notification_category cat,
+    notification::reason_type type,
     uint32_t& notification_interval,
     bool& escalated) {
   std::unordered_set<std::shared_ptr<contact>> retval;
@@ -793,29 +798,33 @@ std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
   return retval;
 }
 
-notifier::notification_category notifier::get_category(reason_type type) {
+notification::notification_category notifier::get_category(
+    notification::reason_type type) {
   if (type == 99)
-    return cat_custom;
-  notification_category cat[] = {
-      cat_normal,   cat_recovery, cat_acknowledgement, cat_flapping,
-      cat_flapping, cat_flapping, cat_downtime,        cat_downtime,
-      cat_downtime, cat_custom};
+    return notification::cat_custom;
+  notification::notification_category cat[] = {
+      notification::cat_normal,          notification::cat_recovery,
+      notification::cat_acknowledgement, notification::cat_flapping,
+      notification::cat_flapping,        notification::cat_flapping,
+      notification::cat_downtime,        notification::cat_downtime,
+      notification::cat_downtime,        notification::cat_custom};
   return cat[static_cast<size_t>(type)];
 }
 
-bool notifier::is_notification_viable(notification_category cat,
-                                      reason_type type,
-                                      notification_option options) {
+bool notifier::is_notification_viable(
+    notification::notification_category cat,
+    notification::reason_type type,
+    notification::notification_option options) {
   return (this->*(_is_notification_viable[cat]))(type, options);
 }
 
-int notifier::notify(notifier::reason_type type,
+int notifier::notify(notification::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
-                     notification_option options) {
+                     notification::notification_option options) {
   SPDLOG_LOGGER_TRACE(functions_logger, "notifier::notify({})",
                       static_cast<uint32_t>(type));
-  notification_category cat{get_category(type)};
+  notification::notification_category cat{get_category(type)};
 
   /* Has this notification got sense? */
   if (!is_notification_viable(cat, type, options))
@@ -823,7 +832,7 @@ int notifier::notify(notifier::reason_type type,
 
   /* For a first notification, we store what type of notification we try to
    * send and we fix the notification number to 1. */
-  if (type != reason_recovery) {
+  if (type != notification::reason_recovery) {
     SPDLOG_LOGGER_TRACE(notifications_logger,
                         "_notification_number notify: {} -> {}",
                         _notification_number, _notification_number + 1);
@@ -837,7 +846,7 @@ int notifier::notify(notifier::reason_type type,
       get_contacts_to_notify(cat, type, notification_interval, escalated);
 
   _current_notification_id = _next_notification_id++;
-  auto notif = std::make_unique<notification>(
+  auto notif = std::make_unique<notification_ev>(
       this, type, not_author, not_data, options, _current_notification_id,
       _notification_number, notification_interval, escalated);
 
@@ -850,10 +859,11 @@ int notifier::notify(notifier::reason_type type,
 
     /* The notification has been sent.
      * Should we increment the notification number? */
-    if (cat == cat_normal) {
+    if (cat == notification::cat_normal) {
       /* if normal notification, get contacts from the last notification for
        * notify this contact on recovery notification */
-      notification* normal_notif = _notification[notifier::cat_normal].get();
+      notification_ev* normal_notif =
+          _notification[notification::cat_normal].get();
       if (normal_notif)
         notif->add_contacts(normal_notif->get_contacts());
 
@@ -861,24 +871,27 @@ int notifier::notify(notifier::reason_type type,
     } else {
       _notification[cat] = std::move(notif);
       switch (cat) {
-        case cat_recovery:
-          _notification[cat_normal].reset();
-          _notification[cat_recovery].reset();
+        case notification::cat_recovery:
+          _notification[notification::cat_normal].reset();
+          _notification[notification::cat_recovery].reset();
           break;
-        case cat_flapping:
-          if (type == reason_flappingstop || type == reason_flappingdisabled)
-            _notification[cat_flapping].reset();
+        case notification::cat_flapping:
+          if (type == notification::reason_flappingstop ||
+              type == notification::reason_flappingdisabled)
+            _notification[notification::cat_flapping].reset();
           break;
-        case cat_downtime:
-          if (type == reason_downtimeend || type == reason_downtimecancelled)
-            _notification[cat_downtime].reset();
+        case notification::cat_downtime:
+          if (type == notification::reason_downtimeend ||
+              type == notification::reason_downtimecancelled)
+            _notification[notification::cat_downtime].reset();
           break;
         default:
           _notification[cat].reset();
       }
       /* In case of an acknowledgement, we must keep the _notification_number
        * otherwise the recovery notification won't be sent when needed. */
-      if (cat != cat_acknowledgement && cat != cat_downtime) {
+      if (cat != notification::cat_acknowledgement &&
+          cat != notification::cat_downtime) {
         SPDLOG_LOGGER_TRACE(notifications_logger,
                             "_notification_number notify: {} => 0",
                             _notification_number);
@@ -952,7 +965,8 @@ void notifier::set_notification_period(
   _notification_period = notification_period;
 }
 
-bool notifier::get_notify_on(notification_flag type) const noexcept {
+bool notifier::get_notify_on(
+    notification::notification_flag type) const noexcept {
   return _out_notification_type & type;
 }
 
@@ -960,7 +974,7 @@ uint32_t notifier::get_notify_on() const noexcept {
   return _out_notification_type;
 }
 
-void notifier::add_notify_on(notification_flag type) noexcept {
+void notifier::add_notify_on(notification::notification_flag type) noexcept {
   _out_notification_type |= type;
 }
 
@@ -968,7 +982,7 @@ void notifier::set_notify_on(uint32_t type) noexcept {
   _out_notification_type = type;
 }
 
-void notifier::remove_notify_on(notification_flag type) noexcept {
+void notifier::remove_notify_on(notification::notification_flag type) noexcept {
   _out_notification_type &= ~type;
 }
 
@@ -998,7 +1012,8 @@ void notifier::set_notifications_enabled(bool notifications_enabled) noexcept {
   _notifications_enabled = notifications_enabled;
 }
 
-bool notifier::get_notified_on(notification_flag type) const noexcept {
+bool notifier::get_notified_on(
+    notification::notification_flag type) const noexcept {
   return _current_notifications & type;
 }
 
@@ -1006,7 +1021,7 @@ uint32_t notifier::get_notified_on() const noexcept {
   return _current_notifications;
 }
 
-void notifier::add_notified_on(notification_flag type) noexcept {
+void notifier::add_notified_on(notification::notification_flag type) noexcept {
   _current_notifications |= type;
 }
 
@@ -1014,11 +1029,13 @@ void notifier::set_notified_on(uint32_t type) noexcept {
   _current_notifications = type;
 }
 
-void notifier::remove_notified_on(notification_flag type) noexcept {
+void notifier::remove_notified_on(
+    notification::notification_flag type) noexcept {
   _current_notifications &= ~type;
 }
 
-bool notifier::get_flap_detection_on(notification_flag type) const noexcept {
+bool notifier::get_flap_detection_on(
+    notification::notification_flag type) const noexcept {
   return _flap_type & type;
 }
 
@@ -1030,11 +1047,13 @@ void notifier::set_flap_detection_on(uint32_t type) noexcept {
   _flap_type = type;
 }
 
-void notifier::add_flap_detection_on(notification_flag type) noexcept {
+void notifier::add_flap_detection_on(
+    notification::notification_flag type) noexcept {
   _flap_type |= type;
 }
 
-bool notifier::get_stalk_on(notification_flag type) const noexcept {
+bool notifier::get_stalk_on(
+    notification::notification_flag type) const noexcept {
   return _stalk_type & type;
 }
 
@@ -1046,7 +1065,7 @@ void notifier::set_stalk_on(uint32_t type) noexcept {
   _stalk_type = type;
 }
 
-void notifier::add_stalk_on(notification_flag type) noexcept {
+void notifier::add_stalk_on(notification::notification_flag type) noexcept {
   _stalk_type |= type;
 }
 
@@ -1182,7 +1201,7 @@ uint64_t notifier::get_next_notification_id() {
   return _next_notification_id;
 }
 
-notifier::notifier_type notifier::get_notifier_type() const noexcept {
+notification::notifier_type notifier::get_notifier_type() const noexcept {
   return _notifier_type;
 }
 
@@ -1391,7 +1410,7 @@ std::array<int, MAX_STATE_HISTORY_ENTRIES>& notifier::get_state_history() {
   return _state_history;
 }
 
-std::array<std::unique_ptr<notification>, 6> const&
+std::array<std::unique_ptr<notification_ev>, 6> const&
 notifier::get_current_notifications() const {
   return _notification;
 }
@@ -1439,7 +1458,8 @@ time_t notifier::get_next_notification_time(time_t offset) {
       continue;
 
     /* skip this entry if it isn't appropriate */
-    if (!is_valid_escalation_for_notification(e, notification_option_none))
+    if (!is_valid_escalation_for_notification(
+            e, notification::notification_option_none))
       continue;
 
     SPDLOG_LOGGER_INFO(notifications_logger,
@@ -1521,7 +1541,8 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
 
   v += 6;
   char* next;
-  reason_type type = static_cast<reason_type>(strtol(v, &next, 10));
+  notification::reason_type type =
+      static_cast<notification::reason_type>(strtol(v, &next, 10));
   if (next == v || *next != ',' || next[1] != ' ') {
     SPDLOG_LOGGER_ERROR(
         config_logger,
@@ -1651,8 +1672,8 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     }
   }
   _notification[idx] =
-      std::make_unique<notification>(this, type, author, "", options, id,
-                                     number, interval, escalated, contacts);
+      std::make_unique<notification_ev>(this, type, author, "", options, id,
+                                        number, interval, escalated, contacts);
 }
 
 bool notifier::get_is_volatile() const noexcept {

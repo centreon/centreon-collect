@@ -121,8 +121,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 }
@@ -144,8 +144,8 @@ TEST_F(ServiceNotification,
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -167,8 +167,8 @@ TEST_F(ServiceNotification,
   uint64_t id{_svc->get_next_notification_id()};
   _svc->set_notifications_enabled(false);
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -188,8 +188,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -211,8 +211,8 @@ TEST_F(ServiceNotification,
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_forced),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 }
@@ -232,8 +232,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_forced),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 }
@@ -252,8 +252,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -272,8 +272,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -292,8 +292,8 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -313,8 +313,8 @@ TEST_F(ServiceNotification,
 
   _svc->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -335,8 +335,8 @@ TEST_F(ServiceNotification,
   _svc->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(service_escalation);
   _svc->set_last_notification(19999);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -359,8 +359,8 @@ TEST_F(ServiceNotification,
   _svc->set_last_notification(19500);
   _svc->set_notification_number(1);
   _svc->set_notification_interval(0);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -379,10 +379,10 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
 
   _svc->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(service_escalation);
-  _svc->remove_notify_on(notifier::critical);
+  _svc->remove_notify_on(notification::critical);
   _svc->set_current_state(engine::service::state_critical);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -406,8 +406,8 @@ TEST_F(ServiceNotification,
   _svc->set_last_hard_state_change(20000 - 200);
   /* It is multiplicated by config->interval_length(): we set 5 for 5*60 */
   _svc->set_first_notification_delay(5);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -430,8 +430,8 @@ TEST_F(ServiceNotification,
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(20000 - 400);
   _svc->set_first_notification_delay(5);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 }
@@ -458,8 +458,8 @@ TEST_F(ServiceNotification,
   /* We configure the notification interval to 2 minutes */
   _svc->set_notification_interval(2);
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 
@@ -468,8 +468,8 @@ TEST_F(ServiceNotification,
   id = _svc->get_next_notification_id();
   /* Because of the notification not totally implemented, we must force the
    * notification number to be greater than 0 */
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
 
   /* No notification, because the delay is too short */
@@ -796,8 +796,8 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
     std::string outNOTIFICATIONISESCALATED;
     std::string outSERVICENOTIFICATIONNUMBER;
     ASSERT_EQ(
-        _svc->notify(notifier::reason_normal, "test_author", "test_comment",
-                     notifier::notification_option_forced),
+        _svc->notify(notification::reason_normal, "test_author", "test_comment",
+                     notification::notification_option_forced),
         OK);
     process_macros_r(mac, "$NOTIFICATIONTYPE$", outNOTIFICATIONTYPE, 0);
     process_macros_r(mac, "$NOTIFICATIONNUMBER$", outNOTIFICATIONNUMBER, 0);
@@ -923,8 +923,8 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
 
   _svc->set_current_state(engine::service::state_warning);
@@ -932,8 +932,8 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
   _svc->set_last_hard_state_change(43500);
   _svc->set_state_type(checkable::hard);
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _svc->get_next_notification_id());
 }
@@ -960,8 +960,8 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
   _svc->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 
@@ -969,8 +969,8 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   id = _svc->get_next_notification_id();
   _svc->set_notification_period_ptr(tperiod.get());
   _svc->set_notifications_enabled(false);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 
@@ -979,8 +979,8 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   _svc->set_notification_period_ptr(tperiod.get());
   _svc->set_notifications_enabled(true);
   pb_indexed_config.mut_state().set_enable_notifications(false);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }
@@ -1004,8 +1004,8 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
 
   /* Critical notification is sent */
   uint64_t id{_svc->get_next_notification_id()};
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 
@@ -1016,16 +1016,16 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
   _svc->set_last_acknowledgement(now);
 
   id = _svc->get_next_notification_id();
-  ASSERT_EQ(_svc->notify(notifier::reason_acknowledgement, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_acknowledgement, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 
   set_time(44000);
   /* The service is acknowledged => no more normal notification */
   id = _svc->get_next_notification_id();
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 
@@ -1037,8 +1037,8 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
 
   /* Critical notification is sent */
   id = _svc->get_next_notification_id();
-  ASSERT_EQ(_svc->notify(notifier::reason_recovery, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_recovery, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _svc->get_next_notification_id());
 }
@@ -1058,8 +1058,8 @@ TEST_F(ServiceNotification, SimpleVolatileServiceNotificationWithDowntime) {
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
-                         notifier::notification_option_none),
+  ASSERT_EQ(_svc->notify(notification::reason_normal, "", "",
+                         notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _svc->get_next_notification_id());
 }

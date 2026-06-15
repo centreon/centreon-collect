@@ -48,7 +48,7 @@ class command;
  */
 class contact {
  public:
-  typedef bool (contact::*to_notify)(notifier::reason_type,
+  typedef bool (contact::*to_notify)(notification::reason_type,
                                      notifier const&) const;
   contact();
   ~contact();
@@ -80,16 +80,16 @@ class contact {
   void set_retain_nonstatus_information(bool retain);
   std::string const& get_timezone() const;
   void set_timezone(std::string const& timezone);
-  bool notify_on(notifier::notifier_type type,
-                 notifier::notification_flag notif) const;
-  uint32_t notify_on(notifier::notifier_type type) const;
-  void set_notify_on(notifier::notifier_type type, uint32_t notif);
-  void add_notify_on(notifier::notifier_type type,
-                     notifier::notification_flag notif);
-  void remove_notify_on(notifier::notifier_type type,
-                        notifier::notification_flag notif);
-  uint32_t notify_on(notifier::notifier_type type,
-                     notifier::notifier_type notif) const;
+  bool notify_on(notification::notifier_type type,
+                 notification::notification_flag notif) const;
+  uint32_t notify_on(notification::notifier_type type) const;
+  void set_notify_on(notification::notifier_type type, uint32_t notif);
+  void add_notify_on(notification::notifier_type type,
+                     notification::notification_flag notif);
+  void remove_notify_on(notification::notifier_type type,
+                        notification::notification_flag notif);
+  uint32_t notify_on(notification::notifier_type type,
+                     notification::notifier_type notif) const;
   std::string const& get_host_notification_period() const;
   void set_host_notification_period(std::string const& period);
   std::string const& get_service_notification_period() const;
@@ -120,8 +120,8 @@ class contact {
   get_service_notification_commands();
   contactgroup_map_unsafe const& get_parent_groups() const;
   contactgroup_map_unsafe& get_parent_groups();
-  bool should_be_notified(notifier::notification_category cat,
-                          notifier::reason_type type,
+  bool should_be_notified(notification::notification_category cat,
+                          notification::reason_type type,
                           notifier const& notif) const;
   void resolve(uint32_t& w, uint32_t& e);
   map_customvar const& get_custom_variables() const;
@@ -136,17 +136,17 @@ class contact {
  private:
   static std::array<to_notify, 6> const _to_notify;
 
-  bool _to_notify_normal(notifier::reason_type type,
+  bool _to_notify_normal(notification::reason_type type,
                          notifier const& notif) const;
-  bool _to_notify_recovery(notifier::reason_type type,
+  bool _to_notify_recovery(notification::reason_type type,
                            notifier const& notif) const;
-  bool _to_notify_acknowledgement(notifier::reason_type type,
+  bool _to_notify_acknowledgement(notification::reason_type type,
                                   notifier const& notif) const;
-  bool _to_notify_flapping(notifier::reason_type type,
+  bool _to_notify_flapping(notification::reason_type type,
                            notifier const& notif) const;
-  bool _to_notify_downtime(notifier::reason_type type,
+  bool _to_notify_downtime(notification::reason_type type,
                            notifier const& notif) const;
-  bool _to_notify_custom(notifier::reason_type type,
+  bool _to_notify_custom(notification::reason_type type,
                          notifier const& notif) const;
 
   std::vector<std::string> _addresses;

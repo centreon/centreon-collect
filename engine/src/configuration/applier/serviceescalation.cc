@@ -56,14 +56,17 @@ void applier::serviceescalation::add_object(
       obj.hosts().data()[0], obj.service_description().data()[0],
       obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
-      ((obj.escalation_options() & action_se_warning) ? notifier::warning
-                                                      : notifier::none) |
-          ((obj.escalation_options() & action_se_unknown) ? notifier::unknown
-                                                          : notifier::none) |
-          ((obj.escalation_options() & action_se_critical) ? notifier::critical
-                                                           : notifier::none) |
-          ((obj.escalation_options() & action_se_recovery) ? notifier::ok
-                                                           : notifier::none),
+      ((obj.escalation_options() & action_se_warning) ? notification::warning
+                                                      : notification::none) |
+          ((obj.escalation_options() & action_se_unknown)
+               ? notification::unknown
+               : notification::none) |
+          ((obj.escalation_options() & action_se_critical)
+               ? notification::critical
+               : notification::none) |
+          ((obj.escalation_options() & action_se_recovery)
+               ? notification::ok
+               : notification::none),
       key);
 
   // Add new items to the global list.

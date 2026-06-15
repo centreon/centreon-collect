@@ -115,15 +115,15 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_downtimestart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_downtimestart, "", "",
+                          notification::notification_option_none),
             OK);
   _host->set_scheduled_downtime_depth(2);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_scheduled_downtime_depth(0);
-  ASSERT_EQ(_host->notify(notifier::reason_downtimeend, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_downtimeend, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 
@@ -151,7 +151,7 @@ TEST_F(HostDowntimeNotification,
   _host->set_last_hard_state_change(43000);
   contact_map::iterator it{engine::contact::contacts.find("admin")};
   engine::contact* ctct{it->second.get()};
-  ctct->set_notify_on(notifier::host_notification, notifier::none);
+  ctct->set_notify_on(notification::host_notification, notification::none);
   configuration::Timeperiod tp;
   configuration::timeperiod_helper tp_hlp(&tp);
   tp.set_timeperiod_name("tperiod");
@@ -173,15 +173,15 @@ TEST_F(HostDowntimeNotification,
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_downtimestart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_downtimestart, "", "",
+                          notification::notification_option_none),
             OK);
   _host->set_scheduled_downtime_depth(2);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_scheduled_downtime_depth(0);
-  ASSERT_EQ(_host->notify(notifier::reason_downtimeend, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_downtimeend, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
   std::string out{testing::internal::GetCapturedStdout()};
@@ -286,15 +286,15 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
 //  uint64_t id{_host->get_next_notification_id()};
 //  _host->notification_period_ptr = tperiod.get();
 //  _host->set_is_flapping(true);
-//  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-//                          notifier::notification_option_none),
+//  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+//                          notification::notification_option_none),
 //            OK);
 //  ASSERT_EQ(id + 1, _host->get_next_notification_id());
 //
 //  set_time(43050);
 //  /* Notification already sent, no notification should be sent. */
-//  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-//                          notifier::notification_option_none),
+//  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+//                          notification::notification_option_none),
 //            OK);
 //  ASSERT_EQ(id + 1, _host->get_next_notification_id());
 //}
@@ -327,22 +327,22 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntimeNotifyContactExitingUp) {
 //  uint64_t id{_host->get_next_notification_id()};
 //  _host->notification_period_ptr = tperiod.get();
 //  _host->set_is_flapping(true);
-//  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-//                          notifier::notification_option_none),
+//  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+//                          notification::notification_option_none),
 //            OK);
 //  ASSERT_EQ(id + 1, _host->get_next_notification_id());
 //
 //  set_time(43050);
 //  /* Downtimestop notification: sent. */
-//  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
-//                          notifier::notification_option_none),
+//  ASSERT_EQ(_host->notify(notification::reason_flappingstop, "", "",
+//                          notification::notification_option_none),
 //            OK);
 //  ASSERT_EQ(id + 2, _host->get_next_notification_id());
 //
 //  set_time(43100);
 //  /* Second flappingstop notification: not sent. */
-//  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
-//                          notifier::notification_option_none),
+//  ASSERT_EQ(_host->notify(notification::reason_flappingstop, "", "",
+//                          notification::notification_option_none),
 //            OK);
 //  ASSERT_EQ(id + 2, _host->get_next_notification_id());
 //}

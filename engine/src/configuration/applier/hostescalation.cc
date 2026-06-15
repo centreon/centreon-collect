@@ -51,13 +51,14 @@ void applier::hostescalation::add_object(
   auto he = std::make_shared<engine::hostescalation>(
       obj.hosts().data(0), obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
-      ((obj.escalation_options() & action_he_down) ? notifier::down
-                                                   : notifier::none) |
+      ((obj.escalation_options() & action_he_down) ? notification::down
+                                                   : notification::none) |
           ((obj.escalation_options() & action_he_unreachable)
-               ? notifier::unreachable
-               : notifier::none) |
-          ((obj.escalation_options() & action_he_recovery) ? notifier::up
-                                                           : notifier::none),
+               ? notification::unreachable
+               : notification::none) |
+          ((obj.escalation_options() & action_he_recovery)
+               ? notification::up
+               : notification::none),
       key);
 
   // Add new items to the configuration state.
@@ -121,12 +122,12 @@ void applier::hostescalation::remove_object(uint64_t hash_key) {
         it->second->get_notification_interval() ==
             obj.notification_interval() &&
         it->second->get_escalation_period() == obj.escalation_period() &&
-        it->second->get_escalate_on(notifier::down) ==
+        it->second->get_escalate_on(notification::down) ==
             static_cast<bool>(obj.escalation_options() & action_he_down) &&
-        it->second->get_escalate_on(notifier::unreachable) ==
+        it->second->get_escalate_on(notification::unreachable) ==
             static_cast<bool>(obj.escalation_options() &
                               action_he_unreachable) &&
-        it->second->get_escalate_on(notifier::up) ==
+        it->second->get_escalate_on(notification::up) ==
             static_cast<bool>(obj.escalation_options() & action_he_recovery)) {
       // We have the hostescalation to remove.
 

@@ -122,19 +122,19 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
   testing::internal::CaptureStdout();
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
   set_time(43500);
   _host->set_is_flapping(false);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstop, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
 
   std::string out{testing::internal::GetCapturedStdout()};
@@ -187,15 +187,15 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
   set_time(43050);
   /* Notification already sent, no notification should be sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -242,22 +242,22 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   _host->set_is_flapping(true);
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstart, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstart, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
   set_time(43050);
   /* Flappingstop notification: sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstop, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 
   set_time(43100);
   /* Second flappingstop notification: not sent. */
-  ASSERT_EQ(_host->notify(notifier::reason_flappingstop, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_flappingstop, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 2, _host->get_next_notification_id());
 }
@@ -265,8 +265,8 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
 TEST_F(HostFlappingNotification, CheckFlapping) {
   pb_indexed_config.mut_state().set_enable_flap_detection(true);
   _host->set_flap_detection_enabled(true);
-  _host->add_flap_detection_on(engine::host::up);
-  _host->add_flap_detection_on(engine::host::down);
+  _host->add_flap_detection_on(engine::notification::up);
+  _host->add_flap_detection_on(engine::notification::down);
   _host->set_notification_interval(1);
   set_time(45000);
   _host->set_current_state(engine::host::state_up);
@@ -329,9 +329,9 @@ TEST_F(HostFlappingNotification, CheckFlappingWithHostParentDown) {
   _host->set_last_hard_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
   _host2->set_flap_detection_enabled(true);
-  _host2->add_flap_detection_on(engine::host::up);
-  _host2->add_flap_detection_on(engine::host::down);
-  _host2->add_flap_detection_on(engine::host::unreachable);
+  _host2->add_flap_detection_on(engine::notification::up);
+  _host2->add_flap_detection_on(engine::notification::down);
+  _host2->add_flap_detection_on(engine::notification::unreachable);
   _host2->set_notification_interval(1);
   set_time(45000);
   _host2->set_current_state(engine::host::state_up);

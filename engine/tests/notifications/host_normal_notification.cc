@@ -103,8 +103,8 @@ TEST_F(HostNotification, SimpleNormalHostNotification) {
   _host->set_last_state(engine::host::state_down);
   _host->set_last_hard_state_change(43200);
   _host->set_state_type(checkable::hard);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -126,8 +126,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -149,8 +149,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
   uint64_t id{_host->get_next_notification_id()};
   _host->set_notifications_enabled(false);
   _host->set_notification_period_ptr(tperiod.get());
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -169,8 +169,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -191,8 +191,8 @@ TEST_F(HostNotification,
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_forced),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -211,8 +211,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_forced),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_forced),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -232,8 +232,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -253,8 +253,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -274,8 +274,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
   _host->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -296,8 +296,8 @@ TEST_F(HostNotification,
 
   _host->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(host_escalation);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -318,8 +318,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
   _host->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(host_escalation);
   _host->set_last_notification(19999);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -343,8 +343,8 @@ TEST_F(HostNotification,
   _host->set_last_notification(19500);
   _host->set_notification_number(1);
   _host->set_notification_interval(0);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -364,10 +364,10 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
 
   _host->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(host_escalation);
-  _host->remove_notify_on(notifier::down);
+  _host->remove_notify_on(notification::down);
   _host->set_current_state(engine::host::state_down);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -392,8 +392,8 @@ TEST_F(HostNotification,
   _host->set_last_hard_state_change(20000 - 200);
   /* It is multiplicated by config->interval_length(): we set 5 for 5*60 */
   _host->set_first_notification_delay(5);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -417,8 +417,8 @@ TEST_F(HostNotification,
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state_change(20000 - 400);
   _host->set_first_notification_delay(5);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -445,8 +445,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   _host->set_last_state(engine::host::state_down);
   _host->set_last_hard_state_change(43200);
   _host->set_state_type(checkable::hard);
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 
@@ -455,8 +455,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   id = _host->get_next_notification_id();
   /* Because of the notification not totally implemented, we must force the
    * notification number to be greater than 0 */
-  ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_normal, "", "",
+                          notification::notification_option_none),
             OK);
 
   /* No notification, because the delay is too short */

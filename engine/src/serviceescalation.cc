@@ -69,11 +69,11 @@ bool serviceescalation::is_viable(int state,
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
-    std::array<notifier::notification_flag, 4> nt = {
-        notifier::ok,
-        notifier::warning,
-        notifier::critical,
-        notifier::unknown,
+    std::array<notification::notification_flag, 4> nt = {
+        notification::ok,
+        notification::warning,
+        notification::critical,
+        notification::unknown,
     };
 
     if (!get_escalate_on(nt[state]))
@@ -127,17 +127,17 @@ bool serviceescalation::matches(
     const configuration::Serviceescalation& obj) const {
   uint32_t escalate_on =
       ((obj.escalation_options() & configuration::action_se_warning)
-           ? notifier::warning
-           : notifier::none) |
+           ? notification::warning
+           : notification::none) |
       ((obj.escalation_options() & configuration::action_se_unknown)
-           ? notifier::unknown
-           : notifier::none) |
+           ? notification::unknown
+           : notification::none) |
       ((obj.escalation_options() & configuration::action_se_critical)
-           ? notifier::critical
-           : notifier::none) |
+           ? notification::critical
+           : notification::none) |
       ((obj.escalation_options() & configuration::action_se_recovery)
-           ? notifier::ok
-           : notifier::none);
+           ? notification::ok
+           : notification::none);
   if (_hostname != obj.hosts().data(0) ||
       _description != obj.service_description().data(0) ||
       get_first_notification() != obj.first_notification() ||

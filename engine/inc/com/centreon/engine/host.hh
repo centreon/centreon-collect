@@ -127,7 +127,7 @@ class host : public notifier {
   void clear_flap(double percent_change,
                   double high_threshold,
                   double low_threshold);
-  void update_status(uint32_t attributes = STATUS_ALL) override;
+  void update_status(uint32_t attributes = notification::STATUS_ALL) override;
   void update_adaptive_data();
   void check_for_expired_acknowledgement();
   //  bool               check_notification_viability(reason_type type,
@@ -230,7 +230,7 @@ class host : public notifier {
   void set_initial_state(enum host_state current_state);
   int notify_contact(nagios_macros* mac,
                      contact* cntct,
-                     reason_type type,
+                     notification::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      int options,
