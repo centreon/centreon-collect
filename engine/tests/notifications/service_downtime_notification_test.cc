@@ -265,8 +265,8 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
       std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   set_time(t1);
 
-  int res1 = _svc->notify(notification::reason_downtimestart, "", "",
-                          notification::notification_option_none);
+  int res1 = _svc->notify(notifications::reason_downtimestart, "", "",
+                          notifications::notification_option_none);
   _svc->inc_scheduled_downtime_depth();
   uint64_t second_notif_id = _svc->get_next_notification_id();
 
@@ -277,8 +277,8 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   set_time(t2);
 
   _svc->set_scheduled_downtime_depth(0);
-  int res2 = _svc->notify(notification::reason_downtimeend, "", "",
-                          notification::notification_option_none);
+  int res2 = _svc->notify(notifications::reason_downtimeend, "", "",
+                          notifications::notification_option_none);
   uint64_t third_notif_id = _svc->get_next_notification_id();
 
   // Step 5: Advances the time by 300 seconds to `t3` and simulates a service
@@ -402,8 +402,8 @@ TEST_F(ServiceDowntimeNotification,
   auto t1 =
       std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   set_time(t1);
-  _svc->notify(notification::reason_downtimestart, "", "",
-               notification::notification_option_none);
+  _svc->notify(notifications::reason_downtimestart, "", "",
+               notifications::notification_option_none);
   _svc->inc_scheduled_downtime_depth();
   uint64_t first_notif_id = _svc->get_next_notification_id();
 
@@ -427,8 +427,8 @@ TEST_F(ServiceDowntimeNotification,
       std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
   set_time(t3);
   _svc->set_scheduled_downtime_depth(0);
-  _svc->notify(notification::reason_downtimeend, "", "",
-               notification::notification_option_none);
+  _svc->notify(notifications::reason_downtimeend, "", "",
+               notifications::notification_option_none);
   _svc->get_next_notification_id();
 
   // Step 5: Advances the time by 400 seconds to `t4` and simulates a service
