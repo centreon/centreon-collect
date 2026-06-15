@@ -37,7 +37,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::notification;
+using namespace com::centreon::engine::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
 
@@ -359,40 +359,40 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_recovery_notification_delay()
      << "\n"
         "  notify_on_unknown:                    "
-     << obj.get_notify_on(notification::unknown)
+     << obj.get_notify_on(notifications::unknown)
      << "\n"
         "  notify_on_warning:                    "
-     << obj.get_notify_on(notification::warning)
+     << obj.get_notify_on(notifications::warning)
      << "\n"
         "  notify_on_critical:                   "
-     << obj.get_notify_on(notification::critical)
+     << obj.get_notify_on(notifications::critical)
      << "\n"
         "  notify_on_recovery:                   "
-     << obj.get_notify_on(notification::ok)
+     << obj.get_notify_on(notifications::ok)
      << "\n"
         "  notify_on_flappingstart:              "
-     << obj.get_notify_on(notification::flappingstart)
+     << obj.get_notify_on(notifications::flappingstart)
      << "\n"
         "  notify_on_flappingstop:               "
-     << obj.get_notify_on(notification::flappingstop)
+     << obj.get_notify_on(notifications::flappingstop)
      << "\n"
         "  notify_on_flappingdisabled:           "
-     << obj.get_notify_on(notification::flappingdisabled)
+     << obj.get_notify_on(notifications::flappingdisabled)
      << "\n"
         "  notify_on_downtime:                   "
-     << obj.get_notify_on(notification::downtime)
+     << obj.get_notify_on(notifications::downtime)
      << "\n"
         "  stalk_on_ok:                          "
-     << obj.get_stalk_on(notification::ok)
+     << obj.get_stalk_on(notifications::ok)
      << "\n"
         "  stalk_on_warning:                     "
-     << obj.get_stalk_on(notification::warning)
+     << obj.get_stalk_on(notifications::warning)
      << "\n"
         "  stalk_on_unknown:                     "
-     << obj.get_stalk_on(notification::unknown)
+     << obj.get_stalk_on(notifications::unknown)
      << "\n"
         "  stalk_on_critical:                    "
-     << obj.get_stalk_on(notification::critical)
+     << obj.get_stalk_on(notifications::critical)
      << "\n"
         "  is_volatile:                          "
      << obj.get_is_volatile()
@@ -412,16 +412,16 @@ std::ostream& operator<<(std::ostream& os,
      << obj.get_high_flap_threshold()
      << "\n"
         "  flap_detection_on_ok:                 "
-     << obj.get_flap_detection_on(notification::ok)
+     << obj.get_flap_detection_on(notifications::ok)
      << "\n"
         "  flap_detection_on_warning:            "
-     << obj.get_flap_detection_on(notification::warning)
+     << obj.get_flap_detection_on(notifications::warning)
      << "\n"
         "  flap_detection_on_unknown:            "
-     << obj.get_flap_detection_on(notification::unknown)
+     << obj.get_flap_detection_on(notifications::unknown)
      << "\n"
         "  flap_detection_on_critical:           "
-     << obj.get_flap_detection_on(notification::critical)
+     << obj.get_flap_detection_on(notifications::critical)
      << "\n"
         "  process_performance_data:             "
      << obj.get_process_performance_data()
@@ -503,11 +503,11 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  is_being_freshened:                   "
      << obj.get_is_being_freshened()
      << "\n  notified_on_unknown:                  "
-     << obj.get_notified_on(notification::unknown)
+     << obj.get_notified_on(notifications::unknown)
      << "\n  notified_on_warning:                  "
-     << obj.get_notified_on(notification::warning)
+     << obj.get_notified_on(notifications::warning)
      << "\n  notified_on_critical:                 "
-     << obj.get_notified_on(notification::critical)
+     << obj.get_notified_on(notifications::critical)
      << "\n  current_notification_number:          "
      << obj.get_notification_number()
      << "\n  current_notification_id:              "
@@ -746,36 +746,36 @@ com::centreon::engine::service* add_service(
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
-    flap_detection_on = notification::none;
+    flap_detection_on = notifications::none;
     flap_detection_on |=
-        (flap_detection_on_critical > 0 ? notification::critical : 0);
-    flap_detection_on |= (flap_detection_on_ok > 0 ? notification::ok : 0);
+        (flap_detection_on_critical > 0 ? notifications::critical : 0);
+    flap_detection_on |= (flap_detection_on_ok > 0 ? notifications::ok : 0);
     flap_detection_on |=
-        (flap_detection_on_unknown > 0 ? notification::unknown : 0);
+        (flap_detection_on_unknown > 0 ? notifications::unknown : 0);
     flap_detection_on |=
-        (flap_detection_on_warning > 0 ? notification::warning : 0);
+        (flap_detection_on_warning > 0 ? notifications::warning : 0);
     obj->set_flap_detection_on(flap_detection_on);
     obj->set_modified_attributes(MODATTR_NONE);
     uint32_t notify_on;
-    notify_on = notification::none;
-    notify_on |= (notify_critical > 0 ? notification::critical : 0);
-    notify_on |= (notify_downtime > 0 ? notification::downtime : 0);
-    notify_on |= (notify_flapping > 0 ? (notification::flappingstart |
-                                         notification::flappingstop |
-                                         notification::flappingdisabled)
+    notify_on = notifications::none;
+    notify_on |= (notify_critical > 0 ? notifications::critical : 0);
+    notify_on |= (notify_downtime > 0 ? notifications::downtime : 0);
+    notify_on |= (notify_flapping > 0 ? (notifications::flappingstart |
+                                         notifications::flappingstop |
+                                         notifications::flappingdisabled)
                                       : 0);
-    notify_on |= (notify_recovery > 0 ? notification::ok : 0);
-    notify_on |= (notify_unknown > 0 ? notification::unknown : 0);
-    notify_on |= (notify_warning > 0 ? notification::warning : 0);
+    notify_on |= (notify_recovery > 0 ? notifications::ok : 0);
+    notify_on |= (notify_unknown > 0 ? notifications::unknown : 0);
+    notify_on |= (notify_warning > 0 ? notifications::warning : 0);
     obj->set_notify_on(notify_on);
     obj->set_process_performance_data(process_perfdata > 0);
     obj->set_retain_nonstatus_information(retain_nonstatus_information > 0);
     obj->set_retain_status_information(retain_status_information > 0);
     obj->set_should_be_scheduled(true);
-    uint32_t stalk_on = (stalk_on_critical ? notification::critical : 0) |
-                        (stalk_on_ok ? notification::ok : 0) |
-                        (stalk_on_unknown ? notification::unknown : 0) |
-                        (stalk_on_warning ? notification::warning : 0);
+    uint32_t stalk_on = (stalk_on_critical ? notifications::critical : 0) |
+                        (stalk_on_ok ? notifications::ok : 0) |
+                        (stalk_on_unknown ? notifications::unknown : 0) |
+                        (stalk_on_warning ? notifications::warning : 0);
     obj->set_stalk_on(stalk_on);
     obj->set_state_type(notifier::hard);
 
@@ -3555,9 +3555,9 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   }
 
   // Check for sane recovery options.
-  if (get_notifications_enabled() && get_notify_on(notification::ok) &&
-      !get_notify_on(notification::warning) &&
-      !get_notify_on(notification::critical)) {
+  if (get_notifications_enabled() && get_notify_on(notifications::ok) &&
+      !get_notify_on(notifications::warning) &&
+      !get_notify_on(notifications::critical)) {
     config_logger->warn(
         "Warning: Recovery notification option in service '{}' for host '{}' "
         "doesn't make any sense - specify warning and /or critical "

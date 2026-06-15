@@ -31,7 +31,7 @@
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::notification;
+using namespace com::centreon::engine::notifications;
 
 using com::centreon::common::rapidjson_helper;
 
@@ -736,36 +736,36 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
-    flap_detection_on = notification::none;
+    flap_detection_on = notifications::none;
     flap_detection_on |=
-        (flap_detection_on_critical > 0 ? notification::critical : 0);
-    flap_detection_on |= (flap_detection_on_ok > 0 ? notification::ok : 0);
+        (flap_detection_on_critical > 0 ? notifications::critical : 0);
+    flap_detection_on |= (flap_detection_on_ok > 0 ? notifications::ok : 0);
     flap_detection_on |=
-        (flap_detection_on_unknown > 0 ? notification::unknown : 0);
+        (flap_detection_on_unknown > 0 ? notifications::unknown : 0);
     flap_detection_on |=
-        (flap_detection_on_warning > 0 ? notification::warning : 0);
+        (flap_detection_on_warning > 0 ? notifications::warning : 0);
     obj->set_flap_detection_on(flap_detection_on);
     obj->set_modified_attributes(MODATTR_NONE);
     uint32_t notify_on;
-    notify_on = notification::none;
-    notify_on |= (notify_critical > 0 ? notification::critical : 0);
-    notify_on |= (notify_downtime > 0 ? notification::downtime : 0);
-    notify_on |= (notify_flapping > 0 ? (notification::flappingstart |
-                                         notification::flappingstop |
-                                         notification::flappingdisabled)
+    notify_on = notifications::none;
+    notify_on |= (notify_critical > 0 ? notifications::critical : 0);
+    notify_on |= (notify_downtime > 0 ? notifications::downtime : 0);
+    notify_on |= (notify_flapping > 0 ? (notifications::flappingstart |
+                                         notifications::flappingstop |
+                                         notifications::flappingdisabled)
                                       : 0);
-    notify_on |= (notify_recovery > 0 ? notification::ok : 0);
-    notify_on |= (notify_unknown > 0 ? notification::unknown : 0);
-    notify_on |= (notify_warning > 0 ? notification::warning : 0);
+    notify_on |= (notify_recovery > 0 ? notifications::ok : 0);
+    notify_on |= (notify_unknown > 0 ? notifications::unknown : 0);
+    notify_on |= (notify_warning > 0 ? notifications::warning : 0);
     obj->set_notify_on(notify_on);
     obj->set_process_performance_data(process_perfdata > 0);
     obj->set_retain_nonstatus_information(retain_nonstatus_information > 0);
     obj->set_retain_status_information(retain_status_information > 0);
     obj->set_should_be_scheduled(true);
-    uint32_t stalk_on = (stalk_on_critical ? notification::critical : 0) |
-                        (stalk_on_ok ? notification::ok : 0) |
-                        (stalk_on_unknown ? notification::unknown : 0) |
-                        (stalk_on_warning ? notification::warning : 0);
+    uint32_t stalk_on = (stalk_on_critical ? notifications::critical : 0) |
+                        (stalk_on_ok ? notifications::ok : 0) |
+                        (stalk_on_unknown ? notifications::unknown : 0) |
+                        (stalk_on_warning ? notifications::warning : 0);
     obj->set_stalk_on(stalk_on);
     obj->set_state_type(notifier::hard);
 

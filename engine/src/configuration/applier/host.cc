@@ -188,20 +188,20 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_retry_interval(static_cast<double>(new_obj.retry_interval()));
   h->set_max_attempts(static_cast<int>(new_obj.max_check_attempts()));
   h->set_notify_on(
-      (new_obj.notification_options() & action_hst_up ? notification::up
-                                                      : notification::none) |
-      (new_obj.notification_options() & action_hst_down ? notification::down
-                                                        : notification::none) |
+      (new_obj.notification_options() & action_hst_up ? notifications::up
+                                                      : notifications::none) |
+      (new_obj.notification_options() & action_hst_down ? notifications::down
+                                                        : notifications::none) |
       (new_obj.notification_options() & action_hst_unreachable
-           ? notification::unreachable
-           : notification::none) |
+           ? notifications::unreachable
+           : notifications::none) |
       (new_obj.notification_options() & action_hst_flapping
-           ? (notification::flappingstart | notification::flappingstop |
-              notification::flappingdisabled)
-           : notification::none) |
+           ? (notifications::flappingstart | notifications::flappingstop |
+              notifications::flappingdisabled)
+           : notifications::none) |
       (new_obj.notification_options() & action_hst_downtime
-           ? notification::downtime
-           : notification::none));
+           ? notifications::downtime
+           : notifications::none));
   h->set_notification_interval(
       static_cast<double>(new_obj.notification_interval()));
   h->set_first_notification_delay(
@@ -218,27 +218,27 @@ void applier::host::modify_object(configuration::Host* old_obj,
   h->set_flap_detection_enabled(new_obj.flap_detection_enabled());
   h->set_low_flap_threshold(new_obj.low_flap_threshold());
   h->set_high_flap_threshold(new_obj.high_flap_threshold());
-  h->set_flap_detection_on(notification::none);
+  h->set_flap_detection_on(notifications::none);
   h->add_flap_detection_on(new_obj.flap_detection_options() & action_hst_up
-                               ? notification::up
-                               : notification::none);
+                               ? notifications::up
+                               : notifications::none);
   h->add_flap_detection_on(new_obj.flap_detection_options() & action_hst_down
-                               ? notification::down
-                               : notification::none);
+                               ? notifications::down
+                               : notifications::none);
   h->add_flap_detection_on(new_obj.flap_detection_options() &
                                    action_hst_unreachable
-                               ? notification::unreachable
-                               : notification::none);
-  h->set_stalk_on(notification::none);
+                               ? notifications::unreachable
+                               : notifications::none);
+  h->set_stalk_on(notifications::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_up
-                      ? notification::up
-                      : notification::none);
+                      ? notifications::up
+                      : notifications::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_down
-                      ? notification::down
-                      : notification::none);
+                      ? notifications::down
+                      : notifications::none);
   h->add_stalk_on(new_obj.stalking_options() & action_hst_unreachable
-                      ? notification::unreachable
-                      : notification::none);
+                      ? notifications::unreachable
+                      : notifications::none);
   h->set_process_performance_data(
       static_cast<int>(new_obj.process_perf_data()));
   h->set_check_freshness(static_cast<int>(new_obj.check_freshness()));

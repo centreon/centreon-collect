@@ -17,10 +17,10 @@
  *
  */
 
-#ifndef CCE_NOTIFICATION_MANAGER_HH
-#define CCE_NOTIFICATION_MANAGER_HH
+#ifndef CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
+#define CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
 
-namespace com::centreon::engine::notification {
+namespace com::centreon::engine::notifications {
 
 /* Status attributes. Used as argument in the notifier::update_status(). */
 enum status_attribute {
@@ -85,6 +85,33 @@ enum notification_option {
   notification_option_increment = 4,
 };
 
-}  // namespace com::centreon::engine::notification
+/**
+ * @brief Central manager for notifications (Meyers singleton).
+ *
+ * Single, lazily-constructed instance accessed through instance(). The static
+ * local makes the initialization thread-safe (C++11 magic statics) and the
+ * instance is destroyed automatically at program exit. Not copyable nor
+ * movable.
+ */
+class notification_manager {
+  /* Construction/destruction are private: the only instance is the static
+   * local in instance(). */
+  notification_manager();
+  ~notification_manager() = default;
 
-#endif  // !CCE_NOTIFICATION_MANAGER_HH
+ public:
+  static notification_manager& instance();
+
+  notification_manager(const notification_manager&) = delete;
+  notification_manager& operator=(const notification_manager&) = delete;
+  notification_manager(notification_manager&&) = delete;
+  notification_manager& operator=(notification_manager&&) = delete;
+
+  /* Public API goes here, e.g.:
+   * void notify(notifier* n, reason_type type, notification_option options);
+   */
+};
+
+}  // namespace com::centreon::engine::notifications
+
+#endif  // !CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH

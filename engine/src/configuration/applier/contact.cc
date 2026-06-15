@@ -136,44 +136,44 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
   c->set_addresses(std::move(addr));
 
   c->set_notify_on(
-      notification::service_notification,
+      notifications::service_notification,
       (new_object.service_notification_options() & action_svc_unknown
-           ? notification::unknown
-           : notification::none) |
+           ? notifications::unknown
+           : notifications::none) |
           (new_object.service_notification_options() & action_svc_warning
-               ? notification::warning
-               : notification::none) |
+               ? notifications::warning
+               : notifications::none) |
           (new_object.service_notification_options() & action_svc_critical
-               ? notification::critical
-               : notification::none) |
+               ? notifications::critical
+               : notifications::none) |
           (new_object.service_notification_options() & action_svc_ok
-               ? notification::ok
-               : notification::none) |
+               ? notifications::ok
+               : notifications::none) |
           (new_object.service_notification_options() & action_svc_flapping
-               ? (notification::flappingstart | notification::flappingstop |
-                  notification::flappingdisabled)
-               : notification::none) |
+               ? (notifications::flappingstart | notifications::flappingstop |
+                  notifications::flappingdisabled)
+               : notifications::none) |
           (new_object.service_notification_options() & action_svc_downtime
-               ? notification::downtime
-               : notification::none));
+               ? notifications::downtime
+               : notifications::none));
   c->set_notify_on(
-      notification::host_notification,
+      notifications::host_notification,
       (new_object.host_notification_options() & action_hst_down
-           ? notification::down
-           : notification::none) |
+           ? notifications::down
+           : notifications::none) |
           (new_object.host_notification_options() & action_hst_unreachable
-               ? notification::unreachable
-               : notification::none) |
+               ? notifications::unreachable
+               : notifications::none) |
           (new_object.host_notification_options() & action_hst_up
-               ? notification::up
-               : notification::none) |
+               ? notifications::up
+               : notifications::none) |
           (new_object.host_notification_options() & action_hst_flapping
-               ? (notification::flappingstart | notification::flappingstop |
-                  notification::flappingdisabled)
-               : notification::none) |
+               ? (notifications::flappingstart | notifications::flappingstop |
+                  notifications::flappingdisabled)
+               : notifications::none) |
           (new_object.host_notification_options() & action_hst_downtime
-               ? notification::downtime
-               : notification::none));
+               ? notifications::downtime
+               : notifications::none));
   if (c->get_host_notification_period() !=
       new_object.host_notification_period())
     c->set_host_notification_period(new_object.host_notification_period());

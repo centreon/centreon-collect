@@ -317,10 +317,10 @@ std::ostream& dump::host(std::ostream& os,
      << obj.get_notifications_enabled()
      << "\n"
         "notified_on_down="
-     << obj.get_notified_on(notification::down)
+     << obj.get_notified_on(notifications::down)
      << "\n"
         "notified_on_unreachable="
-     << obj.get_notified_on(notification::unreachable)
+     << obj.get_notified_on(notifications::unreachable)
      << "\n"
         "obsess_over_host="
      << obj.obsess_over()
@@ -664,13 +664,13 @@ std::ostream& dump::service(std::ostream& os,
      << obj.get_notifications_enabled()
      << "\n"
         "notified_on_critical="
-     << obj.get_notified_on(notification::critical)
+     << obj.get_notified_on(notifications::critical)
      << "\n"
         "notified_on_unknown="
-     << obj.get_notified_on(notification::unknown)
+     << obj.get_notified_on(notifications::unknown)
      << "\n"
         "notified_on_warning="
-     << obj.get_notified_on(notification::warning)
+     << obj.get_notified_on(notifications::warning)
      << "\n"
         "obsess_over_service="
      << obj.obsess_over()

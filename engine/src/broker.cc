@@ -368,11 +368,11 @@ static void forward_host(int type,
   my_host->notification_number = h->get_notification_number();
   my_host->flap_detection_enabled = h->flap_detection_enabled();
   my_host->flap_detection_on_down =
-      h->get_flap_detection_on(engine::notification::down);
+      h->get_flap_detection_on(engine::notifications::down);
   my_host->flap_detection_on_unreachable =
-      h->get_flap_detection_on(engine::notification::unreachable);
+      h->get_flap_detection_on(engine::notifications::unreachable);
   my_host->flap_detection_on_up =
-      h->get_flap_detection_on(engine::notification::up);
+      h->get_flap_detection_on(engine::notifications::up);
   my_host->freshness_threshold = h->get_freshness_threshold();
   my_host->has_been_checked = h->has_been_checked();
   my_host->high_flap_threshold = h->get_high_flap_threshold();
@@ -407,14 +407,14 @@ static void forward_host(int type,
   my_host->notification_interval = h->get_notification_interval();
   if (!h->notification_period().empty())
     my_host->notification_period = h->notification_period();
-  my_host->notify_on_down = h->get_notify_on(engine::notification::down);
+  my_host->notify_on_down = h->get_notify_on(engine::notifications::down);
   my_host->notify_on_downtime =
-      h->get_notify_on(engine::notification::downtime);
+      h->get_notify_on(engine::notifications::downtime);
   my_host->notify_on_flapping =
-      h->get_notify_on(engine::notification::flappingstart);
-  my_host->notify_on_recovery = h->get_notify_on(engine::notification::up);
+      h->get_notify_on(engine::notifications::flappingstart);
+  my_host->notify_on_recovery = h->get_notify_on(engine::notifications::up);
   my_host->notify_on_unreachable =
-      h->get_notify_on(engine::notification::unreachable);
+      h->get_notify_on(engine::notifications::unreachable);
   my_host->obsess_over = h->obsess_over();
   if (!h->get_plugin_output().empty()) {
     my_host->output = common::check_string_utf8(h->get_plugin_output());
@@ -432,10 +432,10 @@ static void forward_host(int type,
   my_host->retain_status_information = h->get_retain_status_information();
   my_host->retry_interval = h->retry_interval();
   my_host->should_be_scheduled = h->get_should_be_scheduled();
-  my_host->stalk_on_down = h->get_stalk_on(engine::notification::down);
+  my_host->stalk_on_down = h->get_stalk_on(engine::notifications::down);
   my_host->stalk_on_unreachable =
-      h->get_stalk_on(engine::notification::unreachable);
-  my_host->stalk_on_up = h->get_stalk_on(engine::notification::up);
+      h->get_stalk_on(engine::notifications::unreachable);
+  my_host->stalk_on_up = h->get_stalk_on(engine::notifications::up);
   my_host->state_type =
       (h->has_been_checked() ? h->get_state_type() : engine::notifier::hard);
   if (!h->get_statusmap_image().empty())
@@ -566,11 +566,11 @@ static void forward_pb_host(int type,
     host.set_notification_number(eh->get_notification_number());
     host.set_flap_detection(eh->flap_detection_enabled());
     host.set_flap_detection_on_down(
-        eh->get_flap_detection_on(engine::notification::down));
+        eh->get_flap_detection_on(engine::notifications::down));
     host.set_flap_detection_on_unreachable(
-        eh->get_flap_detection_on(engine::notification::unreachable));
+        eh->get_flap_detection_on(engine::notifications::unreachable));
     host.set_flap_detection_on_up(
-        eh->get_flap_detection_on(engine::notification::up));
+        eh->get_flap_detection_on(engine::notifications::up));
     host.set_freshness_threshold(eh->get_freshness_threshold());
     host.set_checked(eh->has_been_checked());
     host.set_high_flap_threshold(eh->get_high_flap_threshold());
@@ -606,14 +606,14 @@ static void forward_pb_host(int type,
     host.set_notification_interval(eh->get_notification_interval());
     if (!eh->notification_period().empty())
       host.set_notification_period(eh->notification_period());
-    host.set_notify_on_down(eh->get_notify_on(engine::notification::down));
+    host.set_notify_on_down(eh->get_notify_on(engine::notifications::down));
     host.set_notify_on_downtime(
-        eh->get_notify_on(engine::notification::downtime));
+        eh->get_notify_on(engine::notifications::downtime));
     host.set_notify_on_flapping(
-        eh->get_notify_on(engine::notification::flappingstart));
-    host.set_notify_on_recovery(eh->get_notify_on(engine::notification::up));
+        eh->get_notify_on(engine::notifications::flappingstart));
+    host.set_notify_on_recovery(eh->get_notify_on(engine::notifications::up));
     host.set_notify_on_unreachable(
-        eh->get_notify_on(engine::notification::unreachable));
+        eh->get_notify_on(engine::notifications::unreachable));
     host.set_obsess_over_host(eh->obsess_over());
     if (!eh->get_plugin_output().empty()) {
       host.set_output(common::check_string_utf8(eh->get_plugin_output()));
@@ -630,10 +630,10 @@ static void forward_pb_host(int type,
     host.set_retain_status_information(eh->get_retain_status_information());
     host.set_retry_interval(eh->retry_interval());
     host.set_should_be_scheduled(eh->get_should_be_scheduled());
-    host.set_stalk_on_down(eh->get_stalk_on(engine::notification::down));
+    host.set_stalk_on_down(eh->get_stalk_on(engine::notifications::down));
     host.set_stalk_on_unreachable(
-        eh->get_stalk_on(engine::notification::unreachable));
-    host.set_stalk_on_up(eh->get_stalk_on(engine::notification::up));
+        eh->get_stalk_on(engine::notifications::unreachable));
+    host.set_stalk_on_up(eh->get_stalk_on(engine::notifications::up));
     host.set_state_type(static_cast<com::centreon::broker::Host_StateType>(
         eh->has_been_checked() ? eh->get_state_type()
                                : engine::notifier::hard));
@@ -753,13 +753,13 @@ static void forward_service(int type,
     my_service->notification_number = s->get_notification_number();
     my_service->flap_detection_enabled = s->flap_detection_enabled();
     my_service->flap_detection_on_critical =
-        s->get_flap_detection_on(engine::notification::critical);
+        s->get_flap_detection_on(engine::notifications::critical);
     my_service->flap_detection_on_ok =
-        s->get_flap_detection_on(engine::notification::ok);
+        s->get_flap_detection_on(engine::notifications::ok);
     my_service->flap_detection_on_unknown =
-        s->get_flap_detection_on(engine::notification::unknown);
+        s->get_flap_detection_on(engine::notifications::unknown);
     my_service->flap_detection_on_warning =
-        s->get_flap_detection_on(engine::notification::warning);
+        s->get_flap_detection_on(engine::notifications::warning);
     my_service->freshness_threshold = s->get_freshness_threshold();
     my_service->has_been_checked = s->has_been_checked();
     my_service->high_flap_threshold = s->get_high_flap_threshold();
@@ -797,16 +797,17 @@ static void forward_service(int type,
     if (!s->notification_period().empty())
       my_service->notification_period = s->notification_period();
     my_service->notify_on_critical =
-        s->get_notify_on(engine::notification::critical);
+        s->get_notify_on(engine::notifications::critical);
     my_service->notify_on_downtime =
-        s->get_notify_on(engine::notification::downtime);
+        s->get_notify_on(engine::notifications::downtime);
     my_service->notify_on_flapping =
-        s->get_notify_on(engine::notification::flappingstart);
-    my_service->notify_on_recovery = s->get_notify_on(engine::notification::ok);
+        s->get_notify_on(engine::notifications::flappingstart);
+    my_service->notify_on_recovery =
+        s->get_notify_on(engine::notifications::ok);
     my_service->notify_on_unknown =
-        s->get_notify_on(engine::notification::unknown);
+        s->get_notify_on(engine::notifications::unknown);
     my_service->notify_on_warning =
-        s->get_notify_on(engine::notification::warning);
+        s->get_notify_on(engine::notifications::warning);
     my_service->obsess_over = s->obsess_over();
     if (!s->get_plugin_output().empty()) {
       my_service->output = common::check_string_utf8(s->get_plugin_output());
@@ -828,12 +829,12 @@ static void forward_service(int type,
           common::check_string_utf8(s->description());
     my_service->should_be_scheduled = s->get_should_be_scheduled();
     my_service->stalk_on_critical =
-        s->get_stalk_on(engine::notification::critical);
-    my_service->stalk_on_ok = s->get_stalk_on(engine::notification::ok);
+        s->get_stalk_on(engine::notifications::critical);
+    my_service->stalk_on_ok = s->get_stalk_on(engine::notifications::ok);
     my_service->stalk_on_unknown =
-        s->get_stalk_on(engine::notification::unknown);
+        s->get_stalk_on(engine::notifications::unknown);
     my_service->stalk_on_warning =
-        s->get_stalk_on(engine::notification::warning);
+        s->get_stalk_on(engine::notifications::warning);
     my_service->state_type =
         (s->has_been_checked() ? s->get_state_type() : engine::notifier::hard);
 
@@ -1058,13 +1059,13 @@ static void forward_pb_service(int type,
     srv.set_notification_number(es->get_notification_number());
     srv.set_flap_detection(es->flap_detection_enabled());
     srv.set_flap_detection_on_critical(
-        es->get_flap_detection_on(engine::notification::critical));
+        es->get_flap_detection_on(engine::notifications::critical));
     srv.set_flap_detection_on_ok(
-        es->get_flap_detection_on(engine::notification::ok));
+        es->get_flap_detection_on(engine::notifications::ok));
     srv.set_flap_detection_on_unknown(
-        es->get_flap_detection_on(engine::notification::unknown));
+        es->get_flap_detection_on(engine::notifications::unknown));
     srv.set_flap_detection_on_warning(
-        es->get_flap_detection_on(engine::notification::warning));
+        es->get_flap_detection_on(engine::notifications::warning));
     srv.set_freshness_threshold(es->get_freshness_threshold());
     srv.set_checked(es->has_been_checked());
     srv.set_high_flap_threshold(es->get_high_flap_threshold());
@@ -1110,14 +1111,16 @@ static void forward_pb_service(int type,
     if (!es->notification_period().empty())
       srv.set_notification_period(es->notification_period());
     srv.set_notify_on_critical(
-        es->get_notify_on(engine::notification::critical));
+        es->get_notify_on(engine::notifications::critical));
     srv.set_notify_on_downtime(
-        es->get_notify_on(engine::notification::downtime));
+        es->get_notify_on(engine::notifications::downtime));
     srv.set_notify_on_flapping(
-        es->get_notify_on(engine::notification::flappingstart));
-    srv.set_notify_on_recovery(es->get_notify_on(engine::notification::ok));
-    srv.set_notify_on_unknown(es->get_notify_on(engine::notification::unknown));
-    srv.set_notify_on_warning(es->get_notify_on(engine::notification::warning));
+        es->get_notify_on(engine::notifications::flappingstart));
+    srv.set_notify_on_recovery(es->get_notify_on(engine::notifications::ok));
+    srv.set_notify_on_unknown(
+        es->get_notify_on(engine::notifications::unknown));
+    srv.set_notify_on_warning(
+        es->get_notify_on(engine::notifications::warning));
     srv.set_obsess_over_service(es->obsess_over());
     if (!es->get_plugin_output().empty())
       *srv.mutable_output() =
@@ -1134,10 +1137,11 @@ static void forward_pb_service(int type,
     srv.set_retain_status_information(es->get_retain_status_information());
     srv.set_retry_interval(es->retry_interval());
     srv.set_should_be_scheduled(es->get_should_be_scheduled());
-    srv.set_stalk_on_critical(es->get_stalk_on(engine::notification::critical));
-    srv.set_stalk_on_ok(es->get_stalk_on(engine::notification::ok));
-    srv.set_stalk_on_unknown(es->get_stalk_on(engine::notification::unknown));
-    srv.set_stalk_on_warning(es->get_stalk_on(engine::notification::warning));
+    srv.set_stalk_on_critical(
+        es->get_stalk_on(engine::notifications::critical));
+    srv.set_stalk_on_ok(es->get_stalk_on(engine::notifications::ok));
+    srv.set_stalk_on_unknown(es->get_stalk_on(engine::notifications::unknown));
+    srv.set_stalk_on_warning(es->get_stalk_on(engine::notifications::warning));
     srv.set_state_type(static_cast<com::centreon::broker::Service_StateType>(
         es->has_been_checked() ? es->get_state_type()
                                : engine::notifier::hard));
@@ -2656,18 +2660,18 @@ static void forward_pb_host_status(const host* hst,
   uint16_t state =
       hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.
 
-  if (attributes != engine::notification::STATUS_ALL) {
+  if (attributes != engine::notifications::STATUS_ALL) {
     auto h{std::make_shared<neb::pb_adaptive_host_status>()};
     com::centreon::broker::AdaptiveHostStatus& host = h.get()->mut_obj();
-    if (attributes & engine::notification::STATUS_DOWNTIME_DEPTH) {
+    if (attributes & engine::notifications::STATUS_DOWNTIME_DEPTH) {
       host.set_host_id(hst->host_id());
       host.set_scheduled_downtime_depth(hst->get_scheduled_downtime_depth());
     }
-    if (attributes & engine::notification::STATUS_NOTIFICATION_NUMBER) {
+    if (attributes & engine::notifications::STATUS_NOTIFICATION_NUMBER) {
       host.set_host_id(hst->host_id());
       host.set_notification_number(hst->get_notification_number());
     }
-    if (attributes & engine::notification::STATUS_ACKNOWLEDGEMENT) {
+    if (attributes & engine::notifications::STATUS_ACKNOWLEDGEMENT) {
       host.set_host_id(hst->host_id());
       host.set_acknowledgement_type(hst->get_acknowledgement());
     }
@@ -4578,21 +4582,21 @@ static void forward_pb_service_status(const engine::service* svc,
 
   uint16_t state =
       svc->has_been_checked() ? svc->get_current_state() : 4;  // Pending state.
-  if (attributes != engine::notification::STATUS_ALL) {
+  if (attributes != engine::notifications::STATUS_ALL) {
     auto as = std::make_shared<neb::pb_adaptive_service_status>();
     AdaptiveServiceStatus& asscr = as.get()->mut_obj();
     fill_service_type(asscr, svc);
-    if (attributes & engine::notification::STATUS_DOWNTIME_DEPTH) {
+    if (attributes & engine::notifications::STATUS_DOWNTIME_DEPTH) {
       asscr.set_host_id(svc->host_id());
       asscr.set_service_id(svc->service_id());
       asscr.set_scheduled_downtime_depth(svc->get_scheduled_downtime_depth());
     }
-    if (attributes & engine::notification::STATUS_NOTIFICATION_NUMBER) {
+    if (attributes & engine::notifications::STATUS_NOTIFICATION_NUMBER) {
       asscr.set_host_id(svc->host_id());
       asscr.set_service_id(svc->service_id());
       asscr.set_notification_number(svc->get_notification_number());
     }
-    if (attributes & engine::notification::STATUS_ACKNOWLEDGEMENT) {
+    if (attributes & engine::notifications::STATUS_ACKNOWLEDGEMENT) {
       asscr.set_host_id(svc->host_id());
       asscr.set_service_id(svc->service_id());
       asscr.set_acknowledgement_type(svc->get_acknowledgement());

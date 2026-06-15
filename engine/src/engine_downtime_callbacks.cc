@@ -139,8 +139,8 @@ bool engine_downtime_callbacks::cancel_downtime(uint64_t host_id,
             "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host "
             "has been cancelled.",
             it->second->name());
-        it->second->notify(notification::reason_downtimecancelled, "", "",
-                           notification::notification_option_none);
+        it->second->notify(notifications::reason_downtimecancelled, "", "",
+                           notifications::notification_option_none);
       }
     }
   } else {
@@ -151,14 +151,14 @@ bool engine_downtime_callbacks::cancel_downtime(uint64_t host_id,
       found->second->dec_pending_flex_downtime();
     if (is_in_effect) {
       found->second->dec_scheduled_downtime_depth();
-      found->second->update_status(notification::STATUS_DOWNTIME_DEPTH);
+      found->second->update_status(notifications::STATUS_DOWNTIME_DEPTH);
       if (found->second->get_scheduled_downtime_depth() == 0) {
         _logger->info(
             "SERVICE DOWNTIME ALERT: {};{};CANCELLED; Scheduled downtime for "
             "service has been cancelled.",
             found->second->get_hostname(), found->second->description());
-        found->second->notify(notification::reason_downtimecancelled, "", "",
-                              notification::notification_option_none);
+        found->second->notify(notifications::reason_downtimecancelled, "", "",
+                              notifications::notification_option_none);
       }
     }
   }
@@ -367,11 +367,11 @@ void engine_downtime_callbacks::start_downtime_effect(
           "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
           "scheduled downtime",
           it->second->name());
-      it->second->notify(notification::reason_downtimestart, author, comment,
-                         notification::notification_option_none);
+      it->second->notify(notifications::reason_downtimestart, author, comment,
+                         notifications::notification_option_none);
     }
     it->second->inc_scheduled_downtime_depth();
-    it->second->update_status(notification::STATUS_DOWNTIME_DEPTH);
+    it->second->update_status(notifications::STATUS_DOWNTIME_DEPTH);
   } else {
     auto found = service::services_by_id.find({host_id, service_id});
     if (found == service::services_by_id.end() || !found->second)
@@ -385,11 +385,11 @@ void engine_downtime_callbacks::start_downtime_effect(
           "SERVICE DOWNTIME ALERT: {};{};STARTED; Service has entered a "
           "period of scheduled downtime",
           found->second->get_hostname(), found->second->description());
-      found->second->notify(notification::reason_downtimestart, author, comment,
-                            notification::notification_option_none);
+      found->second->notify(notifications::reason_downtimestart, author,
+                            comment, notifications::notification_option_none);
     }
     found->second->inc_scheduled_downtime_depth();
-    found->second->update_status(notification::STATUS_DOWNTIME_DEPTH);
+    found->second->update_status(notifications::STATUS_DOWNTIME_DEPTH);
   }
 }
 
@@ -427,8 +427,8 @@ void engine_downtime_callbacks::end_downtime_effect(
           "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
           "scheduled downtime",
           it->second->name());
-      it->second->notify(notification::reason_downtimeend, author, comment,
-                         notification::notification_option_none);
+      it->second->notify(notifications::reason_downtimeend, author, comment,
+                         notifications::notification_option_none);
     }
     it->second->update_status();
     if (!is_fixed && incremented_pending &&
@@ -448,10 +448,10 @@ void engine_downtime_callbacks::end_downtime_effect(
           "SERVICE DOWNTIME ALERT: {};{};STOPPED; Service has exited from a "
           "period of scheduled downtime",
           found->second->get_hostname(), found->second->description());
-      found->second->notify(notification::reason_downtimeend, author, comment,
-                            notification::notification_option_none);
+      found->second->notify(notifications::reason_downtimeend, author, comment,
+                            notifications::notification_option_none);
     }
-    found->second->update_status(notification::STATUS_DOWNTIME_DEPTH);
+    found->second->update_status(notifications::STATUS_DOWNTIME_DEPTH);
     if (!is_fixed && incremented_pending &&
         found->second->get_pending_flex_downtime() > 0)
       found->second->dec_pending_flex_downtime();
