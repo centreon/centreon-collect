@@ -25,11 +25,11 @@
 namespace com::centreon::engine {
 class contact;
 
-class notification {
-  friend std::ostream& operator<<(std::ostream& os, notification const& n);
+class notification_ev {
+  friend std::ostream& operator<<(std::ostream& os, notification_ev const& n);
 
   notifier* _parent;
-  notifier::reason_type _type;
+  notification::reason_type _type;
   std::string _author;
   std::string _message;
   uint32_t _options;
@@ -40,9 +40,9 @@ class notification {
   std::set<std::string> _notified_contact;
 
  public:
-  notification(
+  notification_ev(
       notifier* parent,
-      notifier::reason_type type,
+      notification::reason_type type,
       const std::string& author,
       const std::string& message,
       uint32_t options,
@@ -52,14 +52,14 @@ class notification {
       bool escalated = false,
       const std::set<std::string>& notified_contact = std::set<std::string>());
   int execute(const std::unordered_set<std::shared_ptr<contact>>& to_notify);
-  notifier::reason_type get_reason() const;
+  notification::reason_type get_reason() const;
   uint32_t get_notification_interval() const;
   bool sent_to(const std::string& user) const;
   void add_contacts(const std::set<std::string>& contact_notified);
   const std::set<std::string>& get_contacts() const;
 };
 
-std::ostream& operator<<(std::ostream& os, notification const& obj);
+std::ostream& operator<<(std::ostream& os, notification_ev const& obj);
 
 }  // namespace com::centreon::engine
 

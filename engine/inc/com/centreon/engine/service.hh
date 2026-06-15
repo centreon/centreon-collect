@@ -216,7 +216,8 @@ class service : public notifier {
                   double low_threshold);
   void enable_flap_detection();
   void disable_flap_detection();
-  void update_status(uint32_t status_attributes = STATUS_ALL) override;
+  void update_status(
+      uint32_t status_attributes = notification::STATUS_ALL) override;
   void update_adaptive_data();
   bool verify_check_viability(int check_options,
                               bool* time_is_valid,
@@ -224,7 +225,7 @@ class service : public notifier {
   void grab_macros_r(nagios_macros* mac) override;
   int notify_contact(nagios_macros* mac,
                      contact* cntct,
-                     reason_type type,
+                     notification::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      int options,

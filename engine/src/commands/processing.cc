@@ -979,8 +979,8 @@ void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
           "integer between 0 and 7",
           buf[0]);
     } else if (option >= 0 && option <= 7) {
-      hst->notify(notifier::reason_custom, buf[1], buf[2],
-                  static_cast<notifier::notification_option>(option));
+      hst->notify(notification::reason_custom, buf[1], buf[2],
+                  static_cast<notification::notification_option>(option));
     } else {
       SPDLOG_LOGGER_ERROR(
           runtime_logger,
@@ -1070,8 +1070,8 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
           buf[0]);
     } else if (notification_number >= 0 && notification_number <= 7) {
       svc->notify(
-          notifier::reason_custom, buf[1], buf[2],
-          static_cast<notifier::notification_option>(notification_number));
+          notification::reason_custom, buf[1], buf[2],
+          static_cast<notification::notification_option>(notification_number));
     } else {
       SPDLOG_LOGGER_ERROR(
           runtime_logger,

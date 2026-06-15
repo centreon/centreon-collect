@@ -74,8 +74,8 @@ class HostRecovery : public TestEngine {
     _host->get_next_notification_id();
     _host->set_notification_period_ptr(_tperiod.get());
     /* Sending a notification */
-    _host->notify(notifier::reason_normal, "", "",
-                  notifier::notification_option_none);
+    _host->notify(notification::reason_normal, "", "",
+                  notification::notification_option_none);
   }
 
   void TearDown() override {
@@ -99,8 +99,8 @@ TEST_F(HostRecovery, SimpleRecoveryHostNotificationWithDownState) {
   set_time(_current_time + 300);
 
   uint64_t id{_host->get_next_notification_id()};
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -119,8 +119,8 @@ TEST_F(HostRecovery, SimpleRecoveryHostNotificationWithHardUpState) {
   _host->set_state_type(engine::host::hard);
   _host->set_last_hard_state_change(_current_time);
   uint64_t id{_host->get_next_notification_id()};
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id + 1, _host->get_next_notification_id());
 }
@@ -138,8 +138,8 @@ TEST_F(HostRecovery, SimpleRecoveryHostNotificationWithSoftUpState) {
   _host->set_current_state(engine::host::state_up);
   _host->set_state_type(engine::host::soft);
   uint64_t id{_host->get_next_notification_id()};
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -164,8 +164,8 @@ TEST_F(HostRecovery,
   // Time too short. No notification will be sent.
   set_time(_current_time + 300);
   uint64_t id{_host->get_next_notification_id()};
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
 }
@@ -185,14 +185,14 @@ TEST_F(HostRecovery, SimpleRecoveryHostNotificationAfterDelay) {
   _host->set_current_state(engine::host::state_up);
   _host->set_last_hard_state_change(_current_time);
 
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
   ASSERT_EQ(id, _host->get_next_notification_id());
   _current_time += 350;
   set_time(_current_time);
-  ASSERT_EQ(_host->notify(notifier::reason_recovery, "", "",
-                          notifier::notification_option_none),
+  ASSERT_EQ(_host->notify(notification::reason_recovery, "", "",
+                          notification::notification_option_none),
             OK);
 
   ASSERT_EQ(id + 1, _host->get_next_notification_id());

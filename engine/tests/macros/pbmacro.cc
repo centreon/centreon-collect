@@ -722,9 +722,10 @@ TEST_F(Macro, PbNotificationRecipients) {
 
   nagios_macros* mac(get_global_macros());
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "test_contact",
-                         "test_comment", notifier::notification_option_forced),
-            OK);
+  ASSERT_EQ(
+      _svc->notify(notification::reason_normal, "test_contact", "test_comment",
+                   notification::notification_option_forced),
+      OK);
 
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONRECIPIENTS:test_host:test_svc$", out, 1);
@@ -785,9 +786,10 @@ TEST_F(Macro, PbNotificationAuthor) {
 
   nagios_macros* mac(get_global_macros());
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "test_contact",
-                         "test_comment", notifier::notification_option_forced),
-            OK);
+  ASSERT_EQ(
+      _svc->notify(notification::reason_normal, "test_contact", "test_comment",
+                   notification::notification_option_forced),
+      OK);
 
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONAUTHOR$", out, 1);
@@ -848,9 +850,10 @@ TEST_F(Macro, PbNotificationAuthorName) {
 
   nagios_macros* mac(get_global_macros());
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "test_contact",
-                         "test_comment", notifier::notification_option_forced),
-            OK);
+  ASSERT_EQ(
+      _svc->notify(notification::reason_normal, "test_contact", "test_comment",
+                   notification::notification_option_forced),
+      OK);
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONAUTHORNAME:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "test_contact");
@@ -902,9 +905,10 @@ TEST_F(Macro, PbNotificationAuthorAlias) {
 
   nagios_macros* mac(get_global_macros());
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "test_contact",
-                         "test_comment", notifier::notification_option_forced),
-            OK);
+  ASSERT_EQ(
+      _svc->notify(notification::reason_normal, "test_contact", "test_comment",
+                   notification::notification_option_forced),
+      OK);
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONAUTHORALIAS:test_host:test_svc$", out, 1);
   ASSERT_EQ(out, "test_contact");
@@ -956,9 +960,10 @@ TEST_F(Macro, PbNotificationComment) {
 
   nagios_macros* mac(get_global_macros());
 
-  ASSERT_EQ(_svc->notify(notifier::reason_normal, "test_contact",
-                         "test_comment", notifier::notification_option_forced),
-            OK);
+  ASSERT_EQ(
+      _svc->notify(notification::reason_normal, "test_contact", "test_comment",
+                   notification::notification_option_forced),
+      OK);
 
   std::string out;
   process_macros_r(mac, "$NOTIFICATIONCOMMENT$", out, 1);
