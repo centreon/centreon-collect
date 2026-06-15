@@ -130,6 +130,10 @@ class mysql_connection {
   void _query_int(database::mysql_task* t);
   void _commit(database::mysql_task* t);
   void _prepare(database::mysql_task* t);
+
+  template <typename task_type, typename success_handler_type>
+  void _execute_stmt(task_type* task, success_handler_type&& success_handler);
+
   void _statement(database::mysql_task* t);
   void _statement_res(database::mysql_task* t);
   template <typename T>
