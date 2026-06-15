@@ -135,12 +135,12 @@ void applier::host::_update(const configuration::State& config,
       obj.set_last_time_unreachable(*state.last_time_unreachable());
     obj.set_notified_on(
         (state.notified_on_down().has_value() && *state.notified_on_down()
-             ? notifier::down
-             : notifier::none) |
+             ? notification::down
+             : notification::none) |
         (state.notified_on_unreachable().has_value() &&
                  *state.notified_on_unreachable()
-             ? notifier::unreachable
-             : notifier::none));
+             ? notification::unreachable
+             : notification::none));
     if (state.last_notification().has_value())
       obj.set_last_notification(*state.last_notification());
     if (state.current_notification_number().has_value())

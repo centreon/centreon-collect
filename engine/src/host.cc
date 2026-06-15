@@ -41,6 +41,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::engine::notification;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
@@ -194,7 +195,7 @@ host::host(uint64_t host_id,
                notification_interval,
                max_attempts,
                (notify_up > 0 ? up : 0) | (notify_down > 0 ? down : 0) |
-                   (notify_downtime > 0 ? downtime : 0) |
+                   (notify_downtime > 0 ? notification::downtime : 0) |
                    (notify_flapping > 0
                         ? (flappingstart | flappingstop | flappingdisabled)
                         : 0) |
@@ -649,7 +650,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   {
     std::ostringstream oss;
     for (int i = 0; i < 6; i++) {
-      notification* s{obj.get_current_notifications()[i].get()};
+      notification_ev* s{obj.get_current_notifications()[i].get()};
       if (s)
         oss << "  notification_" << i << ": " << *s;
     }
@@ -712,25 +713,25 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_recovery_notification_delay()
      << "\n"
         "  notify_on_down:                       "
-     << obj.get_notify_on(notifier::down)
+     << obj.get_notify_on(notification::down)
      << "\n"
         "  notify_on_unreachable:                "
-     << obj.get_notify_on(notifier::unreachable)
+     << obj.get_notify_on(notification::unreachable)
      << "\n"
         "  notify_on_recovery:                   "
-     << obj.get_notify_on(notifier::up)
+     << obj.get_notify_on(notification::up)
      << "\n"
         "  notify_on_flappingstart:              "
-     << obj.get_notify_on(notifier::flappingstart)
+     << obj.get_notify_on(notification::flappingstart)
      << "\n"
         "  notify_on_flappingstop:               "
-     << obj.get_notify_on(notifier::flappingstop)
+     << obj.get_notify_on(notification::flappingstop)
      << "\n"
         "  notify_on_flappingdisabled:           "
-     << obj.get_notify_on(notifier::flappingdisabled)
+     << obj.get_notify_on(notification::flappingdisabled)
      << "\n"
         "  notify_on_downtime:                   "
-     << obj.get_notify_on(notifier::downtime)
+     << obj.get_notify_on(notification::downtime)
      << "\n"
         "  notification_period:                  "
      << obj.notification_period() << "\n"
@@ -747,22 +748,22 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_high_flap_threshold()
      << "\n"
         "  flap_detection_on_up:                 "
-     << obj.get_flap_detection_on(notifier::up)
+     << obj.get_flap_detection_on(notification::up)
      << "\n"
         "  flap_detection_on_down:               "
-     << obj.get_flap_detection_on(notifier::down)
+     << obj.get_flap_detection_on(notification::down)
      << "\n"
         "  flap_detection_on_unreachable:        "
-     << obj.get_flap_detection_on(notifier::unreachable)
+     << obj.get_flap_detection_on(notification::unreachable)
      << "\n"
         "  stalk_on_up:                          "
-     << obj.get_stalk_on(notifier::up)
+     << obj.get_stalk_on(notification::up)
      << "\n"
         "  stalk_on_down:                        "
-     << obj.get_stalk_on(notifier::down)
+     << obj.get_stalk_on(notification::down)
      << "\n"
         "  stalk_on_unreachable:                 "
-     << obj.get_stalk_on(notifier::unreachable)
+     << obj.get_stalk_on(notification::unreachable)
      << "\n"
         "  check_freshness:                      "
      << obj.check_freshness_enabled()
@@ -933,10 +934,10 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.get_is_being_freshened()
      << "\n"
         "  notified_on_down:                     "
-     << obj.get_notified_on(notifier::down)
+     << obj.get_notified_on(notification::down)
      << "\n"
         "  notified_on_unreachable:              "
-     << obj.get_notified_on(notifier::unreachable)
+     << obj.get_notified_on(notification::unreachable)
      << "\n"
         "  no_more_notifications:                "
      << obj.get_no_more_notifications()
@@ -1988,7 +1989,8 @@ void host::set_flap(double percent_change,
 
   /* send a notification */
   if (allow_flapstart_notification)
-    notify(reason_flappingstart, "", "", notifier::notification_option_none);
+    notify(reason_flappingstart, "", "",
+           notification::notification_option_none);
 }
 
 /* handles a host that has stopped flapping */
@@ -2015,10 +2017,10 @@ void host::clear_flap(double percent_change,
   set_is_flapping(false);
 
   /* send a notification */
-  notify(reason_flappingstop, "", "", notifier::notification_option_none);
+  notify(reason_flappingstop, "", "", notification::notification_option_none);
 
   /* Send a recovery notification if needed */
-  notify(reason_recovery, "", "", notifier::notification_option_none);
+  notify(reason_recovery, "", "", notification::notification_option_none);
 }
 
 /**
@@ -2165,9 +2167,9 @@ int host::handle_state() {
 
     /* notify contacts about the recovery or problem if its a "hard" state */
     if (get_current_state_int() == 0)
-      notify(reason_recovery, "", "", notifier::notification_option_none);
+      notify(reason_recovery, "", "", notification::notification_option_none);
     else
-      notify(reason_normal, "", "", notifier::notification_option_none);
+      notify(reason_normal, "", "", notification::notification_option_none);
 
     /* handle the host state change */
     handle_host_event(this);
@@ -2185,9 +2187,9 @@ int host::handle_state() {
   else {
     /* notify contacts if needed */
     if (get_current_state() != host::state_up)
-      notify(reason_normal, "", "", notifier::notification_option_none);
+      notify(reason_normal, "", "", notification::notification_option_none);
     else
-      notify(reason_recovery, "", "", notifier::notification_option_none);
+      notify(reason_recovery, "", "", notification::notification_option_none);
 
     /* if we're in a soft state and we should log host retries, do so now... */
     if (get_state_type() == soft && log_host_retries)
@@ -2298,7 +2300,7 @@ void host::grab_macros_r(nagios_macros* mac) {
 /* notify a specific contact that an entire host is down or up */
 int host::notify_contact(nagios_macros* mac,
                          contact* cntct,
-                         notifier::reason_type type,
+                         notification::reason_type type,
                          const std::string& not_author,
                          const std::string& not_data,
                          int options [[maybe_unused]],
@@ -2505,7 +2507,7 @@ bool host::is_valid_escalation_for_notification(escalation const* e,
 
   /*** EXCEPTION ***/
   /* broadcast options go to everyone, so this escalation is valid */
-  if (options & notifier::notification_option_broadcast)
+  if (options & notification::notification_option_broadcast)
     return true;
 
   /* skip this escalation if it happens later */
@@ -2656,7 +2658,8 @@ void host::handle_flap_detection_disabled() {
         this->name());
 
     /* send a notification */
-    notify(reason_flappingdisabled, "", "", notifier::notification_option_none);
+    notify(reason_flappingdisabled, "", "",
+           notification::notification_option_none);
 
     /* Send a recovery notification if needed */
     notify(reason_recovery, "", "", notification_option_none);
@@ -3549,8 +3552,9 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   }
 
   // Check for sane recovery options.
-  if (get_notifications_enabled() && get_notify_on(notifier::up) &&
-      !get_notify_on(notifier::down) && !get_notify_on(notifier::unreachable)) {
+  if (get_notifications_enabled() && get_notify_on(notification::up) &&
+      !get_notify_on(notification::down) &&
+      !get_notify_on(notification::unreachable)) {
     config_logger->warn(
         "Warning: Recovery notification option in host '{}' definition doesn't "
         "make any sense - specify down and/or "

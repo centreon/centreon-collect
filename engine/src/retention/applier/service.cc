@@ -137,15 +137,15 @@ void applier::service::update(const configuration::State& config,
       obj.set_check_options(*state.check_options());
     obj.set_notified_on(
         (state.notified_on_unknown().has_value() && *state.notified_on_unknown()
-             ? notifier::unknown
-             : notifier::none) |
+             ? notification::unknown
+             : notification::none) |
         (state.notified_on_warning().has_value() && *state.notified_on_warning()
-             ? notifier::warning
-             : notifier::none) |
+             ? notification::warning
+             : notification::none) |
         (state.notified_on_critical().has_value() &&
                  *state.notified_on_critical()
-             ? notifier::critical
-             : notifier::none));
+             ? notification::critical
+             : notification::none));
 
     if (state.current_notification_number().has_value())
       obj.set_notification_number(*state.current_notification_number());
