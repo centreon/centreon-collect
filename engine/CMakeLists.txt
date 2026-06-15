@@ -490,6 +490,7 @@ add_subdirectory(src/compatibility)
 add_subdirectory(src/events)
 add_subdirectory(src/logging)
 add_subdirectory(src/macros)
+add_subdirectory(src/notifications)
 add_subdirectory(modules)
 add_subdirectory(src/retention)
 add_subdirectory(enginerpc)
@@ -518,6 +519,7 @@ target_link_libraries(
   ${SOCKET_LIBRARIES}
   centreon_clib
   engine_conf
+  engine_notifications
   fmt::fmt
   spdlog::spdlog
   downtimes_lib

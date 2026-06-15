@@ -272,32 +272,32 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
         selectedhost->get_first_notification_delay());
     host->set_recovery_notification_delay(
         selectedhost->get_recovery_notification_delay());
-    host->set_notify_up(selectedhost->get_notify_on(notification::up));
-    host->set_notify_down(selectedhost->get_notify_on(notification::down));
+    host->set_notify_up(selectedhost->get_notify_on(notifications::up));
+    host->set_notify_down(selectedhost->get_notify_on(notifications::down));
     host->set_notify_unreachable(
-        selectedhost->get_notify_on(notification::unreachable));
+        selectedhost->get_notify_on(notifications::unreachable));
     host->set_notify_on_flappingstart(
-        selectedhost->get_notify_on(notification::flappingstart));
+        selectedhost->get_notify_on(notifications::flappingstart));
     host->set_notify_on_flappingstop(
-        selectedhost->get_notify_on(notification::flappingstop));
+        selectedhost->get_notify_on(notifications::flappingstop));
     host->set_notify_on_flappingdisabled(
-        selectedhost->get_notify_on(notification::flappingdisabled));
+        selectedhost->get_notify_on(notifications::flappingdisabled));
     host->set_notify_downtime(
-        selectedhost->get_notify_on(notification::downtime));
+        selectedhost->get_notify_on(notifications::downtime));
     host->set_notification_period(selectedhost->notification_period());
     host->set_flap_detection_enabled(selectedhost->flap_detection_enabled());
     host->set_low_flap_threshold(selectedhost->get_low_flap_threshold());
     host->set_high_flap_threshold(selectedhost->get_high_flap_threshold());
     host->set_flap_detection_on_up(
-        selectedhost->get_flap_detection_on(notification::up));
+        selectedhost->get_flap_detection_on(notifications::up));
     host->set_flap_detection_on_down(
-        selectedhost->get_flap_detection_on(notification::down));
+        selectedhost->get_flap_detection_on(notifications::down));
     host->set_flap_detection_on_unreachable(
-        selectedhost->get_flap_detection_on(notification::unreachable));
-    host->set_stalk_on_up(selectedhost->get_stalk_on(notification::up));
-    host->set_stalk_on_down(selectedhost->get_stalk_on(notification::down));
+        selectedhost->get_flap_detection_on(notifications::unreachable));
+    host->set_stalk_on_up(selectedhost->get_stalk_on(notifications::up));
+    host->set_stalk_on_down(selectedhost->get_stalk_on(notifications::down));
     host->set_stalk_on_unreachable(
-        selectedhost->get_stalk_on(notification::unreachable));
+        selectedhost->get_stalk_on(notifications::unreachable));
     host->set_check_freshness(selectedhost->check_freshness_enabled());
     host->set_freshness_threshold(selectedhost->get_freshness_threshold());
     host->set_process_performance_data(
@@ -366,9 +366,9 @@ grpc::Status engine_impl::GetHost(grpc::ServerContext* context [[maybe_unused]],
     host->set_has_been_checked(selectedhost->has_been_checked());
     host->set_is_being_freshened(selectedhost->get_is_being_freshened());
     host->set_notified_on_down(
-        selectedhost->get_notified_on(notification::down));
+        selectedhost->get_notified_on(notifications::down));
     host->set_notified_on_unreachable(
-        selectedhost->get_notified_on(notification::unreachable));
+        selectedhost->get_notified_on(notifications::unreachable));
     host->set_no_more_notifications(selectedhost->get_no_more_notifications());
     host->set_current_notification_id(
         selectedhost->get_current_notification_id());
@@ -484,40 +484,40 @@ grpc::Status engine_impl::GetContact(grpc::ServerContext* context
     }
 
     contact->set_host_notification_on_up(selectedcontact->notify_on(
-        notification::host_notification, notification::up));
+        notifications::host_notification, notifications::up));
     contact->set_host_notification_on_down(selectedcontact->notify_on(
-        notification::host_notification, notification::down));
+        notifications::host_notification, notifications::down));
     contact->set_host_notification_on_unreachable(selectedcontact->notify_on(
-        notification::host_notification, notification::unreachable));
+        notifications::host_notification, notifications::unreachable));
     contact->set_host_notification_on_flappingstart(selectedcontact->notify_on(
-        notification::host_notification, notification::flappingstart));
+        notifications::host_notification, notifications::flappingstart));
     contact->set_host_notification_on_flappingstop(selectedcontact->notify_on(
-        notification::host_notification, notification::flappingstop));
+        notifications::host_notification, notifications::flappingstop));
     contact->set_host_notification_on_flappingdisabled(
-        selectedcontact->notify_on(notification::host_notification,
-                                   notification::flappingdisabled));
+        selectedcontact->notify_on(notifications::host_notification,
+                                   notifications::flappingdisabled));
     contact->set_host_notification_on_downtime(selectedcontact->notify_on(
-        notification::host_notification, notification::downtime));
+        notifications::host_notification, notifications::downtime));
 
     contact->set_service_notification_on_ok(selectedcontact->notify_on(
-        notification::service_notification, notification::ok));
+        notifications::service_notification, notifications::ok));
     contact->set_service_notification_on_warning(selectedcontact->notify_on(
-        notification::service_notification, notification::warning));
+        notifications::service_notification, notifications::warning));
     contact->set_service_notification_on_unknown(selectedcontact->notify_on(
-        notification::service_notification, notification::unknown));
+        notifications::service_notification, notifications::unknown));
     contact->set_service_notification_on_critical(selectedcontact->notify_on(
-        notification::service_notification, notification::critical));
+        notifications::service_notification, notifications::critical));
     contact->set_service_notification_on_flappingstart(
-        selectedcontact->notify_on(notification::service_notification,
-                                   notification::flappingstart));
+        selectedcontact->notify_on(notifications::service_notification,
+                                   notifications::flappingstart));
     contact->set_service_notification_on_flappingstop(
-        selectedcontact->notify_on(notification::service_notification,
-                                   notification::flappingstop));
+        selectedcontact->notify_on(notifications::service_notification,
+                                   notifications::flappingstop));
     contact->set_service_notification_on_flappingdisabled(
-        selectedcontact->notify_on(notification::service_notification,
-                                   notification::flappingdisabled));
+        selectedcontact->notify_on(notifications::service_notification,
+                                   notifications::flappingdisabled));
     contact->set_service_notification_on_downtime(selectedcontact->notify_on(
-        notification::service_notification, notification::downtime));
+        notifications::service_notification, notifications::downtime));
 
     contact->set_host_notifications_enabled(
         selectedcontact->get_host_notifications_enabled());
@@ -614,27 +614,28 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
     service->set_recovery_notification_delay(
         selectedservice->get_recovery_notification_delay());
     service->set_notify_on_unknown(
-        selectedservice->get_notify_on(notification::unknown));
+        selectedservice->get_notify_on(notifications::unknown));
     service->set_notify_on_warning(
-        selectedservice->get_notify_on(notification::warning));
+        selectedservice->get_notify_on(notifications::warning));
     service->set_notify_on_critical(
-        selectedservice->get_notify_on(notification::critical));
-    service->set_notify_on_ok(selectedservice->get_notify_on(notification::ok));
+        selectedservice->get_notify_on(notifications::critical));
+    service->set_notify_on_ok(
+        selectedservice->get_notify_on(notifications::ok));
     service->set_notify_on_flappingstart(
-        selectedservice->get_notify_on(notification::flappingstart));
+        selectedservice->get_notify_on(notifications::flappingstart));
     service->set_notify_on_flappingstop(
-        selectedservice->get_notify_on(notification::flappingstop));
+        selectedservice->get_notify_on(notifications::flappingstop));
     service->set_notify_on_flappingdisabled(
-        selectedservice->get_notify_on(notification::flappingdisabled));
+        selectedservice->get_notify_on(notifications::flappingdisabled));
     service->set_notify_on_downtime(
-        selectedservice->get_notify_on(notification::downtime));
-    service->set_stalk_on_ok(selectedservice->get_stalk_on(notification::ok));
+        selectedservice->get_notify_on(notifications::downtime));
+    service->set_stalk_on_ok(selectedservice->get_stalk_on(notifications::ok));
     service->set_stalk_on_warning(
-        selectedservice->get_stalk_on(notification::warning));
+        selectedservice->get_stalk_on(notifications::warning));
     service->set_stalk_on_unknown(
-        selectedservice->get_stalk_on(notification::unknown));
+        selectedservice->get_stalk_on(notifications::unknown));
     service->set_stalk_on_critical(
-        selectedservice->get_stalk_on(notification::critical));
+        selectedservice->get_stalk_on(notifications::critical));
     service->set_is_volatile(selectedservice->get_is_volatile());
     service->set_notification_period(selectedservice->notification_period());
     service->set_flap_detection_enabled(
@@ -643,13 +644,13 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
     service->set_high_flap_threshold(
         selectedservice->get_high_flap_threshold());
     service->set_flap_detection_on_ok(
-        selectedservice->get_flap_detection_on(notification::ok));
+        selectedservice->get_flap_detection_on(notifications::ok));
     service->set_flap_detection_on_warning(
-        selectedservice->get_flap_detection_on(notification::warning));
+        selectedservice->get_flap_detection_on(notifications::warning));
     service->set_flap_detection_on_unknown(
-        selectedservice->get_flap_detection_on(notification::unknown));
+        selectedservice->get_flap_detection_on(notifications::unknown));
     service->set_flap_detection_on_critical(
-        selectedservice->get_flap_detection_on(notification::critical));
+        selectedservice->get_flap_detection_on(notifications::critical));
     service->set_process_performance_data(
         selectedservice->get_process_performance_data());
     service->set_check_freshness_enabled(
@@ -719,11 +720,11 @@ grpc::Status engine_impl::GetService(grpc::ServerContext* context
     service->set_has_been_checked(selectedservice->has_been_checked());
     service->set_is_being_freshened(selectedservice->get_is_being_freshened());
     service->set_notified_on_unknown(
-        selectedservice->get_notified_on(notification::unknown));
+        selectedservice->get_notified_on(notifications::unknown));
     service->set_notified_on_warning(
-        selectedservice->get_notified_on(notification::warning));
+        selectedservice->get_notified_on(notifications::warning));
     service->set_notified_on_critical(
-        selectedservice->get_notified_on(notification::critical));
+        selectedservice->get_notified_on(notifications::critical));
     service->set_notification_number(
         selectedservice->get_notification_number());
     service->set_current_notification_id(
@@ -1165,10 +1166,10 @@ grpc::Status engine_impl::GetHostEscalation(grpc::ServerContext* context
         selectedescalation->get_escalation_period());
     auto options = fmt::format(
         "{}{}{}",
-        selectedescalation->get_escalate_on(notification::down) ? "d" : "",
-        selectedescalation->get_escalate_on(notification::unreachable) ? "u"
-                                                                       : "",
-        selectedescalation->get_escalate_on(notification::up) ? "r" : "");
+        selectedescalation->get_escalate_on(notifications::down) ? "d" : "",
+        selectedescalation->get_escalate_on(notifications::unreachable) ? "u"
+                                                                        : "",
+        selectedescalation->get_escalate_on(notifications::up) ? "r" : "");
 
     if (options == "dur")
       options = "all";
@@ -1236,10 +1237,10 @@ grpc::Status engine_impl::GetServiceEscalation(
 
     auto options = fmt::format(
         "{}{}{}{}",
-        selectedescalation->get_escalate_on(notification::warning) ? "w" : "",
-        selectedescalation->get_escalate_on(notification::unknown) ? "u" : "",
-        selectedescalation->get_escalate_on(notification::critical) ? "c" : "",
-        selectedescalation->get_escalate_on(notification::ok) ? "r" : "");
+        selectedescalation->get_escalate_on(notifications::warning) ? "w" : "",
+        selectedescalation->get_escalate_on(notifications::unknown) ? "u" : "",
+        selectedescalation->get_escalate_on(notifications::critical) ? "c" : "",
+        selectedescalation->get_escalate_on(notifications::ok) ? "r" : "");
 
     if (options == "wucr")
       options = "all";
@@ -1682,7 +1683,7 @@ grpc::Status engine_impl::RemoveHostAcknowledgement(
     /* set the acknowledgement flag */
     temp_host->set_acknowledgement(AckType::NONE);
     /* update the status log with the host info */
-    temp_host->update_status(notification::STATUS_ACKNOWLEDGEMENT);
+    temp_host->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comment associated with the ack */
     temp_host->delete_acknowledgement_comment();
     return 0;
@@ -1722,7 +1723,7 @@ grpc::Status engine_impl::RemoveServiceAcknowledgement(
     /* set the acknowledgement flag */
     temp_service->set_acknowledgement(AckType::NONE);
     /* update the status log with the service info */
-    temp_service->update_status(notification::STATUS_ACKNOWLEDGEMENT);
+    temp_service->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
     /* remove any non-persistant comment associated with the ack */
     temp_service->delete_acknowledgement_comment();
     return 0;
@@ -1772,11 +1773,11 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
                                 request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
-      temp_host->notify(notification::reason_acknowledgement,
+      temp_host->notify(notifications::reason_acknowledgement,
                         request->ack_author(), request->ack_data(),
-                        notification::notification_option_none);
+                        notifications::notification_option_none);
     /* update the status log with the host info */
-    temp_host->update_status(notification::STATUS_ACKNOWLEDGEMENT);
+    temp_host->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
     /* add a comment for the acknowledgement */
     comment com(comment::host, comment::acknowledgment, temp_host->host_id(), 0,
                 current_time, request->ack_author(), request->ack_data(),
@@ -1838,11 +1839,11 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
                                 request->notify(), request->persistent());
     /* send out an acknowledgement notification */
     if (request->notify())
-      temp_service->notify(notification::reason_acknowledgement,
+      temp_service->notify(notifications::reason_acknowledgement,
                            request->ack_author(), request->ack_data(),
-                           notification::notification_option_none);
+                           notifications::notification_option_none);
     /* update the status log with the service info */
-    temp_service->update_status(notification::STATUS_ACKNOWLEDGEMENT);
+    temp_service->update_status(notifications::STATUS_ACKNOWLEDGEMENT);
 
     /* add a comment for the acknowledgement */
     comment com(comment::service, comment::acknowledgment,

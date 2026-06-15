@@ -47,10 +47,10 @@ class escalation {
   uint32_t get_last_notification() const;
   double get_notification_interval() const;
   void set_notification_interval(double notification_interval);
-  void add_escalate_on(notification::notification_flag type);
-  void remove_escalate_on(notification::notification_flag type);
+  void add_escalate_on(notifications::notification_flag type);
+  void remove_escalate_on(notifications::notification_flag type);
   uint32_t get_escalate_on() const;
-  bool get_escalate_on(notification::notification_flag type) const;
+  bool get_escalate_on(notifications::notification_flag type) const;
   void set_escalate_on(uint32_t escalate_on);
   virtual bool is_viable(int state, uint32_t notification_number) const;
   size_t internal_key() const;

@@ -17,8 +17,18 @@
  *
  */
 
-namespace com::centreon::engine {
+#include "com/centreon/engine/notifications/notification_manager.hh"
 
-class notification_manager {};
+using namespace com::centreon::engine::notifications;
 
-}  // namespace com::centreon::engine
+notification_manager::notification_manager() = default;
+
+/**
+ * @brief Get the unique instance of the notification manager.
+ *
+ * @return A reference to the notification_manager singleton.
+ */
+notification_manager& notification_manager::instance() {
+  static notification_manager instance;
+  return instance;
+}

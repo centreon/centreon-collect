@@ -28,7 +28,7 @@
 using namespace com::centreon::engine;
 
 notification_ev::notification_ev(notifier* parent,
-                                 notification::reason_type type,
+                                 notifications::reason_type type,
                                  std::string const& author,
                                  std::string const& message,
                                  uint32_t options,
@@ -96,31 +96,31 @@ int notification_ev::execute(
 
   /* set the notification type macro */
   switch (_type) {
-    case notification::reason_acknowledgement:
+    case notifications::reason_acknowledgement:
       mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
       break;
-    case notification::reason_flappingstart:
+    case notifications::reason_flappingstart:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
       break;
-    case notification::reason_flappingstop:
+    case notifications::reason_flappingstop:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
       break;
-    case notification::reason_flappingdisabled:
+    case notifications::reason_flappingdisabled:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
       break;
-    case notification::reason_downtimestart:
+    case notifications::reason_downtimestart:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
       break;
-    case notification::reason_downtimeend:
+    case notifications::reason_downtimeend:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
       break;
-    case notification::reason_downtimecancelled:
+    case notifications::reason_downtimecancelled:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
       break;
-    case notification::reason_custom:
+    case notifications::reason_custom:
       mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
       break;
-    case notification::reason_recovery:
+    case notifications::reason_recovery:
       mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
       break;
     default:
@@ -128,7 +128,7 @@ int notification_ev::execute(
       break;
   }
 
-  if (_parent->get_notifier_type() == notification::host_notification) {
+  if (_parent->get_notifier_type() == notifications::host_notification) {
     /* set the notification number macro */
     mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = std::to_string(_number);
 
@@ -184,7 +184,7 @@ int notification_ev::execute(
   return OK;
 }
 
-notification::reason_type notification_ev::get_reason() const {
+notifications::reason_type notification_ev::get_reason() const {
   return _type;
 }
 
