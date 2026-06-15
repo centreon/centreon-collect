@@ -45,14 +45,6 @@ class ba : public computable, public service_listener {
   const bool _generate_virtual_status;
   bool _in_downtime;
   timestamp _last_kpi_update;
-  /* (check time, hard state, downtime depth) of the last virtual service status
-   * published. Used by visit() to avoid re-emitting an identical status: RRD
-   * rejects a status whose timestamp it already stored ("ignored update error"),
-   * which a forced check or a reload would otherwise trigger by re-running
-   * visit() with _last_kpi_update unchanged (see BAWORST). */
-  timestamp _last_published_service_check{0};
-  state _last_published_service_state{state_ok};
-  bool _last_published_service_downtime{false};
   std::unique_ptr<pb_inherited_downtime> _inherited_downtime;
 
   std::vector<std::shared_ptr<pb_ba_event>> _initial_events;
@@ -144,12 +136,11 @@ class ba : public computable, public service_listener {
   void set_valid(bool valid);
   void set_downtime_behaviour(configuration::ba::downtime_behaviour value);
   void set_state_source(configuration::ba::state_source source);
-  void visit(io::stream* visitor);
+  void visit(io::stream* visitor, bool seed_service_status = false);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
                       io::stream* visitor) override;
   void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
                       io::stream* visitor) override;
-  void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);

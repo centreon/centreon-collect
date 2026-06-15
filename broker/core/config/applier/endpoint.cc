@@ -112,6 +112,21 @@ void endpoint::apply(
   // Copy endpoint configurations and apply eventual modifications.
   std::list<config::endpoint> tmp_endpoints(endpoints);
 
+  /* Normalize the desired configuration through its matching factory the same
+   * way endpoint creation will. Some factories adjust fields in has_endpoint()
+   * (e.g. the BAM factory forces read_timeout and cache_enabled); without
+   * normalizing here, _diff_endpoints() would compare an un-normalized fresh
+   * config against the already-normalized running one, so those endpoints would
+   * always look "reconfigured" on reload and get destroyed/recreated instead of
+   * updated in place. */
+  for (config::endpoint& ep : tmp_endpoints)
+    for (auto it = io::protocols::instance().begin(),
+              end = io::protocols::instance().end();
+         it != end; ++it)
+      if (it->second.osi_from == 1 &&
+          it->second.endpntfactry->has_endpoint(ep, nullptr))
+        break;
+
   // Remove old inputs and generate inputs to create.
   std::list<config::endpoint> endp_to_create;
   {

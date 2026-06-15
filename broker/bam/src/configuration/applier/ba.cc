@@ -218,11 +218,11 @@ std::shared_ptr<bam::ba> applier::ba::find_ba(uint32_t id) const {
  *
  *  @param[out] visitor  Visitor that will receive status.
  */
-void applier::ba::visit(io::stream* visitor) {
+void applier::ba::visit(io::stream* visitor, bool seed_service_status) {
   for (std::map<uint32_t, applied>::iterator it(_applied.begin()),
        end(_applied.end());
        it != end; ++it)
-    it->second.obj->visit(visitor);
+    it->second.obj->visit(visitor, seed_service_status);
 }
 
 /**
@@ -378,19 +378,6 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
     obj->set_initial_event(cfg.get_opened_event());
   book.listen(cfg.get_host_id(), cfg.get_service_id(), obj.get());
   return obj;
-}
-
-/**
- *  Save inherited downtime to the cache.
- *
- *  @param[in] cache  The cache.
- */
-void applier::ba::save_to_cache(persistent_cache& cache) {
-  for (std::map<uint32_t, applied>::const_iterator it = _applied.begin(),
-                                                   end = _applied.end();
-       it != end; ++it) {
-    it->second.obj->save_inherited_downtime(cache);
-  }
 }
 
 /**

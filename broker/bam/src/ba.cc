@@ -241,7 +241,7 @@ void ba::set_downtime_behaviour(configuration::ba::downtime_behaviour value) {
  *
  *  @param[out] visitor  Visitor that will receive BA status and events.
  */
-void ba::visit(io::stream* visitor) {
+void ba::visit(io::stream* visitor, bool seed_service_status) {
   if (visitor) {
     // Commit initial events.
     _commit_initial_events(visitor);
@@ -249,12 +249,18 @@ void ba::visit(io::stream* visitor) {
     // If no event was cached, create one if necessary.
     com::centreon::broker::bam::state hard_state(get_state_hard());
     bool state_changed(false);
+    // True when a new BA event is opened during this visit, i.e. the BA really
+    // transitioned (state/downtime change) or its first event is created. The
+    // virtual service status' last_check is the event start_time, so it only
+    // moves forward when a new event is opened.
+    bool event_opened(false);
     if (!_event) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: ba::visit no event => creation of one");
       if (_last_kpi_update.is_null())
         _last_kpi_update = time(nullptr);
       _open_new_event(visitor, hard_state);
+      event_opened = true;
     }
     // If state changed, close event and open a new one.
     else if (_in_downtime != _event->obj().in_downtime() ||
@@ -272,35 +278,22 @@ void ba::visit(io::stream* visitor) {
       visitor->write(std::static_pointer_cast<io::data>(_event));
       _event.reset();
       _open_new_event(visitor, hard_state);
+      event_opened = true;
     }
 
     // Generate BA status event.
     auto status{_generate_ba_status(state_changed)};
     visitor->write(status);
 
-    // Generate virtual service status event, unless it would duplicate the last
-    // one published. A forced check or a reload re-runs visit() without any KPI
-    // change, keeping last_check (== _last_kpi_update) constant; re-emitting the
-    // same status makes RRD log an "ignored update error" on a timestamp it
-    // already stored (see BAWORST). We still emit whenever the hard state or the
-    // downtime depth changed, even at a constant last_check.
-    if (_generate_virtual_status) {
-      timestamp check_time =
-          _event ? timestamp(_event->obj().start_time()) : _last_kpi_update;
-      if (check_time != _last_published_service_check ||
-          hard_state != _last_published_service_state ||
-          _in_downtime != _last_published_service_downtime) {
-        _last_published_service_check = check_time;
-        _last_published_service_state = hard_state;
-        _last_published_service_downtime = _in_downtime;
-        visitor->write(_generate_virtual_service_status());
-      } else {
-        SPDLOG_LOGGER_TRACE(
-            _logger,
-            "BAM: skipping duplicate virtual service status for BA {} at {}",
-            _id, check_time.get_time_t());
-      }
-    }
+    // Generate virtual service status event. It is published only when the BA
+    // transitioned (event_opened => last_check moved forward) or, at cold
+    // start, to seed the status downstream (seed_service_status). Re-emitting
+    // an unchanged status at a constant last_check would duplicate an RRD point
+    // and make RRD log an "ignored update error" (see BAWORST): this is exactly
+    // what happens on a reload of an unchanged BA (seed_service_status is false
+    // and no event is opened) and on repeated runtime visits with no change.
+    if (_generate_virtual_status && (seed_service_status || event_opened))
+      visitor->write(_generate_virtual_service_status());
   }
 }
 
@@ -379,14 +372,6 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     notify_parents_of_change(visitor);
   }
 }
-
-/**
- *  Save the inherited downtime to the cache.
- *
- *  @param[in] cache  The cache.
- */
-void ba::save_inherited_downtime(persistent_cache& cache
-                                 [[maybe_unused]]) const {}
 
 /**
  *  Set the inherited downtime of this ba.

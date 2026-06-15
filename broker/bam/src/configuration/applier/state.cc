@@ -118,8 +118,8 @@ bam::service_book& applier::state::book_service() {
  *
  *  @param[out] visitor  Visitor.
  */
-void applier::state::visit(io::stream* visitor) {
-  _ba_applier.visit(visitor);
+void applier::state::visit(io::stream* visitor, bool seed_service_status) {
+  _ba_applier.visit(visitor, seed_service_status);
   _kpi_applier.visit(visitor);
 }
 
@@ -275,7 +275,9 @@ void applier::state::save_to_cache(
 void applier::state::load_from_cache(
     const std::string& name,
     std::deque<std::string>& pending_ext_cmds) {
-  _logger->debug("BAM: Loading restoring inherited downtimes and BA states");
+  _logger->debug(
+      "BAM: restoring virtual service states and pending external commands "
+      "from cache");
 
   std::ifstream ifs;
   auto& state = config::applier::state::instance();
@@ -295,12 +297,13 @@ void applier::state::load_from_cache(
   }
   ifs.close();
   _book_service.apply(cache);
-  //_ba_applier.apply(cache);
   for (auto& cmd : cache.pending_external_commands()) {
     pending_ext_cmds.push_back(cmd);
   }
-  _logger->debug("BAM: BA states restored from cache file {}",
-                 cache_file.string());
+  _logger->debug(
+      "BAM: virtual service states restored from cache file {} (inherited "
+      "downtimes are not cached; they are recomputed from KPIs/DB)",
+      cache_file.string());
 }
 
 /**

@@ -81,9 +81,11 @@ monitoring_stream::monitoring_stream(
   // Prepare queries.
   _prepare();
 
-  // Let's update BAs then we will be able to load the cache with inherited
-  // downtimes.
-  update();
+  // The first update() (config apply + cache restore + publish) is driven by
+  // the failover once it has opened this stream (failover sets _update = true
+  // after a successful open). It therefore runs exactly once, at the right
+  // moment. Calling update() here as well would initialize — and publish — the
+  // BAs twice.
 }
 
 /**
@@ -178,7 +180,7 @@ void monitoring_stream::initialize() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream initialize");
   multiplexing::publisher pblshr;
   event_cache_visitor ev_cache;
-  _applier.visit(&ev_cache);
+  _applier.visit(&ev_cache, _first_update);
   ev_cache.commit_to(pblshr);
 }
 
@@ -210,9 +212,15 @@ void monitoring_stream::update() {
     _applier.apply(s);
     _ba_mapping = s.get_ba_svc_mapping();
     _rebuild();
-    initialize();
-    // Read cache.
+    /* Restore the runtime state (service states + pending external commands)
+     * from the cache BEFORE publishing. This way initialize() publishes the
+     * fully-restored, coherent state once, instead of first publishing a
+     * partial DB-only state and then overwriting it from the cache. */
     _read_cache();
+    initialize();
+    /* Subsequent update() calls are reloads: the virtual service statuses must
+     * not be republished (see _first_update). */
+    _first_update = false;
   } catch (std::exception const& e) {
     throw msg_fmt("BAM: could not process configuration update: {}", e.what());
   }
@@ -567,7 +575,8 @@ uint32_t monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       inherited_downtime const& dwn =
           *std::static_pointer_cast<inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          _logger, "BAM: processing inherited downtime (ba id {}, in downtime {})",
+          _logger,
+          "BAM: processing inherited downtime (ba id {}, in downtime {})",
           dwn.ba_id, dwn.in_downtime);
       _handle_inherited_downtime(dwn.ba_id, dwn.in_downtime);
     } break;
@@ -870,8 +879,8 @@ void monitoring_stream::_handle_inherited_downtime(uint32_t ba_id,
   if (in_downtime) {
     auto b = _applier.find_ba(ba_id);
     if (!b) {
-      _logger->error(
-          "BAM: BA {} not found, cannot schedule inherited downtime", ba_id);
+      _logger->error("BAM: BA {} not found, cannot schedule inherited downtime",
+                     ba_id);
       return;
     }
     time_t now = time(nullptr);
@@ -943,7 +952,9 @@ void monitoring_stream::_async_write_external_commands() {
 }
 
 /**
- *  Get inherited downtime from the cache.
+ *  Restore the runtime state from the cache: virtual service states and pending
+ *  external commands. Inherited downtimes are NOT cached; they are recomputed
+ *  from the KPIs/DB during update().
  */
 void monitoring_stream::_read_cache() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
@@ -964,7 +975,8 @@ void monitoring_stream::_read_cache() {
 }
 
 /**
- *  Save inherited downtime to the cache.
+ *  Save the runtime state to the cache: virtual service states and pending
+ *  external commands.
  */
 void monitoring_stream::_write_cache() {
   SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
