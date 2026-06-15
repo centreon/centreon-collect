@@ -465,14 +465,11 @@ sub is_logged_websocket {
         my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
             token_name => $token_name
         );
-        if ($status != 0) {
-            $self->{logger}->writeLogError('[proxy-httpserver] cannot get token - ' . $self->{tpapi_centreonv2}->error());
-            return 0;
-        } else {
+        if ($status == 0 && defined($results->{token})) {
             $check_conf_token = 0;
-            if ($results->{token} !~ $token_value ||
-                $results->{type} ne "poller" ||
-                $results->{is_revoked}) {
+            if ($results->{token} ne $token_value
+                || $results->{type} ne "poller"
+                || $results->{is_revoked}) {
                 $self->close_websocket(
                     code    => 500,
                     message => 'token authorization unallowed',
@@ -480,12 +477,14 @@ sub is_logged_websocket {
                 );
                 return 0;
             }
+        } else {
+            $self->{logger}->writeLogInfo('[proxy-httpserver] cannot get token - ' . $self->{tpapi_centreonv2}->error());
         }
     }
 
-    if ($check_conf_token == 1 &&
-        (!defined($self->{ws_clients}->{ $options{ws_id} }->{authorization}) ||
-        $self->{ws_clients}->{ $options{ws_id} }->{authorization} eq $token)) {
+    if ($check_conf_token == 1
+        && ($self->{config}->{httpserver}->{token} eq ""
+        || $self->{config}->{httpserver}->{token} ne $token)) {
         $self->close_websocket(
             code    => 500,
             message => 'token authorization unallowed',
@@ -515,7 +514,7 @@ sub is_logged_websocket {
         );
         return 0;
     }
-    if (!defined($content->{nodes}->[0]->{id}) or !defined($self->{nodes}->{$content->{nodes}->[0]->{id}})){
+    if (!defined($content->{nodes}->[0]->{id}) || !defined($self->{nodes}->{$content->{nodes}->[0]->{id}})){
         $self->{logger}->writeLogDebug("[proxy-httpserver] client connection for unknown poller id/uid : " . $content->{nodes}->[0]->{id});
        $self->close_websocket(
             code    => 500,

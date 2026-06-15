@@ -92,6 +92,36 @@ check one poller can connect to a central with env var ${id}
     Examples:    id    mode         env_token    --
         ...    1    pullwss        poller-1:myPollerToken
         ...    2    pullwss_uid    poller-1:myPollerToken
-        ...    3    pullwss        Central-1:centralCMAtoken
-        ...    4    pullwss        poller-2:myPollerToken
-        ...    5    pullwss        poller-3:myPollerToken
+
+check one poller cannot connect to a central with env var ${id}
+    [Teardown]    Stop Gorgone And Remove Gorgone Config
+    ...    @{process_list}
+    ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+
+    @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
+    Log To Console    \nStarting the gorgone setup
+    Set Environment Variable    GORGONE_TOKEN    ${env_token}
+
+    Ctn Init Tests
+    Gorgone Fix Schema
+    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
+
+    @{central_pullwss_config}=    Create List    ${pullwss_central_config}    ${gorgone_core_config}
+    @{poller_pullwss_config}=    Create List    ${gorgone_core_config}    ${pullwss_poller_config}
+    Setup Gorgone Config
+    ...    ${central_pullwss_config}
+    ...    gorgone_name=${mode}_gorgone_central_simple
+    Setup Gorgone Config
+    ...    ${poller_pullwss_config}
+    ...    gorgone_name=${mode}_gorgone_poller_2_simple
+    Start Gorgone    debug    ${mode}_gorgone_central_simple
+    Wait Until Port Is Bind    8086
+    Start Gorgone    debug    ${mode}_gorgone_poller_2_simple
+    # wait until gorgone http server bind the http api port.
+    Wait Until Port Is Bind    8085
+    Check Poller Is Connected    port=8086    expected_nb=0
+
+    Examples:    id    mode         env_token    --
+        ...    1    pullwss        Central-1:centralCMAtoken
+        ...    2    pullwss        poller-2:myPollerToken
+        ...    3    pullwss        do_not_exists:myPollerToken
