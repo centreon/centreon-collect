@@ -179,7 +179,7 @@ void process<use_mutex>::start_process(
     reader_type&& stdout_handler,
     reader_type&& stderr_handler,
     const std::chrono::system_clock::duration& timeout) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdout_handler = std::move(stdout_handler);
   _stderr_handler = std::move(stderr_handler);
   _start_process_nolock(std::move(handler), timeout);
@@ -189,7 +189,7 @@ template <bool use_mutex>
 void process<use_mutex>::start_process(
     handler_type&& handler,
     const std::chrono::system_clock::duration& timeout) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdout_handler = reader_type();
   _stderr_handler = reader_type();
   _start_process_nolock(std::move(handler), timeout);
@@ -296,7 +296,7 @@ void process<use_mutex>::_create_process() {
 template <bool use_mutex>
 void process<use_mutex>::_on_process_end() {
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     _timeout_timer.cancel();
   }
   _handler(*this, this->get_exit_code(), this->get_exit_status(), _stdout,

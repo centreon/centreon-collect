@@ -100,7 +100,7 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
  */
 void failover::exit() {
   SPDLOG_LOGGER_TRACE(_logger, "failover '{}' exit.", _name);
-  absl::MutexLock lck(&_state_m);
+  absl::MutexLock lck(_state_m);
   if (_state != not_started) {
     if (!_should_exit) {
       _should_exit = true;
@@ -150,7 +150,7 @@ time_t failover::get_retry_interval() const noexcept {
  *  Thread core function.
  */
 void failover::_run() {
-  absl::MutexLock lck(&_state_m);
+  absl::MutexLock lck(_state_m);
   // Initial log.
   SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is starting",
                       _name);
@@ -643,7 +643,7 @@ uint32_t failover::_get_queued_events() const {
  */
 void failover::start() {
   SPDLOG_LOGGER_DEBUG(_logger, "start failover '{}'.", _name);
-  absl::MutexLock lck(&_state_m);
+  absl::MutexLock lck(_state_m);
   if (_state != running) {
     _should_exit = false;
     _thread = std::thread(&failover::_run, this);

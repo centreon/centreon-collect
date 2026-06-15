@@ -316,7 +316,7 @@ TEST_F(ProtocolTest, AsyncSendRecvExecute) {
 
   proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
                                 const std::shared_ptr<ConnectorMess>& msg) {
-    absl::MutexLock l(&recv_mu);
+    absl::MutexLock l(recv_mu);
     recv_ec = ec;
     received = msg;
     recv_done = true;
@@ -328,19 +328,19 @@ TEST_F(ProtocolTest, AsyncSendRecvExecute) {
 
   proto.async_send(pipe.wp, make_execute(42),
                    [&](const boost::system::error_code& ec) {
-                     absl::MutexLock l(&send_mu);
+                     absl::MutexLock l(send_mu);
                      send_ec = ec;
                      send_done = true;
                    });
 
   {
-    absl::MutexLock l(&send_mu);
+    absl::MutexLock l(send_mu);
     send_mu.Await(absl::Condition(&send_done));
   }
   ASSERT_FALSE(send_ec) << "async_send: " << send_ec.message();
 
   {
-    absl::MutexLock l(&recv_mu);
+    absl::MutexLock l(recv_mu);
     recv_mu.Await(absl::Condition(&recv_done));
   }
   ASSERT_FALSE(recv_ec) << "async_recv: " << recv_ec.message();
@@ -366,7 +366,7 @@ TEST_F(ProtocolTest, AsyncSendRecvResult) {
 
   proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
                                 const std::shared_ptr<ConnectorMess>& msg) {
-    absl::MutexLock l(&recv_mu);
+    absl::MutexLock l(recv_mu);
     recv_ec = ec;
     received = msg;
     recv_done = true;
@@ -378,19 +378,19 @@ TEST_F(ProtocolTest, AsyncSendRecvResult) {
 
   proto.async_send(pipe.wp, make_result(99, 2),
                    [&](const boost::system::error_code& ec) {
-                     absl::MutexLock l(&send_mu);
+                     absl::MutexLock l(send_mu);
                      send_ec = ec;
                      send_done = true;
                    });
 
   {
-    absl::MutexLock l(&send_mu);
+    absl::MutexLock l(send_mu);
     send_mu.Await(absl::Condition(&send_done));
   }
   ASSERT_FALSE(send_ec) << "async_send: " << send_ec.message();
 
   {
-    absl::MutexLock l(&recv_mu);
+    absl::MutexLock l(recv_mu);
     recv_mu.Await(absl::Condition(&recv_done));
   }
   ASSERT_FALSE(recv_ec) << "async_recv: " << recv_ec.message();
@@ -416,12 +416,12 @@ TEST_F(ProtocolTest, AsyncRecvOnClosedPipeReturnsError) {
 
   proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
                                 const std::shared_ptr<ConnectorMess>&) {
-    absl::MutexLock l(&mu);
+    absl::MutexLock l(mu);
     result_ec = ec;
     done = true;
   });
 
-  absl::MutexLock l(&mu);
+  absl::MutexLock l(mu);
   mu.Await(absl::Condition(&done));
   EXPECT_TRUE(result_ec) << "expected an error on EOF pipe, got none";
 }
@@ -446,12 +446,12 @@ TEST_F(ProtocolTest, AsyncRecvEmptyFrameReturnsProtocolError) {
 
   proto.async_recv(pipe.rp, [&](const boost::system::error_code& ec,
                                 const std::shared_ptr<ConnectorMess>&) {
-    absl::MutexLock l(&mu);
+    absl::MutexLock l(mu);
     result_ec = ec;
     done = true;
   });
 
-  absl::MutexLock l(&mu);
+  absl::MutexLock l(mu);
   mu.Await(absl::Condition(&done));
   EXPECT_TRUE(result_ec) << "expected protocol_error for zero-payload frame";
   EXPECT_EQ(result_ec, boost::system::errc::protocol_error);
@@ -477,14 +477,14 @@ TEST_F(ProtocolTest, AsyncSendQueuesMultiple) {
     proto.async_send(
         pipe.wp, make_execute(i), [&, i](const boost::system::error_code& ec) {
           EXPECT_FALSE(ec) << "async_send #" << i << ": " << ec.message();
-          absl::MutexLock l(&mu);
+          absl::MutexLock l(mu);
           if (++completed == N)
             all_done = true;
         });
   }
 
   {
-    absl::MutexLock l(&mu);
+    absl::MutexLock l(mu);
     mu.Await(absl::Condition(&all_done));
   }
   ASSERT_EQ(completed, N);
@@ -516,7 +516,7 @@ TEST_F(ProtocolTest, AsyncRoundTrip) {
   proto.async_send(
       pipe.wp, make_execute(77), [&](const boost::system::error_code& send_ec) {
         if (send_ec) {
-          absl::MutexLock l(&mu);
+          absl::MutexLock l(mu);
           final_ec = send_ec;
           done = true;
           return;
@@ -524,14 +524,14 @@ TEST_F(ProtocolTest, AsyncRoundTrip) {
         proto.async_recv(pipe.rp,
                          [&](const boost::system::error_code& recv_ec,
                              const std::shared_ptr<ConnectorMess>& msg) {
-                           absl::MutexLock l(&mu);
+                           absl::MutexLock l(mu);
                            final_ec = recv_ec;
                            received_msg = msg;
                            done = true;
                          });
       });
 
-  absl::MutexLock l(&mu);
+  absl::MutexLock l(mu);
   mu.Await(absl::Condition(&done));
 
   ASSERT_FALSE(final_ec) << "round-trip: " << final_ec.message();

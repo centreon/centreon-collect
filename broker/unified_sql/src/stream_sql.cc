@@ -73,7 +73,7 @@ static const std::string _insert_or_update_nothing_tags =
 void stream::_clean_tables(uint64_t instance_id) {
   // no hostgroup and servicegroup clean during this function
   {
-    absl::MutexLock l(&_timer_m);
+    absl::MutexLock l(_timer_m);
     _group_clean_timer.cancel();
   }
 
@@ -196,7 +196,7 @@ void stream::_clean_tables(uint64_t instance_id) {
   _mysql.run_query(query, database::mysql_error::clean_customvariables, conn);
   _add_action(conn, actions::custom_variables);
 
-  absl::MutexLock l(&_timer_m);
+  absl::MutexLock l(_timer_m);
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
@@ -659,7 +659,8 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
         cmmnt.deletion_time, cmmnt.entry_time, cmmnt.entry_type,
         cmmnt.expire_time, cmmnt.expires, int64_not_minus_one{cmmnt.host_id},
         cmmnt.internal_id, int(cmmnt.persistent),
-        uint64_not_null_not_neg_1{cmmnt.poller_id}, cmmnt.service_id, cmmnt.source));
+        uint64_not_null_not_neg_1{cmmnt.poller_id}, cmmnt.service_id,
+        cmmnt.source));
   }
 }
 

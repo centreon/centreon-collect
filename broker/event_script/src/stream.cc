@@ -136,7 +136,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
   if (_events.insert({pb_event, now}).second) {
     std::shared_ptr<io::protobuf_base> to_write;
     {
-      absl::MutexLock l(&_write_queue_m);
+      absl::MutexLock l(_write_queue_m);
       if (_writing) {
         SPDLOG_LOGGER_TRACE(_logger, "push {} in queue", *d);
         _write_queue.push(pb_event);
@@ -208,7 +208,7 @@ void stream::_write_completion(const common::process<true>& proc,
 
   std::shared_ptr<io::protobuf_base> to_write;
   {
-    absl::MutexLock l(&_write_queue_m);
+    absl::MutexLock l(_write_queue_m);
     if (!_write_queue.empty()) {
       to_write = _write_queue.front();
       _write_queue.pop();
@@ -227,7 +227,7 @@ void stream::_write_completion(const common::process<true>& proc,
  * @return int32_t number of event passed to script
  */
 int32_t stream::stop() {
-  absl::MutexLock l(&_write_queue_m);
+  absl::MutexLock l(_write_queue_m);
   while (!_write_queue.empty()) {
     _write_queue.pop();
   }

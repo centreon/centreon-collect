@@ -172,12 +172,12 @@ class process : public child_process<use_mutex> {
                      const std::chrono::system_clock::duration& timeout);
 
   std::string get_stdout() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stdout;
   }
 
   std::string get_stderr() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stderr;
   }
 

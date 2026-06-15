@@ -114,7 +114,7 @@ if(WITH_TESTING)
     ssh2
     OpenSSL::SSL
     absl::any absl::log absl::base absl::bits
-    absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+    absl::raw_hash_set absl::hash absl::hashtablez_sampler
     )
 
   set_target_properties(

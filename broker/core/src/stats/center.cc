@@ -68,12 +68,12 @@ center::center() {
  * @return A pointer to the engine statistics.
  */
 EngineStats* center::register_engine() {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   return _stats.mutable_processing()->mutable_engine();
 }
 
 SqlConnectionStats* center::connection(size_t idx) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   return &_stats.mutable_sql_manager()->mutable_connections()->at(idx);
 }
 
@@ -83,12 +83,12 @@ SqlConnectionStats* center::connection(size_t idx) {
  * @return A pointer to the connection statistics.
  */
 SqlConnectionStats* center::add_connection() {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   return _stats.mutable_sql_manager()->add_connections();
 }
 
 void center::remove_connection(SqlConnectionStats* stats) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   auto* c = _stats.mutable_sql_manager()->mutable_connections();
   for (auto it = c->begin(); it != c->end(); ++it) {
     if (&*it == stats) {
@@ -108,7 +108,7 @@ void center::remove_connection(SqlConnectionStats* stats) {
  * @return true on success (it never fails).
  */
 void center::unregister_muxer(const std::string& name) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   _stats.mutable_processing()->mutable_muxers()->erase(name);
 }
 
@@ -124,7 +124,7 @@ void center::update_muxer(std::string name,
                           std::string queue_file,
                           uint32_t size,
                           uint32_t unack) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   auto ms = &(*_stats.mutable_processing()->mutable_muxers())[std::move(name)];
   if (ms) {
     ms->mutable_queue_file()->set_name(std::move(queue_file));
@@ -136,7 +136,7 @@ void center::update_muxer(std::string name,
 void center::init_queue_file(std::string muxer,
                              std::string queue_file,
                              uint32_t max_file_size) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   auto qfs =
       (&(*_stats.mutable_processing()->mutable_muxers())[std::move(muxer)])
           ->mutable_queue_file();
@@ -155,7 +155,7 @@ void center::init_queue_file(std::string muxer,
  * @return A pointer to the conflict_manager statistics.
  */
 ConflictManagerStats* center::register_conflict_manager() {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   return _stats.mutable_conflict_manager();
 }
 
@@ -168,7 +168,7 @@ std::string center::to_string() {
   const JsonPrintOptions options;
   std::string retval;
   std::time_t now = time(nullptr);
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   _json_stats_file_creation = now;
   _stats.set_now(now);
   auto status [[maybe_unused]] = MessageToJsonString(_stats, &retval, options);
@@ -176,7 +176,7 @@ std::string center::to_string() {
 }
 
 void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   if (id == -1)
     *response = _stats.sql_manager();
   else {
@@ -187,12 +187,12 @@ void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   response->set_size(_stats.sql_manager().connections().size());
 }
 
 void center::get_conflict_manager_stats(ConflictManagerStats* response) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   *response = _stats.conflict_manager();
 }
 
@@ -201,7 +201,7 @@ int center::get_json_stats_file_creation(void) {
 }
 
 bool center::muxer_stats(const std::string& name, MuxerStats* response) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   if (!_stats.processing().muxers().contains(name))
     return false;
   else {
@@ -211,17 +211,17 @@ bool center::muxer_stats(const std::string& name, MuxerStats* response) {
 }
 
 MuxerStats* center::muxer_stats(const std::string& name) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   return &(*_stats.mutable_processing()->mutable_muxers())[name];
 }
 
 void center::get_processing_stats(ProcessingStats* response) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   *response = _stats.processing();
 }
 
 void center::clear_muxer_queue_file(const std::string& name) {
-  absl::MutexLock lck(&_stats_m);
+  absl::MutexLock lck(_stats_m);
   if (_stats.processing().muxers().contains(name))
     _stats.mutable_processing()
         ->mutable_muxers()

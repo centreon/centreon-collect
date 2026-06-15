@@ -59,7 +59,7 @@ open_telemetry::open_telemetry(
  *
  */
 void open_telemetry::_reload() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   std::unique_ptr<otl_config> new_conf =
       std::make_unique<otl_config>(_config_file_path, *_io_context);
 
@@ -168,7 +168,7 @@ std::shared_ptr<open_telemetry> open_telemetry::load(
  *
  */
 void open_telemetry::_start_minute_timer() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _minute_timer.expires_after(std::chrono::minutes(1));
   _minute_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
@@ -184,7 +184,7 @@ void open_telemetry::_start_minute_timer() {
  */
 void open_telemetry::_minute_timer_handler() {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (_conf && _conf->get_grpc_config() &&
         _conf->get_grpc_config()->is_crypted()) {
       /* to restore once we will survey certificate to finish in another PR
@@ -409,7 +409,7 @@ open_telemetry::create_extractor(
       }
     }
   };
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   auto exist = _extractors.find(cmdline);
   if (exist != _extractors.end()) {
     std::shared_ptr<com::centreon::engine::commands::otel::host_serv_extractor>
@@ -449,7 +449,7 @@ open_telemetry::create_check_result_builder(const std::string& cmdline) {
 void open_telemetry::on_metric(const metric_request_ptr& metrics) {
   std::vector<otl_data_point> unknown;
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (_extractors.empty()) {  // no extractor configured => all unknown
       otl_data_point::extract_data_points(
           metrics, [&unknown](const otl_data_point& data_pt) {
@@ -536,7 +536,7 @@ void open_telemetry::force_check(uint64_t host_id, uint64_t serv_id) {
 
 open_telemetry::certificate_info
 open_telemetry::get_otel_service_certificate_info() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
 
   open_telemetry::certificate_info ret;
 

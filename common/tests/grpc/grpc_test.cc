@@ -133,7 +133,7 @@ class client_reactor
   }
 
   bool wait(uint32_t expected_received_value) {
-    absl::MutexLock l(&_received_value_m);
+    absl::MutexLock l(_received_value_m);
 
     struct waiter {
       uint32_t expected;
@@ -155,7 +155,7 @@ class client_reactor
 
   void OnReadDone(bool ok) override {
     if (ok) {
-      absl::MutexLock l(&_received_value_m);
+      absl::MutexLock l(_received_value_m);
       SPDLOG_LOGGER_INFO(glogger, "receive {}", _response.int_value());
       _received_value = _response.int_value();
     }

@@ -194,7 +194,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     _conf = new_conf;
   }
   auto to_call = std::packaged_task<int(void)>(
@@ -335,7 +335,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           *new_conf);
     }
 
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -407,7 +407,7 @@ void agent_impl<bireactor_class>::on_request(
   agent_config::pointer agent_conf;
   if (request->has_init()) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
@@ -434,7 +434,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::_write(
     const std::shared_ptr<agent::MessageToAgent>& request) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -462,7 +462,7 @@ void agent_impl<bireactor_class>::register_stream(
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::start_read() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (!_alive) {
     return;
   }
@@ -494,7 +494,7 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
     }
     std::shared_ptr<agent::MessageFromAgent> readden;
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive from {}: {}",
                           static_cast<const void*>(this), _class_name,
                           get_peer(), *_read_current);
@@ -520,7 +520,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::start_write() {
   std::shared_ptr<agent::MessageToAgent> to_send;
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive || _write_pending || _write_queue.empty()) {
       return;
     }
@@ -543,7 +543,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
   if (ok) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _write_pending = false;
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,

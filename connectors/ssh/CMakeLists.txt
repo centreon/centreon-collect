@@ -62,7 +62,8 @@ target_link_libraries(
   fmt::fmt
   ssh2
   absl::any absl::log absl::base absl::bits
-  absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+  absl::raw_hash_set absl::hash
+  absl::hashtablez_sampler
   pthread)
 
 target_precompile_headers(centreon_connector_ssh PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

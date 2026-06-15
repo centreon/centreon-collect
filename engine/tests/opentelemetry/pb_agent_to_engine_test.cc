@@ -305,7 +305,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
 
   start_server(listener_cnf_server, agent_conf,
                [&](const metric_request_ptr& metric) {
-                 absl::MutexLock l(&mut);
+                 absl::MutexLock l(mut);
                  received.push_back(metric);
                  for (const opentelemetry::proto::metrics::v1::ResourceMetrics&
                           res_metric : metric->resource_metrics()) {
@@ -386,7 +386,7 @@ TEST_F(
 
   start_server(listener_cnf_server, agent_conf,
                [&](const metric_request_ptr& metric) {
-                 absl::MutexLock l(&mut);
+                 absl::MutexLock l(mut);
                  received.push_back(metric);
                  for (const opentelemetry::proto::metrics::v1::ResourceMetrics&
                           res_metric : metric->resource_metrics()) {

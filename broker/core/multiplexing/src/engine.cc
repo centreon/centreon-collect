@@ -79,7 +79,7 @@ void engine::unload() {
       instance->_kiew_m.Await(absl::Condition(&muxers_empty));
     }
 
-    absl::MutexLock lck(&_load_m);
+    absl::MutexLock lck(_load_m);
     instance->stop();
 
     // Commit the cache file, if needed.
@@ -100,7 +100,7 @@ void engine::unload() {
 void engine::publish(const std::shared_ptr<io::data>& e) {
   bool have_to_send = false;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     switch (_state) {
       case stopped:
         SPDLOG_LOGGER_TRACE(_logger, "engine::publish one event to file");
@@ -126,7 +126,7 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
 void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   bool have_to_send = false;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     switch (_state) {
       case stopped:
         SPDLOG_LOGGER_TRACE(_logger, "engine::publish {} event to file",
@@ -163,7 +163,7 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
 void engine::start() {
   bool have_to_send = false;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     if (_state == not_started) {
       // Set writing method.
       SPDLOG_LOGGER_DEBUG(_logger, "multiplexing: engine starting");
@@ -231,7 +231,7 @@ void engine::stop() {
       promise.get_future().get();
     }  // nothing to send or no muxer
 
-    absl::MutexLock l(&_kiew_m);
+    absl::MutexLock l(_kiew_m);
 
     // Open the cache file and start the transaction.
     // The cache file is used to cache all the events produced
@@ -257,7 +257,7 @@ void engine::stop() {
  */
 void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
   _logger->debug("engine: muxer {} subscribes to engine", subscriber->name());
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
   for (auto& m : _muxers)
     if (m.lock() == subscriber) {
       _logger->debug("engine: muxer {} already subscribed", subscriber->name());
@@ -278,7 +278,7 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
     promise.get_future().wait();
   }
 
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
 
   auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
@@ -388,7 +388,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
   std::shared_ptr<muxer> first_muxer;
   std::shared_ptr<detail::callback_caller> cb;
   {
-    absl::MutexLock lck(&_kiew_m);
+    absl::MutexLock lck(_kiew_m);
     if (_muxers.empty() || _kiew.empty()) {
       // nothing to do true => _sending_to_subscribers
       bool expected = true;
@@ -463,6 +463,6 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
  * @brief Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
-  absl::MutexLock lck(&_kiew_m);
+  absl::MutexLock lck(_kiew_m);
   _kiew.clear();
 }
