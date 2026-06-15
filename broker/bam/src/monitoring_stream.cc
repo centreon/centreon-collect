@@ -951,7 +951,9 @@ void monitoring_stream::_async_write_external_commands() {
 }
 
 /**
- *  Get inherited downtime from the cache.
+ *  Restore the runtime state from the cache: virtual service states and pending
+ *  external commands. Inherited downtimes are NOT cached; they are recomputed
+ *  from the KPIs/DB during update().
  */
 void monitoring_stream::_read_cache() {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
@@ -972,7 +974,8 @@ void monitoring_stream::_read_cache() {
 }
 
 /**
- *  Save inherited downtime to the cache.
+ *  Save the runtime state to the cache: virtual service states and pending
+ *  external commands.
  */
 void monitoring_stream::_write_cache() {
   SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
