@@ -375,6 +375,19 @@ class callback_caller {
       if (_callback) {
         _callback();
       }
+      /* Events may have been pushed into _kiew while this publish was in
+       * flight. Such events were not sent because _sending_to_subscribers was
+       * still true (engine::publish's _send_to_subscribers call returned
+       * false). Now that the flag is reset, flush them, otherwise they would
+       * stay stuck in the queue until the next publish is triggered. */
+      bool pending;
+      {
+        absl::MutexLock lck(&_parent->_kiew_m);
+        pending = !_parent->_muxers.empty() && !_parent->_kiew.empty();
+      }
+      if (pending) {
+        _parent->_send_to_subscribers(nullptr);
+      }
     }
   }
 };
