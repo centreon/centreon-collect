@@ -281,7 +281,8 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     response->mutable_program_status()->set_next_event_id(next_event_id);
     response->mutable_program_status()->set_next_problem_id(next_problem_id);
     response->mutable_program_status()->set_next_notification_id(
-        notifier::get_next_notification_id());
+        notifications::notification_manager::instance()
+            .get_next_notification_id());
 
     uint32_t used_external_command_buffer_slots = 0;
     uint32_t high_external_command_buffer_slots = 0;

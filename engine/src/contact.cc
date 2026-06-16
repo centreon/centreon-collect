@@ -948,7 +948,7 @@ bool contact::_to_notify_flapping(notifications::reason_type type,
   if (!notify_on(nt, what_notif)) {
     notifications_logger->info(
         "We shouldn't notify contact '{}' about {} notifier events.", _name,
-        notifier::tab_notification_str[type]);
+        notifications::notification_manager::tab_notification_str[type]);
     return false;
   }
   return true;

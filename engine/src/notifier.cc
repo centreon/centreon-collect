@@ -33,20 +33,6 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 
-std::array<std::string, 9> const notifier::tab_notification_str{{
-    "NORMAL",
-    "RECOVERY",
-    "ACKNOWLEDGEMENT",
-    "FLAPPINGSTART",
-    "FLAPPINGSTOP",
-    "FLAPPINGDISABLED",
-    "DOWNTIMESTART",
-    "DOWNTIMEEND",
-    "DOWNTIMECANCELLED",
-}};
-
-std::array<std::string, 2> const notifier::tab_state_type{{"SOFT", "HARD"}};
-
 std::array<notifier::is_viable, 6> const notifier::_is_notification_viable{{
     &notifier::_is_notification_viable_normal,
     &notifier::_is_notification_viable_recovery,
@@ -55,8 +41,6 @@ std::array<notifier::is_viable, 6> const notifier::_is_notification_viable{{
     &notifier::_is_notification_viable_downtime,
     &notifier::_is_notification_viable_custom,
 }};
-
-uint64_t notifier::_next_notification_id{1L};
 
 notifier::notifier(notifications::notifier_type notifier_type,
                    const std::string& name,
@@ -578,7 +562,7 @@ bool notifier::_is_notification_viable_flapping(
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
         "We shouldn't notify about {} events for this notifier.",
-        tab_notification_str[type]);
+        notifications::notification_manager::tab_notification_str[type]);
     return false;
   }
 
@@ -609,9 +593,10 @@ bool notifier::_is_notification_viable_flapping(
   /* Don't send a notification if the same has already been sent previously. */
   if (_notification[notifications::cat_flapping] &&
       _notification[notifications::cat_flapping]->get_reason() == type) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
-                        "We shouldn't notify about a {} event: already sent.",
-                        tab_notification_str[type]);
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger,
+        "We shouldn't notify about a {} event: already sent.",
+        notifications::notification_manager::tab_notification_str[type]);
     return false;
   }
 
@@ -846,7 +831,8 @@ int notifier::notify(notifications::reason_type type,
   std::unordered_set<std::shared_ptr<contact>> to_notify =
       get_contacts_to_notify(cat, type, notification_interval, escalated);
 
-  _current_notification_id = _next_notification_id++;
+  _current_notification_id =
+      notifications::notification_manager::instance().next_notification_id();
   auto notif = std::make_unique<notification_ev>(
       this, type, not_author, not_data, options, _current_notification_id,
       _notification_number, notification_interval, escalated);
@@ -1192,15 +1178,6 @@ void notifier::set_no_more_notifications(bool no_more_notifications) noexcept {
 
 int notifier::get_notification_number() const noexcept {
   return _notification_number;
-}
-
-/**
- *  Get the next notification id.
- *
- * @return a long unsigned integer.
- */
-uint64_t notifier::get_next_notification_id() {
-  return _next_notification_id;
 }
 
 notifications::notifier_type notifier::get_notifier_type() const noexcept {

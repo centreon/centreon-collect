@@ -143,7 +143,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_SVCOK_Notify) {
   // Step 2: Simulates a service check result indicating a critical state in t0.
   testing::internal::CaptureStdout();
 
-  uint64_t id = _svc->get_next_notification_id();
+  uint64_t id = notifications::notification_manager::instance().get_next_notification_id();
 
   std::string cmd(fmt::format(
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service crit",
@@ -151,7 +151,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_SVCOK_Notify) {
   process_external_command(cmd.c_str());
   // as we have _max_attempts=1, we should notify at the first failure
   checks::checker::instance().reap();
-  uint64_t first_notif_id = _svc->get_next_notification_id();
+  uint64_t first_notif_id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 3: Advances the time by 5 minutes to `t1`.
   enable_time_travel(true, 300);
@@ -170,7 +170,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_SVCOK_Notify) {
   std::cout << " out=" << out << std::endl << std::endl;
 
   // Step 5: Ensures that the notification IDs are correctly incremented.
-  ASSERT_EQ(_svc->get_next_notification_id(), id + 2);
+  ASSERT_EQ(notifications::notification_manager::instance().get_next_notification_id(), id + 2);
 
   checks::checker::instance().reap();
 
@@ -249,7 +249,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   // Step 2: Simulates a service check result indicating a critical state.
   testing::internal::CaptureStdout();
 
-  uint64_t id{_svc->get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance().get_next_notification_id()};
 
   std::string cmd(fmt::format(
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;2;service crit",
@@ -257,7 +257,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   process_external_command(cmd.c_str());
   // as we have _max_attempts=1, we should notify at the first failure
   checks::checker::instance().reap();
-  uint64_t first_notif_id = _svc->get_next_notification_id();
+  uint64_t first_notif_id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 3: Advances the time by 100 seconds to `t1` and starts downtime.
   enable_time_travel(true, 100);
@@ -268,7 +268,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   int res1 = _svc->notify(notifications::reason_downtimestart, "", "",
                           notifications::notification_option_none);
   _svc->inc_scheduled_downtime_depth();
-  uint64_t second_notif_id = _svc->get_next_notification_id();
+  uint64_t second_notif_id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 4: Advances the time by 200 seconds to `t2` and ends downtime.
   enable_time_travel(true, 200);
@@ -279,7 +279,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   _svc->set_scheduled_downtime_depth(0);
   int res2 = _svc->notify(notifications::reason_downtimeend, "", "",
                           notifications::notification_option_none);
-  uint64_t third_notif_id = _svc->get_next_notification_id();
+  uint64_t third_notif_id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 5: Advances the time by 300 seconds to `t3` and simulates a service
   // check result indicating an OK state.
@@ -331,7 +331,7 @@ TEST_F(ServiceDowntimeNotification, SVCKO_Dt_CancelDt_SVCOK_Notify) {
   ASSERT_NE(step6, std::string::npos);
 
   // Step 10: Verifies that a notification is sent for the recovery (OK) state.
-  ASSERT_EQ(_svc->get_next_notification_id(), id + 4);
+  ASSERT_EQ(notifications::notification_manager::instance().get_next_notification_id(), id + 4);
   size_t step7 = out.find(fmt::format("[{}]", t3), step6);
   ASSERT_NE(step7, std::string::npos);
   ASSERT_NE(out.find("SERVICE NOTIFICATION: "
@@ -395,7 +395,7 @@ TEST_F(ServiceDowntimeNotification,
 
   testing::internal::CaptureStdout();
 
-  uint64_t id = _svc->get_next_notification_id();
+  uint64_t id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 2: Advances the time by 100 seconds to `t1` and starts downtime.
   enable_time_travel(true, 100);
@@ -405,7 +405,7 @@ TEST_F(ServiceDowntimeNotification,
   _svc->notify(notifications::reason_downtimestart, "", "",
                notifications::notification_option_none);
   _svc->inc_scheduled_downtime_depth();
-  uint64_t first_notif_id = _svc->get_next_notification_id();
+  uint64_t first_notif_id = notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 3: Advances the time by 200 seconds to `t2` and simulates a service
   // check result indicating a critical state.
@@ -419,7 +419,7 @@ TEST_F(ServiceDowntimeNotification,
       t2));
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
-  _svc->get_next_notification_id();
+  notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 4: Advances the time by 300 seconds to `t3` and ends downtime.
   enable_time_travel(true, 300);
@@ -429,7 +429,7 @@ TEST_F(ServiceDowntimeNotification,
   _svc->set_scheduled_downtime_depth(0);
   _svc->notify(notifications::reason_downtimeend, "", "",
                notifications::notification_option_none);
-  _svc->get_next_notification_id();
+  notifications::notification_manager::instance().get_next_notification_id();
 
   // Step 5: Advances the time by 400 seconds to `t4` and simulates a service
   // check result indicating an OK state.
@@ -441,7 +441,7 @@ TEST_F(ServiceDowntimeNotification,
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok", t4);
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
-  _svc->get_next_notification_id();
+  notifications::notification_manager::instance().get_next_notification_id();
 
   std::string out = testing::internal::GetCapturedStdout();
 
