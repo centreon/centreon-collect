@@ -1091,7 +1091,8 @@ int host::log_event() {
       (unsigned int)get_current_state() < tab_host_states.size()) {
     state = tab_host_states[get_current_state()].second.c_str();
   }
-  const std::string& state_type(tab_state_type[get_state_type()]);
+  const std::string_view state_type(
+      notifications::notification_manager::tab_state_type[get_state_type()]);
 
   SPDLOG_LOGGER_INFO(events_logger, "HOST ALERT: {};{};{};{};{}", name(), state,
                      state_type, get_current_attempt(), get_plugin_output());
@@ -2351,9 +2352,9 @@ int host::notify_contact(nagios_macros* mac,
         // sizeof(tab_host_state_str) / sizeof(*tab_host_state_str))
         host_state_str = tab_host_states[_current_state].second.c_str();
 
-      char const* notification_str("");
-      if ((unsigned int)type < tab_notification_str.size())
-        notification_str = tab_notification_str[type].c_str();
+      std::string_view notification_str("");
+      if ((unsigned int)type < notifications::notification_manager::tab_notification_str.size())
+        notification_str = notifications::notification_manager::tab_notification_str[type];
 
       std::string info;
       if (type == reason_custom)
@@ -2362,7 +2363,7 @@ int host::notify_contact(nagios_macros* mac,
         info.append(";").append(not_author).append(";").append(not_data);
 
       std::string host_notification_state;
-      if (strcmp(notification_str, "NORMAL") == 0)
+      if (notification_str == "NORMAL")
         host_notification_state.append(host_state_str);
       else
         host_notification_state.append(notification_str)
