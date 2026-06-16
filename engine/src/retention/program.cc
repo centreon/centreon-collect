@@ -46,7 +46,7 @@ program::setters const program::_setters[] = {
     {"next_downtime_id", SETTER(unsigned long, _set_next_downtime_id)},
     {"next_event_id", SETTER(unsigned long, _set_next_event_id)},
     {"next_notification_id", SETTER(unsigned long, _set_next_notification_id)},
-    {"next_problem_id", SETTER(unsigned long, _set_next_problem_id)},
+    {"next_problem_id", SETTER(uint64_t, _set_next_problem_id)},
     {"obsess_over_hosts", SETTER(bool, _set_obsess_over_hosts)},
     {"obsess_over_services", SETTER(bool, _set_obsess_over_services)},
     {"passive_host_checks_enabled",
@@ -316,7 +316,7 @@ std::optional<unsigned long> const& program::next_notification_id()
  *
  *  @return The next_problem_id.
  */
-std::optional<unsigned long> const& program::next_problem_id() const noexcept {
+std::optional<uint64_t> const& program::next_problem_id() const noexcept {
   return (_next_problem_id);
 }
 
@@ -522,7 +522,7 @@ bool program::_set_next_notification_id(unsigned long value) {
  *
  *  @param[in] value The new next_problem_id.
  */
-bool program::_set_next_problem_id(unsigned long value) {
+bool program::_set_next_problem_id(uint64_t value) {
   _next_problem_id = value;
   return (true);
 }

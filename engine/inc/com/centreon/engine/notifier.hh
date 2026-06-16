@@ -25,7 +25,7 @@
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/dependency.hh"
-#include "com/centreon/engine/notifications/notification_manager.hh"
+#include "engine/src/notifications/notification_manager.hh"
 #include "common.hh"
 
 class nagios_macros;
@@ -111,10 +111,6 @@ class notifier : public checkable {
   void set_current_event_id(unsigned long current_event_id) noexcept;
   unsigned long get_last_event_id() const noexcept;
   void set_last_event_id(unsigned long last_event_id) noexcept;
-  unsigned long get_current_problem_id() const noexcept;
-  void set_current_problem_id(unsigned long current_problem_id) noexcept;
-  unsigned long get_last_problem_id() const noexcept;
-  void set_last_problem_id(unsigned long last_problem_id) noexcept;
 
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
@@ -228,8 +224,6 @@ class notifier : public checkable {
   timeperiod* get_notification_period_ptr() const noexcept;
   void set_notification_period_ptr(timeperiod* tp) noexcept;
   int acknowledgement_timeout() const noexcept;
-  bool get_is_volatile() const noexcept;
-  void set_is_volatile(bool vol);
 
   map_customvar custom_variables;
 
@@ -239,8 +233,6 @@ class notifier : public checkable {
   uint32_t _flap_type;
   unsigned long _current_event_id;
   unsigned long _last_event_id;
-  unsigned long _current_problem_id;
-  unsigned long _last_problem_id;
 
   time_t _initial_notif_time;
   int _acknowledgement_timeout;
@@ -266,8 +258,6 @@ class notifier : public checkable {
   bool _retain_status_information;
   bool _retain_nonstatus_information;
   bool _is_being_freshened;
-
-  bool _is_volatile;
 
   /*if notification_interval at 0 and is on time period off.
   is set as true to send the notification on the next starting time period*/

@@ -35,10 +35,10 @@
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/notifications/notification_manager.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "engine/src/notifications/notification_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -127,15 +127,14 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotificationsdisabled) {
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   _host->set_notification_period_ptr(tperiod.get());
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
@@ -152,16 +151,15 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierNotifdisabled) {
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   _host->set_notifications_enabled(false);
   _host->set_notification_period_ptr(tperiod.get());
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
@@ -169,8 +167,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
@@ -182,9 +180,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOutsideTimeperiod) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification,
@@ -194,8 +191,8 @@ TEST_F(HostNotification,
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
@@ -207,9 +204,8 @@ TEST_F(HostNotification,
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_forced),
             OK);
-  ASSERT_EQ(
-      id + 1,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
@@ -217,8 +213,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
@@ -230,9 +226,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationForcedNotification) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_forced),
             OK);
-  ASSERT_EQ(
-      id + 1,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
@@ -241,8 +236,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
   set_time(20000);
 
   _host->set_scheduled_downtime_depth(30);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -254,9 +249,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithDowntime) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
@@ -265,8 +259,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
   set_time(20000);
 
   _host->set_is_flapping(true);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -278,9 +272,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithFlapping) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
@@ -289,8 +282,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
   set_time(20000);
 
   _host->set_state_type(checkable::soft);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -302,9 +295,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationWithSoftState) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification,
@@ -313,8 +305,8 @@ TEST_F(HostNotification,
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -327,9 +319,8 @@ TEST_F(HostNotification,
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
@@ -337,8 +328,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -352,9 +343,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification,
@@ -363,8 +353,8 @@ TEST_F(HostNotification,
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -380,9 +370,8 @@ TEST_F(HostNotification,
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
@@ -390,8 +379,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -406,9 +395,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification,
@@ -417,8 +405,8 @@ TEST_F(HostNotification,
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -435,9 +423,8 @@ TEST_F(HostNotification,
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification,
@@ -446,8 +433,8 @@ TEST_F(HostNotification,
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
@@ -463,9 +450,8 @@ TEST_F(HostNotification,
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id + 1,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
@@ -482,8 +468,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
-  uint64_t id{
-      notifications::notification_manager::instance().get_next_notification_id()};
+  uint64_t id{notifications::notification_manager::instance()
+                  .get_next_notification_id()};
   /* We configure the notification interval to 2 minutes */
   _host->set_notification_interval(2);
   _host->set_notification_period_ptr(tperiod.get());
@@ -494,13 +480,13 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
                           notifications::notification_option_none),
             OK);
-  ASSERT_EQ(
-      id + 1,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id + 1, notifications::notification_manager::instance()
+                        .get_next_notification_id());
 
   /* Only 100 seconds since the previous notification. */
   set_time(43300);
-  id = notifications::notification_manager::instance().get_next_notification_id();
+  id = notifications::notification_manager::instance()
+           .get_next_notification_id();
   /* Because of the notification not totally implemented, we must force the
    * notification number to be greater than 0 */
   ASSERT_EQ(_host->notify(notifications::reason_normal, "", "",
@@ -508,9 +494,8 @@ TEST_F(HostNotification, SimpleNormalHostNotificationNotifierDelayTooShort) {
             OK);
 
   /* No notification, because the delay is too short */
-  ASSERT_EQ(
-      id,
-      notifications::notification_manager::instance().get_next_notification_id());
+  ASSERT_EQ(id, notifications::notification_manager::instance()
+                    .get_next_notification_id());
 }
 
 TEST_F(HostNotification, SimpleCheck) {

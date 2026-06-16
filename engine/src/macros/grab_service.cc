@@ -234,8 +234,8 @@ struct grab_service_redirection {
       {MACRO_SERVICEISVOLATILE,
        {&get_member_as_string<service,
                               bool,
-                              notifier,
-                              &notifier::get_is_volatile>,
+                              checkable,
+                              &checkable::get_is_volatile>,
         true}},
       // Attempt.
       {MACRO_SERVICEATTEMPT,
@@ -339,16 +339,16 @@ struct grab_service_redirection {
       // Problem ID.
       {MACRO_SERVICEPROBLEMID,
        {&get_member_as_string<service,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_current_problem_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_current_problem_id>,
         true}},
       // Last problem ID.
       {MACRO_LASTSERVICEPROBLEMID,
        {&get_member_as_string<service,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_last_problem_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_last_problem_id>,
         true}},
       // Action URL.
       {MACRO_SERVICEACTIONURL,
