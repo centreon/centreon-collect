@@ -470,6 +470,7 @@ sub is_logged_websocket {
             if ($results->{token} ne $token_value
                 || $results->{type} ne "poller"
                 || $results->{is_revoked}) {
+                $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
                 $self->close_websocket(
                     code    => 500,
                     message => 'token authorization unallowed',
@@ -478,7 +479,7 @@ sub is_logged_websocket {
                 return 0;
             }
         } else {
-            $self->{logger}->writeLogInfo('[proxy-httpserver] cannot get token - ' . $self->{tpapi_centreonv2}->error());
+            $self->{logger}->writeLogInfo('[proxy-httpserver] cannot get token ' . $token_name . ' - ' . $self->{tpapi_centreonv2}->error());
         }
     }
 

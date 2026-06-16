@@ -98,30 +98,19 @@ check one poller cannot connect to a central with env var ${id}
     ...    @{process_list}
     ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
+    ${start_date}    Get Current Date    increment=-10s
     @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
     Set Environment Variable    GORGONE_TOKEN    ${env_token}
-
-    Ctn Init Tests
-    Gorgone Fix Schema
-    Gorgone Execute Sql    ${ROOT_CONFIG}database/insert_central.sql
-
-    @{central_pullwss_config}=    Create List    ${pullwss_central_config}    ${gorgone_core_config}
-    @{poller_pullwss_config}=    Create List    ${gorgone_core_config}    ${pullwss_poller_config}
-    Setup Gorgone Config
-    ...    ${central_pullwss_config}
-    ...    gorgone_name=${mode}_gorgone_central_simple
-    Setup Gorgone Config
-    ...    ${poller_pullwss_config}
-    ...    gorgone_name=${mode}_gorgone_poller_2_simple
-    Start Gorgone    debug    ${mode}_gorgone_central_simple
-    Wait Until Port Is Bind    8086
-    Start Gorgone    debug    ${mode}_gorgone_poller_2_simple
-    # wait until gorgone http server bind the http api port.
-    Wait Until Port Is Bind    8085
+    Setup Two Gorgone Instances    communication_mode=${mode}    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple    check_connection=False
     Check Poller Is Connected    port=8086    expected_nb=0
+    Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
+    # we need to find the message that explains the connection refusal
+    ${log_central_query}    Create List    ${message}
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}    timeout=70
+    Should Be True    ${logs_central}    Didn't found the logs in the poller file : ${logs_central}
 
-    Examples:    id    mode         env_token    --
-        ...    1    pullwss        Central-1:centralCMAtoken
-        ...    2    pullwss        poller-2:myPollerToken
-        ...    3    pullwss        do_not_exists:myPollerToken
+    Examples:    id    mode    env_token    message    --
+        ...    1    pullwss    Central-1:centralCMAtoken      [proxy-httpserver] invalid token -
+        ...    2    pullwss    poller-2:myPollerToken         [proxy-httpserver] invalid token -
+        ...    3    pullwss    do_not_exists:myPollerToken    [proxy-httpserver] cannot get token
