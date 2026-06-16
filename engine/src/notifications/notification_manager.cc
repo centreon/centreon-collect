@@ -17,14 +17,11 @@
  *
  */
 
-#include "engine/src/notifications/notification_manager.hh"
 
 #include <cassert>
 
-#include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "engine/src/notifications/notification.hh"
 
@@ -146,7 +143,7 @@ bool notification_manager::_is_notification_viable_normal(
   /* forced notifications bust through everything */
   notification* normal_notif = current_notification(&n, cat_normal);
   uint32_t notification_interval =
-      !normal_notif ? n._notification_interval
+      !normal_notif ? n.get_notification_interval()
                     : normal_notif->get_notification_interval();
 
   if (options & notification_option_forced) {
@@ -242,15 +239,15 @@ bool notification_manager::_is_notification_viable_normal(
   }
 
   uint32_t interval_length = pb_indexed_config.state().interval_length();
-  if (n._first_notification_delay > 0 && !normal_notif &&
+  if (n.get_first_notification_delay() > 0 && !normal_notif &&
       n.get_last_hard_state_change() +
-              n._first_notification_delay * interval_length >
+              n.get_first_notification_delay() * interval_length >
           now) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
         "This notifier is configured with a first notification delay, we "
         "won't send notification until timestamp {}",
-        n._first_notification_delay * interval_length);
+        n.get_first_notification_delay() * interval_length);
     return false;
   }
 
@@ -263,24 +260,24 @@ bool notification_manager::_is_notification_viable_normal(
   }
 
   if (normal_notif) {
+    std::time_t last_notif = last_notification(&n);
     /* In the case of a state change, we don't care of the notification interval
      * and we notify as soon as we can */
-    if (n.get_last_hard_state_change() <= n._last_notification) {
+    if (n.get_last_hard_state_change() <= last_notif) {
       if (notification_interval == 0) {
         SPDLOG_LOGGER_DEBUG(
             notifications_logger,
             "This notifier problem has already been sent at {} so, since the "
             "notification interval is 0, it won't be sent anymore",
-            n._last_notification);
+            last_notif);
         return false;
       } else if (notification_interval > 0) {
-        if (n._last_notification + notification_interval * interval_length >
-            now) {
+        if (last_notif + notification_interval * interval_length > now) {
           SPDLOG_LOGGER_DEBUG(
               notifications_logger,
               "This notifier problem has been sent at {} so it won't be sent "
               "until {}",
-              n._last_notification, notification_interval * interval_length);
+              last_notif, notification_interval * interval_length);
           return false;
         }
       }
@@ -378,17 +375,17 @@ bool notification_manager::_is_notification_viable_recovery(
       retval = false;
       send_later = false;
     } else if (n.get_last_hard_state_change() +
-                   n._recovery_notification_delay * interval_length >
+                   n.get_recovery_notification_delay() * interval_length >
                now) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger,
           "This notifier is configured with a recovery notification delay. "
           "It won't send any recovery notification until timestamp "
           "so it won't be sent until {}",
-          n.get_last_hard_state_change() + n._recovery_notification_delay);
+          n.get_last_hard_state_change() + n.get_recovery_notification_delay());
       retval = false;
       send_later = true;
-    } else if (n._notification_number == 0) {
+    } else if (notification_number(&n) == 0) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger,
           "No notification has been sent to "
@@ -405,12 +402,12 @@ bool notification_manager::_is_notification_viable_recovery(
 
   if (!retval) {
     if (!send_later) {
-      _notification.erase({&n, cat_normal});
+      _state(&n).events[cat_normal].reset();
       SPDLOG_LOGGER_TRACE(
           notifications_logger,
           " _notification_number _is_notification_viable_recovery: {} => 0",
-          n._notification_number);
-      n._notification_number = 0;
+          notification_number(&n));
+      set_notification_number(&n, 0);
     }
   }
 
@@ -659,10 +656,10 @@ int32_t notification_manager::notify(
    * send and we fix the notification number to 1. */
 
   if (type != notifications::reason_recovery) {
-    SPDLOG_LOGGER_TRACE(
-        notifications_logger, "_notification_number notify: {} -> {}",
-        n.get_notification_number(), n.get_notification_number() + 1);
-    n.inc_notification_number();
+    SPDLOG_LOGGER_TRACE(notifications_logger,
+                        "_notification_number notify: {} -> {}",
+                        notification_number(&n), notification_number(&n) + 1);
+    inc_notification_number(&n);
   }
 
   /* What are the contacts to notify? */
@@ -671,48 +668,49 @@ int32_t notification_manager::notify(
   std::unordered_set<std::shared_ptr<contact>> to_notify =
       n.get_contacts_to_notify(cat, type, notification_interval, escalated);
 
-  uint64_t current_notification_id =
-      notifications::notification_manager::instance().next_notification_id();
+  uint64_t current_id = next_notification_id();
+  set_current_notification_id(&n, current_id);
   auto notif = std::make_unique<notification>(
-      &n, type, not_author, not_data, options, current_notification_id,
-      n.get_notification_number(), notification_interval, escalated);
+      &n, type, not_author, not_data, options, current_id,
+      notification_number(&n), notification_interval, escalated);
 
   /* Let's make the notification. */
   int retval{notif->execute(to_notify)};
 
   if (retval == OK) {
     if (!to_notify.empty())
-      n.set_last_notification(std::time(nullptr));
+      set_last_notification(&n, std::time(nullptr));
+
+    notification_state& st = _state(&n);
 
     /* The notification has been sent.
      * Should we increment the notification number? */
     if (cat == notifications::cat_normal) {
       /* if normal notification, get contacts from the last notification for
        * notify this contact on recovery notification */
-      notification* normal_notif = current_notification(&n, cat);
-      if (normal_notif)
-        notif->add_contacts(normal_notif->get_contacts());
+      if (st.events[cat])
+        notif->add_contacts(st.events[cat]->get_contacts());
 
-      _notification[{&n, cat}] = std::move(notif);
+      st.events[cat] = std::move(notif);
     } else {
-      _notification[{&n, cat}] = std::move(notif);
+      st.events[cat] = std::move(notif);
       switch (cat) {
         case notifications::cat_recovery:
-          _notification.erase({&n, notifications::cat_normal});
-          _notification.erase({&n, notifications::cat_recovery});
+          st.events[notifications::cat_normal].reset();
+          st.events[notifications::cat_recovery].reset();
           break;
         case notifications::cat_flapping:
           if (type == notifications::reason_flappingstop ||
               type == notifications::reason_flappingdisabled)
-            _notification.erase({&n, notifications::cat_flapping});
+            st.events[notifications::cat_flapping].reset();
           break;
         case notifications::cat_downtime:
           if (type == notifications::reason_downtimeend ||
               type == notifications::reason_downtimecancelled)
-            _notification.erase({&n, notifications::cat_downtime});
+            st.events[notifications::cat_downtime].reset();
           break;
         default:
-          _notification.erase({&n, cat});
+          st.events[cat].reset();
       }
       /* In case of an acknowledgement, we must keep the _notification_number
        * otherwise the recovery notification won't be sent when needed. */
@@ -720,8 +718,8 @@ int32_t notification_manager::notify(
           cat != notifications::cat_downtime) {
         SPDLOG_LOGGER_TRACE(notifications_logger,
                             "_notification_number notify: {} => 0",
-                            n.get_notification_number());
-        n.set_notification_number(0);
+                            notification_number(&n));
+        set_notification_number(&n, 0);
       }
     }
   }
@@ -742,8 +740,17 @@ int32_t notification_manager::notify(
 notification* notification_manager::current_notification(
     notifier* n,
     notification_category cat) const {
-  auto it = _notification.find({n, cat});
-  return it != _notification.end() ? it->second.get() : nullptr;
+  auto it = _states.find(n);
+  return it != _states.end() ? it->second.events[cat].get() : nullptr;
+}
+
+/**
+ * @brief Get (creating it if needed) the runtime notification state of a
+ * notifier.
+ */
+notification_manager::notification_state& notification_manager::_state(
+    notifier* n) {
+  return _states[n];
 }
 
 /**
@@ -771,11 +778,10 @@ std::array<notification*, 6> notification_manager::current_notifications(
  * @param cat The notification category.
  * @param ev The notification event to store (ownership transferred).
  */
-void notification_manager::set_notification(
-    notifier* n,
-    notification_category cat,
-    std::unique_ptr<notification> ev) {
-  _notification[{n, cat}] = std::move(ev);
+void notification_manager::set_notification(notifier* n,
+                                            notification_category cat,
+                                            std::unique_ptr<notification> ev) {
+  _state(n).events[cat] = std::move(ev);
 }
 
 /**
@@ -792,8 +798,59 @@ void notification_manager::forget(notifier* n) {
    * left to forget. */
   if (!_instance)
     return;
-  for (int i = 0; i < 6; i++)
-    _instance->_notification.erase({n, static_cast<notification_category>(i)});
+  _instance->_states.erase(n);
+}
+
+uint64_t notification_manager::notification_number(const notifier* n) const {
+  auto it = _states.find(const_cast<notifier*>(n));
+  return it != _states.end() ? it->second.number : 0;
+}
+
+void notification_manager::set_notification_number(notifier* n,
+                                                   uint64_t number) {
+  _state(n).number = number;
+}
+
+void notification_manager::inc_notification_number(notifier* n) {
+  ++_state(n).number;
+}
+
+uint64_t notification_manager::current_notification_id(
+    const notifier* n) const {
+  auto it = _states.find(const_cast<notifier*>(n));
+  return it != _states.end() ? it->second.current_id : 0;
+}
+
+void notification_manager::set_current_notification_id(notifier* n,
+                                                       uint64_t id) {
+  _state(n).current_id = id;
+}
+
+std::time_t notification_manager::last_notification(const notifier* n) const {
+  auto it = _states.find(const_cast<notifier*>(n));
+  return it != _states.end() ? it->second.last : 0;
+}
+
+void notification_manager::set_last_notification(notifier* n, std::time_t t) {
+  _state(n).last = t;
+}
+
+std::time_t notification_manager::next_notification(const notifier* n) const {
+  auto it = _states.find(const_cast<notifier*>(n));
+  return it != _states.end() ? it->second.next : 0;
+}
+
+void notification_manager::set_next_notification(notifier* n, std::time_t t) {
+  _state(n).next = t;
+}
+
+std::time_t notification_manager::initial_notif_time(const notifier* n) const {
+  auto it = _states.find(const_cast<notifier*>(n));
+  return it != _states.end() ? it->second.initial : 0;
+}
+
+void notification_manager::set_initial_notif_time(notifier* n, std::time_t t) {
+  _state(n).initial = t;
 }
 
 }  // namespace com::centreon::engine::notifications
