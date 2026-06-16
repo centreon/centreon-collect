@@ -290,6 +290,33 @@
           "callbacks": []
         },
         {
+          "uuid": "a878a73d-33b2-4818-8f8b-93c822f3ab57",
+          "body": "{\n  \"name\": \"poller-3\",\n  \"creation_date\": \"{{faker 'date.recent'}}\",\n  \"expiration_date\": null,\n  \"type\": \"poller\",\n  \"is_revoked\": {{getGlobalVar 'revoked'}},\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"myPollerToken\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "poller-3",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-3",
+              "invert": false,
+              "operator": "equals"
+            }
+          ],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        },
+        {
           "uuid": "e6040a74-02a4-4f7d-be61-61621c67724e",
           "body": "{\n  \"name\": \"Central-1\",\n  \"creation_date\": \"2026-06-08T11:54:13+02:00\",\n  \"expiration_date\": null,\n  \"type\": \"cma\",\n  \"is_revoked\": false,\n  \"creator\": {\n    \"id\": 1,\n    \"name\": \"admin\"\n  },\n  \"token\": \"centralCMAtoken\"\n}",
           "latency": 0,
@@ -327,33 +354,42 @@
           "filePath": "",
           "databucketID": "",
           "sendFileAsBody": false,
-          "rules": [
-            {
-              "target": "params",
-              "modifier": "tokenName",
-              "value": "poller-1",
-              "invert": true,
-              "operator": "equals"
-            },
-            {
-              "target": "params",
-              "modifier": "tokenName",
-              "value": "Central-1",
-              "invert": true,
-              "operator": "equals"
-            },
-            {
-              "target": "params",
-              "modifier": "tokenName",
-              "value": "poller-2",
-              "invert": true,
-              "operator": "equals"
-            }
-          ],
+          "rules": [],
           "rulesOperator": "AND",
           "disableTemplating": false,
           "fallbackTo404": false,
           "default": false,
+          "crudKey": "id",
+          "callbacks": []
+        }
+      ],
+      "responseMode": null,
+      "streamingMode": null,
+      "streamingInterval": 0
+    },
+    {
+      "uuid": "d22f9a5c-5390-4870-9f3d-7bf7004aafc4",
+      "type": "http",
+      "documentation": "",
+      "method": "put",
+      "endpoint": "set-poller-3-is-revoked/:revoked",
+      "responses": [
+        {
+          "uuid": "2c070a93-177c-42b7-9bfd-c8694bd2b168",
+          "body": "{{setGlobalVar 'revoked' (urlParam 'revoked')}}\n{\n  \"is_revoked\": \"{{getGlobalVar 'revoked'}}\"\n}",
+          "latency": 0,
+          "statusCode": 200,
+          "label": "",
+          "headers": [],
+          "bodyType": "INLINE",
+          "filePath": "",
+          "databucketID": "",
+          "sendFileAsBody": false,
+          "rules": [],
+          "rulesOperator": "OR",
+          "disableTemplating": false,
+          "fallbackTo404": false,
+          "default": true,
           "crudKey": "id",
           "callbacks": []
         }
@@ -391,6 +427,10 @@
     {
       "type": "route",
       "uuid": "1f01381d-3bec-4b5e-b88a-b04cff57e023"
+    },
+    {
+      "type": "route",
+      "uuid": "d22f9a5c-5390-4870-9f3d-7bf7004aafc4"
     }
   ],
   "proxyMode": false,

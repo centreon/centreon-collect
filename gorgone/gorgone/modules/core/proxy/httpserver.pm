@@ -199,6 +199,32 @@ sub run {
     #});
     #Mojo::IOLoop->singleton->reactor->watch($socket, 1, 0);
 
+    Mojo::IOLoop->singleton->recurring(5 => sub {
+        $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring token revocation check');
+        foreach my $ws_id (keys %{$connector->{ws_clients}}) {
+            if (defined($connector->{ws_clients}->{$ws_id}->{token_name})
+                && $connector->{ws_clients}->{$ws_id}->{logged} == 1) {
+                my $token_name = $connector->{ws_clients}->{$ws_id}->{token_name};
+                my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
+                    token_name => $token_name
+                );
+                if ($status == 0 && defined($results->{token})) {
+                    if ($results->{is_revoked}) {
+                        $self->{logger}->writeLogDebug('[proxy-httpserver] token revoked: ' . $token_name);
+                        $connector->{ws_clients}->{$ws_id}->{logged} = 0;
+                        $self->close_websocket(
+                            code    => 500,
+                            message => 'token authorization unallowed',
+                            ws_id   => $options{ws_id}
+                        );
+                    }
+                } else {
+                    $self->{logger}->writeLogDebug('[proxy-httpserver] cannot get token ' . $token_name . ' - ' . $self->{tpapi_centreonv2}->error());
+                }
+            }
+        }
+    });
+
     Mojo::IOLoop->singleton->recurring(60 => sub {
         $connector->{logger}->writeLogDebug('[proxy-httpserver] recurring timeout loop');
         my $ctime = time();
@@ -532,6 +558,7 @@ sub is_logged_websocket {
     $self->{identities}->{ $poller_id } = $options{ws_id};
     $self->{identities}->{ $poller_uid } = $options{ws_id};
     $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
+    $self->{ws_clients}->{ $options{ws_id} }->{token_name} = $token_name if (defined $token_name && defined $token_value);
     return 2;
 }
 
