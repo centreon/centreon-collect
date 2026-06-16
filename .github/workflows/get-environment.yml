@@ -785,6 +785,7 @@ jobs:
                              || ['unstable', 'testing', 'stable'].includes(stability);
             const isDbRun     = hasDbLabel
                              || ['unstable', 'testing', 'stable'].includes(stability);
+            const wantsDockerCollect = ${{ contains(steps.has_skip_label.outputs.labels, 'build-docker-collect') && 'true' || 'false' }};
 
             // --- OS/database combinations ---
             const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
@@ -853,6 +854,13 @@ jobs:
             if (isSystemRun) {
               collectMatrix = withArch(collectMatrix);
               cmaMatrix = withArch(cmaMatrix);
+            }
+
+            // Ensure trixie amd64+arm64 are packaged when the dockerize-engine-broker job is requested,
+            // otherwise the deb cache it restores does not exist and the job fails.
+            if (wantsDockerCollect) {
+              collectMatrix.push({ operating_system: 'trixie', arch: 'amd64' });
+              collectMatrix.push({ operating_system: 'trixie', arch: 'arm64' });
             }
 
             // deduplicate by os+arch (no database dimension needed for build/packaging)
