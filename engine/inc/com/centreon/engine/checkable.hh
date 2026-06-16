@@ -20,10 +20,13 @@
 #ifndef CCE_CHECKABLE_HH
 #define CCE_CHECKABLE_HH
 
+#include <array>
 #include <ctime>
 #include <forward_list>
 #include <memory>
 #include <string>
+
+#include "com/centreon/engine/common.hh"
 
 namespace com::centreon::engine {
 namespace commands {
@@ -96,6 +99,7 @@ class checkable {
   std::time_t _next_check;
   bool _should_be_scheduled;
   uint32_t _state_history_index;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> _state_history;
   std::time_t _last_state_change;
   std::time_t _last_hard_state_change;
   enum state_type _state_type;
@@ -270,6 +274,9 @@ class checkable {
   void set_current_problem_id(uint64_t current_problem_id) noexcept;
   uint64_t get_last_problem_id() const noexcept;
   void set_last_problem_id(uint64_t last_problem_id) noexcept;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> const& get_state_history()
+      const;
+  std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
   void set_severity(std::shared_ptr<severity> sv);
   const std::shared_ptr<severity>& get_severity() const;
   void set_icon_id(uint64_t icon_id);

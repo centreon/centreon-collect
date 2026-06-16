@@ -42,8 +42,7 @@ std::ostream& customvariables(std::ostream& os,
                               com::centreon::engine::map_customvar const& obj);
 std::ostream& notifications(
     std::ostream& os,
-    std::array<std::unique_ptr<com::centreon::engine::notification_ev>,
-               6> const& obj);
+    std::array<com::centreon::engine::notification_ev*, 6> const& obj);
 std::ostream& scheduled_downtime(
     std::ostream& os,
     const com::centreon::common::downtimes::downtime& obj);

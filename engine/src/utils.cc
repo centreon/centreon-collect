@@ -33,6 +33,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "engine/src/notifications/notification_manager.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/commands/raw.hh"
 #include "com/centreon/engine/comment.hh"
@@ -381,6 +382,7 @@ void cleanup() {
   // Unload modules.
   if (!test_scheduling) {
     checks::checker::deinit();
+    notifications::notification_manager::deinit();
     /* Before stopping, we stop all the connectors that are not already
      * finished. */
     for (auto& c : commands::connector::connectors)

@@ -904,7 +904,7 @@ bool contact::_to_notify_recovery(notifications::reason_type type
   }
 
   notification_ev* normal_notif =
-      notif.get_current_notifications()[notifications::cat_normal].get();
+      notif.get_current_notifications()[notifications::cat_normal];
   if (!normal_notif || !normal_notif->sent_to(get_name())) {
     notifications_logger->info(
         "We shouldn't notify this contact about a {} recovery because he has "
