@@ -1,5 +1,5 @@
 /**
- * Copyright 2019-2024 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,9 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/engine/notification.hh"
+#include "engine/src/notifications/notification.hh"
+
+#include <algorithm>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
@@ -25,10 +27,10 @@
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/notifier.hh"
 
-using namespace com::centreon::engine;
+namespace com::centreon::engine::notifications {
 
-notification_ev::notification_ev(notifier* parent,
-                                 notifications::reason_type type,
+notification::notification(notifier* parent,
+                                 reason_type type,
                                  std::string const& author,
                                  std::string const& message,
                                  uint32_t options,
@@ -56,7 +58,7 @@ notification_ev::notification_ev(notifier* parent,
  *
  * @return OK on success, ERROR otherwise.
  */
-int notification_ev::execute(
+int notification::execute(
     const std::unordered_set<std::shared_ptr<contact>>& to_notify) {
   uint32_t contacts_notified{0};
 
@@ -96,31 +98,31 @@ int notification_ev::execute(
 
   /* set the notification type macro */
   switch (_type) {
-    case notifications::reason_acknowledgement:
+    case reason_acknowledgement:
       mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
       break;
-    case notifications::reason_flappingstart:
+    case reason_flappingstart:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
       break;
-    case notifications::reason_flappingstop:
+    case reason_flappingstop:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
       break;
-    case notifications::reason_flappingdisabled:
+    case reason_flappingdisabled:
       mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
       break;
-    case notifications::reason_downtimestart:
+    case reason_downtimestart:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
       break;
-    case notifications::reason_downtimeend:
+    case reason_downtimeend:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
       break;
-    case notifications::reason_downtimecancelled:
+    case reason_downtimecancelled:
       mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
       break;
-    case notifications::reason_custom:
+    case reason_custom:
       mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
       break;
-    case notifications::reason_recovery:
+    case reason_recovery:
       mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
       break;
     default:
@@ -128,7 +130,7 @@ int notification_ev::execute(
       break;
   }
 
-  if (_parent->get_notifier_type() == notifications::host_notification) {
+  if (_parent->get_notifier_type() == host_notification) {
     /* set the notification number macro */
     mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = std::to_string(_number);
 
@@ -184,11 +186,11 @@ int notification_ev::execute(
   return OK;
 }
 
-notifications::reason_type notification_ev::get_reason() const {
+reason_type notification::get_reason() const {
   return _type;
 }
 
-uint32_t notification_ev::get_notification_interval() const {
+uint32_t notification::get_notification_interval() const {
   return _interval;
 }
 
@@ -200,7 +202,7 @@ uint32_t notification_ev::get_notification_interval() const {
  *
  * @return a boolean.
  */
-bool notification_ev::sent_to(const std::string& user) const {
+bool notification::sent_to(const std::string& user) const {
   return std::find(_notified_contact.begin(), _notified_contact.end(), user) !=
          _notified_contact.end();
 }
@@ -211,7 +213,7 @@ bool notification_ev::sent_to(const std::string& user) const {
  * @param contact_notified The names of users notified.
  */
 
-void notification_ev::add_contacts(
+void notification::add_contacts(
     const std::set<std::string>& contact_notified) {
   _notified_contact.insert(contact_notified.begin(), contact_notified.end());
 }
@@ -221,11 +223,10 @@ void notification_ev::add_contacts(
  *
  * @return contacts_notified.
  */
-const std::set<std::string>& notification_ev::get_contacts() const {
+const std::set<std::string>& notification::get_contacts() const {
   return _notified_contact;
 }
 
-namespace com::centreon::engine {
 /**
  *  operator<< to dump a notification in a stream
  *
@@ -234,7 +235,7 @@ namespace com::centreon::engine {
  *
  * @return The output stream
  */
-std::ostream& operator<<(std::ostream& os, notification_ev const& obj) {
+std::ostream& operator<<(std::ostream& os, notification const& obj) {
   os << "type: " << obj._type << ", author: " << obj._author
      << ", options: " << obj._options << ", escalated: " << obj._escalated
      << ", id: " << obj._id << ", number: " << obj._number
@@ -245,4 +246,5 @@ std::ostream& operator<<(std::ostream& os, notification_ev const& obj) {
   os << "\n";
   return os;
 }
-}  // namespace com::centreon::engine
+
+}  // namespace com::centreon::engine::notifications

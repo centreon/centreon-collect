@@ -25,8 +25,8 @@
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/dependency.hh"
-#include "engine/src/notifications/notification_manager.hh"
 #include "common.hh"
+#include "engine/src/notifications/notification_manager.hh"
 
 class nagios_macros;
 namespace com::centreon::engine {
@@ -34,7 +34,6 @@ namespace com::centreon::engine {
 class escalation;
 class contact;
 class timeperiod;
-class notification_ev;
 
 using AckType = com::centreon::broker::AckType;
 
@@ -106,7 +105,6 @@ class notifier : public checkable {
   uint32_t get_flap_detection_on() const noexcept;
   void set_flap_detection_on(uint32_t type) noexcept;
   void add_flap_detection_on(notifications::notification_flag type) noexcept;
-
 
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
@@ -208,7 +206,8 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve(uint32_t& w, uint32_t& e);
-  std::array<notification_ev*, 6> get_current_notifications() const;
+  std::array<notifications::notification*, 6> get_current_notifications()
+      const;
   int get_pending_flex_downtime() const;
   void inc_pending_flex_downtime() noexcept;
   void dec_pending_flex_downtime() noexcept;

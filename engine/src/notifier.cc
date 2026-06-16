@@ -27,8 +27,8 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "engine/src/notifications/notification.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -737,7 +737,8 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
                          << "'";
 }
 
-std::array<notification_ev*, 6> notifier::get_current_notifications() const {
+std::array<notifications::notification*, 6>
+notifier::get_current_notifications() const {
   return notifications::notification_manager::instance().current_notifications(
       this);
 }
@@ -1000,8 +1001,9 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
   }
   notifications::notification_manager::instance().set_notification(
       this, static_cast<notifications::notification_category>(idx),
-      std::make_unique<notification_ev>(this, type, author, "", options, id,
-                                        number, interval, escalated, contacts));
+      std::make_unique<notifications::notification>(
+          this, type, author, "", options, id, number, interval, escalated,
+          contacts));
 }
 
 void notifier::inc_notification_number() noexcept {
