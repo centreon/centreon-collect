@@ -22,12 +22,16 @@
 
 #include <array>
 #include <cstdint>
+#include <memory>
+#include <string>
 #include <string_view>
+#include <utility>
+
+#include "absl/container/flat_hash_map.h"
 
 namespace com::centreon::engine {
-// Forward declaration: the viability methods operate on a notifier without
-// the manager having to include the (heavy) notifier header.
 class notifier;
+class notification_ev;
 
 namespace notifications {
 
@@ -95,18 +99,26 @@ enum notification_option {
 };
 
 /**
- * @brief Central manager for notifications (Meyers singleton).
+ * @brief Central manager for notifications.
  *
- * Single, lazily-constructed instance accessed through instance(). The static
- * local makes the initialization thread-safe (C++11 magic statics) and the
- * instance is destroyed automatically at program exit. Not copyable nor
- * movable.
+ * Singleton with an explicitly controlled lifetime (same pattern as
+ * checks::checker): the instance is created by init() and destroyed by
+ * deinit(). We must control when it is destroyed because notifier destructors
+ * call forget() on it; a Meyers singleton would be destroyed before the global
+ * host/service objects at program exit, so those late ~notifier() calls would
+ * touch a destroyed instance. Not copyable nor movable.
  */
 class notification_manager {
+  static notification_manager* _instance;
+
   uint64_t _next_notification_id = 1ull;
 
-  /* Construction/destruction are private: the only instance is the static
-   * local in instance(). */
+  absl::flat_hash_map<std::pair<notifier*, notification_category>,
+                      std::unique_ptr<notification_ev>>
+      _notification;
+
+  /* Construction/destruction are private: the only instance is owned through
+   * _instance and managed by init()/deinit(). */
   notification_manager();
   ~notification_manager() = default;
 
@@ -146,6 +158,8 @@ class notification_manager {
       {"SOFT", "HARD"}};
 
   static notification_manager& instance();
+  static void init();
+  static void deinit();
 
   notification_manager(const notification_manager&) = delete;
   notification_manager& operator=(const notification_manager&) = delete;
@@ -155,10 +169,25 @@ class notification_manager {
   uint64_t next_notification_id() noexcept;
   uint64_t get_next_notification_id() const noexcept;
 
+  static notification_category get_category(reason_type type);
   bool is_notification_viable(notifier& n,
                               notification_category cat,
                               reason_type type,
                               notification_option options);
+  int32_t notify(notifier& n,
+                 reason_type type,
+                 const std::string& not_author,
+                 const std::string& not_data,
+                 notification_option options);
+
+  notification_ev* current_notification(notifier* n,
+                                        notification_category cat) const;
+  std::array<notification_ev*, 6> current_notifications(
+      const notifier* n) const;
+  void set_notification(notifier* n,
+                        notification_category cat,
+                        std::unique_ptr<notification_ev> ev);
+  static void forget(notifier* n);
 };
 
 }  // namespace notifications

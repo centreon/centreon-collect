@@ -21,6 +21,7 @@
 
 #include "cbmod_test.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "engine/src/notifications/notification_manager.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
@@ -64,6 +65,7 @@ std::unique_ptr<configuration::state_helper> init_config_state() {
       pb_indexed_config.mut_state());
 
   checks::checker::init(true);
+  notifications::notification_manager::init();
   return retval;
 }
 
@@ -72,4 +74,5 @@ void deinit_config_state(void) {
 
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
+  notifications::notification_manager::deinit();
 }

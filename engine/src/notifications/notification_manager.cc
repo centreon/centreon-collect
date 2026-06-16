@@ -19,6 +19,8 @@
 
 #include "engine/src/notifications/notification_manager.hh"
 
+#include <cassert>
+
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/notification.hh"
@@ -28,16 +30,43 @@
 
 namespace com::centreon::engine::notifications {
 
+notification_manager* notification_manager::_instance = nullptr;
+
 notification_manager::notification_manager() = default;
 
 /**
  * @brief Get the unique instance of the notification manager.
  *
+ * This singleton does not follow the C++ Meyers idiom on purpose: we need to
+ * control when it is destroyed (see init()/deinit() and the class doc).
+ *
  * @return A reference to the notification_manager singleton.
  */
 notification_manager& notification_manager::instance() {
-  static notification_manager instance;
-  return instance;
+  assert(_instance);
+  return *_instance;
+}
+
+/**
+ * @brief Create the notification_manager singleton.
+ *
+ * Must be called once at startup, before any notifier is created.
+ */
+void notification_manager::init() {
+  if (!_instance)
+    _instance = new notification_manager();
+}
+
+/**
+ * @brief Destroy the notification_manager singleton.
+ *
+ * Must be called at shutdown, after all notifiers have been destroyed.
+ */
+void notification_manager::deinit() {
+  if (_instance) {
+    delete _instance;
+    _instance = nullptr;
+  }
 }
 
 /**
@@ -57,6 +86,23 @@ uint64_t notification_manager::next_notification_id() noexcept {
  */
 uint64_t notification_manager::get_next_notification_id() const noexcept {
   return _next_notification_id;
+}
+
+/**
+ * @brief Map a notification reason to its notification category.
+ *
+ * @param type The notification reason.
+ *
+ * @return The matching notification category.
+ */
+notification_category notification_manager::get_category(reason_type type) {
+  if (type == reason_custom)
+    return cat_custom;
+  notification_category cat[] = {
+      cat_normal,   cat_recovery, cat_acknowledgement, cat_flapping,
+      cat_flapping, cat_flapping, cat_downtime,        cat_downtime,
+      cat_downtime, cat_custom};
+  return cat[static_cast<size_t>(type)];
 }
 
 /**
@@ -98,10 +144,10 @@ bool notification_manager::_is_notification_viable_normal(
                       "notifier::is_notification_viable_normal()");
 
   /* forced notifications bust through everything */
+  notification_ev* normal_notif = current_notification(&n, cat_normal);
   uint32_t notification_interval =
-      !n._notification[cat_normal]
-          ? n._notification_interval
-          : n._notification[cat_normal]->get_notification_interval();
+      !normal_notif ? n._notification_interval
+                    : normal_notif->get_notification_interval();
 
   if (options & notification_option_forced) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
@@ -196,7 +242,7 @@ bool notification_manager::_is_notification_viable_normal(
   }
 
   uint32_t interval_length = pb_indexed_config.state().interval_length();
-  if (n._first_notification_delay > 0 && !n._notification[cat_normal] &&
+  if (n._first_notification_delay > 0 && !normal_notif &&
       n.get_last_hard_state_change() +
               n._first_notification_delay * interval_length >
           now) {
@@ -216,7 +262,7 @@ bool notification_manager::_is_notification_viable_normal(
     return false;
   }
 
-  if (n._notification[cat_normal]) {
+  if (normal_notif) {
     /* In the case of a state change, we don't care of the notification interval
      * and we notify as soon as we can */
     if (n.get_last_hard_state_change() <= n._last_notification) {
@@ -348,7 +394,7 @@ bool notification_manager::_is_notification_viable_recovery(
           "No notification has been sent to "
           "announce a problem. So no recovery notification will be sent");
       retval = false;
-    } else if (!n._notification[cat_normal]) {
+    } else if (!current_notification(&n, cat_normal)) {
       SPDLOG_LOGGER_DEBUG(notifications_logger,
                           "We should not send a notification "
                           "since no normal notification has"
@@ -359,7 +405,7 @@ bool notification_manager::_is_notification_viable_recovery(
 
   if (!retval) {
     if (!send_later) {
-      n._notification[cat_normal].reset();
+      _notification.erase({&n, cat_normal});
       SPDLOG_LOGGER_TRACE(
           notifications_logger,
           " _notification_number _is_notification_viable_recovery: {} => 0",
@@ -459,7 +505,8 @@ bool notification_manager::_is_notification_viable_flapping(
 
   /* Don't send a start notification if a flapping notification is already there
    */
-  if (type == reason_flappingstart && n._notification[cat_flapping]) {
+  notification_ev* flapping_notif = current_notification(&n, cat_flapping);
+  if (type == reason_flappingstart && flapping_notif) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
         "A flapping notification is already running, we can not send "
@@ -468,8 +515,8 @@ bool notification_manager::_is_notification_viable_flapping(
     /* Don't send a stop/cancel notification if the previous flapping
      * notification is not a start flapping */
   } else if (type == reason_flappingstop || type == reason_flappingdisabled) {
-    if (!n._notification[cat_flapping] ||
-        n._notification[cat_flapping]->get_reason() != reason_flappingstart) {
+    if (!flapping_notif ||
+        flapping_notif->get_reason() != reason_flappingstart) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger,
           "A stop or cancellation flapping notification can only be sent "
@@ -479,8 +526,7 @@ bool notification_manager::_is_notification_viable_flapping(
   }
 
   /* Don't send a notification if the same has already been sent previously. */
-  if (n._notification[cat_flapping] &&
-      n._notification[cat_flapping]->get_reason() == type) {
+  if (flapping_notif && flapping_notif->get_reason() == type) {
     SPDLOG_LOGGER_DEBUG(notifications_logger,
                         "We shouldn't notify about a {} event: already sent.",
                         tab_notification_str[type]);
@@ -593,6 +639,161 @@ bool notification_manager::_is_notification_viable_custom(
     return false;
   }
   return true;
+}
+
+int32_t notification_manager::notify(
+    notifier& n,
+    notifications::reason_type type,
+    const std::string& not_author,
+    const std::string& not_data,
+    notifications::notification_option options) {
+  SPDLOG_LOGGER_TRACE(functions_logger, "notification_manager::notify({})",
+                      static_cast<uint32_t>(type));
+  notifications::notification_category cat = get_category(type);
+
+  /* Has this notification got sense? */
+  if (!is_notification_viable(n, cat, type, options))
+    return OK;
+
+  /* For a first notification, we store what type of notification we try to
+   * send and we fix the notification number to 1. */
+
+  if (type != notifications::reason_recovery) {
+    SPDLOG_LOGGER_TRACE(
+        notifications_logger, "_notification_number notify: {} -> {}",
+        n.get_notification_number(), n.get_notification_number() + 1);
+    n.inc_notification_number();
+  }
+
+  /* What are the contacts to notify? */
+  uint32_t notification_interval;
+  bool escalated;
+  std::unordered_set<std::shared_ptr<contact>> to_notify =
+      n.get_contacts_to_notify(cat, type, notification_interval, escalated);
+
+  uint64_t current_notification_id =
+      notifications::notification_manager::instance().next_notification_id();
+  auto notif = std::make_unique<notification_ev>(
+      &n, type, not_author, not_data, options, current_notification_id,
+      n.get_notification_number(), notification_interval, escalated);
+
+  /* Let's make the notification. */
+  int retval{notif->execute(to_notify)};
+
+  if (retval == OK) {
+    if (!to_notify.empty())
+      n.set_last_notification(std::time(nullptr));
+
+    /* The notification has been sent.
+     * Should we increment the notification number? */
+    if (cat == notifications::cat_normal) {
+      /* if normal notification, get contacts from the last notification for
+       * notify this contact on recovery notification */
+      notification_ev* normal_notif = current_notification(&n, cat);
+      if (normal_notif)
+        notif->add_contacts(normal_notif->get_contacts());
+
+      _notification[{&n, cat}] = std::move(notif);
+    } else {
+      _notification[{&n, cat}] = std::move(notif);
+      switch (cat) {
+        case notifications::cat_recovery:
+          _notification.erase({&n, notifications::cat_normal});
+          _notification.erase({&n, notifications::cat_recovery});
+          break;
+        case notifications::cat_flapping:
+          if (type == notifications::reason_flappingstop ||
+              type == notifications::reason_flappingdisabled)
+            _notification.erase({&n, notifications::cat_flapping});
+          break;
+        case notifications::cat_downtime:
+          if (type == notifications::reason_downtimeend ||
+              type == notifications::reason_downtimecancelled)
+            _notification.erase({&n, notifications::cat_downtime});
+          break;
+        default:
+          _notification.erase({&n, cat});
+      }
+      /* In case of an acknowledgement, we must keep the _notification_number
+       * otherwise the recovery notification won't be sent when needed. */
+      if (cat != notifications::cat_acknowledgement &&
+          cat != notifications::cat_downtime) {
+        SPDLOG_LOGGER_TRACE(notifications_logger,
+                            "_notification_number notify: {} => 0",
+                            n.get_notification_number());
+        n.set_notification_number(0);
+      }
+    }
+  }
+
+  return retval;
+}
+
+/**
+ * @brief Get the live notification event of the given category for a notifier.
+ *
+ * Read-only lookup: it never inserts an empty slot in the map.
+ *
+ * @param n The notifier.
+ * @param cat The notification category.
+ *
+ * @return The notification_ev pointer, or nullptr if none is stored.
+ */
+notification_ev* notification_manager::current_notification(
+    notifier* n,
+    notification_category cat) const {
+  auto it = _notification.find({n, cat});
+  return it != _notification.end() ? it->second.get() : nullptr;
+}
+
+/**
+ * @brief Get a snapshot of the six notification slots of a notifier.
+ *
+ * @param n The notifier.
+ *
+ * @return An array of (non-owning) notification_ev pointers indexed by
+ * notification_category; nullptr where no notification is stored.
+ */
+std::array<notification_ev*, 6> notification_manager::current_notifications(
+    const notifier* n) const {
+  std::array<notification_ev*, 6> retval{};
+  for (int i = 0; i < 6; i++)
+    retval[i] = current_notification(const_cast<notifier*>(n),
+                                     static_cast<notification_category>(i));
+  return retval;
+}
+
+/**
+ * @brief Store a notification event for a notifier/category (retention
+ * restore).
+ *
+ * @param n The notifier.
+ * @param cat The notification category.
+ * @param ev The notification event to store (ownership transferred).
+ */
+void notification_manager::set_notification(
+    notifier* n,
+    notification_category cat,
+    std::unique_ptr<notification_ev> ev) {
+  _notification[{n, cat}] = std::move(ev);
+}
+
+/**
+ * @brief Drop every notification event attached to a notifier.
+ *
+ * Must be called when a notifier is destroyed, otherwise its entries would
+ * leak and keep a dangling notifier pointer as key.
+ *
+ * @param n The notifier being forgotten.
+ */
+void notification_manager::forget(notifier* n) {
+  /* Guarded like checker::forget: a notifier can be destroyed after the
+   * singleton has been torn down by deinit(), in which case there is nothing
+   * left to forget. */
+  if (!_instance)
+    return;
+  for (int i = 0; i < 6; i++)
+    _instance->_notification.erase({n, static_cast<notification_category>(i)});
 }
 
 }  // namespace com::centreon::engine::notifications

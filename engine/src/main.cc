@@ -41,6 +41,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
+#include "engine/src/notifications/notification_manager.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/logging.hh"
@@ -219,6 +220,9 @@ int main(int argc, char* argv[]) {
 
       // Checker init
       checks::checker::init();
+
+      // Notification manager init (lifetime controlled like the checker).
+      notifications::notification_manager::init();
 
       // If an error occured, print usage.
       if (error) {

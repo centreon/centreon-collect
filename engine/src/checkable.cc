@@ -83,6 +83,7 @@ checkable::checkable(const std::string& name,
       _next_check{0L},
       _should_be_scheduled{true},
       _state_history_index{0},
+      _state_history{{}},
       _last_state_change{0},
       _last_hard_state_change{0},
       _state_type{soft},
@@ -514,6 +515,15 @@ uint64_t checkable::get_last_problem_id() const noexcept {
 
 void checkable::set_last_problem_id(uint64_t last_problem_id) noexcept {
   _last_problem_id = last_problem_id;
+}
+
+std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES> const&
+checkable::get_state_history() const {
+  return _state_history;
+}
+
+std::array<uint16_t, MAX_STATE_HISTORY_ENTRIES>& checkable::get_state_history() {
+  return _state_history;
 }
 
 /**
