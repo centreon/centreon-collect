@@ -73,7 +73,7 @@ extern time_t last_log_rotation;
 extern unsigned long modified_host_process_attributes;
 extern unsigned long modified_service_process_attributes;
 
-extern unsigned long next_event_id;
+extern uint64_t next_event_id;
 extern uint64_t next_problem_id;
 extern unsigned long next_notification_id;
 

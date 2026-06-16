@@ -325,16 +325,16 @@ struct grab_service_redirection {
       // Event ID.
       {MACRO_SERVICEEVENTID,
        {&get_member_as_string<service,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_current_event_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_current_event_id>,
         true}},
       // Last event ID.
       {MACRO_LASTSERVICEEVENTID,
        {&get_member_as_string<service,
-                              unsigned long,
-                              notifier,
-                              &notifier::get_last_event_id>,
+                              uint64_t,
+                              checkable,
+                              &checkable::get_last_event_id>,
         true}},
       // Problem ID.
       {MACRO_SERVICEPROBLEMID,
