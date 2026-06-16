@@ -20,7 +20,16 @@
 #ifndef CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
 #define CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
 
-namespace com::centreon::engine::notifications {
+#include <array>
+#include <cstdint>
+#include <string_view>
+
+namespace com::centreon::engine {
+// Forward declaration: the viability methods operate on a notifier without
+// the manager having to include the (heavy) notifier header.
+class notifier;
+
+namespace notifications {
 
 /* Status attributes. Used as argument in the notifier::update_status(). */
 enum status_attribute {
@@ -101,6 +110,25 @@ class notification_manager {
   notification_manager();
   ~notification_manager() = default;
 
+  bool _is_notification_viable_normal(notifier& n,
+                                      reason_type type,
+                                      notification_option options);
+  bool _is_notification_viable_recovery(notifier& n,
+                                        reason_type type,
+                                        notification_option options);
+  bool _is_notification_viable_acknowledgement(notifier& n,
+                                               reason_type type,
+                                               notification_option options);
+  bool _is_notification_viable_flapping(notifier& n,
+                                        reason_type type,
+                                        notification_option options);
+  bool _is_notification_viable_downtime(notifier& n,
+                                        reason_type type,
+                                        notification_option options);
+  bool _is_notification_viable_custom(notifier& n,
+                                      reason_type type,
+                                      notification_option options);
+
  public:
   static constexpr std::array<std::string_view, 9> tab_notification_str{{
       "NORMAL",
@@ -114,8 +142,8 @@ class notification_manager {
       "DOWNTIMECANCELLED",
   }};
 
-  static constexpr std::array<std::string_view, 2> tab_state_type{{"SOFT",
-                                                                    "HARD"}};
+  static constexpr std::array<std::string_view, 2> tab_state_type{
+      {"SOFT", "HARD"}};
 
   static notification_manager& instance();
 
@@ -126,8 +154,14 @@ class notification_manager {
 
   uint64_t next_notification_id() noexcept;
   uint64_t get_next_notification_id() const noexcept;
+
+  bool is_notification_viable(notifier& n,
+                              notification_category cat,
+                              reason_type type,
+                              notification_option options);
 };
 
-}  // namespace com::centreon::engine::notifications
+}  // namespace notifications
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
