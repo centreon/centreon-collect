@@ -23,10 +23,10 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "engine/src/notifications/notification.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -903,7 +903,7 @@ bool contact::_to_notify_recovery(notifications::reason_type type
     return false;
   }
 
-  notification_ev* normal_notif =
+  notifications::notification* normal_notif =
       notif.get_current_notifications()[notifications::cat_normal];
   if (!normal_notif || !normal_notif->sent_to(get_name())) {
     notifications_logger->info(

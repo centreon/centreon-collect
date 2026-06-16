@@ -31,13 +31,13 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
+#include "engine/src/notifications/notification.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -651,7 +651,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
     std::ostringstream oss;
     auto current{obj.get_current_notifications()};
     for (int i = 0; i < 6; i++) {
-      notification_ev* s{current[i]};
+      notifications::notification* s{current[i]};
       if (s)
         oss << "  notification_" << i << ": " << *s;
     }
@@ -2354,8 +2354,10 @@ int host::notify_contact(nagios_macros* mac,
         host_state_str = tab_host_states[_current_state].second.c_str();
 
       std::string_view notification_str("");
-      if ((unsigned int)type < notifications::notification_manager::tab_notification_str.size())
-        notification_str = notifications::notification_manager::tab_notification_str[type];
+      if ((unsigned int)type <
+          notifications::notification_manager::tab_notification_str.size())
+        notification_str =
+            notifications::notification_manager::tab_notification_str[type];
 
       std::string info;
       if (type == reason_custom)

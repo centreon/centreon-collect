@@ -21,8 +21,8 @@
 #define CCE_RETENTION_DUMP_HH
 
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/notification.hh"
 #include "common/downtimes/downtime.hh"
+#include "engine/src/notifications/notification.hh"
 
 // Forward declaration.
 
@@ -42,7 +42,8 @@ std::ostream& customvariables(std::ostream& os,
                               com::centreon::engine::map_customvar const& obj);
 std::ostream& notifications(
     std::ostream& os,
-    std::array<com::centreon::engine::notification_ev*, 6> const& obj);
+    std::array<com::centreon::engine::notifications::notification*, 6> const&
+        obj);
 std::ostream& scheduled_downtime(
     std::ostream& os,
     const com::centreon::common::downtimes::downtime& obj);
