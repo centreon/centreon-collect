@@ -39,10 +39,11 @@ class notification_ev;
 using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
- public:
-  typedef bool (notifier::*is_viable)(notifications::reason_type type,
-                                      notifications::notification_option);
+  /* The notification_manager holds the notification viability policy and needs
+   * access to the private notification state of the notifier. */
+  friend class notifications::notification_manager;
 
+ public:
   notifier(notifications::notifier_type notification_flag,
            const std::string& name,
            std::string const& display_name,
@@ -233,27 +234,6 @@ class notifier : public checkable {
   map_customvar custom_variables;
 
  private:
-  static std::array<is_viable, 6> const _is_notification_viable;
-
-  bool _is_notification_viable_normal(
-      notifications::reason_type type,
-      notifications::notification_option options);
-  bool _is_notification_viable_recovery(
-      notifications::reason_type type,
-      notifications::notification_option options);
-  bool _is_notification_viable_acknowledgement(
-      notifications::reason_type type,
-      notifications::notification_option options);
-  bool _is_notification_viable_flapping(
-      notifications::reason_type type,
-      notifications::notification_option options);
-  bool _is_notification_viable_downtime(
-      notifications::reason_type type,
-      notifications::notification_option options);
-  bool _is_notification_viable_custom(
-      notifications::reason_type type,
-      notifications::notification_option options);
-
   notifications::notifier_type _notifier_type;
   int32_t _stalk_type;
   uint32_t _flap_type;
