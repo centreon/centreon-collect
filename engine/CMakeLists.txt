@@ -546,6 +546,7 @@ target_link_libraries(
   ctncrypto
   Boost::url
   gRPC::grpc++
+  protobuf::libprotobuf
   Boost::program_options
   Boost::thread
   -Wl,--no-whole-archive

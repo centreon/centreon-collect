@@ -54,7 +54,8 @@ if(WITH_TESTING)
   target_link_libraries(bin_connector_test_run 
     cce_core
     -Wl,--whole-archive
-    log_v2 
+    log_v2
+    centreon_common 
     centreon_grpc
     centreon_file_system
     gRPC::grpc++
@@ -195,7 +196,7 @@ if(WITH_TESTING)
     PRIVATE
     enginerpc
     ut_engine_utils
-    pb_open_telemetry_lib
+    centreon_pb_bbdo
     centagent_lib
     centreon_process
     centreon_hexdump
@@ -207,7 +208,6 @@ if(WITH_TESTING)
     opentelemetry
     centreon_file_system
     ctncrypto
-    gRPC::grpc++
     Boost::program_options
     -Wl,-no-whole-archive
 	    #Boost::url
@@ -217,6 +217,7 @@ if(WITH_TESTING)
     GTest::gmock
     GTest::gmock_main
     gRPC::grpc++
+    protobuf::libprotobuf
     fmt::fmt
     ryml::ryml
     stdc++fs
