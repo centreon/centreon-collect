@@ -58,11 +58,11 @@ add_library(
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
 add_dependencies(cerpc engine_rpc process_stat)
 
-set_property(
-  TARGET cerpc
-  PROPERTY PREFIX ""
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(cerpc PROPERTIES
+  PREFIX ""
+  POSITION_INDEPENDENT_CODE ON)
 
+#target_link_libraries(cerpc PUBLIC protobuf::libprotobuf gRPC::grpc++)
 
 # mod_enginerpc target.
 add_library(
@@ -76,9 +76,8 @@ add_dependencies(enginerpc centreon_common process_stat cerpc)
 target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
 
 # Prettier name.
-set_property(
-  TARGET enginerpc
-  PROPERTY PREFIX ""
-  PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(enginerpc PROPERTIES
+  PREFIX ""
+  POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
 target_link_libraries(enginerpc PRIVATE cerpc)

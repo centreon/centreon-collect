@@ -102,7 +102,7 @@ target_link_libraries(
           Boost::url
           centreon_http
           centreon_pb_bbdo
-          centreon_common_timeperiod
+          centreon_engine_conf
           fmt::fmt
           ctncrypto)
 

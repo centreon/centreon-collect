@@ -195,6 +195,7 @@ if(WITH_TESTING)
     ut_engine
     PRIVATE
     enginerpc
+    cerpc
     ut_engine_utils
     centreon_pb_bbdo
     centagent_lib
@@ -210,7 +211,6 @@ if(WITH_TESTING)
     ctncrypto
     Boost::program_options
     -Wl,-no-whole-archive
-	    #Boost::url
     ${GCOV}
     GTest::gtest
     GTest::gtest_main

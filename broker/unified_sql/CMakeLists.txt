@@ -66,6 +66,7 @@ target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
   ${UNIFIED_SQL} PRIVATE
   bbdo_storage
+  centreon_engine_conf
   centreon_pb_bbdo
   fmt::fmt
   absl::any absl::log absl::base absl::bits)
