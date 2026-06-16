@@ -121,8 +121,6 @@ notifier::notifier(notifications::notifier_type notifier_type,
       _is_being_freshened{false},
       _notification_to_interval_on_timeperiod_in{false},
       _notification_number{0},
-      _notification{{}},
-      _state_history{{}},
       _pending_flex_downtime{0} {
   if (retry_interval <= 0) {
     SPDLOG_LOGGER_ERROR(
@@ -135,6 +133,7 @@ notifier::notifier(notifications::notifier_type notifier_type,
 }
 
 notifier::~notifier() {
+  notifications::notification_manager::forget(this);
   checks::checker::forget(this);
 }
 
@@ -232,19 +231,6 @@ std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
   return retval;
 }
 
-notifications::notification_category notifier::get_category(
-    notifications::reason_type type) {
-  if (type == 99)
-    return notifications::cat_custom;
-  notifications::notification_category cat[] = {
-      notifications::cat_normal,          notifications::cat_recovery,
-      notifications::cat_acknowledgement, notifications::cat_flapping,
-      notifications::cat_flapping,        notifications::cat_flapping,
-      notifications::cat_downtime,        notifications::cat_downtime,
-      notifications::cat_downtime,        notifications::cat_custom};
-  return cat[static_cast<size_t>(type)];
-}
-
 bool notifier::is_notification_viable(
     notifications::notification_category cat,
     notifications::reason_type type,
@@ -257,86 +243,8 @@ int notifier::notify(notifications::reason_type type,
                      std::string const& not_author,
                      std::string const& not_data,
                      notifications::notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "notifier::notify({})",
-                      static_cast<uint32_t>(type));
-  notifications::notification_category cat{get_category(type)};
-
-  /* Has this notification got sense? */
-  if (!is_notification_viable(cat, type, options))
-    return OK;
-
-  /* For a first notification, we store what type of notification we try to
-   * send and we fix the notification number to 1. */
-  if (type != notifications::reason_recovery) {
-    SPDLOG_LOGGER_TRACE(notifications_logger,
-                        "_notification_number notify: {} -> {}",
-                        _notification_number, _notification_number + 1);
-    ++_notification_number;
-  }
-
-  /* What are the contacts to notify? */
-  uint32_t notification_interval;
-  bool escalated;
-  std::unordered_set<std::shared_ptr<contact>> to_notify =
-      get_contacts_to_notify(cat, type, notification_interval, escalated);
-
-  _current_notification_id =
-      notifications::notification_manager::instance().next_notification_id();
-  auto notif = std::make_unique<notification_ev>(
-      this, type, not_author, not_data, options, _current_notification_id,
-      _notification_number, notification_interval, escalated);
-
-  /* Let's make the notification. */
-  int retval{notif->execute(to_notify)};
-
-  if (retval == OK) {
-    if (!to_notify.empty())
-      _last_notification = std::time(nullptr);
-
-    /* The notification has been sent.
-     * Should we increment the notification number? */
-    if (cat == notifications::cat_normal) {
-      /* if normal notification, get contacts from the last notification for
-       * notify this contact on recovery notification */
-      notification_ev* normal_notif =
-          _notification[notifications::cat_normal].get();
-      if (normal_notif)
-        notif->add_contacts(normal_notif->get_contacts());
-
-      _notification[cat] = std::move(notif);
-    } else {
-      _notification[cat] = std::move(notif);
-      switch (cat) {
-        case notifications::cat_recovery:
-          _notification[notifications::cat_normal].reset();
-          _notification[notifications::cat_recovery].reset();
-          break;
-        case notifications::cat_flapping:
-          if (type == notifications::reason_flappingstop ||
-              type == notifications::reason_flappingdisabled)
-            _notification[notifications::cat_flapping].reset();
-          break;
-        case notifications::cat_downtime:
-          if (type == notifications::reason_downtimeend ||
-              type == notifications::reason_downtimecancelled)
-            _notification[notifications::cat_downtime].reset();
-          break;
-        default:
-          _notification[cat].reset();
-      }
-      /* In case of an acknowledgement, we must keep the _notification_number
-       * otherwise the recovery notification won't be sent when needed. */
-      if (cat != notifications::cat_acknowledgement &&
-          cat != notifications::cat_downtime) {
-        SPDLOG_LOGGER_TRACE(notifications_logger,
-                            "_notification_number notify: {} => 0",
-                            _notification_number);
-        _notification_number = 0;
-      }
-    }
-  }
-
-  return retval;
+  return notifications::notification_manager::instance().notify(
+      *this, type, not_author, not_data, options);
 }
 
 void notifier::set_current_notification_id(uint64_t id) noexcept {
@@ -829,18 +737,9 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
                          << "'";
 }
 
-std::array<int, MAX_STATE_HISTORY_ENTRIES> const& notifier::get_state_history()
-    const {
-  return _state_history;
-}
-
-std::array<int, MAX_STATE_HISTORY_ENTRIES>& notifier::get_state_history() {
-  return _state_history;
-}
-
-std::array<std::unique_ptr<notification_ev>, 6> const&
-notifier::get_current_notifications() const {
-  return _notification;
+std::array<notification_ev*, 6> notifier::get_current_notifications() const {
+  return notifications::notification_manager::instance().current_notifications(
+      this);
 }
 
 int notifier::get_pending_flex_downtime() const {
@@ -1099,7 +998,12 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
       }
     }
   }
-  _notification[idx] =
+  notifications::notification_manager::instance().set_notification(
+      this, static_cast<notifications::notification_category>(idx),
       std::make_unique<notification_ev>(this, type, author, "", options, id,
-                                        number, interval, escalated, contacts);
+                                        number, interval, escalated, contacts));
+}
+
+void notifier::inc_notification_number() noexcept {
+  ++_notification_number;
 }

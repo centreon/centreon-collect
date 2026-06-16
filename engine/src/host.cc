@@ -649,8 +649,9 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
   std::string notifications;
   {
     std::ostringstream oss;
+    auto current{obj.get_current_notifications()};
     for (int i = 0; i < 6; i++) {
-      notification_ev* s{obj.get_current_notifications()[i].get()};
+      notification_ev* s{current[i]};
       if (s)
         oss << "  notification_" << i << ": " << *s;
     }

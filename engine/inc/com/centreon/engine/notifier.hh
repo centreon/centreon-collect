@@ -187,12 +187,11 @@ class notifier : public checkable {
   bool notifications_available(int options) const;
   int get_notification_number() const noexcept;
   void set_notification_number(int number);
+  void inc_notification_number() noexcept;
 
   virtual bool authorized_by_dependencies(
       dependency::types dependency_type) const = 0;
   virtual timeperiod* get_notification_timeperiod() const = 0;
-  static notifications::notification_category get_category(
-      notifications::reason_type type);
   bool is_notification_viable(notifications::notification_category cat,
                               notifications::reason_type type,
                               notifications::notification_option options);
@@ -209,10 +208,7 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve(uint32_t& w, uint32_t& e);
-  std::array<int, MAX_STATE_HISTORY_ENTRIES> const& get_state_history() const;
-  std::array<int, MAX_STATE_HISTORY_ENTRIES>& get_state_history();
-  std::array<std::unique_ptr<notification_ev>, 6> const&
-  get_current_notifications() const;
+  std::array<notification_ev*, 6> get_current_notifications() const;
   int get_pending_flex_downtime() const;
   void inc_pending_flex_downtime() noexcept;
   void dec_pending_flex_downtime() noexcept;
@@ -258,12 +254,10 @@ class notifier : public checkable {
   bool _notification_to_interval_on_timeperiod_in;
 
   /* New ones */
-  int _notification_number;
+  uint64_t _notification_number;
   // reason_type _type;
   contact_map _contacts;
   contactgroup_map _contact_groups;
-  std::array<std::unique_ptr<notification_ev>, 6> _notification;
-  std::array<int, MAX_STATE_HISTORY_ENTRIES> _state_history;
   int _pending_flex_downtime;
 };
 

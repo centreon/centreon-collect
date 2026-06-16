@@ -119,7 +119,7 @@ std::ostream& dump::customvariables(std::ostream& os,
 
 std::ostream& dump::notifications(
     std::ostream& os,
-    std::array<std::unique_ptr<notification_ev>, 6> const& obj) {
+    std::array<notification_ev*, 6> const& obj) {
   for (int i = 0; i < 6; i++)
     if (obj[i])
       os << "notification_" << i << "=" << *obj[i];
