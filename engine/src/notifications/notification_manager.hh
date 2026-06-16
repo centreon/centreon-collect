@@ -31,9 +31,9 @@
 
 namespace com::centreon::engine {
 class notifier;
-class notification_ev;
 
 namespace notifications {
+class notification;
 
 /* Status attributes. Used as argument in the notifier::update_status(). */
 enum status_attribute {
@@ -114,7 +114,7 @@ class notification_manager {
   uint64_t _next_notification_id = 1ull;
 
   absl::flat_hash_map<std::pair<notifier*, notification_category>,
-                      std::unique_ptr<notification_ev>>
+                      std::unique_ptr<notification>>
       _notification;
 
   /* Construction/destruction are private: the only instance is owned through
@@ -180,13 +180,13 @@ class notification_manager {
                  const std::string& not_data,
                  notification_option options);
 
-  notification_ev* current_notification(notifier* n,
+  notification* current_notification(notifier* n,
                                         notification_category cat) const;
-  std::array<notification_ev*, 6> current_notifications(
+  std::array<notification*, 6> current_notifications(
       const notifier* n) const;
   void set_notification(notifier* n,
                         notification_category cat,
-                        std::unique_ptr<notification_ev> ev);
+                        std::unique_ptr<notification> ev);
   static void forget(notifier* n);
 };
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,19 +17,29 @@
  *
  */
 
-#ifndef CCE_NOTIFICATION_HH
-#define CCE_NOTIFICATION_HH
+#ifndef CCE_NOTIFICATIONS_NOTIFICATION_HH
+#define CCE_NOTIFICATIONS_NOTIFICATION_HH
 
-#include "com/centreon/engine/notifier.hh"
+#include <cstdint>
+#include <memory>
+#include <ostream>
+#include <set>
+#include <string>
+#include <unordered_set>
+
+#include "engine/src/notifications/notification_manager.hh"
 
 namespace com::centreon::engine {
 class contact;
+class notifier;
 
-class notification_ev {
-  friend std::ostream& operator<<(std::ostream& os, notification_ev const& n);
+namespace notifications {
+
+class notification {
+  friend std::ostream& operator<<(std::ostream& os, notification const& n);
 
   notifier* _parent;
-  notifications::reason_type _type;
+  reason_type _type;
   std::string _author;
   std::string _message;
   uint32_t _options;
@@ -40,9 +50,9 @@ class notification_ev {
   std::set<std::string> _notified_contact;
 
  public:
-  notification_ev(
+  notification(
       notifier* parent,
-      notifications::reason_type type,
+      reason_type type,
       const std::string& author,
       const std::string& message,
       uint32_t options,
@@ -52,15 +62,16 @@ class notification_ev {
       bool escalated = false,
       const std::set<std::string>& notified_contact = std::set<std::string>());
   int execute(const std::unordered_set<std::shared_ptr<contact>>& to_notify);
-  notifications::reason_type get_reason() const;
+  reason_type get_reason() const;
   uint32_t get_notification_interval() const;
   bool sent_to(const std::string& user) const;
   void add_contacts(const std::set<std::string>& contact_notified);
   const std::set<std::string>& get_contacts() const;
 };
 
-std::ostream& operator<<(std::ostream& os, notification_ev const& obj);
+std::ostream& operator<<(std::ostream& os, notification const& obj);
 
+}  // namespace notifications
 }  // namespace com::centreon::engine
 
-#endif  // !CCE_NOTIFICATION_HH
+#endif  // !CCE_NOTIFICATIONS_NOTIFICATION_HH

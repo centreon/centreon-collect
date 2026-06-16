@@ -23,10 +23,10 @@
 
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/notification.hh"
 #include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "engine/src/notifications/notification.hh"
 
 namespace com::centreon::engine::notifications {
 
@@ -144,7 +144,7 @@ bool notification_manager::_is_notification_viable_normal(
                       "notifier::is_notification_viable_normal()");
 
   /* forced notifications bust through everything */
-  notification_ev* normal_notif = current_notification(&n, cat_normal);
+  notification* normal_notif = current_notification(&n, cat_normal);
   uint32_t notification_interval =
       !normal_notif ? n._notification_interval
                     : normal_notif->get_notification_interval();
@@ -505,7 +505,7 @@ bool notification_manager::_is_notification_viable_flapping(
 
   /* Don't send a start notification if a flapping notification is already there
    */
-  notification_ev* flapping_notif = current_notification(&n, cat_flapping);
+  notification* flapping_notif = current_notification(&n, cat_flapping);
   if (type == reason_flappingstart && flapping_notif) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger,
@@ -673,7 +673,7 @@ int32_t notification_manager::notify(
 
   uint64_t current_notification_id =
       notifications::notification_manager::instance().next_notification_id();
-  auto notif = std::make_unique<notification_ev>(
+  auto notif = std::make_unique<notification>(
       &n, type, not_author, not_data, options, current_notification_id,
       n.get_notification_number(), notification_interval, escalated);
 
@@ -689,7 +689,7 @@ int32_t notification_manager::notify(
     if (cat == notifications::cat_normal) {
       /* if normal notification, get contacts from the last notification for
        * notify this contact on recovery notification */
-      notification_ev* normal_notif = current_notification(&n, cat);
+      notification* normal_notif = current_notification(&n, cat);
       if (normal_notif)
         notif->add_contacts(normal_notif->get_contacts());
 
@@ -737,9 +737,9 @@ int32_t notification_manager::notify(
  * @param n The notifier.
  * @param cat The notification category.
  *
- * @return The notification_ev pointer, or nullptr if none is stored.
+ * @return The notification pointer, or nullptr if none is stored.
  */
-notification_ev* notification_manager::current_notification(
+notification* notification_manager::current_notification(
     notifier* n,
     notification_category cat) const {
   auto it = _notification.find({n, cat});
@@ -751,12 +751,12 @@ notification_ev* notification_manager::current_notification(
  *
  * @param n The notifier.
  *
- * @return An array of (non-owning) notification_ev pointers indexed by
+ * @return An array of (non-owning) notification pointers indexed by
  * notification_category; nullptr where no notification is stored.
  */
-std::array<notification_ev*, 6> notification_manager::current_notifications(
+std::array<notification*, 6> notification_manager::current_notifications(
     const notifier* n) const {
-  std::array<notification_ev*, 6> retval{};
+  std::array<notification*, 6> retval{};
   for (int i = 0; i < 6; i++)
     retval[i] = current_notification(const_cast<notifier*>(n),
                                      static_cast<notification_category>(i));
@@ -774,7 +774,7 @@ std::array<notification_ev*, 6> notification_manager::current_notifications(
 void notification_manager::set_notification(
     notifier* n,
     notification_category cat,
-    std::unique_ptr<notification_ev> ev) {
+    std::unique_ptr<notification> ev) {
   _notification[{n, cat}] = std::move(ev);
 }
 
