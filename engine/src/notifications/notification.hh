@@ -20,11 +20,8 @@
 #ifndef CCE_NOTIFICATIONS_NOTIFICATION_HH
 #define CCE_NOTIFICATIONS_NOTIFICATION_HH
 
-#include <cstdint>
-#include <memory>
 #include <ostream>
 #include <set>
-#include <string>
 #include <unordered_set>
 
 #include "engine/src/notifications/notification_manager.hh"

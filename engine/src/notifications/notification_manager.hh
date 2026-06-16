@@ -22,10 +22,10 @@
 
 #include <array>
 #include <cstdint>
+#include <ctime>
 #include <memory>
 #include <string>
 #include <string_view>
-#include <utility>
 
 #include "absl/container/flat_hash_map.h"
 
@@ -111,11 +111,22 @@ enum notification_option {
 class notification_manager {
   static notification_manager* _instance;
 
-  uint64_t _next_notification_id = 1ull;
+  /* Per-notifier notification runtime state. Centralizes what used to be
+   * scattered members of the notifier (number, ids, timings) plus the live
+   * notification events, one slot per notification_category. */
+  struct notification_state {
+    uint64_t number = 0;
+    uint64_t current_id = 0;
+    std::time_t last = 0;
+    std::time_t next = 0;
+    std::time_t initial = 0;
+    std::array<std::unique_ptr<notification>, 6> events;
+  };
 
-  absl::flat_hash_map<std::pair<notifier*, notification_category>,
-                      std::unique_ptr<notification>>
-      _notification;
+  uint64_t _next_notification_id = 1ull;
+  absl::flat_hash_map<notifier*, notification_state> _states;
+
+  notification_state& _state(notifier* n);
 
   /* Construction/destruction are private: the only instance is owned through
    * _instance and managed by init()/deinit(). */
@@ -181,13 +192,26 @@ class notification_manager {
                  notification_option options);
 
   notification* current_notification(notifier* n,
-                                        notification_category cat) const;
-  std::array<notification*, 6> current_notifications(
-      const notifier* n) const;
+                                     notification_category cat) const;
+  std::array<notification*, 6> current_notifications(const notifier* n) const;
   void set_notification(notifier* n,
                         notification_category cat,
                         std::unique_ptr<notification> ev);
   static void forget(notifier* n);
+
+  /* Per-notifier notification runtime state (storage moved out of notifier;
+   * notifier keeps thin delegators). */
+  uint64_t notification_number(const notifier* n) const;
+  void set_notification_number(notifier* n, uint64_t number);
+  void inc_notification_number(notifier* n);
+  uint64_t current_notification_id(const notifier* n) const;
+  void set_current_notification_id(notifier* n, uint64_t id);
+  std::time_t last_notification(const notifier* n) const;
+  void set_last_notification(notifier* n, std::time_t t);
+  std::time_t next_notification(const notifier* n) const;
+  void set_next_notification(notifier* n, std::time_t t);
+  std::time_t initial_notif_time(const notifier* n) const;
+  void set_initial_notif_time(notifier* n, std::time_t t);
 };
 
 }  // namespace notifications

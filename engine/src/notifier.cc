@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -96,16 +95,12 @@ notifier::notifier(notifications::notifier_type notifier_type,
       _notifier_type{notifier_type},
       _stalk_type{stalk},
       _flap_type{0},
-      _initial_notif_time{0},
       _acknowledgement_timeout{0},
       _last_acknowledgement{0},
       _out_notification_type{notify},
       _current_notifications{0},
       _notification_interval{notification_interval},
       _modified_attributes{0},
-      _current_notification_id{0UL},
-      _next_notification{0UL},
-      _last_notification{0UL},
       _notification_period{notification_period},
       _notification_period_ptr{nullptr},
       _first_notification_delay{first_notification_delay},
@@ -120,7 +115,6 @@ notifier::notifier(notifications::notifier_type notifier_type,
       _retain_nonstatus_information{retain_nonstatus_information},
       _is_being_freshened{false},
       _notification_to_interval_on_timeperiod_in{false},
-      _notification_number{0},
       _pending_flex_downtime{0} {
   if (retry_interval <= 0) {
     SPDLOG_LOGGER_ERROR(
@@ -145,9 +139,10 @@ notifier::~notifier() {
 void notifier::set_notification_number(int num) {
   SPDLOG_LOGGER_TRACE(notifications_logger,
                       "_notification_number set_notification_number: {} => {}",
-                      _notification_number, num);
+                      get_notification_number(), num);
   /* set the notification number */
-  _notification_number = num;
+  notifications::notification_manager::instance().set_notification_number(this,
+                                                                          num);
 
   /* update the status log with the notifier info */
   update_status(notifications::STATUS_NOTIFICATION_NUMBER);
@@ -175,7 +170,7 @@ std::unordered_set<std::shared_ptr<contact>> notifier::get_contacts_to_notify(
 
   /* Let's start looking at escalations */
   for (auto* e : _escalations) {
-    if (e->is_viable(get_current_state_int(), _notification_number)) {
+    if (e->is_viable(get_current_state_int(), get_notification_number())) {
       /* Among escalations, we choose the smallest notification interval. */
       if (escalated) {
         if (e->get_notification_interval() < notif_interv)
@@ -248,35 +243,43 @@ int notifier::notify(notifications::reason_type type,
 }
 
 void notifier::set_current_notification_id(uint64_t id) noexcept {
-  _current_notification_id = id;
+  notifications::notification_manager::instance().set_current_notification_id(
+      this, id);
 }
 
 uint64_t notifier::get_current_notification_id() const noexcept {
-  return _current_notification_id;
+  return notifications::notification_manager::instance()
+      .current_notification_id(this);
 }
 
 time_t notifier::get_next_notification() const noexcept {
-  return _next_notification;
+  return notifications::notification_manager::instance().next_notification(
+      this);
 }
 
 void notifier::set_next_notification(time_t next_notification) noexcept {
-  _next_notification = next_notification;
+  notifications::notification_manager::instance().set_next_notification(
+      this, next_notification);
 }
 
 time_t notifier::get_last_notification() const noexcept {
-  return _last_notification;
+  return notifications::notification_manager::instance().last_notification(
+      this);
 }
 
 void notifier::set_last_notification(time_t last_notification) noexcept {
-  _last_notification = last_notification;
+  notifications::notification_manager::instance().set_last_notification(
+      this, last_notification);
 }
 
 void notifier::set_initial_notif_time(time_t notif_time) noexcept {
-  _initial_notif_time = notif_time;
+  notifications::notification_manager::instance().set_initial_notif_time(
+      this, notif_time);
 }
 
 time_t notifier::get_initial_notif_time() const noexcept {
-  return _initial_notif_time;
+  return notifications::notification_manager::instance().initial_notif_time(
+      this);
 }
 
 void notifier::set_acknowledgement_timeout(int timeout) noexcept {
@@ -534,7 +537,8 @@ void notifier::set_no_more_notifications(bool no_more_notifications) noexcept {
 }
 
 int notifier::get_notification_number() const noexcept {
-  return _notification_number;
+  return notifications::notification_manager::instance().notification_number(
+      this);
 }
 
 notifications::notifier_type notifier::get_notifier_type() const noexcept {
@@ -1007,5 +1011,5 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
 }
 
 void notifier::inc_notification_number() noexcept {
-  ++_notification_number;
+  notifications::notification_manager::instance().inc_notification_number(this);
 }
