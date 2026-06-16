@@ -1067,6 +1067,7 @@ sub register_nodes {
 
     foreach my $node (@{$options{data}->{nodes}}) {
         if (! defined($register_nodes->{ $node->{id} })) {
+            $options{logger}->writeLogInfo("[proxy] failed to authenticate poller $node->{id}. Poller should be declared in centreon database (or in the deprecated register configuration file) to be accepted.");
             next;
         }
         if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity}) ) {
