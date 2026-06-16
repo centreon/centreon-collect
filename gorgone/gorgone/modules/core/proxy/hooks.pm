@@ -946,7 +946,6 @@ sub get_constatus_result {
 
 sub unregister_nodes {
     my (%options) = @_;
-
     return if (!defined($options{data}->{nodes}));
 
     foreach my $node (@{$options{data}->{nodes}}) {
@@ -973,19 +972,23 @@ sub unregister_nodes {
                     data => $node,
                     token => $options{token},
                 );
-            } elsif ($register_nodes->{ $node->{id} }->{type} =~ /^(?:pull)$/) {
-                # @TODO send to pull process here.
             }
             $register_nodes->{ $node->{id} }->{identity} = undef;
+
         }
 
         $options{logger}->writeLogInfo("[proxy] Node '" . $node->{id} . "' is unregistered");
         if (defined($register_nodes->{ $node->{id} }) && $register_nodes->{ $node->{id} }->{nodes}) {
             foreach my $subnode (@{$register_nodes->{ $node->{id} }->{nodes}}) {
-                delete $register_subnodes->{ $subnode->{id} }->{static}->{ $node->{id} }
-                    if (defined($register_subnodes->{ $subnode->{id} }->{static}->{ $node->{id} }) && $prevail == 0);
-                delete $register_subnodes->{ $subnode->{id} }->{dynamic}->{ $node->{id} }
-                    if (defined($register_subnodes->{ $subnode->{id} }->{dynamic}->{ $node->{id} }));
+                if (defined($register_subnodes->{ $subnode->{id} }->{static}->{ $node->{id} }) && $prevail == 0) {
+                    delete $register_subnodes->{ $subnode->{id} }->{static}->{ $node->{id} };
+                    delete $register_subnodes->{ $subnode->{uid} }->{static}->{ $node->{uid} }
+                }
+                if (defined($register_subnodes->{ $subnode->{id} }->{dynamic}->{ $node->{id} })) {
+                    delete $register_subnodes->{ $subnode->{id} }->{dynamic}->{ $node->{id} };
+                    delete $register_subnodes->{ $subnode->{uid} }->{dynamic}->{ $node->{uid} };
+
+                }
             }
         }
 
@@ -995,6 +998,14 @@ sub unregister_nodes {
             delete $synctime_nodes->{ $node->{id} };
             delete $constatus_ping->{ $node->{id} };
             delete $last_pong->{ $node->{id} };
+        }
+
+        delete $nodes_pool->{ $node->{uid} } if (defined($nodes_pool->{ $node->{uid} }));
+        if (defined($register_nodes->{ $node->{uid} })) {
+            delete $register_nodes->{ $node->{uid} } if ($prevail == 0);
+            delete $synctime_nodes->{ $node->{uid} };
+            delete $constatus_ping->{ $node->{uid} };
+            delete $last_pong->{ $node->{uid} };
         }
     }
 }
@@ -1027,7 +1038,11 @@ sub register_nodes {
     return if (!defined($options{data}->{nodes}));
 
     foreach my $node (@{$options{data}->{nodes}}) {
-        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity})) {
+        if (! defined($register_nodes->{ $node->{id} })) {
+            $options{logger}->writeLogInfo("[proxy] failed to authenticate poller $node->{id}. Poller should be declared in centreon database (or in the deprecated register configuration file) to be accepted.");
+            next;
+        }
+        if ($node->{type} =~ /^(?:pull|wss|pullwss)$/ && defined($node->{identity}) ) {
             $register_nodes->{ $node->{id} }->{identity} = $node->{identity};
             $last_pong->{ $node->{id} } = time() if (defined($last_pong->{ $node->{id} }));
         }
@@ -1081,7 +1096,7 @@ sub register_nodes_from_db {
 
             if ($register_nodes->{ $node->{id} }->{type} !~ /^(?:pull|wss|pullwss)$/ && $node->{type} =~ /^(?:pull|wss|pullwss)$/) {
                 unregister_nodes(
-                    data => { nodes => [ { id => $node->{id} } ] },
+                    data => { nodes => [ $node ] },
                     gorgone => $options{gorgone},
                     dbh => $options{dbh},
                     logger => $options{logger}
@@ -1103,7 +1118,7 @@ sub register_nodes_from_db {
                     # subnodes also prevails. we try to unregister it
                     if (defined($node->{prevail}) && $node->{prevail} == 1) {
                         unregister_nodes(
-                            data => { nodes => [ { id => $subnode->{id} } ] },
+                            data => { nodes => [ $node ] },
                             gorgone => $options{gorgone},
                             dbh => $options{dbh},
                             logger => $options{logger}
@@ -1179,7 +1194,7 @@ sub register_nodes_from_db {
         if (!$synctime_nodes->{$node->{uid}}) {
             $synctime_nodes->{$node->{uid}} = $synctime_nodes->{$node->{id}};
         }
-        if (!$register_subnodes->{$node->{uid}} and $register_subnodes->{$node->{uid}}) {
+        if (!$register_subnodes->{$node->{uid}} and $register_subnodes->{$node->{id}}) {
             $register_subnodes->{$node->{uid}} = $register_subnodes->{$node->{id}};
         }
     }
