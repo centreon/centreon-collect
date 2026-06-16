@@ -94,12 +94,29 @@ enum notification_option {
  * movable.
  */
 class notification_manager {
+  uint64_t _next_notification_id = 1ull;
+
   /* Construction/destruction are private: the only instance is the static
    * local in instance(). */
   notification_manager();
   ~notification_manager() = default;
 
  public:
+  static constexpr std::array<std::string_view, 9> tab_notification_str{{
+      "NORMAL",
+      "RECOVERY",
+      "ACKNOWLEDGEMENT",
+      "FLAPPINGSTART",
+      "FLAPPINGSTOP",
+      "FLAPPINGDISABLED",
+      "DOWNTIMESTART",
+      "DOWNTIMEEND",
+      "DOWNTIMECANCELLED",
+  }};
+
+  static constexpr std::array<std::string_view, 2> tab_state_type{{"SOFT",
+                                                                    "HARD"}};
+
   static notification_manager& instance();
 
   notification_manager(const notification_manager&) = delete;
@@ -107,9 +124,8 @@ class notification_manager {
   notification_manager(notification_manager&&) = delete;
   notification_manager& operator=(notification_manager&&) = delete;
 
-  /* Public API goes here, e.g.:
-   * void notify(notifier* n, reason_type type, notification_option options);
-   */
+  uint64_t next_notification_id() noexcept;
+  uint64_t get_next_notification_id() const noexcept;
 };
 
 }  // namespace com::centreon::engine::notifications

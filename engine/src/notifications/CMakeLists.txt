@@ -36,3 +36,6 @@ target_link_libraries(engine_notifications
 set_target_properties(engine_notifications PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
+
+target_precompile_headers(engine_notifications PRIVATE
+  ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

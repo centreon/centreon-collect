@@ -1965,7 +1965,8 @@ int service::log_event() {
       (unsigned int)_current_state < tab_service_states.size()) {
     state = tab_service_states[_current_state].second.c_str();
   }
-  const std::string& state_type{tab_state_type[get_state_type()]};
+  const std::string_view state_type{
+      notifications::notification_manager::tab_state_type[get_state_type()]};
 
   SPDLOG_LOGGER_INFO(events_logger, "SERVICE ALERT: {};{};{};{};{};{}",
                      _hostname, name(), state, state_type,
@@ -2995,9 +2996,10 @@ int service::notify_contact(nagios_macros* mac,
       if ((unsigned int)_current_state < tab_service_states.size())
         service_state_str = tab_service_states[_current_state].second.c_str();
 
-      char const* notification_str("");
-      if ((unsigned int)type < tab_notification_str.size())
-        notification_str = tab_notification_str[type].c_str();
+      std::string_view notification_str("");
+      if ((unsigned int)type <
+          notification_manager::tab_notification_str.size())
+        notification_str = notification_manager::tab_notification_str[type];
 
       std::string info;
       if (type == reason_custom)
@@ -3006,7 +3008,7 @@ int service::notify_contact(nagios_macros* mac,
         info.append(";").append(not_author).append(";").append(not_data);
 
       std::string service_notification_state;
-      if (strcmp(notification_str, "NORMAL") == 0)
+      if (notification_str == "NORMAL")
         service_notification_state.append(service_state_str);
       else
         service_notification_state.append(notification_str)

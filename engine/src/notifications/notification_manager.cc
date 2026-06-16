@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/notifications/notification_manager.hh"
 
-using namespace com::centreon::engine::notifications;
+namespace com::centreon::engine::notifications {
 
 notification_manager::notification_manager() = default;
 
@@ -32,3 +32,23 @@ notification_manager& notification_manager::instance() {
   static notification_manager instance;
   return instance;
 }
+
+/**
+ * @brief Get the next notification ID and increment the internal counter.
+ *
+ * @return The next unique notification ID.
+ */
+uint64_t notification_manager::next_notification_id() noexcept {
+  return _next_notification_id++;
+}
+
+/**
+ * @brief Get the current value of the next notification ID without incrementing it.
+ *
+ * @return The current value of the next notification ID.
+ */
+uint64_t notification_manager::get_next_notification_id() const noexcept {
+  return _next_notification_id;
+}
+
+}  // namespace com::centreon::engine::notifications

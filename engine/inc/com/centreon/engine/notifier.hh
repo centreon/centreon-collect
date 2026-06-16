@@ -40,10 +40,6 @@ using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
  public:
-  static std::array<std::string, 9> const tab_notification_str;
-
-  static std::array<std::string, 2> const tab_state_type;
-
   typedef bool (notifier::*is_viable)(notifications::reason_type type,
                                       notifications::notification_option);
 
@@ -201,7 +197,6 @@ class notifier : public checkable {
 
   virtual bool authorized_by_dependencies(
       dependency::types dependency_type) const = 0;
-  static uint64_t get_next_notification_id();
   virtual timeperiod* get_notification_timeperiod() const = 0;
   static notifications::notification_category get_category(
       notifications::reason_type type);
@@ -239,7 +234,6 @@ class notifier : public checkable {
 
  private:
   static std::array<is_viable, 6> const _is_notification_viable;
-  static uint64_t _next_notification_id;
 
   bool _is_notification_viable_normal(
       notifications::reason_type type,
