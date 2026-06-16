@@ -38,10 +38,6 @@ class timeperiod;
 using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
-  /* The notification_manager holds the notification viability policy and needs
-   * access to the private notification state of the notifier. */
-  friend class notifications::notification_manager;
-
  public:
   notifier(notifications::notifier_type notification_flag,
            const std::string& name,
@@ -206,8 +202,7 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve(uint32_t& w, uint32_t& e);
-  std::array<notifications::notification*, 6> get_current_notifications()
-      const;
+  std::array<notifications::notification*, 6> get_current_notifications() const;
   int get_pending_flex_downtime() const;
   void inc_pending_flex_downtime() noexcept;
   void dec_pending_flex_downtime() noexcept;
@@ -223,16 +218,12 @@ class notifier : public checkable {
   int32_t _stalk_type;
   uint32_t _flap_type;
 
-  time_t _initial_notif_time;
   int _acknowledgement_timeout;
   time_t _last_acknowledgement;
   int32_t _out_notification_type;
   uint32_t _current_notifications;
   uint32_t _notification_interval;
   uint32_t _modified_attributes;
-  uint64_t _current_notification_id;
-  time_t _next_notification;
-  time_t _last_notification;
   std::string _notification_period;
   timeperiod* _notification_period_ptr;
   uint32_t _first_notification_delay;
@@ -252,8 +243,6 @@ class notifier : public checkable {
   is set as true to send the notification on the next starting time period*/
   bool _notification_to_interval_on_timeperiod_in;
 
-  /* New ones */
-  uint64_t _notification_number;
   // reason_type _type;
   contact_map _contacts;
   contactgroup_map _contact_groups;
