@@ -107,10 +107,6 @@ class notifier : public checkable {
   void set_flap_detection_on(uint32_t type) noexcept;
   void add_flap_detection_on(notifications::notification_flag type) noexcept;
 
-  unsigned long get_current_event_id() const;
-  void set_current_event_id(unsigned long current_event_id) noexcept;
-  unsigned long get_last_event_id() const noexcept;
-  void set_last_event_id(unsigned long last_event_id) noexcept;
 
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
@@ -231,8 +227,6 @@ class notifier : public checkable {
   notifications::notifier_type _notifier_type;
   int32_t _stalk_type;
   uint32_t _flap_type;
-  unsigned long _current_event_id;
-  unsigned long _last_event_id;
 
   time_t _initial_notif_time;
   int _acknowledgement_timeout;

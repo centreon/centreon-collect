@@ -91,6 +91,8 @@ checkable::checkable(const std::string& name,
       _check_command_ptr{nullptr},
       _is_executing{false},
       _is_volatile{is_volatile},
+      _current_event_id{0},
+      _last_event_id{0},
       _current_problem_id{0},
       _last_problem_id{0},
       _icon_id{icon_id},
@@ -480,6 +482,22 @@ bool checkable::get_is_volatile() const noexcept {
 
 void checkable::set_is_volatile(bool vol) {
   _is_volatile = vol;
+}
+
+uint64_t checkable::get_current_event_id() const {
+  return _current_event_id;
+}
+
+void checkable::set_current_event_id(uint64_t current_event_id) noexcept {
+  _current_event_id = current_event_id;
+}
+
+uint64_t checkable::get_last_event_id() const noexcept {
+  return _last_event_id;
+}
+
+void checkable::set_last_event_id(uint64_t last_event_id) noexcept {
+  _last_event_id = last_event_id;
 }
 
 uint64_t checkable::get_current_problem_id() const noexcept {

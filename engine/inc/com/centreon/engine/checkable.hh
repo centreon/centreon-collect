@@ -104,6 +104,8 @@ class checkable {
   std::shared_ptr<commands::command> _check_command_ptr;
   bool _is_executing;
   bool _is_volatile;
+  uint64_t _current_event_id;
+  uint64_t _last_event_id;
   uint64_t _current_problem_id;
   uint64_t _last_problem_id;
   std::shared_ptr<severity> _severity;
@@ -260,6 +262,10 @@ class checkable {
   void set_is_executing(bool is_executing);
   bool get_is_volatile() const noexcept;
   void set_is_volatile(bool vol);
+  uint64_t get_current_event_id() const;
+  void set_current_event_id(uint64_t current_event_id) noexcept;
+  uint64_t get_last_event_id() const noexcept;
+  void set_last_event_id(uint64_t last_event_id) noexcept;
   uint64_t get_current_problem_id() const noexcept;
   void set_current_problem_id(uint64_t current_problem_id) noexcept;
   uint64_t get_last_problem_id() const noexcept;

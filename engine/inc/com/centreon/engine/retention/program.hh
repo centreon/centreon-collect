@@ -51,7 +51,7 @@ class program : public object {
       const noexcept;
   std::optional<unsigned long> const& next_comment_id() const noexcept;
   std::optional<unsigned long> const& next_downtime_id() const noexcept;
-  std::optional<unsigned long> const& next_event_id() const noexcept;
+  std::optional<uint64_t> const& next_event_id() const noexcept;
   std::optional<unsigned long> const& next_notification_id() const noexcept;
   std::optional<uint64_t> const& next_problem_id() const noexcept;
   std::optional<bool> const& obsess_over_hosts() const noexcept;
@@ -79,7 +79,7 @@ class program : public object {
   bool _set_modified_service_attributes(unsigned long value);
   bool _set_next_comment_id(unsigned long value);
   bool _set_next_downtime_id(unsigned long value);
-  bool _set_next_event_id(unsigned long value);
+  bool _set_next_event_id(uint64_t value);
   bool _set_next_notification_id(unsigned long value);
   bool _set_next_problem_id(uint64_t value);
   bool _set_obsess_over_hosts(bool value);
@@ -101,7 +101,7 @@ class program : public object {
   std::optional<unsigned long> _modified_service_attributes;
   std::optional<unsigned long> _next_comment_id;
   std::optional<unsigned long> _next_downtime_id;
-  std::optional<unsigned long> _next_event_id;
+  std::optional<uint64_t> _next_event_id;
   std::optional<unsigned long> _next_notification_id;
   std::optional<uint64_t> _next_problem_id;
   std::optional<bool> _obsess_over_hosts;

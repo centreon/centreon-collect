@@ -96,8 +96,6 @@ notifier::notifier(notifications::notifier_type notifier_type,
       _notifier_type{notifier_type},
       _stalk_type{stalk},
       _flap_type{0},
-      _current_event_id{0},
-      _last_event_id{0},
       _initial_notif_time{0},
       _acknowledgement_timeout{0},
       _last_acknowledgement{0},
@@ -138,22 +136,6 @@ notifier::notifier(notifications::notifier_type notifier_type,
 
 notifier::~notifier() {
   checks::checker::forget(this);
-}
-
-unsigned long notifier::get_current_event_id() const {
-  return _current_event_id;
-}
-
-void notifier::set_current_event_id(unsigned long current_event_id) noexcept {
-  _current_event_id = current_event_id;
-}
-
-unsigned long notifier::get_last_event_id() const noexcept {
-  return _last_event_id;
-}
-
-void notifier::set_last_event_id(unsigned long last_event_id) noexcept {
-  _last_event_id = last_event_id;
 }
 
 /**
