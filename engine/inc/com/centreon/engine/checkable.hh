@@ -103,6 +103,9 @@ class checkable {
   commands::command* _event_handler_ptr;
   std::shared_ptr<commands::command> _check_command_ptr;
   bool _is_executing;
+  bool _is_volatile;
+  uint64_t _current_problem_id;
+  uint64_t _last_problem_id;
   std::shared_ptr<severity> _severity;
   uint64_t _icon_id;
   std::forward_list<std::shared_ptr<tag>> _tags;
@@ -154,6 +157,7 @@ class checkable {
             int freshness_threshold,
             bool obsess_over,
             std::string const& timezone,
+            bool is_volatile,
             uint64_t icon_id);
   virtual ~checkable() noexcept = default;
 
@@ -254,6 +258,12 @@ class checkable {
   }
   bool get_is_executing() const;
   void set_is_executing(bool is_executing);
+  bool get_is_volatile() const noexcept;
+  void set_is_volatile(bool vol);
+  uint64_t get_current_problem_id() const noexcept;
+  void set_current_problem_id(uint64_t current_problem_id) noexcept;
+  uint64_t get_last_problem_id() const noexcept;
+  void set_last_problem_id(uint64_t last_problem_id) noexcept;
   void set_severity(std::shared_ptr<severity> sv);
   const std::shared_ptr<severity>& get_severity() const;
   void set_icon_id(uint64_t icon_id);

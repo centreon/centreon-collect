@@ -91,14 +91,13 @@ notifier::notifier(notifications::notifier_type notifier_type,
                 freshness_threshold,
                 obsess_over,
                 timezone,
+                is_volatile,
                 icon_id},
       _notifier_type{notifier_type},
       _stalk_type{stalk},
       _flap_type{0},
       _current_event_id{0},
       _last_event_id{0},
-      _current_problem_id{0},
-      _last_problem_id{0},
       _initial_notif_time{0},
       _acknowledgement_timeout{0},
       _last_acknowledgement{0},
@@ -122,7 +121,6 @@ notifier::notifier(notifications::notifier_type notifier_type,
       _retain_status_information{retain_status_information},
       _retain_nonstatus_information{retain_nonstatus_information},
       _is_being_freshened{false},
-      _is_volatile{is_volatile},
       _notification_to_interval_on_timeperiod_in{false},
       _notification_number{0},
       _notification{{}},
@@ -156,23 +154,6 @@ unsigned long notifier::get_last_event_id() const noexcept {
 
 void notifier::set_last_event_id(unsigned long last_event_id) noexcept {
   _last_event_id = last_event_id;
-}
-
-unsigned long notifier::get_current_problem_id() const noexcept {
-  return _current_problem_id;
-}
-
-void notifier::set_current_problem_id(
-    unsigned long current_problem_id) noexcept {
-  _current_problem_id = current_problem_id;
-}
-
-unsigned long notifier::get_last_problem_id() const noexcept {
-  return _last_problem_id;
-}
-
-void notifier::set_last_problem_id(unsigned long last_problem_id) noexcept {
-  _last_problem_id = last_problem_id;
 }
 
 /**
@@ -1139,12 +1120,4 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
   _notification[idx] =
       std::make_unique<notification_ev>(this, type, author, "", options, id,
                                         number, interval, escalated, contacts);
-}
-
-bool notifier::get_is_volatile() const noexcept {
-  return _is_volatile;
-}
-
-void notifier::set_is_volatile(bool vol) {
-  _is_volatile = vol;
 }

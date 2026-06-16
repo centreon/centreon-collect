@@ -74,7 +74,7 @@ extern unsigned long modified_host_process_attributes;
 extern unsigned long modified_service_process_attributes;
 
 extern unsigned long next_event_id;
-extern unsigned long next_problem_id;
+extern uint64_t next_problem_id;
 extern unsigned long next_notification_id;
 
 extern bool sighup;

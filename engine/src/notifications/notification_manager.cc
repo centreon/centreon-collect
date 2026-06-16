@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/engine/notifications/notification_manager.hh"
+#include "engine/src/notifications/notification_manager.hh"
 
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/globals.hh"
@@ -50,7 +50,8 @@ uint64_t notification_manager::next_notification_id() noexcept {
 }
 
 /**
- * @brief Get the current value of the next notification ID without incrementing it.
+ * @brief Get the current value of the next notification ID without incrementing
+ * it.
  *
  * @return The current value of the next notification ID.
  */
@@ -466,8 +467,7 @@ bool notification_manager::_is_notification_viable_flapping(
     return false;
     /* Don't send a stop/cancel notification if the previous flapping
      * notification is not a start flapping */
-  } else if (type == reason_flappingstop ||
-             type == reason_flappingdisabled) {
+  } else if (type == reason_flappingstop || type == reason_flappingdisabled) {
     if (!n._notification[cat_flapping] ||
         n._notification[cat_flapping]->get_reason() != reason_flappingstart) {
       SPDLOG_LOGGER_DEBUG(
@@ -481,10 +481,9 @@ bool notification_manager::_is_notification_viable_flapping(
   /* Don't send a notification if the same has already been sent previously. */
   if (n._notification[cat_flapping] &&
       n._notification[cat_flapping]->get_reason() == type) {
-    SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
-        "We shouldn't notify about a {} event: already sent.",
-        tab_notification_str[type]);
+    SPDLOG_LOGGER_DEBUG(notifications_logger,
+                        "We shouldn't notify about a {} event: already sent.",
+                        tab_notification_str[type]);
     return false;
   }
 
