@@ -36,6 +36,7 @@ use JSON::XS;
 use IO::Poll qw(POLLIN POLLPRI);
 use EV;
 use HTML::Entities;
+use Date::Parse;
 
 my %handlers = (TERM => {}, HUP => {});
 my ($connector);
@@ -209,8 +210,9 @@ sub run {
                     token_name => $token_name
                 );
                 if ($status == 0 && defined($results->{token})) {
-                    if ($results->{is_revoked}) {
-                        $self->{logger}->writeLogDebug('[proxy-httpserver] token revoked: ' . $token_name);
+                    if ($results->{is_revoked}
+                        || str2time($results->{expiration_date}) < time()) {
+                        $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
                         $connector->{ws_clients}->{$ws_id}->{logged} = 0;
                         $self->close_websocket(
                             code    => 500,
@@ -493,9 +495,11 @@ sub is_logged_websocket {
         );
         if ($status == 0 && defined($results->{token})) {
             $check_conf_token = 0;
+            $self->{ws_clients}->{ $options{ws_id} }->{token_name} = $token_name;
             if ($results->{token} ne $token_value
                 || $results->{type} ne "poller"
-                || $results->{is_revoked}) {
+                || $results->{is_revoked} == 1
+                || str2time($results->{expiration_date}) < time()) {
                 $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
                 $self->close_websocket(
                     code    => 500,
@@ -558,7 +562,6 @@ sub is_logged_websocket {
     $self->{identities}->{ $poller_id } = $options{ws_id};
     $self->{identities}->{ $poller_uid } = $options{ws_id};
     $self->{ws_clients}->{ $options{ws_id} }->{logged} = 1;
-    $self->{ws_clients}->{ $options{ws_id} }->{token_name} = $token_name if (defined $token_name && defined $token_value);
     return 2;
 }
 
