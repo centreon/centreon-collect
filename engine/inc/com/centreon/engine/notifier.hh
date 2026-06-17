@@ -40,6 +40,8 @@ using AckType = com::centreon::broker::AckType;
 class notifier : public checkable {
  public:
   notifier(notifications::notifier_type notification_flag,
+           uint64_t host_id,
+           uint64_t service_id,
            const std::string& name,
            std::string const& display_name,
            std::string const& check_command,
@@ -186,6 +188,9 @@ class notifier : public checkable {
   virtual bool authorized_by_dependencies(
       dependency::types dependency_type) const = 0;
   virtual timeperiod* get_notification_timeperiod() const = 0;
+  uint64_t host_id() const noexcept;
+  uint64_t service_id() const noexcept;
+
   bool is_notification_viable(notifications::notification_category cat,
                               notifications::reason_type type,
                               notifications::notification_option options);
@@ -214,6 +219,8 @@ class notifier : public checkable {
   map_customvar custom_variables;
 
  private:
+  const uint64_t _host_id;
+  const uint64_t _service_id;
   notifications::notifier_type _notifier_type;
   int32_t _stalk_type;
   uint32_t _flap_type;

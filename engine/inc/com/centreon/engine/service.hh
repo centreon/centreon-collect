@@ -153,8 +153,6 @@ class service : public notifier {
           uint64_t icon_id,
           service_type st = NONE);
   ~service() noexcept;
-  uint64_t host_id() const;
-  uint64_t service_id() const;
   service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
@@ -265,8 +263,6 @@ class service : public notifier {
   std::string get_check_command_line(nagios_macros* macros);
 
  private:
-  const uint64_t _host_id;
-  const uint64_t _service_id;
   std::string _hostname;
   std::string _event_handler_args;
   std::string _check_command_args;

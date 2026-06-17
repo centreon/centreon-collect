@@ -20,35 +20,38 @@
 #ifndef CCE_NOTIFICATIONS_NOTIFICATION_HH
 #define CCE_NOTIFICATIONS_NOTIFICATION_HH
 
+#include <cstdint>
 #include <ostream>
 #include <set>
-#include <unordered_set>
+#include <string>
 
-#include "engine/src/notifications/notification_manager.hh"
+#include "engine/src/notifications/notification_types.hh"
 
-namespace com::centreon::engine {
-class contact;
-class notifier;
+namespace com::centreon::engine::notifications {
 
-namespace notifications {
-
+/**
+ * @brief A notification event: pure data describing one emitted notification.
+ *
+ * It no longer carries the resource it relates to nor performs the delivery —
+ * the notification_manager orchestrates and the host application delivers
+ * through notification_callbacks. The contact set is kept here for recovery
+ * routing (who was told about the ongoing problem).
+ */
 class notification {
   friend std::ostream& operator<<(std::ostream& os, notification const& n);
 
-  notifier* _parent;
   reason_type _type;
   std::string _author;
   std::string _message;
   uint32_t _options;
   uint64_t _id;
   uint32_t _number;
-  const bool _escalated;
+  bool _escalated;
   uint32_t _interval;
   std::set<std::string> _notified_contact;
 
  public:
   notification(
-      notifier* parent,
       reason_type type,
       const std::string& author,
       const std::string& message,
@@ -58,7 +61,6 @@ class notification {
       uint32_t notification_interval,
       bool escalated = false,
       const std::set<std::string>& notified_contact = std::set<std::string>());
-  int execute(const std::unordered_set<std::shared_ptr<contact>>& to_notify);
   reason_type get_reason() const;
   uint32_t get_notification_interval() const;
   bool sent_to(const std::string& user) const;
@@ -68,7 +70,6 @@ class notification {
 
 std::ostream& operator<<(std::ostream& os, notification const& obj);
 
-}  // namespace notifications
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::engine::notifications
 
 #endif  // !CCE_NOTIFICATIONS_NOTIFICATION_HH

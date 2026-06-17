@@ -20,27 +20,18 @@
 
 #include <algorithm>
 
-#include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/defines.hh"
-#include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notifier.hh"
-
 namespace com::centreon::engine::notifications {
 
-notification::notification(notifier* parent,
-                                 reason_type type,
-                                 std::string const& author,
-                                 std::string const& message,
-                                 uint32_t options,
-                                 uint64_t notification_id,
-                                 uint32_t notification_number,
-                                 uint32_t notification_interval,
-                                 bool escalated,
-                                 const std::set<std::string>& notified_contacts)
-    : _parent{parent},
-      _type{type},
+notification::notification(reason_type type,
+                           std::string const& author,
+                           std::string const& message,
+                           uint32_t options,
+                           uint64_t notification_id,
+                           uint32_t notification_number,
+                           uint32_t notification_interval,
+                           bool escalated,
+                           const std::set<std::string>& notified_contacts)
+    : _type{type},
       _author{author},
       _message{message},
       _options{options},
@@ -49,142 +40,6 @@ notification::notification(notifier* parent,
       _escalated{escalated},
       _interval{notification_interval},
       _notified_contact{notified_contacts} {}
-
-/**
- * @brief Execute the notification, that is to say, for each contact to
- * notify, the notification is sent to him.
- *
- * @param to_notify the set of contact to notify.
- *
- * @return OK on success, ERROR otherwise.
- */
-int notification::execute(
-    const std::unordered_set<std::shared_ptr<contact>>& to_notify) {
-  uint32_t contacts_notified{0};
-
-  struct timeval start_time;
-  gettimeofday(&start_time, nullptr);
-
-  nagios_macros* mac(get_global_macros());
-
-  /* Grab the macro variables */
-  _parent->grab_macros_r(mac);
-
-  contact* author{nullptr};
-  contact_map::const_iterator it{contact::contacts.find(_author)};
-  if (it != contact::contacts.end())
-    author = it->second.get();
-  else {
-    for (contact_map::const_iterator cit{contact::contacts.begin()},
-         cend{contact::contacts.end()};
-         cit != cend; ++cit) {
-      if (cit->second->get_alias() == _author) {
-        author = cit->second.get();
-        break;
-      }
-    }
-  }
-
-  /* Get author and comment macros */
-  mac->x[MACRO_NOTIFICATIONAUTHOR] = _author;
-  mac->x[MACRO_NOTIFICATIONCOMMENT] = _message;
-  if (author) {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = author->get_name();
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = author->get_alias();
-  } else {
-    mac->x[MACRO_NOTIFICATIONAUTHORNAME] = "";
-    mac->x[MACRO_NOTIFICATIONAUTHORALIAS] = "";
-  }
-
-  /* set the notification type macro */
-  switch (_type) {
-    case reason_acknowledgement:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "ACKNOWLEDGEMENT";
-      break;
-    case reason_flappingstart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTART";
-      break;
-    case reason_flappingstop:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGSTOP";
-      break;
-    case reason_flappingdisabled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "FLAPPINGDISABLED";
-      break;
-    case reason_downtimestart:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMESTART";
-      break;
-    case reason_downtimeend:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMEEND";
-      break;
-    case reason_downtimecancelled:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "DOWNTIMECANCELLED";
-      break;
-    case reason_custom:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "CUSTOM";
-      break;
-    case reason_recovery:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "RECOVERY";
-      break;
-    default:
-      mac->x[MACRO_NOTIFICATIONTYPE] = "PROBLEM";
-      break;
-  }
-
-  if (_parent->get_notifier_type() == host_notification) {
-    /* set the notification number macro */
-    mac->x[MACRO_HOSTNOTIFICATIONNUMBER] = std::to_string(_number);
-
-    /* The $NOTIFICATIONNUMBER$ macro is maintained for backward compatibility
-     */
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_HOSTNOTIFICATIONNUMBER];
-    /* set the notification is escalated macro */
-    mac->x[MACRO_NOTIFICATIONISESCALATED] = std::to_string(_escalated);
-
-    /* Set the notification id macro */
-    mac->x[MACRO_HOSTNOTIFICATIONID] = std::to_string(_id);
-  } else {
-    /* set the notification number macro */
-    mac->x[MACRO_SERVICENOTIFICATIONNUMBER] = std::to_string(_number);
-
-    /* The $NOTIFICATIONNUMBER$ macro is maintained for backward compatibility
-     */
-    mac->x[MACRO_NOTIFICATIONNUMBER] = mac->x[MACRO_SERVICENOTIFICATIONNUMBER];
-
-    /* set the notification is escalated macro */
-    mac->x[MACRO_NOTIFICATIONISESCALATED] = std::to_string(_escalated);
-
-    /* Set the notification id macro */
-    mac->x[MACRO_SERVICENOTIFICATIONID] = std::to_string(_id);
-  }
-
-  for (const std::shared_ptr<contact>& ctc_ptr : to_notify) {
-    /* get the contact */
-    auto ctc = ctc_ptr.get();
-
-    /* grab the macro variables for this contact */
-    grab_contact_macros_r(mac, ctc);
-
-    /* clear summary macros (they are customized for each contact) */
-    clear_summary_macros_r(mac);
-
-    /* notify this contact */
-    if (_parent->notify_contact(mac, ctc, _type, _author.c_str(),
-                                _message.c_str(), _options, _escalated) == OK) {
-      /* keep track of how many contacts were notified */
-      contacts_notified++;
-      _notified_contact.insert(ctc->get_name());
-      if (mac->x[MACRO_NOTIFICATIONRECIPIENTS].empty())
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS] = ctc->get_name();
-      else {
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(",");
-        mac->x[MACRO_NOTIFICATIONRECIPIENTS].append(ctc->get_name());
-      }
-    }
-  }
-
-  notifications_logger->trace("{} contacts were notified.", contacts_notified);
-  return OK;
-}
 
 reason_type notification::get_reason() const {
   return _type;
@@ -212,9 +67,7 @@ bool notification::sent_to(const std::string& user) const {
  *
  * @param contact_notified The names of users notified.
  */
-
-void notification::add_contacts(
-    const std::set<std::string>& contact_notified) {
+void notification::add_contacts(const std::set<std::string>& contact_notified) {
   _notified_contact.insert(contact_notified.begin(), contact_notified.end());
 }
 

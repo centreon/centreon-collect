@@ -85,6 +85,8 @@ service::service(uint64_t host_id,
                  uint64_t icon_id,
                  service_type st)
     : notifier{service_notification,
+               host_id,
+               service_id,
                description,
                display_name,
                check_command,
@@ -120,8 +122,6 @@ service::service(uint64_t host_id,
                is_volatile,
                icon_id},
       _service_type{st},
-      _host_id{host_id},
-      _service_id{service_id},
       _hostname{hostname},
       _process_performance_data{0},
       _check_flapping_recovery_notification{0},
@@ -912,14 +912,6 @@ void service::schedule_acknowledgement_expiration() {
             nullptr, true, this, nullptr, 0),
         false);
   }
-}
-
-uint64_t service::host_id() const {
-  return _host_id;
-}
-
-uint64_t service::service_id() const {
-  return _service_id;
 }
 
 /**
@@ -1843,7 +1835,8 @@ int service::handle_async_check_result(
   if (reschedule_check) {
     SPDLOG_LOGGER_DEBUG(checks_logger,
                         "Rescheduling next check of service ({},{}) at {}",
-                        _host_id, _service_id, my_ctime(&next_service_check));
+                        host_id(), service_id(),
+                        my_ctime(&next_service_check));
 
     /* default is to reschedule service check unless a test below fails... */
     set_should_be_scheduled(true);
@@ -2515,7 +2508,7 @@ int service::run_async_check_local(int check_options,
       pb_indexed_config.state().host_down_disable_service_checks();
   bool has_to_execute_check = true;
   if (use_host_down_disable_service_checks) {
-    auto hst = host::hosts_by_id.find(_host_id);
+    auto hst = host::hosts_by_id.find(host_id());
     if (hst != host::hosts_by_id.end() &&
         hst->second->get_current_state() != host::state_up) {
       run_failure(fmt::format("host {} is down", hst->second->name()));
@@ -2553,7 +2546,7 @@ int service::run_async_check_local(int check_options,
                                                    check_result_info, this);
         SPDLOG_LOGGER_DEBUG(checks_logger,
                             "run id={} {} for service {} host {}", id,
-                            processed_cmd, _service_id, _hostname);
+                            processed_cmd, service_id(), _hostname);
 
       } catch (std::exception const& e) {
         run_failure("(Execute command failed)");
@@ -2742,7 +2735,7 @@ void service::set_flap(double percent_change,
          "flapping "
       << "stops, notifications will be re-enabled.";
 
-  comment com(comment::service, comment::flapping, host_id(), _service_id,
+  comment com(comment::service, comment::flapping, host_id(), service_id(),
               time(nullptr), "(Centreon Engine Process)", oss.str(), false,
               comment::internal, false, (time_t)0);
 
