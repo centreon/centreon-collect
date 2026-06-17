@@ -101,7 +101,6 @@ class host : public notifier {
        std::string const& timezone,
        uint64_t icon_id);
   ~host();
-  uint64_t host_id() const;
   void set_name(const std::string& name) override;
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
@@ -262,7 +261,6 @@ class host : public notifier {
  private:
   void _switch_all_services_to_unknown();
 
-  const uint64_t _id;
   std::string _alias;
   std::string _address;
   bool _process_performance_data;

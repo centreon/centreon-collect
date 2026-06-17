@@ -17,25 +17,42 @@
  *
  */
 
+#include "engine/src/notifications/notification_manager.hh"
 
 #include <cassert>
 
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "common/log_v2/log_v2.hh"
 #include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_callbacks.hh"
+
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine::notifications {
 
 notification_manager* notification_manager::_instance = nullptr;
 
+namespace {
+/* The notification library logs through common/log_v2, not through engine
+ * globals — one less dependency on the host application. */
+std::shared_ptr<spdlog::logger> functions_logger() {
+  return log_v2::instance().get(log_v2::FUNCTIONS);
+}
+std::shared_ptr<spdlog::logger> notifications_logger() {
+  return log_v2::instance().get(log_v2::NOTIFICATIONS);
+}
+
+/* Success return value (matches engine's OK == 0 without depending on it). */
+constexpr int32_t k_ok = 0;
+}  // namespace
+
 notification_manager::notification_manager() = default;
+notification_manager::~notification_manager() = default;
 
 /**
  * @brief Get the unique instance of the notification manager.
  *
  * This singleton does not follow the C++ Meyers idiom on purpose: we need to
- * control when it is destroyed (see init()/deinit() and the class doc).
+ * control when it is destroyed (see load()/unload() and the class doc).
  *
  * @return A reference to the notification_manager singleton.
  */
@@ -45,53 +62,39 @@ notification_manager& notification_manager::instance() {
 }
 
 /**
- * @brief Create the notification_manager singleton.
+ * @brief Create the singleton (if needed) and inject the host-application
+ * backend.
  *
  * Must be called once at startup, before any notifier is created.
  */
-void notification_manager::init() {
+void notification_manager::load(
+    std::unique_ptr<notification_callbacks> callbacks) {
   if (!_instance)
     _instance = new notification_manager();
+  _instance->_callbacks = std::move(callbacks);
 }
 
 /**
- * @brief Destroy the notification_manager singleton.
+ * @brief Destroy the singleton.
  *
- * Must be called at shutdown, after all notifiers have been destroyed.
+ * Must be called at shutdown. Late ~notifier() calls to forget() afterwards
+ * are safe: forget() is a no-op once the instance is gone.
  */
-void notification_manager::deinit() {
+void notification_manager::unload() {
   if (_instance) {
     delete _instance;
     _instance = nullptr;
   }
 }
 
-/**
- * @brief Get the next notification ID and increment the internal counter.
- *
- * @return The next unique notification ID.
- */
 uint64_t notification_manager::next_notification_id() noexcept {
   return _next_notification_id++;
 }
 
-/**
- * @brief Get the current value of the next notification ID without incrementing
- * it.
- *
- * @return The current value of the next notification ID.
- */
 uint64_t notification_manager::get_next_notification_id() const noexcept {
   return _next_notification_id;
 }
 
-/**
- * @brief Map a notification reason to its notification category.
- *
- * @param type The notification reason.
- *
- * @return The matching notification category.
- */
 notification_category notification_manager::get_category(reason_type type) {
   if (type == reason_custom)
     return cat_custom;
@@ -102,182 +105,172 @@ notification_category notification_manager::get_category(reason_type type) {
   return cat[static_cast<size_t>(type)];
 }
 
-/**
- * @brief Dispatch the viability check to the handler matching the category.
- *
- * @param n The notifier the notification is about.
- * @param cat The notification category.
- * @param type The notification reason.
- * @param options The notification options.
- *
- * @return true if the notification is viable.
- */
-bool notification_manager::is_notification_viable(notifier& n,
+bool notification_manager::is_notification_viable(uint64_t host_id,
+                                                  uint64_t service_id,
                                                   notification_category cat,
                                                   reason_type type,
                                                   notification_option options) {
+  global_config gc = _callbacks->get_global_config();
+  std::time_t now;
+  std::time(&now);
+  resource_state rs = _callbacks->get_state(host_id, service_id, now);
   switch (cat) {
     case cat_normal:
-      return _is_notification_viable_normal(n, type, options);
+      return _is_notification_viable_normal(host_id, service_id, rs, gc, now,
+                                            type, options);
     case cat_recovery:
-      return _is_notification_viable_recovery(n, type, options);
+      return _is_notification_viable_recovery(host_id, service_id, rs, gc, now,
+                                              type, options);
     case cat_acknowledgement:
-      return _is_notification_viable_acknowledgement(n, type, options);
+      return _is_notification_viable_acknowledgement(rs, gc, type, options);
     case cat_flapping:
-      return _is_notification_viable_flapping(n, type, options);
+      return _is_notification_viable_flapping(host_id, service_id, rs, gc, type,
+                                              options);
     case cat_downtime:
-      return _is_notification_viable_downtime(n, type, options);
+      return _is_notification_viable_downtime(rs, gc, type, options);
     case cat_custom:
-      return _is_notification_viable_custom(n, type, options);
+      return _is_notification_viable_custom(rs, gc, type, options);
   }
   return false;
 }
 
 bool notification_manager::_is_notification_viable_normal(
-    notifier& n,
-    reason_type type __attribute__((unused)),
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_state& rs,
+    const global_config& gc,
+    std::time_t now,
+    reason_type type [[maybe_unused]],
     notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_normal()");
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_normal()");
 
-  /* forced notifications bust through everything */
-  notification* normal_notif = current_notification(&n, cat_normal);
+  notification* normal_notif =
+      current_notification(host_id, service_id, cat_normal);
   uint32_t notification_interval =
-      !normal_notif ? n.get_notification_interval()
+      !normal_notif ? rs.notification_interval
                     : normal_notif->get_notification_interval();
 
+  /* forced notifications bust through everything */
   if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This is a forced notification, so we'll send it out.");
     return true;
   }
 
-  /* are notifications enabled? */
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     return false;
   }
 
-  /* are notifications temporarily disabled for this notifier? */
-  if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     return false;
   }
 
-  /* if this notifier is currently in a scheduled downtime period, don't send
-   * the notification */
-  if (n.is_in_downtime()) {
+  if (rs.in_downtime) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier is currently in a scheduled downtime, so "
         "we won't send notifications.");
     return false;
   }
 
-  timeperiod* tp{n.get_notification_timeperiod()};
-  timezone_locker lock{n.get_timezone()};
-  time_t now;
-  time(&now);
-
-  if (!check_time_against_period_for_notif(now, tp)) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.in_notification_period) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This notifier shouldn't have notifications sent out "
                         "at this time.");
     return false;
   }
 
-  /* if this notifier is flapping, don't send the notification */
-  if (n.get_is_flapping()) {
+  if (rs.flapping) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier is flapping, so we won't send notifications.");
     return false;
   }
 
-  /* On volatile services notifications are always sent */
-  if (n.get_is_volatile()) {
+  if (rs.is_volatile) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This is a volatile service notification, so it is sent.");
     return true;
   }
 
-  if (n.get_state_type() != checkable::hard) {
+  if (!rs.hard_state) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier is in soft state, so we won't send notifications.");
     return false;
   }
 
-  if (n.problem_has_been_acknowledged()) {
+  if (rs.acknowledged) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier problem has been acknowledged, so we won't send "
         "notifications.");
     return false;
   }
 
-  if (n.get_current_state_int() == 0) {
+  if (rs.current_state == 0) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "We don't send a normal notification when the state is ok/up");
     return false;
   }
 
-  if (!n.get_notify_on_current_state()) {
+  if (!rs.notify_on_current_state) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier is unable to notify the state {}: not configured for "
         "that or, for a service, its host may be down",
-        n.get_current_state_as_string());
+        rs.current_state_as_string);
     return false;
   }
 
-  uint32_t interval_length = pb_indexed_config.state().interval_length();
-  if (n.get_first_notification_delay() > 0 && !normal_notif &&
-      n.get_last_hard_state_change() +
-              n.get_first_notification_delay() * interval_length >
+  if (rs.first_notification_delay > 0 && !normal_notif &&
+      rs.last_hard_state_change +
+              rs.first_notification_delay * gc.interval_length >
           now) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier is configured with a first notification delay, we "
         "won't send notification until timestamp {}",
-        n.get_first_notification_delay() * interval_length);
+        rs.first_notification_delay * gc.interval_length);
     return false;
   }
 
-  if (!n.authorized_by_dependencies(dependency::notification)) {
+  if (!rs.authorized_by_dependencies) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "This notifier won't send any notification since it depends on"
         " another notifier that has already sent one");
     return false;
   }
 
   if (normal_notif) {
-    std::time_t last_notif = last_notification(&n);
+    std::time_t last_notif = last_notification(host_id, service_id);
     /* In the case of a state change, we don't care of the notification interval
      * and we notify as soon as we can */
-    if (n.get_last_hard_state_change() <= last_notif) {
+    if (rs.last_hard_state_change <= last_notif) {
       if (notification_interval == 0) {
         SPDLOG_LOGGER_DEBUG(
-            notifications_logger,
+            notifications_logger(),
             "This notifier problem has already been sent at {} so, since the "
             "notification interval is 0, it won't be sent anymore",
             last_notif);
         return false;
       } else if (notification_interval > 0) {
-        if (last_notif + notification_interval * interval_length > now) {
+        if (last_notif + notification_interval * gc.interval_length > now) {
           SPDLOG_LOGGER_DEBUG(
-              notifications_logger,
+              notifications_logger(),
               "This notifier problem has been sent at {} so it won't be sent "
               "until {}",
-              last_notif, notification_interval * interval_length);
+              last_notif, notification_interval * gc.interval_length);
           return false;
         }
       }
@@ -287,112 +280,94 @@ bool notification_manager::_is_notification_viable_normal(
 }
 
 bool notification_manager::_is_notification_viable_recovery(
-    notifier& n,
-    reason_type type __attribute__((unused)),
-    notification_option options __attribute__((unused))) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_recovery()");
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_state& rs,
+    const global_config& gc,
+    std::time_t now,
+    reason_type type [[maybe_unused]],
+    notification_option options [[maybe_unused]]) {
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_recovery()");
   bool retval{true};
   bool send_later{false};
 
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  /* are notifications enabled? */
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     retval = false;
-  }
-  /* are notifications temporarily disabled for this notifier? */
-  else if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  } else if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     retval = false;
   } else {
-    timeperiod* tp{n.get_notification_timeperiod()};
-    timezone_locker lock{n.get_timezone()};
-    std::time_t now;
-    std::time(&now);
-
-    uint32_t interval_length = pb_indexed_config.state().interval_length();
-    bool use_send_recovery_notifications_anyways =
-        pb_indexed_config.state().send_recovery_notifications_anyways();
-
-    // if use_send_recovery_notifications_anyways flag is set, we don't take
+    // if send_recovery_notifications_anyways flag is set, we don't take
     // timeperiod into account for recovery
-    if (!check_time_against_period_for_notif(now, tp)) {
-      if (use_send_recovery_notifications_anyways) {
-        SPDLOG_LOGGER_DEBUG(notifications_logger,
+    if (!rs.in_notification_period) {
+      if (gc.send_recovery_notifications_anyways) {
+        SPDLOG_LOGGER_DEBUG(notifications_logger(),
                             "send_recovery_notifications_anyways flag enabled, "
                             "recovery notification is viable even if we are "
                             "out of timeperiod at this time.");
       } else {
-        SPDLOG_LOGGER_DEBUG(
-            notifications_logger,
-            "This notifier shouldn't have notifications sent out "
-            "at this time.");
+        SPDLOG_LOGGER_DEBUG(notifications_logger(),
+                            "This notifier shouldn't have notifications sent "
+                            "out at this time.");
         retval = false;
         send_later = true;
       }
-    }
-
-    /* if this notifier is currently in a scheduled downtime period, don't send
-     * the notification */
-    else if (n.is_in_downtime()) {
+    } else if (rs.in_downtime) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier is currently in a scheduled downtime, so "
           "we won't send notifications.");
       retval = false;
       send_later = true;
-    }
-    /* if this notifier is flapping, don't send the notification */
-    else if (n.get_is_flapping()) {
+    } else if (rs.flapping) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier is flapping, so we won't send notifications.");
       retval = false;
       send_later = true;
-    } else if (n.get_state_type() != checkable::hard) {
+    } else if (!rs.hard_state) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier is in soft state, so we won't send notifications.");
       retval = false;
       send_later = true;
-    }
-    /* Recovery is sent on state OK or UP */
-    else if (n.get_current_state_int() != 0) {
+    } else if (rs.current_state != 0) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier state is not UP/OK to send a recovery notification");
       retval = false;
       send_later = true;
-    } else if (!(n.get_notify_on(up) || n.get_notify_on(ok))) {
+    } else if (!((rs.notify_on & up) || (rs.notify_on & ok))) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier is not configured to send a recovery notification");
       retval = false;
       send_later = false;
-    } else if (n.get_last_hard_state_change() +
-                   n.get_recovery_notification_delay() * interval_length >
+    } else if (rs.last_hard_state_change +
+                   rs.recovery_notification_delay * gc.interval_length >
                now) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "This notifier is configured with a recovery notification delay. "
           "It won't send any recovery notification until timestamp "
           "so it won't be sent until {}",
-          n.get_last_hard_state_change() + n.get_recovery_notification_delay());
+          rs.last_hard_state_change + rs.recovery_notification_delay);
       retval = false;
       send_later = true;
-    } else if (notification_number(&n) == 0) {
+    } else if (notification_number(host_id, service_id) == 0) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "No notification has been sent to "
           "announce a problem. So no recovery notification will be sent");
       retval = false;
-    } else if (!current_notification(&n, cat_normal)) {
-      SPDLOG_LOGGER_DEBUG(notifications_logger,
+    } else if (!current_notification(host_id, service_id, cat_normal)) {
+      SPDLOG_LOGGER_DEBUG(notifications_logger(),
                           "We should not send a notification "
                           "since no normal notification has"
                           " been sent before");
@@ -402,12 +377,12 @@ bool notification_manager::_is_notification_viable_recovery(
 
   if (!retval) {
     if (!send_later) {
-      _state(&n).events[cat_normal].reset();
+      _state(host_id, service_id).events[cat_normal].reset();
       SPDLOG_LOGGER_TRACE(
-          notifications_logger,
+          notifications_logger(),
           " _notification_number _is_notification_viable_recovery: {} => 0",
-          notification_number(&n));
-      set_notification_number(&n, 0);
+          notification_number(host_id, service_id));
+      set_notification_number(host_id, service_id, 0);
     }
   }
 
@@ -415,37 +390,34 @@ bool notification_manager::_is_notification_viable_recovery(
 }
 
 bool notification_manager::_is_notification_viable_acknowledgement(
-    notifier& n,
-    reason_type type __attribute__((unused)),
+    const resource_state& rs,
+    const global_config& gc,
+    reason_type type [[maybe_unused]],
     notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_acknowledgement()");
-  /* forced notifications bust through everything */
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_acknowledgement()");
   if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This is a forced notification, so we'll send it out.");
     return true;
   }
 
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  /* are notifications enabled? */
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     return false;
   }
 
-  /* are notifications temporarily disabled for this notifier? */
-  if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     return false;
   }
 
-  if (n.get_current_state_int() == 0) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (rs.current_state == 0) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "The notifier is currently OK/UP, so we "
                         "won't send an acknowledgement.");
     return false;
@@ -454,30 +426,29 @@ bool notification_manager::_is_notification_viable_acknowledgement(
 }
 
 bool notification_manager::_is_notification_viable_flapping(
-    notifier& n,
+    uint64_t host_id,
+    uint64_t service_id,
+    const resource_state& rs,
+    const global_config& gc,
     reason_type type,
     notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_flapping()");
-  /* forced notifications bust through everything */
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_flapping()");
   if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This is a forced notification, so we'll send it out.");
     return true;
   }
 
-  /* are notifications enabled? */
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     return false;
   }
 
-  /* are notifications temporarily disabled for this notifier? */
-  if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     return false;
@@ -492,30 +463,29 @@ bool notification_manager::_is_notification_viable_flapping(
   else
     f = flappingdisabled;
 
-  if (!n.get_notify_on(f)) {
+  if (!(rs.notify_on & f)) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "We shouldn't notify about {} events for this notifier.",
         tab_notification_str[type]);
     return false;
   }
 
+  notification* flapping_notif =
+      current_notification(host_id, service_id, cat_flapping);
   /* Don't send a start notification if a flapping notification is already there
    */
-  notification* flapping_notif = current_notification(&n, cat_flapping);
   if (type == reason_flappingstart && flapping_notif) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "A flapping notification is already running, we can not send "
         "a start notification now.");
     return false;
-    /* Don't send a stop/cancel notification if the previous flapping
-     * notification is not a start flapping */
   } else if (type == reason_flappingstop || type == reason_flappingdisabled) {
     if (!flapping_notif ||
         flapping_notif->get_reason() != reason_flappingstart) {
       SPDLOG_LOGGER_DEBUG(
-          notifications_logger,
+          notifications_logger(),
           "A stop or cancellation flapping notification can only be sent "
           "after a start flapping notification.");
       return false;
@@ -524,15 +494,15 @@ bool notification_manager::_is_notification_viable_flapping(
 
   /* Don't send a notification if the same has already been sent previously. */
   if (flapping_notif && flapping_notif->get_reason() == type) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "We shouldn't notify about a {} event: already sent.",
                         tab_notification_str[type]);
     return false;
   }
 
   /* Don't send notifications during scheduled downtime */
-  if (n.is_in_downtime()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (rs.in_downtime) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "We shouldn't notify about FLAPPING "
                         "events during scheduled downtime.");
     return false;
@@ -541,56 +511,41 @@ bool notification_manager::_is_notification_viable_flapping(
 }
 
 bool notification_manager::_is_notification_viable_downtime(
-    notifier& n,
-    reason_type type __attribute__((unused)),
+    const resource_state& rs,
+    const global_config& gc,
+    reason_type type [[maybe_unused]],
     notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_downtime()");
-
-  /* forced notifications bust through everything */
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_downtime()");
   if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This is a forced notification, so we'll send it out.");
     return true;
   }
 
-  /* are notifications enabled? */
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     return false;
   }
 
-  /* are notifications temporarily disabled for this notifier? */
-  if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     return false;
   }
 
-  if (!enable_notifications) {
+  if (!(rs.notify_on & downtime)) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
-        "Notifications are disabled, so notifications won't be sent out.");
-    return false;
-  }
-
-  /* Don't send a notification if we are not supposed to */
-  if (!n.get_notify_on(downtime)) {
-    SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "We shouldn't notify about DOWNTIME events for this notifier.");
     return false;
   }
 
-  /* Don't send notifications during scheduled downtime (in the case of a
-   * service, we don't care of the host, so the use of
-   * get_scheduled_downtime_depth()) */
-  if (n.get_scheduled_downtime_depth() > 0) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (rs.scheduled_downtime_depth > 0) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "We shouldn't notify about DOWNTIME "
                         "events during scheduled downtime.");
     return false;
@@ -599,258 +554,240 @@ bool notification_manager::_is_notification_viable_downtime(
 }
 
 bool notification_manager::_is_notification_viable_custom(
-    notifier& n,
-    reason_type type __attribute__((unused)),
+    const resource_state& rs,
+    const global_config& gc,
+    reason_type type [[maybe_unused]],
     notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger,
-                      "notifier::is_notification_viable_custom()");
-  /* forced notifications bust through everything */
+  SPDLOG_LOGGER_TRACE(functions_logger(),
+                      "notification::is_notification_viable_custom()");
   if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "This is a forced notification, so we'll send it out.");
     return true;
   }
 
-  /* are notifications enabled? */
-  bool enable_notifications = pb_indexed_config.state().enable_notifications();
-  if (!enable_notifications) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!gc.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are disabled, so notifications will "
                         "not be sent out.");
     return false;
   }
 
-  /* are notifications temporarily disabled for this notifier? */
-  if (!n.get_notifications_enabled()) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger,
+  if (!rs.notifications_enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "Notifications are temporarily disabled for "
                         "this notifier, so we won't send one out.");
     return false;
   }
 
-  /* Don't send notifications during scheduled downtime */
-  if (n.is_in_downtime()) {
+  if (rs.in_downtime) {
     SPDLOG_LOGGER_DEBUG(
-        notifications_logger,
+        notifications_logger(),
         "We shouldn't send a CUSTOM notification during scheduled downtime.");
     return false;
   }
   return true;
 }
 
-int32_t notification_manager::notify(
-    notifier& n,
-    notifications::reason_type type,
-    const std::string& not_author,
-    const std::string& not_data,
-    notifications::notification_option options) {
-  SPDLOG_LOGGER_TRACE(functions_logger, "notification_manager::notify({})",
+int32_t notification_manager::notify(uint64_t host_id,
+                                     uint64_t service_id,
+                                     reason_type type,
+                                     const std::string& not_author,
+                                     const std::string& not_data,
+                                     notification_option options) {
+  SPDLOG_LOGGER_TRACE(functions_logger(), "notification_manager::notify({})",
                       static_cast<uint32_t>(type));
-  notifications::notification_category cat = get_category(type);
+  notification_category cat = get_category(type);
 
   /* Has this notification got sense? */
-  if (!is_notification_viable(n, cat, type, options))
-    return OK;
+  if (!is_notification_viable(host_id, service_id, cat, type, options))
+    return k_ok;
 
   /* For a first notification, we store what type of notification we try to
    * send and we fix the notification number to 1. */
-
-  if (type != notifications::reason_recovery) {
-    SPDLOG_LOGGER_TRACE(notifications_logger,
+  if (type != reason_recovery) {
+    SPDLOG_LOGGER_TRACE(notifications_logger(),
                         "_notification_number notify: {} -> {}",
-                        notification_number(&n), notification_number(&n) + 1);
-    inc_notification_number(&n);
+                        notification_number(host_id, service_id),
+                        notification_number(host_id, service_id) + 1);
+    inc_notification_number(host_id, service_id);
   }
 
-  /* What are the contacts to notify? */
-  uint32_t notification_interval;
-  bool escalated;
-  std::unordered_set<std::shared_ptr<contact>> to_notify =
-      n.get_contacts_to_notify(cat, type, notification_interval, escalated);
-
   uint64_t current_id = next_notification_id();
-  set_current_notification_id(&n, current_id);
+  set_current_notification_id(host_id, service_id, current_id);
+  uint32_t number = notification_number(host_id, service_id);
+
+  /* The contacts already told about the ongoing problem (carried forward on a
+   * normal notification). */
+  std::set<std::string> already;
+  if (notification* prev =
+          current_notification(host_id, service_id, cat_normal))
+    already = prev->get_contacts();
+
+  delivery_result res =
+      _callbacks->deliver(host_id, service_id, cat, type, current_id, number,
+                          not_author, not_data, options);
+
   auto notif = std::make_unique<notification>(
-      &n, type, not_author, not_data, options, current_id,
-      notification_number(&n), notification_interval, escalated);
+      type, not_author, not_data, options, current_id, number,
+      res.notification_interval, res.escalated, res.notified_contacts);
 
-  /* Let's make the notification. */
-  int retval{notif->execute(to_notify)};
+  if (!res.notified_contacts.empty())
+    set_last_notification(host_id, service_id, std::time(nullptr));
 
-  if (retval == OK) {
-    if (!to_notify.empty())
-      set_last_notification(&n, std::time(nullptr));
-
-    notification_state& st = _state(&n);
-
-    /* The notification has been sent.
-     * Should we increment the notification number? */
-    if (cat == notifications::cat_normal) {
-      /* if normal notification, get contacts from the last notification for
-       * notify this contact on recovery notification */
-      if (st.events[cat])
-        notif->add_contacts(st.events[cat]->get_contacts());
-
-      st.events[cat] = std::move(notif);
-    } else {
-      st.events[cat] = std::move(notif);
-      switch (cat) {
-        case notifications::cat_recovery:
-          st.events[notifications::cat_normal].reset();
-          st.events[notifications::cat_recovery].reset();
-          break;
-        case notifications::cat_flapping:
-          if (type == notifications::reason_flappingstop ||
-              type == notifications::reason_flappingdisabled)
-            st.events[notifications::cat_flapping].reset();
-          break;
-        case notifications::cat_downtime:
-          if (type == notifications::reason_downtimeend ||
-              type == notifications::reason_downtimecancelled)
-            st.events[notifications::cat_downtime].reset();
-          break;
-        default:
-          st.events[cat].reset();
-      }
-      /* In case of an acknowledgement, we must keep the _notification_number
-       * otherwise the recovery notification won't be sent when needed. */
-      if (cat != notifications::cat_acknowledgement &&
-          cat != notifications::cat_downtime) {
-        SPDLOG_LOGGER_TRACE(notifications_logger,
-                            "_notification_number notify: {} => 0",
-                            notification_number(&n));
-        set_notification_number(&n, 0);
-      }
+  notification_state& st = _state(host_id, service_id);
+  if (cat == cat_normal) {
+    /* carry forward contacts of the previous normal notification, so they get
+     * the recovery notification too */
+    if (!already.empty())
+      notif->add_contacts(already);
+    st.events[cat] = std::move(notif);
+  } else {
+    st.events[cat] = std::move(notif);
+    switch (cat) {
+      case cat_recovery:
+        st.events[cat_normal].reset();
+        st.events[cat_recovery].reset();
+        break;
+      case cat_flapping:
+        if (type == reason_flappingstop || type == reason_flappingdisabled)
+          st.events[cat_flapping].reset();
+        break;
+      case cat_downtime:
+        if (type == reason_downtimeend || type == reason_downtimecancelled)
+          st.events[cat_downtime].reset();
+        break;
+      default:
+        st.events[cat].reset();
+    }
+    /* In case of an acknowledgement, we must keep the _notification_number
+     * otherwise the recovery notification won't be sent when needed. */
+    if (cat != cat_acknowledgement && cat != cat_downtime) {
+      SPDLOG_LOGGER_TRACE(notifications_logger(),
+                          "_notification_number notify: {} => 0",
+                          notification_number(host_id, service_id));
+      set_notification_number(host_id, service_id, 0);
     }
   }
 
-  return retval;
+  return k_ok;
 }
 
-/**
- * @brief Get the live notification event of the given category for a notifier.
- *
- * Read-only lookup: it never inserts an empty slot in the map.
- *
- * @param n The notifier.
- * @param cat The notification category.
- *
- * @return The notification pointer, or nullptr if none is stored.
- */
+notification_manager::notification_state& notification_manager::_state(
+    uint64_t host_id,
+    uint64_t service_id) {
+  return _states[{host_id, service_id}];
+}
+
 notification* notification_manager::current_notification(
-    notifier* n,
+    uint64_t host_id,
+    uint64_t service_id,
     notification_category cat) const {
-  auto it = _states.find(n);
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.events[cat].get() : nullptr;
 }
 
-/**
- * @brief Get (creating it if needed) the runtime notification state of a
- * notifier.
- */
-notification_manager::notification_state& notification_manager::_state(
-    notifier* n) {
-  return _states[n];
-}
-
-/**
- * @brief Get a snapshot of the six notification slots of a notifier.
- *
- * @param n The notifier.
- *
- * @return An array of (non-owning) notification pointers indexed by
- * notification_category; nullptr where no notification is stored.
- */
 std::array<notification*, 6> notification_manager::current_notifications(
-    const notifier* n) const {
+    uint64_t host_id,
+    uint64_t service_id) const {
   std::array<notification*, 6> retval{};
   for (int i = 0; i < 6; i++)
-    retval[i] = current_notification(const_cast<notifier*>(n),
+    retval[i] = current_notification(host_id, service_id,
                                      static_cast<notification_category>(i));
   return retval;
 }
 
-/**
- * @brief Store a notification event for a notifier/category (retention
- * restore).
- *
- * @param n The notifier.
- * @param cat The notification category.
- * @param ev The notification event to store (ownership transferred).
- */
-void notification_manager::set_notification(notifier* n,
+void notification_manager::set_notification(uint64_t host_id,
+                                            uint64_t service_id,
                                             notification_category cat,
                                             std::unique_ptr<notification> ev) {
-  _state(n).events[cat] = std::move(ev);
+  _state(host_id, service_id).events[cat] = std::move(ev);
 }
 
 /**
- * @brief Drop every notification event attached to a notifier.
+ * @brief Drop the notification state attached to a resource.
  *
- * Must be called when a notifier is destroyed, otherwise its entries would
- * leak and keep a dangling notifier pointer as key.
+ * Must be called when a notifier is destroyed, otherwise its entry would leak.
  *
- * @param n The notifier being forgotten.
+ * @param host_id The host id.
+ * @param service_id The service id (0 for a host).
  */
-void notification_manager::forget(notifier* n) {
+void notification_manager::forget(uint64_t host_id, uint64_t service_id) {
   /* Guarded like checker::forget: a notifier can be destroyed after the
-   * singleton has been torn down by deinit(), in which case there is nothing
+   * singleton has been torn down by unload(), in which case there is nothing
    * left to forget. */
   if (!_instance)
     return;
-  _instance->_states.erase(n);
+  _instance->_states.erase({host_id, service_id});
 }
 
-uint64_t notification_manager::notification_number(const notifier* n) const {
-  auto it = _states.find(const_cast<notifier*>(n));
+uint64_t notification_manager::notification_number(uint64_t host_id,
+                                                   uint64_t service_id) const {
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.number : 0;
 }
 
-void notification_manager::set_notification_number(notifier* n,
+void notification_manager::set_notification_number(uint64_t host_id,
+                                                   uint64_t service_id,
                                                    uint64_t number) {
-  _state(n).number = number;
+  _state(host_id, service_id).number = number;
+  if (_callbacks)
+    _callbacks->on_notification_number_changed(host_id, service_id);
 }
 
-void notification_manager::inc_notification_number(notifier* n) {
-  ++_state(n).number;
+void notification_manager::inc_notification_number(uint64_t host_id,
+                                                   uint64_t service_id) {
+  ++_state(host_id, service_id).number;
 }
 
 uint64_t notification_manager::current_notification_id(
-    const notifier* n) const {
-  auto it = _states.find(const_cast<notifier*>(n));
+    uint64_t host_id,
+    uint64_t service_id) const {
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.current_id : 0;
 }
 
-void notification_manager::set_current_notification_id(notifier* n,
+void notification_manager::set_current_notification_id(uint64_t host_id,
+                                                       uint64_t service_id,
                                                        uint64_t id) {
-  _state(n).current_id = id;
+  _state(host_id, service_id).current_id = id;
 }
 
-std::time_t notification_manager::last_notification(const notifier* n) const {
-  auto it = _states.find(const_cast<notifier*>(n));
+std::time_t notification_manager::last_notification(uint64_t host_id,
+                                                    uint64_t service_id) const {
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.last : 0;
 }
 
-void notification_manager::set_last_notification(notifier* n, std::time_t t) {
-  _state(n).last = t;
+void notification_manager::set_last_notification(uint64_t host_id,
+                                                 uint64_t service_id,
+                                                 std::time_t t) {
+  _state(host_id, service_id).last = t;
 }
 
-std::time_t notification_manager::next_notification(const notifier* n) const {
-  auto it = _states.find(const_cast<notifier*>(n));
+std::time_t notification_manager::next_notification(uint64_t host_id,
+                                                    uint64_t service_id) const {
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.next : 0;
 }
 
-void notification_manager::set_next_notification(notifier* n, std::time_t t) {
-  _state(n).next = t;
+void notification_manager::set_next_notification(uint64_t host_id,
+                                                 uint64_t service_id,
+                                                 std::time_t t) {
+  _state(host_id, service_id).next = t;
 }
 
-std::time_t notification_manager::initial_notif_time(const notifier* n) const {
-  auto it = _states.find(const_cast<notifier*>(n));
+std::time_t notification_manager::initial_notif_time(
+    uint64_t host_id,
+    uint64_t service_id) const {
+  auto it = _states.find({host_id, service_id});
   return it != _states.end() ? it->second.initial : 0;
 }
 
-void notification_manager::set_initial_notif_time(notifier* n, std::time_t t) {
-  _state(n).initial = t;
+void notification_manager::set_initial_notif_time(uint64_t host_id,
+                                                  uint64_t service_id,
+                                                  std::time_t t) {
+  _state(host_id, service_id).initial = t;
 }
 
 }  // namespace com::centreon::engine::notifications
