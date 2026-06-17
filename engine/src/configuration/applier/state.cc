@@ -541,8 +541,8 @@ void applier::state::_apply(const configuration::State& new_cfg,
       new_cfg.log_level_runtime());
   pb_indexed_config.mut_state().set_use_true_regexp_matching(
       new_cfg.use_true_regexp_matching());
-  pb_indexed_config.mut_state().set_send_recovery_notifications_anyways(
-      new_cfg.send_recovery_notifications_anyways());
+  pb_indexed_config.mut_state().set_send_recovery_notifications_anyway(
+      new_cfg.send_recovery_notifications_anyway());
   pb_indexed_config.mut_state().set_host_down_disable_service_checks(
       new_cfg.host_down_disable_service_checks());
   pb_indexed_config.mut_state().set_credentials_encryption(
@@ -1364,7 +1364,7 @@ void applier::state::_apply_diff_conf(
   }
   APPLY_DIFF(enable_predictive_host_dependency_checks);
   APPLY_DIFF(enable_predictive_service_dependency_checks);
-  APPLY_DIFF(send_recovery_notifications_anyways);
+  APPLY_DIFF(send_recovery_notifications_anyway);
   APPLY_DIFF(host_down_disable_service_checks);
   if (diff.has_max_file_descriptors()) {
     pb_indexed_config.mut_state().set_max_file_descriptors(

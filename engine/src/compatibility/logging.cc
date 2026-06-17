@@ -40,10 +40,10 @@ static char const* tab_initial_state[] = {"UNKNOWN", "INITIAL", "CURRENT"};
  */
 void log_host_state(unsigned int type, com::centreon::engine::host* hst) {
   char const* type_str(tab_initial_state[type]);
-  char const* state("UP");
+  std::string_view state("UP");
   if (hst->get_current_state() > 0 &&
       (unsigned int)hst->get_current_state() < host::tab_host_states.size())
-    state = host::tab_host_states[hst->get_current_state()].second.c_str();
+    state = host::tab_host_states[hst->get_current_state()].second;
   std::string_view const state_type{notifications::notification_manager::
                                         tab_state_type[hst->get_state_type()]};
   events_logger->info("{} HOST STATE: {};{};{};{};{}", type_str, hst->name(),
@@ -59,11 +59,10 @@ void log_host_state(unsigned int type, com::centreon::engine::host* hst) {
  */
 void log_service_state(unsigned int type, com::centreon::engine::service* svc) {
   char const* type_str(tab_initial_state[type]);
-  char const* state("UNKNOWN");
+  std::string_view state("UNKNOWN");
   if (svc->get_current_state() >= 0 && (unsigned int)svc->get_current_state() <
                                            service::tab_service_states.size())
-    state =
-        service::tab_service_states[svc->get_current_state()].second.c_str();
+    state = service::tab_service_states[svc->get_current_state()].second;
   std::string_view const state_type(notifications::notification_manager::
                                         tab_state_type[svc->get_state_type()]);
   std::string const& output{svc->get_plugin_output()};

@@ -22,8 +22,11 @@
 
 #include <cstdint>
 #include <ctime>
-#include <set>
+#include <ostream>
 #include <string>
+#include <string_view>
+
+#include "absl/container/btree_set.h"
 
 namespace com::centreon::engine::notifications {
 
@@ -99,7 +102,7 @@ enum notification_option {
 struct global_config {
   bool enabled = false;
   uint32_t interval_length = 0;
-  bool send_recovery_notifications_anyways = false;
+  bool send_recovery_notifications_anyway = false;
 };
 
 /**
@@ -121,7 +124,7 @@ struct resource_state {
   int current_state = 0;
   int scheduled_downtime_depth = 0;
   std::time_t last_hard_state_change = 0;
-  std::string current_state_as_string;
+  std::string_view current_state_as_string;
   uint32_t notify_on = 0;  // bitmask of notification_flag
   uint32_t notification_interval = 0;
   uint32_t first_notification_delay = 0;
@@ -133,10 +136,44 @@ struct resource_state {
  * the escalation-adjusted parameters computed during contact selection.
  */
 struct delivery_result {
-  std::set<std::string> notified_contacts;
+  absl::btree_set<std::string> notified_contacts;
   uint32_t notification_interval = 0;
   bool escalated = false;
 };
+
+/**
+ * @brief The last notification emitted for a (resource, category): the runtime
+ * state the manager keeps to drive re-notification timing, flapping start/stop
+ * discrimination and recovery routing.
+ *
+ * It is pure data: it neither carries the resource it relates to nor performs
+ * the delivery. The contact set records who was told about the ongoing problem,
+ * so the recovery notification reaches the same contacts.
+ */
+struct notification {
+  reason_type type;
+  uint32_t interval = 0;
+  absl::btree_set<std::string> notified_contacts;
+
+  /** @brief Tell whether @p user was among the notified contacts. */
+  bool sent_to(const std::string& user) const {
+    return notified_contacts.find(user) != notified_contacts.end();
+  }
+
+  /** @brief Merge @p contacts into the notified contact set. */
+  void add_contacts(const absl::btree_set<std::string>& contacts) {
+    notified_contacts.insert(contacts.begin(), contacts.end());
+  }
+};
+
+/** @brief Dump a notification to a stream (debug/retention output). */
+inline std::ostream& operator<<(std::ostream& os, const notification& n) {
+  os << "type: " << n.type << ", interval: " << n.interval << ", contacts: ";
+  for (const auto& c : n.notified_contacts)
+    os << c << ",";
+  os << "\n";
+  return os;
+}
 
 }  // namespace com::centreon::engine::notifications
 

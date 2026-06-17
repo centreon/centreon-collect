@@ -26,7 +26,7 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

@@ -17,6 +17,11 @@
  *
  */
 
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
+#include <absl/strings/strip.h>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/common.hh"
@@ -26,7 +31,7 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -871,153 +876,60 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
   if (value.empty())
     return;
 
-  char const* v = value.c_str();
-  if (strncmp(v, "type: ", 6)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the line should start "
-        "with 'type: '");
-    return;
-  }
+  notifications::reason_type type{};
+  uint32_t interval = 0;
+  absl::btree_set<std::string> contacts;
+  bool has_type = false;
+  bool has_interval = false;
 
-  v += 6;
-  char* next;
-  notifications::reason_type type =
-      static_cast<notifications::reason_type>(strtol(v, &next, 10));
-  if (next == v || *next != ',' || next[1] != ' ') {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the separator between two "
-        "fields is ', '");
-    return;
-  }
-
-  v = next + 2;
-  if (strncmp(v, "author: ", 8)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field after "
-        "'type' is 'author'");
-    return;
-  }
-
-  v += 8;
-  for (next = const_cast<char*>(v); *next && *next != ','; next++)
-    ;
-  std::string author(v, next - v);
-
-  v = next + 2;
-  if (strncmp(v, "options: ", 9)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field after "
-        "'author' is 'options'");
-    return;
-  }
-
-  v += 9;
-  int options = strtol(v, &next, 10);
-  if (next == v || *next != ',' || next[1] != ' ') {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the separator between two "
-        "fields is ', '");
-    return;
-  }
-
-  v = next + 2;
-  if (strncmp(v, "escalated: ", 11)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field "
-        " after 'options' is 'escalated'");
-    return;
-  }
-
-  v += 11;
-  bool escalated = static_cast<bool>(strtol(v, &next, 10));
-  if (next == v || *next != ',' || next[1] != ' ') {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the separator between two "
-        "fields is ', '");
-    return;
-  }
-
-  v = next + 2;
-  if (strncmp(v, "id: ", 4)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field "
-        " after 'escalated' is 'id'");
-    return;
-  }
-
-  v += 4;
-  int id = strtol(v, &next, 10);
-  if (next == v || *next != ',' || next[1] != ' ') {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the separator between two "
-        "fields is ', '");
-    return;
-  }
-
-  v = next + 2;
-  if (strncmp(v, "number: ", 8)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field "
-        " after 'id' is 'number'");
-    return;
-  }
-
-  v += 8;
-  int number = strtol(v, &next, 10);
-  if (next == v || *next != ',' || next[1] != ' ') {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the separator between two "
-        "fields is ', '");
-    return;
-  }
-
-  v = next + 2;
-  if (strncmp(v, "interval: ", 10)) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the expected field "
-        " after 'number' is 'interval'");
-    return;
-  }
-
-  v += 10;
-  int interval = strtol(v, &next, 10);
-  if (next == v) {
-    SPDLOG_LOGGER_ERROR(
-        config_logger,
-        "Error: Bad format in the notification part, the 'interval' value "
-        "should be an integer");
-    return;
-  }
-
-  v = next + 2;
-  std::set<std::string> contacts;
-  if (!strncmp(v, "contacts: ", 10)) {
-    v += 10;
-    for (const char* s = v; *s; ++s) {
-      if ((*s == ',' || *s == '\n') && v != s) {
-        contacts.emplace(v, s);
-        v = s + 1;
+  /* The retention line is a ", "-separated list of "key: value" fields:
+   *   type: <int>, interval: <int>, contacts: <c1>,<c2>,
+   * Engines prior to the notification slim-down also emit author/options/
+   * escalated/id/number fields that we no longer keep. Matching only the keys
+   * we care about and ignoring the rest keeps the parser naturally tolerant of
+   * retention written by an older version. The contacts value is itself a
+   * ","-separated list, so it stays a single field. */
+  for (std::string_view field : absl::StrSplit(value, ", ")) {
+    if (absl::ConsumePrefix(&field, "type: ")) {
+      int parsed;
+      if (!absl::SimpleAtoi(field, &parsed)) {
+        SPDLOG_LOGGER_ERROR(config_logger,
+                            "Error: Bad format in the notification part, "
+                            "'type' must be an integer");
+        return;
+      }
+      type = static_cast<notifications::reason_type>(parsed);
+      has_type = true;
+    } else if (absl::ConsumePrefix(&field, "interval: ")) {
+      if (!absl::SimpleAtoi(field, &interval)) {
+        SPDLOG_LOGGER_ERROR(config_logger,
+                            "Error: Bad format in the notification part, "
+                            "'interval' must be an integer");
+        return;
+      }
+      has_interval = true;
+    } else if (absl::ConsumePrefix(&field, "contacts: ")) {
+      for (std::string_view c : absl::StrSplit(field, ',', absl::SkipEmpty())) {
+        c = absl::StripAsciiWhitespace(c);
+        if (!c.empty())
+          contacts.emplace(c);
       }
     }
+    /* Any other (legacy) field is intentionally ignored. */
   }
+
+  if (!has_type || !has_interval) {
+    SPDLOG_LOGGER_ERROR(config_logger,
+                        "Error: Bad format in the notification part, 'type' "
+                        "and 'interval' fields are required");
+    return;
+  }
+
   notifications::notification_manager::instance().set_notification(
       _host_id, _service_id,
       static_cast<notifications::notification_category>(idx),
-      std::make_unique<notifications::notification>(
-          type, author, "", options, id, number, interval, escalated,
-          contacts));
+      std::unique_ptr<notifications::notification>(
+          new notifications::notification{type, interval, contacts}));
 }
 
 void notifier::inc_notification_number() noexcept {

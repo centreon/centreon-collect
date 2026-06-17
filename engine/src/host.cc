@@ -37,7 +37,7 @@
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -45,11 +45,6 @@ using namespace com::centreon::engine::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
-
-std::array<std::pair<uint32_t, std::string>, 3> const host::tab_host_states{
-    {{NSLOG_HOST_UP, "UP"},
-     {NSLOG_HOST_DOWN, "DOWN"},
-     {NSLOG_HOST_UNREACHABLE, "UNREACHABLE"}}};
 
 host_map host::hosts;
 host_id_map host::hosts_by_id;
@@ -1084,10 +1079,10 @@ void host::schedule_acknowledgement_expiration() {
  *  @return Return true on success.
  */
 int host::log_event() {
-  char const* state("UP");
+  std::string_view state("UP");
   if (get_current_state() > 0 &&
       (unsigned int)get_current_state() < tab_host_states.size()) {
-    state = tab_host_states[get_current_state()].second.c_str();
+    state = tab_host_states[get_current_state()].second;
   }
   const std::string_view state_type(
       notifications::notification_manager::tab_state_type[get_state_type()]);
@@ -2345,10 +2340,10 @@ int host::notify_contact(nagios_macros* mac,
 
     /* log the notification to program log file */
     if (log_notifications) {
-      char const* host_state_str("UP");
+      std::string_view host_state_str("UP");
       if ((unsigned int)_current_state < tab_host_states.size())
         // sizeof(tab_host_state_str) / sizeof(*tab_host_state_str))
-        host_state_str = tab_host_states[_current_state].second.c_str();
+        host_state_str = tab_host_states[_current_state].second;
 
       std::string_view notification_str("");
       if ((unsigned int)type <
@@ -3465,7 +3460,7 @@ void host::check_for_orphaned() {
   }
 }
 
-const std::string& host::get_current_state_as_string() const {
+std::string_view host::get_current_state_as_string() const {
   return tab_host_states[get_current_state()].second;
 }
 

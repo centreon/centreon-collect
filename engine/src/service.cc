@@ -33,19 +33,13 @@
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
-
-std::array<std::pair<uint32_t, std::string>, 4> const
-    service::tab_service_states{{{NSLOG_SERVICE_OK, "OK"},
-                                 {NSLOG_SERVICE_WARNING, "WARNING"},
-                                 {NSLOG_SERVICE_CRITICAL, "CRITICAL"},
-                                 {NSLOG_SERVICE_CRITICAL, "UNKNOWN"}}};
 
 service_map service::services;
 service_id_map service::services_by_id;
@@ -1954,10 +1948,10 @@ int service::log_event() {
   if (get_state_type() == soft && !log_service_retries)
     return OK;
 
-  char const* state{"UNKNOWN"};
+  std::string_view state{"UNKNOWN"};
   if (_current_state >= 0 &&
       (unsigned int)_current_state < tab_service_states.size()) {
-    state = tab_service_states[_current_state].second.c_str();
+    state = tab_service_states[_current_state].second;
   }
   const std::string_view state_type{
       notifications::notification_manager::tab_state_type[get_state_type()]};
@@ -2986,9 +2980,9 @@ int service::notify_contact(nagios_macros* mac,
     /* log the notification to program log file */
     bool log_notifications = pb_indexed_config.state().log_notifications();
     if (log_notifications) {
-      char const* service_state_str("UNKNOWN");
+      std::string_view service_state_str("UNKNOWN");
       if ((unsigned int)_current_state < tab_service_states.size())
-        service_state_str = tab_service_states[_current_state].second.c_str();
+        service_state_str = tab_service_states[_current_state].second;
 
       std::string_view notification_str("");
       if ((unsigned int)type <
@@ -3479,7 +3473,7 @@ void service::check_result_freshness() {
   }
 }
 
-const std::string& service::get_current_state_as_string() const {
+std::string_view service::get_current_state_as_string() const {
   return tab_service_states[get_current_state()].second;
 }
 

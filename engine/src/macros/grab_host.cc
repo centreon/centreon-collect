@@ -153,7 +153,8 @@ template <typename T, host::host_state (T::*member)() const>
 std::string get_host_state(T& t, nagios_macros* mac) {
   (void)mac;
   uint32_t current = static_cast<host::host_state>((t.*member)());
-  return com::centreon::engine::host::tab_host_states[current].second;
+  return std::string(
+      com::centreon::engine::host::tab_host_states[current].second);
 }
 
 /**
