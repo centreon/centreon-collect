@@ -530,9 +530,9 @@ sequenceDiagram
 
     NM->>CB: get_global_config()
     CB->>ENG: lit pb_indexed_config.state()
-    CB-->>NM: global_config { enabled, interval_length, send_recovery_anyways }
-    NM->>CB: get_state(host_id, service_id, now)
-    CB->>ENG: résout la ressource par id, lit son état + période de notif
+    CB-->>NM: global_config { enabled, interval_length, send_recovery_notifications_anyway }
+    NM->>CB: get_state(host_id, service_id)
+    CB->>ENG: résout la ressource par id, lit son état + période de notif (évaluée à l'heure courante, lue en interne)
     CB-->>NM: resource_state (flapping, downtime, hard_state, ack, current_state, notify_on, délais…)
     NM->>NM: _is_notification_viable_<cat>(resource_state, global_config, ...)
     note over NM: décision = fonction pure de (resource_state, global_config)<br/>+ état manager (current_notification, notification_number)
