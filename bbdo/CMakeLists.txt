@@ -176,5 +176,3 @@ target_link_libraries(centreon_pb_bbdo
   pb_header_lib
 )
 
-set_target_properties(centreon_pb_bbdo PROPERTIES PREFIX ""
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/broker/lib")

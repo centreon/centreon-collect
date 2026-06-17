@@ -239,9 +239,6 @@ jobs:
           OPERATING_SYSTEM: ${{ matrix.operating_system }}
         run: |
           CMAKE="cmake"
-          if [[ "$OPERATING_SYSTEM" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
 
           export VCPKG_ROOT=/vcpkg
           export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
