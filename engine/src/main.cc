@@ -29,9 +29,7 @@ namespace asio = boost::asio;
 namespace po = boost::program_options;
 
 #include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
-#include <absl/container/btree_map.h>
 #include <absl/strings/str_split.h>
 
 #include <boost/circular_buffer.hpp>
@@ -49,6 +47,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include "com/centreon/engine/diagnostic.hh"
 #include "com/centreon/engine/engine_downtime_callbacks.hh"
+#include "com/centreon/engine/engine_notification_callbacks.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
@@ -62,7 +61,6 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using com::centreon::broker::neb::cbmod;
@@ -90,6 +88,9 @@ int main(int argc, char* argv[]) {
 
   downtimes::downtime_manager::load(
       std::make_unique<engine_downtime_callbacks>());
+
+  notifications::notification_manager::load(
+      std::make_unique<engine_notification_callbacks>());
 
   // Initialize the initial configuration state.
   {
@@ -220,9 +221,6 @@ int main(int argc, char* argv[]) {
 
       // Checker init
       checks::checker::init();
-
-      // Notification manager init (lifetime controlled like the checker).
-      notifications::notification_manager::init();
 
       // If an error occured, print usage.
       if (error) {
@@ -512,6 +510,8 @@ int main(int argc, char* argv[]) {
   cbm.reset();
   g_io_context->stop();
   com::centreon::common::pool::unload();
+  notifications::notification_manager::unload();
+  downtimes::downtime_manager::unload();
   stop_rpc_server();
 
   return retval;

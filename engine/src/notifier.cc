@@ -26,13 +26,14 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/timezone_locker.hh"
 #include "engine/src/notifications/notification.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 
 notifier::notifier(notifications::notifier_type notifier_type,
+                   uint64_t host_id,
+                   uint64_t service_id,
                    const std::string& name,
                    std::string const& display_name,
                    std::string const& check_command,
@@ -92,6 +93,8 @@ notifier::notifier(notifications::notifier_type notifier_type,
                 timezone,
                 is_volatile,
                 icon_id},
+      _host_id{host_id},
+      _service_id{service_id},
       _notifier_type{notifier_type},
       _stalk_type{stalk},
       _flap_type{0},
@@ -127,8 +130,16 @@ notifier::notifier(notifications::notifier_type notifier_type,
 }
 
 notifier::~notifier() {
-  notifications::notification_manager::forget(this);
+  notifications::notification_manager::forget(_host_id, _service_id);
   checks::checker::forget(this);
+}
+
+uint64_t notifier::host_id() const noexcept {
+  return _host_id;
+}
+
+uint64_t notifier::service_id() const noexcept {
+  return _service_id;
 }
 
 /**
@@ -140,12 +151,10 @@ void notifier::set_notification_number(int num) {
   SPDLOG_LOGGER_TRACE(notifications_logger,
                       "_notification_number set_notification_number: {} => {}",
                       get_notification_number(), num);
-  /* set the notification number */
-  notifications::notification_manager::instance().set_notification_number(this,
-                                                                          num);
-
-  /* update the status log with the notifier info */
-  update_status(notifications::STATUS_NOTIFICATION_NUMBER);
+  /* The manager triggers the status update through
+   * on_notification_number_changed -> update_status. */
+  notifications::notification_manager::instance().set_notification_number(
+      _host_id, _service_id, num);
 }
 
 /**
@@ -231,7 +240,7 @@ bool notifier::is_notification_viable(
     notifications::reason_type type,
     notifications::notification_option options) {
   return notifications::notification_manager::instance().is_notification_viable(
-      *this, cat, type, options);
+      _host_id, _service_id, cat, type, options);
 }
 
 int notifier::notify(notifications::reason_type type,
@@ -239,47 +248,47 @@ int notifier::notify(notifications::reason_type type,
                      std::string const& not_data,
                      notifications::notification_option options) {
   return notifications::notification_manager::instance().notify(
-      *this, type, not_author, not_data, options);
+      _host_id, _service_id, type, not_author, not_data, options);
 }
 
 void notifier::set_current_notification_id(uint64_t id) noexcept {
   notifications::notification_manager::instance().set_current_notification_id(
-      this, id);
+      _host_id, _service_id, id);
 }
 
 uint64_t notifier::get_current_notification_id() const noexcept {
   return notifications::notification_manager::instance()
-      .current_notification_id(this);
+      .current_notification_id(_host_id, _service_id);
 }
 
 time_t notifier::get_next_notification() const noexcept {
   return notifications::notification_manager::instance().next_notification(
-      this);
+      _host_id, _service_id);
 }
 
 void notifier::set_next_notification(time_t next_notification) noexcept {
   notifications::notification_manager::instance().set_next_notification(
-      this, next_notification);
+      _host_id, _service_id, next_notification);
 }
 
 time_t notifier::get_last_notification() const noexcept {
   return notifications::notification_manager::instance().last_notification(
-      this);
+      _host_id, _service_id);
 }
 
 void notifier::set_last_notification(time_t last_notification) noexcept {
   notifications::notification_manager::instance().set_last_notification(
-      this, last_notification);
+      _host_id, _service_id, last_notification);
 }
 
 void notifier::set_initial_notif_time(time_t notif_time) noexcept {
   notifications::notification_manager::instance().set_initial_notif_time(
-      this, notif_time);
+      _host_id, _service_id, notif_time);
 }
 
 time_t notifier::get_initial_notif_time() const noexcept {
   return notifications::notification_manager::instance().initial_notif_time(
-      this);
+      _host_id, _service_id);
 }
 
 void notifier::set_acknowledgement_timeout(int timeout) noexcept {
@@ -538,7 +547,7 @@ void notifier::set_no_more_notifications(bool no_more_notifications) noexcept {
 
 int notifier::get_notification_number() const noexcept {
   return notifications::notification_manager::instance().notification_number(
-      this);
+      _host_id, _service_id);
 }
 
 notifications::notifier_type notifier::get_notifier_type() const noexcept {
@@ -744,7 +753,7 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
 std::array<notifications::notification*, 6>
 notifier::get_current_notifications() const {
   return notifications::notification_manager::instance().current_notifications(
-      this);
+      _host_id, _service_id);
 }
 
 int notifier::get_pending_flex_downtime() const {
@@ -1004,12 +1013,14 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
     }
   }
   notifications::notification_manager::instance().set_notification(
-      this, static_cast<notifications::notification_category>(idx),
+      _host_id, _service_id,
+      static_cast<notifications::notification_category>(idx),
       std::make_unique<notifications::notification>(
-          this, type, author, "", options, id, number, interval, escalated,
+          type, author, "", options, id, number, interval, escalated,
           contacts));
 }
 
 void notifier::inc_notification_number() noexcept {
-  notifications::notification_manager::instance().inc_notification_number(this);
+  notifications::notification_manager::instance().inc_notification_number(
+      _host_id, _service_id);
 }

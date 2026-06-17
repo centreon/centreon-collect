@@ -185,6 +185,8 @@ host::host(uint64_t host_id,
            const std::string& timezone,
            uint64_t icon_id)
     : notifier{host_notification,
+               host_id,
+               0,
                name,
                display_name,
                check_command,
@@ -226,7 +228,6 @@ host::host(uint64_t host_id,
                retain_nonstatus_information > 0,
                false,
                icon_id},
-      _id{host_id},
       _address{address},
       _process_performance_data{process_perfdata},
       _vrml_image{vrml_image},
@@ -288,10 +289,6 @@ host::~host() {
   if (cmd) {
     cmd->unregister_host_serv(name(), "");
   }
-}
-
-uint64_t host::host_id() const {
-  return _id;
 }
 
 /**
@@ -3628,9 +3625,9 @@ void host::_switch_all_services_to_unknown() {
 
   std::string output = fmt::format("host {} is down", name());
 
-  for (auto serv_iter = service::services_by_id.lower_bound({_id, 0});
+  for (auto serv_iter = service::services_by_id.lower_bound({host_id(), 0});
        serv_iter != service::services_by_id.end() &&
-       serv_iter->first.first == _id;
+       serv_iter->first.first == host_id();
        ++serv_iter) {
     check_result::pointer result = std::make_shared<check_result>(
         service_check, serv_iter->second.get(), checkable::check_active,
