@@ -20,11 +20,6 @@
 #ifndef CCE_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
 #define CCE_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
 
-#include <cstdint>
-#include <ctime>
-#include <set>
-#include <string>
-
 #include "engine/src/notifications/notification_types.hh"
 
 namespace com::centreon::engine::notifications {
@@ -32,11 +27,10 @@ namespace com::centreon::engine::notifications {
 /**
  * @brief Connection from the notification library to its host application.
  *
- * Same pattern as common/downtimes' downtime_callbacks: the engine provides a
- * single concrete implementation, injected as a unique_ptr into the
- * notification_manager. Everything is addressed by logical id
- * (host_id, service_id) — service_id == 0 designates a host. The library has
- * no dependency on any engine object type.
+ * Engine provides a single concrete implementation, injected as a unique_ptr
+ * into the notification_manager. Everything is addressed by logical id
+ * (host_id, service_id) and service_id == 0 designates a host. The library has
+ * no dependency on any Engine object type.
  */
 class notification_callbacks {
  public:
@@ -54,13 +48,11 @@ class notification_callbacks {
    *
    * @param host_id The host id.
    * @param service_id The service id; 0 designates a host.
-   * @param now The current time, used to evaluate the notification period.
    *
    * @return The per-resource state snapshot.
    */
   virtual resource_state get_state(uint64_t host_id,
-                                   uint64_t service_id,
-                                   std::time_t now) const = 0;
+                                   uint64_t service_id) const = 0;
 
   /**
    * @brief Select contacts (escalations included, consulting the manager for

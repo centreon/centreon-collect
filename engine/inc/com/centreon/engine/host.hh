@@ -40,7 +40,10 @@ using host_id_map =
 namespace com::centreon::engine {
 class host : public notifier {
  public:
-  static std::array<std::pair<uint32_t, std::string>, 3> const tab_host_states;
+  static constexpr std::array<std::pair<uint32_t, std::string_view>, 3>
+      tab_host_states{{{NSLOG_HOST_UP, "UP"},
+                       {NSLOG_HOST_DOWN, "DOWN"},
+                       {NSLOG_HOST_UNREACHABLE, "UNREACHABLE"}}};
 
   enum host_state { state_up, state_down, state_unreachable };
 
@@ -169,7 +172,7 @@ class host : public notifier {
   enum host_state determine_host_reachability(enum host_state new_state);
   bool recovered() const override;
   int get_current_state_int() const override;
-  std::string const& get_current_state_as_string() const override;
+  std::string_view get_current_state_as_string() const override;
 
   // setters / getters
   std::string const& get_alias() const;

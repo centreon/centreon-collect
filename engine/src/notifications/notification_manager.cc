@@ -22,7 +22,7 @@
 #include <cassert>
 
 #include "common/log_v2/log_v2.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 #include "engine/src/notifications/notification_callbacks.hh"
 
 using com::centreon::common::log_v2::log_v2;
@@ -113,7 +113,7 @@ bool notification_manager::is_notification_viable(uint64_t host_id,
   global_config gc = _callbacks->get_global_config();
   std::time_t now;
   std::time(&now);
-  resource_state rs = _callbacks->get_state(host_id, service_id, now);
+  resource_state rs = _callbacks->get_state(host_id, service_id);
   switch (cat) {
     case cat_normal:
       return _is_notification_viable_normal(host_id, service_id, rs, gc, now,
@@ -148,8 +148,7 @@ bool notification_manager::_is_notification_viable_normal(
   notification* normal_notif =
       current_notification(host_id, service_id, cat_normal);
   uint32_t notification_interval =
-      !normal_notif ? rs.notification_interval
-                    : normal_notif->get_notification_interval();
+      !normal_notif ? rs.notification_interval : normal_notif->interval;
 
   /* forced notifications bust through everything */
   if (options & notification_option_forced) {
@@ -303,12 +302,12 @@ bool notification_manager::_is_notification_viable_recovery(
                         "this notifier, so we won't send one out.");
     retval = false;
   } else {
-    // if send_recovery_notifications_anyways flag is set, we don't take
+    // if send_recovery_notifications_anyway flag is set, we don't take
     // timeperiod into account for recovery
     if (!rs.in_notification_period) {
-      if (gc.send_recovery_notifications_anyways) {
+      if (gc.send_recovery_notifications_anyway) {
         SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                            "send_recovery_notifications_anyways flag enabled, "
+                            "send_recovery_notifications_anyway flag enabled, "
                             "recovery notification is viable even if we are "
                             "out of timeperiod at this time.");
       } else {
@@ -482,8 +481,7 @@ bool notification_manager::_is_notification_viable_flapping(
         "a start notification now.");
     return false;
   } else if (type == reason_flappingstop || type == reason_flappingdisabled) {
-    if (!flapping_notif ||
-        flapping_notif->get_reason() != reason_flappingstart) {
+    if (!flapping_notif || flapping_notif->type != reason_flappingstart) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger(),
           "A stop or cancellation flapping notification can only be sent "
@@ -493,7 +491,7 @@ bool notification_manager::_is_notification_viable_flapping(
   }
 
   /* Don't send a notification if the same has already been sent previously. */
-  if (flapping_notif && flapping_notif->get_reason() == type) {
+  if (flapping_notif && flapping_notif->type == type) {
     SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "We shouldn't notify about a {} event: already sent.",
                         tab_notification_str[type]);
@@ -619,20 +617,19 @@ int32_t notification_manager::notify(uint64_t host_id,
 
   /* The contacts already told about the ongoing problem (carried forward on a
    * normal notification). */
-  std::set<std::string> already;
+  absl::btree_set<std::string> already;
   if (notification* prev =
           current_notification(host_id, service_id, cat_normal))
-    already = prev->get_contacts();
+    already = prev->notified_contacts;
 
   delivery_result res =
       _callbacks->deliver(host_id, service_id, cat, type, current_id, number,
                           not_author, not_data, options);
 
-  auto notif = std::make_unique<notification>(
-      type, not_author, not_data, options, current_id, number,
-      res.notification_interval, res.escalated, res.notified_contacts);
+  auto notif = std::unique_ptr<notification>(new notification{
+      type, res.notification_interval, std::move(res.notified_contacts)});
 
-  if (!res.notified_contacts.empty())
+  if (!notif->notified_contacts.empty())
     set_last_notification(host_id, service_id, std::time(nullptr));
 
   notification_state& st = _state(host_id, service_id);

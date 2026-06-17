@@ -34,7 +34,6 @@
 
 namespace com::centreon::engine::notifications {
 
-class notification;
 class notification_callbacks;
 
 /**

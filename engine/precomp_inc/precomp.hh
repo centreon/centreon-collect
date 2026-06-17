@@ -24,13 +24,12 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cassert>
 #include <cerrno>
+#include <cmath>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
-
-#include <cassert>
-#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
