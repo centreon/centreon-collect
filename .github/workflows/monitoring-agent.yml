@@ -322,7 +322,7 @@ jobs:
           fi
 
           export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
+          export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
 
           mv /root/.cache /github/home/
 
