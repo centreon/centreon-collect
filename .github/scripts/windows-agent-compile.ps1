@@ -34,7 +34,7 @@ function add_builtin_to_vcpkg_json {
     foreach ($line in $content) {
         $newContent += $line
         if ($line -match "{" -and $inserted -eq 0) {
-            $newContent += '"builtin-baseline":"ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0", ' #2025.06.13
+            $newContent += '"builtin-baseline":"d015e31e90838a4c9dfa3eed45979bc70d9357fc", ' #2026.05.25
             $inserted = 1
         }
     }
