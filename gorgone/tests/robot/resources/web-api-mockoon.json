@@ -354,7 +354,36 @@
           "filePath": "",
           "databucketID": "",
           "sendFileAsBody": false,
-          "rules": [],
+          "rules": [
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-1",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-2",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "poller-3",
+              "invert": true,
+              "operator": "equals"
+            },
+            {
+              "target": "params",
+              "modifier": "tokenName",
+              "value": "Central-1",
+              "invert": true,
+              "operator": "equals"
+            }
+          ],
           "rulesOperator": "AND",
           "disableTemplating": false,
           "fallbackTo404": false,

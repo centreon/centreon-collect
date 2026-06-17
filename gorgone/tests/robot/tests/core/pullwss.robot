@@ -108,33 +108,39 @@ check one poller cannot connect to a central with env var ${id}
     # we need to find the message that explains the connection refusal
     ${log_central_query}    Create List    ${message}
     ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}    timeout=70
-    Should Be True    ${logs_central}    Didn't found the logs in the poller file : ${logs_central}
+    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
 
     Examples:    id    mode    env_token    message    --
         ...    1    pullwss    Central-1:centralCMAtoken      [proxy-httpserver] invalid token -
         ...    2    pullwss    poller-2:myPollerToken         [proxy-httpserver] invalid token -
         ...    3    pullwss    do_not_exists:myPollerToken    [proxy-httpserver] cannot get token
 
-check poller token revocation ${id}
+check poller token revocation
     [Teardown]    Stop Gorgone And Remove Gorgone Config
     ...    @{process_list}
     ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
-    ${start_date}    Get Current Date    increment=-10s
-    @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
+    ${start_date}    Get Current Date
+    @{process_list}    Set Variable    pullwss_gorgone_central_simple    pullwss_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
-    Set Environment Variable    GORGONE_TOKEN    ${env_token}
+    Set Environment Variable    GORGONE_TOKEN    poller-3:myPollerToken
     ${response}=    PUT    http://127.0.0.1:80/set-poller-3-is-revoked/false
-    Setup Two Gorgone Instances    communication_mode=${mode}    central_name=${mode}_gorgone_central_simple    poller_name=${mode}_gorgone_poller_2_simple
+    Setup Two Gorgone Instances    communication_mode=pullwss    central_name=pullwss_gorgone_central_simple    poller_name=pullwss_gorgone_poller_2_simple
     Check Poller Is Connected    port=8086    expected_nb=2
-    Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
-    ${log_central_query}    Create List    ${message}
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Not Be True    ${logs_central}    Didn't found the logs in the poller file : ${logs_central}
+    Ctn Check No Error In Logs    pullwss_gorgone_poller_2_simple
+    ${log_central_query}    Create List    [proxy-httpserver] token revoked
+    # The poller is connected
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
+    Should Not Be True    ${logs_central}    Did find the logs in the poller file : ${logs_central}
+    Sleep    6
+    # Still connected
+    Check Poller Is Connected    port=8086    expected_nb=2
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
+    Should Not Be True    ${logs_central}    Did find the logs in the poller file : ${logs_central}
+    # Token revoked
     ${response}=    PUT    http://127.0.0.1:80/set-poller-3-is-revoked/true
     Sleep    6
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Be True    ${logs_central}    Didn't found the logs in the poller file : ${logs_central}
-
-    Examples:    id    mode         env_token    message    --
-        ...    1    pullwss    poller-3:myPollerToken    [proxy-httpserver] token revoked
+    # The poller is disconnected
+    Check Poller Is Connected    port=8086    expected_nb=0
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
+    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
