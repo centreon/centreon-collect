@@ -19,6 +19,7 @@ notification commands. The core of the logic is the abstract `notifier` class
     - [5.5 DOWNTIME](#55-downtime)
     - [5.6 CUSTOM](#56-custom)
   - [6. Configuration parameters](#6-configuration-parameters)
+  - [Introduction to the new notification](#introduction-to-the-new-notification)
 
 ## 1. Concepts
 
@@ -52,11 +53,18 @@ This array forms a small state machine:
 - `_last_notification` / `_next_notification`: timestamps used for periodic
   re-notification (`notification_interval`).
 
-## 2. The `notify()` pipeline
+## 2. The current `notify()` pipeline
 
 Everything goes through `notifier::notify(type, author, data, options)`. The
 `host`/`service` states and the callbacks (downtime, external commands) merely
 call it with the right `reason_type`.
+
+This design is awkward because it is deeply intertwined with Engine's
+internals. The goal is therefore to slim down the `notifier` class and to
+introduce a `notification_manager` that will be the heart of Engine's
+notification library — first for Engine, then for Broker if needed.
+
+The diagrams below describe the **current** notification behaviour:
 
 ```mermaid
 sequenceDiagram
@@ -402,3 +410,187 @@ Parameters influencing the viability and the pace of notifications:
 - `engine/src/engine_downtime_callbacks.cc` — DOWNTIME triggers.
 - `engine/src/commands/commands.cc` — ACKNOWLEDGEMENT trigger.
 - `engine/src/commands/processing.cc` — CUSTOM trigger.
+
+## Introduction to the new notification
+
+The diagrams in the previous sections describe the **legacy** notification,
+tightly coupled to `notifier`. This section describes the **new notification
+library**, whose goal is to make notifications independent from Engine so that
+they can eventually be reused (notably by Broker).
+
+### Principle
+
+The model follows the one of the downtimes library (`common/downtimes`): the
+library no longer knows about Engine objects (`notifier`, `contact`,
+`nagios_macros`, globals…). It talks to the host application through an
+**injected interface**, `notification_callbacks`, and addresses resources by
+**logical id `(host_id, service_id)`** (with `service_id == 0` for a host). All
+the coupling to Engine is concentrated in a **single** implementation,
+`engine_notification_callbacks`, living on the `cce_core` side.
+
+### Components
+
+| Component | Location | Role |
+|---|---|---|
+| `notification_manager` | library (`engine/src/notifications/`) | Singleton. Viability policy, per-`(host_id, service_id)` runtime state, orchestration of `notify()`. **No Engine dependency.** |
+| `notification` | library | **Pure data** of an emitted notification event (type, author, message, id, number, notified contacts). No more `execute()`, no more `notifier*`. |
+| `notification_callbacks` | library | Abstract interface to the host application, id-addressed. |
+| `notification_types.hh` | library | Enums + value structs `global_config`, `resource_state`, `delivery_result`. |
+| `engine_notification_callbacks` | Engine (`cce_core`) | Implementation: resolves host/service by id, provides the state, and **performs delivery** (contact selection + macros + `notify_contact`). |
+| `notifier` | Engine | No longer stores notification state. Keeps `host_id()/service_id()` and **delegates** to the manager by id. |
+
+```mermaid
+flowchart LR
+    subgraph lib["Notification library (no Engine dependency)"]
+        NM["notification_manager<br/>(policy + state + notify())"]
+        NEV["notification<br/>(pure data)"]
+        CB["notification_callbacks<br/>(interface)"]
+        NM --> NEV
+        NM -. uses .-> CB
+    end
+    subgraph engine["Engine (cce_core)"]
+        NF["notifier / host / service"]
+        ENC["engine_notification_callbacks<br/>(implements the interface)"]
+    end
+    NF -- "notify(...) delegated by id" --> NM
+    ENC -. implements .-> CB
+    ENC -- "resolves by id, reads state, delivers" --> NF
+```
+
+### Backend injection (load / unload)
+
+The host application injects its implementation **once**, like for downtimes:
+
+```cpp
+notifications::notification_manager::load(
+    std::make_unique<engine_notification_callbacks>());
+```
+
+This is done in `main.cc` (and in the test harness `engine/tests/helper.cc`)
+next to `downtime_manager::load`. On teardown, `notification_manager::unload()`
+releases the backend and clears the state. When a `notifier` is destroyed, its
+destructor calls `forget(host_id, service_id)` to drop that resource's state
+(the state no longer lives with the object, so it must be cleaned up
+explicitly).
+
+### The `notify()` pipeline
+
+`notifier::notify(...)` is now only a delegator: it turns `this` into
+`(host_id, service_id)` and calls `notification_manager::notify(...)`. All the
+logic lives in the manager, which never touches the notifier directly.
+
+```mermaid
+sequenceDiagram
+    participant SRC as host/service or callback
+    participant NF as notifier::notify()
+    participant NM as notification_manager::notify()
+    participant CB as notification_callbacks (backend)
+
+    SRC->>NF: notify(type, author, data, options)
+    NF->>NM: notify(host_id, service_id, type, author, data, options)
+    NM->>NM: cat = get_category(type)
+    NM->>NM: is_notification_viable(host_id, service_id, cat, type, options)
+    alt not viable
+        NM-->>NF: OK (nothing sent)
+    else viable
+        NM->>NM: inc_notification_number (except recovery)
+        NM->>NM: current_id = next_notification_id()
+        NM->>NM: set_current_notification_id(current_id)
+        NM->>NM: already = contacts of the current normal notification
+        NM->>CB: deliver(host_id, service_id, cat, type, id, number, author, message, options)
+        CB-->>NM: { notified_contacts, notification_interval, escalated }
+        NM->>NM: build the notification object (pure data)
+        NM->>NM: set_last_notification(now) if some contacts were notified
+        NM->>NM: state machine on events[cat] (normal carry-forward, reset per cat, reset number except ack/downtime)
+        NM-->>NF: OK
+    end
+    NF-->>SRC: retval
+```
+
+The state machine is unchanged from the legacy version (a RECOVERY clears
+`cat_normal` and `cat_recovery`, etc.) — only its **storage location** changed:
+the manager's `(host_id, service_id) → notification_state` map instead of the
+`notifier`'s member array.
+
+### Viability: a state snapshot, then a pure function
+
+Viability no longer queries the notifier method by method. The manager fetches
+**a snapshot** (`resource_state`) and the **global configuration**
+(`global_config`) through the backend, then the decision is a **pure** function
+of those values (plus the manager's internal state: current notification,
+number).
+
+```mermaid
+sequenceDiagram
+    participant NM as notification_manager
+    participant CB as notification_callbacks (backend)
+    participant ENG as Engine (host/service, config, timeperiod)
+
+    NM->>CB: get_global_config()
+    CB->>ENG: reads pb_indexed_config.state()
+    CB-->>NM: global_config { enabled, interval_length, send_recovery_anyways }
+    NM->>CB: get_state(host_id, service_id, now)
+    CB->>ENG: resolves the resource by id, reads its state + notification period
+    CB-->>NM: resource_state (flapping, downtime, hard_state, ack, current_state, notify_on, delays…)
+    NM->>NM: _is_notification_viable_<cat>(resource_state, global_config, ...)
+    note over NM: decision = pure function of (resource_state, global_config)<br/>+ manager state (current_notification, notification_number)
+```
+
+### Delivery: `deliver()`
+
+Contact selection (escalations, groups) and the actual sending (macros, command
+execution via `notify_contact`) stay **on the Engine side**, in
+`engine_notification_callbacks::deliver()`. The manager provides the identity
+and the parameters; the backend returns who was notified and the
+escalation-adjusted parameters.
+
+```mermaid
+sequenceDiagram
+    participant NM as notification_manager
+    participant ENC as engine_notification_callbacks::deliver()
+    participant NF as notifier (host/service)
+    participant CT as contacts
+
+    NM->>ENC: deliver(host_id, service_id, cat, type, id, number, author, message, options)
+    ENC->>ENC: n = get_resource(host_id, service_id)
+    ENC->>NF: get_contacts_to_notify(cat, type) → contacts + interval + escalated
+    ENC->>NF: grab_macros_r(mac) + author/type/number/id macros
+    loop for each contact
+        ENC->>NF: notify_contact(mac, contact, type, ...)
+        NF->>CT: runs the notification command
+        ENC->>ENC: if OK, add the contact to the notified set
+    end
+    ENC-->>NM: delivery_result { notified_contacts, notification_interval, escalated }
+```
+
+> For **recovery** routing, the selection (`get_contacts_to_notify` →
+> `contact::should_be_notified`) consults the previous normal notification
+> through the `notifier`'s accessors, which delegate to the manager by id. The
+> loop therefore stays correct without the library having to know about the
+> contacts.
+
+### Key points
+
+- The notification runtime state (number, ids, timestamps, and the six
+  `notification` events) lives in the manager, **indexed by
+  `(host_id, service_id)`** — which makes it persistable / centralizable
+  (towards Broker) without changing the API.
+- `notification_manager`, `notification` and the interface **reference no
+  Engine type**; the library logs through `common/log_v2` (categories
+  `FUNCTIONS` / `NOTIFICATIONS`).
+- The only coupling to Engine is `engine_notification_callbacks` (on the
+  `cce_core` side), injected at startup.
+- The `notifier` destructor calls `forget(host_id, service_id)`; without it the
+  state would leak in the global map.
+
+### Files (code)
+
+- `engine/src/notifications/notification_manager.{hh,cc}` — policy, state,
+  `notify()`, viability.
+- `engine/src/notifications/notification.{hh,cc}` — the event (pure data).
+- `engine/src/notifications/notification_callbacks.hh` — the injected interface.
+- `engine/src/notifications/notification_types.hh` — enums + value structs.
+- `engine/src/engine_notification_callbacks.{hh,cc}` — Engine implementation
+  (id resolution, delivery).
+- `engine/src/notifier.cc` — id delegators, `host_id()/service_id()`,
+  `~notifier` → `forget`.
