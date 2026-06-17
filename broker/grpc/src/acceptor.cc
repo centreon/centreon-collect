@@ -53,7 +53,8 @@ class server_stream : public client_stream_base_class {
   void shutdown() override;
 
  public:
-  server_stream(const grpc_config::pointer& conf,
+  server_stream(const io::endpoint* parent,
+                const grpc_config::pointer& conf,
                 const std::shared_ptr<service_impl>& serv,
                 const std::string& endpoint);
 
@@ -65,10 +66,12 @@ class server_stream : public client_stream_base_class {
  *
  * @param conf
  */
-server_stream::server_stream(const grpc_config::pointer& conf,
+server_stream::server_stream(const io::endpoint* parent,
+                             const grpc_config::pointer& conf,
                              const std::shared_ptr<service_impl>& serv,
                              const std::string& endpoint)
-    : client_stream_base_class(conf, "accepted", endpoint), _parent(serv) {}
+    : client_stream_base_class(parent, conf, "accepted", endpoint),
+      _parent(serv) {}
 
 /**
  * @brief shutdown bireactor
@@ -98,7 +101,9 @@ void server_stream::OnDone() {
  *
  * @param conf
  */
-service_impl::service_impl(const grpc_config::pointer& conf) : _conf(conf) {}
+service_impl::service_impl(const io::endpoint* parent,
+                           const grpc_config::pointer& conf)
+    : _conf(conf), _parent(parent) {}
 
 /**
  * @brief to call after construction
@@ -140,7 +145,8 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
     std::string last_received;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(logger, "Wrong client authorization token from {}: {}",
+        SPDLOG_LOGGER_ERROR(logger,
+                            "Wrong client authorization token from {}: {}",
                             context->peer(), last_received);
         return nullptr;
       }
@@ -159,7 +165,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
   SPDLOG_LOGGER_DEBUG(logger, "connection accepted from {}", context->peer());
 
   std::shared_ptr<server_stream> next_stream = std::make_shared<server_stream>(
-      _conf, shared_from_this(), context->peer());
+      _parent, _conf, shared_from_this(), context->peer());
 
   server_stream::register_stream(next_stream);
   next_stream->start_read();
@@ -276,7 +282,7 @@ acceptor::acceptor(const grpc_config::pointer& conf)
           log_v2::instance().get(log_v2::GRPC)) {
   _init([this](::grpc::ServerBuilder& builder) {
     _service = std::make_shared<service_impl>(
-        std::static_pointer_cast<grpc_config>(get_conf()));
+        this, std::static_pointer_cast<grpc_config>(get_conf()));
     _service->init();
     builder.RegisterService(_service.get());
   });
@@ -323,10 +329,18 @@ bool acceptor::is_ready() const {
  *  @param[out] tree Buffer in which statistics will be written.
  */
 void acceptor::stats(nlohmann::json& tree) {
-  std::list<std::string> children;
-  server_stream::visit_all_instances(
-      [&children](const auto& inst) { children.emplace_back(inst.peer()); });
-
-  tree["peers"] =
-      fmt::format("{}: {}", children.size(), fmt::join(children, ", "));
+  unsigned counter = 0;
+  std::string sep;
+  std::string childs;
+  server_stream::visit_all_instances([&](const auto& st) {
+    if (st.parent() == this) {
+      ++counter;
+      childs += sep;
+      childs += st.peer();
+      if (sep.empty()) {
+        sep = ", ";
+      }
+    }
+  });
+  tree["peers"] = fmt::format("{}: {}", counter, childs);
 }
