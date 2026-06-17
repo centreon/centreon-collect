@@ -186,7 +186,7 @@ message State {
   InterleaveFactor service_interleave_factor_method = 122;
   bool enable_predictive_host_dependency_checks = 123;
   bool enable_predictive_service_dependency_checks = 124;
-  bool send_recovery_notifications_anyways = 125;
+  bool send_recovery_notifications_anyway = 125;
   bool host_down_disable_service_checks = 126;
 
   repeated Command commands = 127;
@@ -1154,7 +1154,7 @@ message DiffState {
   optional InterleaveFactor service_interleave_factor_method = 138;
   optional bool enable_predictive_host_dependency_checks = 139;
   optional bool enable_predictive_service_dependency_checks = 140;
-  optional bool send_recovery_notifications_anyways = 141;
+  optional bool send_recovery_notifications_anyway = 141;
   optional bool host_down_disable_service_checks = 142;
   optional uint32 max_file_descriptors = 143;
   optional string config_version = 144;

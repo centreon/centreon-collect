@@ -252,7 +252,7 @@ class checkable {
   void set_next_check(std::time_t next_check);
   bool get_should_be_scheduled() const;
   void set_should_be_scheduled(bool should_be_scheduled);
-  virtual std::string const& get_current_state_as_string() const = 0;
+  virtual std::string_view get_current_state_as_string() const = 0;
   virtual bool is_in_downtime() const = 0;
   void set_event_handler_ptr(commands::command* cmd);
   commands::command* get_event_handler_ptr() const;

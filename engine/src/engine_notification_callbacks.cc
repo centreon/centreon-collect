@@ -51,20 +51,32 @@ notifier* get_resource(uint64_t host_id, uint64_t service_id) {
 }
 }  // namespace
 
+/**
+ * @brief Get the program-wide notification configuration.
+ *
+ * @return The global notification configuration snapshot.
+ */
 notifications::global_config engine_notification_callbacks::get_global_config()
     const {
   notifications::global_config gc;
   gc.enabled = pb_indexed_config.state().enable_notifications();
   gc.interval_length = pb_indexed_config.state().interval_length();
-  gc.send_recovery_notifications_anyways =
-      pb_indexed_config.state().send_recovery_notifications_anyways();
+  gc.send_recovery_notifications_anyway =
+      pb_indexed_config.state().send_recovery_notifications_anyway();
   return gc;
 }
 
+/**
+ * @brief Get the notification-relevant state of a resource.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ *
+ * @return The resource state snapshot (all-default if the resource is unknown).
+ */
 notifications::resource_state engine_notification_callbacks::get_state(
     uint64_t host_id,
-    uint64_t service_id,
-    std::time_t now) const {
+    uint64_t service_id) const {
   notifications::resource_state rs;
   notifier* n = get_resource(host_id, service_id);
   if (!n)
@@ -90,11 +102,28 @@ notifications::resource_state engine_notification_callbacks::get_state(
 
   timeperiod* tp{n->get_notification_timeperiod()};
   timezone_locker lock{n->get_timezone()};
-  rs.in_notification_period = check_time_against_period_for_notif(now, tp);
+  rs.in_notification_period =
+      check_time_against_period_for_notif(std::time(nullptr), tp);
 
   return rs;
 }
 
+/**
+ * @brief Select the contacts and actually send the notification.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ * @param cat The notification category.
+ * @param type The notification reason.
+ * @param notification_id The unique notification id (for macros).
+ * @param notification_number The notification number (for macros).
+ * @param author The notification author.
+ * @param message The notification message/comment.
+ * @param options The notification options.
+ *
+ * @return Who was notified, the escalation-adjusted interval and the escalated
+ * flag.
+ */
 notifications::delivery_result engine_notification_callbacks::deliver(
     uint64_t host_id,
     uint64_t service_id,
@@ -221,6 +250,12 @@ notifications::delivery_result engine_notification_callbacks::deliver(
   return result;
 }
 
+/**
+ * @brief Push the new notification number of a resource to Broker.
+ *
+ * @param host_id The host id.
+ * @param service_id The service id; 0 designates a host.
+ */
 void engine_notification_callbacks::on_notification_number_changed(
     uint64_t host_id,
     uint64_t service_id) {

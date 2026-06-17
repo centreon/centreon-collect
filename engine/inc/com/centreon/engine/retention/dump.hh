@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/customvariable.hh"
 #include "common/downtimes/downtime.hh"
-#include "engine/src/notifications/notification.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 // Forward declaration.
 

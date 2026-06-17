@@ -18,7 +18,6 @@
 
 # Notifications library.
 add_library(engine_notifications STATIC
-  notification.cc
   notification_manager.cc
 )
 

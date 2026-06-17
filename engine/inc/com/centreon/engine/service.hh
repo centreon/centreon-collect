@@ -113,8 +113,11 @@ class service : public notifier {
                             service* svc) noexcept;
 
  public:
-  static std::array<std::pair<uint32_t, std::string>, 4> const
-      tab_service_states;
+  static constexpr std::array<std::pair<uint32_t, std::string_view>, 4>
+      tab_service_states{{{NSLOG_SERVICE_OK, "OK"},
+                          {NSLOG_SERVICE_WARNING, "WARNING"},
+                          {NSLOG_SERVICE_CRITICAL, "CRITICAL"},
+                          {NSLOG_SERVICE_CRITICAL, "UNKNOWN"}}};
 
   enum service_state { state_ok, state_warning, state_critical, state_unknown };
 
@@ -185,7 +188,7 @@ class service : public notifier {
   void set_check_flapping_recovery_notification(bool check);
   bool recovered() const override;
   int get_current_state_int() const override;
-  std::string const& get_current_state_as_string() const override;
+  std::string_view get_current_state_as_string() const override;
 
   virtual int handle_async_check_result(
       const check_result& queued_check_result);

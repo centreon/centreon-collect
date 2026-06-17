@@ -1128,9 +1128,7 @@ TEST_F(HostNotification, HostEscalationRetention) {
 
   ASSERT_EQ(notification0, notification1);
 
-  notification0 =
-      "type: 1, author: admin, options: 5, escalated: 1, id: 28, number: 2, "
-      "interval: 3, contacts: admin1,admin2,";
+  notification0 = "type: 1, interval: 3, contacts: admin1,admin2,";
   _host->set_notification(0, notification0);
   oss.str("");
 
