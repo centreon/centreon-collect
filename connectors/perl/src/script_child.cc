@@ -18,6 +18,7 @@
 
 #include <sys/prctl.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/connector/perl/check_child.hh"
 #include "com/centreon/connector/perl/script_child.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -316,7 +317,7 @@ void script_child::_on_stdout_read(const boost::system::error_code& err,
   auto forward_to_handler = [&, this]() {
     for (const ConnectorMess& to_read : received) {
       SPDLOG_LOGGER_DEBUG(_logger, "{} receive from script_child: {}",
-                          _script_path, to_read.ShortDebugString());
+                          _script_path, to_read);
       _parent_read_handler(shared_from_this(), to_read);
     }
   };
@@ -600,7 +601,7 @@ void script_child::_on_stdin_receive(
     return;
   }
   SPDLOG_LOGGER_DEBUG(_logger, "script_child {} receive {}", _script_path,
-                      from_main_process_mess->ShortDebugString());
+                      *from_main_process_mess);
   if (from_main_process_mess->has_execute()) {  // EXECUTE
     // we search idle check_child that have less number of perl execute
     auto& nb_execute_index = _check_childs.get<2>();
@@ -675,7 +676,7 @@ void script_child::_from_child_script_receive(
     int pid,
     const ConnectorMess& from_child_script) {
   SPDLOG_LOGGER_DEBUG(_logger, "{} receive from child_script pid={}: {}",
-                      _script_path, pid, from_child_script.ShortDebugString());
+                      _script_path, pid, from_child_script);
   if (from_child_script.has_result()) {
     const auto& res = from_child_script.result();
     auto query = _pending.find(pid);
@@ -863,7 +864,7 @@ void script_child::_on_child_script_end(int pid) {
  */
 void script_child::_send_to_main_process(const ConnectorMess& to_send) {
   SPDLOG_LOGGER_DEBUG(_logger, "{} send {} to main process", _script_path,
-                      to_send.ShortDebugString());
+                      to_send);
   _protocol.async_send(
       *_child_stdout, to_send,
       [me = shared_from_this()](const boost::system::error_code err) {

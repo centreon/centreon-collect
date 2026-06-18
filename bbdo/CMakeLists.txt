@@ -99,6 +99,7 @@ macro(get_protobuf_files name)
 endmacro()
 
 include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc"
+                    "${CMAKE_SOURCE_DIR}/common/inc"
                     "${CMAKE_SOURCE_DIR}/broker/core/sql/inc")
 
 add_library(

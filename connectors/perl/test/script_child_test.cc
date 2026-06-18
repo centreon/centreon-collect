@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <sys/stat.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/script_child.hh"
 
@@ -113,8 +114,7 @@ class ScriptChildTest : public ::testing::Test {
         g_io_context, com::centreon::connector::log::core(), script_path,
         [this](const std::shared_ptr<script_child>&, const ConnectorMess& msg) {
           SPDLOG_LOGGER_DEBUG(com::centreon::connector::log::core(),
-                              "main process receive {}",
-                              msg.ShortDebugString());
+                              "main process receive {}", msg);
           absl::MutexLock l(_mu);
           _received.push_back(msg);
         },

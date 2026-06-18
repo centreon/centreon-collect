@@ -19,9 +19,8 @@
 #ifndef CCB_IO_PROTOBUF_HH
 #define CCB_IO_PROTOBUF_HH
 
-#include <google/protobuf/message.h>
-#include <google/protobuf/util/json_util.h>
 #include <google/protobuf/util/message_differencer.h>
+#include "com/centreon/common/fmt_protobuf.hh"
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
@@ -197,9 +196,7 @@ class protobuf : public protobuf_base {
 
   virtual void set_obj(T&& obj) { _obj = std::move(obj); }
 
-  void dump(std::ostream& s) const override;
-  void dump_more_detail(std::ostream& s) const override;
-  void dump_to_json(std::ostream& s) const override;
+  void dump(fmt::format_context::iterator& stream) const override;
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
@@ -219,28 +216,9 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
 }
 
 template <typename T, uint32_t Typ>
-void protobuf<T, Typ>::dump(std::ostream& s) const {
-  data::dump(s);
-  std::string dump{this->obj().ShortDebugString()};
-  if (dump.size() > 2000) {
-    dump.resize(2000);
-    s << fmt::format(" content:'{}...'", dump);
-  } else
-    s << " content:'" << dump << '\'';
-}
-
-template <typename T, uint32_t Typ>
-void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
-  data::dump(s);
-  s << " content:'" << this->obj().ShortDebugString() << '\'';
-}
-
-template <typename T, uint32_t Typ>
-void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
-  std::string json_dump;
-  auto status =
-      google::protobuf::util::MessageToJsonString(this->obj(), &json_dump);
-  s << " content:'" << json_dump << '\'';
+void protobuf<T, Typ>::dump(fmt::format_context::iterator& stream) const {
+  data::dump(stream);
+  fmt::format_to(stream, ",content:{}", this->obj());
 }
 
 }  // namespace com::centreon::broker::io

@@ -165,7 +165,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
 void stream::_write(const std::shared_ptr<io::protobuf_base>& pb_event) {
   std::string json_dump;
   [[maybe_unused]] auto dummy =
-      google::protobuf::util::MessageToJsonString(*pb_event->msg(), &json_dump);
+      google::protobuf::json::MessageToJsonString(*pb_event->msg(), &json_dump);
 
   com::centreon::common::process_args::pointer cmdline =
       std::make_shared<com::centreon::common::process_args>(*_script_cmdline);

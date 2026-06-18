@@ -3141,9 +3141,7 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(_logger_sql,
-                      "unified_sql: processing poller status event (id: {}, "
-                      "last alive: {} {})",
-                      is.instance_id(), is.last_alive(), is.ShortDebugString());
+                      "unified_sql: processing poller status event {}", is);
 
   // Processing.
   if (_is_valid_poller(is.instance_id())) {
@@ -5122,8 +5120,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
   // Processed object.
   auto s{static_cast<const neb::pb_tag*>(d.get())};
   auto& tg = s->obj();
-  SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: processing tag {}",
-                      tg.DebugString());
+  SPDLOG_LOGGER_TRACE(_logger_sql, "unified_sql: processing tag {}", tg);
   int32_t conn = special_conn::tag % _mysql.connections_count();
   switch (tg.action()) {
     case Tag_Action_ADD:

@@ -32,62 +32,6 @@ using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-namespace com::centreon::broker {
-namespace stream {
-
-/**
- * @brief << operator for CentreonEvent
- * used by fmt with ostream_formatter
- *
- * @param st
- * @param to_dump
- * @return * std::ostream&
- */
-std::ostream& operator<<(std::ostream& st,
-                         const centreon_stream::CentreonEvent& to_dump) {
-  if (to_dump.IsInitialized()) {
-    if (to_dump.has_buffer()) {
-      st << "buff: "
-         << com::centreon::common::debug_buf(to_dump.buffer().data(),
-                                             to_dump.buffer().length(), 20);
-    } else {
-      std::string dump{to_dump.ShortDebugString()};
-      if (dump.size() > 200) {
-        dump.resize(200);
-        st << fmt::format(" content:'{}...'", dump);
-      } else
-        st << " content:'" << dump << '\'';
-    }
-  }
-  return st;
-}
-}  // namespace stream
-namespace grpc {
-/**
- * @brief << operator for detail_centreon_event with more details than
- * CentreonEvent used by fmt with ostream_formatter
- *
- * @param st
- * @param to_dump
- * @return * std::ostream&
- */
-std::ostream& operator<<(std::ostream& st,
-                         const detail_centreon_event& to_dump) {
-  if (to_dump.to_dump.IsInitialized()) {
-    if (to_dump.to_dump.has_buffer()) {
-      st << "buff: "
-         << com::centreon::common::debug_buf(to_dump.to_dump.buffer().data(),
-                                             to_dump.to_dump.buffer().length(),
-                                             100);
-    } else {
-      st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
-    }
-  }
-  return st;
-}
-}  // namespace grpc
-}  // namespace com::centreon::broker
-
 /**
  * @brief this header is used to identify poller
  *
@@ -232,7 +176,7 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(
           to_convert.buffer().begin(), to_convert.buffer().end());
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}", static_cast<void*>(this),
-                          _class_name, *std::static_pointer_cast<io::raw>(d));
+                          _class_name, *d);
       return true;
     } else {
       d = protobuf_to_event(first);

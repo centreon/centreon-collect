@@ -39,6 +39,7 @@ namespace multi_index = boost::multi_index;
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -344,7 +345,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
     } else if (compare_to_expected_host_metric(*to_compare)) {
       host_metric_found = true;
     } else {
-      SPDLOG_ERROR("bad resource metric: {}", to_compare->DebugString());
+      SPDLOG_ERROR("bad resource metric: {}", *to_compare);
       ASSERT_TRUE(false);
     }
   }
@@ -423,7 +424,7 @@ TEST_F(
     } else if (compare_to_expected_host_metric(*to_compare)) {
       host_metric_found = true;
     } else {
-      SPDLOG_ERROR("bad resource metric: {}", to_compare->DebugString());
+      SPDLOG_ERROR("bad resource metric: {}", *to_compare);
       ASSERT_TRUE(false);
     }
   }

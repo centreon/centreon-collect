@@ -372,8 +372,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         if (event->type() == bbdo::pb_bench::static_type()) {
           add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
                           _name, "publish");
-          SPDLOG_LOGGER_INFO(_logger, "{} bench publish {}", _name,
-                             io::data::dump_json{*event});
+          SPDLOG_LOGGER_INFO(_logger, "{} bench publish {}", _name, *event);
         }
 
         SPDLOG_LOGGER_TRACE(
@@ -414,8 +413,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                         "retention_publish");
         SPDLOG_LOGGER_INFO(_logger, "muxer {} bench publish to file {} {}",
-                           _name, _queue_file_name,
-                           io::data::dump_json{*event});
+                           _name, _queue_file_name, *event);
       }
       if (!_file) {
         QueueFileStats* s = _center->muxer_stats(_name)->mutable_queue_file();
@@ -486,8 +484,7 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
-      SPDLOG_LOGGER_INFO(_logger, "{} bench read {}", _name,
-                         io::data::dump_json{*event});
+      SPDLOG_LOGGER_INFO(_logger, "{} bench read {}", _name, *event);
     }
   } else {
     SPDLOG_LOGGER_TRACE(_logger, "{} queue size {} no event available", _name,
@@ -583,8 +580,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
     if (d->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                       "write");
-      SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name,
-                         io::data::dump_json{*d});
+      SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name, *d);
     }
     _engine->publish(d);
   } else {
@@ -610,8 +606,7 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
       if (d->type() == bbdo::pb_bench::static_type()) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                         "write");
-        SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name,
-                           io::data::dump_json{*d});
+        SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name, *d);
       }
       ++list_iter;
     } else {

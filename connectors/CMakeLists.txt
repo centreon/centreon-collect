@@ -52,6 +52,7 @@ if(WITH_TESTING)
 
   include_directories(${PROJECT_SOURCE_DIR}/perl/inc 
     ${CMAKE_SOURCE_DIR}/common/process/inc 
+    ${CMAKE_SOURCE_DIR}/common/inc 
     ${PROJECT_SOURCE_DIR}/ssh/inc
     ${Libssh2_INCLUDE_DIR}
     ${CMAKE_BINARY_DIR}/connectors/perl)

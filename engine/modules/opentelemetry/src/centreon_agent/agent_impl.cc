@@ -55,7 +55,7 @@ absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
  * @param conf
  */
 void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   auto me = shared_from_this();
   _configured_instance->get<1>().erase(me);
   if (conf.services().empty()) {
@@ -75,7 +75,7 @@ void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
  */
 void agent_impl_base::_on_done() {
   auto me = shared_from_this();
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   _configured_instance->get<1>().erase(me);
   _no_configured_instance->erase(me);
 }
@@ -99,7 +99,7 @@ void agent_impl_base::all_agent_calc_and_send_config_if_needed(
  * @param serv_id
  */
 void agent_impl_base::force_check(uint64_t host_id, uint64_t serv_id) {
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   auto& host_serv_index = _configured_instance->get<0>();
   auto search = host_serv_index.find(std::make_pair(host_id, serv_id));
   if (search == host_serv_index.end()) {
@@ -358,10 +358,10 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           _whitelist_cache, _logger);
       if (command_added == e_get_otel_commands_ret::no_cma_service) {
         SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} : {}",
-                            get_peer(), _agent_info->init().ShortDebugString());
+                            get_peer(), _agent_info->init());
       } else if (command_added == e_get_otel_commands_ret::unknown_host) {
         SPDLOG_LOGGER_ERROR(_logger, "unknown host for agent {} : {}",
-                            get_peer(), _agent_info->init().ShortDebugString());
+                            get_peer(), _agent_info->init());
         // notify broker of an unknown cma host
         com::centreon::broker::UnknownHost to_send;
         const auto& agent_info = _agent_info->init();

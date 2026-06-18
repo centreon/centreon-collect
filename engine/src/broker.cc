@@ -330,7 +330,7 @@ void broker_adaptive_tag_data(int type, engine::tag* et) {
       return;
   }
   tg.set_name(et->name());
-  neb_logger->trace("callbacks:  tag {}", tg.ShortDebugString());
+  neb_logger->trace("callbacks:  tag {}", tg);
 
   // Send event(t).
   cbm->write(t);
