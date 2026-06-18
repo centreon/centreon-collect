@@ -2565,7 +2565,9 @@ int broker_host_check(int type,
 static void forward_host_status(const engine::host* hst,
                                 uint32_t attributes [[maybe_unused]]) {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: generating host status event");
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating host status event ({}: {})",
+                      hst->host_id(), hst->name());
 
   try {
     // In/Out variables.
@@ -2653,9 +2655,10 @@ static void forward_host_status(const engine::host* hst,
 static void forward_pb_host_status(const host* hst,
                                    uint32_t attributes) noexcept {
   // Log message.
-  SPDLOG_LOGGER_DEBUG(
-      neb_logger,
-      "callbacks: generating pb host status check result event protobuf");
+  SPDLOG_LOGGER_DEBUG(neb_logger,
+                      "callbacks: generating pb host status check result event "
+                      "protobuf ({}: {})",
+                      hst->host_id(), hst->name());
 
   uint16_t state =
       hst->has_been_checked() ? hst->get_current_state() : 4;  // Pending state.

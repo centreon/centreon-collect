@@ -22,8 +22,8 @@
 #include <cassert>
 
 #include "common/log_v2/log_v2.hh"
-#include "engine/src/notifications/notification_types.hh"
 #include "engine/src/notifications/notification_callbacks.hh"
+#include "engine/src/notifications/notification_types.hh"
 
 using com::centreon::common::log_v2::log_v2;
 
@@ -727,7 +727,11 @@ uint64_t notification_manager::notification_number(uint64_t host_id,
 void notification_manager::set_notification_number(uint64_t host_id,
                                                    uint64_t service_id,
                                                    uint64_t number) {
-  _state(host_id, service_id).number = number;
+  auto& st = _state(host_id, service_id);
+  /* Only notify the backend when the number actually changes. */
+  if (st.number == number)
+    return;
+  st.number = number;
   if (_callbacks)
     _callbacks->on_notification_number_changed(host_id, service_id);
 }
