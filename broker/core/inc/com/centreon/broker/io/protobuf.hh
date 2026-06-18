@@ -218,7 +218,7 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(fmt::format_context::iterator& stream) const {
   data::dump(stream);
-  fmt::format_to(stream, ",content:{}", this->obj());
+  fmt::format_to(stream, ",\"content\":{}", this->obj());
 }
 
 }  // namespace com::centreon::broker::io
