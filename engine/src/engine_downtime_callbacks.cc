@@ -21,13 +21,10 @@
 
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/events/timed_event.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 using namespace com::centreon::common::downtimes;
+namespace notifications = com::centreon::common::notifications;
 
 namespace com::centreon::engine {
 /**

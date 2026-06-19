@@ -21,6 +21,7 @@
 #include "com/centreon/engine/timeperiod.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 escalation::escalation(uint32_t first_notification,
                        uint32_t last_notification,

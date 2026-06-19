@@ -19,18 +19,16 @@
 
 #include "com/centreon/engine/engine_notification_callbacks.hh"
 
-#include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/notifier.hh"
-#include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 namespace {
 /**

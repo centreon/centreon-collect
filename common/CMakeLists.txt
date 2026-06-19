@@ -20,8 +20,10 @@
 project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-  add_subdirectory(log_v2)
+  add_subdirectory(downtimes)
   add_subdirectory(engine_conf)
+  add_subdirectory(log_v2)
+  add_subdirectory(notifications)
 endif()
 
 # Set directories.
@@ -67,7 +69,6 @@ endif()
 add_subdirectory(grpc)
 add_subdirectory(process)
 add_subdirectory(crypto)
-add_subdirectory(downtimes)
 
 if(WITH_TESTING)
   add_subdirectory(tests)

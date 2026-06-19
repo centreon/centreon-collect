@@ -37,14 +37,15 @@
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::notifications;
+using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+namespace notifications = com::centreon::common::notifications;
 
 host_map host::hosts;
 host_id_map host::hosts_by_id;

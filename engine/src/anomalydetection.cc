@@ -16,8 +16,6 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/engine/anomalydetection.hh"
-
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -25,13 +23,12 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/grab_service.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/string.hh"
 
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::notifications;
+using namespace com::centreon::common::notifications;
+namespace notifications = com::centreon::common::notifications;
 
 using com::centreon::common::rapidjson_helper;
 

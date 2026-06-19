@@ -29,6 +29,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  *  Update service list.
