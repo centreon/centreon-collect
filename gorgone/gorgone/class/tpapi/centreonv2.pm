@@ -24,6 +24,7 @@ use strict;
 use warnings;
 use gorgone::class::http::http;
 use JSON::XS;
+use URI::Escape;
 
 sub new {
     my ($class, %options) = @_;
@@ -291,7 +292,7 @@ sub get_scheduling_jobs {
 sub get_api_token {
     my ($self, %options) = @_;
 
-    my $endpoint = '/administration/tokens/' . $options{token_name};
+    my $endpoint = '/administration/tokens/' . uri_escape($options{token_name});
 
     return $self->request(
         method => 'GET',

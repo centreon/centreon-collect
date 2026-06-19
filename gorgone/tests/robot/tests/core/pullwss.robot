@@ -80,9 +80,10 @@ check two poller can connect to a central
         ...    pullwss
 
 check one poller can connect to a central with env var ${id}
-    [Teardown]    Stop Gorgone And Remove Gorgone Config
-    ...    @{process_list}
-    ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+    [Teardown]    Run Keywords
+    ...    Remove Environment Variable    GORGONE_TOKEN
+    ...    AND
+    ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
     @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
@@ -94,9 +95,10 @@ check one poller can connect to a central with env var ${id}
         ...    2    pullwss_uid    poller-1:myPollerToken
 
 check one poller cannot connect to a central with env var ${id}
-    [Teardown]    Stop Gorgone And Remove Gorgone Config
-    ...    @{process_list}
-    ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+    [Teardown]    Run Keywords
+    ...    Remove Environment Variable    GORGONE_TOKEN
+    ...    AND
+    ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
     ${start_date}    Get Current Date    increment=-10s
     @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
@@ -117,9 +119,10 @@ check one poller cannot connect to a central with env var ${id}
         ...    4    pullwss    do_not_exists:myPollerToken    [proxy-httpserver] cannot get token
 
 check poller token revocation
-    [Teardown]    Stop Gorgone And Remove Gorgone Config
-    ...    @{process_list}
-    ...   sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
+    [Teardown]    Run Keywords
+    ...    Remove Environment Variable    GORGONE_TOKEN
+    ...    AND
+    ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
     ${start_date}    Get Current Date
     @{process_list}    Set Variable    pullwss_gorgone_central_simple    pullwss_gorgone_poller_2_simple

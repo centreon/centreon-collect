@@ -127,7 +127,7 @@ sub run {
     my $listen = 'reuse=1';
 
     # Initialize Centreon API connection
-    $connector->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ?
+    $self->{tpapi_centreonv2_name} = defined($options{config}->{tpapi_centreonv2}) && $options{config}->{tpapi_centreonv2} ne '' ?
         $options{config}->{tpapi_centreonv2} : 'centreonv2';
     $self->{tpapi_centreonv2} = gorgone::class::tpapi::centreonv2->new();
     my ($status) = $self->{tpapi_centreonv2}->set_configuration(
@@ -141,12 +141,12 @@ sub run {
     if ($self->{config}->{httpserver}->{ssl} eq 'true') {
         if (!defined($self->{config}->{httpserver}->{ssl_cert_file}) || $self->{config}->{httpserver}->{ssl_cert_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_cert_file}") {
-            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-cert-file");
+            $self->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-cert-file");
             exit(1);
         }
         if (!defined($self->{config}->{httpserver}->{ssl_key_file}) || $self->{config}->{httpserver}->{ssl_key_file} eq '' ||
             ! -r "$self->{config}->{httpserver}->{ssl_key_file}") {
-            $connector->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-key-file");
+            $self->{logger}->writeLogError("[proxy-httpserver] cannot read/find ssl-key-file");
             exit(1);
         }
         $listen .= '&cert=' . $self->{config}->{httpserver}->{ssl_cert_file} . '&key=' . $self->{config}->{httpserver}->{ssl_key_file};
@@ -216,8 +216,8 @@ sub run {
                         $connector->{ws_clients}->{$ws_id}->{logged} = 0;
                         $self->close_websocket(
                             code    => 500,
-                            message => 'token authorization unallowed',
-                            ws_id   => $options{ws_id}
+                            message => 'invalid token',
+                            ws_id   => $ws_id
                         );
                     }
                 } else {
