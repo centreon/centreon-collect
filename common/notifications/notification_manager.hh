@@ -17,22 +17,17 @@
  *
  */
 
-#ifndef CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
-#define CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
+#ifndef CCC_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
+#define CCC_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
 
 #include <array>
-#include <cstdint>
-#include <ctime>
-#include <memory>
-#include <string>
-#include <string_view>
 #include <utility>
 
 #include "absl/container/flat_hash_map.h"
 
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
-namespace com::centreon::engine::notifications {
+namespace com::centreon::common::notifications {
 
 class notification_callbacks;
 
@@ -172,8 +167,7 @@ class notification_manager {
                                uint64_t service_id,
                                uint64_t number);
   void inc_notification_number(uint64_t host_id, uint64_t service_id);
-  uint64_t current_notification_id(uint64_t host_id,
-                                   uint64_t service_id) const;
+  uint64_t current_notification_id(uint64_t host_id, uint64_t service_id) const;
   void set_current_notification_id(uint64_t host_id,
                                    uint64_t service_id,
                                    uint64_t id);
@@ -191,6 +185,6 @@ class notification_manager {
                               std::time_t t);
 };
 
-}  // namespace com::centreon::engine::notifications
+}  // namespace com::centreon::common::notifications
 
-#endif  // !CCE_NOTIFICATIONS_NOTIFICATION_MANAGER_HH
+#endif  // !CCC_NOTIFICATIONS_NOTIFICATION_MANAGER_HH

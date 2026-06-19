@@ -32,6 +32,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
+namespace notifications = com::centreon::common::notifications;
 
 class ApplierPbContact : public ::testing::Test {
  protected:

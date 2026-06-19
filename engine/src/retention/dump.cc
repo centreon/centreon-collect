@@ -31,6 +31,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 namespace downtimes = com::centreon::common::downtimes;
 
 /**
@@ -119,7 +120,7 @@ std::ostream& dump::customvariables(std::ostream& os,
 
 std::ostream& dump::notifications(
     std::ostream& os,
-    std::array<com::centreon::engine::notifications::notification*, 6> const&
+    std::array<com::centreon::common::notifications::notification*, 6> const&
         obj) {
   for (int i = 0; i < 6; i++)
     if (obj[i])

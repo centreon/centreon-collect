@@ -17,12 +17,12 @@
  *
  */
 
-#ifndef CCE_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
-#define CCE_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
+#ifndef CCC_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
+#define CCC_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
 
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
-namespace com::centreon::engine::notifications {
+namespace com::centreon::common::notifications {
 
 /**
  * @brief Connection from the notification library to its host application.
@@ -92,6 +92,6 @@ class notification_callbacks {
                                               uint64_t service_id) = 0;
 };
 
-}  // namespace com::centreon::engine::notifications
+}  // namespace com::centreon::common::notifications
 
-#endif  // !CCE_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH
+#endif  // !CCC_NOTIFICATIONS_NOTIFICATION_CALLBACKS_HH

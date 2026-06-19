@@ -26,12 +26,13 @@
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+namespace notifications = com::centreon::common::notifications;
 
 contact_map contact::contacts;
 

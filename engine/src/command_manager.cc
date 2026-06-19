@@ -20,8 +20,6 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 
-#include "com/centreon/engine/host.hh"
-
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
@@ -30,6 +28,7 @@
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::downtimes;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  *  The default constructor

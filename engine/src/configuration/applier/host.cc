@@ -31,6 +31,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+namespace notifications = com::centreon::common::notifications;
 namespace downtimes = com::centreon::common::downtimes;
 
 /**

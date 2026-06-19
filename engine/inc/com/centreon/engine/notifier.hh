@@ -26,7 +26,7 @@
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/dependency.hh"
 #include "common.hh"
-#include "engine/src/notifications/notification_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 class nagios_macros;
 namespace com::centreon::engine {
@@ -39,7 +39,7 @@ using AckType = com::centreon::broker::AckType;
 
 class notifier : public checkable {
  public:
-  notifier(notifications::notifier_type notification_flag,
+  notifier(common::notifications::notifier_type notification_flag,
            uint64_t host_id,
            uint64_t service_id,
            const std::string& name,
@@ -80,29 +80,34 @@ class notifier : public checkable {
 
   void set_notification(int32_t idx, std::string const& value);
 
-  bool get_notify_on(notifications::notification_flag type) const noexcept;
+  bool get_notify_on(
+      common::notifications::notification_flag type) const noexcept;
   uint32_t get_notify_on() const noexcept;
   void set_notify_on(uint32_t type) noexcept;
-  void add_notify_on(notifications::notification_flag type) noexcept;
-  void remove_notify_on(notifications::notification_flag type) noexcept;
+  void add_notify_on(common::notifications::notification_flag type) noexcept;
+  void remove_notify_on(common::notifications::notification_flag type) noexcept;
   virtual bool get_notify_on_current_state() const = 0;
 
-  bool get_notified_on(notifications::notification_flag type) const noexcept;
+  bool get_notified_on(
+      common::notifications::notification_flag type) const noexcept;
   uint32_t get_notified_on() const noexcept;
   void set_notified_on(uint32_t type) noexcept;
-  void add_notified_on(notifications::notification_flag type) noexcept;
-  void remove_notified_on(notifications::notification_flag type) noexcept;
+  void add_notified_on(common::notifications::notification_flag type) noexcept;
+  void remove_notified_on(
+      common::notifications::notification_flag type) noexcept;
 
-  bool get_stalk_on(notifications::notification_flag type) const noexcept;
+  bool get_stalk_on(
+      common::notifications::notification_flag type) const noexcept;
   uint32_t get_stalk_on() const noexcept;
   void set_stalk_on(uint32_t type) noexcept;
-  void add_stalk_on(notifications::notification_flag type) noexcept;
+  void add_stalk_on(common::notifications::notification_flag type) noexcept;
 
   bool get_flap_detection_on(
-      notifications::notification_flag type) const noexcept;
+      common::notifications::notification_flag type) const noexcept;
   uint32_t get_flap_detection_on() const noexcept;
   void set_flap_detection_on(uint32_t type) noexcept;
-  void add_flap_detection_on(notifications::notification_flag type) noexcept;
+  void add_flap_detection_on(
+      common::notifications::notification_flag type) noexcept;
 
   virtual bool schedule_check(time_t check_time,
                               uint32_t options,
@@ -115,17 +120,17 @@ class notifier : public checkable {
    * @param attributes A bits field based on enum status_attribute.
    */
   virtual void update_status(uint32_t attributes) = 0;
-  int notify(notifications::reason_type type,
+  int notify(common::notifications::reason_type type,
              std::string const& not_author,
              std::string const& not_data,
-             notifications::notification_option options);
+             common::notifications::notification_option options);
 
   void set_current_notification_id(uint64_t id) noexcept;
   uint64_t get_current_notification_id() const noexcept;
   virtual void grab_macros_r(nagios_macros* mac) = 0;
   virtual int notify_contact(nagios_macros* mac,
                              contact* cntct,
-                             notifications::reason_type type,
+                             common::notifications::reason_type type,
                              std::string const& not_author,
                              std::string const& not_data,
                              int options,
@@ -191,15 +196,16 @@ class notifier : public checkable {
   uint64_t host_id() const noexcept;
   uint64_t service_id() const noexcept;
 
-  bool is_notification_viable(notifications::notification_category cat,
-                              notifications::reason_type type,
-                              notifications::notification_option options);
+  bool is_notification_viable(
+      common::notifications::notification_category cat,
+      common::notifications::reason_type type,
+      common::notifications::notification_option options);
   std::unordered_set<std::shared_ptr<contact>> get_contacts_to_notify(
-      notifications::notification_category cat,
-      notifications::reason_type type,
+      common::notifications::notification_category cat,
+      common::notifications::reason_type type,
       uint32_t& notification_interval,
       bool& escalated);
-  notifications::notifier_type get_notifier_type() const noexcept;
+  common::notifications::notifier_type get_notifier_type() const noexcept;
   absl::flat_hash_map<std::string, std::shared_ptr<contact>>&
   mut_contacts() noexcept;
   const absl::flat_hash_map<std::string, std::shared_ptr<contact>>& contacts()
@@ -207,7 +213,8 @@ class notifier : public checkable {
   contactgroup_map& get_contactgroups() noexcept;
   const contactgroup_map& get_contactgroups() const noexcept;
   void resolve(uint32_t& w, uint32_t& e);
-  std::array<notifications::notification*, 6> get_current_notifications() const;
+  std::array<common::notifications::notification*, 6>
+  get_current_notifications() const;
   int get_pending_flex_downtime() const;
   void inc_pending_flex_downtime() noexcept;
   void dec_pending_flex_downtime() noexcept;
@@ -221,7 +228,7 @@ class notifier : public checkable {
  private:
   const uint64_t _host_id;
   const uint64_t _service_id;
-  notifications::notifier_type _notifier_type;
+  common::notifications::notifier_type _notifier_type;
   int32_t _stalk_type;
   uint32_t _flap_type;
 

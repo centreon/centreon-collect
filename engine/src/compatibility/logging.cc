@@ -25,10 +25,11 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "engine/src/notifications/notification_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 // using namespace com::centreon::engine;
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 static char const* tab_initial_state[] = {"UNKNOWN", "INITIAL", "CURRENT"};
 

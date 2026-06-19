@@ -51,6 +51,7 @@ namespace asio = boost::asio;
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::string;
+namespace notifications = com::centreon::common::notifications;
 using com::centreon::common::log_v2::log_v2;
 
 namespace downtimes = com::centreon::common::downtimes;

@@ -28,6 +28,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+namespace notifications = com::centreon::common::notifications;
 
 hostescalation_mmap hostescalation::hostescalations;
 

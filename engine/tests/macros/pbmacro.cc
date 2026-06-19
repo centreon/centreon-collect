@@ -50,6 +50,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 class Macro : public TestEngine {
  protected:
