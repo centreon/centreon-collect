@@ -33,8 +33,6 @@ namespace com::centreon::broker::tcp {
 class acceptor : public io::endpoint {
   tcp_config::pointer _conf;
 
-  absl::flat_hash_set<std::string> _children;
-  std::mutex _childrenm;
   std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -45,9 +43,7 @@ class acceptor : public io::endpoint {
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
 
-  void add_child(std::string const& child);
   std::shared_ptr<io::stream> open() override;
-  void remove_child(std::string const& child);
   void stats(nlohmann::json& tree) override;
   bool is_ready() const override;
 };

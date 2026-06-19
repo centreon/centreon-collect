@@ -19,7 +19,7 @@
 #ifndef CCB_GRPC_STREAM_HH__
 #define CCB_GRPC_STREAM_HH__
 
-#include <boost/asio/io_context.hpp>
+#include <absl/base/thread_annotations.h>
 #include "com/centreon/broker/io/raw.hh"
 #include "grpc_config.hh"
 
@@ -85,8 +85,11 @@ class stream : public io::stream,
    * by grpc layers. We allocate this container and never free this because
    * threads terminate in unknown order.
    */
-  static std::set<std::shared_ptr<stream>>* _instances;
-  static std::mutex _instances_m;
+  static absl::flat_hash_set<std::shared_ptr<stream>>* _instances
+      ABSL_GUARDED_BY(_instances_m);
+  static absl::Mutex _instances_m;
+
+  const io::endpoint* _parent;
 
   using read_queue = std::queue<event_ptr>;
   using write_queue = std::queue<event_with_data::pointer>;
@@ -114,7 +117,8 @@ class stream : public io::stream,
   void start_write();
 
  protected:
-  stream(const grpc_config::pointer& conf,
+  stream(const io::endpoint* parent,
+         const grpc_config::pointer& conf,
          const std::string_view& class_name,
          const std::shared_ptr<asio::io_context> io_context,
          const std::shared_ptr<spdlog::logger>& logger);
@@ -149,9 +153,29 @@ class stream : public io::stream,
 
   int32_t flush() override;
   int32_t stop() override;
+  const io::endpoint* parent() const { return _parent; }
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
+
+  template <class visitor>
+  static void visit_all_instances(visitor&& visit);
 };
+
+/**
+ * @brief apply visit on all const instances
+ *
+ * @tparam bireactor_class
+ * @tparam visitor
+ * @param visit
+ */
+template <class bireactor_class>
+template <class visitor>
+void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
+  absl::MutexLock l(&_instances_m);
+  for (const auto& inst : *_instances) {
+    visit(*inst);
+  }
+}
 
 }  // namespace grpc
 

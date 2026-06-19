@@ -51,7 +51,8 @@ class server_stream : public client_stream_base_class {
   void shutdown() override;
 
  public:
-  server_stream(const grpc_config::pointer& conf,
+  server_stream(const io::endpoint* parent,
+                const grpc_config::pointer& conf,
                 const std::shared_ptr<service_impl>& serv,
                 const std::shared_ptr<asio::io_context> io_context,
                 const std::shared_ptr<spdlog::logger>& logger);
@@ -64,11 +65,12 @@ class server_stream : public client_stream_base_class {
  *
  * @param conf
  */
-server_stream::server_stream(const grpc_config::pointer& conf,
+server_stream::server_stream(const io::endpoint* parent,
+                             const grpc_config::pointer& conf,
                              const std::shared_ptr<service_impl>& serv,
                              const std::shared_ptr<asio::io_context> io_context,
                              const std::shared_ptr<spdlog::logger>& logger)
-    : client_stream_base_class(conf, "accepted", io_context, logger),
+    : client_stream_base_class(parent, conf, "accepted", io_context, logger),
       _parent(serv) {}
 
 /**
@@ -99,10 +101,11 @@ void server_stream::OnDone() {
  *
  * @param conf
  */
-service_impl::service_impl(const grpc_config::pointer& conf,
+service_impl::service_impl(const io::endpoint* parent,
+                           const grpc_config::pointer& conf,
                            const std::shared_ptr<asio::io_context> io_context,
                            const std::shared_ptr<spdlog::logger>& logger)
-    : _conf(conf), _logger(logger), _io_context(io_context) {}
+    : _conf(conf), _parent(parent), _logger(logger), _io_context(io_context) {}
 
 /**
  * @brief to call after construction
@@ -153,7 +156,7 @@ service_impl::exchange(::grpc::CallbackServerContext* context) {
   SPDLOG_LOGGER_DEBUG(_logger, "connection accepted from {}", context->peer());
 
   std::shared_ptr<server_stream> next_stream = std::make_shared<server_stream>(
-      _conf, shared_from_this(), _io_context, _logger);
+      _parent, _conf, shared_from_this(), _io_context, _logger);
 
   server_stream::register_stream(next_stream);
   next_stream->start_read();
@@ -270,8 +273,8 @@ acceptor::acceptor(const grpc_config::pointer& conf)
           log_v2::instance().get(log_v2::GRPC)) {
   _init([this](::grpc::ServerBuilder& builder) {
     _service = std::make_shared<service_impl>(
-        std::static_pointer_cast<grpc_config>(get_conf()), get_io_context(),
-        get_logger());
+        this, std::static_pointer_cast<grpc_config>(get_conf()),
+        get_io_context(), get_logger());
     _service->init();
     builder.RegisterService(_service.get());
   });
@@ -309,4 +312,27 @@ std::shared_ptr<io::stream> acceptor::open() {
  */
 bool acceptor::is_ready() const {
   return _service->has_wait_stream();
+}
+
+/**
+ *  Get statistics about this GRPC acceptor.
+ *  It list all connected IPs
+ *
+ *  @param[out] tree Buffer in which statistics will be written.
+ */
+void acceptor::stats(nlohmann::json& tree) {
+  unsigned counter = 0;
+  std::string sep;
+  std::string childs;
+  server_stream::visit_all_instances([&](const auto& st) {
+    if (st.parent() == this) {
+      ++counter;
+      childs += sep;
+      childs += st.peer();
+      if (sep.empty()) {
+        sep = ", ";
+      }
+    }
+  });
+  tree["peers"] = fmt::format("{}: {}", counter, childs);
 }
