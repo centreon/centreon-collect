@@ -97,7 +97,7 @@ if ( $? -ne $true ) {
     [System.Environment]::SetEnvironmentVariable("PATH", $pwd.ToString() + "\vcpkg;" + $env:PATH)
 
     Write-Host "compile vcpkg dependencies"
-    vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows --overlay-ports=overlays-windows
+    vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows 
 
     if ( $? -eq $true ) {
         Write-Host "Compress binary archive"

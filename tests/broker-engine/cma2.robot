@@ -1739,7 +1739,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
-    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${content}    Create List    receive: {\"resource_metrics\":"{\"scope_metrics\":{\"metrics\":{\"name\":\"check_icmp_state\"
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
 
@@ -1831,7 +1831,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
-    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${content}    Create List    receive: {\"resource_metrics\":"{\"scope_metrics\":{\"metrics\":{\"name\":\"check_icmp_state\"
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
     
@@ -1845,7 +1845,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     Ctn Send Otl To Engine Secure    ${host_name}:4318    ${resources_list}    /tmp/server_grpc.crt
 
     #if pass telegraph can connect to engine without token
-    ${content}    Create List    receive:resource_metrics { scope_metrics { metrics { name: "check_icmp_state"
+    ${content}    Create List    receive: {\"resource_metrics\":"{\"scope_metrics\":{\"metrics\":{\"name\":\"check_icmp_state\"
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    120
     Should Be True    ${result}    "if message don't apper in log it mean that the message is not send to the engine"
 

@@ -123,7 +123,6 @@ jobs:
         "CMakeListsWindows.txt"
         "vcpkg.json"
         "overlays/**"
-        "overlays-windows/**"
         "selinux/centreon-monitoring-agent/**"
         "!**/test/**"
         "!**/tests/**"

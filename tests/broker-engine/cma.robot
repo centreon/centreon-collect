@@ -71,13 +71,13 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
-    ${content}    Create List    description: \"OK check2
+    ${content}    Create List    \"output\":\"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    "description: "OK check2" should be available.
+    Should Be True    ${result}    "output":"OK check2 should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    resources table not updated
@@ -154,13 +154,13 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
-    ${content}    Create List    description: \"OK check2
+    ${content}    Create List    \"output\":\"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    "description: "OK check2" should be available.
+    Should Be True    ${result}    "output":"OK check2 should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    resources table not updated
@@ -386,13 +386,13 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
-    ${content}    Create List    description: \"OK check2
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result}    "description: "OK check2" should be available.
+    ${content}    Create List    \"output\":\"OK check2
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    "output":"OK check2 should be available.
 
     ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${start_int}    0  HARD  OK check2 - 127.0.0.1: rta 0,010ms, lost 0%
     Should Be True    ${result}    resources table not updated
