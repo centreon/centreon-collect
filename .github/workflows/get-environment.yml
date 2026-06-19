@@ -772,7 +772,6 @@ jobs:
           HAS_SYSTEM_LABEL: ${{ contains(steps.has_skip_label.outputs.labels, 'system') }}
         with:
           script: |
-            // --- Conditions (evaluated once from GHA context) ---
             const isCloud     = process.env.IS_CLOUD === 'true';
             const isNightly   = process.env.IS_NIGHTLY === 'true';
             const stability   = process.env.STABILITY;
@@ -787,7 +786,6 @@ jobs:
                              || ['unstable', 'testing', 'stable'].includes(stability);
             const wantsDockerCollect = ${{ contains(steps.has_skip_label.outputs.labels, 'build-docker-collect') && 'true' || 'false' }};
 
-            // --- OS/database combinations ---
             const cfg = (operating_system, database) => ({ operating_system, database, arch: 'amd64' });
 
             const alma10_mysql_8_4       = cfg('alma10',   'mysql:8.4');
@@ -801,21 +799,20 @@ jobs:
             const jammy_mariadb_10_11    = cfg('jammy',    'mariadb:10.11');
             const noble_mariadb_10_11    = cfg('noble',    'mariadb:10.11');
 
-            // --- Config sets ---
-            const configs = [alma9_mysql_8_0, alma10_mariadb_10_11, trixie_mariadb_11_8];
+            const collectConfigs = [alma10_mysql_8_4, alma9_mysql_8_0, alma10_mariadb_10_11, trixie_mariadb_11_8];
             const cmaConfigs = [
-              alma10_mariadb_10_11, alma9_mysql_8_0, alma8_mariadb_10_11,
+              alma10_mysql_8_4, alma10_mariadb_10_11, alma9_mysql_8_0, alma8_mariadb_10_11,
               bullseye_mariadb_10_11, bookworm_mariadb_10_11, trixie_mariadb_11_8,
               jammy_mariadb_10_11, noble_mariadb_10_11
             ];
-            const cloud = alma9_mysql_8_0;
+            const cloud = alma10_mysql_8_4;
 
-            // --- Nightly rotation (cycles through configs on working days) ---
             const getDailyConfig = (configs) => {
               const today = new Date();
               const dayOfWeek = today.getDay();
               if (dayOfWeek === 0 || dayOfWeek === 6) return configs[0]; // weekend → default
               let workingDays = 0;
+              
               const d = new Date('2025-01-01');
               while (d < today) {
                 if (d.getDay() >= 1 && d.getDay() <= 5) workingDays++;
@@ -824,18 +821,17 @@ jobs:
               return configs[workingDays % configs.length];
             };
 
-            // --- Build base matrix ---
             const main = isCloud ? cloud : alma10_mariadb_10_11;
-            const activeConfig = isNightly ? getDailyConfig(configs) : main;
+            const activeConfig = isNightly ? getDailyConfig(collectConfigs) : main;
 
             let matrix = { cloud: [cloud], main: [activeConfig], operating_systems: [activeConfig] };
             let collectMatrix = [activeConfig];
             let cmaMatrix = [activeConfig];
 
             if (isFullRun) {
-              const uniqueOsConfigs = [...new Map(configs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
+              const uniqueOsConfigs = [...new Map(collectConfigs.map(c => [`${c.operating_system}-${c.arch}`, c])).values()];
               matrix = { ...matrix, operating_systems: uniqueOsConfigs };
-              collectMatrix = configs;
+              collectMatrix = collectConfigs;
               cmaMatrix = isCloud
                 ? cmaConfigs.filter(c => c.operating_system !== 'bullseye')
                 : cmaConfigs;
@@ -872,17 +868,16 @@ jobs:
             core.setOutput('cma_matrix', cmaMatrix);
             console.log('cmaMatrix', cmaMatrix);
 
-            // --- Robot test matrices ---
-            const setTestConfigs = (configs) => {
+            const setTestConfigs = (collectConfigs) => {
               let hasGrpcConfig = false;
               let hasMysqlConfig = false;
-              return configs.flatMap(c => {
+              return collectConfigs.flatMap(c => {
                 const entries = [{...c, database_type: 'mariadb', tests_params: '{}'}];
                 if (c.arch === 'amd64' && !hasGrpcConfig) {
                   entries.push({...c, database_type: 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
                   hasGrpcConfig = true;
                 }
-                if (['alma8', 'alma9'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
+                if (['alma8', 'alma9', 'alma10'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
                   entries.push({...c, database_type: 'mysql', tests_params: '{}'});
                   hasMysqlConfig = true;
                 }

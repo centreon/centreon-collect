@@ -1,6 +1,6 @@
 ARG REGISTRY_URL
 
-FROM ${REGISTRY_URL}/almalinux:9
+FROM ${REGISTRY_URL}/almalinux:10
 
 RUN --mount=type=bind,src=.,dst=/tmp/collect bash -e <<EOF
 
