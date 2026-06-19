@@ -1411,21 +1411,27 @@ def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_broker_stats_size(name, key, min_expected_value, timeout=TIMEOUT):
     """
-    Return the number of items under the given key in the stats file.
+    Return the number of items under the given key in the stats file. The
+    function polls the stats file until that number reaches min_expected_value
+    or the timeout expires. This wait is required because the value can grow
+    over time (e.g. database connections are re-established asynchronously after
+    MariaDB is (re)started), so returning on the first stable reading would
+    report a transient, too-low value.
 
     Args:
         name: The broker instance name among central, rrd and module%d.
         key: The key to work with.
+        min_expected_value: minimum value to wait for before returning.
         timeout (int, optional): Defaults to TIMEOUT = 30s.
 
     *Example:*
 
-    | ${size} | Get Broker Stats Size | central | poller | # 2 |
+    | ${size} | Get Broker Stats Size | central | poller | 2 |
     """
     limit = time.time() + timeout
-    retval = 0
+    value = 0
     if name == 'central':
         filename = "central-broker-master-stats.json"
     elif name == 'module':
@@ -1447,12 +1453,10 @@ def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
             value = len(conf[key])
         else:
             value = 0
-        if value > retval:
-            retval = value
-        elif retval != 0:
-            return retval
+        if value >= min_expected_value:
+            return value
         time.sleep(5)
-    return retval
+    return value
 
 
 def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
