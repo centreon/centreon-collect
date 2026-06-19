@@ -31,10 +31,11 @@
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
+namespace notifications = com::centreon::common::notifications;
 
 notifier::notifier(notifications::notifier_type notifier_type,
                    uint64_t host_id,

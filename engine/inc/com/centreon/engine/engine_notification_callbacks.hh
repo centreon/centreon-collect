@@ -20,7 +20,7 @@
 #ifndef CCE_ENGINE_NOTIFICATION_CALLBACKS_HH
 #define CCE_ENGINE_NOTIFICATION_CALLBACKS_HH
 
-#include "engine/src/notifications/notification_callbacks.hh"
+#include "common/notifications/notification_callbacks.hh"
 
 namespace com::centreon::engine {
 
@@ -33,26 +33,27 @@ namespace com::centreon::engine {
  * notification_manager via notification_manager::load().
  */
 class engine_notification_callbacks
-    : public notifications::notification_callbacks {
+    : public common::notifications::notification_callbacks {
  public:
   engine_notification_callbacks() = default;
   ~engine_notification_callbacks() override = default;
 
-  notifications::global_config get_global_config() const override;
+  common::notifications::global_config get_global_config() const override;
 
-  notifications::resource_state get_state(uint64_t host_id,
-                                          uint64_t service_id) const override;
+  common::notifications::resource_state get_state(
+      uint64_t host_id,
+      uint64_t service_id) const override;
 
-  notifications::delivery_result deliver(
+  common::notifications::delivery_result deliver(
       uint64_t host_id,
       uint64_t service_id,
-      notifications::notification_category cat,
-      notifications::reason_type type,
+      common::notifications::notification_category cat,
+      common::notifications::reason_type type,
       uint64_t notification_id,
       uint32_t notification_number,
       const std::string& author,
       const std::string& message,
-      notifications::notification_option options) override;
+      common::notifications::notification_option options) override;
 
   void on_notification_number_changed(uint64_t host_id,
                                       uint64_t service_id) override;

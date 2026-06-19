@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef CCE_NOTIFICATIONS_NOTIFICATION_TYPES_HH
-#define CCE_NOTIFICATIONS_NOTIFICATION_TYPES_HH
+#ifndef CCC_NOTIFICATIONS_NOTIFICATION_TYPES_HH
+#define CCC_NOTIFICATIONS_NOTIFICATION_TYPES_HH
 
 #include <cstdint>
 #include <ctime>
@@ -28,7 +28,7 @@
 
 #include "absl/container/btree_set.h"
 
-namespace com::centreon::engine::notifications {
+namespace com::centreon::common::notifications {
 
 /* Status attributes. Used as argument in the notifier::update_status(). */
 enum status_attribute {
@@ -175,6 +175,6 @@ inline std::ostream& operator<<(std::ostream& os, const notification& n) {
   return os;
 }
 
-}  // namespace com::centreon::engine::notifications
+}  // namespace com::centreon::common::notifications
 
-#endif  // !CCE_NOTIFICATIONS_NOTIFICATION_TYPES_HH
+#endif  // !CCC_NOTIFICATIONS_NOTIFICATION_TYPES_HH

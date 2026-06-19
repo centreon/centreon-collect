@@ -19,11 +19,9 @@
  * <http://www.gnu.org/licenses/>.
  */
 
-#include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/utils.hh"
 #include "com/centreon/unique_array_ptr.hh"
 
 using namespace com::centreon::engine;
@@ -180,4 +178,3 @@ void get_time_breakdown(unsigned long raw_time,
   *minutes = temp_minutes;
   *seconds = temp_seconds;
 }
-

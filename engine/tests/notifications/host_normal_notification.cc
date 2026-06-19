@@ -38,7 +38,7 @@
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "engine/src/notifications/notification_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -46,6 +46,7 @@ using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::retention;
+namespace notifications = com::centreon::common::notifications;
 
 class HostNotification : public TestEngine {
  protected:

@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/customvariable.hh"
 #include "common/downtimes/downtime.hh"
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_types.hh"
 
 // Forward declaration.
 
@@ -42,7 +42,7 @@ std::ostream& customvariables(std::ostream& os,
                               com::centreon::engine::map_customvar const& obj);
 std::ostream& notifications(
     std::ostream& os,
-    std::array<com::centreon::engine::notifications::notification*, 6> const&
+    std::array<com::centreon::common::notifications::notification*, 6> const&
         obj);
 std::ostream& scheduled_downtime(
     std::ostream& os,

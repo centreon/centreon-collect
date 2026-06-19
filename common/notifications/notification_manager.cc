@@ -17,21 +17,23 @@
  *
  */
 
-#include "engine/src/notifications/notification_manager.hh"
+#include "common/notifications/notification_manager.hh"
 
 #include <cassert>
 
 #include "common/log_v2/log_v2.hh"
-#include "engine/src/notifications/notification_callbacks.hh"
-#include "engine/src/notifications/notification_types.hh"
+#include "common/notifications/notification_callbacks.hh"
 
-using com::centreon::common::log_v2::log_v2;
-
-namespace com::centreon::engine::notifications {
+namespace com::centreon::common::notifications {
 
 notification_manager* notification_manager::_instance = nullptr;
 
 namespace {
+/* Local alias of the log_v2 class. Declared at this scope on purpose: it
+ * shadows the sibling com::centreon::common::log_v2 namespace, so the
+ * unqualified name below resolves to the class and not to that namespace. */
+using log_v2 = com::centreon::common::log_v2::log_v2;
+
 /* The notification library logs through common/log_v2, not through engine
  * globals — one less dependency on the host application. */
 std::shared_ptr<spdlog::logger> functions_logger() {
@@ -791,4 +793,4 @@ void notification_manager::set_initial_notif_time(uint64_t host_id,
   _state(host_id, service_id).initial = t;
 }
 
-}  // namespace com::centreon::engine::notifications
+}  // namespace com::centreon::common::notifications

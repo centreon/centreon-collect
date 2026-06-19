@@ -24,6 +24,7 @@
 #include "com/centreon/engine/globals.hh"
 
 using namespace com::centreon::engine::configuration;
+namespace notifications = com::centreon::common::notifications;
 
 /**
  *  Add new host escalation.

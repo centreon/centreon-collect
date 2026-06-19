@@ -17,25 +17,27 @@
 #
 
 # Notifications library.
-add_library(engine_notifications STATIC
+add_library(notifications STATIC
   notification_manager.cc
 )
 
-target_include_directories(engine_notifications PUBLIC
+target_include_directories(notifications PUBLIC
   ${PROJECT_SOURCE_DIR}/inc
   ${CMAKE_SOURCE_DIR}/common/inc
 )
 
-target_link_libraries(engine_notifications
+target_link_libraries(notifications
   PUBLIC
     spdlog::spdlog
     fmt::fmt
 )
 
-# Required because the library is linked into cce_core, which may be SHARED.
-set_target_properties(engine_notifications PROPERTIES
+target_compile_definitions(notifications PRIVATE
+  SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+
+set_target_properties(notifications PROPERTIES
   POSITION_INDEPENDENT_CODE ON
 )
 
-target_precompile_headers(engine_notifications PRIVATE
+target_precompile_headers(notifications PRIVATE
   ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

@@ -63,8 +63,10 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
+#include "common/notifications/notification_manager.hh"
 
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;
 namespace downtimes = com::centreon::common::downtimes;

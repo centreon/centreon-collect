@@ -23,6 +23,7 @@
 
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine;
+namespace notifications = com::centreon::common::notifications;
 
 serviceescalation_mmap serviceescalation::serviceescalations;
 

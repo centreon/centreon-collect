@@ -21,12 +21,10 @@
 #include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timerange.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
