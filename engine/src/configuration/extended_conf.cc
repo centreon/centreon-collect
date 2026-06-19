@@ -18,6 +18,7 @@
 
 #include "com/centreon/engine/configuration/extended_conf.hh"
 #include <google/protobuf/util/json_util.h>
+#include <array>
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/state_helper.hh"
 #include "common/log_v2/log_v2.hh"
@@ -26,6 +27,50 @@ using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
 
 std::list<std::unique_ptr<extended_conf>> extended_conf::_confs;
+
+namespace {
+/* JSON keys that were renamed in the protobuf configuration but must still be
+ * accepted in extended configuration files for backward compatibility. Each
+ * entry maps a deprecated key to its canonical replacement. */
+constexpr std::array<std::pair<std::string_view, std::string_view>, 1>
+    _deprecated_json_keys{{
+        {"send_recovery_notifications_anyways",
+         "send_recovery_notifications_anyway"},
+    }};
+
+/**
+ * @brief Rewrite deprecated JSON keys to their canonical name.
+ *
+ * protobuf's JSON parser only accepts the exact proto field name. When a field
+ * has been renamed, the old key would be rejected (or silently lost). This
+ * substitutes any deprecated key by its canonical one directly in the raw JSON
+ * content, emitting a deprecation warning for each one encountered.
+ *
+ * @param content The raw JSON content, modified in place.
+ * @param logger The logger used to emit deprecation warnings.
+ */
+void _rewrite_deprecated_keys(std::string& content,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  for (const auto& [deprecated, canonical] : _deprecated_json_keys) {
+    std::string needle("\"");
+    needle.append(deprecated).append("\"");
+    if (content.find(needle) == std::string::npos)
+      continue;
+    SPDLOG_LOGGER_WARN(
+        logger,
+        "extended configuration: field '{}' is deprecated, please use '{}' "
+        "instead",
+        deprecated, canonical);
+    std::string replacement("\"");
+    replacement.append(canonical).append("\"");
+    size_t pos = 0;
+    while ((pos = content.find(needle, pos)) != std::string::npos) {
+      content.replace(pos, needle.size(), replacement);
+      pos += replacement.size();
+    }
+  }
+}
+}  // namespace
 
 /**
  * @brief Construct a new extended state::extended state object
@@ -106,6 +151,7 @@ void extended_conf::update_diff_state(DiffState& diff) {
       f.seekg(0, std::ios::beg);
       f.read(&content[0], content.size());
       f.close();
+      _rewrite_deprecated_keys(content, conf_file->_logger);
       DiffState ext_diff;
       google::protobuf::util::JsonParseOptions options;
       options.ignore_unknown_fields = true;
@@ -140,6 +186,7 @@ void extended_conf::update_state(State* pb_config) {
       f.seekg(0, std::ios::beg);
       f.read(&content[0], content.size());
       f.close();
+      _rewrite_deprecated_keys(content, conf_file->_logger);
       State new_conf;
       google::protobuf::util::JsonParseOptions options;
       options.ignore_unknown_fields = false;
