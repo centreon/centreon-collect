@@ -327,8 +327,15 @@ void cbmod::add_downtime(uint64_t downtime_id,
  * @param downtime_id The downtime ID.
  */
 void cbmod::start_downtime(uint64_t downtime_id) {
-  auto pb_dt = _downtimes[downtime_id];
-  assert(pb_dt);
+  auto stored = _downtimes[downtime_id];
+  assert(stored);
+  /* Work on a fresh copy: the shared_ptr previously handed to write() may
+   * still be pending serialization in the output queue. Mutating it in place
+   * would race with the muxer thread and produce a corrupted (unparsable)
+   * event on the wire. */
+  auto pb_dt = std::make_shared<pb_downtime>();
+  pb_dt->mut_obj() = stored->obj();
+  _downtimes[downtime_id] = pb_dt;
   auto& obj = pb_dt->mut_obj();
   obj.set_started(true);
   obj.set_actual_start_time(time(nullptr));
@@ -349,8 +356,13 @@ void cbmod::start_downtime(uint64_t downtime_id) {
 void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
   SPDLOG_LOGGER_DEBUG(_neb_logger, "cbmod: stopping downtime ID {}",
                       downtime_id);
-  auto pb_dt = _downtimes[downtime_id];
-  assert(pb_dt);
+  auto stored = _downtimes[downtime_id];
+  assert(stored);
+  /* Copy before mutating: the previously published event may still be pending
+   * serialization (see start_downtime). */
+  auto pb_dt = std::make_shared<pb_downtime>();
+  pb_dt->mut_obj() = stored->obj();
+  _downtimes[downtime_id] = pb_dt;
   auto& obj = pb_dt->mut_obj();
   obj.set_cancelled(cancelled);
   obj.set_actual_end_time(time(nullptr));
@@ -370,7 +382,10 @@ void cbmod::stop_downtime(uint64_t downtime_id, bool cancelled) {
 void cbmod::remove_downtime(uint64_t downtime_id) {
   auto found = _downtimes.find(downtime_id);
   if (found != _downtimes.end()) {
-    auto pb_dt = found->second;
+    /* Copy before mutating: the previously published event may still be pending
+     * serialization (see start_downtime). */
+    auto pb_dt = std::make_shared<pb_downtime>();
+    pb_dt->mut_obj() = found->second->obj();
     auto& obj = pb_dt->mut_obj();
     if (!obj.started())
       obj.set_cancelled(true);
