@@ -1073,6 +1073,7 @@ TEST_F(protobuf_test, service_group_to_protobuf) {
   pb.set_servicegroup_id(rand() + 1);
   pb.set_name(random_string());
   pb.set_poller_id(rand() + 1);
+  pb.set_alias(random_string());
 
   auto file_map = simple_global_cache::load(file_path);
   service_group* converted = file_map->file().construct<service_group>(
