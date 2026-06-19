@@ -812,7 +812,7 @@ jobs:
               const dayOfWeek = today.getDay();
               if (dayOfWeek === 0 || dayOfWeek === 6) return configs[0]; // weekend → default
               let workingDays = 0;
-              
+
               const d = new Date('2025-01-01');
               while (d < today) {
                 if (d.getDay() >= 1 && d.getDay() <= 5) workingDays++;
