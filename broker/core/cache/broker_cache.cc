@@ -93,7 +93,9 @@ void broker_cache::merge(
 
   /* Work on instances */
   if (section_enabled(CACHE_INSTANCES))
-    _instances.insert_or_assign(state.poller_id(), state.poller_name());
+    _instances.insert_or_assign(
+        state.poller_id(),
+        instance_info{state.poller_name(), state.enable_notifications()});
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -322,6 +324,14 @@ void broker_cache::apply(
   /* Work on instances */
   //   if (diff.has_poller_name())
   //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
+
+  /* A diff may toggle the program-wide notification flag without resending the
+   * whole state, so keep the cached value in sync. */
+  if (section_enabled(CACHE_INSTANCES) && diff.has_enable_notifications()) {
+    auto it = _instances.find(diff.poller_id());
+    if (it != _instances.end())
+      it->second.notifications_enabled = diff.enable_notifications();
+  }
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -1064,9 +1074,12 @@ void broker_cache::update_instance(
     return;
   absl::WriterMutexLock l{&_mutex};
   auto& obj = instance->obj();
-  if (obj.running())
-    _instances.insert_or_assign(obj.instance_id(), obj.name());
-  else
+  if (obj.running()) {
+    /* The neb Instance event does not carry enable_notifications, so only
+     * refresh the name and keep any notifications_enabled value already set by
+     * merge()/apply(). */
+    _instances[obj.instance_id()].name = obj.name();
+  } else
     _instances.erase(obj.instance_id());
 }
 
@@ -2252,7 +2265,23 @@ std::string broker_cache::instance(uint64_t instance_id) const {
   if (found == _instances.end())
     return "";
   else
-    return found->second;
+    return found->second.name;
+}
+
+/**
+ * @brief Tell whether notifications are enabled for the given poller.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return true if notifications are enabled (also the default when the poller
+ * is unknown).
+ */
+bool broker_cache::notifications_enabled(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return true;
+  return found->second.notifications_enabled;
 }
 
 /**
@@ -2426,7 +2455,7 @@ std::vector<std::pair<uint64_t, uint64_t>> broker_cache::service_ids() const {
  */
 uint32_t broker_cache::first_active_instance_id() const {
   absl::ReaderMutexLock l{&_mutex};
-  for (const auto& [id, name] : _instances) {
+  for (const auto& [id, info] : _instances) {
     if (id != 0)
       return id;
   }
@@ -2941,7 +2970,7 @@ void broker_cache::_load_cache() {
        * active downtimes (below) are read back in both modes. */
       if (!config::applier::state::instance().supports_centralized_conf()) {
         for (const auto& inst_pair : to_load.instances())
-          _instances.insert({inst_pair.id(), inst_pair.name()});
+          _instances.insert({inst_pair.id(), instance_info{inst_pair.name()}});
 
         for (const auto& host : to_load.hosts()) {
           auto h = std::make_shared<neb::pb_host>();
@@ -3042,10 +3071,10 @@ void broker_cache::_save_cache() {
      * centralized mode they are rebuilt from the Engine configuration, so only
      * the active downtimes (below) are persisted. */
     if (!config::applier::state::instance().supports_centralized_conf()) {
-      for (const auto& [id, name] : _instances) {
+      for (const auto& [id, info] : _instances) {
         auto* inst_pair = to_save.add_instances();
         inst_pair->set_id(id);
-        inst_pair->set_name(name);
+        inst_pair->set_name(info.name);
       }
       for (const auto& host : _hosts) {
         auto* h = to_save.add_hosts();
