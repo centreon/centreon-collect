@@ -58,7 +58,6 @@ notifications::global_config engine_notification_callbacks::get_global_config()
     const {
   notifications::global_config gc;
   gc.enabled = pb_indexed_config.state().enable_notifications();
-  gc.interval_length = pb_indexed_config.state().interval_length();
   gc.send_recovery_notifications_anyway =
       pb_indexed_config.state().send_recovery_notifications_anyway();
   return gc;
@@ -94,9 +93,15 @@ notifications::resource_state engine_notification_callbacks::get_state(
   rs.last_hard_state_change = n->get_last_hard_state_change();
   rs.current_state_as_string = n->get_current_state_as_string();
   rs.notify_on = n->get_notify_on();
-  rs.notification_interval = n->get_notification_interval();
-  rs.first_notification_delay = n->get_first_notification_delay();
-  rs.recovery_notification_delay = n->get_recovery_notification_delay();
+  /* The notification library reasons in seconds: convert the engine "interval
+   * unit" values here, at the boundary, by multiplying by interval_length. */
+  uint32_t interval_length = pb_indexed_config.state().interval_length();
+  rs.notification_interval =
+      std::chrono::seconds(n->get_notification_interval() * interval_length);
+  rs.first_notification_delay =
+      std::chrono::seconds(n->get_first_notification_delay() * interval_length);
+  rs.recovery_notification_delay = std::chrono::seconds(
+      n->get_recovery_notification_delay() * interval_length);
 
   timeperiod* tp{n->get_notification_timeperiod()};
   timezone_locker lock{n->get_timezone()};
@@ -140,10 +145,14 @@ notifications::delivery_result engine_notification_callbacks::deliver(
   /* Select the contacts to notify (escalations included). The recovery routing
    * consults the manager through the notifier's accessors. */
   bool escalated;
+  uint32_t notification_interval = 0;
   std::unordered_set<std::shared_ptr<contact>> to_notify =
-      n->get_contacts_to_notify(cat, type, result.notification_interval,
-                                escalated);
+      n->get_contacts_to_notify(cat, type, notification_interval, escalated);
   result.escalated = escalated;
+  /* Convert the escalation-adjusted interval to seconds, as the notification
+   * library expects absolute durations. */
+  result.notification_interval = std::chrono::seconds(
+      notification_interval * pb_indexed_config.state().interval_length());
 
   nagios_macros* mac(get_global_macros());
 
