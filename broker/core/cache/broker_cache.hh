@@ -303,6 +303,14 @@ class broker_cache {
     uint64_t db_id;
   };
 
+  /* Per-poller information kept in the instances cache. Beside the poller name,
+   * it carries the few program-wide Engine settings Broker needs to answer for
+   * the poller (e.g. when computing notifications on Broker's side). */
+  struct instance_info {
+    std::string name;
+    bool notifications_enabled = true;
+  };
+
   enum cache_section : uint32_t {
     CACHE_NONE = 0,
     CACHE_INSTANCES = 1 << 0,
@@ -331,7 +339,8 @@ class broker_cache {
   std::atomic<uint32_t> _enabled_sections{CACHE_NONE};
 
   mutable absl::Mutex _mutex;
-  absl::flat_hash_map<uint64_t, std::string> _instances ABSL_GUARDED_BY(_mutex);
+  absl::flat_hash_map<uint64_t, instance_info> _instances
+      ABSL_GUARDED_BY(_mutex);
 
   HostContainer _hosts ABSL_GUARDED_BY(_mutex);
   ServiceContainer _services ABSL_GUARDED_BY(_mutex);
@@ -507,6 +516,8 @@ class broker_cache {
       const std::shared_ptr<neb::pb_adaptive_service_status>& status)
       ABSL_LOCKS_EXCLUDED(_mutex);
   std::string instance(uint64_t instance_id) const ABSL_LOCKS_EXCLUDED(_mutex);
+  bool notifications_enabled(uint64_t instance_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
   void remove_instance(uint64_t instance_id) ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host> host(const std::string& host_name) const
       ABSL_LOCKS_EXCLUDED(_mutex);
