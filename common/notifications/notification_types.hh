@@ -20,6 +20,7 @@
 #ifndef CCC_NOTIFICATIONS_NOTIFICATION_TYPES_HH
 #define CCC_NOTIFICATIONS_NOTIFICATION_TYPES_HH
 
+#include <chrono>
 #include <cstdint>
 #include <ctime>
 #include <ostream>
@@ -101,7 +102,6 @@ enum notification_option {
  */
 struct global_config {
   bool enabled = false;
-  uint32_t interval_length = 0;
   bool send_recovery_notifications_anyway = false;
 };
 
@@ -126,9 +126,12 @@ struct resource_state {
   std::time_t last_hard_state_change = 0;
   std::string_view current_state_as_string;
   uint32_t notify_on = 0;  // bitmask of notification_flag
-  uint32_t notification_interval = 0;
-  uint32_t first_notification_delay = 0;
-  uint32_t recovery_notification_delay = 0;
+  // The host application converts the engine "interval unit" values (multiplying
+  // by interval_length) before filling this snapshot, so the library reasons
+  // only on absolute durations.
+  std::chrono::seconds notification_interval{0};
+  std::chrono::seconds first_notification_delay{0};
+  std::chrono::seconds recovery_notification_delay{0};
 };
 
 /**
@@ -137,7 +140,7 @@ struct resource_state {
  */
 struct delivery_result {
   absl::btree_set<std::string> notified_contacts;
-  uint32_t notification_interval = 0;
+  std::chrono::seconds notification_interval{0};  // escalation-adjusted
   bool escalated = false;
 };
 
@@ -152,7 +155,7 @@ struct delivery_result {
  */
 struct notification {
   reason_type type;
-  uint32_t interval = 0;
+  std::chrono::seconds interval{0};
   absl::btree_set<std::string> notified_contacts;
 
   /** @brief Tell whether @p user was among the notified contacts. */
@@ -168,7 +171,8 @@ struct notification {
 
 /** @brief Dump a notification to a stream (debug/retention output). */
 inline std::ostream& operator<<(std::ostream& os, const notification& n) {
-  os << "type: " << n.type << ", interval: " << n.interval << ", contacts: ";
+  os << "type: " << n.type << ", interval: " << n.interval.count()
+     << ", contacts: ";
   for (const auto& c : n.notified_contacts)
     os << c << ",";
   os << "\n";

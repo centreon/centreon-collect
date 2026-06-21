@@ -149,7 +149,7 @@ bool notification_manager::_is_notification_viable_normal(
 
   notification* normal_notif =
       current_notification(host_id, service_id, cat_normal);
-  uint32_t notification_interval =
+  std::chrono::seconds notification_interval =
       !normal_notif ? rs.notification_interval : normal_notif->interval;
 
   /* forced notifications bust through everything */
@@ -233,15 +233,13 @@ bool notification_manager::_is_notification_viable_normal(
     return false;
   }
 
-  if (rs.first_notification_delay > 0 && !normal_notif &&
-      rs.last_hard_state_change +
-              rs.first_notification_delay * gc.interval_length >
-          now) {
+  if (rs.first_notification_delay.count() > 0 && !normal_notif &&
+      rs.last_hard_state_change + rs.first_notification_delay.count() > now) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger(),
         "This notifier is configured with a first notification delay, we "
         "won't send notification until timestamp {}",
-        rs.first_notification_delay * gc.interval_length);
+        rs.last_hard_state_change + rs.first_notification_delay.count());
     return false;
   }
 
@@ -258,20 +256,20 @@ bool notification_manager::_is_notification_viable_normal(
     /* In the case of a state change, we don't care of the notification interval
      * and we notify as soon as we can */
     if (rs.last_hard_state_change <= last_notif) {
-      if (notification_interval == 0) {
+      if (notification_interval.count() == 0) {
         SPDLOG_LOGGER_DEBUG(
             notifications_logger(),
             "This notifier problem has already been sent at {} so, since the "
             "notification interval is 0, it won't be sent anymore",
             last_notif);
         return false;
-      } else if (notification_interval > 0) {
-        if (last_notif + notification_interval * gc.interval_length > now) {
+      } else if (notification_interval.count() > 0) {
+        if (last_notif + notification_interval.count() > now) {
           SPDLOG_LOGGER_DEBUG(
               notifications_logger(),
               "This notifier problem has been sent at {} so it won't be sent "
               "until {}",
-              last_notif, notification_interval * gc.interval_length);
+              last_notif, last_notif + notification_interval.count());
           return false;
         }
       }
@@ -351,14 +349,14 @@ bool notification_manager::_is_notification_viable_recovery(
       retval = false;
       send_later = false;
     } else if (rs.last_hard_state_change +
-                   rs.recovery_notification_delay * gc.interval_length >
+                   rs.recovery_notification_delay.count() >
                now) {
       SPDLOG_LOGGER_DEBUG(
           notifications_logger(),
           "This notifier is configured with a recovery notification delay. "
           "It won't send any recovery notification until timestamp "
           "so it won't be sent until {}",
-          rs.last_hard_state_change + rs.recovery_notification_delay);
+          rs.last_hard_state_change + rs.recovery_notification_delay.count());
       retval = false;
       send_later = true;
     } else if (notification_number(host_id, service_id) == 0) {

@@ -930,7 +930,8 @@ void notifier::set_notification(int32_t idx, std::string const& value) {
       _host_id, _service_id,
       static_cast<notifications::notification_category>(idx),
       std::unique_ptr<notifications::notification>(
-          new notifications::notification{type, interval, contacts}));
+          new notifications::notification{type, std::chrono::seconds(interval),
+                                          contacts}));
 }
 
 void notifier::inc_notification_number() noexcept {
