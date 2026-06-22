@@ -39,7 +39,7 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

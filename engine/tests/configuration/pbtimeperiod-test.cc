@@ -17,6 +17,7 @@
  *
  */
 #include <fstream>
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include <regex>
 
@@ -167,7 +168,7 @@ time_period_comparator::time_period_comparator(
     : _conf_tp(conf_tp) {
   com::centreon::engine::configuration::applier::timeperiod applier;
 
-  com::centreon::engine::timeperiod::timeperiods.clear();
+  com::centreon::engine::timeperiod_manager::instance().timeperiods().clear();
 
   for (const std::string& line : timeperiod_content) {
     if (line[0] == '#')
@@ -505,8 +506,8 @@ time_period_comparator::time_period_comparator(
   }
 
   applier.add_object(conf_tp);
-  _result =
-      com::centreon::engine::timeperiod::timeperiods[conf_tp.timeperiod_name()];
+  _result = com::centreon::engine::timeperiod_manager::instance()
+                .timeperiods()[conf_tp.timeperiod_name()];
 }
 
 std::ostream& operator<<(std::ostream& s,

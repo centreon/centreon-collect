@@ -38,7 +38,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 #include "gtest/gtest.h"
 #include "helper.hh"
 

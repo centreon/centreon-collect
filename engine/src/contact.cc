@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/engine/contact.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -1017,9 +1018,11 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _service_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod::timeperiods.find(get_service_notification_period()));
+        timeperiod_manager::instance().timeperiods().find(
+            get_service_notification_period()));
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->error(
           "Error: Service notification period '{}' specified for contact '{}' "
           "is not defined anywhere!",
@@ -1041,9 +1044,11 @@ void contact::resolve(uint32_t& w, uint32_t& e) {
     _host_notification_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator it(
-        timeperiod::timeperiods.find(get_host_notification_period()));
+        timeperiod_manager::instance().timeperiods().find(
+            get_host_notification_period()));
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->warn(
           "Error: Host notification period '{}' specified for contact '{}' is "
           "not defined anywhere!",

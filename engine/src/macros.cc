@@ -23,6 +23,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
@@ -263,9 +264,9 @@ int grab_datetime_macro_r(nagios_macros* mac,
     case MACRO_NEXTVALIDTIME:
       /* find the timeperiod */
       temp_timeperiod = nullptr;
-      it = timeperiod::timeperiods.find(arg1);
+      it = timeperiod_manager::instance().timeperiods().find(arg1);
 
-      if (it != timeperiod::timeperiods.end())
+      if (it != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = it->second.get();
 
       if (temp_timeperiod == nullptr)

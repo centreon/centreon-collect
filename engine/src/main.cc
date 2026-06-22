@@ -21,6 +21,7 @@
 
 #include <unistd.h>
 #include <random>
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -267,7 +268,8 @@ int main(int argc, char* argv[]) {
                     << " service escalations.\n Checked "
                     << servicegroup::servicegroups.size()
                     << " service groups.\n Checked " << service::services.size()
-                    << " services.\n Checked " << timeperiod::timeperiods.size()
+                    << " services.\n Checked "
+                    << timeperiod_manager::instance().timeperiods().size()
                     << " time periods.\n\n Total Warnings: "
                     << err.config_warnings
                     << "\n Total Errors:   " << err.config_errors << std::endl;
