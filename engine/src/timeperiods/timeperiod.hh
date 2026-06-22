@@ -69,15 +69,12 @@ class timeperiod {
   exception_array exceptions;
 };
 
-}  // namespace com::centreon::engine
-
-bool check_time_against_period(time_t test_time,
-                               com::centreon::engine::timeperiod* tperiod);
-bool check_time_against_period_for_notif(
-    time_t test_time,
-    com::centreon::engine::timeperiod* tperiod);
+bool check_time_against_period(time_t test_time, timeperiod* tperiod);
+bool check_time_against_period_for_notif(time_t test_time, timeperiod* tperiod);
 void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
-                         com::centreon::engine::timeperiod* tperiod);
+                         timeperiod* tperiod);
+
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_TIMEPERIOD_HH

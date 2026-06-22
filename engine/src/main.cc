@@ -65,6 +65,7 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;
@@ -96,6 +97,10 @@ int main(int argc, char* argv[]) {
 
   notifications::notification_manager::load(
       std::make_unique<engine_notification_callbacks>());
+
+  /* The forbidden characters are not known yet at startup; they are refreshed
+   * by applier::globals once the configuration is applied. */
+  timeperiod_manager::load(log_v2::instance().get(log_v2::CONFIG), {});
 
   // Initialize the initial configuration state.
   {
@@ -517,6 +522,7 @@ int main(int argc, char* argv[]) {
   g_io_context->stop();
   com::centreon::common::pool::unload();
   notifications::notification_manager::unload();
+  timeperiod_manager::unload();
   downtimes::downtime_manager::unload();
   stop_rpc_server();
 

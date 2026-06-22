@@ -917,9 +917,11 @@ class timeperiod_config_parser_test
   static void TearDownTestSuite(){};
 
  protected:
-  void SetUp() override {}
+  void SetUp() override {
+    timeperiod_manager::load(spdlog::default_logger(), {});
+  }
 
-  void TearDown() override {}
+  void TearDown() override { timeperiod_manager::unload(); }
 };
 
 INSTANTIATE_TEST_SUITE_P(timeperiod_config_parser_test,

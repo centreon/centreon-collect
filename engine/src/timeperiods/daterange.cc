@@ -1,26 +1,26 @@
 /**
  * Copyright 2011-2013 Merethis
+ * Copyright 2014-2026 Centreon
  *
- * This file is part of Centreon Engine.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Centreon Engine is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License version 2
- * as published by the Free Software Foundation.
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Centreon Engine is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * You should have received a copy of the GNU General Public License
- * along with Centreon Engine. If not, see
- * <http://www.gnu.org/licenses/>.
+ * For more information : contact@centreon.com
+ *
  */
 
-#include "com/centreon/engine/string.hh"
 #include "engine/src/timeperiods/timeperiod.hh"
 
-using namespace com::centreon::engine;
+namespace com::centreon::engine {
 
 /**
  *  Create a new exception to a timeperiod.
@@ -53,8 +53,7 @@ daterange::daterange(
     int ewday,
     int ewday_offset,
     int skip_interval,
-    const google::protobuf::RepeatedPtrField<configuration::Timerange>&
-        timeranges)
+    const timerange_list& timeranges)
     : _type{type},
       _syear{syear},
       _smon{smon},
@@ -66,10 +65,8 @@ daterange::daterange(
       _emday{emday},
       _ewday{ewday},
       _ewday_offset{ewday_offset},
-      _skip_interval{skip_interval} {
-  for (auto& tr : timeranges)
-    add_timerange({tr.range_start(), tr.range_end()});
-}
+      _skip_interval{skip_interval},
+      _timerange{timeranges} {}
 
 daterange::daterange(type_range type)
     : _type(type),
@@ -222,7 +219,6 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
   return (os);
 }
 
-namespace com::centreon::engine {
 /**
  *  Dump daterange content into the stream.
  *
@@ -277,8 +273,6 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
   return os;
 }
 
-}  // namespace com::centreon::engine
-
 /**
  *  Get the month name.
  *
@@ -312,3 +306,5 @@ std::string const& daterange::get_weekday_name(unsigned int index) {
     return (unknown);
   return (days[index]);
 }
+
+}  // namespace com::centreon::engine

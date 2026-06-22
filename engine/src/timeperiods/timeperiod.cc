@@ -18,18 +18,16 @@
  *
  */
 
+#include <ctime>
+
 #include "engine/src/timeperiods/timeperiod.hh"
-#include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/shared.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
-using namespace com::centreon::engine;
-using namespace com::centreon::engine::configuration::applier;
-using namespace com::centreon::engine::string;
 using com::centreon::exceptions::msg_fmt;
+
+namespace com::centreon::engine {
 
 /**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
@@ -39,7 +37,8 @@ using com::centreon::exceptions::msg_fmt;
 timeperiod::timeperiod(const configuration::Timeperiod& obj)
     : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
   if (_name.empty() || _alias.empty()) {
-    config_logger->error("Error: Name or alias for timeperiod is NULL");
+    timeperiod_manager::logger()->error(
+        "Error: Name or alias for timeperiod is NULL");
     throw msg_fmt("Could not register time period '{}'", _name);
   }
 
@@ -61,11 +60,14 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
 
   auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
     for (auto& r : obj_daterange) {
+      timerange_list trs;
+      for (const auto& t : r.timerange())
+        trs.emplace_back(t.range_start(), t.range_end());
       exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
                                    r.syear(), r.smon(), r.smday(), r.swday(),
                                    r.swday_offset(), r.eyear(), r.emon(),
                                    r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), r.timerange());
+                                   r.skip_interval(), trs);
     }
   };
 
@@ -90,14 +92,14 @@ void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
 
   auto fill_exceptions = [this](const auto& obj_daterange, int idx) {
     for (auto& r : obj_daterange) {
-      //      std::list<timerange> tr;
-      //      for (auto& t : r.timerange())
-      //        tr.emplace_back(t.range_start(), t.range_end());
+      timerange_list trs;
+      for (const auto& t : r.timerange())
+        trs.emplace_back(t.range_start(), t.range_end());
       exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
                                    r.syear(), r.smon(), r.smday(), r.swday(),
                                    r.swday_offset(), r.eyear(), r.emon(),
                                    r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), r.timerange());
+                                   r.skip_interval(), trs);
     }
   };
 
@@ -762,7 +764,7 @@ static bool _timerange_to_time_t(const timerange& trange,
  *  @return true on success, false on failure.
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
-  functions_logger->trace("check_time_against_period()");
+  timeperiod_manager::logger()->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -772,8 +774,9 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   time_t next_valid_time{(time_t)-1};
   tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
                                               false);
-  functions_logger->trace("check_time_against_period {} ret={}",
-                          tperiod->get_name(), next_valid_time == test_time);
+  timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
+                                      tperiod->get_name(),
+                                      next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
@@ -789,7 +792,7 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
  */
 bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
-  functions_logger->trace("check_time_against_period_for_notif()");
+  timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -813,7 +816,7 @@ bool check_time_against_period_for_notif(time_t test_time,
 void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       time_t* invalid_time,
                                                       bool notif_timeperiod) {
-  functions_logger->trace("get_next_invalid_time_per_timeperiod()");
+  timeperiod_manager::logger()->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in invalid_time at the end of the loop.
@@ -997,7 +1000,7 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
 void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
-  functions_logger->trace("get_next_valid_time_per_timeperiod()");
+  timeperiod_manager::logger()->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1108,8 +1111,9 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   // Else use the calculated time.
   else
     *valid_time = earliest_time;
-  functions_logger->trace("get_next_valid_time_per_timeperiod {} valid_time={}",
-                          _name, *valid_time);
+  timeperiod_manager::logger()->trace(
+      "get_next_valid_time_per_timeperiod {} valid_time={}", _name,
+      *valid_time);
 }
 
 /**
@@ -1123,7 +1127,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
 void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
-  functions_logger->trace("get_next_valid_time()");
+  timeperiod_manager::logger()->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time(std::max(pref_time, time(NULL)));
@@ -1156,8 +1160,8 @@ void timeperiod::resolve(const timeperiod_map& all,
   uint32_t errors = 0;
 
   // Check for illegal characters in timeperiod name.
-  if (contains_illegal_object_chars(_name.c_str())) {
-    config_logger->error(
+  if (timeperiod_manager::contains_illegal_chars(_name)) {
+    timeperiod_manager::logger()->error(
         "Error: The name of time period '{}' contains one or more illegal "
         "characters.",
         _name);
@@ -1171,7 +1175,7 @@ void timeperiod::resolve(const timeperiod_map& all,
     timeperiod_map::const_iterator found{all.find(it->first)};
 
     if (found == all.end()) {
-      config_logger->error(
+      timeperiod_manager::logger()->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
           it->first, _name);
@@ -1208,3 +1212,5 @@ void timeperiod::set_days(const configuration::DaysArray& array) {
   for (auto& r : array.saturday())
     days[6].emplace_back(r.range_start(), r.range_end());
 }
+
+}  // namespace com::centreon::engine
