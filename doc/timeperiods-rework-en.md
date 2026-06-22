@@ -11,6 +11,7 @@
   - [7. Recommendation](#7-recommendation)
   - [8. Extraction plan](#8-extraction-plan)
   - [9. Open leads](#9-open-leads)
+  - [10. Benchmarks — current baseline](#10-benchmarks--current-baseline)
 
 This document analyses extracting engine's *timeperiods* code into a shared
 library reusable by broker (notably for evaluating notification time windows on
@@ -195,3 +196,55 @@ Suggested order, least to most risky:
 - **Replacing `timezone_manager`** with a stateless timezone computation
   (priority brick for any reuse in broker).
 - **Choice A vs B** for the registry (cf. §8.4).
+
+## 10. Benchmarks — current baseline
+
+google-benchmark micro-benchmarks measure the two scheduler hot functions
+(`check_time_against_period` and `get_next_valid_time`) on representative
+timeperiod shapes. Source: `engine/benchmark/timeperiod.cc` (CMake target
+`timeperiod_bench`), linked only against `timeperiods` + `engine_conf`.
+
+```bash
+ninja -Cbuild timeperiod_bench
+./build/engine/benchmark/timeperiod_bench
+```
+
+**Method / caveats**: measured on a dev machine (22 cores @ 4.5 GHz, `-O2`
+build), *CPU scaling enabled* → noisy figures, read as **orders of magnitude**,
+not exact nanoseconds. Fixed deterministic reference instants (Wed 2024-01-03,
+Sat 2024-01-06); logging routed to a null sink; `get_next_valid_time` goes
+through `localtime_r`/`mktime`, so cost also depends on the process `TZ`.
+
+| Benchmark | Shape / case | Time |
+|---|---|---|
+| `BM_check_24x7` | 24x7, valid instant | ~2.0 µs |
+| `BM_check_workhours_inside` | Mon-Fri 9-17, inside | ~2.0 µs |
+| `BM_check_workhours_outside` | Mon-Fri 9-17, outside | ~3.4 µs |
+| `BM_check_exceptions` | 3rd Monday of month (`month_week_day`) | ~37 µs |
+| `BM_gnvt_24x7` | 24x7 | ~1.95 µs |
+| `BM_gnvt_workhours_immediate` | already valid | ~1.95 µs |
+| `BM_gnvt_workhours_search` | weekend → forward scan | ~1.96 µs |
+| `BM_gnvt_exceptions` | next "3rd Monday" | **~604 µs** |
+| `BM_gnvt_exclusion` | work hours excluding 1 day | ~4.5 µs |
+| `BM_gnvt_exclusion_chain/1` | exclusion chain, depth 1 | ~4.4 µs |
+| `BM_gnvt_exclusion_chain/2` | depth 2 | ~55 µs |
+| `BM_gnvt_exclusion_chain/4` | depth 4 | ~224 µs |
+| `BM_gnvt_exclusion_chain/8` | depth 8 | **~1.8 ms** |
+| `BM_gnvt_exclusion_chain/16` | depth 16 | **~32 ms** |
+
+**Takeaways:**
+
+- Simple cases (24x7, work hours, valid or not) cost ~2 µs, dominated by
+  `localtime_r`/`mktime` arithmetic. Work-hours "forward scan" is no more
+  expensive here than the immediate case.
+- The **exceptions** path (`month_week_day`) is 1-2 orders of magnitude slower
+  (37 µs for `check`, **~600 µs** for `get_next_valid_time`): the day-by-day
+  search combined with per-candidate-day date computation is costly.
+- The **exclusion chain blows up with depth**: roughly ×8 per depth doubling
+  (4 µs → 55 µs → 224 µs → 1.8 ms → **32 ms** at depth 16). The exclusion
+  recursion multiplicatively compounds each level's day-by-day scan → near
+  geometric cost. A strong argument for the rework: deep exclusions are currently
+  pathological.
+
+These figures are the **baseline** to compare against for a possible Abseil port
+(cf. §9) — in particular on the exceptions path and the exclusion chain.
