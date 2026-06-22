@@ -66,6 +66,10 @@
     {
       "name": "openssl",
       "platform": "windows"
+    },
+    {
+      "name": "zlib",
+      "platform": "windows"
     }
   ]
 }
