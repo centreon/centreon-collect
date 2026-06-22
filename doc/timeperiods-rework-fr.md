@@ -214,43 +214,52 @@ ninja -Cbuild timeperiod_bench
 ```
 
 **Méthodo / réserves** : mesures sur une machine de dev (22 cœurs @ 4.5 GHz,
-build `-O2`), *CPU scaling activé* → chiffres bruités, à lire en **ordres de
-grandeur** et non au nanoseconde près. Instants de référence fixes et
-déterministes (mer. 2024-01-03, sam. 2024-01-06) ; logging routé vers un
-null-sink ; `get_next_valid_time` passe par `localtime_r`/`mktime`, donc le coût
-dépend aussi du `TZ` du process.
+build `-O2`), *CPU scaling activé* → à lire en **ordres de grandeur**. Médianes
+sur 10 répétitions. Instants de référence fixes et déterministes (mer.
+2024-01-03, sam. 2024-01-06) ; logging routé vers un null-sink. Le bench **fixe
+`TZ=UTC`** (`setenv`+`tzset` dans son `main`) — voir l'encadré ci-dessous : sans
+ça les chiffres explosent et deviennent ininterprétables.
 
 | Benchmark | Forme / cas | Temps |
 |---|---|---|
-| `BM_check_24x7` | 24x7, instant valide | ~2.0 µs |
-| `BM_check_workhours_inside` | lun-ven 9h-17h, dans la plage | ~2.0 µs |
-| `BM_check_workhours_outside` | lun-ven 9h-17h, hors plage | ~3.4 µs |
-| `BM_check_exceptions` | 3ᵉ lundi du mois (`month_week_day`) | ~37 µs |
-| `BM_gnvt_24x7` | 24x7 | ~1.95 µs |
-| `BM_gnvt_workhours_immediate` | déjà valide | ~1.95 µs |
-| `BM_gnvt_workhours_search` | week-end → scan avant | ~1.96 µs |
-| `BM_gnvt_exceptions` | prochain « 3ᵉ lundi » | **~604 µs** |
-| `BM_gnvt_exclusion` | work-hours excluant 1 jour | ~4.5 µs |
-| `BM_gnvt_exclusion_chain/1` | chaîne d'exclusions, profondeur 1 | ~4.4 µs |
-| `BM_gnvt_exclusion_chain/2` | profondeur 2 | ~55 µs |
-| `BM_gnvt_exclusion_chain/4` | profondeur 4 | ~224 µs |
-| `BM_gnvt_exclusion_chain/8` | profondeur 8 | **~1.8 ms** |
-| `BM_gnvt_exclusion_chain/16` | profondeur 16 | **~32 ms** |
+| `BM_check_24x7` | 24x7, instant valide | ~0.66 µs |
+| `BM_check_workhours_inside` | lun-ven 9h-17h, dans la plage | ~0.63 µs |
+| `BM_check_workhours_outside` | lun-ven 9h-17h, hors plage | ~1.1 µs |
+| `BM_check_exceptions` | 3ᵉ lundi du mois (`month_week_day`) | ~8 µs |
+| `BM_gnvt_24x7` | 24x7 | ~0.59 µs |
+| `BM_gnvt_workhours_immediate` | déjà valide | ~0.58 µs |
+| `BM_gnvt_workhours_search` | week-end → scan avant | ~0.58 µs |
+| `BM_gnvt_exceptions` | prochain « 3ᵉ lundi » | **~120 µs** |
+| `BM_gnvt_exclusion` | work-hours excluant 1 jour | ~1.5 µs |
+| `BM_gnvt_exclusion_chain/1` | chaîne d'exclusions, profondeur 1 | ~1.5 µs |
+| `BM_gnvt_exclusion_chain/2` | profondeur 2 | ~16 µs |
+| `BM_gnvt_exclusion_chain/4` | profondeur 4 | ~66 µs |
+| `BM_gnvt_exclusion_chain/8` | profondeur 8 | **~524 µs** |
+| `BM_gnvt_exclusion_chain/16` | profondeur 16 | **~9 ms** |
 
 **Enseignements :**
 
-- Les cas simples (24x7, work-hours, valide ou non) coûtent ~2 µs, dominés par
-  l'arithmétique `localtime_r`/`mktime`. Le « scan avant » de work-hours n'est ici
-  pas plus cher que le cas immédiat.
-- Le chemin **exceptions** (`month_week_day`) est 1 à 2 ordres de grandeur plus
-  lent (37 µs pour le `check`, **~600 µs** pour `get_next_valid_time`) : la
-  recherche jour-par-jour combinée au calcul de date par jour candidat coûte cher.
+- Les cas simples (24x7, work-hours) coûtent ~0.6 µs sous `TZ` fixe.
+- Le chemin **exceptions** (`month_week_day`) est 2 ordres de grandeur plus lent
+  (~8 µs pour le `check`, **~120 µs** pour `get_next_valid_time`) : la recherche
+  jour-par-jour combinée au calcul de date par jour candidat coûte cher.
 - La **chaîne d'exclusions explose avec la profondeur** : à peu près ×8 par
-  doublement de profondeur (4 µs → 55 µs → 224 µs → 1.8 ms → **32 ms** à
-  profondeur 16). La récursivité d'exclusion combine multiplicativement les scans
-  jour-par-jour de chaque niveau → coût quasi géométrique. C'est un argument fort
-  en faveur du refactor : des exclusions profondes sont aujourd'hui pathologiques.
+  doublement (1.5 µs → 16 → 66 → 524 µs → **9 ms** à profondeur 16). La
+  récursivité d'exclusion combine multiplicativement les scans jour-par-jour de
+  chaque niveau → coût quasi géométrique. Argument fort en faveur du refactor :
+  des exclusions profondes sont aujourd'hui pathologiques.
 
-Ces chiffres constituent la **baseline** à comparer lors d'un éventuel portage
-Abseil (cf. §9) — en particulier sur le chemin exceptions et la chaîne
-d'exclusions.
+> **Sensibilité critique au `TZ`** : `get_next_valid_time`/`check_time_against_period`
+> passent par `localtime_r`/`mktime`. Quand `TZ` n'est pas positionné, la glibc
+> fait un `stat("/etc/localtime")` à *chaque* appel → **×4 à ×8** sur tous les
+> chiffres (ex. `gnvt_24x7` : 0.46 µs sous `TZ=UTC`, 0.56 µs sous
+> `TZ=Europe/Paris`, **2.0 µs `TZ` non défini** ; `gnvt_workhours` : 0.58 µs →
+> 1.0 µs → **3.8 µs**). C'est pourquoi le bench fixe `TZ`. Au-delà du bench, c'est
+> un **enseignement en soi** : la perf de l'implémentation actuelle est dominée
+> par les fonctions temps de la libc et très sensible à l'environnement — un
+> argument concret de plus pour Abseil, dont `absl::TimeZone` met le fuseau en
+> cache (objet valeur, sans `stat` par appel ni état global).
+
+Ces chiffres constituent la **baseline** (sous `TZ=UTC`) à comparer lors d'un
+éventuel portage Abseil (cf. §9) — en particulier sur le chemin exceptions et la
+chaîne d'exclusions.

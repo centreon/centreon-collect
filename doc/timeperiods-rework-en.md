@@ -210,41 +210,51 @@ ninja -Cbuild timeperiod_bench
 ```
 
 **Method / caveats**: measured on a dev machine (22 cores @ 4.5 GHz, `-O2`
-build), *CPU scaling enabled* → noisy figures, read as **orders of magnitude**,
-not exact nanoseconds. Fixed deterministic reference instants (Wed 2024-01-03,
-Sat 2024-01-06); logging routed to a null sink; `get_next_valid_time` goes
-through `localtime_r`/`mktime`, so cost also depends on the process `TZ`.
+build), *CPU scaling enabled* → read as **orders of magnitude**. Medians over 10
+repetitions. Fixed deterministic reference instants (Wed 2024-01-03, Sat
+2024-01-06); logging routed to a null sink. The bench **pins `TZ=UTC`**
+(`setenv`+`tzset` in its `main`) — see the box below: without it the figures
+blow up and become uninterpretable.
 
 | Benchmark | Shape / case | Time |
 |---|---|---|
-| `BM_check_24x7` | 24x7, valid instant | ~2.0 µs |
-| `BM_check_workhours_inside` | Mon-Fri 9-17, inside | ~2.0 µs |
-| `BM_check_workhours_outside` | Mon-Fri 9-17, outside | ~3.4 µs |
-| `BM_check_exceptions` | 3rd Monday of month (`month_week_day`) | ~37 µs |
-| `BM_gnvt_24x7` | 24x7 | ~1.95 µs |
-| `BM_gnvt_workhours_immediate` | already valid | ~1.95 µs |
-| `BM_gnvt_workhours_search` | weekend → forward scan | ~1.96 µs |
-| `BM_gnvt_exceptions` | next "3rd Monday" | **~604 µs** |
-| `BM_gnvt_exclusion` | work hours excluding 1 day | ~4.5 µs |
-| `BM_gnvt_exclusion_chain/1` | exclusion chain, depth 1 | ~4.4 µs |
-| `BM_gnvt_exclusion_chain/2` | depth 2 | ~55 µs |
-| `BM_gnvt_exclusion_chain/4` | depth 4 | ~224 µs |
-| `BM_gnvt_exclusion_chain/8` | depth 8 | **~1.8 ms** |
-| `BM_gnvt_exclusion_chain/16` | depth 16 | **~32 ms** |
+| `BM_check_24x7` | 24x7, valid instant | ~0.66 µs |
+| `BM_check_workhours_inside` | Mon-Fri 9-17, inside | ~0.63 µs |
+| `BM_check_workhours_outside` | Mon-Fri 9-17, outside | ~1.1 µs |
+| `BM_check_exceptions` | 3rd Monday of month (`month_week_day`) | ~8 µs |
+| `BM_gnvt_24x7` | 24x7 | ~0.59 µs |
+| `BM_gnvt_workhours_immediate` | already valid | ~0.58 µs |
+| `BM_gnvt_workhours_search` | weekend → forward scan | ~0.58 µs |
+| `BM_gnvt_exceptions` | next "3rd Monday" | **~120 µs** |
+| `BM_gnvt_exclusion` | work hours excluding 1 day | ~1.5 µs |
+| `BM_gnvt_exclusion_chain/1` | exclusion chain, depth 1 | ~1.5 µs |
+| `BM_gnvt_exclusion_chain/2` | depth 2 | ~16 µs |
+| `BM_gnvt_exclusion_chain/4` | depth 4 | ~66 µs |
+| `BM_gnvt_exclusion_chain/8` | depth 8 | **~524 µs** |
+| `BM_gnvt_exclusion_chain/16` | depth 16 | **~9 ms** |
 
 **Takeaways:**
 
-- Simple cases (24x7, work hours, valid or not) cost ~2 µs, dominated by
-  `localtime_r`/`mktime` arithmetic. Work-hours "forward scan" is no more
-  expensive here than the immediate case.
-- The **exceptions** path (`month_week_day`) is 1-2 orders of magnitude slower
-  (37 µs for `check`, **~600 µs** for `get_next_valid_time`): the day-by-day
+- Simple cases (24x7, work hours) cost ~0.6 µs under a fixed `TZ`.
+- The **exceptions** path (`month_week_day`) is 2 orders of magnitude slower
+  (~8 µs for `check`, **~120 µs** for `get_next_valid_time`): the day-by-day
   search combined with per-candidate-day date computation is costly.
 - The **exclusion chain blows up with depth**: roughly ×8 per depth doubling
-  (4 µs → 55 µs → 224 µs → 1.8 ms → **32 ms** at depth 16). The exclusion
-  recursion multiplicatively compounds each level's day-by-day scan → near
-  geometric cost. A strong argument for the rework: deep exclusions are currently
-  pathological.
+  (1.5 µs → 16 → 66 → 524 µs → **9 ms** at depth 16). The exclusion recursion
+  multiplicatively compounds each level's day-by-day scan → near geometric cost.
+  A strong argument for the rework: deep exclusions are currently pathological.
 
-These figures are the **baseline** to compare against for a possible Abseil port
-(cf. §9) — in particular on the exceptions path and the exclusion chain.
+> **Critical `TZ` sensitivity**: `get_next_valid_time`/`check_time_against_period`
+> go through `localtime_r`/`mktime`. When `TZ` is unset, glibc `stat()`s
+> `/etc/localtime` on *every* call → **×4 to ×8** on every figure (e.g.
+> `gnvt_24x7`: 0.46 µs under `TZ=UTC`, 0.56 µs under `TZ=Europe/Paris`, **2.0 µs
+> with `TZ` unset**; `gnvt_workhours`: 0.58 µs → 1.0 µs → **3.8 µs**). That is why
+> the bench pins `TZ`. Beyond the bench, this is **a finding in itself**: the
+> current implementation's performance is dominated by libc time functions and
+> highly environment-sensitive — one more concrete argument for Abseil, whose
+> `absl::TimeZone` caches the zone (value object, no per-call `stat`, no global
+> state).
+
+These figures are the **baseline** (under `TZ=UTC`) to compare against for a
+possible Abseil port (cf. §9) — in particular on the exceptions path and the
+exclusion chain.
