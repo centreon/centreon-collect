@@ -28,6 +28,7 @@
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/spdlog.h>
 
+#include <cstdlib>
 #include <ctime>
 #include <memory>
 #include <string>
@@ -275,6 +276,13 @@ BENCHMARK(BM_gnvt_exclusion_chain)->RangeMultiplier(2)->Range(1, 16);
 }  // namespace
 
 int main(int argc, char** argv) {
+  // Pin the timezone: get_next_valid_time() goes through localtime_r/mktime,
+  // and when TZ is unset glibc stat()s /etc/localtime on every call (~4-8x
+  // slower, and noisy). Fixing TZ makes the numbers reproducible and isolates
+  // the timeperiod logic from the environment.
+  setenv("TZ", "UTC", 1);
+  tzset();
+
   // Load the manager with a null-sink logger so the library logs nowhere and
   // instance() is available (the exclusion benchmark registers timeperiods).
   timeperiod_manager::load(
