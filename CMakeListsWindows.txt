@@ -24,7 +24,7 @@ if (BUILD_FROM_CACHE)
   LIST(APPEND CMAKE_PREFIX_PATH "build_windows/vcpkg_installed/x64-windows")
 endif()
 
-find_package(ZLIB REQUIRED)
+find_package(ZLIB CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)

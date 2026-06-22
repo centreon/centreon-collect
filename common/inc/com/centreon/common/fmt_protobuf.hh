@@ -90,7 +90,7 @@ class back_iterator_output_stream
         nb_to_write = _max_length - _total;
       }
       _to_write = std::copy_n(_buf, nb_to_write, _to_write);
-      _total += _buffered;
+      _total += nb_to_write;
       _buffered = 0;
     }
   }
@@ -149,8 +149,8 @@ struct formatter<protobuf_mess_type,
   constexpr auto parse(fmt::format_parse_context& ctx) { return ctx.begin(); }
 
   template <typename FormatContext>
-  auto format(const protobuf_mess_type& mess,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
+  auto format(const protobuf_mess_type& mess, FormatContext& ctx) const
+      -> decltype(ctx.out()) {
     auto out = ctx.out();
     com::centreon::common::back_iterator_output_stream<
         fmt::format_context::iterator>
