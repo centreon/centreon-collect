@@ -20,6 +20,7 @@
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include <absl/strings/escaping.h>
 #include <sys/time.h>
@@ -1856,9 +1857,9 @@ int cmd_change_object_char_var(int cmd, char* args) {
       /* make sure the timeperiod is valid */
 
       temp_timeperiod = nullptr;
-      found = timeperiod::timeperiods.find(temp_ptr);
+      found = timeperiod_manager::instance().timeperiods().find(temp_ptr);
 
-      if (found != timeperiod::timeperiods.end())
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
 
       if (temp_timeperiod == nullptr) {

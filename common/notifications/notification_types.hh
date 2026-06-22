@@ -113,7 +113,6 @@ struct global_config {
  */
 struct resource_state {
   bool notifications_enabled = false;
-  bool in_downtime = false;
   bool flapping = false;
   bool is_volatile = false;
   bool hard_state = false;
@@ -126,9 +125,9 @@ struct resource_state {
   std::time_t last_hard_state_change = 0;
   std::string_view current_state_as_string;
   uint32_t notify_on = 0;  // bitmask of notification_flag
-  // The host application converts the engine "interval unit" values (multiplying
-  // by interval_length) before filling this snapshot, so the library reasons
-  // only on absolute durations.
+  // The host application converts the engine "interval unit" values
+  // (multiplying by interval_length) before filling this snapshot, so the
+  // library reasons only on absolute durations.
   std::chrono::seconds notification_interval{0};
   std::chrono::seconds first_notification_delay{0};
   std::chrono::seconds recovery_notification_delay{0};

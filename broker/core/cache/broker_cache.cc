@@ -95,7 +95,8 @@ void broker_cache::merge(
   if (section_enabled(CACHE_INSTANCES))
     _instances.insert_or_assign(
         state.poller_id(),
-        instance_info{state.poller_name(), state.enable_notifications()});
+        instance_info{state.poller_name(), state.enable_notifications(),
+                      state.send_recovery_notifications_anyway()});
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -325,12 +326,19 @@ void broker_cache::apply(
   //   if (diff.has_poller_name())
   //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
-  /* A diff may toggle the program-wide notification flag without resending the
-   * whole state, so keep the cached value in sync. */
-  if (section_enabled(CACHE_INSTANCES) && diff.has_enable_notifications()) {
+  /* A diff may toggle the program-wide notification flags without resending the
+   * whole state, so keep the cached values in sync. */
+  if (section_enabled(CACHE_INSTANCES) &&
+      (diff.has_enable_notifications() ||
+       diff.has_send_recovery_notifications_anyway())) {
     auto it = _instances.find(diff.poller_id());
-    if (it != _instances.end())
-      it->second.notifications_enabled = diff.enable_notifications();
+    if (it != _instances.end()) {
+      if (diff.has_enable_notifications())
+        it->second.notifications_enabled = diff.enable_notifications();
+      if (diff.has_send_recovery_notifications_anyway())
+        it->second.send_recovery_notifications_anyway =
+            diff.send_recovery_notifications_anyway();
+    }
   }
 
   /* Work on severities */
@@ -2282,6 +2290,24 @@ bool broker_cache::notifications_enabled(uint64_t instance_id) const {
   if (found == _instances.end())
     return true;
   return found->second.notifications_enabled;
+}
+
+/**
+ * @brief Tell whether the given poller sends recovery notifications even when
+ * no problem notification was sent.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return true if the poller is configured to send recovery notifications
+ * anyway (false when the poller is unknown, matching the Engine default).
+ */
+bool broker_cache::send_recovery_notifications_anyway(
+    uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return false;
+  return found->second.send_recovery_notifications_anyway;
 }
 
 /**

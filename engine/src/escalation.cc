@@ -18,7 +18,8 @@
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/timeperiod.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;
@@ -117,9 +118,11 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   // Find the timeperiod.
   if (!get_escalation_period().empty()) {
     timeperiod_map::const_iterator it{
-        timeperiod::timeperiods.find(get_escalation_period())};
+        timeperiod_manager::instance().timeperiods().find(
+            get_escalation_period())};
 
-    if (it == timeperiod::timeperiods.end() || !it->second) {
+    if (it == timeperiod_manager::instance().timeperiods().end() ||
+        !it->second) {
       config_logger->error(
           "Error: Escalation period '{}' specified in escalation is not "
           "defined anywhere!",

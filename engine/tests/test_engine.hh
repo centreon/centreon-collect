@@ -26,7 +26,6 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "common/engine_conf/anomalydetection_helper.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -35,6 +34,7 @@
 #include "common/engine_conf/service_helper.hh"
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
 

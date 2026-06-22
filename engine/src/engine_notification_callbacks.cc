@@ -24,8 +24,8 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "com/centreon/engine/timezone_locker.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;
@@ -80,7 +80,6 @@ notifications::resource_state engine_notification_callbacks::get_state(
     return rs;
 
   rs.notifications_enabled = n->get_notifications_enabled();
-  rs.in_downtime = n->is_in_downtime();
   rs.flapping = n->get_is_flapping();
   rs.is_volatile = n->get_is_volatile();
   rs.hard_state = n->get_state_type() == checkable::hard;

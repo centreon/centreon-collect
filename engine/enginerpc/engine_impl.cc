@@ -19,6 +19,7 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <future>
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 namespace asio = boost::asio;
@@ -3524,8 +3525,9 @@ grpc::Status engine_impl::ChangeHostObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found = timeperiod::timeperiods.find(request->charval());
-      if (found != timeperiod::timeperiods.end())
+      auto found =
+          timeperiod_manager::instance().timeperiods().find(request->charval());
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
         err = fmt::format("could not find timeperiod with value '{}'",
@@ -3639,8 +3641,9 @@ grpc::Status engine_impl::ChangeServiceObjectCharVar(
     if (request->mode() == ChangeObjectChar_Mode_CHANGE_CHECK_TIMEPERIOD ||
         request->mode() ==
             ChangeObjectChar_Mode_CHANGE_NOTIFICATION_TIMEPERIOD) {
-      auto found = timeperiod::timeperiods.find(request->charval());
-      if (found != timeperiod::timeperiods.end())
+      auto found =
+          timeperiod_manager::instance().timeperiods().find(request->charval());
+      if (found != timeperiod_manager::instance().timeperiods().end())
         temp_timeperiod = found->second.get();
       if (temp_timeperiod == nullptr) {
         err = fmt::format("could not find timeperiod with value '{}'",
@@ -3738,8 +3741,9 @@ grpc::Status engine_impl::ChangeContactObjectCharVar(
       return 1;
     }
 
-    auto found = timeperiod::timeperiods.find(request->charval());
-    if (found != timeperiod::timeperiods.end())
+    auto found =
+        timeperiod_manager::instance().timeperiods().find(request->charval());
+    if (found != timeperiod_manager::instance().timeperiods().end())
       temp_timeperiod = found->second.get();
     if (temp_timeperiod == nullptr) {
       err = fmt::format("could not find timeperiod with value '{}'",

@@ -39,7 +39,6 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/macros/process.hh"
-#include "com/centreon/engine/timeperiod.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/message_helper.hh"
@@ -47,6 +46,7 @@
 #include "common/engine_conf/service_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

@@ -21,6 +21,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
+#include "engine/src/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -672,9 +673,10 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
     check_period_ptr = nullptr;
   } else {
     timeperiod_map::const_iterator found_it{
-        timeperiod::timeperiods.find(check_period())};
+        timeperiod_manager::instance().timeperiods().find(check_period())};
 
-    if (found_it == timeperiod::timeperiods.end() || !found_it->second) {
+    if (found_it == timeperiod_manager::instance().timeperiods().end() ||
+        !found_it->second) {
       SPDLOG_LOGGER_ERROR(
           config_logger,
           "Error: Check period '{}' specified for host '{}' is not defined "
@@ -726,9 +728,11 @@ void notifier::resolve(uint32_t& w, uint32_t& e) {
   // Check notification timeperiod.
   if (!notification_period().empty()) {
     timeperiod_map::const_iterator found_it{
-        timeperiod::timeperiods.find(notification_period())};
+        timeperiod_manager::instance().timeperiods().find(
+            notification_period())};
 
-    if (found_it == timeperiod::timeperiods.end() || !found_it->second.get()) {
+    if (found_it == timeperiod_manager::instance().timeperiods().end() ||
+        !found_it->second.get()) {
       SPDLOG_LOGGER_ERROR(
           config_logger,
           "Error: Notification period '{}' specified for notifier '{}' is not "
