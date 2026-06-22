@@ -241,6 +241,7 @@ jobs:
           CMAKE="cmake"
 
           export VCPKG_ROOT=/vcpkg
+          export VCPKG_MAX_CONCURRENCY=6
           export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
 
           mv /root/.cache /github/home/
