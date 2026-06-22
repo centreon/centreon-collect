@@ -25,8 +25,8 @@
 #include <unordered_map>
 
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/timerange.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "engine/src/timeperiods/timerange.hh"
 #include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon::engine;

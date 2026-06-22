@@ -257,14 +257,6 @@ enum ret_val {
 #define FALSE 0
 #endif /* !FALSE */
 
-/* Date range types. */
-#define DATERANGE_CALENDAR_DATE 0  /* 2008-12-25 */
-#define DATERANGE_MONTH_DATE 1     /* july 4 (specific month) */
-#define DATERANGE_MONTH_DAY 2      /* day 21 (generic month) */
-#define DATERANGE_MONTH_WEEK_DAY 3 /* 3rd thursday (specific month) */
-#define DATERANGE_WEEK_DAY 4       /* 3rd thursday (generic month) */
-#define DATERANGE_TYPES 5
-
 /* Date/time types. */
 #define LONG_DATE_TIME 0
 #define SHORT_DATE_TIME 1

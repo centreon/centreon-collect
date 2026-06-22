@@ -1,6 +1,6 @@
 /**
  * Copyright 2011-2013 Merethis
- * Copyright 2014-2024 Centreon
+ * Copyright 2014-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
-#include "com/centreon/engine/daterange.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
+#include "engine/src/timeperiods/daterange.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -37,6 +37,10 @@ typedef std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>
 namespace com::centreon::engine {
 
 class timeperiod {
+  std::string _name;
+  std::string _alias;
+  timeperiodexclusion _exclusions;
+
  public:
   timeperiod(const configuration::Timeperiod& obj);
   void set_exclusions(const configuration::StringSet& exclusions);
@@ -56,20 +60,13 @@ class timeperiod {
                                             time_t* invalid_time,
                                             bool notif_timeperiod);
 
-  void resolve(uint32_t& w, uint32_t& e);
+  void resolve(const timeperiod_map& all, uint32_t& w, uint32_t& e);
 
   bool operator==(timeperiod const& obj) noexcept;
   bool operator!=(timeperiod const& obj) noexcept;
 
   days_array days;
   exception_array exceptions;
-
-  static timeperiod_map timeperiods;
-
- private:
-  std::string _name;
-  std::string _alias;
-  timeperiodexclusion _exclusions;
 };
 
 }  // namespace com::centreon::engine

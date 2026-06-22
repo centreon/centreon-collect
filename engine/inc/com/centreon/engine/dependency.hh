@@ -19,7 +19,7 @@
 #ifndef CENTREON_ENGINE_DEPENDENCY_HH
 #define CENTREON_ENGINE_DEPENDENCY_HH
 
-#include <com/centreon/engine/timeperiod.hh>
+#include "engine/src/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine {
 

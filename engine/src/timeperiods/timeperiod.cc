@@ -1,6 +1,6 @@
 /**
  * Copyright 2011-2013 Merethis
- * Copyright 2014-2024 Centreon
+ * Copyright 2014-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,9 @@
  *
  */
 
-#include "com/centreon/engine/timeperiod.hh"
+#include "engine/src/timeperiods/timeperiod.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -30,8 +29,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
-
-timeperiod_map timeperiod::timeperiods;
+using com::centreon::exceptions::msg_fmt;
 
 /**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
@@ -42,15 +40,7 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
     : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
   if (_name.empty() || _alias.empty()) {
     config_logger->error("Error: Name or alias for timeperiod is NULL");
-    throw engine_error() << "Could not register time period '" << _name << "'";
-  }
-
-  // Check if the timeperiod already exist.
-  timeperiod_map::const_iterator it{timeperiod::timeperiods.find(_name)};
-  if (it != timeperiod::timeperiods.end()) {
-    config_logger->error("Error: Timeperiod '{}' has already been defined",
-                         _name);
-    throw engine_error() << "Could not register time period '" << _name << "'";
+    throw msg_fmt("Could not register time period '{}'", _name);
   }
 
   // Fill time period structure.
@@ -1160,7 +1150,9 @@ void get_next_valid_time(time_t pref_time,
  * @param e[out] Number of errors produced during this resolution.
  *
  */
-void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
+void timeperiod::resolve(const timeperiod_map& all,
+                         uint32_t& w __attribute__((unused)),
+                         uint32_t& e) {
   uint32_t errors = 0;
 
   // Check for illegal characters in timeperiod name.
@@ -1176,10 +1168,9 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   for (timeperiodexclusion::iterator it{_exclusions.begin()},
        end{_exclusions.end()};
        it != end; ++it) {
-    timeperiod_map::const_iterator found{
-        timeperiod::timeperiods.find(it->first)};
+    timeperiod_map::const_iterator found{all.find(it->first)};
 
-    if (found == timeperiod::timeperiods.end()) {
+    if (found == all.end()) {
       config_logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
@@ -1194,7 +1185,7 @@ void timeperiod::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   // Add errors.
   if (errors) {
     e += errors;
-    throw engine_error() << "Cannot resolve time period '" << _name << "'";
+    throw msg_fmt("Cannot resolve time period '{}'", _name);
   }
 }
 
