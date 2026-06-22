@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-param($compile_ut="On",$compile_installer="Off")
+param($compile_ut = "On", $compile_installer = "Off")
 
 <#
 .SYNOPSIS
@@ -62,6 +62,9 @@ Write-Host "install 7zip"
 
 #download and install 7zip
 choco install 7zip -y
+
+#cmake 4.3.2
+choco install cmake --version=4.3.2 -y
 
 #set builtin here in order to not impact linux compil
 add_builtin_to_vcpkg_json
@@ -117,7 +120,7 @@ cmake -DCMAKE_BUILD_TYPE=Release "-DWITH_TESTING=$compile_ut" -DWINDOWS=On -DBUI
 
 #Write-Host "------------- vcpkg used compiler ---------------"
 #Get-Content "build_windows\vcpkg_installed\vcpkg\compiler-file-hash-cache.json"
-#Write-Host "------------- build agent only ---------------"
+Write-Host "------------- build agent only ---------------"
 
 cmake --build build_windows --config Release
 
