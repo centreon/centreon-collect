@@ -385,6 +385,48 @@ TEST_F(global_cache_test, Group) {
   }
 }
 
+// The service group alias (neb.proto field 6, PB_SERVICE_GROUP) is carried by
+// the full ServiceGroup event but not by the ServiceGroupMember event. A member
+// event arriving after the group event must not erase the cached alias.
+TEST_F(global_cache_test, ServiceGroupAlias) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto serv_group = std::make_shared<neb::pb_service_group>();
+  serv_group->mut_obj().set_servicegroup_id(42);
+  serv_group->mut_obj().set_name("servicegroup_42");
+  serv_group->mut_obj().set_alias("alias_42");
+  serv_group->mut_obj().set_enabled(true);
+  obj->write(serv_group);
+
+  {
+    global_cache::lock l;
+    const service_group* sg = obj->get_service_group(42, l);
+    ASSERT_NE(sg, nullptr);
+    ASSERT_STREQ(sg->alias().c_str(), "alias_42");
+  }
+
+  // A member event carries no alias; it must keep the previously cached one.
+  auto serv_grp_member = std::make_shared<neb::pb_service_group_member>();
+  serv_grp_member->mut_obj().set_servicegroup_id(42);
+  serv_grp_member->mut_obj().set_name("servicegroup_42");
+  serv_grp_member->mut_obj().set_host_id(1);
+  serv_grp_member->mut_obj().set_service_id(2);
+  serv_grp_member->mut_obj().set_poller_id(0);
+  serv_grp_member->mut_obj().set_enabled(true);
+  obj->write(serv_grp_member);
+
+  {
+    global_cache::lock l;
+    const service_group* sg = obj->get_service_group(42, l);
+    ASSERT_NE(sg, nullptr);
+    ASSERT_STREQ(sg->alias().c_str(), "alias_42");
+  }
+}
+
 TEST_F(global_cache_test, Tag) {
   global_cache::unload();
   ::remove("/tmp/cache_test.rt");

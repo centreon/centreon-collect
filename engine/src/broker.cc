@@ -2186,6 +2186,7 @@ static void forward_pb_group(int type, const G* group_data) {
                       (type == NEBTYPE_SERVICEGROUP_UPDATE &&
                        !group_data->members.empty()));
       obj.set_name(common::check_string_utf8(group_data->get_group_name()));
+      obj.set_alias(group_data->get_alias());
 
       // Send service group event.
       if (group_data->get_id()) {
