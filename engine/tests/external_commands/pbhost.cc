@@ -22,7 +22,6 @@
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "helper.hh"
 

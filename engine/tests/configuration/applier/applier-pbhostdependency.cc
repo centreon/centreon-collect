@@ -31,7 +31,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/message_helper.hh"
 #include "common/engine_conf/service_helper.hh"

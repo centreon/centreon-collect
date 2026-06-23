@@ -24,7 +24,7 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
@@ -104,9 +104,8 @@ notifications::resource_state engine_notification_callbacks::get_state(
       n->get_recovery_notification_delay() * interval_length);
 
   timeperiod* tp{n->get_notification_timeperiod()};
-  timezone_locker lock{n->get_timezone()};
-  rs.in_notification_period =
-      check_time_against_period_for_notif(std::time(nullptr), tp);
+  rs.in_notification_period = check_time_against_period_for_notif(
+      std::time(nullptr), tp, string_to_timezone(n->get_timezone()));
 
   return rs;
 }

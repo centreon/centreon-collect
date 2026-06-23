@@ -28,7 +28,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "helper.hh"

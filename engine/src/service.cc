@@ -31,7 +31,7 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 
@@ -1845,10 +1845,10 @@ int service::handle_async_check_result(
 
     // Make sure we rescheduled the next service check at a valid time.
     {
-      timezone_locker lock(get_timezone());
       preferred_time = get_next_check();
       get_next_valid_time(preferred_time, &next_valid_time,
-                          this->check_period_ptr);
+                          this->check_period_ptr,
+                          string_to_timezone(get_timezone()));
       set_next_check(next_valid_time);
     }
 
@@ -2295,14 +2295,15 @@ int service::run_scheduled_check(int check_options, double latency) {
 
       // Make sure we rescheduled the next service check at a valid time.
       {
-        timezone_locker lock(get_timezone());
+        const absl::TimeZone tz = string_to_timezone(get_timezone());
         get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr);
+                            this->check_period_ptr, tz);
 
         // The service could not be rescheduled properly.
         // Set the next check time for next week.
-        if (!time_is_valid && !check_time_against_period(
-                                  next_valid_time, this->check_period_ptr)) {
+        if (!time_is_valid &&
+            !check_time_against_period(next_valid_time, this->check_period_ptr,
+                                       tz)) {
           set_next_check((time_t)(next_valid_time + 60 * 60 * 24 * 7));
           SPDLOG_LOGGER_WARN(
               runtime_logger,
@@ -2898,9 +2899,9 @@ bool service::verify_check_viability(int check_options,
 
     // Make sure this is a valid time to check the service.
     {
-      timezone_locker lock(get_timezone());
       if (!check_time_against_period((unsigned long)current_time,
-                                     this->check_period_ptr)) {
+                                     this->check_period_ptr,
+                                     string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;
@@ -3448,9 +3449,9 @@ void service::check_result_freshness() {
 
     // See if the time is right...
     {
-      timezone_locker lock(it->second->get_timezone());
-      if (!check_time_against_period(current_time,
-                                     it->second->check_period_ptr))
+      if (!check_time_against_period(
+              current_time, it->second->check_period_ptr,
+              string_to_timezone(it->second->get_timezone())))
         continue;
     }
 
