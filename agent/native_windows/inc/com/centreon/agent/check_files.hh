@@ -187,6 +187,10 @@ class check_files : public check {
   std::unique_ptr<filters::filter_combinator> _warning_rules_filter;
   std::unique_ptr<filters::filter_combinator> _critical_rules_filter;
 
+  // these two following filters are applied on filtering result only
+  std::unique_ptr<filters::filter_combinator> _warning_result_filter;
+  std::unique_ptr<filters::filter_combinator> _critical_result_filter;
+
   void _build_checker();
   void _calc_output_format();
 
