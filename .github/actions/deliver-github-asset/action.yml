@@ -45,4 +45,4 @@ runs:
         DELIVER_REPO: ${{ github.repository }}
         DELIVER_DRY_RUN: ${{ inputs.dry_run }}
       run: |
-        node "${GITHUB_ACTION_PATH}/../../scripts/deliver-cma-assets.mjs"
+        bash "${GITHUB_ACTION_PATH}/../../scripts/deliver-cma-assets.sh"
