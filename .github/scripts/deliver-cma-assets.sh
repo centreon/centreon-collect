@@ -85,7 +85,7 @@ REPO_NAME="${REPO##*/}"
 # ─── GitHub API ───────────────────────────────────────────────────────────────
 gh_api() {
   local method="$1" endpoint="$2"
-  curl --fail --silent \
+  curl --fail --silent --max-time 30 \
     -X "$method" \
     -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
