@@ -243,7 +243,8 @@ TEST_F(check_files_test, warning_status) {
 
     auto checker = std::make_shared<check_files>(
         g_io_context, spdlog::default_logger(),
-        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        std::chrono::system_clock::now(), std::chrono::seconds(1), "serv"s,
+        "cmd_name"s, "cmd_line"s, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -307,7 +308,8 @@ TEST_F(check_files_test, critical_status) {
 
     auto checker = std::make_shared<check_files>(
         g_io_context, spdlog::default_logger(),
-        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        std::chrono::system_clock::now(), std::chrono::seconds(1), "serv"s,
+        "cmd_name"s, "cmd_line"s, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
@@ -370,7 +372,8 @@ TEST_F(check_files_test, ok_status) {
 
     auto checker = std::make_shared<check_files>(
         g_io_context, spdlog::default_logger(),
-        std::chrono::system_clock::now(), serv, check_args, nullptr,
+        std::chrono::system_clock::now(), std::chrono::seconds(1), "serv"s,
+        "cmd_name"s, "cmd_line"s, check_args, nullptr,
         [&]([[maybe_unused]] const std::shared_ptr<check>& caller,
             [[maybe_unused]] int status,
             [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
