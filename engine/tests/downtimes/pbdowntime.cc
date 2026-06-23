@@ -27,6 +27,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::downtimes;
 
 class DowntimeExternalCommand : public ::testing::Test {

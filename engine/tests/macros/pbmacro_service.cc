@@ -43,6 +43,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class MacroService : public TestEngine {
  protected:

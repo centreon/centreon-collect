@@ -41,6 +41,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 

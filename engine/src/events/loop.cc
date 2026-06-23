@@ -32,6 +32,7 @@
 #include "common/engine_conf/parser.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::events;
 
 /**

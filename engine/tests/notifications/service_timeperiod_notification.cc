@@ -44,6 +44,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
@@ -108,7 +109,7 @@ class ServiceTimePeriodNotification : public TestEngine {
  protected:
   std::shared_ptr<engine::host> _host;
   std::shared_ptr<engine::service> _svc;
-  com::centreon::engine::timeperiod* _tp;
+  com::centreon::common::timeperiods::timeperiod* _tp;
   timeperiod_creator _creator;
   time_t _now;
 };
@@ -122,7 +123,7 @@ class ServiceTimePeriodNotification : public TestEngine {
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
   error_cnt err;
   init_macros();
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -228,7 +229,7 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   error_cnt err;
   init_macros();
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -346,7 +347,7 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
 TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
   error_cnt err;
   init_macros();
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -452,7 +453,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
   error_cnt err;
   init_macros();
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -579,7 +580,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
   error_cnt err;
   init_macros();
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -705,7 +706,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   init_macros();
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -832,7 +833,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
 
 TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   init_macros();
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);
@@ -952,7 +953,7 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
 
 TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   init_macros();
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   int now{20000};
   set_time(now);

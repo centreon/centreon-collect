@@ -24,17 +24,19 @@
 #include "common/timeperiods/daterange.hh"
 
 /* Forward declaration. */
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 class timeperiod;
 }
 
-typedef absl::flat_hash_map<std::string,
-                            std::shared_ptr<com::centreon::engine::timeperiod>>
+typedef absl::flat_hash_map<
+    std::string,
+    std::shared_ptr<com::centreon::common::timeperiods::timeperiod>>
     timeperiod_map;
-typedef std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>
+typedef std::unordered_multimap<std::string,
+                                com::centreon::common::timeperiods::timeperiod*>
     timeperiodexclusion;
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 class timeperiod {
   std::string _name;
@@ -42,10 +44,12 @@ class timeperiod {
   timeperiodexclusion _exclusions;
 
  public:
-  timeperiod(const configuration::Timeperiod& obj);
-  void set_exclusions(const configuration::StringSet& exclusions);
-  void set_exceptions(const configuration::ExceptionArray& array);
-  void set_days(const configuration::DaysArray& array);
+  timeperiod(const com::centreon::engine::configuration::Timeperiod& obj);
+  void set_exclusions(
+      const com::centreon::engine::configuration::StringSet& exclusions);
+  void set_exceptions(
+      const com::centreon::engine::configuration::ExceptionArray& array);
+  void set_days(const com::centreon::engine::configuration::DaysArray& array);
 
   std::string const& get_name() const { return _name; };
   void set_name(const std::string& name);
@@ -75,6 +79,6 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod);
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods
 
 #endif  // !CCE_OBJECTS_TIMEPERIOD_HH

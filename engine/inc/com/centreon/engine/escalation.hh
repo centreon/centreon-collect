@@ -21,8 +21,11 @@
 #include "com/centreon/engine/notifier.hh"
 
 /* Forward declaration. */
-namespace com::centreon::engine {
+namespace com::centreon::engine {}
+namespace com::centreon::common::timeperiods {
 class timeperiod;
+}
+namespace com::centreon::engine {
 
 class escalation {
   uint32_t _first_notification;
@@ -60,7 +63,7 @@ class escalation {
   virtual void resolve(uint32_t& w, uint32_t& e);
 
   notifier* notifier_ptr;
-  timeperiod* escalation_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* escalation_period_ptr;
 };
 }  // namespace com::centreon::engine
 

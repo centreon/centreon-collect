@@ -41,6 +41,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 namespace notifications = com::centreon::common::notifications;
@@ -108,7 +109,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
    */
   ASSERT_EQ(_host->services.size(), 1u);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -137,7 +138,7 @@ TEST_F(ServiceNotification,
    */
   pb_indexed_config.mut_state().set_enable_notifications(false);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -161,7 +162,7 @@ TEST_F(ServiceNotification,
    * If we call time(), it is not the glibc time() function that will be called.
    */
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -181,7 +182,7 @@ TEST_F(ServiceNotification,
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -206,7 +207,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationForcedWithNotificationDisabled) {
   pb_indexed_config.mut_state().set_enable_notifications(false);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -229,7 +230,7 @@ TEST_F(ServiceNotification,
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -252,7 +253,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -274,7 +275,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -296,7 +297,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -319,7 +320,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationWithHardStateAcknowledged) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -342,7 +343,7 @@ TEST_F(ServiceNotification,
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationAfterPreviousTooSoon) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -366,7 +367,7 @@ TEST_F(ServiceNotification,
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationAfterPreviousWithNullInterval) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -391,7 +392,7 @@ TEST_F(ServiceNotification,
 }
 
 TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -416,7 +417,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationOnStateBeforeFirstNotifDelay) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -443,7 +444,7 @@ TEST_F(ServiceNotification,
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationOnStateAfterFirstNotifDelay) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 
@@ -473,7 +474,7 @@ TEST_F(ServiceNotification,
    * If we call time(), it is not the glibc time() function that will be called.
    */
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -944,7 +945,7 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
    */
   ASSERT_EQ(_host->services.size(), 1u);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -981,7 +982,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
    */
   ASSERT_EQ(_host->services.size(), 1u);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -1034,7 +1035,7 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
    */
   ASSERT_EQ(_host->services.size(), 1u);
   set_time(43200);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -1095,7 +1096,7 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
 }
 
 TEST_F(ServiceNotification, SimpleVolatileServiceNotificationWithDowntime) {
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
   set_time(20000);
 

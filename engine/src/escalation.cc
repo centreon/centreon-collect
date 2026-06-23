@@ -22,6 +22,7 @@
 #include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 
 escalation::escalation(uint32_t first_notification,

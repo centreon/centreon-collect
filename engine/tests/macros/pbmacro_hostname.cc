@@ -46,6 +46,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class MacroHostname : public TestEngine {
  protected:

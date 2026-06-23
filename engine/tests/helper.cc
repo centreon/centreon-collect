@@ -32,6 +32,7 @@
 #include "common/log_v2/config.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 using com::centreon::common::log_v2::log_v2;
 using log_v2_config = com::centreon::common::log_v2::config;

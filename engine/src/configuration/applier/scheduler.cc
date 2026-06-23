@@ -25,6 +25,7 @@
 #include "com/centreon/engine/timezone_locker.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 
 /**

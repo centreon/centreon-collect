@@ -28,58 +28,63 @@ class timeperiod_creator {
  public:
   timeperiod_creator();
   ~timeperiod_creator();
-  com::centreon::engine::timeperiod* get_timeperiods();
-  std::shared_ptr<com::centreon::engine::timeperiod> get_timeperiods_shared();
-  com::centreon::engine::timeperiod* new_timeperiod();
+  com::centreon::common::timeperiods::timeperiod* get_timeperiods();
+  std::shared_ptr<com::centreon::common::timeperiods::timeperiod>
+  get_timeperiods_shared();
+  com::centreon::common::timeperiods::timeperiod* new_timeperiod();
   void new_exclusion(
-      std::shared_ptr<com::centreon::engine::timeperiod> excluded,
-      com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_calendar_date(
+      std::shared_ptr<com::centreon::common::timeperiods::timeperiod> excluded,
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
+  com::centreon::common::timeperiods::daterange* new_calendar_date(
       int start_year,
       int start_month,
       int start_day,
       int end_year,
       int end_month,
       int end_day,
-      com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_specific_month_date(
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
+  com::centreon::common::timeperiods::daterange* new_specific_month_date(
       int start_month,
       int start_day,
       int end_month,
       int end_day,
-      com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_generic_month_date(
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
+  com::centreon::common::timeperiods::daterange* new_generic_month_date(
       int start_day,
       int end_day,
-      com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_offset_weekday_of_specific_month(
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
+  com::centreon::common::timeperiods::daterange*
+  new_offset_weekday_of_specific_month(
       int start_month,
       int start_wday,
       int start_offset,
       int end_month,
       int end_wday,
       int end_offset,
-      com::centreon::engine::timeperiod* target = NULL);
-  com::centreon::engine::daterange* new_offset_weekday_of_generic_month(
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
+  com::centreon::common::timeperiods::daterange*
+  new_offset_weekday_of_generic_month(
       int start_wday,
       int start_offset,
       int end_wday,
       int end_offset,
-      com::centreon::engine::timeperiod* target = NULL);
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
   void new_timerange(int start_hour,
                      int start_minute,
                      int end_hour,
                      int end_minute,
-                     com::centreon::engine::daterange* target);
-  void new_timerange(int start_hour,
-                     int start_minute,
-                     int end_hour,
-                     int end_minute,
-                     int day,
-                     com::centreon::engine::timeperiod* target = NULL);
+                     com::centreon::common::timeperiods::daterange* target);
+  void new_timerange(
+      int start_hour,
+      int start_minute,
+      int end_hour,
+      int end_minute,
+      int day,
+      com::centreon::common::timeperiods::timeperiod* target = NULL);
 
  private:
-  std::list<std::shared_ptr<com::centreon::engine::timeperiod>> _timeperiods;
+  std::list<std::shared_ptr<com::centreon::common::timeperiods::timeperiod>>
+      _timeperiods;
 };
 
 int hmtos(int h, int m);

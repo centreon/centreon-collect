@@ -35,6 +35,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 namespace notifications = com::centreon::common::notifications;
@@ -111,7 +112,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
    */
   set_time(43000);
   _host->set_last_hard_state_change(43000);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::hostescalation> host_escalation =
@@ -182,7 +183,8 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
   add_day(friday);
   add_day(saturday);
 
-  std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
+      new com::centreon::common::timeperiods::timeperiod(tp)};
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
@@ -240,7 +242,8 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
   add_day(friday);
   add_day(saturday);
 
-  std::unique_ptr<engine::timeperiod> tperiod{new engine::timeperiod(tp)};
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
+      new com::centreon::common::timeperiods::timeperiod(tp)};
 
   std::unique_ptr<engine::hostescalation> host_escalation{
       new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
