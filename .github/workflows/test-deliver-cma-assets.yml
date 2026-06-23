@@ -1,0 +1,43 @@
+name: test-deliver-cma-assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      github_release:
+        description: "GitHub release tag to test against (must exist)"
+        required: true
+        default: "centreon-monitoring-agent-26.05.0"
+      dry_run:
+        description: "Dry run (no actual uploads)"
+        type: boolean
+        default: true
+
+jobs:
+  test-local-mode:
+    name: Test local mode
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create dummy CMA asset files
+        run: |
+          mkdir -p /tmp/test-assets
+          # Dummy files with real CMA naming conventions
+          touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.el8.x86_64.rpm
+          touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.el9.x86_64.rpm
+          touch /tmp/test-assets/centreon-monitoring-agent_26.05.0~deb12u1_amd64.deb
+          touch /tmp/test-assets/centreon-monitoring-agent_26.05.0~0ubuntu.24.04_amd64.deb
+          touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.exe
+          echo "Test files created:"
+          ls -la /tmp/test-assets/
+
+      - name: Run deliver-cma-assets.sh (dry-run, local mode)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TOKEN_DOWNLOAD_CENTREON_COM: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+        run: |
+          bash .github/scripts/deliver-cma-assets.sh \
+            --github-release "${{ inputs.github_release }}" \
+            --file-pattern "/tmp/test-assets/centreon-monitoring-agent-26.05*" \
+            ${{ inputs.dry_run && '--dry-run' || '' }}
