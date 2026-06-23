@@ -20,6 +20,7 @@
 
 #include <ctime>
 
+#include "absl/time/time.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/timeperiods/timeperiod.hh"
 #include "common/timeperiods/timeperiod_manager.hh"
@@ -28,6 +29,42 @@ using namespace com::centreon;
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::common::timeperiods {
+
+namespace {
+
+/**
+ *  Stateless replacement for localtime_r: break a time_t down into local civil
+ *  fields expressed in @p tz, without touching any process-global TZ state.
+ *
+ *  @param[in]  when  Instant to convert.
+ *  @param[in]  tz    Timezone the civil fields are expressed in.
+ *  @param[out] out   Filled broken-down time.
+ */
+inline void tm_from_time(time_t when,
+                         const absl::TimeZone& tz,
+                         struct tm* out) {
+  *out = absl::ToTM(absl::FromTimeT(when), tz);
+}
+
+/**
+ *  Stateless replacement for mktime: interpret the broken-down fields of @p t
+ *  in @p tz and return the matching time_t. Like mktime, @p t is normalised in
+ *  place (out-of-range fields wrap, tm_wday / tm_yday / tm_isdst are filled),
+ *  and tm_isdst is honoured the same way (-1 lets the zone decide, which maps
+ *  to absl::FromTM's pre-transition instant).
+ *
+ *  @param[in,out] t   Broken-down time to convert and normalise.
+ *  @param[in]     tz  Timezone the fields are expressed in.
+ *
+ *  @return The matching time_t.
+ */
+inline time_t time_from_tm(struct tm* t, const absl::TimeZone& tz) {
+  absl::Time when = absl::FromTM(*t, tz);
+  *t = absl::ToTM(when, tz);
+  return absl::ToTimeT(when);
+}
+
+}  // namespace
 
 /**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
@@ -163,11 +200,13 @@ bool timeperiod::operator!=(timeperiod const& obj) noexcept {
  *
  *  @return Midnight of the day in skip seconds.
  */
-static time_t _add_round_days_to_midnight(time_t midnight, time_t skip) {
+static time_t _add_round_days_to_midnight(time_t midnight,
+                                          time_t skip,
+                                          const absl::TimeZone& tz) {
   // Compute expected time with no DST.
   time_t next_day_time(midnight + skip);
   struct tm next_day;
-  localtime_r(&next_day_time, &next_day);
+  tm_from_time(next_day_time, tz, &next_day);
 
   // There was a DST shift in between.
   if (next_day.tm_hour || next_day.tm_min || next_day.tm_sec) {
@@ -178,12 +217,12 @@ static time_t _add_round_days_to_midnight(time_t midnight, time_t skip) {
     ** time to midnight, convert back and we're done.
     */
     next_day_time += 12 * 60 * 60;
-    localtime_r(&next_day_time, &next_day);
+    tm_from_time(next_day_time, tz, &next_day);
     next_day.tm_hour = 0;
     next_day.tm_min = 0;
     next_day.tm_sec = 0;
     next_day.tm_isdst = -1;
-    next_day_time = mktime(&next_day);
+    next_day_time = time_from_tm(&next_day, tz);
   }
 
   return next_day_time;
@@ -201,7 +240,8 @@ static time_t _add_round_days_to_midnight(time_t midnight, time_t skip) {
  */
 static time_t calculate_time_from_day_of_month(int year,
                                                int month,
-                                               int monthday) {
+                                               int monthday,
+                                               const absl::TimeZone& tz) {
   time_t midnight;
   tm t;
 
@@ -214,7 +254,7 @@ static time_t calculate_time_from_day_of_month(int year,
     t.tm_mon = month;
     t.tm_mday = monthday;
     t.tm_isdst = -1;
-    midnight = mktime(&t);
+    midnight = time_from_tm(&t, tz);
 
     // If we rolled over to the next month, time is invalid, assume the
     // user's intention is to keep it in the current month.
@@ -234,7 +274,7 @@ static time_t calculate_time_from_day_of_month(int year,
       t.tm_year = year;
       t.tm_mday = day;
       t.tm_isdst = -1;
-      midnight = mktime(&t);
+      midnight = time_from_tm(&t, tz);
     } while ((midnight == (time_t)-1) || (t.tm_mon != month));
 
     // Now that we know the last day, back up more.
@@ -247,7 +287,7 @@ static time_t calculate_time_from_day_of_month(int year,
     else
       t.tm_mday += monthday + 1;
     t.tm_isdst = -1;
-    midnight = mktime(&t);
+    midnight = time_from_tm(&t, tz);
   }
 
   return midnight;
@@ -268,7 +308,8 @@ static time_t calculate_time_from_day_of_month(int year,
 static time_t calculate_time_from_weekday_of_month(int year,
                                                    int month,
                                                    int weekday,
-                                                   int weekday_offset) {
+                                                   int weekday_offset,
+                                                   const absl::TimeZone& tz) {
   // Compute first day of month (to get weekday).
   tm t;
   t.tm_sec = 0;
@@ -278,7 +319,7 @@ static time_t calculate_time_from_weekday_of_month(int year,
   t.tm_mon = month;
   t.tm_mday = 1;
   t.tm_isdst = -1;
-  mktime(&t);
+  time_from_tm(&t, tz);
   time_t midnight;
 
   // How many days must we advance to reach the first instance of the
@@ -298,7 +339,7 @@ static time_t calculate_time_from_weekday_of_month(int year,
     t.tm_year = year;
     t.tm_mday = days + 1;
     t.tm_isdst = -1;
-    midnight = mktime(&t);
+    midnight = time_from_tm(&t, tz);
 
     // If we rolled over to the next month, time is invalid, assume the
     // user's intention is to keep it in the current month.
@@ -318,7 +359,7 @@ static time_t calculate_time_from_weekday_of_month(int year,
       t.tm_year = year;
       t.tm_mday = days + 1;
       t.tm_isdst = -1;
-      midnight = mktime(&t);
+      midnight = time_from_tm(&t, tz);
     } while ((midnight == (time_t)-1) || (t.tm_mon != month));
 
     // Now that we know the last instance of the weekday, back up more.
@@ -331,7 +372,7 @@ static time_t calculate_time_from_weekday_of_month(int year,
     else
       t.tm_mday += days;
     t.tm_isdst = -1;
-    midnight = mktime(&t);
+    midnight = time_from_tm(&t, tz);
   }
 
   return midnight;
@@ -359,7 +400,8 @@ struct time_info {
 static bool _daterange_calendar_date_to_time_t(daterange const& r,
                                                time_info const& ti,
                                                time_t& start,
-                                               time_t& end) {
+                                               time_t& end,
+                                               const absl::TimeZone& tz) {
   (void)ti;
 
   tm t;
@@ -370,7 +412,7 @@ static bool _daterange_calendar_date_to_time_t(daterange const& r,
   t.tm_mday = r.get_smday();
   t.tm_mon = r.get_smon();
   t.tm_year = r.get_syear() - 1900;
-  if ((start = mktime(&t)) == (time_t)-1)
+  if ((start = time_from_tm(&t, tz)) == (time_t)-1)
     return false;
 
   if (r.get_eyear()) {
@@ -381,9 +423,9 @@ static bool _daterange_calendar_date_to_time_t(daterange const& r,
     t.tm_mday = r.get_emday();
     t.tm_mon = r.get_emon();
     t.tm_year = r.get_eyear() - 1900;
-    if ((end = mktime(&t)) == (time_t)-1)
+    if ((end = time_from_tm(&t, tz)) == (time_t)-1)
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
   } else
     end = (time_t)-1;
 
@@ -403,7 +445,8 @@ static bool _daterange_calendar_date_to_time_t(daterange const& r,
 static bool _daterange_month_date_to_time_t(daterange const& r,
                                             time_info const& ti,
                                             time_t& start,
-                                            time_t& end) {
+                                            time_t& end,
+                                            const absl::TimeZone& tz) {
   // End before start ?
   bool end_before_start(
       (r.get_smon() > r.get_emon()) ||
@@ -412,11 +455,12 @@ static bool _daterange_month_date_to_time_t(daterange const& r,
   int year(end_before_start ? ti.preftime.tm_year - 1 : ti.preftime.tm_year);
   bool found(false);
   for (int i(0); (i < 3) && !found; ++i, ++year) {
-    start = calculate_time_from_day_of_month(year, r.get_smon(), r.get_smday());
-    end = calculate_time_from_day_of_month(year + (end_before_start ? 1 : 0),
-                                           r.get_emon(), r.get_emday());
+    start =
+        calculate_time_from_day_of_month(year, r.get_smon(), r.get_smday(), tz);
+    end = calculate_time_from_day_of_month(
+        year + (end_before_start ? 1 : 0), r.get_emon(), r.get_emday(), tz);
     if (end != (time_t)-1) {
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
       if (ti.preferred_time < end)
         found = true;
     }
@@ -438,7 +482,8 @@ static bool _daterange_month_date_to_time_t(daterange const& r,
 static bool _daterange_month_day_to_time_t(daterange const& r,
                                            time_info const& ti,
                                            time_t& start,
-                                           time_t& end) {
+                                           time_t& end,
+                                           const absl::TimeZone& tz) {
   // Check if there is a month decay between start and end.
   bool decay;
   if (r.get_smday() >= 0) {
@@ -461,13 +506,13 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
 
   // No decay, current month only.
   if (!decay) {
-    start = calculate_time_from_day_of_month(ti.preftime.tm_year,
-                                             ti.preftime.tm_mon, r.get_smday());
+    start = calculate_time_from_day_of_month(
+        ti.preftime.tm_year, ti.preftime.tm_mon, r.get_smday(), tz);
     end = calculate_time_from_day_of_month(ti.preftime.tm_year,
-                                           ti.preftime.tm_mon, r.get_emday());
+                                           ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
   }
   // Decay.
   else {
@@ -479,12 +524,12 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
       month = 11;
     } else
       --month;
-    start = calculate_time_from_day_of_month(year, month, r.get_smday());
+    start = calculate_time_from_day_of_month(year, month, r.get_smday(), tz);
     end = calculate_time_from_day_of_month(ti.preftime.tm_year,
-                                           ti.preftime.tm_mon, r.get_emday());
+                                           ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
 
     // If interval is invalid, we need to check
     // current month -> next month.
@@ -497,11 +542,11 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
       } else
         ++month;
       start = calculate_time_from_day_of_month(
-          ti.preftime.tm_year, ti.preftime.tm_mon, r.get_smday());
-      end = calculate_time_from_day_of_month(year, month, r.get_emday());
+          ti.preftime.tm_year, ti.preftime.tm_mon, r.get_smday(), tz);
+      end = calculate_time_from_day_of_month(year, month, r.get_emday(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
     }
   }
 
@@ -521,19 +566,22 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
 static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                 time_info const& ti,
                                                 time_t& start,
-                                                time_t& end) {
+                                                time_t& end,
+                                                const absl::TimeZone& tz) {
   // Check if there is a year decay between start and end.
   bool decay(r.get_smon() > r.get_emon());
 
   // No decay, check current year only.
   if (!decay) {
-    start = calculate_time_from_weekday_of_month(
-        ti.preftime.tm_year, r.get_smon(), r.get_swday(), r.get_swday_offset());
-    end = calculate_time_from_weekday_of_month(
-        ti.preftime.tm_year, r.get_emon(), r.get_ewday(), r.get_ewday_offset());
+    start = calculate_time_from_weekday_of_month(ti.preftime.tm_year,
+                                                 r.get_smon(), r.get_swday(),
+                                                 r.get_swday_offset(), tz);
+    end = calculate_time_from_weekday_of_month(ti.preftime.tm_year,
+                                               r.get_emon(), r.get_ewday(),
+                                               r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
   }
   // Decay, check previous year -> current year and
   // current year -> next year intervals.
@@ -541,25 +589,26 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
     // Check previous year -> current year.
     start = calculate_time_from_weekday_of_month(ti.preftime.tm_year - 1,
                                                  r.get_smon(), r.get_swday(),
-                                                 r.get_swday_offset());
-    end = calculate_time_from_weekday_of_month(
-        ti.preftime.tm_year, r.get_emon(), r.get_ewday(), r.get_ewday_offset());
+                                                 r.get_swday_offset(), tz);
+    end = calculate_time_from_weekday_of_month(ti.preftime.tm_year,
+                                               r.get_emon(), r.get_ewday(),
+                                               r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
 
     // If interval is invalid, we need to check
     // current year -> next year.
     if (ti.preferred_time >= end) {
       start = calculate_time_from_weekday_of_month(ti.preftime.tm_year,
                                                    r.get_smon(), r.get_swday(),
-                                                   r.get_swday_offset());
+                                                   r.get_swday_offset(), tz);
       end = calculate_time_from_weekday_of_month(ti.preftime.tm_year + 1,
                                                  r.get_emon(), r.get_ewday(),
-                                                 r.get_ewday_offset());
+                                                 r.get_ewday_offset(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
     }
   }
 
@@ -579,7 +628,8 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
 static bool _daterange_week_day_to_time_t(daterange const& r,
                                           time_info const& ti,
                                           time_t& start,
-                                          time_t& end) {
+                                          time_t& end,
+                                          const absl::TimeZone& tz) {
   // What year/month should we use ?
   int year;
   int month;
@@ -589,11 +639,11 @@ static bool _daterange_week_day_to_time_t(daterange const& r,
   while (true) {
     // Calculate time of specified weekday of month.
     start = calculate_time_from_weekday_of_month(year, month, r.get_swday(),
-                                                 r.get_swday_offset());
+                                                 r.get_swday_offset(), tz);
 
     // Use same year and month as was calculated for start time above.
     end = calculate_time_from_weekday_of_month(year, month, r.get_ewday(),
-                                               r.get_ewday_offset());
+                                               r.get_ewday_offset(), tz);
     if (end == (time_t)-1) {
       // End date can't be helped, so skip it.
       if (r.get_ewday_offset() < 0)
@@ -610,9 +660,9 @@ static bool _daterange_week_day_to_time_t(daterange const& r,
         end_month = 0;
         end_year = year + 1;
       }
-      end = calculate_time_from_day_of_month(end_year, end_month, 0);
+      end = calculate_time_from_day_of_month(end_year, end_month, 0, tz);
     } else
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60);
+      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
 
     // Error checking.
     if (((time_t)-1 == start) || ((time_t)-1 == end) || (start > end))
@@ -653,8 +703,10 @@ static bool _daterange_to_time_t(daterange const& r,
                                  unsigned int type,
                                  time_info const* ti,
                                  time_t& start,
-                                 time_t& end) {
-  typedef bool (*pfunc)(daterange const&, time_info const&, time_t&, time_t&);
+                                 time_t& end,
+                                 const absl::TimeZone& tz) {
+  typedef bool (*pfunc)(daterange const&, time_info const&, time_t&, time_t&,
+                        const absl::TimeZone&);
   static pfunc tabfunc[] = {
       &_daterange_calendar_date_to_time_t,   // 2009-08-11
       &_daterange_month_date_to_time_t,      // january 1
@@ -665,7 +717,7 @@ static bool _daterange_to_time_t(daterange const& r,
 
   if (type >= sizeof(tabfunc) / sizeof(*tabfunc))
     return false;
-  if (!(*tabfunc[type])(r, *ti, start, end))
+  if (!(*tabfunc[type])(r, *ti, start, end, tz))
     return false;
 
   // If skipping days...
@@ -678,12 +730,13 @@ static bool _daterange_to_time_t(daterange const& r,
 
       // Advance start date to next skip day
       if (!(days % r.get_skip_interval()))
-        start = _add_round_days_to_midnight(start, days * 24 * 60 * 60);
+        start = _add_round_days_to_midnight(start, days * 24 * 60 * 60, tz);
       else
         start = _add_round_days_to_midnight(
             start,
             ((days - (days % r.get_skip_interval()) + r.get_skip_interval()) *
-             24 * 60 * 60));
+             24 * 60 * 60),
+            tz);
     }
   }
 
@@ -704,14 +757,15 @@ static bool _daterange_to_time_t(daterange const& r,
 static time_t _earliest_midnight_in_daterange(time_t preferred_time,
                                               const daterange& drange,
                                               time_t drange_start_time,
-                                              time_t drange_end_time) {
+                                              time_t drange_end_time,
+                                              const absl::TimeZone& tz) {
   // XXX : handle full day skipping directly (from preferred_time to next
   // midnight)
   while ((drange_start_time < drange_end_time) ||
          (drange_end_time == (time_t)-1)) {
     // Next day at midnight.
     time_t next_day(
-        _add_round_days_to_midnight(drange_start_time, 24 * 60 * 60));
+        _add_round_days_to_midnight(drange_start_time, 24 * 60 * 60, tz));
 
     // Check range.
     if ((preferred_time < drange_start_time) ||
@@ -723,7 +777,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
       drange_start_time = next_day;
     else
       drange_start_time = _add_round_days_to_midnight(
-          drange_start_time, drange.get_skip_interval() * 24 * 60 * 60);
+          drange_start_time, drange.get_skip_interval() * 24 * 60 * 60, tz);
   }
   return (time_t)-1;
 }
@@ -741,17 +795,18 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
 static bool _timerange_to_time_t(const timerange& trange,
                                  struct tm const* midnight,
                                  time_t& range_start,
-                                 time_t& range_end) {
+                                 time_t& range_end,
+                                 const absl::TimeZone& tz) {
   struct tm my_tm;
   memcpy(&my_tm, midnight, sizeof(my_tm));
   my_tm.tm_hour = trange.get_range_start() / 60 / 60;
   my_tm.tm_min = (trange.get_range_start() / 60) % 60;
   my_tm.tm_isdst = -1;
-  range_start = mktime(&my_tm);
+  range_start = time_from_tm(&my_tm, tz);
   my_tm.tm_hour = trange.get_range_end() / 60 / 60;
   my_tm.tm_min = (trange.get_range_end() / 60) % 60;
   my_tm.tm_isdst = -1;
-  range_end = mktime(&my_tm);
+  range_end = time_from_tm(&my_tm, tz);
   return range_start <= range_end;
 }
 
@@ -764,7 +819,9 @@ static bool _timerange_to_time_t(const timerange& trange,
  *
  *  @return true on success, false on failure.
  */
-bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
+bool check_time_against_period(time_t test_time,
+                               timeperiod* tperiod,
+                               const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
@@ -773,8 +830,8 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
 
   // Faked next valid time must be tested time.
   time_t next_valid_time{(time_t)-1};
-  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
-                                              false);
+  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time, false,
+                                              tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
                                       tperiod->get_name(),
                                       next_valid_time == test_time);
@@ -792,7 +849,8 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
  *  @return true on success, false on failure.
  */
 bool check_time_against_period_for_notif(time_t test_time,
-                                         timeperiod* tperiod) {
+                                         timeperiod* tperiod,
+                                         const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
@@ -801,8 +859,8 @@ bool check_time_against_period_for_notif(time_t test_time,
 
   // Faked next valid time must be tested time.
   time_t next_valid_time{(time_t)-1};
-  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
-                                              true);
+  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time, true,
+                                              tz);
   return next_valid_time == test_time;
 }
 
@@ -814,9 +872,11 @@ bool check_time_against_period_for_notif(time_t test_time,
  *  @param[out] invalid_time    Variable to fill.
  *  @param[in]  notif_timeperiod    if called for the notification .
  */
-void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
-                                                      time_t* invalid_time,
-                                                      bool notif_timeperiod) {
+void timeperiod::get_next_invalid_time_per_timeperiod(
+    time_t preferred_time,
+    time_t* invalid_time,
+    bool notif_timeperiod,
+    const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
@@ -833,12 +893,12 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
     // Compute time information.
     time_info ti;
     ti.preferred_time = preferred_time;
-    localtime_r(&preferred_time, &ti.preftime);
+    tm_from_time(preferred_time, tz, &ti.preftime);
     ti.preftime.tm_sec = 0;
     ti.preftime.tm_min = 0;
     ti.preftime.tm_hour = 0;
     ti.preftime.tm_isdst = -1;
-    ti.midnight = mktime(&ti.preftime);
+    ti.midnight = time_from_tm(&ti.preftime, tz);
 
     // XXX: handle range end reached.
     // Browse all date range.
@@ -853,16 +913,17 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
         time_t daterange_start_time((time_t)-1);
         time_t daterange_end_time((time_t)-1);
         if (_daterange_to_time_t(*it, daterange_type, &ti, daterange_start_time,
-                                 daterange_end_time) &&
+                                 daterange_end_time, tz) &&
             ((preferred_time < daterange_end_time) ||
              ((time_t)-1 == daterange_end_time))) {
           // Check that date is within range.
           time_t earliest_midnight(_earliest_midnight_in_daterange(
-              preferred_time, *it, daterange_start_time, daterange_end_time));
+              preferred_time, *it, daterange_start_time, daterange_end_time,
+              tz));
           if (earliest_midnight != (time_t)-1) {
             // Midnight.
             struct tm midnight;
-            localtime_r(&earliest_midnight, &midnight);
+            tm_from_time(earliest_midnight, tz, &midnight);
 
             // Browse all time range of date range.
             for (timerange_list::const_iterator
@@ -873,7 +934,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
               time_t range_start((time_t)-1);
               time_t range_end((time_t)-1);
               if (_timerange_to_time_t(*it_tr, &midnight, range_start,
-                                       range_end) &&
+                                       range_end, tz) &&
                   (preferred_time >= range_start) &&
                   (preferred_time < range_end))
                 earliest_time = range_end;
@@ -896,9 +957,9 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
 
       // Calculate start of this future weekday.
       time_t day_start(_add_round_days_to_midnight(
-          ti.midnight, days_into_the_future * 24 * 60 * 60));
+          ti.midnight, days_into_the_future * 24 * 60 * 60, tz));
       struct tm day_midnight;
-      localtime_r(&day_start, &day_midnight);
+      tm_from_time(day_start, tz, &day_midnight);
 
       // Check all time ranges for this day of the week.
       for (timerange_list::iterator it(this->days[weekday].begin()),
@@ -907,7 +968,8 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
         // Get range limits.
         time_t range_start((time_t)-1);
         time_t range_end((time_t)-1);
-        if (_timerange_to_time_t(*it, &day_midnight, range_start, range_end) &&
+        if (_timerange_to_time_t(*it, &day_midnight, range_start, range_end,
+                                 tz) &&
             (preferred_time >= range_start) && (preferred_time < range_end))
           earliest_time = range_end;
       }
@@ -920,7 +982,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
          it != end; ++it) {
       time_t valid((time_t)-1);
       it->second->get_next_valid_time_per_timeperiod(preferred_time, &valid,
-                                                     notif_timeperiod);
+                                                     notif_timeperiod, tz);
       if ((valid != (time_t)-1) &&
           (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
         next_exclusion = valid;
@@ -936,7 +998,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
 
     if ((next_exclusion != (time_t)-1) &&
         (next_exclusion <
-         _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60)) &&
+         _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60, tz)) &&
         (((time_t)-1 == earliest_time) || (next_exclusion <= earliest_time))) {
       earliest_time = (time_t)-1;
       preferred_time = next_exclusion;
@@ -965,10 +1027,11 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
  *  @return The next valid time found within the day.
  */
 static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
-                                                 timerange_list timeranges) {
+                                                 timerange_list timeranges,
+                                                 const absl::TimeZone& tz) {
   time_t earliest_time((time_t)-1);
   struct tm midnight;
-  localtime_r(&preferred_time, &midnight);
+  tm_from_time(preferred_time, tz, &midnight);
   midnight.tm_hour = 0;
   midnight.tm_min = 0;
   midnight.tm_sec = 0;
@@ -977,7 +1040,7 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
        it != end; ++it) {
     time_t range_start((time_t)-1);
     time_t range_end((time_t)-1);
-    if (_timerange_to_time_t(*it, &midnight, range_start, range_end)) {
+    if (_timerange_to_time_t(*it, &midnight, range_start, range_end, tz)) {
       // Time range is in the future.
       if (range_start >= preferred_time) {
         if ((earliest_time == (time_t)-1) || (range_start < earliest_time))
@@ -998,9 +1061,11 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
  *  @param[out] valid_time          Variable to fill.
  *  @param[in]  notif_timeperiod    if called for the notification .
  */
-void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
-                                                    time_t* valid_time,
-                                                    bool notif_timeperiod) {
+void timeperiod::get_next_valid_time_per_timeperiod(
+    time_t preferred_time,
+    time_t* valid_time,
+    bool notif_timeperiod,
+    const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
@@ -1014,12 +1079,12 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   for (time_t in_one_year(ti.preferred_time + 366 * 24 * 60 * 60);
        (earliest_time == (time_t)-1) && (ti.preferred_time < in_one_year);) {
     // Compute time information.
-    localtime_r(&ti.preferred_time, &ti.preftime);
+    tm_from_time(ti.preferred_time, tz, &ti.preftime);
     ti.preftime.tm_sec = 0;
     ti.preftime.tm_min = 0;
     ti.preftime.tm_hour = 0;
     ti.preftime.tm_isdst = -1;
-    ti.midnight = mktime(&ti.preftime);
+    ti.midnight = time_from_tm(&ti.preftime, tz);
 
     // Browse all date range types in precedence order.
     bool skip_this_day(false);
@@ -1036,7 +1101,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
         time_t daterange_start_time((time_t)-1);
         time_t daterange_end_time((time_t)-1);
         if (_daterange_to_time_t(*it, daterange_type, &ti, daterange_start_time,
-                                 daterange_end_time) &&
+                                 daterange_end_time, tz) &&
             ((daterange_start_time == (time_t)-1) ||
              (daterange_start_time <= ti.midnight)) &&
             ((daterange_end_time == (time_t)-1) ||
@@ -1045,7 +1110,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
           // been skipped because it was not valid on the current day
           // but could be valid tomorrow.
           time_t potential_time(_get_next_valid_time_in_timeranges(
-              ti.preferred_time, it->get_timerange()));
+              ti.preferred_time, it->get_timerange(), tz));
 
           // Potential time found.
           if (potential_time != (time_t)-1) {
@@ -1070,7 +1135,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
       // exceptions for this day.
       if (earliest_time == (time_t)-1) {
         time_t potential_time(_get_next_valid_time_in_timeranges(
-            ti.preferred_time, this->days[ti.preftime.tm_wday]));
+            ti.preferred_time, this->days[ti.preftime.tm_wday], tz));
         if ((potential_time != (time_t)-1) &&
             ((earliest_time == (time_t)-1) || (potential_time < earliest_time)))
           earliest_time = potential_time;
@@ -1087,7 +1152,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
            it != end; ++it) {
         time_t invalid((time_t)-1);
         it->second->get_next_invalid_time_per_timeperiod(
-            earliest_time, &invalid, notif_timeperiod);
+            earliest_time, &invalid, notif_timeperiod, tz);
         if ((invalid != (time_t)-1) &&
             (((time_t)-1 == max_invalid) || (invalid > max_invalid)))
           max_invalid = invalid;
@@ -1103,7 +1168,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
     // Skip if not already done through exceptions.
     if (!skipped)
       ti.preferred_time =
-          _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60);
+          _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60, tz);
   }
 
   // If we couldn't find a time period there must be none defined.
@@ -1127,7 +1192,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
  */
 void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
-                         timeperiod* tperiod) {
+                         timeperiod* tperiod,
+                         const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
@@ -1143,7 +1209,7 @@ void get_next_valid_time(time_t pref_time,
   else {
     *valid_time = 0;
     tperiod->get_next_valid_time_per_timeperiod(preferred_time, valid_time,
-                                                false);
+                                                false, tz);
   }
 }
 

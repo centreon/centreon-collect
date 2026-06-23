@@ -20,10 +20,10 @@
 #include <gtest/gtest.h>
 
 #include <atomic>
-#include <cstdlib>
 #include <ctime>
 #include <thread>
 
+#include "absl/time/time.h"
 #include "common/tests/timeperiods/utils.hh"
 #include "common/timeperiods/timeperiod.hh"
 
@@ -31,33 +31,12 @@ using namespace com::centreon::common::timeperiods;
 
 namespace {
 
-// RAII guard: set the process TZ for the duration of a scope, then restore the
-// previous value (the test suite pins TZ=Europe/Paris globally, see
-// common/tests/test_main.cc). It mutates process-global state through
-// setenv/tzset, which is exactly the brick the timeperiods rework wants to get
-// rid of: these golden-master tests freeze the current behaviour so the
-// upcoming switch to a per-evaluation absl::TimeZone can be proven equivalent.
-class scoped_tz {
-  std::string _saved;
-  bool _had_saved;
-
- public:
-  explicit scoped_tz(const char* tz) {
-    const char* cur = ::getenv("TZ");
-    _had_saved = cur != nullptr;
-    if (_had_saved)
-      _saved = cur;
-    ::setenv("TZ", tz, 1);
-    ::tzset();
-  }
-  ~scoped_tz() {
-    if (_had_saved)
-      ::setenv("TZ", _saved.c_str(), 1);
-    else
-      ::unsetenv("TZ");
-    ::tzset();
-  }
-};
+// Load an IANA timezone by name (test would be meaningless without it).
+absl::TimeZone zone(const char* name) {
+  absl::TimeZone tz;
+  EXPECT_TRUE(absl::LoadTimeZone(name, &tz)) << "cannot load zone " << name;
+  return tz;
+}
 
 // Build a timezone-independent absolute instant from UTC calendar fields, so a
 // single "now" can be reused across timezones without being reinterpreted.
@@ -73,39 +52,41 @@ time_t utc_instant(int year, int month, int day, int hour, int min, int sec) {
   return timegm(&t);
 }
 
+// Sunday 2024-06-23 00:00:00 UTC, an absolute instant earlier than the next
+// Monday 09:00 in every timezone tested here.
+constexpr time_t k_sunday = 1719100800;  // == utc_instant(2024, 6, 23, 0, 0, 0)
+
 // Compute "next Monday 09:00" for a "Monday 09:00-17:00" timeperiod, starting
-// from the same absolute Sunday instant, evaluated under timezone @p tz.
-time_t next_monday_0900(const char* tz) {
-  scoped_tz guard(tz);
+// from k_sunday, evaluated under timezone @p tz. The fake clock must already be
+// pinned to k_sunday by the caller (get_next_valid_time() clamps to now).
+time_t next_monday_0900(const absl::TimeZone& tz) {
   timeperiod_creator creator;
   creator.new_timeperiod();
   // Monday (day index 1) 09:00-17:00.
   creator.new_timerange(9, 0, 17, 0, 1);
 
-  // Sunday 2024-06-23 00:00:00 UTC, an absolute instant earlier than the next
-  // Monday 09:00 in every timezone tested here.
-  time_t now = utc_instant(2024, 6, 23, 0, 0, 0);
-  set_time(now);
-
   time_t computed = static_cast<time_t>(-1);
-  get_next_valid_time(now, &computed, creator.get_timeperiods());
+  get_next_valid_time(k_sunday, &computed, creator.get_timeperiods(), tz);
   return computed;
 }
 
 }  // namespace
 
 // Given a "Monday 09:00-17:00" timeperiod and a fixed absolute instant
-// When get_next_valid_time() is evaluated under different timezones
+// When get_next_valid_time() is evaluated with different timezones
 // Then each result is that timezone's local Monday 09:00 (different absolute
-//      instants), proving the computation is interpreted in the active zone.
+//      instants), proving the timezone is honoured per call (no global state).
 // These hard-coded epochs are the golden master (verified with `date`):
 //   Europe/Paris    09:00 CEST = 07:00 UTC
 //   UTC             09:00      = 09:00 UTC
 //   America/New_York 09:00 EDT = 13:00 UTC
-TEST(GetNextValidTimeTimezone, WorkHoursInterpretedInLocalTimezone) {
-  EXPECT_EQ(next_monday_0900("Europe/Paris"), static_cast<time_t>(1719212400));
-  EXPECT_EQ(next_monday_0900("UTC"), static_cast<time_t>(1719219600));
-  EXPECT_EQ(next_monday_0900("America/New_York"),
+TEST(GetNextValidTimeTimezone, WorkHoursInterpretedInGivenTimezone) {
+  ASSERT_EQ(utc_instant(2024, 6, 23, 0, 0, 0), k_sunday);
+  set_time(k_sunday);
+  EXPECT_EQ(next_monday_0900(zone("Europe/Paris")),
+            static_cast<time_t>(1719212400));
+  EXPECT_EQ(next_monday_0900(zone("UTC")), static_cast<time_t>(1719219600));
+  EXPECT_EQ(next_monday_0900(zone("America/New_York")),
             static_cast<time_t>(1719234000));
 }
 
@@ -113,9 +94,10 @@ TEST(GetNextValidTimeTimezone, WorkHoursInterpretedInLocalTimezone) {
 // on the timezone — the property that makes per-evaluation timezone support
 // matter at all. Westwards zones reach their local 09:00 later in absolute time.
 TEST(GetNextValidTimeTimezone, WorkHoursDifferAcrossTimezones) {
-  time_t paris = next_monday_0900("Europe/Paris");
-  time_t utc = next_monday_0900("UTC");
-  time_t new_york = next_monday_0900("America/New_York");
+  set_time(k_sunday);
+  time_t paris = next_monday_0900(zone("Europe/Paris"));
+  time_t utc = next_monday_0900(zone("UTC"));
+  time_t new_york = next_monday_0900(zone("America/New_York"));
   EXPECT_LT(paris, utc);
   EXPECT_LT(utc, new_york);
   EXPECT_EQ(utc - paris, 2 * 3600);     // Paris is UTC+2 in June.
@@ -126,22 +108,23 @@ TEST(GetNextValidTimeTimezone, WorkHoursDifferAcrossTimezones) {
 // catches any arithmetic that assumes whole-hour offsets.
 //   Monday 2024-06-24 09:00 +10:30 = Sunday 2024-06-23 22:30 UTC = 1719181800
 TEST(GetNextValidTimeTimezone, HalfHourOffsetTimezone) {
-  EXPECT_EQ(next_monday_0900("Australia/Lord_Howe"),
+  set_time(k_sunday);
+  EXPECT_EQ(next_monday_0900(zone("Australia/Lord_Howe")),
             static_cast<time_t>(1719181800));
 }
 
-// DISABLED until the rework lands: today the timezone is process-global state
-// (setenv/tzset via engine's timezone_manager), so two threads evaluating the
-// same timeperiod under different timezones race on that global. Once
-// get_next_valid_time() takes the timezone as a per-call parameter (an
-// immutable absl::TimeZone), this test must pass and proves the computation is
-// thread-safe and zone-independent — the core deliverable of the rework.
-TEST(GetNextValidTimeTimezone, DISABLED_ConcurrentEvaluationsAreTimezoneIndependent) {
+// The core deliverable of the rework: the timezone is a per-call parameter (an
+// immutable absl::TimeZone), so two threads can evaluate the same timeperiod
+// under different timezones concurrently without interfering. This would have
+// been impossible with the old process-global setenv/tzset state. The fake
+// clock is pinned once here, before the threads start, so they only read it.
+TEST(GetNextValidTimeTimezone, ConcurrentEvaluationsAreTimezoneIndependent) {
+  set_time(k_sunday);
   std::atomic<time_t> paris{static_cast<time_t>(-1)};
   std::atomic<time_t> new_york{static_cast<time_t>(-1)};
 
-  std::thread t1([&] { paris = next_monday_0900("Europe/Paris"); });
-  std::thread t2([&] { new_york = next_monday_0900("America/New_York"); });
+  std::thread t1([&] { paris = next_monday_0900(zone("Europe/Paris")); });
+  std::thread t2([&] { new_york = next_monday_0900(zone("America/New_York")); });
   t1.join();
   t2.join();
 
