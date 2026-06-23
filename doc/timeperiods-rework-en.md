@@ -187,14 +187,54 @@ Suggested order, least to most risky:
    while migrating the ~25 consumer files).
 6. Link broker against the library for notification time-window evaluation.
 
-## 9. Open leads
+## 9. Replacing `timezone_manager` — phased plan
+
+Going through `setenv("TZ")` + `tzset()` (cf. §3) is the real blocker for broker.
+We remove it in three phases, least to most risky:
+
+- **Phase 0 — safety net (DONE).** Before touching the engine, freeze the current
+  behaviour with multi-timezone golden-master tests:
+  `common/tests/timeperiods/get_next_valid_time/timezone.cc`. The same
+  "Monday 09:00-17:00" timeperiod, evaluated from a single absolute instant,
+  yields each zone's local 09:00 (Paris `07:00 UTC` < UTC `09:00 UTC` <
+  New_York `13:00 UTC`), plus a half-hour case (Australia/Lord_Howe, +10:30) to
+  trap any whole-hour-offset assumption. A `DISABLED_ConcurrentEvaluationsAre…`
+  test documents the goal: it can only pass once the timezone is a per-call
+  parameter (impossible today, the TZ state being global). Until then the tests
+  set the zone via `setenv/tzset` in a `scoped_tz` RAII guard.
+- **Phase 1 — timezone as a parameter (DONE).** `const absl::TimeZone& tz` now
+  flows through the whole chain (`get_next_valid_time` /
+  `check_time_against_period` / `*_per_timeperiod` + every internal static
+  helper). Two stateless helpers replace libc in `timeperiod.cc`:
+  `tm_from_time(time_t, tz)` (= `localtime_r`, via `absl::ToTM`) and
+  `time_from_tm(tm*, tz)` (= `mktime`, via `absl::FromTM` then `absl::ToTM` to
+  write back the normalised fields). DST: `absl::FromTM` returns the
+  pre-transition instant when `tm_isdst != 0`, which exactly reproduces `mktime`
+  with `tm_isdst = -1` (verified: every internal call-site sets `tm_isdst = -1`
+  before converting). **Engine compatibility without touching the ~40
+  call-sites**: the parameter defaults to `absl::LocalTimeZone()`, which re-reads
+  `TZ` on every call (verified) → the default path reproduces today's behaviour
+  identically, including the global `timezone_locker`. Consumers (broker, tests)
+  pass an explicit `absl::TimeZone` → thread-safe, no global state. The Phase 0
+  concurrent test is enabled and green. Benchmark unchanged under `TZ=UTC`
+  (gnvt_24x7 ~0.6 µs; `LocalTimeZone()` is resolved once per public call, then
+  the immutable zone is reused for all internal conversions).
+- **Phase 2 — removal** of `timezone_manager` / `timezone_locker` once engine
+  call-sites are migrated to an explicit zone (`absl::LoadTimeZone(
+  get_timezone())` instead of pushing the locker). Bonus: the per-call `stat()`
+  of `/etc/localtime` disappears (the ×4–×8 measured in §10).
+
+Reminder: the timezone is **not** a property of the timeperiod (the proto
+`Timeperiod` message has no tz field). It comes from the context
+(host/service/contact, `get_timezone()`); it is an evaluation parameter, not a
+member.
+
+Other leads:
 
 - **Abseil POC**: rewrite a key function (e.g. `get_next_valid_time` for the "nth
   weekday of month" rule) in Abseil and validate it against the existing
   `get_next_valid_time/*` suite, to measure the readability gain and DST
   robustness.
-- **Replacing `timezone_manager`** with a stateless timezone computation
-  (priority brick for any reuse in broker).
 - **Choice A vs B** for the registry (cf. §8.4).
 
 ## 10. Benchmarks — current baseline
