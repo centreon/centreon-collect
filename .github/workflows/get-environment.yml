@@ -837,7 +837,8 @@ jobs:
                 : cmaConfigs;
             }
 
-            console.log('matrix', matrix);
+            console.log('collectMatrix', collectMatrix);
+            console.log('cmaMatrix', cmaMatrix);
 
             // --- Expand arm64 for Debian-based distros ---
             const ARM64_DISTROS = ['bullseye', 'bookworm', 'trixie', 'jammy', 'noble'];
