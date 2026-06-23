@@ -52,6 +52,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     timeperiods/get_next_valid_time/precedence.cc
     timeperiods/get_next_valid_time/skip_interval.cc
     timeperiods/get_next_valid_time/specific_month_date.cc
+    timeperiods/get_next_valid_time/timezone.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
