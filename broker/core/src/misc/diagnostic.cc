@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/common/file_system.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
@@ -219,12 +220,12 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
       ls_log_path.append(".log");
       to_remove.push_back(ls_log_path);
 
-      std::string cmd{fmt::format("ls -la {} {}", conf.module_directory(),
-                                  fmt::join(conf.module_list(), " "))};
-      std::string output{misc::exec(cmd)};
+      auto files = common::dir_content(conf.module_directory(), false);
 
       std::ofstream out(ls_log_path);
-      out << output;
+      for (const auto& file : files) {
+        out << file << std::endl;
+      }
       out.close();
     }
 
@@ -245,8 +246,9 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   // Create tarball.
   _logger->info("diagnostic: creating tarball '{}'", my_out_file);
   {
-    std::string cmd{fmt::format("tar czf {} {}", my_out_file, tmp_dir)};
-    std::string output{misc::exec(cmd)};
+    const char* args[]{"tar", "czf", my_out_file.c_str(), tmp_dir.c_str(),
+                       nullptr};
+    misc::exec_process(args, true);
   }
 
   // Clean temporary directory.
