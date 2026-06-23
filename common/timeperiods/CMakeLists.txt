@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-# Notifications library.
+# Timeperiods library.
 add_library(timeperiods STATIC
   daterange.cc
   timeperiod.cc
@@ -26,6 +26,9 @@ add_library(timeperiods STATIC
 
 target_include_directories(timeperiods PUBLIC
   ${CMAKE_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/clib/inc
+  ${CMAKE_SOURCE_DIR}/common/inc
+  ${CMAKE_BINARY_DIR}
 )
 
 target_link_libraries(timeperiods
@@ -33,6 +36,8 @@ target_link_libraries(timeperiods
     spdlog::spdlog
     fmt::fmt
 )
+
+add_dependencies(timeperiods engine_conf)
 
 target_compile_definitions(timeperiods PRIVATE
   SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
@@ -42,5 +47,4 @@ set_target_properties(timeperiods PROPERTIES
 )
 
 target_precompile_headers(timeperiods PRIVATE
-  ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)
-
+  ${CMAKE_SOURCE_DIR}/engine/precomp_inc/precomp.hh)

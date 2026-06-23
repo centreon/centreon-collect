@@ -16,9 +16,10 @@
  * For more information : contact@centreon.com
  */
 
-#include "engine/src/timeperiods/timerange.hh"
+#include "common/timeperiods/timerange.hh"
+#include <fmt/ostream.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -54,10 +55,8 @@ std::ostream& operator<<(std::ostream& os, timerange const& obj) {
   unsigned int start_minutes((obj.get_range_start() % 3600) / 60);
   unsigned int end_hours(obj.get_range_end() / 3600);
   unsigned int end_minutes((obj.get_range_end() % 3600) / 60);
-  os << std::setfill('0') << std::setw(2) << start_hours << ":"
-     << std::setfill('0') << std::setw(2) << start_minutes << "-"
-     << std::setfill('0') << std::setw(2) << end_hours << ":"
-     << std::setfill('0') << std::setw(2) << end_minutes;
+  fmt::print(os, "{:02}:{:02}-{:02}:{:02}", start_hours, start_minutes,
+             end_hours, end_minutes);
   return os;
 }
 

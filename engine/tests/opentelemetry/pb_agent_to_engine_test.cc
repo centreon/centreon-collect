@@ -19,7 +19,7 @@
 
 #include <absl/container/btree_set.h>
 #include <absl/synchronization/mutex.h>
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <grpcpp/grpcpp.h>
 #include <gtest/gtest.h>

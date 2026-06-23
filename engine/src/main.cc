@@ -21,7 +21,7 @@
 
 #include <unistd.h>
 #include <random>
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -65,7 +65,7 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;

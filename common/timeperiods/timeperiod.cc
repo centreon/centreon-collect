@@ -20,9 +20,9 @@
 
 #include <ctime>
 
-#include "engine/src/timeperiods/timeperiod.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
 using com::centreon::exceptions::msg_fmt;
@@ -63,11 +63,10 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
       timerange_list trs;
       for (const auto& t : r.timerange())
         trs.emplace_back(t.range_start(), t.range_end());
-      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
-                                   r.syear(), r.smon(), r.smday(), r.swday(),
-                                   r.swday_offset(), r.eyear(), r.emon(),
-                                   r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), trs);
+      exceptions[idx].emplace_back(
+          static_cast<daterange::type_range>(r.type()), r.syear(), r.smon(),
+          r.smday(), r.swday(), r.swday_offset(), r.eyear(), r.emon(),
+          r.emday(), r.ewday(), r.ewday_offset(), r.skip_interval(), trs);
     }
   };
 
@@ -95,11 +94,10 @@ void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
       timerange_list trs;
       for (const auto& t : r.timerange())
         trs.emplace_back(t.range_start(), t.range_end());
-      exceptions[idx].emplace_back(static_cast<daterange::type_range>(r.type()),
-                                   r.syear(), r.smon(), r.smday(), r.swday(),
-                                   r.swday_offset(), r.eyear(), r.emon(),
-                                   r.emday(), r.ewday(), r.ewday_offset(),
-                                   r.skip_interval(), trs);
+      exceptions[idx].emplace_back(
+          static_cast<daterange::type_range>(r.type()), r.syear(), r.smon(),
+          r.smday(), r.swday(), r.swday_offset(), r.eyear(), r.emon(),
+          r.emday(), r.ewday(), r.ewday_offset(), r.skip_interval(), trs);
     }
   };
 

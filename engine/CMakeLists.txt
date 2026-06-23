@@ -472,7 +472,6 @@ set(FILES
 # Subdirectories with core features.
 add_subdirectory(src/broker)
 add_subdirectory(src/checks)
-add_subdirectory(src/timeperiods)
 
 if(WITH_CONF)
   add_subdirectory(conf)

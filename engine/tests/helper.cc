@@ -27,7 +27,7 @@
 #include "com/centreon/engine/engine_notification_callbacks.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "common/log_v2/config.hh"
 

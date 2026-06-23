@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <chrono>
 

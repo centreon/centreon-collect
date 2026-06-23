@@ -18,7 +18,9 @@
  *
  */
 
-#include "engine/src/timeperiods/timeperiod.hh"
+#include <fmt/ostream.h>
+
+#include "common/timeperiods/timeperiod.hh"
 
 namespace com::centreon::engine {
 
@@ -40,20 +42,19 @@ namespace com::centreon::engine {
  *  @param[in] skip_interval
  *  @param[in] a list of timeranges.
  */
-daterange::daterange(
-    type_range type,
-    int syear,
-    int smon,
-    int smday,
-    int swday,
-    int swday_offset,
-    int eyear,
-    int emon,
-    int emday,
-    int ewday,
-    int ewday_offset,
-    int skip_interval,
-    const timerange_list& timeranges)
+daterange::daterange(type_range type,
+                     int syear,
+                     int smon,
+                     int smday,
+                     int swday,
+                     int swday_offset,
+                     int eyear,
+                     int emon,
+                     int emday,
+                     int ewday,
+                     int ewday_offset,
+                     int skip_interval,
+                     const timerange_list& timeranges)
     : _type{type},
       _syear{syear},
       _smon{smon},
@@ -69,18 +70,18 @@ daterange::daterange(
       _timerange{timeranges} {}
 
 daterange::daterange(type_range type)
-    : _type(type),
-      _syear(0),
-      _smon(0),
-      _smday(0),
-      _swday(0),
-      _swday_offset(0),
-      _eyear(0),
-      _emon(0),
-      _emday(0),
-      _ewday(0),
-      _ewday_offset(0),
-      _skip_interval(0) {}
+    : _type{type},
+      _syear{0},
+      _smon{0},
+      _smday{0},
+      _swday{0},
+      _swday_offset{0},
+      _eyear{0},
+      _emon{0},
+      _emday{0},
+      _ewday{0},
+      _ewday_offset{0},
+      _skip_interval{0} {}
 
 /**
  *  Equal operator.
@@ -123,17 +124,15 @@ bool daterange::operator!=(daterange const& obj) const {
  */
 static std::ostream& _dump_calendar_date(std::ostream& os,
                                          daterange const& obj) {
-  os << std::setfill('0') << std::setw(2) << obj.get_syear() << "-"
-     << std::setfill('0') << std::setw(2) << obj.get_smon() + 1 << "-"
-     << std::setfill('0') << std::setw(2) << obj.get_smday();
+  fmt::print(os, "{:02}-{:02}-{:02}", obj.get_syear(), obj.get_smon() + 1,
+             obj.get_smday());
   if (obj.get_syear() != obj.get_eyear() || obj.get_smon() != obj.get_emon() ||
       obj.get_smday() != obj.get_emday())
-    os << " - " << std::setfill('0') << std::setw(2) << obj.get_eyear() << "-"
-       << std::setfill('0') << std::setw(2) << obj.get_emon() + 1 << "-"
-       << std::setfill('0') << std::setw(2) << obj.get_emday();
+    fmt::print(os, " - {:02}-{:02}-{:02}", obj.get_eyear(), obj.get_emon() + 1,
+               obj.get_emday());
   if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
-  return (os);
+    fmt::print(os, " / {}", obj.get_skip_interval());
+  return os;
 }
 
 /**
@@ -145,8 +144,8 @@ static std::ostream& _dump_calendar_date(std::ostream& os,
  *  @return The output stream.
  */
 static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
-  std::string const& smon(daterange::get_month_name(obj.get_smon()));
-  std::string const& emon(daterange::get_month_name(obj.get_emon()));
+  std::string_view smon(daterange::get_month_name(obj.get_smon()));
+  std::string_view emon(daterange::get_month_name(obj.get_emon()));
   os << smon << " " << obj.get_smday();
   if (smon != emon)
     os << " - " << emon << " " << obj.get_emday();
@@ -154,7 +153,7 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
     os << " - " << obj.get_emday();
   if (obj.get_skip_interval())
     os << " / " << obj.get_skip_interval();
-  return (os);
+  return os;
 }
 
 /**
@@ -171,7 +170,7 @@ static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
     os << " - " << obj.get_emday();
   if (obj.get_skip_interval())
     os << " / " << obj.get_skip_interval();
-  return (os);
+  return os;
 }
 
 /**
@@ -196,7 +195,7 @@ static std::ostream& _dump_month_week_day(std::ostream& os,
        << daterange::get_month_name(obj.get_emon());
   if (obj.get_skip_interval())
     os << " / " << obj.get_skip_interval();
-  return (os);
+  return os;
 }
 
 /**
@@ -216,7 +215,7 @@ static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
        << obj.get_ewday_offset();
   if (obj.get_skip_interval())
     os << " / " << obj.get_skip_interval();
-  return (os);
+  return os;
 }
 
 /**
@@ -240,7 +239,7 @@ std::ostream& operator<<(std::ostream& os, daterange const& obj) {
     (*(tab[obj.get_type()]))(os, obj);
     os << " " << obj.get_timerange();
   }
-  return (os);
+  return os;
 }
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
@@ -280,14 +279,13 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
  *
  *  @return The month name.
  */
-std::string const& daterange::get_month_name(unsigned int index) {
-  static std::string const unknown("unknown");
-  static std::string const month[] = {
+std::string_view daterange::get_month_name(unsigned int index) {
+  static constexpr std::array<std::string_view, 12> month{
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
-  if (index >= sizeof(month) / sizeof(*month))
-    return (unknown);
-  return (month[index]);
+  if (index >= month.size())
+    return "unknown";
+  return month[index];
 }
 
 /**
@@ -297,14 +295,13 @@ std::string const& daterange::get_month_name(unsigned int index) {
  *
  *  @return The weekday name.
  */
-std::string const& daterange::get_weekday_name(unsigned int index) {
-  static std::string const unknown("unknown");
-  static std::string const days[] = {"sunday",    "monday",   "tuesday",
-                                     "wednesday", "thursday", "friday",
-                                     "saturday"};
-  if (index >= sizeof(days) / sizeof(*days))
-    return (unknown);
-  return (days[index]);
+std::string_view daterange::get_weekday_name(unsigned int index) {
+  static constexpr std::array<std::string_view, 7> days{
+      "sunday",   "monday", "tuesday", "wednesday",
+      "thursday", "friday", "saturday"};
+  if (index >= days.size())
+    return "unknown";
+  return days[index];
 }
 
 }  // namespace com::centreon::engine

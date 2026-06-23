@@ -22,8 +22,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 #include "gtest/gtest.h"
 
 #include "helper.hh"

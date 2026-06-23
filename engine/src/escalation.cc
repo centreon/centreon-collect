@@ -18,8 +18,8 @@
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;

@@ -22,7 +22,7 @@
 #include <string>
 #include <string_view>
 
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 namespace spdlog {
 class logger;
@@ -35,9 +35,9 @@ namespace com::centreon::engine {
  *
  * The timeperiods library does not carry a global registry of its own anymore:
  * the collection is owned by this manager so each host application (engine in
- * centengine, broker in cbd) has its own instance, fed through its own path. The
- * timeperiod value class stays registry-agnostic; cross-referencing operations
- * (exclusion resolution) are served by the manager against this map.
+ * centengine, broker in cbd) has its own instance, fed through its own path.
+ * The timeperiod value class stays registry-agnostic; cross-referencing
+ * operations (exclusion resolution) are served by the manager against this map.
  *
  * It also owns the logger the library logs through and the set of characters
  * the host application forbids in object names: instead of reaching engine

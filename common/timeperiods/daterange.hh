@@ -19,8 +19,8 @@
 
 #ifndef CCE_OBJECTS_DATERANGE_HH
 #define CCE_OBJECTS_DATERANGE_HH
-#include "engine/src/timeperiods/timeperiod_types.hh"
-#include "engine/src/timeperiods/timerange.hh"
+#include "common/timeperiods/timeperiod_types.hh"
+#include "common/timeperiods/timerange.hh"
 
 struct timeperiod_struct;
 
@@ -112,8 +112,8 @@ class daterange {
   bool operator==(daterange const& obj) const;
   bool operator!=(daterange const& obj2) const;
 
-  static std::string const& get_month_name(unsigned int index);
-  static std::string const& get_weekday_name(unsigned int index);
+  static std::string_view get_month_name(unsigned int index);
+  static std::string_view get_weekday_name(unsigned int index);
 };
 
 std::ostream& operator<<(std::ostream& os,
