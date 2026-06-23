@@ -20,6 +20,8 @@
 #ifndef CCE_OBJECTS_TIMEPERIOD_HH
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
+#include "absl/time/clock.h"
+#include "absl/time/time.h"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/timeperiods/daterange.hh"
 
@@ -57,12 +59,16 @@ class timeperiod {
   void set_alias(const std::string& alias);
   const timeperiodexclusion& get_exclusions() const { return _exclusions; };
   timeperiodexclusion& get_exclusions() { return _exclusions; };
-  void get_next_valid_time_per_timeperiod(time_t preferred_time,
-                                          time_t* invalid_time,
-                                          bool notif_timeperiod);
-  void get_next_invalid_time_per_timeperiod(time_t preferred_time,
-                                            time_t* invalid_time,
-                                            bool notif_timeperiod);
+  void get_next_valid_time_per_timeperiod(
+      time_t preferred_time,
+      time_t* invalid_time,
+      bool notif_timeperiod,
+      const absl::TimeZone& tz = absl::LocalTimeZone());
+  void get_next_invalid_time_per_timeperiod(
+      time_t preferred_time,
+      time_t* invalid_time,
+      bool notif_timeperiod,
+      const absl::TimeZone& tz = absl::LocalTimeZone());
 
   void resolve(const timeperiod_map& all, uint32_t& w, uint32_t& e);
 
@@ -73,11 +79,17 @@ class timeperiod {
   exception_array exceptions;
 };
 
-bool check_time_against_period(time_t test_time, timeperiod* tperiod);
-bool check_time_against_period_for_notif(time_t test_time, timeperiod* tperiod);
+bool check_time_against_period(time_t test_time,
+                               timeperiod* tperiod,
+                               const absl::TimeZone& tz = absl::LocalTimeZone());
+bool check_time_against_period_for_notif(
+    time_t test_time,
+    timeperiod* tperiod,
+    const absl::TimeZone& tz = absl::LocalTimeZone());
 void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
-                         timeperiod* tperiod);
+                         timeperiod* tperiod,
+                         const absl::TimeZone& tz = absl::LocalTimeZone());
 
 }  // namespace com::centreon::common::timeperiods
 
