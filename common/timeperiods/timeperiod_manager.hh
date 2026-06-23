@@ -16,8 +16,8 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef CCE_TIMEPERIODS_TIMEPERIOD_MANAGER_HH
-#define CCE_TIMEPERIODS_TIMEPERIOD_MANAGER_HH
+#ifndef CCC_TIMEPERIODS_TIMEPERIOD_MANAGER_HH
+#define CCC_TIMEPERIODS_TIMEPERIOD_MANAGER_HH
 
 #include <string>
 #include <string_view>
@@ -95,4 +95,4 @@ class timeperiod_manager {
 
 }  // namespace com::centreon::common::timeperiods
 
-#endif  // !CCE_TIMEPERIODS_TIMEPERIOD_MANAGER_HH
+#endif  // !CCC_TIMEPERIODS_TIMEPERIOD_MANAGER_HH

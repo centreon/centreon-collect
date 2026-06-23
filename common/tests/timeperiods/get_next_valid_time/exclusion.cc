@@ -150,7 +150,7 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysCalendarDate) {
   calendar_date_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-25 00:00:00"));
 }
 
@@ -161,13 +161,13 @@ TEST_F(GetNextValidTimeExclusionTest, FullDaysCalendarDateAndBelow) {
   offset_weekday_of_specific_month_full_days_exclusion();
   offset_weekday_of_generic_month_full_days_exclusion();
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysSpecificMonthDate) {
   specific_month_date_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-26 00:00:00"));
 }
 
@@ -177,13 +177,13 @@ TEST_F(GetNextValidTimeExclusionTest, FullDaysSpecificMonthDateAndBelow) {
   offset_weekday_of_specific_month_full_days_exclusion();
   offset_weekday_of_generic_month_full_days_exclusion();
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysGenericMonthDate) {
   generic_month_date_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-27 00:00:00"));
 }
 
@@ -192,13 +192,13 @@ TEST_F(GetNextValidTimeExclusionTest, FullDaysGenericMonthDateAndBelow) {
   offset_weekday_of_specific_month_full_days_exclusion();
   offset_weekday_of_generic_month_full_days_exclusion();
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysOffsetWeekdayOfSpecificMonth) {
   offset_weekday_of_specific_month_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-28 00:00:00"));
 }
 
@@ -207,13 +207,13 @@ TEST_F(GetNextValidTimeExclusionTest,
   offset_weekday_of_specific_month_full_days_exclusion();
   offset_weekday_of_generic_month_full_days_exclusion();
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysOffsetWeekdayOfGenericMonth) {
   offset_weekday_of_generic_month_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-29 00:00:00"));
 }
 
@@ -221,13 +221,13 @@ TEST_F(GetNextValidTimeExclusionTest,
        FullDaysOffsetWeekdayOfGenericMonthAndBelow) {
   offset_weekday_of_generic_month_full_days_exclusion();
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, FullDaysNormalWeekday) {
   normal_weekday_full_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-30 00:00:00"));
 }
 
@@ -237,7 +237,7 @@ TEST_F(GetNextValidTimeExclusionTest, FullDaysNormalWeekday) {
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysCalendarDate) {
   calendar_date_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 09:00:00"));
 }
 
@@ -248,13 +248,13 @@ TEST_F(GetNextValidTimeExclusionTest, PartialDaysCalendarDateAndBelow) {
   offset_weekday_of_specific_month_partial_days_exclusion();
   offset_weekday_of_generic_month_partial_days_exclusion();
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysSpecificMonthDate) {
   specific_month_date_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 10:00:00"));
 }
 
@@ -264,13 +264,13 @@ TEST_F(GetNextValidTimeExclusionTest, PartialDaysSpecificMonthDateAndBelow) {
   offset_weekday_of_specific_month_partial_days_exclusion();
   offset_weekday_of_generic_month_partial_days_exclusion();
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysGenericMonthDate) {
   generic_month_date_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 11:00:00"));
 }
 
@@ -279,13 +279,13 @@ TEST_F(GetNextValidTimeExclusionTest, PartialDaysGenericMonthDateAndBelow) {
   offset_weekday_of_specific_month_partial_days_exclusion();
   offset_weekday_of_generic_month_partial_days_exclusion();
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysOffsetWeekdayOfSpecificMonth) {
   offset_weekday_of_specific_month_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 12:00:00"));
 }
 
@@ -294,13 +294,13 @@ TEST_F(GetNextValidTimeExclusionTest,
   offset_weekday_of_specific_month_partial_days_exclusion();
   offset_weekday_of_generic_month_partial_days_exclusion();
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysOffsetWeekdayOfGenericMonth) {
   offset_weekday_of_generic_month_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 13:00:00"));
 }
 
@@ -308,12 +308,12 @@ TEST_F(GetNextValidTimeExclusionTest,
        PartialDaysOffsetWeekdayOfGenericMonthAndBelow) {
   offset_weekday_of_generic_month_partial_days_exclusion();
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }
 
 TEST_F(GetNextValidTimeExclusionTest, PartialDaysNormalWeekday) {
   normal_weekday_partial_days_exclusion();
-  get_next_valid_time(_now, &_computed, _tp);
+  _computed = _tp->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 14:00:00"));
 }

@@ -17,8 +17,8 @@
  *
  */
 
-#ifndef CCE_OBJECTS_DATERANGE_HH
-#define CCE_OBJECTS_DATERANGE_HH
+#ifndef CCC_TIMEPERIODS_DATERANGE_HH
+#define CCC_TIMEPERIODS_DATERANGE_HH
 #include "common/timeperiods/timeperiod_types.hh"
 #include "common/timeperiods/timerange.hh"
 
@@ -124,4 +124,4 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
 }  // namespace com::centreon::common::timeperiods
 
-#endif  // !CCE_OBJECTS_DATERANGE_HH
+#endif  // !CCC_TIMEPERIODS_DATERANGE_HH

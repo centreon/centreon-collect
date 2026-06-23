@@ -225,8 +225,8 @@ TEST_P(timeperiod_exception, TestExceptions) {
       timeperiod_manager::instance().timeperiods().find(param.name);
   ASSERT_NE(tp_search, timeperiod_manager::instance().timeperiods().end());
 
-  get_next_valid_time(gmt_strtotimet(param.prefered), &calculated,
-                      tp_search->second.get());
+  calculated = tp_search->second.get()->get_next_valid_time(
+      gmt_strtotimet(param.prefered));
   ASSERT_EQ(calculated, gmt_strtotimet(param.expected))
       << " name:" << param.name << " now: " << param.now
       << " pref:" << param.prefered << " expected: " << param.expected

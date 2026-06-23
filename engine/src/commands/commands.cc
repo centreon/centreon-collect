@@ -1565,8 +1565,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
         time(&preferred_time);
         if (!check_time_against_period(preferred_time,
                                        temp_host->check_period_ptr)) {
-          get_next_valid_time(preferred_time, &next_valid_time,
-                              temp_host->check_period_ptr);
+          next_valid_time =
+              temp_host->check_period_ptr->get_next_valid_time(preferred_time);
           temp_host->set_next_check(next_valid_time);
         } else
           temp_host->set_next_check(preferred_time);
@@ -1630,8 +1630,9 @@ int cmd_change_object_int_var(int cmd, char* args) {
         time(&preferred_time);
         if (!check_time_against_period(preferred_time,
                                        found_svc->second->check_period_ptr)) {
-          get_next_valid_time(preferred_time, &next_valid_time,
-                              found_svc->second->check_period_ptr);
+          next_valid_time =
+              found_svc->second->check_period_ptr->get_next_valid_time(
+                  preferred_time);
           found_svc->second->set_next_check(next_valid_time);
         } else
           found_svc->second->set_next_check(preferred_time);
@@ -2184,8 +2185,7 @@ void enable_service_checks(service* svc) {
   /* schedule a check for right now (or as soon as possible) */
   time(&preferred_time);
   if (!check_time_against_period(preferred_time, svc->check_period_ptr)) {
-    get_next_valid_time(preferred_time, &next_valid_time,
-                        svc->check_period_ptr);
+    next_valid_time = svc->check_period_ptr->get_next_valid_time(preferred_time);
     svc->set_next_check(next_valid_time);
   } else
     svc->set_next_check(preferred_time);
@@ -3002,8 +3002,7 @@ void enable_host_checks(host* hst) {
   /* schedule a check for right now (or as soon as possible) */
   time(&preferred_time);
   if (!check_time_against_period(preferred_time, hst->check_period_ptr)) {
-    get_next_valid_time(preferred_time, &next_valid_time,
-                        hst->check_period_ptr);
+    next_valid_time = hst->check_period_ptr->get_next_valid_time(preferred_time);
     hst->set_next_check(next_valid_time);
   } else
     hst->set_next_check(preferred_time);

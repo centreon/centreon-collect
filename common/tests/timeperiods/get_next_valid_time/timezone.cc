@@ -65,9 +65,7 @@ time_t next_monday_0900(const absl::TimeZone& tz) {
   // Monday (day index 1) 09:00-17:00.
   creator.new_timerange(9, 0, 17, 0, 1);
 
-  time_t computed = static_cast<time_t>(-1);
-  get_next_valid_time(k_sunday, &computed, creator.get_timeperiods(), tz);
-  return computed;
+  return creator.get_timeperiods()->get_next_valid_time(k_sunday, tz);
 }
 
 }  // namespace

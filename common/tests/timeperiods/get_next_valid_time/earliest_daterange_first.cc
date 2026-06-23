@@ -89,7 +89,7 @@ class GetNextValidTimeEarliestDaterangeFirstTest : public testing::Test {
 TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, NormalWeekdayFirst) {
   normal_weekday_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 06:00:00"));
 }
 
@@ -102,7 +102,7 @@ TEST_F(GetNextValidTimeEarliestDaterangeFirstTest,
        OffsetWeekdayOfGenericMonthFirst) {
   offset_weekday_of_generic_month_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-08 05:00:00"));
 }
 
@@ -115,7 +115,7 @@ TEST_F(GetNextValidTimeEarliestDaterangeFirstTest,
        OffsetWeekdayOfSpecificMonthFirst) {
   offset_weekday_of_specific_month_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-09 04:00:00"));
 }
 
@@ -126,7 +126,7 @@ TEST_F(GetNextValidTimeEarliestDaterangeFirstTest,
 TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, GenericMonthDateFirst) {
   generic_month_date_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-10 03:00:00"));
 }
 
@@ -137,7 +137,7 @@ TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, GenericMonthDateFirst) {
 TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, SpecificMonthDateFirst) {
   specific_month_date_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-11 02:00:00"));
 }
 
@@ -148,6 +148,6 @@ TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, SpecificMonthDateFirst) {
 TEST_F(GetNextValidTimeEarliestDaterangeFirstTest, CalendarDateFirst) {
   calendar_date_and_later();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-12 01:00:00"));
 }

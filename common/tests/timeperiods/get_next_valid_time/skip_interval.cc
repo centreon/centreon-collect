@@ -77,30 +77,30 @@ class GetNextValidTimeSkipIntervalTest : public ::testing::Test {
 
 TEST_F(GetNextValidTimeSkipIntervalTest, CalendarDate) {
   calendar_date_skip();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 08:00:00"));
 }
 
 TEST_F(GetNextValidTimeSkipIntervalTest, SpecificMonthDate) {
   specific_month_date_skip();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 08:00:00"));
 }
 
 TEST_F(GetNextValidTimeSkipIntervalTest, GenericMonthDate) {
   generic_month_date_skip();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 08:00:00"));
 }
 
 TEST_F(GetNextValidTimeSkipIntervalTest, OffsetWeekdayOfSpecificMonth) {
   offset_weekday_of_generic_month_skip();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 08:00:00"));
 }
 
 TEST_F(GetNextValidTimeSkipIntervalTest, OffsetWeekdayOfGenericMonth) {
   offset_weekday_of_generic_month_skip();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-11-24 08:00:00"));
 }

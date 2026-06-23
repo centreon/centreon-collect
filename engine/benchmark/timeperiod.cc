@@ -163,7 +163,7 @@ void BM_gnvt_24x7(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_24x7());
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_sat_evening, &out, tp.get());
+    out = tp.get()->get_next_valid_time(k_sat_evening);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -174,7 +174,7 @@ void BM_gnvt_workhours_immediate(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_workhours());
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_wed_noon, &out, tp.get());
+    out = tp.get()->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -185,7 +185,7 @@ void BM_gnvt_workhours_search(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_workhours());
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_sat_evening, &out, tp.get());
+    out = tp.get()->get_next_valid_time(k_sat_evening);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -196,7 +196,7 @@ void BM_gnvt_exceptions(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_exceptions());
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_wed_noon, &out, tp.get());
+    out = tp.get()->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
 }
@@ -229,7 +229,7 @@ void BM_gnvt_exclusion(benchmark::State& state) {
 
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_wed_noon, &out, tp.get());
+    out = tp.get()->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
   tps.clear();
@@ -282,7 +282,7 @@ void BM_gnvt_exclusion_chain(benchmark::State& state) {
   timeperiod* root = tps.at("chain_0").get();
   time_t out = 0;
   for (auto _ : state) {
-    get_next_valid_time(k_wed_noon, &out, root);
+    out = root->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
   tps.clear();

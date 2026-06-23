@@ -321,7 +321,7 @@ int grab_datetime_macro_r(nagios_macros* mac,
       break;
 
     case MACRO_NEXTVALIDTIME:
-      get_next_valid_time(test_time, &next_valid_time, temp_timeperiod);
+      next_valid_time = temp_timeperiod->get_next_valid_time(test_time);
       if (next_valid_time == test_time &&
           !check_time_against_period(test_time, temp_timeperiod))
         next_valid_time = (time_t)0L;

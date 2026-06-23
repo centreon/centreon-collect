@@ -1846,9 +1846,12 @@ int service::handle_async_check_result(
     // Make sure we rescheduled the next service check at a valid time.
     {
       preferred_time = get_next_check();
-      get_next_valid_time(preferred_time, &next_valid_time,
-                          this->check_period_ptr,
-                          string_to_timezone(get_timezone()));
+      // No check period defined means any time is valid.
+      if (this->check_period_ptr)
+        next_valid_time = this->check_period_ptr->get_next_valid_time(
+            preferred_time, string_to_timezone(get_timezone()));
+      else
+        next_valid_time = std::max(preferred_time, ::time(nullptr));
       set_next_check(next_valid_time);
     }
 
@@ -2296,8 +2299,12 @@ int service::run_scheduled_check(int check_options, double latency) {
       // Make sure we rescheduled the next service check at a valid time.
       {
         const absl::TimeZone tz = string_to_timezone(get_timezone());
-        get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr, tz);
+        // No check period defined means any time is valid.
+        if (this->check_period_ptr)
+          next_valid_time =
+              this->check_period_ptr->get_next_valid_time(preferred_time, tz);
+        else
+          next_valid_time = std::max(preferred_time, ::time(nullptr));
 
         // The service could not be rescheduled properly.
         // Set the next check time for next week.

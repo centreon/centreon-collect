@@ -113,7 +113,7 @@ TEST_F(GetNextValidTimeForwardDST, CalendarDateIncludeDSTNowAtDST) {
   daterange* dr(dst_calendar_date());
   timerange_includes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -121,7 +121,7 @@ TEST_F(GetNextValidTimeForwardDST, CalendarDateExcludeDSTNowAtDST) {
   daterange* dr(dst_calendar_date());
   timerange_excludes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -133,7 +133,7 @@ TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateIncludeDSTNowAtDST) {
   daterange* dr(dst_specific_month_date());
   timerange_includes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -141,7 +141,7 @@ TEST_F(GetNextValidTimeForwardDST, SpecificMonthDateExcludeDSTNowAtDST) {
   daterange* dr(dst_specific_month_date());
   timerange_excludes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -153,7 +153,7 @@ TEST_F(GetNextValidTimeForwardDST, GenericMonthDateIncludeDSTNowAtDST) {
   daterange* dr(dst_generic_month_date());
   timerange_includes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -161,7 +161,7 @@ TEST_F(GetNextValidTimeForwardDST, GenericMonthDateExcludeDSTNowAtDST) {
   daterange* dr(dst_generic_month_date());
   timerange_excludes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -174,7 +174,7 @@ TEST_F(GetNextValidTimeForwardDST,
   daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_includes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -183,7 +183,7 @@ TEST_F(GetNextValidTimeForwardDST,
   daterange* dr(dst_offset_weekday_of_specific_month());
   timerange_excludes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -196,7 +196,7 @@ TEST_F(GetNextValidTimeForwardDST,
   daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_includes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -205,7 +205,7 @@ TEST_F(GetNextValidTimeForwardDST,
   daterange* dr(dst_offset_weekday_of_generic_month());
   timerange_excludes_dst(dr);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -216,7 +216,7 @@ TEST_F(GetNextValidTimeForwardDST,
 TEST_F(GetNextValidTimeForwardDST, NormalWeekdayIncludeDSTNowAtDST) {
   _creator.new_timerange(1, 0, 4, 0, 0);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
 
@@ -224,6 +224,6 @@ TEST_F(GetNextValidTimeForwardDST, NormalWeekdayExcludeDSTNowAtDST) {
   _creator.new_timerange(1, 0, 2, 0, 0);
   _creator.new_timerange(3, 0, 4, 0, 0);
   at_dst();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-03-26 03:00:00"));
 }
