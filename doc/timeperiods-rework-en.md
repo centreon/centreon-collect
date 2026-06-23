@@ -219,10 +219,29 @@ We remove it in three phases, least to most risky:
   concurrent test is enabled and green. Benchmark unchanged under `TZ=UTC`
   (gnvt_24x7 ~0.6 µs; `LocalTimeZone()` is resolved once per public call, then
   the immutable zone is reused for all internal conversions).
-- **Phase 2 — removal** of `timezone_manager` / `timezone_locker` once engine
-  call-sites are migrated to an explicit zone (`absl::LoadTimeZone(
-  get_timezone())` instead of pushing the locker). Bonus: the per-call `stat()`
-  of `/etc/localtime` disappears (the ×4–×8 measured in §10).
+- **Phase 2 — removal of `timezone_manager` / `timezone_locker` (DONE).** The 15
+  engine sites that pushed a `timezone_locker` now pass an explicit zone via the
+  `engine::string_to_timezone(get_timezone())` helper
+  (`engine/src/timezone.{cc,hh}`: empty → `LocalTimeZone()`; strips the leading
+  `:` of the TZ-env form `:Europe/Paris`; `LoadTimeZone` with `LocalTimeZone()`
+  fallback). Engine's `timezone_manager.{cc,hh}` and `timezone_locker.{cc,hh}` are
+  deleted (removed from CMake + dead includes cleaned from 12 tests). **No more
+  `setenv`/`tzset` on the engine side** → the computation is genuinely free of
+  global state. The sites NOT gated by `check_time_against_period` (4 reschedule
+  spots where `check_period_ptr` may be null — `notifier.cc` sets it to `nullptr`
+  when no period is defined) get an explicit `if (ptr) … else max(pref, now)`
+  guard. Bonus: the per-call `stat()` of `/etc/localtime` disappears (the ×4–×8
+  measured in §10). NB: `broker::time::timezone_locker` (BAM, legacy
+  `broker::time::timeperiod`) is a separate module, out of scope.
+
+### API cleanups done along the way
+
+- `get_next_valid_time` is no longer a free function but a **method**
+  `timeperiod::get_next_valid_time(time_t pref, tz)` that **returns** the `time_t`
+  (instead of an out-pointer plus a `tperiod` parameter). Call-sites gated by
+  `check_time_against_period` call `ptr->get_next_valid_time(…)` directly.
+- The `common/timeperiods/` headers are guarded by `CCC_TIMEPERIODS_*` (the
+  `common/` convention), no longer `CCE_*` (engine heritage).
 
 Reminder: the timezone is **not** a property of the timeperiod (the proto
 `Timeperiod` message has no tz field). It comes from the context
