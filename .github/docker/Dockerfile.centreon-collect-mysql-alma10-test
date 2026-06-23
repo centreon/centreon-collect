@@ -18,6 +18,7 @@ dnf install -y wget
 wget https://dev.mysql.com/get/mysql84-community-release-el10-1.noarch.rpm
 # add mysql 8.4 repo
 rpm -ivh mysql84-community-release-el10-1.noarch.rpm
+rpm --import https://repo.mysql.com/RPM-GPG-KEY-mysql-2025
 
 dnf install --best -y \
     gcc \
