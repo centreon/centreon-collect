@@ -20,7 +20,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include <gtest/gtest.h>
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"

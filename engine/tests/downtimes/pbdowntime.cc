@@ -19,7 +19,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "common/downtimes/downtime_manager.hh"

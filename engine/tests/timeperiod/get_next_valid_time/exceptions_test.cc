@@ -17,7 +17,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "../../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"

@@ -18,10 +18,8 @@
  */
 
 #include <gtest/gtest.h>
-#include "com/centreon/clib.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/timeperiods/timeperiod.hh"
-#include "tests/timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

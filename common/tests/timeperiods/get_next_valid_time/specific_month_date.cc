@@ -18,27 +18,23 @@
  */
 
 #include <gtest/gtest.h>
-#include <cstring>
-#include "com/centreon/clib.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/timeperiods/timeperiod.hh"
-#include "tests/timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 
-class GetNextValidTimeGenericMonthDateTest : public ::testing::Test {
+class GetNextValidTimeSpecificMonthDateTest : public ::testing::Test {
  public:
   void default_data_set() {
     _creator.new_timeperiod();
     daterange* dr(NULL);
-    // day 25 10:45-14:25
-    dr = _creator.new_generic_month_date(25, 25);
+    // October 25 10:45-14:25
+    dr = _creator.new_specific_month_date(9, 25, 9, 25);
     _creator.new_timerange(10, 45, 14, 25, dr);
-
-    // day 27-day 28 08:30-12:30,18:30-21:15
-    dr = _creator.new_generic_month_date(27, 28);
+    // October 27-October 28 08:30-12:30,18:30-21:15
+    dr = _creator.new_specific_month_date(9, 27, 9, 28);
     _creator.new_timerange(8, 30, 12, 30, dr);
     _creator.new_timerange(18, 30, 21, 15, dr);
   }
@@ -47,11 +43,11 @@ class GetNextValidTimeGenericMonthDateTest : public ::testing::Test {
   timeperiod_creator _creator;
 };
 
-// Given a timeperiod configured with generic month dates
+// Given a timeperiod configured with specific month dates
 // And we are earlier than these dates
 // When get_next_valid_time() is called
 // Then the next valid time is the beginning of the next date's timerange
-TEST_F(GetNextValidTimeGenericMonthDateTest, BeforeGenericMonthDates) {
+TEST_F(GetNextValidTimeSpecificMonthDateTest, BeforeSpecificMonthDates) {
   default_data_set();
   time_t now(strtotimet("2016-10-24 12:00:00"));
   set_time(now);
@@ -60,11 +56,11 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, BeforeGenericMonthDates) {
   ASSERT_EQ(computed, strtotimet("2016-10-25 10:45:00"));
 }
 
-// Given a timeperiod configured with generic month dates
-// And we are between two generic month dates
+// Given a timeperiod configured with specific month dates
+// And we are between two specific month dates
 // When get_next_valid_time() is called
 // Then the next valid time is the beginning of the next date's timerange
-TEST_F(GetNextValidTimeGenericMonthDateTest, BetweenGenericMonthDates) {
+TEST_F(GetNextValidTimeSpecificMonthDateTest, BetweenSpecificMonthDates) {
   default_data_set();
   time_t now(strtotimet("2016-10-26 12:00:00"));
   set_time(now);
@@ -73,11 +69,11 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, BetweenGenericMonthDates) {
   ASSERT_EQ(computed, strtotimet("2016-10-27 08:30:00"));
 }
 
-// Given a timeperiod configured with generic month dates
-// And we are within a generic month date
+// Given a timeperiod configured with specific month dates
+// And we are within a specific month date
 // When get_next_valid_time() is called
 // Then the next valid time is now
-TEST_F(GetNextValidTimeGenericMonthDateTest, WithinGenericMonthDate) {
+TEST_F(GetNextValidTimeSpecificMonthDateTest, WithinSpecificMonthDate) {
   default_data_set();
   time_t now(strtotimet("2016-10-28 20:59:00"));
   set_time(now);
@@ -86,15 +82,15 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, WithinGenericMonthDate) {
   ASSERT_EQ(computed, now);
 }
 
-// Given a timeperiod configured with generic month dates
+// Given a timeperiod configured with specific month dates
 // And we are after these dates in the month
 // When get_next_valid_time() is called
-// Then the next valid time is the first generic month date in the next month
-TEST_F(GetNextValidTimeGenericMonthDateTest, AfterGenericMonthDates) {
+// Then the next valid time is the first specific month date in the next month
+TEST_F(GetNextValidTimeSpecificMonthDateTest, AfterSpecificMonthDates) {
   default_data_set();
   time_t now(strtotimet("2016-10-30 13:37:42"));
   set_time(now);
   time_t computed((time_t)-1);
   get_next_valid_time(now, &computed, _creator.get_timeperiods());
-  ASSERT_EQ(computed, strtotimet("2016-11-25 10:45:00"));
+  ASSERT_EQ(computed, strtotimet("2017-10-25 10:45:00"));
 }

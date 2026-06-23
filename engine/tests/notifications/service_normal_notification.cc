@@ -26,7 +26,7 @@
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
 #include "../test_engine.hh"
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"

@@ -20,7 +20,7 @@
 #include <gtest/gtest.h>
 
 #include "../../test_engine.hh"
-#include "../../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"

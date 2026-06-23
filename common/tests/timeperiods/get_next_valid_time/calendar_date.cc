@@ -19,17 +19,14 @@
 
 #include <gtest/gtest.h>
 #include <cstring>
-#include "com/centreon/clib.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "common/timeperiods/timeperiod.hh"
-#include "test_engine.hh"
-#include "tests/timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 
-class GetNextValidTimeCalendarDateTest : public TestEngine {
+class GetNextValidTimeCalendarDateTest : public ::testing::Test {
  public:
   void default_data_set() {
     _creator.new_timeperiod();

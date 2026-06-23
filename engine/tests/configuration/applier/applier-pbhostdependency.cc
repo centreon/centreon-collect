@@ -20,7 +20,7 @@
 #include <gtest/gtest.h>
 
 #include "../../test_engine.hh"
-#include "../../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
