@@ -223,10 +223,30 @@ pour broker. On le retire en trois phases, de la moins à la plus risquée :
   concurrent de la Phase 0 est activé et vert. Bench inchangé sous `TZ=UTC`
   (gnvt_24x7 ~0.6 µs ; `LocalTimeZone()` résolu une seule fois par appel public
   puis la zone immuable est réutilisée pour toutes les conversions internes).
-- **Phase 2 — suppression** de `timezone_manager` / `timezone_locker` une fois
-  les call-sites engine migrés vers une zone explicite (`absl::LoadTimeZone(
-  get_timezone())` au lieu de poser le locker). Bénéfice annexe : disparition du
-  `stat()` de `/etc/localtime` à chaque appel (le ×4–×8 mesuré en §10).
+- **Phase 2 — suppression de `timezone_manager` / `timezone_locker` (FAIT).** Les
+  15 sites engine qui posaient un `timezone_locker` passent désormais une zone
+  explicite via le helper `engine::string_to_timezone(get_timezone())`
+  (`engine/src/timezone.{cc,hh}` : vide → `LocalTimeZone()` ; strip du `:` initial
+  de la forme TZ-env `:Europe/Paris` ; `LoadTimeZone` avec repli sur
+  `LocalTimeZone()`). Les classes `timezone_manager.{cc,hh}` et
+  `timezone_locker.{cc,hh}` d'engine sont supprimées (retirées du CMake + includes
+  morts nettoyés dans 12 tests). **Plus aucun `setenv`/`tzset` côté engine** → le
+  calcul est réellement sans état global. Les sites NON gardés par
+  `check_time_against_period` (4 reschedule où `check_period_ptr` peut être nul,
+  cf. `notifier.cc` qui le met à `nullptr` si la période n'est pas définie) ont
+  une garde `if (ptr) … else max(pref, now)` explicite. Bénéfice annexe :
+  disparition du `stat()` de `/etc/localtime` à chaque appel (le ×4–×8 mesuré en
+  §10). NB : le `broker::time::timezone_locker` (BAM, ancien
+  `broker::time::timeperiod`) est un module distinct, hors périmètre.
+
+### Nettoyages d'API faits dans la foulée
+
+- `get_next_valid_time` n'est plus une fonction libre mais une **méthode**
+  `timeperiod::get_next_valid_time(time_t pref, tz)` qui **retourne** le `time_t`
+  (au lieu d'un out-pointeur + `tperiod` en paramètre). Les call-sites gardés par
+  `check_time_against_period` appellent directement `ptr->get_next_valid_time(…)`.
+- Les en-têtes de `common/timeperiods/` sont regardés par `CCC_TIMEPERIODS_*`
+  (convention `common/`), plus `CCE_*` (héritage engine).
 
 Rappel : le fuseau n'est **pas** une propriété du timeperiod (le message proto
 `Timeperiod` n'a pas de champ tz). Il vient du contexte (host/service/contact,
