@@ -1,16 +1,9 @@
 name: test-deliver-cma-assets
 
 on:
-  workflow_dispatch:
-    inputs:
-      github_release:
-        description: "GitHub release tag to test against (must exist)"
-        required: true
-        default: "centreon-monitoring-agent-26.05.0"
-      dry_run:
-        description: "Dry run (no actual uploads)"
-        type: boolean
-        default: true
+  push:
+    branches:
+      - MON-191598-create-script-to-manually-publish-cma-assets
 
 jobs:
   test-local-mode:
@@ -38,6 +31,6 @@ jobs:
           TOKEN_DOWNLOAD_CENTREON_COM: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
         run: |
           bash .github/scripts/deliver-cma-assets.sh \
-            --github-release "${{ inputs.github_release }}" \
+            --github-release "centreon-monitoring-agent-26.05.0" \
             --file-pattern "/tmp/test-assets/centreon-monitoring-agent-26.05*" \
-            ${{ inputs.dry_run && '--dry-run' || '' }}
+            --dry-run
