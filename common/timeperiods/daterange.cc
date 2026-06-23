@@ -146,13 +146,13 @@ static std::ostream& _dump_calendar_date(std::ostream& os,
 static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
   std::string_view smon(daterange::get_month_name(obj.get_smon()));
   std::string_view emon(daterange::get_month_name(obj.get_emon()));
-  os << smon << " " << obj.get_smday();
+  fmt::print(os, "{} {}", smon, obj.get_smday());
   if (smon != emon)
-    os << " - " << emon << " " << obj.get_emday();
+    fmt::print(os, " - {} {}", emon, obj.get_emday());
   else if (obj.get_smday() != obj.get_emday())
-    os << " - " << obj.get_emday();
+    fmt::print(os, " - {}", obj.get_emday());
   if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+    fmt::print(os, " / {}", obj.get_skip_interval());
   return os;
 }
 
@@ -165,11 +165,11 @@ static std::ostream& _dump_month_date(std::ostream& os, daterange const& obj) {
  *  @return The output stream.
  */
 static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
-  os << "day " << obj.get_smday();
+  fmt::print(os, "day {}", obj.get_smday());
   if (obj.get_smday() != obj.get_emday())
-    os << " - " << obj.get_emday();
+    fmt::print(os, " - {}", obj.get_emday());
   if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+    fmt::print(os, " / {}", obj.get_skip_interval());
   return os;
 }
 
@@ -184,17 +184,16 @@ static std::ostream& _dump_month_day(std::ostream& os, daterange const& obj) {
  */
 static std::ostream& _dump_month_week_day(std::ostream& os,
                                           daterange const& obj) {
-  os << daterange::get_weekday_name(obj.get_swday()) << " "
-     << obj.get_swday_offset() << " "
-     << daterange::get_month_name(obj.get_smon());
+  fmt::print(os, "{} {} {}", daterange::get_weekday_name(obj.get_swday()),
+             obj.get_swday_offset(), daterange::get_month_name(obj.get_smon()));
   if (obj.get_swday() != obj.get_ewday() ||
       obj.get_swday_offset() != obj.get_ewday_offset() ||
       obj.get_smon() != obj.get_emon())
-    os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
-       << obj.get_ewday_offset() << " "
-       << daterange::get_month_name(obj.get_emon());
+    fmt::print(os, " - {} {} {}", daterange::get_weekday_name(obj.get_ewday()),
+               obj.get_ewday_offset(),
+               daterange::get_month_name(obj.get_emon()));
   if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+    fmt::print(os, " / {}", obj.get_skip_interval());
   return os;
 }
 
@@ -207,14 +206,14 @@ static std::ostream& _dump_month_week_day(std::ostream& os,
  *  @return The output stream.
  */
 static std::ostream& _dump_week_day(std::ostream& os, daterange const& obj) {
-  os << daterange::get_weekday_name(obj.get_swday()) << " "
-     << obj.get_swday_offset();
+  fmt::print(os, "{} {}", daterange::get_weekday_name(obj.get_swday()),
+             obj.get_swday_offset());
   if (obj.get_swday() != obj.get_ewday() ||
       obj.get_swday_offset() != obj.get_ewday_offset())
-    os << " - " << daterange::get_weekday_name(obj.get_ewday()) << " "
-       << obj.get_ewday_offset();
+    fmt::print(os, " - {} {}", daterange::get_weekday_name(obj.get_ewday()),
+               obj.get_ewday_offset());
   if (obj.get_skip_interval())
-    os << " / " << obj.get_skip_interval();
+    fmt::print(os, " / {}", obj.get_skip_interval());
   return os;
 }
 

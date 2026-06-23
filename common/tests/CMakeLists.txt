@@ -38,6 +38,20 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
+    timeperiods/utils.cc
+    timeperiods/get_next_valid_time/between_two_years.cc
+    timeperiods/get_next_valid_time/calendar_date.cc
+    timeperiods/get_next_valid_time/dst_backward.cc
+    timeperiods/get_next_valid_time/dst_forward.cc
+    timeperiods/get_next_valid_time/earliest_daterange_first.cc
+    timeperiods/get_next_valid_time/exclusion.cc
+    timeperiods/get_next_valid_time/generic_month_date.cc
+    timeperiods/get_next_valid_time/normal_weekday.cc
+    timeperiods/get_next_valid_time/offset_weekday_of_generic_month.cc
+    timeperiods/get_next_valid_time/offset_weekday_of_specific_month.cc
+    timeperiods/get_next_valid_time/precedence.cc
+    timeperiods/get_next_valid_time/skip_interval.cc
+    timeperiods/get_next_valid_time/specific_month_date.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
@@ -85,6 +99,8 @@ file(COPY ${PROJECT_SOURCE_DIR}/tests/scripts/echo_env1_env2.sh
 add_test(NAME tests COMMAND ut_common)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  target_include_directories(ut_common PRIVATE ${CMAKE_SOURCE_DIR})
+
   target_link_libraries(
     ut_common
     PRIVATE centreon_common
@@ -95,6 +111,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             protobuf::libprotobuf
             engine_conf
+            timeperiods
             Boost::program_options
             re2::re2
             log_v2
@@ -109,10 +126,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             absl::base
             absl::bits
             fmt::fmt
+            ${CMAKE_DL_LIBS}
             pthread)
 
   add_dependencies(ut_common centreon_common process_stat ctncrypto
-                   centreon_http)
+                   centreon_http timeperiods)
 
 else()
   target_link_libraries(

@@ -21,7 +21,7 @@
 #include <gtest/gtest.h>
 #include <signal.h>
 
-#include "../timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/forward.hh"
 #include "com/centreon/process_manager.hh"
 #include "helper.hh"

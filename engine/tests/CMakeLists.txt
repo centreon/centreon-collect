@@ -135,24 +135,12 @@ if(WITH_TESTING)
       ${TESTS_DIR}/retention/service.cc
       ${TESTS_DIR}/string/string.cc
       ${TESTS_DIR}/test_engine.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/dst_forward.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/earliest_daterange_first.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/exclusion.cc
       ${TESTS_DIR}/timeperiod/get_next_valid_time/exceptions_test.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/generic_month_date.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/normal_weekday.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_generic_month.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/offset_weekday_of_specific_month.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc
-      ${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc
       # Headers.
       "${TESTS_DIR}/test_engine.hh"
-      "${TESTS_DIR}/timeperiod/utils.hh")
-  add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+      "${CMAKE_SOURCE_DIR}/common/tests/timeperiods/utils.hh")
+  add_library(ut_engine_utils STATIC
+              "${CMAKE_SOURCE_DIR}/common/tests/timeperiods/utils.cc")
   target_link_libraries(ut_engine_utils PRIVATE dl)
   add_executable(ut_engine ${ut_sources})
   target_include_directories(

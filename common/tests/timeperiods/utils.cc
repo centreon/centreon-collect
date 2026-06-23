@@ -24,13 +24,14 @@
 #include <memory>
 #include <unordered_map>
 
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
 #include "common/timeperiods/timerange.hh"
-#include "tests/timeperiod/utils.hh"
+#include "common/tests/timeperiods/utils.hh"
 
-using namespace com::centreon::engine;
+using com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::common::timeperiods;
+namespace configuration = com::centreon::engine::configuration;
 // Global time.
 static time_t gl_now((time_t)-1);
 
@@ -301,9 +302,42 @@ time_t strtotimet(std::string const& str) {
   tm t;
   memset(&t, 0, sizeof(t));
   if (!strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &t))
-    throw(engine_error() << "invalid date format");
+    throw msg_fmt("invalid date format");
   t.tm_isdst = -1;
   return (mktime(&t));
+}
+
+/**
+ *  Build a standalone timeperiod covering all seven days (00:00-24:00), owned
+ *  by the caller.
+ *
+ *  @param[in] name   Timeperiod name.
+ *  @param[in] alias  Timeperiod alias.
+ *
+ *  @return The newly created timeperiod.
+ */
+std::unique_ptr<timeperiod> new_timeperiod_with_timeranges(
+    const std::string& name,
+    const std::string& alias) {
+  configuration::Timeperiod tp;
+  configuration::timeperiod_helper tp_hlp(&tp);
+  tp.set_timeperiod_name(name);
+  tp.set_alias(alias);
+#define add_day(day)                                \
+  {                                                 \
+    auto* d = tp.mutable_timeranges()->add_##day(); \
+    d->set_range_start(0);                          \
+    d->set_range_end(86400);                        \
+  }
+  add_day(sunday);
+  add_day(monday);
+  add_day(tuesday);
+  add_day(wednesday);
+  add_day(thursday);
+  add_day(friday);
+  add_day(saturday);
+#undef add_day
+  return std::make_unique<timeperiod>(tp);
 }
 
 /**
@@ -314,18 +348,39 @@ time_t strtotimet(std::string const& str) {
 #define __THROW
 #endif  // !__THROW
 
+// When true, an inactive fake clock (gl_now == -1) delegates time()/
+// gettimeofday() to the real libc functions. This lets the timeperiod tests
+// share a binary (ut_common) with tests that need the real wall clock: those
+// never set the fake clock, so they always see real time. ut_engine leaves it
+// off to preserve its historical behaviour (unset clock returns -1).
+static bool gl_real_time_fallback = false;
+
+void enable_real_time_fallback(bool enable) {
+  gl_real_time_fallback = enable;
+}
+
 extern "C" time_t time(time_t* t) __THROW {
+  if (gl_real_time_fallback && gl_now == static_cast<time_t>(-1)) {
+    static time_t (*real_time)(time_t*) =
+        reinterpret_cast<time_t (*)(time_t*)>(dlsym(RTLD_NEXT, "time"));
+    return real_time(t);
+  }
   if (t)
     *t = gl_now;
   return (gl_now);
 }
 
 #ifdef LEGACY_GETTIMEOFDAY
-extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
+extern "C" int gettimeofday(struct timeval* tv, struct timezone* tz) __THROW {
 #else
-extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
+extern "C" int gettimeofday(struct timeval* tv, void* tz) __THROW {
 #endif
-  // extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
+  if (gl_real_time_fallback && gl_now == static_cast<time_t>(-1)) {
+    static int (*real_gettimeofday)(struct timeval*, void*) =
+        reinterpret_cast<int (*)(struct timeval*, void*)>(
+            dlsym(RTLD_NEXT, "gettimeofday"));
+    return real_gettimeofday(tv, reinterpret_cast<void*>(tz));
+  }
   tv->tv_sec = gl_now;
   tv->tv_usec = 0;
   return 0;

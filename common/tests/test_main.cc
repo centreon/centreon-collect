@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include "common/log_v2/log_v2.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "pool.hh"
 
 std::shared_ptr<asio::io_context> g_io_context(
@@ -32,6 +33,18 @@ class CentreonEngineEnvironment : public testing::Environment {
   }
 
   void TearDown() override { return; }
+};
+
+// The timeperiod tests use a process-global fake clock (utils.cc overrides
+// time()/gettimeofday()). To keep it from leaking into the other ut_common
+// tests, reset it before every test: only a test that explicitly calls
+// set_time() sees the fake clock, everything else gets the real wall clock
+// (see enable_real_time_fallback below).
+class FakeClockResetter : public testing::EmptyTestEventListener {
+  void OnTestStart(const testing::TestInfo&) override {
+    set_time(static_cast<time_t>(-1));
+    enable_time_travel(false, 0);
+  }
 };
 
 std::shared_ptr<spdlog::logger> pool_logger =
@@ -52,6 +65,10 @@ int main(int argc, char* argv[]) {
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
+
+  // Make the fake clock opt-in: inactive unless a test calls set_time().
+  enable_real_time_fallback(true);
+  testing::UnitTest::GetInstance()->listeners().Append(new FakeClockResetter());
 
   com::centreon::common::pool::load(g_io_context, pool_logger);
   com::centreon::common::pool::set_pool_size(0);

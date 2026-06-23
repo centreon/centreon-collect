@@ -90,9 +90,18 @@ class timeperiod_creator {
 int hmtos(int h, int m);
 void set_time(time_t now);
 time_t strtotimet(std::string const& str);
+std::unique_ptr<com::centreon::common::timeperiods::timeperiod>
+new_timeperiod_with_timeranges(const std::string& name,
+                               const std::string& alias);
 
 // Declare the external function to control time travel (control the time
 // spdlog)
 extern "C" void enable_time_travel(bool enable, int added);
+
+// When enabled, time()/gettimeofday() return the real wall clock as long as the
+// fake clock is inactive (set_time has not been called, i.e. gl_now == -1).
+// Used by ut_common so the timeperiod tests can coexist with tests that need
+// real time.
+void enable_real_time_fallback(bool enable);
 
 #endif  // !TESTS_TIMEPERIOD_UTILS_HH
