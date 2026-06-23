@@ -22,7 +22,7 @@
 
 #include "common/timeperiods/timeperiod.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 /**
  *  Create a new exception to a timeperiod.
@@ -304,4 +304,4 @@ std::string_view daterange::get_weekday_name(unsigned int index) {
   return days[index];
 }
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods

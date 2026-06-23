@@ -32,7 +32,11 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
+}  // namespace com::centreon::engine
+namespace com::centreon::common::timeperiods {
 class timeperiod;
+}
+namespace com::centreon::engine {
 class severity;
 class tag;
 
@@ -291,7 +295,7 @@ class checkable {
       const std::string& process_cmd,
       static_whitelist_last_result& cached_cmd);
 
-  timeperiod* check_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* check_period_ptr;
 };
 
 }  // namespace com::centreon::engine

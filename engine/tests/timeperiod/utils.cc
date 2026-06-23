@@ -30,6 +30,7 @@
 #include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 // Global time.
 static time_t gl_now((time_t)-1);
 

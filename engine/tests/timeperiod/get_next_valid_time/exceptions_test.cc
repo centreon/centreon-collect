@@ -29,6 +29,7 @@
 #include "helper.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 struct test_param {
   std::string name;
@@ -49,12 +50,16 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
   static configuration::applier::timeperiod _applier;
   static void SetUpTestSuite() {
     init_config_state();
-    com::centreon::engine::timeperiod_manager::instance().timeperiods().clear();
+    com::centreon::common::timeperiods::timeperiod_manager::instance()
+        .timeperiods()
+        .clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }
 
   static void TearDownTestSuite() {
-    com::centreon::engine::timeperiod_manager::instance().timeperiods().clear();
+    com::centreon::common::timeperiods::timeperiod_manager::instance()
+        .timeperiods()
+        .clear();
   }
 
   static void parse_timeperiods_cfg_file(const std::string& file_path);

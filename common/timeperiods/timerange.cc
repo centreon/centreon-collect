@@ -23,7 +23,7 @@
 
 using com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 timerange::timerange(uint64_t start, uint64_t end) {
   // Make sure we have the data we need.
@@ -75,4 +75,4 @@ std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
   return os;
 }
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods

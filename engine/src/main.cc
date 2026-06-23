@@ -68,6 +68,7 @@ namespace po = boost::program_options;
 #include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 using com::centreon::broker::neb::cbmod;
 using com::centreon::common::log_v2::log_v2;

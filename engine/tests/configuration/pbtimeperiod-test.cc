@@ -31,6 +31,7 @@
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 namespace com::centreon::engine::configuration {
 class time_period_comparator {
@@ -45,7 +46,7 @@ class time_period_comparator {
   static const std::map<std::string, unsigned> day_to_index, month_to_index;
 
   const configuration::Timeperiod& _conf_tp;
-  std::shared_ptr<com::centreon::engine::timeperiod> _result;
+  std::shared_ptr<com::centreon::common::timeperiods::timeperiod> _result;
 
   static std::list<configuration::Timerange> extract_timerange(
       const std::string& line_content,
@@ -168,7 +169,9 @@ time_period_comparator::time_period_comparator(
     : _conf_tp(conf_tp) {
   com::centreon::engine::configuration::applier::timeperiod applier;
 
-  com::centreon::engine::timeperiod_manager::instance().timeperiods().clear();
+  com::centreon::common::timeperiods::timeperiod_manager::instance()
+      .timeperiods()
+      .clear();
 
   for (const std::string& line : timeperiod_content) {
     if (line[0] == '#')
@@ -506,7 +509,7 @@ time_period_comparator::time_period_comparator(
   }
 
   applier.add_object(conf_tp);
-  _result = com::centreon::engine::timeperiod_manager::instance()
+  _result = com::centreon::common::timeperiods::timeperiod_manager::instance()
                 .timeperiods()[conf_tp.timeperiod_name()];
 }
 
@@ -566,7 +569,9 @@ static std::ostream& operator<<(
 
 static bool operator==(
     const std::set<std::string>& excl1,
-    const std::unordered_multimap<std::string, engine::timeperiod*>& excl2) {
+    const std::unordered_multimap<
+        std::string,
+        com::centreon::common::timeperiods::timeperiod*>& excl2) {
   if (excl1.size() != excl2.size()) {
     std::cerr << "Exclude arrays have not the same size." << std::endl;
     return false;
@@ -576,7 +581,8 @@ static bool operator==(
 
 static bool operator==(
     const std::array<std::list<configuration::Timerange>, 7>& timerange1,
-    const std::array<std::list<engine::timerange>, 7>& timerange2) {
+    const std::array<std::list<com::centreon::common::timeperiods::timerange>,
+                     7>& timerange2) {
   auto check_timeranges = [](const std::string_view day, auto& day1,
                              auto& day2) -> bool {
     if (day1.size() != day2.size()) {
@@ -671,7 +677,9 @@ static bool operator!=(const std::set<std::string>& exclude1,
   return !(exclude1 == exclude2);
 }
 
-static bool operator==(const Daterange& dr1, const engine::daterange& dr2) {
+static bool operator==(
+    const Daterange& dr1,
+    const com::centreon::common::timeperiods::daterange& dr2) {
   if (static_cast<uint32_t>(dr1.type()) !=
       static_cast<uint32_t>(dr2.get_type())) {
     std::cerr << "Dateranges not of the same type." << std::endl;
@@ -691,11 +699,12 @@ static bool operator==(const Daterange& dr1, const engine::daterange& dr2) {
 static bool operator==(
     const std::array<std::list<configuration::Daterange>,
                      configuration::Daterange_TypeRange_none>& exc1,
-    const std::array<std::list<engine::daterange>,
+    const std::array<std::list<com::centreon::common::timeperiods::daterange>,
                      configuration::Daterange_TypeRange_none>& exc2) {
   auto compare_dateranges =
       [](int32_t idx, const std::list<configuration::Daterange>& lst1,
-         const std::list<engine::daterange>& lst2) -> bool {
+         const std::list<com::centreon::common::timeperiods::daterange>& lst2)
+      -> bool {
     for (auto& dr1 : lst1) {
       bool found = false;
       for (auto& dr2 : lst2) {

@@ -18,7 +18,7 @@
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 class timerange {
   uint64_t _range_start;
   uint64_t _range_end;
@@ -40,10 +40,11 @@ class timerange {
 using timerange_list = std::list<timerange>;
 using days_array = std::array<timerange_list, 7>;
 
-std::ostream& operator<<(std::ostream& os,
-                         com::centreon::engine::timerange const& obj);
+std::ostream& operator<<(
+    std::ostream& os,
+    com::centreon::common::timeperiods::timerange const& obj);
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj);
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods
 
 #endif  // !CCE_OBJECTS_TIMERANGE_HH

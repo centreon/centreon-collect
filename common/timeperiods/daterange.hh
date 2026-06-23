@@ -24,15 +24,15 @@
 
 struct timeperiod_struct;
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 class daterange;
 }
 
-using daterange_list = std::list<com::centreon::engine::daterange>;
+using daterange_list = std::list<com::centreon::common::timeperiods::daterange>;
 
 using exception_array = std::array<daterange_list, DATERANGE_TYPES>;
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 class daterange {
  public:
@@ -116,11 +116,12 @@ class daterange {
   static std::string_view get_weekday_name(unsigned int index);
 };
 
-std::ostream& operator<<(std::ostream& os,
-                         com::centreon::engine::daterange const& obj);
+std::ostream& operator<<(
+    std::ostream& os,
+    com::centreon::common::timeperiods::daterange const& obj);
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

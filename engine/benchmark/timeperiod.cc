@@ -38,6 +38,7 @@
 #include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace cfg = com::centreon::engine::configuration;
 
 // The timeperiods library is now self-contained: it logs through

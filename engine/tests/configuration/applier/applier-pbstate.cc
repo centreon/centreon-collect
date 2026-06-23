@@ -31,6 +31,7 @@
 #include "tests/helper.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using com::centreon::engine::configuration::TagType;
 
 class ApplierState : public ::testing::Test {

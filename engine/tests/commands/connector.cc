@@ -28,6 +28,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::commands;
 
 class my_listener : public commands::command_listener {

@@ -23,7 +23,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/sinks/null_sink.h>
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 timeperiod_manager* timeperiod_manager::_instance = nullptr;
 
@@ -148,4 +148,4 @@ void timeperiod_manager::resolve(timeperiod& tp, uint32_t& w, uint32_t& e) {
   tp.resolve(_timeperiods, w, e);
 }
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods

@@ -25,6 +25,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class GetNextValidTimeEarliestDaterangeFirstTest : public testing::Test {
  public:

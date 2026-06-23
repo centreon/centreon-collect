@@ -27,6 +27,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class GetNextValidTimeCalendarDateTest : public TestEngine {
  public:
@@ -90,7 +91,7 @@ TEST_F(GetNextValidTimeCalendarDateTest, WithinCalendarDate) {
 // When get_next_valid_time() is called
 // Then the next valid time is now
 TEST_F(GetNextValidTimeCalendarDateTest, AfterCalendarDates) {
-  std::unique_ptr<engine::timeperiod> tiperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tiperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   for (int i = 0; i < 7; ++i) {

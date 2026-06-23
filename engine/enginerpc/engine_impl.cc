@@ -51,6 +51,7 @@ namespace asio = boost::asio;
 #include "common/downtimes/downtime_manager.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::string;
 namespace notifications = com::centreon::common::notifications;
 using com::centreon::common::log_v2::log_v2;

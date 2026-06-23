@@ -28,6 +28,7 @@
 #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 namespace notifications = com::centreon::common::notifications;
 
 namespace {

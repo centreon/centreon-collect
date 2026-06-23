@@ -27,14 +27,15 @@
 using namespace com::centreon;
 using com::centreon::exceptions::msg_fmt;
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 /**
  * @brief Constructor of a timeperiod from its configuration protobuf object.
  *
  * @param obj The configuration protobuf object.
  */
-timeperiod::timeperiod(const configuration::Timeperiod& obj)
+timeperiod::timeperiod(
+    const com::centreon::engine::configuration::Timeperiod& obj)
     : _name{obj.timeperiod_name()}, _alias{obj.alias()} {
   if (_name.empty() || _alias.empty()) {
     timeperiod_manager::logger()->error(
@@ -79,13 +80,15 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
   set_exclusions(obj.exclude());
 }
 
-void timeperiod::set_exclusions(const configuration::StringSet& exclusions) {
+void timeperiod::set_exclusions(
+    const com::centreon::engine::configuration::StringSet& exclusions) {
   _exclusions.clear();
   for (auto& s : exclusions.data())
     _exclusions.emplace(s, nullptr);
 }
 
-void timeperiod::set_exceptions(const configuration::ExceptionArray& array) {
+void timeperiod::set_exceptions(
+    const com::centreon::engine::configuration::ExceptionArray& array) {
   for (auto& e : exceptions)
     e.clear();
 
@@ -1191,7 +1194,8 @@ void timeperiod::resolve(const timeperiod_map& all,
   }
 }
 
-void timeperiod::set_days(const configuration::DaysArray& array) {
+void timeperiod::set_days(
+    const com::centreon::engine::configuration::DaysArray& array) {
   for (auto& d : days)
     d.clear();
 
@@ -1211,4 +1215,4 @@ void timeperiod::set_days(const configuration::DaysArray& array) {
     days[6].emplace_back(r.range_start(), r.range_end());
 }
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods

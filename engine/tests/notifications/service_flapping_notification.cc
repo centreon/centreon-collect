@@ -33,6 +33,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::retention;
@@ -130,7 +131,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
   set_time(43000);
   // FIXME DBR: should not we find a better solution than fixing this each time?
   _service->set_last_hard_state_change(43000);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -184,7 +185,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
    */
   set_time(43000);
   _service->set_notification_interval(2);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
@@ -225,7 +226,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
    */
   set_time(43000);
   _service->set_notification_interval(2);
-  std::unique_ptr<engine::timeperiod> tperiod{
+  std::unique_ptr<com::centreon::common::timeperiods::timeperiod> tperiod{
       new_timeperiod_with_timeranges("tperiod", "alias")};
 
   std::unique_ptr<engine::serviceescalation> service_escalation{

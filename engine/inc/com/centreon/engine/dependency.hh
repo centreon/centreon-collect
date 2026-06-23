@@ -63,7 +63,7 @@ class dependency {
   virtual bool operator<(dependency const& obj) noexcept;
   size_t internal_key() const;
 
-  com::centreon::engine::timeperiod* dependency_period_ptr;
+  com::centreon::common::timeperiods::timeperiod* dependency_period_ptr;
 
  protected:
   types _dependency_type;

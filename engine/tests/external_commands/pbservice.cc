@@ -31,6 +31,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class ServiceExternalCommand : public ::testing::Test {
  protected:
@@ -152,4 +153,3 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
 
   ASSERT_NE(out.find("PASSIVE SERVICE CHECK"), std::string::npos);
 }
-

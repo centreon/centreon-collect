@@ -28,7 +28,7 @@ namespace spdlog {
 class logger;
 }
 
-namespace com::centreon::engine {
+namespace com::centreon::common::timeperiods {
 
 /**
  * @brief Owns the per-process collection of timeperiods and their logger.
@@ -93,6 +93,6 @@ class timeperiod_manager {
   void resolve(timeperiod& tp, uint32_t& w, uint32_t& e);
 };
 
-}  // namespace com::centreon::engine
+}  // namespace com::centreon::common::timeperiods
 
 #endif  // !CCE_TIMEPERIODS_TIMEPERIOD_MANAGER_HH

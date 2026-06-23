@@ -37,6 +37,7 @@
 #include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
+using namespace com::centreon::common::timeperiods;
 
 class TestEngine : public ::testing::Test {
  public:
