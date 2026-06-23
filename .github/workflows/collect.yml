@@ -58,6 +58,8 @@ on:
       - selinux/centreon-broker/**
       - selinux/centreon-engine/**
       - tests/**
+      - .github/docker/centreon-engine/**
+      - .github/docker/centreon-broker/**
   push:
     branches:
       - develop
@@ -171,6 +173,8 @@ jobs:
         "overlays/**"
         "selinux/centreon-broker/**"
         "selinux/centreon-engine/**"
+        ".github/docker/centreon-engine/**"
+        ".github/docker/centreon-broker/**"
         "!**/test/**"
         "!**/tests/**"
         "!agent/test/**"
@@ -437,12 +441,132 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
+  dockerize-engine-broker:
+    needs: [get-environment, get-aws-environment, changes, package]
+    if: |
+      needs.changes.outputs.trigger_packaging == 'true' &&
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability != 'stable' &&
+      (
+        needs.get-environment.outputs.is_nightly == 'true' ||
+        contains(needs.get-environment.outputs.labels, 'build-docker-collect')
+      ) &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+
+    name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Restore amd64 packages
+        id: restore-amd64
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+
+      - name: Restore arm64 packages
+        id: restore-arm64
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ./*.deb
+          key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-arm64-${{ github.head_ref || github.ref_name }}
+
+      - name: Fail if packages cache is missing
+        if: steps.restore-amd64.outputs.cache-hit != 'true' || steps.restore-arm64.outputs.cache-hit != 'true'
+        run: |
+          [[ "${{ steps.restore-amd64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} amd64 — ensure ${{ matrix.distrib }} amd64 is in collect_matrix (get-environment.yml)."
+          [[ "${{ steps.restore-arm64.outputs.cache-hit }}" != 'true' ]] && echo "::error::No deb cache for ${{ matrix.distrib }} arm64 — ensure ${{ matrix.distrib }} arm64 is in collect_matrix (get-environment.yml)."
+          exit 1
+        shell: bash
+
+      - name: Prepare packages directory
+        run: |
+          mkdir -p packages-centreon/amd64 packages-centreon/arm64
+          for deb in centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${{ needs.get-environment.outputs.major_version }}*.deb; do
+            [[ ! -f "$deb" ]] && continue
+            if [[ "$deb" == *_amd64.deb ]]; then
+              mv "$deb" packages-centreon/amd64/
+            elif [[ "$deb" == *_arm64.deb ]]; then
+              mv "$deb" packages-centreon/arm64/
+            fi
+          done
+          ls -lhR packages-centreon/
+        shell: bash
+
+      - name: Login to registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+
+      - uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Compute Docker tag
+        id: compute-tag
+        env:
+          RAW_REF: ${{ github.head_ref || github.ref_name }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+        run: |
+          if [[ "$RAW_REF" == "develop" ]]; then
+            echo "tag=develop-${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=develop" >> "$GITHUB_OUTPUT"
+          elif [[ "$RAW_REF" =~ ^dev-[0-9]+\.[0-9]+\.x$ ]]; then
+            echo "tag=${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          else
+            docker_tag=$(printf '%s' "$RAW_REF" | sed -E 's#[^[:alnum:]_.-]+#-#g; s#^[.-]+##; s#-+#-#g' | cut -c1-128)
+            if [[ -z "$docker_tag" ]]; then
+              echo "::error::Unable to derive a valid Docker tag from ref '$RAW_REF'"
+              exit 1
+            fi
+            echo "tag=${docker_tag}" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=" >> "$GITHUB_OUTPUT"
+          fi
+        shell: bash
+
+      - name: Build and push image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        env:
+          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+          DOCKER_BUILD_SUMMARY: false
+          DOCKER_BUILD_RECORD_UPLOAD: false
+        with:
+          file: .github/docker/${{ matrix.image }}/${{ matrix.distrib }}/Dockerfile
+          context: .
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            "VERSION=${{ needs.get-environment.outputs.major_version }}"
+            "IS_CLOUD=${{ needs.get-environment.outputs.is_cloud }}"
+            "STABILITY=${{ needs.get-environment.outputs.stability }}"
+          pull: true
+          push: true
+          tags: |
+            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ steps.compute-tag.outputs.tag }}
+            ${{ steps.compute-tag.outputs.additional_tag != '' && format('{0}/{1}-{2}:{3}', vars.DOCKER_INTERNAL_REGISTRY_URL, matrix.image, matrix.distrib, steps.compute-tag.outputs.additional_tag) || '' }}
+          secrets: |
+            "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
+            "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
   robot-test:
     needs: [get-environment, get-aws-environment, changes, package]
     if: |
       needs.changes.outputs.trigger_e2e_testing == 'true' &&
       needs.get-environment.outputs.skip_workflow == 'false' &&
       needs.get-environment.outputs.stability != 'stable' &&
+      ! contains(needs.get-environment.outputs.labels, 'build-docker-collect') &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&

@@ -176,8 +176,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
   set_time(20000);
 
   uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -199,8 +198,7 @@ TEST_F(ServiceNotification,
   set_time(20000);
 
   uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
@@ -220,8 +218,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
   set_time(20000);
 
   uint64_t id{_svc->get_next_notification_id()};
-  for (int i = 0; i < 7; ++i)
-    tperiod->days[i].emplace_back(43200, 86400);
+  apply_same_timeranges_to_every_day(tperiod.get(), {{43200, 86400}});
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
