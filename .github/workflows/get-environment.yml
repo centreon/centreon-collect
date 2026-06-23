@@ -872,8 +872,7 @@ jobs:
               return configs.flatMap(c => {
                 const entries = [{...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{}'}];
                 if (c.arch === 'amd64' && !hasGrpcConfig) {
-                  entries.push({...c, database_type: 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
-                  hasGrpcConfig = true;
+                  entries.push({...c, database_type: c.operating_system === 'alma10' ? 'mysql' : 'mariadb', tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'});
                 }
                 if (['alma8', 'alma9', 'alma10'].includes(c.operating_system) && !hasMysqlConfig && c.arch === 'amd64' && isDbRun) {
                   c.operating_system === 'alma10' ? entries.push({...c, database_type: 'mariadb', tests_params: '{}'}) : entries.push({...c, database_type: 'mysql', tests_params: '{}'});
