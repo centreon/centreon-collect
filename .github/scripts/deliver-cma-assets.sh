@@ -85,7 +85,7 @@ REPO_NAME="${REPO##*/}"
 # ─── GitHub API ───────────────────────────────────────────────────────────────
 gh_api() {
   local method="$1" endpoint="$2"
-  curl --fail --silent --max-time 30 \
+  curl --fail --silent --show-error --max-time 30 \
     -X "$method" \
     -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
@@ -221,7 +221,10 @@ echo -e "  Repo    : ${DIM}${REPO}${RESET}"
 # 1. Find the GitHub release
 log_header "GitHub release"
 log_info "Looking up tag: ${GITHUB_RELEASE}"
-release_json=$(get_release)
+if ! release_json=$(get_release 2>&1); then
+  log_error "Release not found or API error: ${release_json}"
+  exit 1
+fi
 release_id=$(echo "$release_json" | jq -r '.id')
 release_name=$(echo "$release_json" | jq -r '.name')
 log_ok "\"${release_name}\" (id ${release_id})"
