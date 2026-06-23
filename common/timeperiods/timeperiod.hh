@@ -17,8 +17,8 @@
  * For more information : contact@centreon.com
  *
  */
-#ifndef CCE_OBJECTS_TIMEPERIOD_HH
-#define CCE_OBJECTS_TIMEPERIOD_HH
+#ifndef CCC_TIMEPERIODS_TIMEPERIOD_HH
+#define CCC_TIMEPERIODS_TIMEPERIOD_HH
 
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
@@ -59,6 +59,9 @@ class timeperiod {
   void set_alias(const std::string& alias);
   const timeperiodexclusion& get_exclusions() const { return _exclusions; };
   timeperiodexclusion& get_exclusions() { return _exclusions; };
+  time_t get_next_valid_time(
+      time_t preferred_time,
+      const absl::TimeZone& tz = absl::LocalTimeZone());
   void get_next_valid_time_per_timeperiod(
       time_t preferred_time,
       time_t* invalid_time,
@@ -86,11 +89,7 @@ bool check_time_against_period_for_notif(
     time_t test_time,
     timeperiod* tperiod,
     const absl::TimeZone& tz = absl::LocalTimeZone());
-void get_next_valid_time(time_t pref_time,
-                         time_t* valid_time,
-                         timeperiod* tperiod,
-                         const absl::TimeZone& tz = absl::LocalTimeZone());
 
 }  // namespace com::centreon::common::timeperiods
 
-#endif  // !CCE_OBJECTS_TIMEPERIOD_HH
+#endif  // !CCC_TIMEPERIODS_TIMEPERIOD_HH

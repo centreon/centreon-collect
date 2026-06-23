@@ -65,7 +65,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, BeforeDateRanges) {
   time_t now(strtotimet("2016-10-24 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-25 10:45:00"));
 }
 
@@ -78,7 +78,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, BetweenDateRanges) {
   time_t now(strtotimet("2016-10-26 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-27 08:30:00"));
 }
 
@@ -91,7 +91,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, WithinRange) {
   time_t now(strtotimet("2016-10-28 20:59:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -105,7 +105,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, AfterRanges) {
   time_t now(strtotimet("2016-10-30 13:37:42"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-11-22 10:45:00"));
 }
 
@@ -119,7 +119,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest,
   time_t now(strtotimet("2016-10-03 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-04 10:45:00"));
 }
 
@@ -133,7 +133,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest,
   time_t now(strtotimet("2016-10-08 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-13 08:30:00"));
 }
 
@@ -146,7 +146,7 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, WithinNegativeRange) {
   time_t now(strtotimet("2016-10-13 20:59:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -160,6 +160,6 @@ TEST_F(GetNextValidTimeOffsetWeekdayOfGenericMonthTest, AfterNegativeRanges) {
   time_t now(strtotimet("2016-10-30 13:37:42"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-11-08 10:45:00"));
 }

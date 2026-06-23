@@ -15,8 +15,8 @@
  *
  * For more information : contact@centreon.com
  */
-#ifndef CCE_OBJECTS_TIMERANGE_HH
-#define CCE_OBJECTS_TIMERANGE_HH
+#ifndef CCC_TIMEPERIODS_TIMERANGE_HH
+#define CCC_TIMEPERIODS_TIMERANGE_HH
 
 namespace com::centreon::common::timeperiods {
 class timerange {
@@ -47,4 +47,4 @@ std::ostream& operator<<(std::ostream& os, timerange_list const& obj);
 
 }  // namespace com::centreon::common::timeperiods
 
-#endif  // !CCE_OBJECTS_TIMERANGE_HH
+#endif  // !CCC_TIMEPERIODS_TIMERANGE_HH

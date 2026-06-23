@@ -1441,9 +1441,12 @@ int host::run_scheduled_check(int check_options, double latency) {
 
       // Make sure we rescheduled the next host check at a valid time.
       {
-        get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr,
-                            string_to_timezone(get_timezone()));
+        // No check period defined means any time is valid.
+        if (this->check_period_ptr)
+          next_valid_time = this->check_period_ptr->get_next_valid_time(
+              preferred_time, string_to_timezone(get_timezone()));
+        else
+          next_valid_time = std::max(preferred_time, ::time(nullptr));
       }
 
       /* the host could not be rescheduled properly - set the next check time
@@ -3119,8 +3122,12 @@ int host::process_check_result_3x(enum host::host_state new_state,
     // Make sure we rescheduled the next host check at a valid time.
     {
       preferred_time = get_next_check();
-      get_next_valid_time(preferred_time, &next_valid_time, check_period_ptr,
-                          string_to_timezone(get_timezone()));
+      // No check period defined means any time is valid.
+      if (check_period_ptr)
+        next_valid_time = check_period_ptr->get_next_valid_time(
+            preferred_time, string_to_timezone(get_timezone()));
+      else
+        next_valid_time = std::max(preferred_time, ::time(nullptr));
       set_next_check(next_valid_time);
     }
 

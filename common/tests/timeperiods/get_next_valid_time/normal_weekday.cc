@@ -54,7 +54,7 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, BeforeWeekdays) {
   time_t now(strtotimet("2016-10-24 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-25 10:30:00"));
 }
 
@@ -67,7 +67,7 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, BetweenWeekdays) {
   time_t now(strtotimet("2016-10-26 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-27 12:00:00"));
 }
 
@@ -80,7 +80,7 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, WithinWeekday) {
   time_t now(strtotimet("2016-10-28 18:36:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -93,7 +93,7 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, JustBeforeEndWeekday) {
   time_t now(strtotimet("2016-10-27 12:59:59"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -106,7 +106,7 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, JustBeforeEndWeekdays) {
   time_t now(strtotimet("2016-10-28 19:44:59"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -119,6 +119,6 @@ TEST_F(GetNextValidTimeNormalWeekdayTest, AfterWeekdays) {
   time_t now(strtotimet("2016-10-29 13:37:42"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-11-01 10:30:00"));
 }

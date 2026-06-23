@@ -133,35 +133,35 @@ class GetNextValidTimeBetweenTwoYears : public ::testing::Test {
 TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateBeforeTimeperiod) {
   calendar_date();
   before_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-20 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateBeforeNewYear) {
   calendar_date();
   before_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-25 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateAtNewYear) {
   calendar_date();
   at_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-01 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateAfterNewYear) {
   calendar_date();
   after_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-02 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateAfterTimeperiod) {
   calendar_date();
   after_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-12-20 00:00:00"));
 }
 
@@ -172,35 +172,35 @@ TEST_F(GetNextValidTimeBetweenTwoYears, CalendarDateAfterTimeperiod) {
 TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateBeforeTimeperiod) {
   specific_month_date();
   before_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-20 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateBeforeNewYear) {
   specific_month_date();
   before_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-25 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateAtNewYear) {
   specific_month_date();
   at_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-01 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateAfterNewYear) {
   specific_month_date();
   after_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-02 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateAfterTimeperiod) {
   specific_month_date();
   after_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-12-20 00:00:00"));
 }
 
@@ -211,35 +211,35 @@ TEST_F(GetNextValidTimeBetweenTwoYears, SpecificMonthDateAfterTimeperiod) {
 TEST_F(GetNextValidTimeBetweenTwoYears, GenericMonthDateBeforeTimeperiod) {
   generic_month_date();
   before_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-20 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, GenericMonthDateBeforeNewYear) {
   generic_month_date();
   before_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-25 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, GenericMonthDateAtNewYear) {
   generic_month_date();
   at_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-01 00:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, GenericMonthDateAfterNewYear) {
   generic_month_date();
   after_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-02 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, GenericMonthDateAfterTimeperiod) {
   generic_month_date();
   after_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-20 00:00:00"));
 }
 
@@ -251,7 +251,7 @@ TEST_F(GetNextValidTimeBetweenTwoYears,
        OffsetWeekdayOfSpecificMonthBeforeTimeperiod) {
   offset_weekday_of_specific_month();
   before_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-20 00:00:00"));
 }
 
@@ -259,14 +259,14 @@ TEST_F(GetNextValidTimeBetweenTwoYears,
        OffsetWeekdayOfSpecificMonthBeforeNewYear) {
   offset_weekday_of_specific_month();
   before_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2016-12-25 12:00:00"));
 }
 
 TEST_F(GetNextValidTimeBetweenTwoYears, OffsetWeekdayOfSpecificMonthAtNewYear) {
   offset_weekday_of_specific_month();
   at_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-01 00:00:00"));
 }
 
@@ -274,7 +274,7 @@ TEST_F(GetNextValidTimeBetweenTwoYears,
        OffsetWeekdayOfSpecificMonthAfterNewYear) {
   offset_weekday_of_specific_month();
   after_new_year();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-01-02 12:00:00"));
 }
 
@@ -282,6 +282,6 @@ TEST_F(GetNextValidTimeBetweenTwoYears,
        OffsetWeekdayOfSpecificMonthAfterTimeperiod) {
   offset_weekday_of_specific_month();
   after_timeperiod();
-  get_next_valid_time(_now, &_computed, _creator.get_timeperiods());
+  _computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(_computed, strtotimet("2017-12-19 00:00:00"));
 }

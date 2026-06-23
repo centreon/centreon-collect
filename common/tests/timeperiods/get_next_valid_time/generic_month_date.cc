@@ -54,7 +54,7 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, BeforeGenericMonthDates) {
   time_t now(strtotimet("2016-10-24 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-25 10:45:00"));
 }
 
@@ -67,7 +67,7 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, BetweenGenericMonthDates) {
   time_t now(strtotimet("2016-10-26 12:00:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-10-27 08:30:00"));
 }
 
@@ -80,7 +80,7 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, WithinGenericMonthDate) {
   time_t now(strtotimet("2016-10-28 20:59:00"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, now);
 }
 
@@ -93,6 +93,6 @@ TEST_F(GetNextValidTimeGenericMonthDateTest, AfterGenericMonthDates) {
   time_t now(strtotimet("2016-10-30 13:37:42"));
   set_time(now);
   time_t computed((time_t)-1);
-  get_next_valid_time(now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(now);
   ASSERT_EQ(computed, strtotimet("2016-11-25 10:45:00"));
 }

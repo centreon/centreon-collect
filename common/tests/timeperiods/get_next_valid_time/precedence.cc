@@ -84,7 +84,7 @@ class GetNextValidTimePrecedenceTest : public testing::Test {
 TEST_F(GetNextValidTimePrecedenceTest, CalendarDatePrecedence) {
   calendar_date_and_lower();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 06:00:00"));
 }
 
@@ -96,7 +96,7 @@ TEST_F(GetNextValidTimePrecedenceTest, CalendarDatePrecedence) {
 TEST_F(GetNextValidTimePrecedenceTest, SpecificMonthDatePrecedence) {
   specific_month_date_and_lower();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 05:00:00"));
 }
 
@@ -108,7 +108,7 @@ TEST_F(GetNextValidTimePrecedenceTest, SpecificMonthDatePrecedence) {
 TEST_F(GetNextValidTimePrecedenceTest, GenericMonthDatePrecedence) {
   generic_month_date_and_lower();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 04:00:00"));
 }
 
@@ -120,7 +120,7 @@ TEST_F(GetNextValidTimePrecedenceTest, GenericMonthDatePrecedence) {
 TEST_F(GetNextValidTimePrecedenceTest, OffsetWeekdayOfSpecificMonthPrecedence) {
   offset_weekday_of_specific_month_and_lower();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 03:00:00"));
 }
 
@@ -132,6 +132,6 @@ TEST_F(GetNextValidTimePrecedenceTest, OffsetWeekdayOfSpecificMonthPrecedence) {
 TEST_F(GetNextValidTimePrecedenceTest, OffsetWeekdayOfGenericMonthPrecedence) {
   offset_weekday_of_generic_month_and_lower();
   time_t computed((time_t)-1);
-  get_next_valid_time(_now, &computed, _creator.get_timeperiods());
+  computed = _creator.get_timeperiods()->get_next_valid_time(_now);
   ASSERT_EQ(computed, strtotimet("2016-11-07 02:00:00"));
 }
