@@ -191,14 +191,53 @@ Ordre suggéré, du moins risqué au plus risqué :
    pendant la migration des ~25 fichiers consommateurs).
 6. Lier broker contre la lib pour l'évaluation des plages de notification.
 
-## 9. Pistes à explorer
+## 9. Remplacement de `timezone_manager` — plan par phases
+
+Le passage par `setenv("TZ")` + `tzset()` (cf. §3) est la vraie brique bloquante
+pour broker. On le retire en trois phases, de la moins à la plus risquée :
+
+- **Phase 0 — filet de sécurité (FAIT).** Avant de toucher au moteur, figer le
+  comportement actuel par des tests golden-master multi-fuseaux :
+  `common/tests/timeperiods/get_next_valid_time/timezone.cc`. Un même timeperiod
+  « lundi 09:00-17:00 » évalué depuis un instant absolu unique donne, par fuseau,
+  son 09:00 local (Paris `07:00 UTC` < UTC `09:00 UTC` < New_York `13:00 UTC`),
+  avec un cas demi-heure (Australia/Lord_Howe, +10:30) pour piéger toute
+  hypothèse d'offset entier. Un test `DISABLED_ConcurrentEvaluationsAre…`
+  documente l'objectif : il ne pourra passer qu'une fois le fuseau devenu un
+  paramètre par appel (impossible aujourd'hui, l'état TZ étant global). Jusque-là
+  les tests posent le fuseau via `setenv/tzset` dans un garde RAII `scoped_tz`.
+- **Phase 1 — fuseau en paramètre (FAIT).** `const absl::TimeZone& tz` traverse
+  désormais toute la chaîne (`get_next_valid_time` / `check_time_against_period`
+  / `*_per_timeperiod` + toutes les fonctions internes statiques). Deux helpers
+  sans état remplacent libc dans `timeperiod.cc` : `tm_from_time(time_t, tz)`
+  (= `localtime_r`, via `absl::ToTM`) et `time_from_tm(tm*, tz)` (= `mktime`, via
+  `absl::FromTM` puis `absl::ToTM` pour réécrire les champs normalisés). DST :
+  `absl::FromTM` renvoie l'instant pré-transition quand `tm_isdst != 0`, ce qui
+  reproduit exactement `mktime` avec `tm_isdst = -1` (vérifié : tous les
+  call-sites internes posent `tm_isdst = -1` avant conversion). **Compat engine
+  sans toucher aux ~40 call-sites** : le paramètre a pour défaut
+  `absl::LocalTimeZone()`, qui relit `TZ` à chaque appel (vérifié) → le chemin
+  par défaut reproduit à l'identique le comportement actuel, y compris le
+  `timezone_locker` global. Les consommateurs (broker, tests) passent un
+  `absl::TimeZone` explicite → calcul thread-safe et sans état global. Le test
+  concurrent de la Phase 0 est activé et vert. Bench inchangé sous `TZ=UTC`
+  (gnvt_24x7 ~0.6 µs ; `LocalTimeZone()` résolu une seule fois par appel public
+  puis la zone immuable est réutilisée pour toutes les conversions internes).
+- **Phase 2 — suppression** de `timezone_manager` / `timezone_locker` une fois
+  les call-sites engine migrés vers une zone explicite (`absl::LoadTimeZone(
+  get_timezone())` au lieu de poser le locker). Bénéfice annexe : disparition du
+  `stat()` de `/etc/localtime` à chaque appel (le ×4–×8 mesuré en §10).
+
+Rappel : le fuseau n'est **pas** une propriété du timeperiod (le message proto
+`Timeperiod` n'a pas de champ tz). Il vient du contexte (host/service/contact,
+`get_timezone()`) ; c'est donc un paramètre d'évaluation, pas un membre.
+
+Autres pistes :
 
 - **POC Abseil** : réécrire une fonction clé (p.ex. `get_next_valid_time` pour la
   règle « nème jour de semaine du mois ») en Abseil et la valider contre la suite
   `get_next_valid_time/*` existante, pour mesurer le gain de lisibilité et la
   robustesse DST.
-- **Remplacement de `timezone_manager`** par un calcul de fuseau sans état global
-  (brique prioritaire pour toute réutilisation dans broker).
 - **Choix A vs B** pour le registre (cf. §8.4).
 
 ## 10. Benchmarks — baseline actuelle
