@@ -30,7 +30,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
 #include "helper.hh"
 

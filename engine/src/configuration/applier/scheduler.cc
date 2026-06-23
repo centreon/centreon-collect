@@ -22,7 +22,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/statusdata.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -457,10 +457,10 @@ void applier::scheduler::_calculate_host_scheduling_params() {
     if (!hst.check_interval() || !hst.active_checks_enabled())
       schedule_check = false;
     else {
-      timezone_locker lock(hst.get_timezone());
-      if (!check_time_against_period(now, hst.check_period_ptr)) {
+      const absl::TimeZone tz = string_to_timezone(hst.get_timezone());
+      if (!check_time_against_period(now, hst.check_period_ptr, tz)) {
         time_t next_valid_time(0);
-        get_next_valid_time(now, &next_valid_time, hst.check_period_ptr);
+        get_next_valid_time(now, &next_valid_time, hst.check_period_ptr, tz);
         if (now == next_valid_time)
           schedule_check = false;
       }
@@ -594,10 +594,10 @@ void applier::scheduler::_calculate_service_scheduling_params() {
       schedule_check = false;
 
     {
-      timezone_locker lock(svc.get_timezone());
-      if (!check_time_against_period(now, svc.check_period_ptr)) {
+      const absl::TimeZone tz = string_to_timezone(svc.get_timezone());
+      if (!check_time_against_period(now, svc.check_period_ptr, tz)) {
         time_t next_valid_time(0);
-        get_next_valid_time(now, &next_valid_time, svc.check_period_ptr);
+        get_next_valid_time(now, &next_valid_time, svc.check_period_ptr, tz);
         if (now == next_valid_time)
           schedule_check = false;
       }
@@ -792,12 +792,12 @@ void applier::scheduler::_schedule_host_events(
 
     // Make sure the host can actually be scheduled at this time.
     {
-      timezone_locker lock(hst.get_timezone());
-      if (!check_time_against_period(hst.get_next_check(),
-                                     hst.check_period_ptr)) {
+      const absl::TimeZone tz = string_to_timezone(hst.get_timezone());
+      if (!check_time_against_period(hst.get_next_check(), hst.check_period_ptr,
+                                     tz)) {
         time_t next_valid_time(0);
         get_next_valid_time(hst.get_next_check(), &next_valid_time,
-                            hst.check_period_ptr);
+                            hst.check_period_ptr, tz);
         hst.set_next_check(next_valid_time);
       }
     }
@@ -903,12 +903,12 @@ void applier::scheduler::_schedule_service_events(
 
       // Make sure the service can actually be scheduled when we want.
       {
-        timezone_locker lock(s->get_timezone());
-        if (!check_time_against_period(s->get_next_check(),
-                                       s->check_period_ptr)) {
+        const absl::TimeZone tz = string_to_timezone(s->get_timezone());
+        if (!check_time_against_period(s->get_next_check(), s->check_period_ptr,
+                                       tz)) {
           time_t next_valid_time(0);
           get_next_valid_time(s->get_next_check(), &next_valid_time,
-                              s->check_period_ptr);
+                              s->check_period_ptr, tz);
           s->set_next_check(next_valid_time);
         }
       }

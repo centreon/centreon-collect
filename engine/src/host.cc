@@ -35,7 +35,7 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
 
@@ -1441,9 +1441,9 @@ int host::run_scheduled_check(int check_options, double latency) {
 
       // Make sure we rescheduled the next host check at a valid time.
       {
-        timezone_locker lock(get_timezone());
         get_next_valid_time(preferred_time, &next_valid_time,
-                            this->check_period_ptr);
+                            this->check_period_ptr,
+                            string_to_timezone(get_timezone()));
       }
 
       /* the host could not be rescheduled properly - set the next check time
@@ -2264,9 +2264,9 @@ bool host::verify_check_viability(int check_options,
 
     // Make sure this is a valid time to check the host.
     {
-      timezone_locker lock(get_timezone());
       if (!check_time_against_period(static_cast<unsigned long>(current_time),
-                                     this->check_period_ptr)) {
+                                     this->check_period_ptr,
+                                     string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;
@@ -3118,9 +3118,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
     // Make sure we rescheduled the next host check at a valid time.
     {
-      timezone_locker lock{get_timezone()};
       preferred_time = get_next_check();
-      get_next_valid_time(preferred_time, &next_valid_time, check_period_ptr);
+      get_next_valid_time(preferred_time, &next_valid_time, check_period_ptr,
+                          string_to_timezone(get_timezone()));
       set_next_check(next_valid_time);
     }
 
@@ -3347,9 +3347,9 @@ void host::check_result_freshness() {
 
     // See if the time is right...
     {
-      timezone_locker lock(it->second->get_timezone());
-      if (!check_time_against_period(current_time,
-                                     it->second->check_period_ptr))
+      if (!check_time_against_period(
+              current_time, it->second->check_period_ptr,
+              string_to_timezone(it->second->get_timezone())))
         continue;
     }
 

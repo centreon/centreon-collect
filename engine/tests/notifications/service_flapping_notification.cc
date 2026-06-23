@@ -28,7 +28,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

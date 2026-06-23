@@ -24,7 +24,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/engine_downtime_callbacks.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 

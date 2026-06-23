@@ -26,7 +26,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone_locker.hh"
+#include "com/centreon/engine/timezone.hh"
 #include "common/notifications/notification_types.hh"
 
 using namespace com::centreon;
@@ -836,9 +836,9 @@ bool contact::should_be_notified(notifications::notification_category cat,
         return false;
       }
       // See if the contact can be notified at this time for the host.
-      timezone_locker lock(get_timezone());
       if (!check_time_against_period_for_notif(
-              std::time(nullptr), get_service_notification_period_ptr())) {
+              std::time(nullptr), get_service_notification_period_ptr(),
+              string_to_timezone(get_timezone()))) {
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;
@@ -851,9 +851,9 @@ bool contact::should_be_notified(notifications::notification_category cat,
         return false;
       }
       // See if the contact can be notified at this time for the service.
-      timezone_locker lock(get_timezone());
       if (!check_time_against_period_for_notif(
-              std::time(nullptr), get_host_notification_period_ptr())) {
+              std::time(nullptr), get_host_notification_period_ptr(),
+              string_to_timezone(get_timezone()))) {
         notifications_logger->info(
             "This contact shouldn't be notified at this time.");
         return false;

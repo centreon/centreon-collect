@@ -36,7 +36,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
-#include "com/centreon/engine/timezone_manager.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
 

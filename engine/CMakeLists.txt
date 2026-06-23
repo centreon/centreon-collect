@@ -416,8 +416,7 @@ set(FILES
     "${SRC_DIR}/statusdata.cc"
     "${SRC_DIR}/string.cc"
     "${SRC_DIR}/tag.cc"
-    "${SRC_DIR}/timezone_locker.cc"
-    "${SRC_DIR}/timezone_manager.cc"
+    "${SRC_DIR}/timezone.cc"
     "${SRC_DIR}/utils.cc"
     "${SRC_DIR}/xsddefault.cc"
     # Headers.
@@ -463,8 +462,7 @@ set(FILES
     "${INC_DIR}/com/centreon/engine/statusdata.hh"
     "${INC_DIR}/com/centreon/engine/string.hh"
     "${INC_DIR}/com/centreon/engine/tag.hh"
-    "${INC_DIR}/com/centreon/engine/timezone_locker.hh"
-    "${INC_DIR}/com/centreon/engine/timezone_manager.hh"
+    "${INC_DIR}/com/centreon/engine/timezone.hh"
     "${INC_DIR}/com/centreon/engine/utils.hh"
     "${INC_DIR}/com/centreon/engine/version.hh"
     "${INC_DIR}/com/centreon/engine/xsddefault.hh")
