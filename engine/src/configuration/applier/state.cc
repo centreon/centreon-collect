@@ -22,7 +22,7 @@
 #include <sys/resource.h>
 #include <chrono>
 #include <cstdint>
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -255,7 +255,6 @@ applier::state::~state() noexcept {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
-  engine::timeperiod_manager::instance().timeperiods().clear();
   engine::comment::set_next_comment_id(1llu);
 }
 

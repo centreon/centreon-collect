@@ -46,7 +46,7 @@
 #include "common/engine_conf/service_helper.hh"
 #include "common/engine_conf/state.pb.h"
 #include "common/engine_conf/timeperiod_helper.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

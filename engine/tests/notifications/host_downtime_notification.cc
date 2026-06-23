@@ -31,7 +31,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

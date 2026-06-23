@@ -21,7 +21,7 @@
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
 #include "common/engine_conf/timeperiod_helper.hh"
-#include "engine/src/timeperiods/daterange.hh"
+#include "common/timeperiods/daterange.hh"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

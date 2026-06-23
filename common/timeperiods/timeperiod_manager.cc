@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <cassert>
 
@@ -109,7 +109,8 @@ void timeperiod_manager::set_illegal_object_chars(
 bool timeperiod_manager::contains_illegal_chars(std::string_view name) {
   if (!_instance || _instance->_illegal_chars.empty())
     return false;
-  return name.find_first_of(_instance->_illegal_chars) != std::string_view::npos;
+  return name.find_first_of(_instance->_illegal_chars) !=
+         std::string_view::npos;
 }
 
 /**

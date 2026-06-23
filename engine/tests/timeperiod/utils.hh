@@ -21,8 +21,8 @@
 #define TESTS_TIMEPERIOD_UTILS_HH
 
 #include <string>
-#include "engine/src/timeperiods/daterange.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/daterange.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 class timeperiod_creator {
  public:

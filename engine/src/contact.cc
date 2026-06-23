@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/engine/contact.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"

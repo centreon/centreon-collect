@@ -19,7 +19,7 @@
 
 #include <gtest/gtest.h>
 #include "com/centreon/clib.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 #include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon;

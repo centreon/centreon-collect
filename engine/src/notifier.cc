@@ -21,7 +21,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/strip.h>
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"

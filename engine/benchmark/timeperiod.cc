@@ -34,8 +34,8 @@
 #include <string>
 #include <vector>
 
-#include "engine/src/timeperiods/timeperiod.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 namespace cfg = com::centreon::engine::configuration;
@@ -56,13 +56,27 @@ void add_range(cfg::DaysArray* days,
                uint64_t end) {
   cfg::Timerange* tr = nullptr;
   switch (weekday) {
-    case 0: tr = days->add_sunday(); break;
-    case 1: tr = days->add_monday(); break;
-    case 2: tr = days->add_tuesday(); break;
-    case 3: tr = days->add_wednesday(); break;
-    case 4: tr = days->add_thursday(); break;
-    case 5: tr = days->add_friday(); break;
-    case 6: tr = days->add_saturday(); break;
+    case 0:
+      tr = days->add_sunday();
+      break;
+    case 1:
+      tr = days->add_monday();
+      break;
+    case 2:
+      tr = days->add_tuesday();
+      break;
+    case 3:
+      tr = days->add_wednesday();
+      break;
+    case 4:
+      tr = days->add_thursday();
+      break;
+    case 5:
+      tr = days->add_friday();
+      break;
+    case 6:
+      tr = days->add_saturday();
+      break;
   }
   tr->set_range_start(start);
   tr->set_range_end(end);
@@ -108,7 +122,7 @@ cfg::Timeperiod conf_exceptions() {
 
 // A fixed, deterministic set of reference instants (no wall clock).
 // 2024-01-03 was a Wednesday, 2024-01-06 a Saturday.
-constexpr std::time_t k_wed_noon = 1704283200;   // inside work hours
+constexpr std::time_t k_wed_noon = 1704283200;     // inside work hours
 constexpr std::time_t k_sat_evening = 1704571200;  // outside -> forward search
 
 // ── check_time_against_period ───────────────────────────────────────────────
@@ -130,7 +144,8 @@ BENCHMARK(BM_check_workhours_inside);
 void BM_check_workhours_outside(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_workhours());
   for (auto _ : state)
-    benchmark::DoNotOptimize(check_time_against_period(k_sat_evening, tp.get()));
+    benchmark::DoNotOptimize(
+        check_time_against_period(k_sat_evening, tp.get()));
 }
 BENCHMARK(BM_check_workhours_outside);
 

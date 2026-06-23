@@ -25,7 +25,7 @@
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/timezone_locker.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
 namespace notifications = com::centreon::common::notifications;

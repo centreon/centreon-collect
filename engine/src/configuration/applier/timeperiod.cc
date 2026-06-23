@@ -23,7 +23,7 @@
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;

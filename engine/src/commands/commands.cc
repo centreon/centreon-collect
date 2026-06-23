@@ -20,7 +20,7 @@
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
-#include "engine/src/timeperiods/timeperiod_manager.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <absl/strings/escaping.h>
 #include <sys/time.h>

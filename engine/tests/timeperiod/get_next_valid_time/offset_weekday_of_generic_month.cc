@@ -21,7 +21,7 @@
 #include <cstring>
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
-#include "engine/src/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod.hh"
 #include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon;

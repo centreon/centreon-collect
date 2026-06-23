@@ -26,7 +26,7 @@
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "common/engine_conf/timeperiod_helper.hh"
-#include "engine/src/timeperiods/timerange.hh"
+#include "common/timeperiods/timerange.hh"
 #include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon::engine;
@@ -112,8 +112,7 @@ daterange* timeperiod_creator::new_calendar_date(int start_year,
 
   target->exceptions[daterange::calendar_date].emplace_back(
       daterange::calendar_date, start_year, start_month, start_day, 0, 0,
-      end_year, end_month, end_day, 0, 0, 0,
-      timerange_list{});
+      end_year, end_month, end_day, 0, 0, 0, timerange_list{});
   return &*target->exceptions[daterange::calendar_date].rbegin();
 }
 
@@ -138,8 +137,7 @@ daterange* timeperiod_creator::new_specific_month_date(int start_month,
 
   target->exceptions[daterange::month_date].emplace_back(
       daterange::month_date, 0, start_month, start_day, 0, 0, 0, end_month,
-      end_day, 0, 0, 0,
-      timerange_list{});
+      end_day, 0, 0, 0, timerange_list{});
   return &*target->exceptions[daterange::month_date].rbegin();
 }
 
@@ -193,8 +191,7 @@ daterange* timeperiod_creator::new_offset_weekday_of_specific_month(
 
   target->exceptions[daterange::month_week_day].emplace_back(
       daterange::month_week_day, 0, start_month, 0, start_wday, start_offset, 0,
-      end_month, 0, end_wday, end_offset, 0,
-      timerange_list{});
+      end_month, 0, end_wday, end_offset, 0, timerange_list{});
   return &*target->exceptions[daterange::month_week_day].rbegin();
 }
 
@@ -220,8 +217,7 @@ daterange* timeperiod_creator::new_offset_weekday_of_generic_month(
 
   target->exceptions[daterange::week_day].emplace_back(
       daterange::week_day, 0, 0, 0, start_wday, start_offset, 0, 0, 0, end_wday,
-      end_offset, 0,
-      timerange_list{});
+      end_offset, 0, timerange_list{});
   return &*target->exceptions[daterange::week_day].rbegin();
 }
 
