@@ -7,7 +7,7 @@ on:
 
 jobs:
   test-local-mode:
-    name: Test local mode
+    name: Test local mode (dry-run)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -16,13 +16,11 @@ jobs:
       - name: Create dummy CMA asset files
         run: |
           mkdir -p /tmp/test-assets
-          # Dummy files with real CMA naming conventions
           touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.el8.x86_64.rpm
           touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.el9.x86_64.rpm
           touch /tmp/test-assets/centreon-monitoring-agent_26.05.0~deb12u1_amd64.deb
           touch /tmp/test-assets/centreon-monitoring-agent_26.05.0~0ubuntu.24.04_amd64.deb
           touch /tmp/test-assets/centreon-monitoring-agent-26.05.0.exe
-          echo "Test files created:"
           ls -la /tmp/test-assets/
 
       - name: Run deliver-cma-assets.sh (dry-run, local mode)
@@ -33,4 +31,23 @@ jobs:
           bash .github/scripts/deliver-cma-assets.sh \
             --github-release "centreon-monitoring-agent-26.05.0" \
             --file-pattern "/tmp/test-assets/centreon-monitoring-agent-26.05*" \
+            --dry-run
+
+  test-action-mode:
+    name: Test action mode (dry-run, Artifactory fetch)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Run deliver-cma-assets.sh (dry-run, action mode)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARTIFACTORY_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          TOKEN_DOWNLOAD_CENTREON_COM: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+        run: |
+          bash .github/scripts/deliver-cma-assets.sh \
+            --mode action \
+            --github-release "centreon-monitoring-agent-26.05.0" \
+            --version "26.05.0" \
             --dry-run
