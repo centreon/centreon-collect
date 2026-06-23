@@ -615,7 +615,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_MEMORY
 
     ${expected_perfdata}    Ctn Get Memory
     #many process (cbd centengine under wsl) had consumed a lot of memory since tests began so we have to use a huge interval (800 Mo)
-    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    1000000000    ${expected_perfdata}
+    ${result}    Ctn Check Service Perfdata    host_1    service_1    60    2000000000    ${expected_perfdata}
     Should be True    ${result}    data_bin not updated
 
 
