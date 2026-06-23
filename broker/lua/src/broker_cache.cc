@@ -512,6 +512,31 @@ static int l_broker_cache_get_servicegroup_name(lua_State* L) {
 }
 
 /**
+ *  The get_servicegroup_alias() method available in the Lua interpreter
+ *  It returns a string.
+ *
+ *  @param L The Lua interpreter
+ *
+ *  @return 1
+ */
+static int l_broker_cache_get_servicegroup_alias(lua_State* L) {
+  int id(luaL_checkinteger(L, 2));
+  auto cache_instance = cache::global_cache::instance_ptr();
+  if (!cache_instance) {
+    lua_pushnil(L);
+  } else {
+    cache::global_cache::lock l;
+    const cache::service_group* sg = cache_instance->get_service_group(id, l);
+    if (sg) {
+      lua_pushstring(L, sg->alias().c_str());
+    } else {
+      lua_pushnil(L);
+    }
+  }
+  return 1;
+}
+
+/**
  *  The get_servicegroups() method available in the Lua interpreter
  *  It returns an array of objects, each one containing group_id and
  * group_name.
@@ -792,6 +817,7 @@ void broker_cache::broker_cache_reg(lua_State* L, uint32_t api_version) {
       {"get_metric_mapping", l_broker_cache_get_metric_mapping_v1},
       {"get_service_description", l_broker_cache_get_service_description},
       {"get_servicegroup_name", l_broker_cache_get_servicegroup_name},
+      {"get_servicegroup_alias", l_broker_cache_get_servicegroup_alias},
       {"get_servicegroups", l_broker_cache_get_servicegroups},
       {"get_notes_url", l_broker_cache_get_notes_url},
       {"get_notes", l_broker_cache_get_notes},

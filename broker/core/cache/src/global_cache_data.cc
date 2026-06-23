@@ -690,6 +690,9 @@ void global_cache_data::_process_pb_host_group_member(
       if (hg.name().empty()) {
         hg.set_name(hg_exist->second->name().c_str());
       }
+      // The member event carries no alias: keep the one already cached from the
+      // full host group event so it is not erased.
+      hg.set_alias(hg_exist->second->alias().c_str());
       dirty = hg_exist->second->update(hg, *_allocators);
     }
     dirty |= _host_group_members
@@ -1045,6 +1048,9 @@ void global_cache_data::_process_pb_service_group_member(
       if (sg.name().empty()) {
         sg.set_name(sg_exist->second->name().c_str());
       }
+      // The member event carries no alias: keep the one already cached from the
+      // full service group event so it is not erased.
+      sg.set_alias(sg_exist->second->alias().c_str());
       dirty = sg_exist->second->update(sg, *_allocators);
     }
     dirty |= _service_group_members
