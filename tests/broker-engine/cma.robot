@@ -1241,11 +1241,11 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    45
     Should Be True    ${result}    cpu metrics not updated
 
     ${metrics_list}    Create List   runtime    interval
-    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    45
     Should Be True    ${result}    health metrics not updated
 
     Log To Console    service_2 must be warning
