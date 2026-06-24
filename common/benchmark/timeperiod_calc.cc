@@ -515,6 +515,24 @@ cfg::Timeperiod conf_workhours() {
   return tp;
 }
 
+// The 3rd Monday of every month, 09:00-17:00 (a month_week_day exception): the
+// path that makes get_next_valid crawl day by day toward the occurrence.
+cfg::Timeperiod conf_exceptions() {
+  cfg::Timeperiod tp;
+  tp.set_timeperiod_name("third_monday");
+  tp.set_alias("third_monday");
+  cfg::Daterange* dr = tp.mutable_exceptions()->add_month_week_day();
+  dr->set_type(cfg::Daterange::month_week_day);
+  dr->set_swday(1);         // Monday
+  dr->set_swday_offset(3);  // 3rd
+  dr->set_ewday(1);
+  dr->set_ewday_offset(3);
+  cfg::Timerange* tr = dr->add_timerange();
+  tr->set_range_start(9 * 3600);
+  tr->set_range_end(17 * 3600);
+  return tp;
+}
+
 // OLD: the library method as it is today.
 time_t next_invalid_old(timeperiod& tp, time_t pref, const absl::TimeZone& tz) {
   return tp.get_next_invalid_time_per_timeperiod(pref, false, tz);
@@ -543,10 +561,14 @@ time_t next_invalid_weekly_new(timeperiod& tp,
 
 timeperiod g_workhours(conf_workhours());
 timeperiod g_24x7(conf_24x7());
+timeperiod g_exceptions(conf_exceptions());
 // 2024-01-03 12:00 UTC (Wednesday, inside work hours) and 2024-01-06 20:00 UTC
 // (Saturday, outside work hours → the wasted-scan path).
 constexpr time_t k_wed_noon = 1704283200;
 constexpr time_t k_sat_evening = 1704571200;
+// 2024-01-01 00:00 UTC (Monday); the 3rd Monday of Jan 2024 is the 15th, so the
+// current get_next_valid crawls ~2 weeks day by day to reach it.
+constexpr time_t k_jan1 = 1704067200;
 
 int next_invalid_sweep() {
   int mismatches = 0;
@@ -597,6 +619,24 @@ void BM_next_invalid_new_uncovered(benchmark::State& state) {
         next_invalid_weekly_new(g_workhours, k_sat_evening, g_tz));
 }
 BENCHMARK(BM_next_invalid_new_uncovered);
+
+// get_next_valid baselines (call the inner method directly to avoid the
+// wall-clock clamp of the public get_next_valid_time, keeping the timing
+// deterministic). Weekly = a short forward scan (weekend -> Monday); exceptions
+// = the costly day-by-day crawl toward the next "3rd Monday".
+void BM_get_next_valid_weekly(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(g_workhours.get_next_valid_time_per_timeperiod(
+        k_sat_evening, false, g_tz));
+}
+BENCHMARK(BM_get_next_valid_weekly);
+
+void BM_get_next_valid_exceptions(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(
+        g_exceptions.get_next_valid_time_per_timeperiod(k_jan1, false, g_tz));
+}
+BENCHMARK(BM_get_next_valid_exceptions);
 
 }  // namespace
 

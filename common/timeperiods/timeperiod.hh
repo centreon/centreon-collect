@@ -67,9 +67,8 @@ class timeperiod {
       const absl::TimeZone& tz = absl::LocalTimeZone());
   time_t get_next_valid_time(time_t preferred_time,
                              const absl::TimeZone& tz = absl::LocalTimeZone());
-  void get_next_valid_time_per_timeperiod(
+  time_t get_next_valid_time_per_timeperiod(
       time_t preferred_time,
-      time_t* invalid_time,
       bool notif_timeperiod,
       const absl::TimeZone& tz = absl::LocalTimeZone());
   time_t get_next_invalid_time_per_timeperiod(

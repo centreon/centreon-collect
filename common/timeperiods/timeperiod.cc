@@ -746,8 +746,8 @@ bool timeperiod::check_time_against_period(time_t test_time,
   timeperiod_manager::logger()->trace("check_time_against_period()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time{(time_t)-1};
-  get_next_valid_time_per_timeperiod(test_time, &next_valid_time, false, tz);
+  time_t next_valid_time =
+      get_next_valid_time_per_timeperiod(test_time, false, tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
                                       get_name(), next_valid_time == test_time);
 
@@ -769,8 +769,8 @@ bool timeperiod::check_time_against_period_for_notif(time_t test_time,
   timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time{(time_t)-1};
-  get_next_valid_time_per_timeperiod(test_time, &next_valid_time, true, tz);
+  time_t next_valid_time =
+      get_next_valid_time_per_timeperiod(test_time, true, tz);
   return next_valid_time == test_time;
 }
 
@@ -862,9 +862,8 @@ time_t timeperiod::get_next_invalid_time_per_timeperiod(
   time_t next_exclusion = (time_t)-1;
   timeperiodexclusion tpe = std::move(this->get_exclusions());
   for (auto& [name, excluded] : tpe) {
-    time_t valid = (time_t)-1;
-    excluded->get_next_valid_time_per_timeperiod(preferred_time, &valid,
-                                                 notif_timeperiod, tz);
+    time_t valid = excluded->get_next_valid_time_per_timeperiod(
+        preferred_time, notif_timeperiod, tz);
     if ((valid != (time_t)-1) &&
         (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
       next_exclusion = valid;
@@ -916,21 +915,34 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
 }
 
 /**
- *  Get the next valid time within a time period.
+ *  Get the next valid time within this time period.
  *
- *  @param[in]  preferred_time      The preferred time to check.
- *  @param[out] valid_time          Variable to fill.
- *  @param[in]  notif_timeperiod    if called for the notification .
+ *  @param[in] preferred_time    The preferred time to check.
+ *  @param[in] notif_timeperiod  If called for the notification logic.
+ *  @param[in] tz                Timezone the period is evaluated in.
+ *
+ *  @return The next valid time.
  */
-void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
-                                                    time_t* valid_time,
-                                                    bool notif_timeperiod,
-                                                    const absl::TimeZone& tz) {
+time_t timeperiod::get_next_valid_time_per_timeperiod(
+    time_t preferred_time,
+    bool notif_timeperiod,
+    const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
   time_t original_preferred_time = preferred_time;
+
+  // When the timeperiod has no weekly schedule, a day without an exception is
+  // never valid, so the scan below can jump straight to the next date range
+  // occurrence instead of crawling one day at a time. With a weekly schedule a
+  // matching day is at most a week away, so the day-by-day scan is kept.
+  bool has_weekly = false;
+  for (const auto& d : days)
+    if (!d.empty()) {
+      has_weekly = true;
+      break;
+    }
 
   // Loop through the upcoming year a day at a time.
   time_t earliest_time = (time_t)-1;
@@ -948,6 +960,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
 
     // Browse all date range types in precedence order.
     bool skip_this_day = false;
+    // Earliest date range that only starts in the future (jump target below).
+    time_t next_daterange_start = (time_t)-1;
     for (uint32_t daterange_type = 0;
          daterange_type < DATERANGE_TYPES && earliest_time == (time_t)-1 &&
          !skip_this_day;
@@ -958,12 +972,14 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
         // Get next range limits and check that we are within bounds.
         time_t daterange_start_time = (time_t)-1;
         time_t daterange_end_time = (time_t)-1;
-        if (_daterange_to_time_t(dr, daterange_type, &ti, daterange_start_time,
-                                 daterange_end_time, tz) &&
-            ((daterange_start_time == (time_t)-1) ||
-             (daterange_start_time <= ti.midnight)) &&
-            ((daterange_end_time == (time_t)-1) ||
-             (ti.midnight < daterange_end_time))) {
+        if (!_daterange_to_time_t(dr, daterange_type, &ti, daterange_start_time,
+                                  daterange_end_time, tz))
+          continue;
+        bool covers_today = ((daterange_start_time == (time_t)-1) ||
+                             (daterange_start_time <= ti.midnight)) &&
+                            ((daterange_end_time == (time_t)-1) ||
+                             (ti.midnight < daterange_end_time));
+        if (covers_today) {
           // Only test today. An higher precedence exception might have
           // been skipped because it was not valid on the current day
           // but could be valid tomorrow.
@@ -984,6 +1000,12 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
             break;
           }
         }
+        // Date range that only starts later: remember the earliest such start.
+        else if (daterange_start_time != (time_t)-1 &&
+                 daterange_start_time > ti.midnight &&
+                 (next_daterange_start == (time_t)-1 ||
+                  daterange_start_time < next_daterange_start))
+          next_daterange_start = daterange_start_time;
       }
     }
 
@@ -1021,20 +1043,27 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
       }
     }
 
-    // Skip if not already done through exceptions.
-    if (!skipped)
-      ti.preferred_time = _add_round_days_to_midnight(ti.midnight, 1, tz);
+    // Move on (unless an exclusion already advanced preferred_time). With no
+    // weekly schedule and nothing valid today, the day-by-day scan completed
+    // over every date range, so next_daterange_start is the true earliest
+    // future occurrence: jump there instead of crawling one day at a time.
+    if (!skipped) {
+      if (!has_weekly && !skip_this_day && earliest_time == (time_t)-1 &&
+          next_daterange_start != (time_t)-1)
+        ti.preferred_time = next_daterange_start;
+      else
+        ti.preferred_time = _add_round_days_to_midnight(ti.midnight, 1, tz);
+    }
   }
 
-  // If we couldn't find a time period there must be none defined.
-  if ((earliest_time == (time_t)-1) && !notif_timeperiod)
-    *valid_time = original_preferred_time;
-  // Else use the calculated time.
-  else
-    *valid_time = earliest_time;
+  // If we couldn't find a valid time and this is not for notification, fall
+  // back to the original preferred time.
+  time_t valid_time =
+      (earliest_time == (time_t)-1 && !notif_timeperiod) ? original_preferred_time
+                                                         : earliest_time;
   timeperiod_manager::logger()->trace(
-      "get_next_valid_time_per_timeperiod {} valid_time={}", _name,
-      *valid_time);
+      "get_next_valid_time_per_timeperiod {} valid_time={}", _name, valid_time);
+  return valid_time;
 }
 
 /**
@@ -1054,9 +1083,7 @@ time_t timeperiod::get_next_valid_time(time_t pref_time,
 
   // First check for possible timeperiod exclusions before getting a
   // valid_time.
-  time_t valid_time = 0;
-  get_next_valid_time_per_timeperiod(preferred_time, &valid_time, false, tz);
-  return valid_time;
+  return get_next_valid_time_per_timeperiod(preferred_time, false, tz);
 }
 
 /**
