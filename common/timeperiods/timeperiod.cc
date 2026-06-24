@@ -338,28 +338,15 @@ static bool _daterange_calendar_date_to_time_t(daterange const& r,
                                                const absl::TimeZone& tz) {
   (void)ti;
 
-  tm t;
-  t.tm_sec = 0;
-  t.tm_min = 0;
-  t.tm_hour = 0;
-  t.tm_isdst = -1;
-  t.tm_mday = r.get_smday();
-  t.tm_mon = r.get_smon();
-  t.tm_year = r.get_syear() - 1900;
-  if ((start = time_from_tm(&t, tz)) == (time_t)-1)
-    return false;
+  // smon/emon are tm_mon (0-based); CivilDay months are 1-based.
+  start = civil_midnight(
+      absl::CivilDay(r.get_syear(), r.get_smon() + 1, r.get_smday()), tz);
 
   if (r.get_eyear()) {
-    t.tm_hour = 0;
-    t.tm_min = 0;
-    t.tm_sec = 0;
-    t.tm_isdst = -1;
-    t.tm_mday = r.get_emday();
-    t.tm_mon = r.get_emon();
-    t.tm_year = r.get_eyear() - 1900;
-    if ((end = time_from_tm(&t, tz)) == (time_t)-1)
-      return false;
-    end = _add_round_days_to_midnight(end, 1, tz);
+    // The range is inclusive of its last day, so the exclusive end is the
+    // midnight of the day after.
+    absl::CivilDay end_day(r.get_eyear(), r.get_emon() + 1, r.get_emday());
+    end = civil_midnight(end_day + 1, tz);
   } else
     end = (time_t)-1;
 
@@ -729,18 +716,22 @@ static bool _timerange_to_time_t(const timerange& trange,
                                  time_t& range_start,
                                  time_t& range_end,
                                  const absl::TimeZone& tz) {
-  struct tm my_tm;
-  memcpy(&my_tm, midnight, sizeof(my_tm));
-  my_tm.tm_hour = trange.get_range_start() / 60 / 60;
-  my_tm.tm_min = (trange.get_range_start() / 60) % 60;
-  my_tm.tm_isdst = -1;
-  range_start = time_from_tm(&my_tm, tz);
-  my_tm.tm_hour = trange.get_range_end() / 60 / 60;
-  my_tm.tm_min = (trange.get_range_end() / 60) % 60;
-  my_tm.tm_isdst = -1;
-  range_end = time_from_tm(&my_tm, tz);
+  // The instant at a seconds-since-midnight offset on `midnight`'s day, built
+  // directly in civil time. Like the former mktime path, only the hour and
+  // minute of the offset are used (the seconds come from `midnight`), and an
+  // offset of 24:00 normalises to the next day's midnight.
+  auto at = [&](int offset) {
+    return absl::ToTimeT(
+        tz.At(absl::CivilSecond(midnight->tm_year + 1900, midnight->tm_mon + 1,
+                                midnight->tm_mday, offset / 3600,
+                                (offset / 60) % 60, midnight->tm_sec))
+            .pre);
+  };
+  range_start = at(trange.get_range_start());
+  range_end = at(trange.get_range_end());
   return range_start <= range_end;
 }
+
 
 /**
  *  See if the specified time falls into a valid time range in this time period.
