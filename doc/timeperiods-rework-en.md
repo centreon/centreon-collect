@@ -284,6 +284,16 @@ Other leads:
   `_add_round_days` over UTC/Paris/New_York/Lord_Howe/São_Paulo) OK everywhere.
   After migration the `_libcov` micro-benchmark (library as built) drops to
   ~485 ns (day) / ~629 ns (weekday) — the library itself sped up.
+- **`get_next_invalid_time_per_timeperiod`: return value + single pass (DONE)**.
+  The method now returns the `time_t` (instead of an out-parameter).
+  Characterization (isolated `get_next_invalid_time.cc` tests + coverage) showed
+  the `while`, the `in_one_year` cap and the
+  `*invalid_time = original_preferred_time` branch were **vestigial/dead** (the
+  loop ran only once), and the 8-day weekly scan was pointless (only the day of
+  `preferred_time` can contain a fixed instant). Rewritten as a single pass
+  (day-0 only), strictly equivalent (bench sweep OK). Bench: "outside-range"
+  path **2017 → 209 ns (~9.6×)**, "inside-range" path 475 → 327 ns. The residual
+  vs a weekly-only ideal is the faithful handling of exceptions/exclusions.
 - **Choice A vs B** for the registry (cf. §8.4).
 
 ## 10. Benchmarks — current baseline
