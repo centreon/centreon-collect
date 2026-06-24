@@ -12,6 +12,7 @@ vcpkg_from_github(
         fix-constinit-with-clang-cl.patch
         fix-upb.patch
         fix-visibility.patch
+        fix-map-field-arena.patch
 )
 
 string(COMPARE EQUAL "${TARGET_TRIPLET}" "${HOST_TRIPLET}" protobuf_BUILD_PROTOC_BINARIES)
