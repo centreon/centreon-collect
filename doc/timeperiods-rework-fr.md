@@ -299,6 +299,24 @@ Autres pistes :
   équivalent (sweep du bench OK). Bench : chemin « hors-range » **2017 → 209 ns
   (~9.6×)**, chemin « dans la range » 475 → 327 ns. Le résidu vs un idéal
   hebdo-only tient à la gestion fidèle des exceptions/exclusions.
+- **`_timerange_to_time_t` et `_daterange_calendar_date_to_time_t` → Abseil
+  direct (FAIT)**. `_timerange_to_time_t` (la conversion la plus appelée)
+  n'utilise plus `struct tm`/`memcpy`/`time_from_tm` (qui faisait un `ToTM` de
+  réécriture inutile) mais `CivilSecond(...).pre` directement → `BM_next_invalid
+  _old_covered` 327 → 271 ns. `_daterange_calendar_date_to_time_t` passe à
+  `CivilDay`. Équivalence préservée (sweeps + ut_common/ut_engine verts).
+- **`get_next_valid_time_per_timeperiod` : retour direct + saut d'occurrence
+  (FAIT)**. Retourne le `time_t` (plus d'out-param). Contrairement à
+  `get_next_invalid`, sa boucle est **réellement itérative** (recherche jour par
+  jour) — pas de code mort, pas de one-pass. L'optimisation porte sur le
+  **balayage jour-par-jour** vers une occurrence d'exception lointaine : quand
+  la timeperiod n'a **aucune** plage hebdomadaire (`has_weekly` faux) et qu'aucun
+  instant n'est valide aujourd'hui, on **saute** directement au plus petit début
+  de daterange futur au lieu d'avancer d'un jour. Sûr (saut seulement quand le
+  balayage du jour est complet → vrai minimum ; une plage hebdo intermédiaire
+  serait sinon manquée, d'où la garde). Résultat identique (validé par toute la
+  suite `get_next_valid_time/*`). Bench : « 3ᵉ lundi » **9580 → 1454 ns
+  (~6.6×)** ; cas hebdo inchangé.
 - **Choix A vs B** pour le registre (cf. §8.4).
 
 ## 10. Benchmarks — baseline actuelle
