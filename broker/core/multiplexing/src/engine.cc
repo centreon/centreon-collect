@@ -52,7 +52,7 @@ std::shared_ptr<engine> engine::instance_ptr() {
 void engine::load() {
   auto logger = log_v2::instance().get(log_v2::CORE);
   SPDLOG_LOGGER_TRACE(logger, "multiplexing: loading engine");
-  absl::MutexLock lk(&_load_m);
+  absl::MutexLock lk(_load_m);
   if (!_instance)
     _instance.reset(new engine(logger));
 }
@@ -66,7 +66,7 @@ void engine::unload() {
   auto instance = instance_ptr();
   if (instance) {
     {
-      absl::ReleasableMutexLock lck(&instance->_kiew_m);
+      absl::ReleasableMutexLock lck(instance->_kiew_m);
       /* Here we wait for all the subscriber muxers to be stopped and removed
        * from the muxers array. Even if they execute asynchronous functions,
        * they have finished after that. */
@@ -211,7 +211,7 @@ void engine::start() {
  * will be handled at the next cbd start.
  */
 void engine::stop() {
-  absl::ReleasableMutexLock lck(&_kiew_m);
+  absl::ReleasableMutexLock lck(_kiew_m);
 
   if (_state == not_started) {
     _state = stopped;

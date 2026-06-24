@@ -210,7 +210,7 @@ void failover::_run() {
   };
 
   _state = running;
-  _state_m.Unlock();
+  _state_m.unlock();
   // Thread should be aware of external exit requests.
   do {
     // This try/catch block handles any error of the current thread
@@ -528,7 +528,7 @@ void failover::_run() {
   SPDLOG_LOGGER_DEBUG(_logger, "failover: thread of endpoint '{}' is exiting",
                       _name);
 
-  _state_m.Lock();
+  _state_m.lock();
   _state = stopped;
 }
 

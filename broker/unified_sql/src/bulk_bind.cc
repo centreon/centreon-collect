@@ -171,9 +171,9 @@ std::unique_ptr<database::mysql_bulk_bind>& bulk_bind::bind(int32_t conn) {
 }
 
 void bulk_bind::lock() {
-  _queue_m.Lock();
+  _queue_m.lock();
 }
 
 void bulk_bind::unlock() {
-  _queue_m.Unlock();
+  _queue_m.unlock();
 }

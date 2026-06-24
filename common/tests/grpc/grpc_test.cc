@@ -105,6 +105,15 @@ class grpc_server : public common::grpc::grpc_server_base,
     });
   }
 
+  ::grpc::Status Export(
+      ::grpc::ServerContext*,
+      ::grpc::ServerReaderWriter<::com::centreon::common::MessageToClient,
+                                 ::com::centreon::common::MessageToServer>*)
+      override {
+    abort();
+    return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+  }
+
   ::grpc::ServerBidiReactor<MessageToServer, MessageToClient>* Export(
       ::grpc::CallbackServerContext* context) {
     auto authctx = context->auth_context();

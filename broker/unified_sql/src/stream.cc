@@ -235,7 +235,7 @@ stream::stream(const database_config& dbcfg,
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
-      absl::ReaderMutexLock lck(&_barrier_timer_m);
+      absl::ReaderMutexLock lck(_barrier_timer_m);
       _check_queues(err);
     }
   });
@@ -1199,7 +1199,7 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
+    absl::ReaderMutexLock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     {
       absl::MutexLock l(_timer_m);

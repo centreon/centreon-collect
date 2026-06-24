@@ -200,7 +200,7 @@ void stream::_clean_tables(uint64_t instance_id) {
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
-      absl::ReaderMutexLock lck(&_barrier_timer_m);
+      absl::ReaderMutexLock lck(_barrier_timer_m);
       _clean_group_table();
     }
   });

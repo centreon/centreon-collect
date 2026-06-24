@@ -202,7 +202,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  */
 muxer::~muxer() noexcept {
   {
-    absl::MutexLock lock(&_events_m);
+    absl::MutexLock lock(_events_m);
     SPDLOG_LOGGER_INFO(
         _logger, "Destroying muxer {:p} {}: number of events in the queue: {}",
         static_cast<void*>(this), _name, _events_size);

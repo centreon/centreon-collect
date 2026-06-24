@@ -231,11 +231,11 @@ void center::clear_muxer_queue_file(const std::string& name) {
 }
 
 void center::lock() {
-  _stats_m.Lock();
+  _stats_m.lock();
 }
 
 void center::unlock() {
-  _stats_m.Unlock();
+  _stats_m.unlock();
 }
 
 const BrokerStats& center::stats() const {

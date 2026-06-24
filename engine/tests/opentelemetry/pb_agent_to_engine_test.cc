@@ -326,7 +326,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
   auto metric_received = [&]() { return resource_metrics.size() >= 3; };
 
   mut.LockWhen(absl::Condition(&metric_received));
-  mut.Unlock();
+  mut.unlock();
 
   agent_client->shutdown();
 
@@ -405,7 +405,7 @@ TEST_F(
   auto metric_received = [&]() { return resource_metrics.size() >= 3; };
 
   mut.LockWhen(absl::Condition(&metric_received));
-  mut.Unlock();
+  mut.unlock();
 
   agent_client->shutdown();
 
