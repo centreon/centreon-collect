@@ -51,10 +51,10 @@ timerange::timerange(uint64_t start, uint64_t end) {
  *  @return The output stream.
  */
 std::ostream& operator<<(std::ostream& os, timerange const& obj) {
-  unsigned int start_hours(obj.get_range_start() / 3600);
-  unsigned int start_minutes((obj.get_range_start() % 3600) / 60);
-  unsigned int end_hours(obj.get_range_end() / 3600);
-  unsigned int end_minutes((obj.get_range_end() % 3600) / 60);
+  uint32_t start_hours = obj.get_range_start() / 3600;
+  uint32_t start_minutes = (obj.get_range_start() % 3600) / 60;
+  uint32_t end_hours = obj.get_range_end() / 3600;
+  uint32_t end_minutes = (obj.get_range_end() % 3600) / 60;
   fmt::print(os, "{:02}:{:02}-{:02}:{:02}", start_hours, start_minutes,
              end_hours, end_minutes);
   return os;
@@ -69,9 +69,13 @@ std::ostream& operator<<(std::ostream& os, timerange const& obj) {
  *  @return The output stream.
  */
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
-  for (timerange_list::const_iterator it(obj.begin()), end(obj.end());
-       it != end; ++it)
-    os << *it << ((next(it) == obj.end()) ? "" : ", ");
+  bool first = true;
+  for (const auto& tr : obj) {
+    if (!first)
+      os << ", ";
+    first = false;
+    os << tr;
+  }
   return os;
 }
 

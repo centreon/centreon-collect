@@ -112,8 +112,8 @@ class daterange {
   bool operator==(daterange const& obj) const;
   bool operator!=(daterange const& obj2) const;
 
-  static std::string_view get_month_name(unsigned int index);
-  static std::string_view get_weekday_name(unsigned int index);
+  static std::string_view get_month_name(uint32_t index);
+  static std::string_view get_weekday_name(uint32_t index);
 };
 
 std::ostream& operator<<(

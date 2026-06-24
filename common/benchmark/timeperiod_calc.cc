@@ -40,10 +40,13 @@
 
 #include "absl/time/civil_time.h"
 #include "absl/time/time.h"
+#include "common/timeperiods/timeperiod.hh"
 #include "common/timeperiods/timeperiod_detail.hh"
 
 using com::centreon::common::timeperiods::calculate_time_from_day_of_month;
 using com::centreon::common::timeperiods::calculate_time_from_weekday_of_month;
+using com::centreon::common::timeperiods::timeperiod;
+namespace cfg = com::centreon::engine::configuration;
 
 namespace {
 
@@ -66,7 +69,9 @@ void tm_from_time_old(time_t when, const absl::TimeZone& tz, struct tm* out) {
   *out = absl::ToTM(absl::FromTimeT(when), tz);
 }
 
-time_t add_round_days_old(time_t midnight, time_t skip, const absl::TimeZone& tz) {
+time_t add_round_days_old(time_t midnight,
+                          time_t skip,
+                          const absl::TimeZone& tz) {
   time_t next_day_time(midnight + skip);
   struct tm next_day;
   tm_from_time_old(next_day_time, tz, &next_day);
@@ -182,7 +187,9 @@ time_t civil_midnight(absl::CivilDay d, const absl::TimeZone& tz) {
       tz.At(absl::CivilSecond(d.year(), d.month(), d.day(), 0, 0, 0)).pre);
 }
 
-time_t add_round_days_new(time_t midnight, time_t skip, const absl::TimeZone& tz) {
+time_t add_round_days_new(time_t midnight,
+                          time_t skip,
+                          const absl::TimeZone& tz) {
   absl::CivilDay base = absl::ToCivilDay(absl::FromTimeT(midnight), tz);
   return civil_midnight(base + (skip / (24 * 60 * 60)), tz);
 }
@@ -256,16 +263,16 @@ struct day_case {
   int month;  // tm_mon (0-based)
   int monthday;
 };
-const std::vector<day_case> kDayCases = {
-    {0, 1},   {0, 15}, {0, 31}, {1, 28},  {1, 29},  {1, -1},
-    {2, -2},  {3, 31}, {9, -1}, {9, -31}, {10, 31}, {11, -2}};
+const std::vector<day_case> kDayCases = {{0, 1},  {0, 15},  {0, 31},  {1, 28},
+                                         {1, 29}, {1, -1},  {2, -2},  {3, 31},
+                                         {9, -1}, {9, -31}, {10, 31}, {11, -2}};
 
 struct weekday_case {
   int weekday;  // tm_wday (0 = Sunday)
   int offset;
 };
 const std::vector<weekday_case> kWeekdayCases = {
-    {1, 1}, {1, 3}, {1, 5}, {1, 6},  {2, 5},  {6, 1},
+    {1, 1},  {1, 3},  {1, 5},  {1, 6},  {2, 5},  {6, 1},
     {1, -1}, {0, -1}, {4, -2}, {2, -6}, {3, -3}, {5, -4}};
 
 // ── Correctness sweep: old must equal new, else the bench is meaningless ────
@@ -276,24 +283,24 @@ int correctness_sweep() {
   for (int year : {2015, 2016, 2020, 2024}) {
     const int ty = year - 1900;
     for (int month = 0; month < 12; ++month) {
-      for (int monthday : {0, 1, 2, 14, 15, 28, 29, 30, 31, -1, -2, -5, -28,
-                           -31, -40}) {
+      for (int monthday :
+           {0, 1, 2, 14, 15, 28, 29, 30, 31, -1, -2, -5, -28, -31, -40}) {
         time_t lib = calculate_time_from_day_of_month(ty, month, monthday, tz);
         time_t old_local = day_of_month_old(ty, month, monthday, tz);
         time_t neu = day_of_month_absl(ty, month, monthday, tz);
         if (lib != old_local || lib != neu) {
           if (mismatches < 10)
             std::printf(
-                "DAY mismatch y=%d m=%d day=%d  lib=%ld old=%ld new=%ld\n", year,
-                month, monthday, static_cast<long>(lib),
+                "DAY mismatch y=%d m=%d day=%d  lib=%ld old=%ld new=%ld\n",
+                year, month, monthday, static_cast<long>(lib),
                 static_cast<long>(old_local), static_cast<long>(neu));
           ++mismatches;
         }
       }
       for (int weekday = 0; weekday < 7; ++weekday) {
         for (int offset : {1, 2, 3, 4, 5, 6, -1, -2, -3, -4, -5, -6}) {
-          time_t lib =
-              calculate_time_from_weekday_of_month(ty, month, weekday, offset, tz);
+          time_t lib = calculate_time_from_weekday_of_month(ty, month, weekday,
+                                                            offset, tz);
           time_t old_local =
               weekday_of_month_old(ty, month, weekday, offset, tz);
           time_t neu = weekday_of_month_absl(ty, month, weekday, offset, tz);
@@ -422,9 +429,10 @@ const absl::TimeZone g_paris = [] {
 }();
 const std::vector<time_t> g_midnights = [] {
   std::vector<time_t> v;
-  for (absl::CivilDay d : {absl::CivilDay(2016, 1, 15), absl::CivilDay(2016, 3, 26),
-                           absl::CivilDay(2016, 6, 15), absl::CivilDay(2016, 10, 29),
-                           absl::CivilDay(2016, 12, 20)})
+  for (absl::CivilDay d :
+       {absl::CivilDay(2016, 1, 15), absl::CivilDay(2016, 3, 26),
+        absl::CivilDay(2016, 6, 15), absl::CivilDay(2016, 10, 29),
+        absl::CivilDay(2016, 12, 20)})
     v.push_back(civil_midnight(d, g_paris));
   return v;
 }();
@@ -448,6 +456,148 @@ void BM_add_round_days_absl(benchmark::State& state) {
 }
 BENCHMARK(BM_add_round_days_absl);
 
+// ── get_next_invalid_time_per_timeperiod: current vs one-pass Abseil ─────────
+//
+// Characterization showed the method is effectively a single pass: it returns
+// the end of the timerange containing preferred_time (no extension across
+// days), the start of an exclusion that cuts the window short, or
+// preferred_time when already outside the period. For *weekly* timeperiods (no
+// exceptions, no exclusions — the dominant case) the current code still scans
+// up to 8 future days, even though only day 0 can ever contain a fixed instant.
+// The "new" version below does only that day-0 check. Both are compared for
+// equivalence and speed; the gain shows up on the "not covered" path (the
+// wasted 8-day scan).
+
+void bench_add_range(cfg::DaysArray* days, int wd, uint64_t s, uint64_t e) {
+  cfg::Timerange* tr = nullptr;
+  switch (wd) {
+    case 0:
+      tr = days->add_sunday();
+      break;
+    case 1:
+      tr = days->add_monday();
+      break;
+    case 2:
+      tr = days->add_tuesday();
+      break;
+    case 3:
+      tr = days->add_wednesday();
+      break;
+    case 4:
+      tr = days->add_thursday();
+      break;
+    case 5:
+      tr = days->add_friday();
+      break;
+    case 6:
+      tr = days->add_saturday();
+      break;
+  }
+  tr->set_range_start(s);
+  tr->set_range_end(e);
+}
+
+cfg::Timeperiod conf_24x7() {
+  cfg::Timeperiod tp;
+  tp.set_timeperiod_name("24x7");
+  tp.set_alias("24x7");
+  for (int d = 0; d < 7; ++d)
+    bench_add_range(tp.mutable_timeranges(), d, 0, 86400);
+  return tp;
+}
+
+cfg::Timeperiod conf_workhours() {
+  cfg::Timeperiod tp;
+  tp.set_timeperiod_name("workhours");
+  tp.set_alias("workhours");
+  for (int d = 1; d <= 5; ++d)
+    bench_add_range(tp.mutable_timeranges(), d, 9 * 3600, 17 * 3600);
+  return tp;
+}
+
+// OLD: the library method as it is today.
+time_t next_invalid_old(timeperiod& tp, time_t pref, const absl::TimeZone& tz) {
+  return tp.get_next_invalid_time_per_timeperiod(pref, false, tz);
+}
+
+// NEW: one-pass, day-0-only (valid for weekly timeperiods without exceptions or
+// exclusions).
+time_t next_invalid_weekly_new(timeperiod& tp,
+                               time_t pref,
+                               const absl::TimeZone& tz) {
+  struct tm t = absl::ToTM(absl::FromTimeT(pref), tz);
+  for (const auto& tr : tp.days[t.tm_wday]) {
+    auto to_t = [&](int secs) {
+      return absl::ToTimeT(
+          tz.At(absl::CivilSecond(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday,
+                                  secs / 3600, (secs / 60) % 60, 0))
+              .pre);
+    };
+    time_t rs = to_t(tr.get_range_start());
+    time_t re = to_t(tr.get_range_end());
+    if (rs <= re && pref >= rs && pref < re)
+      return re;
+  }
+  return pref;
+}
+
+timeperiod g_workhours(conf_workhours());
+timeperiod g_24x7(conf_24x7());
+// 2024-01-03 12:00 UTC (Wednesday, inside work hours) and 2024-01-06 20:00 UTC
+// (Saturday, outside work hours → the wasted-scan path).
+constexpr time_t k_wed_noon = 1704283200;
+constexpr time_t k_sat_evening = 1704571200;
+
+int next_invalid_sweep() {
+  int mismatches = 0;
+  const absl::TimeZone tz = absl::UTCTimeZone();
+  struct {
+    timeperiod* tp;
+    time_t pref;
+  } cases[] = {{&g_workhours, k_wed_noon},
+               {&g_workhours, k_sat_evening},
+               {&g_24x7, k_wed_noon},
+               {&g_24x7, k_sat_evening}};
+  for (auto& c : cases) {
+    time_t a = next_invalid_old(*c.tp, c.pref, tz);
+    time_t b = next_invalid_weekly_new(*c.tp, c.pref, tz);
+    if (a != b) {
+      std::printf("NEXT_INVALID mismatch pref=%ld  old=%ld new=%ld\n",
+                  static_cast<long>(c.pref), static_cast<long>(a),
+                  static_cast<long>(b));
+      ++mismatches;
+    }
+  }
+  return mismatches;
+}
+
+void BM_next_invalid_old_covered(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(next_invalid_old(g_workhours, k_wed_noon, g_tz));
+}
+BENCHMARK(BM_next_invalid_old_covered);
+
+void BM_next_invalid_new_covered(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(
+        next_invalid_weekly_new(g_workhours, k_wed_noon, g_tz));
+}
+BENCHMARK(BM_next_invalid_new_covered);
+
+void BM_next_invalid_old_uncovered(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(
+        next_invalid_old(g_workhours, k_sat_evening, g_tz));
+}
+BENCHMARK(BM_next_invalid_old_uncovered);
+
+void BM_next_invalid_new_uncovered(benchmark::State& state) {
+  for (auto _ : state)
+    benchmark::DoNotOptimize(
+        next_invalid_weekly_new(g_workhours, k_sat_evening, g_tz));
+}
+BENCHMARK(BM_next_invalid_new_uncovered);
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -464,6 +614,13 @@ int main(int argc, char** argv) {
   else
     std::printf("_add_round_days sweep: %d MISMATCH(es) — see above\n",
                 add_mismatches);
+
+  const int inv_mismatches = next_invalid_sweep();
+  if (inv_mismatches == 0)
+    std::printf("get_next_invalid sweep: OK (old == new, weekly cases)\n");
+  else
+    std::printf("get_next_invalid sweep: %d MISMATCH(es) — see above\n",
+                inv_mismatches);
 
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();

@@ -243,7 +243,7 @@ std::ostream& operator<<(std::ostream& os, daterange const& obj) {
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
   os << '{';
-  for (unsigned ii = 0; ii < obj.size(); ++ii) {
+  for (uint32_t ii = 0; ii < obj.size(); ++ii) {
     switch (ii) {
       case daterange::calendar_date:
         os << "calendar_date:";
@@ -278,7 +278,7 @@ std::ostream& operator<<(std::ostream& os, exception_array const& obj) {
  *
  *  @return The month name.
  */
-std::string_view daterange::get_month_name(unsigned int index) {
+std::string_view daterange::get_month_name(uint32_t index) {
   static constexpr std::array<std::string_view, 12> month{
       "january", "february", "march",     "april",   "may",      "june",
       "july",    "august",   "september", "october", "november", "december"};
@@ -294,7 +294,7 @@ std::string_view daterange::get_month_name(unsigned int index) {
  *
  *  @return The weekday name.
  */
-std::string_view daterange::get_weekday_name(unsigned int index) {
+std::string_view daterange::get_weekday_name(uint32_t index) {
   static constexpr std::array<std::string_view, 7> days{
       "sunday",   "monday", "tuesday", "wednesday",
       "thursday", "friday", "saturday"};
