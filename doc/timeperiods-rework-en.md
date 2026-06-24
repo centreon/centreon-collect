@@ -250,10 +250,40 @@ member.
 
 Other leads:
 
-- **Abseil POC**: rewrite a key function (e.g. `get_next_valid_time` for the "nth
-  weekday of month" rule) in Abseil and validate it against the existing
-  `get_next_valid_time/*` suite, to measure the readability gain and DST
-  robustness.
+- **Abseil POC (DONE)**: the two calendar helpers `calculate_time_from_day_of_
+  month` and `calculate_time_from_weekday_of_month` were rewritten with Abseil
+  (`CivilDay` + `NextWeekday`/`PrevWeekday`) in a dedicated benchmark
+  `common/benchmark/timeperiod_calc.cc` (target `common_timeperiod_calc_bench`).
+  An equivalence sweep (4 years × 12 months × all offsets, including the
+  degenerate `%7`/clamp edges) confirms **identical results** to the current
+  code. At equal flags (-O2 on both sides):
+
+  | Function | current | Abseil | speedup |
+  |---|---|---|---|
+  | `calculate_time_from_day_of_month` | ~866 ns | ~482 ns | ~1.8× |
+  | `calculate_time_from_weekday_of_month` | ~1713 ns | ~616 ns | ~2.8× |
+
+  (per-iteration over ~12 representative cases; CPU scaling on → orders of
+  magnitude.) The gain is **algorithmic**: the -O0+coverage penalty is
+  negligible (`_libcov` ≈ `_old`), the cost is dominated by `absl::FromTM/ToTM`
+  timezone conversions. The current code does several (the `do/while` in
+  `weekday_of_month` calls the conversion up to ~5×); the Abseil version does
+  all the arithmetic in `CivilDay` (integers) and converts only **once** at the
+  end. Bonus: ~20 lines instead of ~70, and the "+12h DST trick" in
+  `_add_round_days_to_midnight` would vanish likewise. Prerequisite met: these
+  helpers are pinned by isolated tests
+  (`common/tests/timeperiods/calculate_time_from_*`).
+
+  **Migration applied to the library (DONE)**: the three helpers
+  (`calculate_time_from_day_of_month`, `calculate_time_from_weekday_of_month`,
+  `_add_round_days_to_midnight`) are replaced by their Abseil versions in
+  `common/timeperiods/timeperiod.cc` (internal `civil_midnight` helper +
+  `kWeekday` table). Validation: isolated tests + `get_next_valid_time/*` +
+  `dst_*` (ut_common) green, ut_engine green, and the bench sweeps (3-way
+  equivalence lib==pre-migration==Abseil; multi-timezone DST sweep of
+  `_add_round_days` over UTC/Paris/New_York/Lord_Howe/São_Paulo) OK everywhere.
+  After migration the `_libcov` micro-benchmark (library as built) drops to
+  ~485 ns (day) / ~629 ns (weekday) — the library itself sped up.
 - **Choice A vs B** for the registry (cf. §8.4).
 
 ## 10. Benchmarks — current baseline

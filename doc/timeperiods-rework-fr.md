@@ -254,10 +254,40 @@ Rappel : le fuseau n'est **pas** une propriété du timeperiod (le message proto
 
 Autres pistes :
 
-- **POC Abseil** : réécrire une fonction clé (p.ex. `get_next_valid_time` pour la
-  règle « nème jour de semaine du mois ») en Abseil et la valider contre la suite
-  `get_next_valid_time/*` existante, pour mesurer le gain de lisibilité et la
-  robustesse DST.
+- **POC Abseil (FAIT)** : les deux helpers calendaires `calculate_time_from_
+  day_of_month` et `calculate_time_from_weekday_of_month` ont été réécrits en
+  Abseil (`CivilDay` + `NextWeekday`/`PrevWeekday`) dans un benchmark dédié
+  `common/benchmark/timeperiod_calc.cc` (cible `common_timeperiod_calc_bench`).
+  Une passe d'équivalence (4 ans × 12 mois × tous les offsets, y compris les
+  bords dégénérés `%7`/clamp) confirme **résultats identiques** à l'actuel. À
+  flags égaux (−O2 des deux côtés) :
+
+  | Fonction | actuel | Abseil | gain |
+  |---|---|---|---|
+  | `calculate_time_from_day_of_month` | ~866 ns | ~482 ns | ~1.8× |
+  | `calculate_time_from_weekday_of_month` | ~1713 ns | ~616 ns | ~2.8× |
+
+  (temps par itération sur ~12 cas représentatifs ; CPU scaling actif → ordres
+  de grandeur.) Le gain est **algorithmique** : la pénalité −O0+couverture est
+  négligeable (`_libcov` ≈ `_old`), le coût est dominé par les conversions de
+  fuseau `absl::FromTM/ToTM`. L'actuel en fait plusieurs (le `do/while` de
+  `weekday_of_month` appelle la conversion jusqu'à ~5×) ; la version Abseil fait
+  toute l'arithmétique en `CivilDay` (entiers) et ne convertit qu'**une fois** à
+  la fin. Bonus : ~20 lignes au lieu de ~70, et le « truc DST du +12h » de
+  `_add_round_days_to_midnight` disparaîtrait pareillement. Prérequis tenu : ces
+  helpers sont balisés par des tests isolés
+  (`common/tests/timeperiods/calculate_time_from_*`).
+
+  **Migration appliquée à la lib (FAIT)** : les trois helpers
+  (`calculate_time_from_day_of_month`, `calculate_time_from_weekday_of_month`,
+  `_add_round_days_to_midnight`) sont remplacés par leurs versions Abseil dans
+  `common/timeperiods/timeperiod.cc` (helper interne `civil_midnight` + table
+  `kWeekday`). Validation : tests isolés + `get_next_valid_time/*` + `dst_*`
+  (ut_common) verts, ut_engine vert, et les sweeps du bench (équivalence
+  3-voies lib==pré-migration==Abseil ; sweep DST multi-fuseaux de
+  `_add_round_days` sur UTC/Paris/New_York/Lord_Howe/São_Paulo) OK partout.
+  Après migration, le micro-benchmark `_libcov` (lib telle que buildée) tombe à
+  ~485 ns (day) / ~629 ns (weekday) — la lib a bien accéléré.
 - **Choix A vs B** pour le registre (cf. §8.4).
 
 ## 10. Benchmarks — baseline actuelle
