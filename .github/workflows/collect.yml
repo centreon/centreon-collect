@@ -418,7 +418,7 @@ jobs:
       jira_user_email: ${{ secrets.XRAY_JIRA_USER_EMAIL }}
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
   deliver-sources:
-    runs-on: ubuntu-24.04
+    runs-on: centreon-common
     needs: [get-environment, package]
     if: |
       github.event_name != 'workflow_dispatch' &&
