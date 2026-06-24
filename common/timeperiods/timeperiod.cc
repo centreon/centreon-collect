@@ -451,8 +451,8 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
   // Decay.
   else {
     // Check previous month -> current month.
-    int year(ti.preftime.tm_year);
-    int month(ti.preftime.tm_mon);
+    int year = ti.preftime.tm_year;
+    int month = ti.preftime.tm_mon;
     if (month == 0) {
       --year;
       month = 11;
@@ -503,7 +503,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                 time_t& end,
                                                 const absl::TimeZone& tz) {
   // Check if there is a year decay between start and end.
-  bool decay(r.get_smon() > r.get_emon());
+  bool decay = r.get_smon() > r.get_emon();
 
   // No decay, check current year only.
   if (!decay) {
@@ -634,7 +634,7 @@ static bool _daterange_week_day_to_time_t(daterange const& r,
  *  @return True on success, otherwise false.
  */
 static bool _daterange_to_time_t(daterange const& r,
-                                 unsigned int type,
+                                 uint32_t type,
                                  time_info const* ti,
                                  time_t& start,
                                  time_t& end,
@@ -660,15 +660,16 @@ static bool _daterange_to_time_t(daterange const& r,
     if (start < ti->preferred_time) {
       // How many days have passed between skip start date
       // and preferred time ?
-      unsigned long days((ti->midnight - (unsigned long)start) / (3600 * 24));
+      uint64_t days =
+          (ti->midnight - static_cast<uint64_t>(start)) / (3600 * 24);
 
       // Advance start date to next skip day
       if (!(days % r.get_skip_interval()))
         start = _add_round_days_to_midnight(start, days, tz);
       else
         start = _add_round_days_to_midnight(
-            start, days - (days % r.get_skip_interval()) + r.get_skip_interval(),
-            tz);
+            start,
+            days - (days % r.get_skip_interval()) + r.get_skip_interval(), tz);
     }
   }
 
@@ -696,8 +697,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
   while ((drange_start_time < drange_end_time) ||
          (drange_end_time == (time_t)-1)) {
     // Next day at midnight.
-    time_t next_day(
-        _add_round_days_to_midnight(drange_start_time, 1, tz));
+    time_t next_day = _add_round_days_to_midnight(drange_start_time, 1, tz);
 
     // Check range.
     if ((preferred_time < drange_start_time) ||
@@ -784,157 +784,109 @@ bool timeperiod::check_time_against_period_for_notif(time_t test_time,
 }
 
 /**
- *  Get the next invalid time within a time period (used to compute
- *  exclusions).
+ *  Get the next invalid time within this time period (used to compute
+ *  exclusions): the instant at which the period stops being valid.
  *
- *  @param[in]  preferred_time  The preferred time to check.
- *  @param[out] invalid_time    Variable to fill.
- *  @param[in]  notif_timeperiod    if called for the notification .
+ *  Returns the end of the timerange that contains preferred_time, the start of
+ *  an exclusion that cuts the current window short, or preferred_time itself
+ *  when it is already outside the period. Only the day containing
+ *  preferred_time is examined: a fixed instant cannot fall inside a future
+ *  day's range.
+ *
+ *  @param[in] preferred_time   The preferred time to check.
+ *  @param[in] notif_timeperiod If called for the notification logic.
+ *  @param[in] tz               Timezone the period is evaluated in.
+ *
+ *  @return The next invalid time.
  */
-void timeperiod::get_next_invalid_time_per_timeperiod(
+time_t timeperiod::get_next_invalid_time_per_timeperiod(
     time_t preferred_time,
-    time_t* invalid_time,
     bool notif_timeperiod,
     const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("get_next_invalid_time_per_timeperiod()");
 
-  // If no time can be found, the original preferred time will be set
-  // in invalid_time at the end of the loop.
-  time_t original_preferred_time(preferred_time);
+  // Compute time information for preferred_time.
+  time_info ti;
+  ti.preferred_time = preferred_time;
+  tm_from_time(preferred_time, tz, &ti.preftime);
+  ti.preftime.tm_sec = 0;
+  ti.preftime.tm_min = 0;
+  ti.preftime.tm_hour = 0;
+  ti.preftime.tm_isdst = -1;
+  ti.midnight = time_from_tm(&ti.preftime, tz);
 
-  // Do not compute more than one year ahead (we might compute forever).
-  time_t earliest_time(preferred_time);
-  time_t in_one_year(preferred_time + 366 * 24 * 60 * 60);
-  while ((earliest_time != (time_t)-1) && (preferred_time < in_one_year)) {
-    preferred_time = earliest_time;
-    earliest_time = (time_t)-1;
+  time_t earliest_time = (time_t)-1;
 
-    // Compute time information.
-    time_info ti;
-    ti.preferred_time = preferred_time;
-    tm_from_time(preferred_time, tz, &ti.preftime);
-    ti.preftime.tm_sec = 0;
-    ti.preftime.tm_min = 0;
-    ti.preftime.tm_hour = 0;
-    ti.preftime.tm_isdst = -1;
-    ti.midnight = time_from_tm(&ti.preftime, tz);
-
-    // XXX: handle range end reached.
-    // Browse all date range.
-    for (unsigned int daterange_type(0);
-         (daterange_type < DATERANGE_TYPES) && ((time_t)-1 == earliest_time);
-         ++daterange_type) {
-      for (daterange_list::iterator
-               it(this->exceptions[daterange_type].begin()),
-           end(this->exceptions[daterange_type].end());
-           it != end && ((time_t)-1 == earliest_time); ++it) {
-        // Get range limits.
-        time_t daterange_start_time((time_t)-1);
-        time_t daterange_end_time((time_t)-1);
-        if (_daterange_to_time_t(*it, daterange_type, &ti, daterange_start_time,
-                                 daterange_end_time, tz) &&
-            ((preferred_time < daterange_end_time) ||
-             ((time_t)-1 == daterange_end_time))) {
-          // Check that date is within range.
-          time_t earliest_midnight(_earliest_midnight_in_daterange(
-              preferred_time, *it, daterange_start_time, daterange_end_time,
-              tz));
-          if (earliest_midnight != (time_t)-1) {
-            // Midnight.
-            struct tm midnight;
-            tm_from_time(earliest_midnight, tz, &midnight);
-
-            // Browse all time range of date range.
-            for (timerange_list::const_iterator
-                     it_tr(it->get_timerange().begin()),
-                 end_tr(it->get_timerange().end());
-                 it_tr != end_tr && ((time_t)-1 == earliest_time); ++it_tr) {
-              // Get range limits.
-              time_t range_start((time_t)-1);
-              time_t range_end((time_t)-1);
-              if (_timerange_to_time_t(*it_tr, &midnight, range_start,
-                                       range_end, tz) &&
-                  (preferred_time >= range_start) &&
-                  (preferred_time < range_end))
-                earliest_time = range_end;
+  // Browse date range exceptions: the end of the timerange covering
+  // preferred_time is when the period stops being valid.
+  for (uint32_t daterange_type = 0;
+       (daterange_type < DATERANGE_TYPES) && ((time_t)-1 == earliest_time);
+       ++daterange_type) {
+    for (auto& dr : exceptions[daterange_type]) {
+      if (earliest_time != (time_t)-1)
+        break;
+      time_t daterange_start_time = (time_t)-1;
+      time_t daterange_end_time = (time_t)-1;
+      if (_daterange_to_time_t(dr, daterange_type, &ti, daterange_start_time,
+                               daterange_end_time, tz) &&
+          ((preferred_time < daterange_end_time) ||
+           ((time_t)-1 == daterange_end_time))) {
+        time_t earliest_midnight = _earliest_midnight_in_daterange(
+            preferred_time, dr, daterange_start_time, daterange_end_time, tz);
+        if (earliest_midnight != (time_t)-1) {
+          struct tm midnight;
+          tm_from_time(earliest_midnight, tz, &midnight);
+          for (const auto& tr : dr.get_timerange()) {
+            time_t range_start = (time_t)-1;
+            time_t range_end = (time_t)-1;
+            if (_timerange_to_time_t(tr, &midnight, range_start, range_end,
+                                     tz) &&
+                (preferred_time >= range_start) &&
+                (preferred_time < range_end)) {
+              earliest_time = range_end;
+              break;
             }
           }
         }
       }
     }
+  }
 
-    /*
-    ** Find next available time from normal, weekly rotating schedule.
-    ** We do not need to check more than 8 days (today plus 7 days
-    ** ahead) because time ranges are recurring the same way every week.
-    */
-    for (int weekday(ti.preftime.tm_wday), days_into_the_future(0);
-         (days_into_the_future <= 7) && ((time_t)-1 == earliest_time);
-         ++weekday, ++days_into_the_future) {
-      if (weekday >= 7)
-        weekday -= 7;
-
-      // Calculate start of this future weekday.
-      time_t day_start(
-          _add_round_days_to_midnight(ti.midnight, days_into_the_future, tz));
-      struct tm day_midnight;
-      tm_from_time(day_start, tz, &day_midnight);
-
-      // Check all time ranges for this day of the week.
-      for (timerange_list::iterator it(this->days[weekday].begin()),
-           end(this->days[weekday].end());
-           it != end && ((time_t)-1 == earliest_time); ++it) {
-        // Get range limits.
-        time_t range_start((time_t)-1);
-        time_t range_end((time_t)-1);
-        if (_timerange_to_time_t(*it, &day_midnight, range_start, range_end,
-                                 tz) &&
-            (preferred_time >= range_start) && (preferred_time < range_end))
-          earliest_time = range_end;
+  // Normal weekly schedule: only the day containing preferred_time can match a
+  // fixed instant. ti.preftime is already that day's midnight.
+  if (earliest_time == (time_t)-1) {
+    for (auto& tr : days[ti.preftime.tm_wday]) {
+      time_t range_start = (time_t)-1;
+      time_t range_end = (time_t)-1;
+      if (_timerange_to_time_t(tr, &ti.preftime, range_start, range_end, tz) &&
+          (preferred_time >= range_start) && (preferred_time < range_end)) {
+        earliest_time = range_end;
+        break;
       }
-    }
-
-    // Find next exclusion time.
-    time_t next_exclusion((time_t)-1);
-    timeperiodexclusion tpe = std::move(this->get_exclusions());
-    for (timeperiodexclusion::iterator it(tpe.begin()), end(tpe.end());
-         it != end; ++it) {
-      time_t valid((time_t)-1);
-      it->second->get_next_valid_time_per_timeperiod(preferred_time, &valid,
-                                                     notif_timeperiod, tz);
-      if ((valid != (time_t)-1) &&
-          (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
-        next_exclusion = valid;
-    }
-    _exclusions = std::move(tpe);
-    /*
-    ** If we got an earliest_time this means that current preferred time
-    ** is in a perfectly valid range. earliest_time holds the range end
-    ** which might still be valid thanks to another date/time range and
-    ** need to be checked. This is valid only if no exclusion occurs
-    ** before.
-    */
-
-    if ((next_exclusion != (time_t)-1) &&
-        (next_exclusion <
-         _add_round_days_to_midnight(ti.midnight, 1, tz)) &&
-        (((time_t)-1 == earliest_time) || (next_exclusion <= earliest_time))) {
-      earliest_time = (time_t)-1;
-      preferred_time = next_exclusion;
-      break;  // We have our time, no need to search anymore.
-    }
-    if (earliest_time != (time_t)-1) {
-      preferred_time = earliest_time;
-      earliest_time = (time_t)-1;
     }
   }
 
-  // If we couldn't find a time period there must be none defined.
+  // An exclusion that becomes valid within the current day and before the end
+  // of the current window cuts it short.
+  time_t next_exclusion = (time_t)-1;
+  timeperiodexclusion tpe = std::move(this->get_exclusions());
+  for (auto& [name, excluded] : tpe) {
+    time_t valid = (time_t)-1;
+    excluded->get_next_valid_time_per_timeperiod(preferred_time, &valid,
+                                                 notif_timeperiod, tz);
+    if ((valid != (time_t)-1) &&
+        (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
+      next_exclusion = valid;
+  }
+  _exclusions = std::move(tpe);
+
+  if ((next_exclusion != (time_t)-1) &&
+      (next_exclusion < _add_round_days_to_midnight(ti.midnight, 1, tz)) &&
+      (((time_t)-1 == earliest_time) || (next_exclusion <= earliest_time)))
+    return next_exclusion;
   if (earliest_time != (time_t)-1)
-    *invalid_time = original_preferred_time;
-  // Else use the calculated time.
-  else
-    *invalid_time = preferred_time;
+    return earliest_time;
+  return preferred_time;
 }
 
 /**
@@ -955,11 +907,10 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
   midnight.tm_min = 0;
   midnight.tm_sec = 0;
   midnight.tm_isdst = -1;
-  for (timerange_list::iterator it = timeranges.begin(), end = timeranges.end();
-       it != end; ++it) {
-    time_t range_start((time_t)-1);
-    time_t range_end((time_t)-1);
-    if (_timerange_to_time_t(*it, &midnight, range_start, range_end, tz)) {
+  for (auto& tr : timeranges) {
+    time_t range_start = (time_t)-1;
+    time_t range_end = (time_t)-1;
+    if (_timerange_to_time_t(tr, &midnight, range_start, range_end, tz)) {
       // Time range is in the future.
       if (range_start >= preferred_time) {
         if ((earliest_time == (time_t)-1) || (range_start < earliest_time))
@@ -988,13 +939,13 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
-  time_t original_preferred_time(preferred_time);
+  time_t original_preferred_time = preferred_time;
 
   // Loop through the upcoming year a day at a time.
-  time_t earliest_time((time_t)-1);
+  time_t earliest_time = (time_t)-1;
   time_info ti;
   ti.preferred_time = preferred_time;
-  for (time_t in_one_year(ti.preferred_time + 366 * 24 * 60 * 60);
+  for (time_t in_one_year = ti.preferred_time + 366 * 24 * 60 * 60;
        (earliest_time == (time_t)-1) && (ti.preferred_time < in_one_year);) {
     // Compute time information.
     tm_from_time(ti.preferred_time, tz, &ti.preftime);
@@ -1005,20 +956,18 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
     ti.midnight = time_from_tm(&ti.preftime, tz);
 
     // Browse all date range types in precedence order.
-    bool skip_this_day(false);
-    for (size_t daterange_type{0};
+    bool skip_this_day = false;
+    for (uint32_t daterange_type = 0;
          daterange_type < DATERANGE_TYPES && earliest_time == (time_t)-1 &&
          !skip_this_day;
          ++daterange_type) {
       // Browse all date ranges of a given type. The earliest valid
       // time found in any date range will be valid.
-      for (daterange_list::iterator it{exceptions[daterange_type].begin()},
-           end{exceptions[daterange_type].end()};
-           it != end; ++it) {
+      for (auto& dr : exceptions[daterange_type]) {
         // Get next range limits and check that we are within bounds.
-        time_t daterange_start_time((time_t)-1);
-        time_t daterange_end_time((time_t)-1);
-        if (_daterange_to_time_t(*it, daterange_type, &ti, daterange_start_time,
+        time_t daterange_start_time = (time_t)-1;
+        time_t daterange_end_time = (time_t)-1;
+        if (_daterange_to_time_t(dr, daterange_type, &ti, daterange_start_time,
                                  daterange_end_time, tz) &&
             ((daterange_start_time == (time_t)-1) ||
              (daterange_start_time <= ti.midnight)) &&
@@ -1028,7 +977,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
           // been skipped because it was not valid on the current day
           // but could be valid tomorrow.
           time_t potential_time = _get_next_valid_time_in_timeranges(
-              ti.preferred_time, it->get_timerange(), tz);
+              ti.preferred_time, dr.get_timerange(), tz);
 
           // Potential time found.
           if (potential_time != (time_t)-1) {
@@ -1052,8 +1001,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
       // Try the weekly schedule only if no valid time was found in
       // exceptions for this day.
       if (earliest_time == (time_t)-1) {
-        time_t potential_time(_get_next_valid_time_in_timeranges(
-            ti.preferred_time, this->days[ti.preftime.tm_wday], tz));
+        time_t potential_time = _get_next_valid_time_in_timeranges(
+            ti.preferred_time, this->days[ti.preftime.tm_wday], tz);
         if ((potential_time != (time_t)-1) &&
             ((earliest_time == (time_t)-1) || (potential_time < earliest_time)))
           earliest_time = potential_time;
@@ -1061,16 +1010,14 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
     }
 
     // Check exclusions.
-    bool skipped(false);
+    bool skipped = false;
     if (earliest_time != (time_t)-1) {
-      time_t max_invalid((time_t)-1);
+      time_t max_invalid = (time_t)-1;
       timeperiodexclusion tpe = std::move(this->get_exclusions());
 
-      for (timeperiodexclusion::iterator it(tpe.begin()), end(tpe.end());
-           it != end; ++it) {
-        time_t invalid((time_t)-1);
-        it->second->get_next_invalid_time_per_timeperiod(
-            earliest_time, &invalid, notif_timeperiod, tz);
+      for (auto& [name, excluded] : tpe) {
+        time_t invalid = excluded->get_next_invalid_time_per_timeperiod(
+            earliest_time, notif_timeperiod, tz);
         if ((invalid != (time_t)-1) &&
             (((time_t)-1 == max_invalid) || (invalid > max_invalid)))
           max_invalid = invalid;
@@ -1085,8 +1032,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
 
     // Skip if not already done through exceptions.
     if (!skipped)
-      ti.preferred_time =
-          _add_round_days_to_midnight(ti.midnight, 1, tz);
+      ti.preferred_time = _add_round_days_to_midnight(ti.midnight, 1, tz);
   }
 
   // If we couldn't find a time period there must be none defined.
@@ -1113,7 +1059,7 @@ time_t timeperiod::get_next_valid_time(time_t pref_time,
   timeperiod_manager::logger()->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
-  time_t preferred_time(std::max(pref_time, time(NULL)));
+  time_t preferred_time = std::max(pref_time, time(NULL));
 
   // First check for possible timeperiod exclusions before getting a
   // valid_time.
@@ -1145,20 +1091,18 @@ void timeperiod::resolve(const timeperiod_map& all,
   }
 
   // Check for valid timeperiod names in exclusion list.
-  for (timeperiodexclusion::iterator it{_exclusions.begin()},
-       end{_exclusions.end()};
-       it != end; ++it) {
-    timeperiod_map::const_iterator found{all.find(it->first)};
+  for (auto& [name, excluded] : _exclusions) {
+    auto found = all.find(name);
 
     if (found == all.end()) {
       timeperiod_manager::logger()->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
-          it->first, _name);
+          name, _name);
       errors++;
     } else {
       // Save the timeperiod pointer for later.
-      it->second = found->second.get();
+      excluded = found->second.get();
     }
   }
 
