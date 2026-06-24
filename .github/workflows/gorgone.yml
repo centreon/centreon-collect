@@ -39,241 +39,241 @@ jobs:
     with:
       version_file: .version.centreon-gorgone
 
-  package:
-    needs: [get-environment]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+  # package:
+  #   needs: [get-environment]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     needs.get-environment.outputs.stability != 'stable' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma8
-            distrib: el8
-          - package_extension: rpm
-            image: packaging-centreon-collect-alma9
-            distrib: el9
-          - package_extension: deb
-            image: packaging-centreon-collect-bookworm
-            distrib: bookworm
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - package_extension: rpm
+  #           image: packaging-centreon-collect-alma8
+  #           distrib: el8
+  #         - package_extension: rpm
+  #           image: packaging-centreon-collect-alma9
+  #           distrib: el9
+  #         - package_extension: deb
+  #           image: packaging-centreon-collect-bookworm
+  #           distrib: bookworm
 
-    runs-on: ubuntu-24.04
+  #   runs-on: ubuntu-24.04
 
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
-      credentials:
-        username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-        password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+  #   container:
+  #     image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-environment.outputs.packaging_img_version }}
+  #     credentials:
+  #       username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+  #       password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
-    name: package ${{ matrix.distrib }}
+  #   name: package ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Set package version and paths according to distrib
-        run: |
-          if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
-            PERL_VENDORLIB="/usr/share/perl5"
-          else
-            PERL_VENDORLIB="/usr/share/perl5/vendor_perl"
-          fi
-          echo "PERL_VENDORLIB=$PERL_VENDORLIB" >> $GITHUB_ENV
-        shell: bash
+  #     - name: Set package version and paths according to distrib
+  #       run: |
+  #         if [[ "${{ matrix.package_extension }}" == "deb" ]]; then
+  #           PERL_VENDORLIB="/usr/share/perl5"
+  #         else
+  #           PERL_VENDORLIB="/usr/share/perl5/vendor_perl"
+  #         fi
+  #         echo "PERL_VENDORLIB=$PERL_VENDORLIB" >> $GITHUB_ENV
+  #       shell: bash
 
-      - name: Generate selinux binaries
-        if: ${{ matrix.package_extension == 'rpm' }}
-        run: |
-          cd gorgone/selinux
-          sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" centreon-gorgoned.te
-          make -f /usr/share/selinux/devel/Makefile
-        shell: bash
+  #     - name: Generate selinux binaries
+  #       if: ${{ matrix.package_extension == 'rpm' }}
+  #       run: |
+  #         cd gorgone/selinux
+  #         sed -i "s/@VERSION@/${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }}/g" centreon-gorgoned.te
+  #         make -f /usr/share/selinux/devel/Makefile
+  #       shell: bash
 
-      - name: Remove selinux packaging files on debian
-        if: ${{ matrix.package_extension == 'deb' }}
-        run: rm -f gorgone/packaging/*-selinux.yaml
-        shell: bash
+  #     - name: Remove selinux packaging files on debian
+  #       if: ${{ matrix.package_extension == 'deb' }}
+  #       run: rm -f gorgone/packaging/*-selinux.yaml
+  #       shell: bash
 
-      - name: Package
-        uses: ./.github/actions/package
-        with:
-          nfpm_file_pattern: "gorgone/packaging/*.yaml"
-          module_name: "centreon-gorgone"
-          distrib: ${{ matrix.distrib }}
-          package_extension: ${{ matrix.package_extension }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          release: ${{ needs.get-environment.outputs.release }}
-          arch: all
-          commit_hash: ${{ github.sha }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
-          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
-          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
-          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
+  #     - name: Package
+  #       uses: ./.github/actions/package
+  #       with:
+  #         nfpm_file_pattern: "gorgone/packaging/*.yaml"
+  #         module_name: "centreon-gorgone"
+  #         distrib: ${{ matrix.distrib }}
+  #         package_extension: ${{ matrix.package_extension }}
+  #         major_version: ${{ needs.get-environment.outputs.major_version }}
+  #         minor_version: ${{ needs.get-environment.outputs.minor_version }}
+  #         release: ${{ needs.get-environment.outputs.release }}
+  #         arch: all
+  #         commit_hash: ${{ github.sha }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+  #         rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+  #         rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+  #         rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         upload_artifacts: ${{ needs.get-environment.outputs.is_nightly == 'true' || contains(needs.get-environment.outputs.labels, 'upload-artifacts') && 'true' || 'false' }}
 
-  dockerize:
-    needs: [get-environment, package]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-    name: dockerize ${{ matrix.operating_system }}
-    env:
-      project: gorgone-testing
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+  # dockerize:
+  #   needs: [get-environment, package]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     needs.get-environment.outputs.stability != 'stable' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
+  #   runs-on: ubuntu-24.04
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+  #   name: dockerize ${{ matrix.operating_system }}
+  #   env:
+  #     project: gorgone-testing
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Login to registry
-        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
-          password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
+  #     - name: Login to registry
+  #       uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+  #       with:
+  #         registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         username: ${{ secrets.HARBOR_CENTREON_PUSH_USERNAME }}
+  #         password: ${{ secrets.HARBOR_CENTREON_PUSH_TOKEN }}
 
-      - name: Parse distrib name
-        id: parse-distrib
-        uses: ./.github/actions/parse-distrib
-        with:
-          distrib: ${{ matrix.operating_system }}
+  #     - name: Parse distrib name
+  #       id: parse-distrib
+  #       uses: ./.github/actions/parse-distrib
+  #       with:
+  #         distrib: ${{ matrix.operating_system }}
 
-      - name: Get FROM image tag
-        id: from_image_version
-        run: |
-          FROM_IMAGE_VERSION="${{ needs.get-environment.outputs.major_version }}"
-          FROM_IMAGE="gorgone-testing-dependencies-${{ matrix.operating_system }}"
-          IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.head_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
-          if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-            FROM_IMAGE_VERSION="${{ github.head_ref || github.ref_name }}"
-            echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
-          else
-            IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.base_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
-            if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
-              FROM_IMAGE_VERSION="${{ github.base_ref || github.ref_name }}"
-              echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
-            fi
-          fi
+  #     - name: Get FROM image tag
+  #       id: from_image_version
+  #       run: |
+  #         FROM_IMAGE_VERSION="${{ needs.get-environment.outputs.major_version }}"
+  #         FROM_IMAGE="gorgone-testing-dependencies-${{ matrix.operating_system }}"
+  #         IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.head_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
+  #         if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
+  #           FROM_IMAGE_VERSION="${{ github.head_ref || github.ref_name }}"
+  #           echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
+  #         else
+  #           IMAGE_TAG_EXISTS=$(docker manifest inspect ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${FROM_IMAGE}:${{ github.base_ref || github.ref_name }} >/dev/null 2>&1 && echo yes || echo no)
+  #           if [[ "$IMAGE_TAG_EXISTS" == "yes" ]]; then
+  #             FROM_IMAGE_VERSION="${{ github.base_ref || github.ref_name }}"
+  #             echo "::notice::FROM image $FROM_IMAGE:$FROM_IMAGE_VERSION will be used to build docker image ${{ env.project }}-${{ matrix.operating_system }}."
+  #           fi
+  #         fi
 
-          echo "from_image_version=$FROM_IMAGE_VERSION" >> $GITHUB_OUTPUT
-        shell: bash
+  #         echo "from_image_version=$FROM_IMAGE_VERSION" >> $GITHUB_OUTPUT
+  #       shell: bash
 
-      - name: get cached gorgone and perl-libs package
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
-          key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.parse-distrib.outputs.distrib_family || steps.parse-distrib.outputs.distrib_name }}
-          fail-on-cache-miss: true
+  #     - name: get cached gorgone and perl-libs package
+  #       uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+  #       with:
+  #         path: ./*.${{ steps.parse-distrib.outputs.package_extension }}
+  #         key: ${{ github.sha }}-${{ github.run_id }}-${{ steps.parse-distrib.outputs.package_extension }}-${{ steps.parse-distrib.outputs.package_extension == 'rpm' && steps.parse-distrib.outputs.distrib_family || steps.parse-distrib.outputs.distrib_name }}
+  #         fail-on-cache-miss: true
 
-      - run: |
-          mkdir packages-centreon-gorgone
-          mv *.${{ steps.parse-distrib.outputs.package_extension }} packages-centreon-gorgone/
-        shell: bash
+  #     - run: |
+  #         mkdir packages-centreon-gorgone
+  #         mv *.${{ steps.parse-distrib.outputs.package_extension }} packages-centreon-gorgone/
+  #       shell: bash
 
-      - name: Get linked branch of centreon repository
-        id: centreon_repo_linked_branch
-        run: |
-          CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
+  #     - name: Get linked branch of centreon repository
+  #       id: centreon_repo_linked_branch
+  #       run: |
+  #         CENTREON_REPO_LINKED_BRANCH=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/dev-${{ needs.get-environment.outputs.major_version }}\.x$" >/dev/null 2>&1 && echo "dev-${{ needs.get-environment.outputs.major_version }}.x" || echo develop)
 
-          GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
-          if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
-            CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
-          fi
+  #         GIT_BRANCH_EXISTS=$(git ls-remote -h https://github.com/centreon/centreon.git | grep -E "refs/heads/${{ github.head_ref || github.ref_name }}$" >/dev/null 2>&1 && echo yes || echo no)
+  #         if [[ "$GIT_BRANCH_EXISTS" == "yes" ]]; then
+  #           CENTREON_REPO_LINKED_BRANCH="${{ github.head_ref || github.ref_name }}"
+  #         fi
 
-          echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
-        shell: bash
+  #         echo "linked_branch=$CENTREON_REPO_LINKED_BRANCH" >> $GITHUB_OUTPUT
+  #       shell: bash
 
-      - name: Checkout sources
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          repository: centreon/centreon
-          path: centreon
-          ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
-          sparse-checkout: |
-            centreon/www/install/createTables.sql
-            centreon/www/install/createTablesCentstorage.sql
+  #     - name: Checkout sources
+  #       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+  #       with:
+  #         repository: centreon/centreon
+  #         path: centreon
+  #         ref: ${{ steps.centreon_repo_linked_branch.outputs.linked_branch }}
+  #         sparse-checkout: |
+  #           centreon/www/install/createTables.sql
+  #           centreon/www/install/createTablesCentstorage.sql
 
-      - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+  #     - uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
 
-      - name: Docker build and push
-        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
-        env:
-          DOCKER_BUILD_CHECKS_ANNOTATIONS: false
-          DOCKER_BUILD_SUMMARY: false
-          DOCKER_BUILD_RECORD_UPLOAD: false
-        with:
-          context: .
-          file: .github/docker/gorgone/${{ matrix.operating_system }}/Dockerfile.testing
-          build-args: |
-            "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
-            "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
-          pull: true
-          push: true
-          load: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+  #     - name: Docker build and push
+  #       uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+  #       env:
+  #         DOCKER_BUILD_CHECKS_ANNOTATIONS: false
+  #         DOCKER_BUILD_SUMMARY: false
+  #         DOCKER_BUILD_RECORD_UPLOAD: false
+  #       with:
+  #         context: .
+  #         file: .github/docker/gorgone/${{ matrix.operating_system }}/Dockerfile.testing
+  #         build-args: |
+  #           "REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}"
+  #           "FROM_IMAGE_VERSION=${{ steps.from_image_version.outputs.from_image_version }}"
+  #         pull: true
+  #         push: true
+  #         load: true
+  #         tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
 
-      - name: Store image in local archive
-        run: |
-          docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
-          mkdir -p docker-image
-          docker save --output ./docker-image/gorgone-testing-${{ matrix.operating_system }}.tar gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
-        shell: bash
+  #     - name: Store image in local archive
+  #       run: |
+  #         docker tag ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }} gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+  #         mkdir -p docker-image
+  #         docker save --output ./docker-image/gorgone-testing-${{ matrix.operating_system }}.tar gorgone-testing-${{ matrix.operating_system }}:${{ github.head_ref || github.ref_name }}
+  #       shell: bash
 
-      - name: Clear previous docker image from cache
-        run: |
-          curl \
-            -X DELETE \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
-        shell: bash
+  #     - name: Clear previous docker image from cache
+  #       run: |
+  #         curl \
+  #           -X DELETE \
+  #           -H "Accept: application/vnd.github.v3+json" \
+  #           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+  #           https://api.github.com/repos/centreon/centreon-collect/actions/caches?key=docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
+  #       shell: bash
 
-      - name: Store docker image in cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: ./docker-image
-          key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
+  #     - name: Store docker image in cache
+  #       uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+  #       with:
+  #         path: ./docker-image
+  #         key: docker-image-gorgone-testing-${{ matrix.operating_system }}-${{ github.head_ref || github.ref_name }}
 
-  robot-test:
-    needs: [get-environment, dockerize]
-    if: |
-      github.repository == 'centreon/centreon-collect' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
-    name: robot-test ${{ matrix.operating_system }}
-    uses: ./.github/workflows/robot-test-gorgone.yml
-    with:
-      distrib: ${{ matrix.operating_system }}
-    secrets:
-      registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
-      registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+  # robot-test:
+  #   needs: [get-environment, dockerize]
+  #   if: |
+  #     github.repository == 'centreon/centreon-collect' &&
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     needs.get-environment.outputs.stability != 'stable' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include: ${{ fromJson(needs.get-environment.outputs.os_and_database_matrix).operating_systems }}
+  #   name: robot-test ${{ matrix.operating_system }}
+  #   uses: ./.github/workflows/robot-test-gorgone.yml
+  #   with:
+  #     distrib: ${{ matrix.operating_system }}
+  #   secrets:
+  #     registry_username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+  #     registry_password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
 
   deliver-sources:
     runs-on: centreon-common
-    needs: [get-environment, package]
+    needs: [get-environment]
     if: |
-      github.event_name != 'workflow_dispatch' &&
-      needs.get-environment.outputs.stability == 'stable' &&
+      # github.event_name != 'workflow_dispatch' &&
+      # needs.get-environment.outputs.stability == 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
@@ -293,103 +293,103 @@ jobs:
           minor_version: ${{ needs.get-environment.outputs.minor_version }}
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
-  deliver-rpm:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, robot-test]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+  # deliver-rpm:
+  #   runs-on: ubuntu-24.04
+  #   needs: [get-environment, robot-test]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
 
-    strategy:
-      matrix:
-        distrib: [el8, el9]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Delivery
-        uses: ./.github/actions/rpm-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+  #     - name: Delivery
+  #       uses: ./.github/actions/rpm-delivery
+  #       with:
+  #         module_name: gorgone
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-environment.outputs.major_version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         release_type: ${{ needs.get-environment.outputs.release_type }}
+  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  deliver-deb:
-    runs-on: ubuntu-24.04
-    needs: [get-environment, robot-test]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+  # deliver-deb:
+  #   runs-on: ubuntu-24.04
+  #   needs: [get-environment, robot-test]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
 
-    strategy:
-      matrix:
-        distrib: [bookworm]
+  #   strategy:
+  #     matrix:
+  #       distrib: [bookworm]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Delivery
-        uses: ./.github/actions/deb-delivery
-        with:
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-environment.outputs.major_version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+  #     - name: Delivery
+  #       uses: ./.github/actions/deb-delivery
+  #       with:
+  #         module_name: gorgone
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-environment.outputs.major_version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         release_type: ${{ needs.get-environment.outputs.release_type }}
+  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  promote:
-    needs: [get-environment, deliver-rpm, deliver-deb]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+  # promote:
+  #   needs: [get-environment, deliver-rpm, deliver-deb]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     (contains(fromJson('["stable", "testing"]'), needs.get-environment.outputs.stability) && github.event_name != 'workflow_dispatch') &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled') &&
+  #     github.repository == 'centreon/centreon-collect'
 
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        distrib: [el8, el9, bookworm]
+  #   runs-on: ubuntu-24.04
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9, bookworm]
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - name: Promote ${{ matrix.distrib }} to stable
-        uses: ./.github/actions/promote-to-stable
-        with:
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: gorgone
-          distrib: ${{ matrix.distrib }}
-          major_version: ${{ needs.get-environment.outputs.major_version }}
-          minor_version: ${{ needs.get-environment.outputs.minor_version }}
-          stability: ${{ needs.get-environment.outputs.stability }}
-          github_ref_name: ${{ github.ref_name }}
-          release_type: ${{ needs.get-environment.outputs.release_type }}
-          is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
+  #     - name: Promote ${{ matrix.distrib }} to stable
+  #       uses: ./.github/actions/promote-to-stable
+  #       with:
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         module_name: gorgone
+  #         distrib: ${{ matrix.distrib }}
+  #         major_version: ${{ needs.get-environment.outputs.major_version }}
+  #         minor_version: ${{ needs.get-environment.outputs.minor_version }}
+  #         stability: ${{ needs.get-environment.outputs.stability }}
+  #         github_ref_name: ${{ github.ref_name }}
+  #         release_type: ${{ needs.get-environment.outputs.release_type }}
+  #         is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
 
-  set-skip-label:
-    needs: [get-environment, deliver-rpm, deliver-deb, promote]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
-    uses: ./.github/workflows/set-pull-request-skip-label.yml
+  # set-skip-label:
+  #   needs: [get-environment, deliver-rpm, deliver-deb, promote]
+  #   if: |
+  #     needs.get-environment.outputs.skip_workflow == 'false' &&
+  #     ! cancelled() &&
+  #     ! contains(needs.*.result, 'failure') &&
+  #     ! contains(needs.*.result, 'cancelled')
+  #   uses: ./.github/workflows/set-pull-request-skip-label.yml
