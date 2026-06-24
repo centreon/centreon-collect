@@ -288,6 +288,17 @@ Autres pistes :
   `_add_round_days` sur UTC/Paris/New_York/Lord_Howe/São_Paulo) OK partout.
   Après migration, le micro-benchmark `_libcov` (lib telle que buildée) tombe à
   ~485 ns (day) / ~629 ns (weekday) — la lib a bien accéléré.
+- **`get_next_invalid_time_per_timeperiod` : retour direct + one-pass (FAIT)**.
+  La méthode renvoie maintenant le `time_t` (au lieu d'un out-paramètre). La
+  caractérisation (tests isolés `get_next_invalid_time.cc` + couverture) a montré
+  que le `while`, le cap `in_one_year` et la branche
+  `*invalid_time = original_preferred_time` étaient **vestigiaux/morts** (la
+  boucle ne tournait qu'une fois), et que la boucle hebdo sur 8 jours était
+  inutile (seul le jour du `preferred_time` peut contenir un instant fixe).
+  Réécrite en une passe (jour-0 uniquement), à comportement strictement
+  équivalent (sweep du bench OK). Bench : chemin « hors-range » **2017 → 209 ns
+  (~9.6×)**, chemin « dans la range » 475 → 327 ns. Le résidu vs un idéal
+  hebdo-only tient à la gestion fidèle des exceptions/exclusions.
 - **Choix A vs B** pour le registre (cf. §8.4).
 
 ## 10. Benchmarks — baseline actuelle
