@@ -3262,8 +3262,9 @@ grpc::Status engine_impl::ChangeHostObjectIntVar(grpc::ServerContext* context
 
           /* schedule a check for right now (or as soon as possible) */
           time(&preferred_time);
-          if (!check_time_against_period(preferred_time,
-                                         temp_host->check_period_ptr)) {
+          if (temp_host->check_period_ptr &&
+              !temp_host->check_period_ptr->check_time_against_period(
+                  preferred_time)) {
             next_valid_time =
                 temp_host->check_period_ptr->get_next_valid_time(preferred_time);
             temp_host->set_next_check(next_valid_time);
@@ -3373,8 +3374,9 @@ grpc::Status engine_impl::ChangeServiceObjectIntVar(
 
           /* schedule a check for right now (or as soon as possible) */
           time(&preferred_time);
-          if (!check_time_against_period(preferred_time,
-                                         temp_service->check_period_ptr)) {
+          if (temp_service->check_period_ptr &&
+              !temp_service->check_period_ptr->check_time_against_period(
+                  preferred_time)) {
             next_valid_time =
                 temp_service->check_period_ptr->get_next_valid_time(
                     preferred_time);

@@ -131,14 +131,14 @@ constexpr std::time_t k_sat_evening = 1704571200;  // outside -> forward search
 void BM_check_24x7(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_24x7());
   for (auto _ : state)
-    benchmark::DoNotOptimize(check_time_against_period(k_wed_noon, tp.get()));
+    benchmark::DoNotOptimize(tp.get()->check_time_against_period(k_wed_noon));
 }
 BENCHMARK(BM_check_24x7);
 
 void BM_check_workhours_inside(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_workhours());
   for (auto _ : state)
-    benchmark::DoNotOptimize(check_time_against_period(k_wed_noon, tp.get()));
+    benchmark::DoNotOptimize(tp.get()->check_time_against_period(k_wed_noon));
 }
 BENCHMARK(BM_check_workhours_inside);
 
@@ -146,14 +146,14 @@ void BM_check_workhours_outside(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_workhours());
   for (auto _ : state)
     benchmark::DoNotOptimize(
-        check_time_against_period(k_sat_evening, tp.get()));
+        tp.get()->check_time_against_period(k_sat_evening));
 }
 BENCHMARK(BM_check_workhours_outside);
 
 void BM_check_exceptions(benchmark::State& state) {
   auto tp = std::make_shared<timeperiod>(conf_exceptions());
   for (auto _ : state)
-    benchmark::DoNotOptimize(check_time_against_period(k_wed_noon, tp.get()));
+    benchmark::DoNotOptimize(tp.get()->check_time_against_period(k_wed_noon));
 }
 BENCHMARK(BM_check_exceptions);
 

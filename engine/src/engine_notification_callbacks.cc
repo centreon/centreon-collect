@@ -104,8 +104,10 @@ notifications::resource_state engine_notification_callbacks::get_state(
       n->get_recovery_notification_delay() * interval_length);
 
   timeperiod* tp{n->get_notification_timeperiod()};
-  rs.in_notification_period = check_time_against_period_for_notif(
-      std::time(nullptr), tp, string_to_timezone(n->get_timezone()));
+  // No notification period means the contact may be notified at any time.
+  rs.in_notification_period =
+      !tp || tp->check_time_against_period_for_notif(
+                 std::time(nullptr), string_to_timezone(n->get_timezone()));
 
   return rs;
 }

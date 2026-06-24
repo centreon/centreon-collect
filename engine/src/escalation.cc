@@ -104,8 +104,8 @@ bool escalation::is_viable(int state __attribute__((unused)),
   std::time(&current_time);
 
   /* Skip this escalation if current_time is outside its timeperiod */
-  if (!get_escalation_period().empty() &&
-      !check_time_against_period(current_time, escalation_period_ptr))
+  if (!get_escalation_period().empty() && escalation_period_ptr &&
+      !escalation_period_ptr->check_time_against_period(current_time))
     return false;
 
   if (notification_number < _first_notification ||

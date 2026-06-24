@@ -2267,9 +2267,10 @@ bool host::verify_check_viability(int check_options,
 
     // Make sure this is a valid time to check the host.
     {
-      if (!check_time_against_period(static_cast<unsigned long>(current_time),
-                                     this->check_period_ptr,
-                                     string_to_timezone(get_timezone()))) {
+      if (this->check_period_ptr &&
+          !this->check_period_ptr->check_time_against_period(
+              static_cast<unsigned long>(current_time),
+              string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;
@@ -2524,8 +2525,8 @@ bool host::is_valid_escalation_for_notification(escalation const* e,
    * skip this escalation if it has a timeperiod and the current time
    * isn't valid
    */
-  if (!e->get_escalation_period().empty() &&
-      !check_time_against_period(current_time, e->escalation_period_ptr))
+  if (!e->get_escalation_period().empty() && e->escalation_period_ptr &&
+      !e->escalation_period_ptr->check_time_against_period(current_time))
     return false;
 
   /* skip this escalation if the state options don't match */
@@ -3280,8 +3281,8 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
     /* Skip this dependency if it has a timeperiod and the current time is
      * not valid */
     time_t current_time{std::time(nullptr)};
-    if (!dep->get_dependency_period().empty() &&
-        !check_time_against_period(current_time, dep->dependency_period_ptr))
+    if (!dep->get_dependency_period().empty() && dep->dependency_period_ptr &&
+        !dep->dependency_period_ptr->check_time_against_period(current_time))
       return true;
 
     /* Get the status to use (use last hard state if it's currently in a soft
@@ -3354,9 +3355,9 @@ void host::check_result_freshness() {
 
     // See if the time is right...
     {
-      if (!check_time_against_period(
-              current_time, it->second->check_period_ptr,
-              string_to_timezone(it->second->get_timezone())))
+      if (it->second->check_period_ptr &&
+          !it->second->check_period_ptr->check_time_against_period(
+              current_time, string_to_timezone(it->second->get_timezone())))
         continue;
     }
 

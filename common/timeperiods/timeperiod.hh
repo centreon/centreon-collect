@@ -59,6 +59,12 @@ class timeperiod {
   void set_alias(const std::string& alias);
   const timeperiodexclusion& get_exclusions() const { return _exclusions; };
   timeperiodexclusion& get_exclusions() { return _exclusions; };
+  bool check_time_against_period(
+      time_t test_time,
+      const absl::TimeZone& tz = absl::LocalTimeZone());
+  bool check_time_against_period_for_notif(
+      time_t test_time,
+      const absl::TimeZone& tz = absl::LocalTimeZone());
   time_t get_next_valid_time(
       time_t preferred_time,
       const absl::TimeZone& tz = absl::LocalTimeZone());
@@ -81,14 +87,6 @@ class timeperiod {
   days_array days;
   exception_array exceptions;
 };
-
-bool check_time_against_period(time_t test_time,
-                               timeperiod* tperiod,
-                               const absl::TimeZone& tz = absl::LocalTimeZone());
-bool check_time_against_period_for_notif(
-    time_t test_time,
-    timeperiod* tperiod,
-    const absl::TimeZone& tz = absl::LocalTimeZone());
 
 }  // namespace com::centreon::common::timeperiods
 
