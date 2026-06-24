@@ -212,22 +212,22 @@ bool timeperiod::operator!=(timeperiod const& obj) noexcept {
 }
 
 /**
- *  Add a round number of days (expressed in seconds) to a date.
+ *  Add a round number of days to a midnight.
  *
- *  @param[in] middnight  Midnight of base day.
- *  @param[in] skip       Number of days to skip (in seconds).
+ *  @param[in] midnight  Midnight of base day.
+ *  @param[in] days      Number of days to add.
+ *  @param[in] tz        Timezone the dates are expressed in.
  *
- *  @return Midnight of the day in skip seconds.
+ *  @return Midnight of the day @p days later.
  */
 static time_t _add_round_days_to_midnight(time_t midnight,
-                                          time_t skip,
+                                          int days,
                                           const absl::TimeZone& tz) {
-  // `midnight` is a real midnight and `skip` a whole number of days expressed
-  // in seconds; return the midnight skip/86400 civil days later. Civil-day
-  // arithmetic is DST-immune, so the old "+12h then snap to midnight" trick is
-  // no longer needed.
+  // `midnight` is a real midnight; return the midnight `days` civil days later.
+  // Civil-day arithmetic is DST-immune, so the old "+12h then snap to midnight"
+  // trick is no longer needed.
   absl::CivilDay base = absl::ToCivilDay(absl::FromTimeT(midnight), tz);
-  return civil_midnight(base + (skip / (24 * 60 * 60)), tz);
+  return civil_midnight(base + days, tz);
 }
 
 /**
@@ -359,7 +359,7 @@ static bool _daterange_calendar_date_to_time_t(daterange const& r,
     t.tm_year = r.get_eyear() - 1900;
     if ((end = time_from_tm(&t, tz)) == (time_t)-1)
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+    end = _add_round_days_to_midnight(end, 1, tz);
   } else
     end = (time_t)-1;
 
@@ -382,19 +382,19 @@ static bool _daterange_month_date_to_time_t(daterange const& r,
                                             time_t& end,
                                             const absl::TimeZone& tz) {
   // End before start ?
-  bool end_before_start(
-      (r.get_smon() > r.get_emon()) ||
-      ((r.get_smon() == r.get_emon()) && (r.get_smday() > r.get_emday())));
+  bool end_before_start =
+      r.get_smon() > r.get_emon() ||
+      (r.get_smon() == r.get_emon() && r.get_smday() > r.get_emday());
   // At what year should we start ?
-  int year(end_before_start ? ti.preftime.tm_year - 1 : ti.preftime.tm_year);
-  bool found(false);
-  for (int i(0); (i < 3) && !found; ++i, ++year) {
+  int year = end_before_start ? ti.preftime.tm_year - 1 : ti.preftime.tm_year;
+  bool found = false;
+  for (int i = 0; i < 3 && !found; ++i, ++year) {
     start =
         calculate_time_from_day_of_month(year, r.get_smon(), r.get_smday(), tz);
     end = calculate_time_from_day_of_month(year + (end_before_start ? 1 : 0),
                                            r.get_emon(), r.get_emday(), tz);
     if (end != (time_t)-1) {
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+      end = _add_round_days_to_midnight(end, 1, tz);
       if (ti.preferred_time < end)
         found = true;
     }
@@ -446,7 +446,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
         ti.preftime.tm_year, ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+    end = _add_round_days_to_midnight(end, 1, tz);
   }
   // Decay.
   else {
@@ -463,7 +463,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
         ti.preftime.tm_year, ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+    end = _add_round_days_to_midnight(end, 1, tz);
 
     // If interval is invalid, we need to check
     // current month -> next month.
@@ -480,7 +480,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
       end = calculate_time_from_day_of_month(year, month, r.get_emday(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+      end = _add_round_days_to_midnight(end, 1, tz);
     }
   }
 
@@ -515,7 +515,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+    end = _add_round_days_to_midnight(end, 1, tz);
   }
   // Decay, check previous year -> current year and
   // current year -> next year intervals.
@@ -529,7 +529,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+    end = _add_round_days_to_midnight(end, 1, tz);
 
     // If interval is invalid, we need to check
     // current year -> next year.
@@ -542,7 +542,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                  r.get_ewday_offset(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+      end = _add_round_days_to_midnight(end, 1, tz);
     }
   }
 
@@ -596,7 +596,7 @@ static bool _daterange_week_day_to_time_t(daterange const& r,
       }
       end = calculate_time_from_day_of_month(end_year, end_month, 0, tz);
     } else
-      end = _add_round_days_to_midnight(end, 24 * 60 * 60, tz);
+      end = _add_round_days_to_midnight(end, 1, tz);
 
     // Error checking.
     if (((time_t)-1 == start) || ((time_t)-1 == end) || (start > end))
@@ -664,12 +664,10 @@ static bool _daterange_to_time_t(daterange const& r,
 
       // Advance start date to next skip day
       if (!(days % r.get_skip_interval()))
-        start = _add_round_days_to_midnight(start, days * 24 * 60 * 60, tz);
+        start = _add_round_days_to_midnight(start, days, tz);
       else
         start = _add_round_days_to_midnight(
-            start,
-            ((days - (days % r.get_skip_interval()) + r.get_skip_interval()) *
-             24 * 60 * 60),
+            start, days - (days % r.get_skip_interval()) + r.get_skip_interval(),
             tz);
     }
   }
@@ -699,7 +697,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
          (drange_end_time == (time_t)-1)) {
     // Next day at midnight.
     time_t next_day(
-        _add_round_days_to_midnight(drange_start_time, 24 * 60 * 60, tz));
+        _add_round_days_to_midnight(drange_start_time, 1, tz));
 
     // Check range.
     if ((preferred_time < drange_start_time) ||
@@ -711,7 +709,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
       drange_start_time = next_day;
     else
       drange_start_time = _add_round_days_to_midnight(
-          drange_start_time, drange.get_skip_interval() * 24 * 60 * 60, tz);
+          drange_start_time, drange.get_skip_interval(), tz);
   }
   return (time_t)-1;
 }
@@ -760,8 +758,7 @@ bool timeperiod::check_time_against_period(time_t test_time,
   time_t next_valid_time{(time_t)-1};
   get_next_valid_time_per_timeperiod(test_time, &next_valid_time, false, tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
-                                      get_name(),
-                                      next_valid_time == test_time);
+                                      get_name(), next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
@@ -878,8 +875,8 @@ void timeperiod::get_next_invalid_time_per_timeperiod(
         weekday -= 7;
 
       // Calculate start of this future weekday.
-      time_t day_start(_add_round_days_to_midnight(
-          ti.midnight, days_into_the_future * 24 * 60 * 60, tz));
+      time_t day_start(
+          _add_round_days_to_midnight(ti.midnight, days_into_the_future, tz));
       struct tm day_midnight;
       tm_from_time(day_start, tz, &day_midnight);
 
@@ -920,7 +917,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(
 
     if ((next_exclusion != (time_t)-1) &&
         (next_exclusion <
-         _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60, tz)) &&
+         _add_round_days_to_midnight(ti.midnight, 1, tz)) &&
         (((time_t)-1 == earliest_time) || (next_exclusion <= earliest_time))) {
       earliest_time = (time_t)-1;
       preferred_time = next_exclusion;
@@ -1089,7 +1086,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
     // Skip if not already done through exceptions.
     if (!skipped)
       ti.preferred_time =
-          _add_round_days_to_midnight(ti.midnight, 24 * 60 * 60, tz);
+          _add_round_days_to_midnight(ti.midnight, 1, tz);
   }
 
   // If we couldn't find a time period there must be none defined.
