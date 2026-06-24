@@ -294,6 +294,23 @@ Other leads:
   (day-0 only), strictly equivalent (bench sweep OK). Bench: "outside-range"
   path **2017 → 209 ns (~9.6×)**, "inside-range" path 475 → 327 ns. The residual
   vs a weekly-only ideal is the faithful handling of exceptions/exclusions.
+- **`_timerange_to_time_t` and `_daterange_calendar_date_to_time_t` → direct
+  Abseil (DONE)**. `_timerange_to_time_t` (the most-called conversion) no longer
+  uses `struct tm`/`memcpy`/`time_from_tm` (whose `ToTM` write-back was useless
+  here) but `CivilSecond(...).pre` directly → `BM_next_invalid_old_covered`
+  327 → 271 ns. `_daterange_calendar_date_to_time_t` switches to `CivilDay`.
+  Equivalence preserved (bench sweeps + ut_common/ut_engine green).
+- **`get_next_valid_time_per_timeperiod`: return value + occurrence jump
+  (DONE)**. Returns the `time_t` (no out-param). Unlike `get_next_invalid`, its
+  loop is **genuinely iterative** (day-by-day search) — no dead code, no
+  single-pass rewrite. The optimization targets the **day-by-day crawl** toward
+  a distant exception occurrence: when the timeperiod has **no** weekly schedule
+  (`has_weekly` false) and nothing is valid today, it **jumps** straight to the
+  earliest future date-range start instead of advancing one day. Safe (jump only
+  when the day's scan completed → true minimum; an intermediate weekly range
+  would otherwise be missed, hence the guard). Identical result (validated by the
+  whole `get_next_valid_time/*` suite). Bench: "3rd Monday" **9580 → 1454 ns
+  (~6.6×)**; weekly case unchanged.
 - **Choice A vs B** for the registry (cf. §8.4).
 
 ## 10. Benchmarks — current baseline
