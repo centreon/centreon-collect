@@ -39,6 +39,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     timeperiods/utils.cc
+    timeperiods/calculate_time_from_day_of_month.cc
+    timeperiods/calculate_time_from_weekday_of_month.cc
     timeperiods/get_next_valid_time/between_two_years.cc
     timeperiods/get_next_valid_time/calendar_date.cc
     timeperiods/get_next_valid_time/dst_backward.cc

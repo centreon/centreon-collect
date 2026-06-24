@@ -20,9 +20,11 @@
 
 #include <ctime>
 
+#include "absl/time/civil_time.h"
 #include "absl/time/time.h"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timeperiod_detail.hh"
 #include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
@@ -63,6 +65,23 @@ inline time_t time_from_tm(struct tm* t, const absl::TimeZone& tz) {
   *t = absl::ToTM(when, tz);
   return absl::ToTimeT(when);
 }
+
+/**
+ *  Midnight (00:00:00) of a civil day, expressed in @p tz, as a time_t. A
+ *  nonexistent midnight (timezones whose DST transition falls on 00:00) is
+ *  resolved to the pre-transition instant, matching time_from_tm / mktime with
+ *  tm_isdst = -1.
+ */
+inline time_t civil_midnight(absl::CivilDay d, const absl::TimeZone& tz) {
+  return absl::ToTimeT(
+      tz.At(absl::CivilSecond(d.year(), d.month(), d.day(), 0, 0, 0)).pre);
+}
+
+// Maps a tm_wday (0 = Sunday) to the corresponding absl::Weekday.
+constexpr absl::Weekday kWeekday[7] = {
+    absl::Weekday::sunday,    absl::Weekday::monday,   absl::Weekday::tuesday,
+    absl::Weekday::wednesday, absl::Weekday::thursday, absl::Weekday::friday,
+    absl::Weekday::saturday};
 
 }  // namespace
 
@@ -203,29 +222,12 @@ bool timeperiod::operator!=(timeperiod const& obj) noexcept {
 static time_t _add_round_days_to_midnight(time_t midnight,
                                           time_t skip,
                                           const absl::TimeZone& tz) {
-  // Compute expected time with no DST.
-  time_t next_day_time(midnight + skip);
-  struct tm next_day;
-  tm_from_time(next_day_time, tz, &next_day);
-
-  // There was a DST shift in between.
-  if (next_day.tm_hour || next_day.tm_min || next_day.tm_sec) {
-    /*
-    ** The trick here is to move from midnight to noon, add the skip
-    ** seconds and break time down in a tm structure. We're now sure to
-    ** be in the proper day (DST shift is +-1h) we only have to reset
-    ** time to midnight, convert back and we're done.
-    */
-    next_day_time += 12 * 60 * 60;
-    tm_from_time(next_day_time, tz, &next_day);
-    next_day.tm_hour = 0;
-    next_day.tm_min = 0;
-    next_day.tm_sec = 0;
-    next_day.tm_isdst = -1;
-    next_day_time = time_from_tm(&next_day, tz);
-  }
-
-  return next_day_time;
+  // `midnight` is a real midnight and `skip` a whole number of days expressed
+  // in seconds; return the midnight skip/86400 civil days later. Civil-day
+  // arithmetic is DST-immune, so the old "+12h then snap to midnight" trick is
+  // no longer needed.
+  absl::CivilDay base = absl::ToCivilDay(absl::FromTimeT(midnight), tz);
+  return civil_midnight(base + (skip / (24 * 60 * 60)), tz);
 }
 
 /**
@@ -238,59 +240,27 @@ static time_t _add_round_days_to_midnight(time_t midnight,
  *
  *  @return Requested timestamp, (time_t)-1 if conversion failed.
  */
-static time_t calculate_time_from_day_of_month(int year,
-                                               int month,
-                                               int monthday,
-                                               const absl::TimeZone& tz) {
-  time_t midnight;
-  tm t;
+time_t calculate_time_from_day_of_month(int year,
+                                        int month,
+                                        int monthday,
+                                        const absl::TimeZone& tz) {
+  const int y = year + 1900;
+  const int m = month + 1;  // absl::CivilDay months are 1-based.
 
-  // Positive day (3rd day).
+  // Positive day: that day, unless it overflows into the next month.
   if (monthday > 0) {
-    t.tm_sec = 0;
-    t.tm_min = 0;
-    t.tm_hour = 0;
-    t.tm_year = year;
-    t.tm_mon = month;
-    t.tm_mday = monthday;
-    t.tm_isdst = -1;
-    midnight = time_from_tm(&t, tz);
-
-    // If we rolled over to the next month, time is invalid, assume the
-    // user's intention is to keep it in the current month.
-    if (t.tm_mon != month)
-      midnight = (time_t)-1;
-  }
-  // Negative offset (last day, 3rd to last day).
-  else {
-    // Find last day in the month.
-    int day(32);
-    do {
-      // Back up a day.
-      --day;
-
-      // Make the new time.
-      t.tm_mon = month;
-      t.tm_year = year;
-      t.tm_mday = day;
-      t.tm_isdst = -1;
-      midnight = time_from_tm(&t, tz);
-    } while ((midnight == (time_t)-1) || (t.tm_mon != month));
-
-    // Now that we know the last day, back up more.
-    t.tm_mon = month;
-    t.tm_year = year;
-    // Beware to roll over the whole month.
-    if (-monthday >= t.tm_mday)
-      t.tm_mday = 1;
-    // -1 means last day of month, so add one to make this correct.
-    else
-      t.tm_mday += monthday + 1;
-    t.tm_isdst = -1;
-    midnight = time_from_tm(&t, tz);
+    absl::CivilDay d(y, m, monthday);
+    if (d.month() != m)
+      return (time_t)-1;
+    return civil_midnight(d, tz);
   }
 
-  return midnight;
+  // Negative day: count from the end. Last day = first of next month minus one
+  // (CivilDay normalises month 13 to January of the next year). A magnitude
+  // reaching or exceeding the month length collapses to the 1st.
+  const int last_day = (absl::CivilDay(y, m + 1, 1) - 1).day();
+  const int mday = (-monthday >= last_day) ? 1 : (last_day + monthday + 1);
+  return civil_midnight(absl::CivilDay(y, m, mday), tz);
 }
 
 /**
@@ -305,77 +275,41 @@ static time_t calculate_time_from_day_of_month(int year,
  *
  *  @return Requested timestamp, (time_t)-1 if conversion failed.
  */
-static time_t calculate_time_from_weekday_of_month(int year,
-                                                   int month,
-                                                   int weekday,
-                                                   int weekday_offset,
-                                                   const absl::TimeZone& tz) {
-  // Compute first day of month (to get weekday).
-  tm t;
-  t.tm_sec = 0;
-  t.tm_min = 0;
-  t.tm_hour = 0;
-  t.tm_year = year;
-  t.tm_mon = month;
-  t.tm_mday = 1;
-  t.tm_isdst = -1;
-  time_from_tm(&t, tz);
-  time_t midnight;
+time_t calculate_time_from_weekday_of_month(int year,
+                                            int month,
+                                            int weekday,
+                                            int weekday_offset,
+                                            const absl::TimeZone& tz) {
+  const int y = year + 1900;
+  const int m = month + 1;
+  const absl::Weekday wd = kWeekday[weekday];
 
-  // How many days must we advance to reach the first instance of the
-  // weekday this month ?
-  int days(weekday - (t.tm_wday));
-  if (days < 0)
-    days += 7;
-
-  // Positive offset (3rd thursday).
+  // Positive offset (3rd thursday): first occurrence on/after the 1st, then
+  // advance whole weeks. No more than 5 weekly occurrences are possible.
   if (weekday_offset > 0) {
-    // How many weeks must we advance (no more than 5 possible).
-    int weeks((weekday_offset > 5) ? 5 : weekday_offset);
-    days += ((weeks - 1) * 7);
-
-    // Make the new time.
-    t.tm_mon = month;
-    t.tm_year = year;
-    t.tm_mday = days + 1;
-    t.tm_isdst = -1;
-    midnight = time_from_tm(&t, tz);
-
-    // If we rolled over to the next month, time is invalid, assume the
-    // user's intention is to keep it in the current month.
-    if (t.tm_mon != month)
-      midnight = (time_t)-1;
-  }
-  // Negative offset (last thursday, 3rd to last tuesday).
-  else {
-    // Find last instance of weekday in the month.
-    days += (5 * 7);
-    do {
-      // Back up a week.
-      days -= 7;
-
-      // Make the new time.
-      t.tm_mon = month;
-      t.tm_year = year;
-      t.tm_mday = days + 1;
-      t.tm_isdst = -1;
-      midnight = time_from_tm(&t, tz);
-    } while ((midnight == (time_t)-1) || (t.tm_mon != month));
-
-    // Now that we know the last instance of the weekday, back up more.
-    days = ((weekday_offset + 1) * 7);
-    t.tm_mon = month;
-    t.tm_year = year;
-    // Beware to roll over the whole month.
-    if (-days >= t.tm_mday)
-      t.tm_mday = t.tm_mday % 7;
-    else
-      t.tm_mday += days;
-    t.tm_isdst = -1;
-    midnight = time_from_tm(&t, tz);
+    absl::CivilDay first(y, m, 1);
+    absl::CivilDay occ =
+        (absl::GetWeekday(first) == wd) ? first : absl::NextWeekday(first, wd);
+    const int weeks = (weekday_offset > 5) ? 5 : weekday_offset;
+    occ = occ + (weeks - 1) * 7;
+    // If we rolled past the month, the occurrence does not exist.
+    if (occ.month() != m)
+      return (time_t)-1;
+    return civil_midnight(occ, tz);
   }
 
-  return midnight;
+  // Negative offset (last thursday, 3rd to last tuesday): last occurrence
+  // on/before the last day, then step back. The arithmetic (including the %7
+  // clamp for magnitudes beyond the number of occurrences) matches the former
+  // struct tm implementation.
+  absl::CivilDay last = absl::CivilDay(y, m + 1, 1) - 1;
+  absl::CivilDay last_occ =
+      (absl::GetWeekday(last) == wd) ? last : absl::PrevWeekday(last, wd);
+  const int last_occ_day = last_occ.day();
+  const int days = (weekday_offset + 1) * 7;  // <= 0
+  const int mday =
+      (-days >= last_occ_day) ? (last_occ_day % 7) : (last_occ_day + days);
+  return civil_midnight(absl::CivilDay(y, m, mday), tz);
 }
 
 /**

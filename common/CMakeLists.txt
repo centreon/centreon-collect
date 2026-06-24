@@ -74,4 +74,5 @@ add_subdirectory(crypto)
 
 if(WITH_TESTING)
   add_subdirectory(tests)
+  add_subdirectory(benchmark)
 endif()
