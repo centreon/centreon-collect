@@ -32,6 +32,7 @@ dnf install --best -y \
     mysql-server \
     mysql \
     openssh-server \
+    openssl \
     python3 \
     python3-devel \
     python3-pip \
