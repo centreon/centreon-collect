@@ -458,7 +458,8 @@ void applier::scheduler::_calculate_host_scheduling_params() {
       schedule_check = false;
     else {
       const absl::TimeZone tz = string_to_timezone(hst.get_timezone());
-      if (!check_time_against_period(now, hst.check_period_ptr, tz)) {
+      if (hst.check_period_ptr &&
+          !hst.check_period_ptr->check_time_against_period(now, tz)) {
         time_t next_valid_time = hst.check_period_ptr->get_next_valid_time(now, tz);
         if (now == next_valid_time)
           schedule_check = false;
@@ -594,7 +595,8 @@ void applier::scheduler::_calculate_service_scheduling_params() {
 
     {
       const absl::TimeZone tz = string_to_timezone(svc.get_timezone());
-      if (!check_time_against_period(now, svc.check_period_ptr, tz)) {
+      if (svc.check_period_ptr &&
+          !svc.check_period_ptr->check_time_against_period(now, tz)) {
         time_t next_valid_time = svc.check_period_ptr->get_next_valid_time(now, tz);
         if (now == next_valid_time)
           schedule_check = false;
@@ -791,8 +793,9 @@ void applier::scheduler::_schedule_host_events(
     // Make sure the host can actually be scheduled at this time.
     {
       const absl::TimeZone tz = string_to_timezone(hst.get_timezone());
-      if (!check_time_against_period(hst.get_next_check(), hst.check_period_ptr,
-                                     tz)) {
+      if (hst.check_period_ptr &&
+          !hst.check_period_ptr->check_time_against_period(hst.get_next_check(),
+                                                           tz)) {
         time_t next_valid_time =
             hst.check_period_ptr->get_next_valid_time(hst.get_next_check(), tz);
         hst.set_next_check(next_valid_time);
@@ -901,8 +904,9 @@ void applier::scheduler::_schedule_service_events(
       // Make sure the service can actually be scheduled when we want.
       {
         const absl::TimeZone tz = string_to_timezone(s->get_timezone());
-        if (!check_time_against_period(s->get_next_check(), s->check_period_ptr,
-                                       tz)) {
+        if (s->check_period_ptr &&
+            !s->check_period_ptr->check_time_against_period(s->get_next_check(),
+                                                            tz)) {
           time_t next_valid_time =
               s->check_period_ptr->get_next_valid_time(s->get_next_check(), tz);
           s->set_next_check(next_valid_time);

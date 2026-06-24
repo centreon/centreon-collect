@@ -745,56 +745,44 @@ static bool _timerange_to_time_t(const timerange& trange,
 }
 
 /**
- *  See if the specified time falls into a valid time range in the given
- *  time period.
+ *  See if the specified time falls into a valid time range in this time period.
  *
  *  @param[in] test_time  Time to test.
- *  @param[in] tperiod    Target time period.
+ *  @param[in] tz         Timezone the period is evaluated in.
  *
- *  @return true on success, false on failure.
+ *  @return true if test_time is within the period.
  */
-bool check_time_against_period(time_t test_time,
-                               timeperiod* tperiod,
-                               const absl::TimeZone& tz) {
+bool timeperiod::check_time_against_period(time_t test_time,
+                                           const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("check_time_against_period()");
-
-  // If no period was specified, assume the time is good.
-  if (!tperiod)
-    return true;
 
   // Faked next valid time must be tested time.
   time_t next_valid_time{(time_t)-1};
-  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
-                                              false, tz);
+  get_next_valid_time_per_timeperiod(test_time, &next_valid_time, false, tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
-                                      tperiod->get_name(),
+                                      get_name(),
                                       next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
 
 /**
- *  See if the specified time falls into a valid time range in the given
- *  time period for the notification.
+ *  See if the specified time falls into a valid time range in this time period,
+ *  for the notification logic (a period with no valid time is restrictive here,
+ *  unlike the regular check above).
  *
  *  @param[in] test_time  Time to test.
- *  @param[in] tperiod    Target time period.
+ *  @param[in] tz         Timezone the period is evaluated in.
  *
- *  @return true on success, false on failure.
+ *  @return true if test_time is within the period.
  */
-bool check_time_against_period_for_notif(time_t test_time,
-                                         timeperiod* tperiod,
-                                         const absl::TimeZone& tz) {
+bool timeperiod::check_time_against_period_for_notif(time_t test_time,
+                                                     const absl::TimeZone& tz) {
   timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
-
-  // If no period was specified, assume the time is good.
-  if (!tperiod)
-    return true;
 
   // Faked next valid time must be tested time.
   time_t next_valid_time{(time_t)-1};
-  tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time, true,
-                                              tz);
+  get_next_valid_time_per_timeperiod(test_time, &next_valid_time, true, tz);
   return next_valid_time == test_time;
 }
 

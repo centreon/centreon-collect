@@ -317,13 +317,13 @@ int grab_datetime_macro_r(nagios_macros* mac,
 
     case MACRO_ISVALIDTIME:
       output = std::to_string(
-          !check_time_against_period(test_time, temp_timeperiod));
+          !temp_timeperiod->check_time_against_period(test_time));
       break;
 
     case MACRO_NEXTVALIDTIME:
       next_valid_time = temp_timeperiod->get_next_valid_time(test_time);
       if (next_valid_time == test_time &&
-          !check_time_against_period(test_time, temp_timeperiod))
+          !temp_timeperiod->check_time_against_period(test_time))
         next_valid_time = (time_t)0L;
       get_datetime_string(&next_valid_time, tmp_date, MAX_DATETIME_LENGTH,
                           SHORT_TIME);
