@@ -317,6 +317,34 @@ Autres pistes :
   serait sinon manquée, d'où la garde). Résultat identique (validé par toute la
   suite `get_next_valid_time/*`). Bench : « 3ᵉ lundi » **9580 → 1454 ns
   (~6.6×)** ; cas hebdo inchangé.
+- **Évaluation `const` + thread-safe : garde de cycle d'exclusions réécrite
+  (FAIT)**. Les méthodes d'évaluation (`check_time_against_period`,
+  `check_time_against_period_for_notif`, `get_next_valid_time` et les deux
+  helpers internes) sont désormais **`const`**. L'ancien garde anti-cycle — qui
+  vidait temporairement `this->_exclusions` (un `std::move` aller-retour) pour
+  qu'une exclusion cyclique (A exclut B, B exclut A) termine en revenant sur
+  `this` — **mutait l'objet** : il interdisait le `const` et surtout **n'était
+  pas thread-safe** (deux threads évaluant le même timeperiod s'écrasaient
+  `_exclusions`). C'est exactement le scénario multi-thread visé côté Broker,
+  donc un bug latent. Il est remplacé par un **ensemble de récursion** passé en
+  paramètre (`absl::flat_hash_set<const timeperiod*>`, `nullptr` au premier
+  appel) : chaque niveau s'y insère avant de descendre et s'en retire au retour.
+  Sémantique strictement identique (ne bloque que les ancêtres de la chaîne
+  d'appel courante = vrai cycle ; un graphe d'exclusions en diamant reste évalué
+  sur chaque chemin), mais l'objet n'est plus muté → évaluation **sans état
+  partagé, sûre depuis plusieurs threads**. Une garde `!_exclusions.empty()`
+  fait qu'un timeperiod sans exclusion (cas chaud : 24x7/work-hours) ne paie
+  aucune allocation. Validé ut_common + ut_engine.
+- **Renommage des helpers internes (FAIT)** :
+  `get_next_valid_time_per_timeperiod` / `get_next_invalid_time_per_timeperiod`
+  (suffixe vestigial de l'époque « fonctions libres ») deviennent **privées**
+  `_get_next_valid_time` / `_get_next_invalid_time`. Aucun appelant de production
+  hors lib (engine/broker passent par `check_time_against_period[_for_notif]` et
+  `get_next_valid_time`). Le benchmark et le test de caractérisation, qui
+  appellent l'interne directement (pour éviter le clamp-to-`now` non
+  déterministe du `get_next_valid_time` public), y accèdent via
+  `struct timeperiod_test_access` (friend défini dans l'en-tête, à usage
+  test/bench uniquement).
 - **Choix A vs B** pour le registre (cf. §8.4).
 
 ## 10. Benchmarks — baseline actuelle
@@ -366,6 +394,13 @@ sur 10 répétitions. Instants de référence fixes et déterministes (mer.
   récursivité d'exclusion combine multiplicativement les scans jour-par-jour de
   chaque niveau → coût quasi géométrique. Argument fort en faveur du refactor :
   des exclusions profondes sont aujourd'hui pathologiques.
+
+> **Note** : la réécriture du garde de cycle (§9, évaluation `const` +
+> thread-safe) ne change **pas** ce profil — la chaîne du bench est acyclique,
+> l'explosion géométrique est intrinsèque à la récursivité jour-par-jour de
+> chaque niveau. Le chemin chaud sans exclusion reste inchangé (garde
+> `!_exclusions.empty()`). Réduire ce coût relèverait d'un changement
+> algorithmique, encore à l'étude.
 
 > **Sensibilité critique au `TZ`** : `get_next_valid_time`/`check_time_against_period`
 > passent par `localtime_r`/`mktime`. Quand `TZ` n'est pas positionné, la glibc
