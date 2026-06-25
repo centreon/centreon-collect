@@ -34,3 +34,12 @@ target_link_libraries(common_timeperiod_calc_bench
     absl::flat_hash_map
     spdlog::spdlog
     fmt::fmt)
+
+# Micro-benchmark: month-name lookup, linear array scan vs absl::flat_hash_map.
+add_executable(common_month_id_bench month_id.cc)
+target_compile_features(common_month_id_bench PRIVATE cxx_std_17)
+target_compile_options(common_month_id_bench PRIVATE -O2)
+target_link_libraries(common_month_id_bench
+    PRIVATE
+    benchmark::benchmark
+    absl::flat_hash_map)
