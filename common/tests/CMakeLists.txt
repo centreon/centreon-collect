@@ -39,6 +39,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     rapidjson_helper_test.cc
     test_main.cc
     timeperiods/utils.cc
+    timeperiods/bam_legacy_timeperiods.cc
     timeperiods/calculate_time_from_day_of_month.cc
     timeperiods/calculate_time_from_weekday_of_month.cc
     timeperiods/get_next_invalid_time.cc
@@ -74,7 +75,8 @@ set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
 
 target_compile_definitions(
   ut_common PUBLIC -DHTTP_TEST_DIR="${PROJECT_SOURCE_DIR}/http/test"
-                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\")
+                   -DCOMMON_CFG_TEST=\"${TESTS_DIR}/cfg_files\"
+                   -DBAM_TP_CFG_DIR=\"${CMAKE_SOURCE_DIR}/broker/bam/test/time/cfg\")
 
 set_target_properties(
   ut_common

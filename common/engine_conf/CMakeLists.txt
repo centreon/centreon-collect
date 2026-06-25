@@ -79,7 +79,9 @@ add_library(
   tag_helper.cc
   tag_helper.hh
   timeperiod_helper.cc
-  timeperiod_helper.hh)
+  timeperiod_helper.hh
+  timeperiod_legacy.cc
+  timeperiod_legacy.hh)
 add_dependencies(engine_conf target_state_proto)
 include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
