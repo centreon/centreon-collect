@@ -38,6 +38,7 @@
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/timeperiod_legacy.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -46,6 +47,7 @@ using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
+namespace cfg = com::centreon::engine::configuration;
 
 /**
  *  Constructor.
@@ -258,11 +260,24 @@ uint32_t reporting_stream::write(std::shared_ptr<io::data> const& data) {
 void reporting_stream::_apply(const DimensionTimeperiod& tp) {
   SPDLOG_LOGGER_TRACE(_logger, "BAM-BI: applying timeperiod {} to cache",
                       tp.id());
+  if (tp.name().empty()) {
+    SPDLOG_LOGGER_ERROR(
+        _logger, "BAM-BI: ignoring timeperiod {} with an empty name", tp.id());
+    return;
+  }
+  cfg::Timeperiod proto;
+  proto.set_timeperiod_name(tp.name());
+  proto.set_alias(tp.name());
+  cfg::legacy_set_weekday(proto, 0, tp.sunday());
+  cfg::legacy_set_weekday(proto, 1, tp.monday());
+  cfg::legacy_set_weekday(proto, 2, tp.tuesday());
+  cfg::legacy_set_weekday(proto, 3, tp.wednesday());
+  cfg::legacy_set_weekday(proto, 4, tp.thursday());
+  cfg::legacy_set_weekday(proto, 5, tp.friday());
+  cfg::legacy_set_weekday(proto, 6, tp.saturday());
   _timeperiods.add_timeperiod(
       tp.id(),
-      time::timeperiod::ptr(std::make_shared<time::timeperiod>(
-          tp.id(), tp.name(), "", tp.sunday(), tp.monday(), tp.tuesday(),
-          tp.wednesday(), tp.thursday(), tp.friday(), tp.saturday())));
+      std::make_shared<com::centreon::common::timeperiods::timeperiod>(proto));
 }
 
 /**
@@ -365,7 +380,13 @@ void reporting_stream::_load_timeperiods() {
   // Clear old timeperiods.
   _timeperiods.clear();
 
-  // Load timeperiods.
+  // The shared library builds a timeperiod from a single configuration
+  // protobuf, so accumulate one proto per id across the three queries (weekly
+  // schedule, exceptions, exclusions) and build them all at the end.
+  absl::btree_map<uint32_t, cfg::Timeperiod> protos;
+  absl::flat_hash_map<uint32_t, std::string> id_to_name;
+
+  // Load timeperiods (weekly schedule).
   {
     std::string query(
         "SELECT timeperiod_id, name, sunday, monday, tuesday, wednesday, "
@@ -377,13 +398,14 @@ void reporting_stream::_load_timeperiods() {
     try {
       mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
-        _timeperiods.add_timeperiod(
-            res.value_as_u32(0),
-            time::timeperiod::ptr(new time::timeperiod(
-                res.value_as_u32(0), res.value_as_str(1), "",
-                res.value_as_str(2), res.value_as_str(3), res.value_as_str(4),
-                res.value_as_str(5), res.value_as_str(6), res.value_as_str(7),
-                res.value_as_str(8))));
+        uint32_t id = res.value_as_u32(0);
+        std::string name = res.value_as_str(1);
+        cfg::Timeperiod& proto = protos[id];
+        proto.set_timeperiod_name(name);
+        proto.set_alias(name);
+        for (int day = 0; day < 7; ++day)
+          cfg::legacy_set_weekday(proto, day, res.value_as_str(2 + day));
+        id_to_name[id] = std::move(name);
       }
     } catch (std::exception const& e) {
       throw msg_fmt("BAM-BI: could not load timeperiods from DB: {}", e.what());
@@ -402,15 +424,16 @@ void reporting_stream::_load_timeperiods() {
     try {
       mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
-        time::timeperiod::ptr tp =
-            _timeperiods.get_timeperiod(res.value_as_u32(0));
-        if (!tp)
+        uint32_t id = res.value_as_u32(0);
+        auto found = protos.find(id);
+        if (found == protos.end())
           SPDLOG_LOGGER_ERROR(
               _logger,
               "BAM-BI: could not apply exception to non-existing timeperiod {}",
-              res.value_as_u32(0));
+              id);
         else
-          tp->add_exception(res.value_as_str(1), res.value_as_str(2));
+          cfg::legacy_add_exception(found->second, res.value_as_str(1),
+                                    res.value_as_str(2));
       }
     } catch (std::exception const& e) {
       throw msg_fmt("BAM-BI: could not load timeperiods exceptions from DB: {}",
@@ -418,7 +441,7 @@ void reporting_stream::_load_timeperiods() {
     }
   }
 
-  // Load exclusions.
+  // Load exclusions (the shared library resolves them by name).
   {
     std::string query(
         "SELECT timeperiod_id, excluded_timeperiod_id"
@@ -430,21 +453,40 @@ void reporting_stream::_load_timeperiods() {
     try {
       mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
-        time::timeperiod::ptr tp =
-            _timeperiods.get_timeperiod(res.value_as_u32(0));
-        time::timeperiod::ptr excluded_tp =
-            _timeperiods.get_timeperiod(res.value_as_u32(1));
-        if (!tp || !excluded_tp)
+        uint32_t id = res.value_as_u32(0);
+        uint32_t excluded_id = res.value_as_u32(1);
+        auto found = protos.find(id);
+        auto excluded_name = id_to_name.find(excluded_id);
+        if (found == protos.end() || excluded_name == id_to_name.end())
           SPDLOG_LOGGER_ERROR(
               _logger,
               "BAM-BI: could not apply exclusion of timeperiod {} by "
               "timeperiod {}: at least one timeperiod does not exist",
-              res.value_as_u32(1), res.value_as_u32(0));
+              excluded_id, id);
         else
-          tp->add_excluded(excluded_tp);
+          found->second.mutable_exclude()->add_data(excluded_name->second);
       }
     } catch (std::exception const& e) {
       throw msg_fmt("BAM-BI: could not load exclusions from DB: {} ", e.what());
+    }
+  }
+
+  // Build the shared-library timeperiods, then resolve exclusions by name.
+  ::timeperiod_map by_name;
+  for (auto& [id, proto] : protos) {
+    auto tp =
+        std::make_shared<com::centreon::common::timeperiods::timeperiod>(proto);
+    _timeperiods.add_timeperiod(id, tp);
+    by_name[tp->get_name()] = tp;
+  }
+  uint32_t warnings = 0, errors = 0;
+  for (auto& [name, tp] : by_name) {
+    try {
+      tp->resolve(by_name, warnings, errors);
+    } catch (const std::exception& e) {
+      SPDLOG_LOGGER_ERROR(_logger,
+                          "BAM-BI: could not resolve timeperiod '{}': {}", name,
+                          e.what());
     }
   }
 
@@ -2080,7 +2122,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
       ev.start_time(), ev.end_time(), ev.ba_id());
 
   // Find the timeperiods associated with this ba.
-  std::vector<std::pair<time::timeperiod::ptr, bool>> timeperiods =
+  std::vector<ba_timeperiod> timeperiods =
       _timeperiods.get_timeperiods_by_ba_id(ev.ba_id());
 
   if (timeperiods.empty()) {
@@ -2092,26 +2134,23 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
     return;
   }
 
-  for (std::vector<std::pair<time::timeperiod::ptr, bool>>::const_iterator
-           it = timeperiods.begin(),
-           end = timeperiods.end();
-       it != end; ++it) {
-    time::timeperiod::ptr tp = it->first;
-    bool is_default = it->second;
+  for (const ba_timeperiod& entry : timeperiods) {
+    const timeperiod_ptr& tp = entry.tp;
+    bool is_default = entry.is_default;
 
     std::shared_ptr<pb_ba_duration_event> to_write{
         std::make_shared<pb_ba_duration_event>()};
     BaDurationEvent& dur_ev(to_write->mut_obj());
     dur_ev.set_ba_id(ev.ba_id());
     dur_ev.set_real_start_time(ev.start_time());
-    dur_ev.set_start_time(tp->get_next_valid(ev.start_time()));
+    dur_ev.set_start_time(tp->get_next_valid_time(ev.start_time(), true));
     dur_ev.set_end_time(ev.end_time());
     if (dur_ev.start_time() > 0 && dur_ev.end_time() > 0 &&
         (dur_ev.start_time() < dur_ev.end_time())) {
       dur_ev.set_duration(dur_ev.end_time() - dur_ev.start_time());
       dur_ev.set_sla_duration(
           tp->duration_intersect(dur_ev.start_time(), dur_ev.end_time()));
-      dur_ev.set_timeperiod_id(tp->get_id());
+      dur_ev.set_timeperiod_id(entry.id);
       dur_ev.set_timeperiod_is_default(is_default);
       SPDLOG_LOGGER_DEBUG(
           _logger,

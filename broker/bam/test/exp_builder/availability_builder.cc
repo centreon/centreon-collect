@@ -17,10 +17,13 @@
  */
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include <gtest/gtest.h>
+#include "common/engine_conf/timeperiod_legacy.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::broker;
 using log_v2 = com::centreon::common::log_v2::log_v2;
+namespace cfg = com::centreon::engine::configuration;
 
 TEST(BamAvailabilityBuilder, Simple) {
   /* mon. 29 mars 2021 15:59:18 CEST */
@@ -28,11 +31,14 @@ TEST(BamAvailabilityBuilder, Simple) {
   /* mon. 29 mars 2021 15:04:18 CEST */
   time_t start_time = 1617023058u;
 
-  time::timeperiod::ptr period = std::make_shared<time::timeperiod>(
-      4, "test_timeperiod", "test_alias", "08:00-20:00", "08:00-20:00",
-      "08:00-20:00", "08:00-20:00", "08:00-20:00", "08:00-20:00",
-      "08:00-20:00");
-  ASSERT_TRUE(period->is_valid(end_time));
+  cfg::Timeperiod proto;
+  proto.set_timeperiod_name("test_timeperiod");
+  proto.set_alias("test_alias");
+  for (int day = 0; day < 7; ++day)
+    cfg::legacy_set_weekday(proto, day, "08:00-20:00");
+  auto period =
+      std::make_shared<com::centreon::common::timeperiods::timeperiod>(proto);
+  ASSERT_TRUE(period->check_time_against_period(end_time));
 
   bam::availability_builder builder(end_time, start_time);
   ASSERT_EQ(builder.get_available(), 0);

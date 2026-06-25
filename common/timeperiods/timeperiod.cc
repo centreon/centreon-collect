@@ -220,9 +220,9 @@ bool timeperiod::operator!=(timeperiod const& obj) noexcept {
  *
  *  @return Midnight of the day @p days later.
  */
-static time_t _add_round_days_to_midnight(time_t midnight,
-                                          int days,
-                                          const absl::TimeZone& tz) {
+time_t add_round_days_to_midnight(time_t midnight,
+                                  int days,
+                                  const absl::TimeZone& tz) {
   // `midnight` is a real midnight; return the midnight `days` civil days later.
   // Civil-day arithmetic is DST-immune, so the old "+12h then snap to midnight"
   // trick is no longer needed.
@@ -381,7 +381,7 @@ static bool _daterange_month_date_to_time_t(daterange const& r,
     end = calculate_time_from_day_of_month(year + (end_before_start ? 1 : 0),
                                            r.get_emon(), r.get_emday(), tz);
     if (end != (time_t)-1) {
-      end = _add_round_days_to_midnight(end, 1, tz);
+      end = add_round_days_to_midnight(end, 1, tz);
       if (ti.preferred_time < end)
         found = true;
     }
@@ -433,7 +433,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
         ti.preftime.tm_year, ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 1, tz);
+    end = add_round_days_to_midnight(end, 1, tz);
   }
   // Decay.
   else {
@@ -450,7 +450,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
         ti.preftime.tm_year, ti.preftime.tm_mon, r.get_emday(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 1, tz);
+    end = add_round_days_to_midnight(end, 1, tz);
 
     // If interval is invalid, we need to check
     // current month -> next month.
@@ -467,7 +467,7 @@ static bool _daterange_month_day_to_time_t(daterange const& r,
       end = calculate_time_from_day_of_month(year, month, r.get_emday(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 1, tz);
+      end = add_round_days_to_midnight(end, 1, tz);
     }
   }
 
@@ -502,7 +502,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 1, tz);
+    end = add_round_days_to_midnight(end, 1, tz);
   }
   // Decay, check previous year -> current year and
   // current year -> next year intervals.
@@ -516,7 +516,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                r.get_ewday_offset(), tz);
     if ((start == (time_t)-1) || (end == (time_t)-1))
       return false;
-    end = _add_round_days_to_midnight(end, 1, tz);
+    end = add_round_days_to_midnight(end, 1, tz);
 
     // If interval is invalid, we need to check
     // current year -> next year.
@@ -529,7 +529,7 @@ static bool _daterange_month_week_day_to_time_t(daterange const& r,
                                                  r.get_ewday_offset(), tz);
       if ((start == (time_t)-1) || (end == (time_t)-1))
         return false;
-      end = _add_round_days_to_midnight(end, 1, tz);
+      end = add_round_days_to_midnight(end, 1, tz);
     }
   }
 
@@ -583,7 +583,7 @@ static bool _daterange_week_day_to_time_t(daterange const& r,
       }
       end = calculate_time_from_day_of_month(end_year, end_month, 0, tz);
     } else
-      end = _add_round_days_to_midnight(end, 1, tz);
+      end = add_round_days_to_midnight(end, 1, tz);
 
     // Error checking.
     if (((time_t)-1 == start) || ((time_t)-1 == end) || (start > end))
@@ -652,9 +652,9 @@ static bool _daterange_to_time_t(daterange const& r,
 
       // Advance start date to next skip day
       if (!(days % r.get_skip_interval()))
-        start = _add_round_days_to_midnight(start, days, tz);
+        start = add_round_days_to_midnight(start, days, tz);
       else
-        start = _add_round_days_to_midnight(
+        start = add_round_days_to_midnight(
             start,
             days - (days % r.get_skip_interval()) + r.get_skip_interval(), tz);
     }
@@ -684,7 +684,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
   while ((drange_start_time < drange_end_time) ||
          (drange_end_time == (time_t)-1)) {
     // Next day at midnight.
-    time_t next_day = _add_round_days_to_midnight(drange_start_time, 1, tz);
+    time_t next_day = add_round_days_to_midnight(drange_start_time, 1, tz);
 
     // Check range.
     if ((preferred_time < drange_start_time) ||
@@ -695,7 +695,7 @@ static time_t _earliest_midnight_in_daterange(time_t preferred_time,
     if (drange.get_skip_interval() <= 1)
       drange_start_time = next_day;
     else
-      drange_start_time = _add_round_days_to_midnight(
+      drange_start_time = add_round_days_to_midnight(
           drange_start_time, drange.get_skip_interval(), tz);
   }
   return (time_t)-1;
@@ -746,7 +746,7 @@ bool timeperiod::check_time_against_period(time_t test_time,
   timeperiod_manager::logger()->trace("check_time_against_period()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time = _get_next_valid_time(test_time, false, tz);
+  time_t next_valid_time = get_next_valid_time(test_time, false, tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
                                       get_name(), next_valid_time == test_time);
 
@@ -769,7 +769,7 @@ bool timeperiod::check_time_against_period_for_notif(
   timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time = _get_next_valid_time(test_time, true, tz);
+  time_t next_valid_time = get_next_valid_time(test_time, true, tz);
   return next_valid_time == test_time;
 }
 
@@ -792,12 +792,12 @@ bool timeperiod::check_time_against_period_for_notif(
  *
  *  @return The next invalid time.
  */
-time_t timeperiod::_get_next_invalid_time(
+time_t timeperiod::get_next_invalid_time(
     time_t preferred_time,
     bool notif_timeperiod,
     const absl::TimeZone& tz,
     absl::flat_hash_set<const timeperiod*>* chain) const {
-  timeperiod_manager::logger()->trace("_get_next_invalid_time()");
+  timeperiod_manager::logger()->trace("get_next_invalid_time()");
 
   // Compute time information for preferred_time.
   time_info ti;
@@ -872,8 +872,8 @@ time_t timeperiod::_get_next_invalid_time(
   // never be part of an exclusion cycle, so skip the chain bookkeeping.
   if (!_exclusions.empty() && chain->insert(this).second) {
     for (const auto& [name, excluded] : _exclusions) {
-      time_t valid = excluded->_get_next_valid_time(preferred_time,
-                                                    notif_timeperiod, tz, chain);
+      time_t valid = excluded->get_next_valid_time(preferred_time,
+                                                   notif_timeperiod, tz, chain);
       if ((valid != (time_t)-1) &&
           (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
         next_exclusion = valid;
@@ -882,7 +882,7 @@ time_t timeperiod::_get_next_invalid_time(
   }
 
   if ((next_exclusion != (time_t)-1) &&
-      (next_exclusion < _add_round_days_to_midnight(ti.midnight, 1, tz)) &&
+      (next_exclusion < add_round_days_to_midnight(ti.midnight, 1, tz)) &&
       (((time_t)-1 == earliest_time) || (next_exclusion <= earliest_time)))
     return next_exclusion;
   if (earliest_time != (time_t)-1)
@@ -937,12 +937,12 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
  *
  *  @return The next valid time.
  */
-time_t timeperiod::_get_next_valid_time(
+time_t timeperiod::get_next_valid_time(
     time_t preferred_time,
     bool notif_timeperiod,
     const absl::TimeZone& tz,
     absl::flat_hash_set<const timeperiod*>* chain) const {
-  timeperiod_manager::logger()->trace("_get_next_valid_time()");
+  timeperiod_manager::logger()->trace("get_next_valid_time()");
 
   absl::flat_hash_set<const timeperiod*> local_chain;
   if (!chain)
@@ -1051,7 +1051,7 @@ time_t timeperiod::_get_next_valid_time(
       // can never be part of an exclusion cycle, so skip the chain bookkeeping.
       if (!_exclusions.empty() && chain->insert(this).second) {
         for (const auto& [name, excluded] : _exclusions) {
-          time_t invalid = excluded->_get_next_invalid_time(
+          time_t invalid = excluded->get_next_invalid_time(
               earliest_time, notif_timeperiod, tz, chain);
           if ((invalid != (time_t)-1) &&
               (((time_t)-1 == max_invalid) || (invalid > max_invalid)))
@@ -1075,7 +1075,7 @@ time_t timeperiod::_get_next_valid_time(
           next_daterange_start != (time_t)-1)
         ti.preferred_time = next_daterange_start;
       else
-        ti.preferred_time = _add_round_days_to_midnight(ti.midnight, 1, tz);
+        ti.preferred_time = add_round_days_to_midnight(ti.midnight, 1, tz);
     }
   }
 
@@ -1084,7 +1084,7 @@ time_t timeperiod::_get_next_valid_time(
   time_t valid_time =
       (earliest_time == (time_t)-1 && !notif_timeperiod) ? original_preferred_time
                                                          : earliest_time;
-  timeperiod_manager::logger()->trace("_get_next_valid_time {} valid_time={}",
+  timeperiod_manager::logger()->trace("get_next_valid_time {} valid_time={}",
                                       _name, valid_time);
   return valid_time;
 }
@@ -1106,7 +1106,40 @@ time_t timeperiod::get_next_valid_time(time_t pref_time,
 
   // First check for possible timeperiod exclusions before getting a
   // valid_time.
-  return _get_next_valid_time(preferred_time, false, tz);
+  return get_next_valid_time(preferred_time, false, tz);
+}
+
+/**
+ * @brief Total number of seconds of @p this period within [start, end].
+ *
+ * Walks the period from valid window to valid window, summing the parts that
+ * fall inside the range.
+ *
+ * @param[in] start_time  Start of the range (inclusive).
+ * @param[in] end_time    End of the range (exclusive).
+ * @param[in] tz          Timezone the period is evaluated in.
+ *
+ * @return The intersected duration in seconds (0 if end precedes start).
+ */
+uint32_t timeperiod::duration_intersect(time_t start_time,
+                                        time_t end_time,
+                                        const absl::TimeZone& tz) const {
+  if (end_time < start_time)
+    return 0;
+  uint32_t duration = 0;
+  time_t current_end = start_time;
+  while (true) {
+    time_t current_start = get_next_valid_time(current_end, true, tz);
+    if (current_start == (time_t)-1 || current_start > end_time)
+      break;
+    current_end = get_next_invalid_time(current_start, true, tz);
+    if (current_end == (time_t)-1 || current_end > end_time) {
+      duration += static_cast<uint32_t>(end_time - current_start);
+      break;
+    }
+    duration += static_cast<uint32_t>(current_end - current_start);
+  }
+  return duration;
 }
 
 /**

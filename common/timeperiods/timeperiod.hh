@@ -46,23 +46,6 @@ class timeperiod {
   std::string _alias;
   timeperiodexclusion _exclusions;
 
-  /* Recurrence engine. Both methods walk into the period's exclusions
-   * recursively; @p chain holds the periods already being evaluated higher up
-   * in the call stack so that a cyclic exclusion (A excludes B, B excludes A)
-   * terminates. It is an in/out parameter shared across the mutual recursion;
-   * pass nullptr at the top level to start a fresh chain. Stateless and const,
-   * hence safe to evaluate the same period concurrently from several threads. */
-  time_t _get_next_valid_time(
-      time_t preferred_time,
-      bool notif_timeperiod,
-      const absl::TimeZone& tz,
-      absl::flat_hash_set<const timeperiod*>* chain = nullptr) const;
-  time_t _get_next_invalid_time(
-      time_t preferred_time,
-      bool notif_timeperiod,
-      const absl::TimeZone& tz,
-      absl::flat_hash_set<const timeperiod*>* chain = nullptr) const;
-
  public:
   timeperiod(const com::centreon::engine::configuration::Timeperiod& obj);
   void set_exclusions(
@@ -87,6 +70,52 @@ class timeperiod {
       time_t preferred_time,
       const absl::TimeZone& tz = absl::LocalTimeZone()) const;
 
+  /**
+   * @brief Core recurrence query: next valid time at or after @p
+   * preferred_time, WITHOUT clamping to now (unlike the overload above).
+   *
+   * Set @p notif_timeperiod to true in a notification/negotiation context or
+   * for BAM reporting: a period with no valid time then yields (time_t)-1
+   * instead of @p preferred_time. With false (the default scheduling use) it
+   * falls back to @p preferred_time.
+   *
+   * @param[in]     preferred_time   The instant to search from.
+   * @param[in]     notif_timeperiod true for notification/negotiation/BAM.
+   * @param[in]     tz               Timezone the period is evaluated in.
+   * @param[in,out] chain            Cyclic-exclusion guard (internal); omit /
+   *                                 pass nullptr at the top level.
+   *
+   * @return The next valid time, or (time_t)-1 (see notif_timeperiod).
+   */
+  time_t get_next_valid_time(
+      time_t preferred_time,
+      bool notif_timeperiod,
+      const absl::TimeZone& tz = absl::LocalTimeZone(),
+      absl::flat_hash_set<const timeperiod*>* chain = nullptr) const;
+
+  /**
+   * @brief The next instant at which this period stops being valid, at or after
+   * @p preferred_time (end of the covering window, start of a cutting
+   * exclusion, or @p preferred_time itself when already outside).
+   *
+   * @param[in]     preferred_time   The instant to search from.
+   * @param[in]     notif_timeperiod true for notification/negotiation/BAM.
+   * @param[in]     tz               Timezone the period is evaluated in.
+   * @param[in,out] chain            Cyclic-exclusion guard (internal); omit /
+   *                                 pass nullptr at the top level.
+   *
+   * @return The next invalid time.
+   */
+  time_t get_next_invalid_time(
+      time_t preferred_time,
+      bool notif_timeperiod,
+      const absl::TimeZone& tz = absl::LocalTimeZone(),
+      absl::flat_hash_set<const timeperiod*>* chain = nullptr) const;
+  uint32_t duration_intersect(
+      time_t start_time,
+      time_t end_time,
+      const absl::TimeZone& tz = absl::LocalTimeZone()) const;
+
   void resolve(const timeperiod_map& all, uint32_t& w, uint32_t& e);
 
   bool operator==(timeperiod const& obj) noexcept;
@@ -94,28 +123,21 @@ class timeperiod {
 
   days_array days;
   exception_array exceptions;
-
-  friend struct timeperiod_test_access;
 };
 
-/* Test/benchmark-only accessor for the private recurrence helpers. They are
- * exercised directly (rather than through get_next_valid_time) because the
- * public entry clamps the preferred time to time(nullptr), which is not
- * deterministic. Not for production use. */
-struct timeperiod_test_access {
-  static time_t next_valid_time(const timeperiod& tp,
-                                time_t preferred_time,
-                                bool notif_timeperiod,
-                                const absl::TimeZone& tz) {
-    return tp._get_next_valid_time(preferred_time, notif_timeperiod, tz);
-  }
-  static time_t next_invalid_time(const timeperiod& tp,
-                                  time_t preferred_time,
-                                  bool notif_timeperiod,
-                                  const absl::TimeZone& tz) {
-    return tp._get_next_invalid_time(preferred_time, notif_timeperiod, tz);
-  }
-};
+/**
+ * @brief Add a round number of civil days to a midnight instant, DST-safe.
+ *
+ * @param[in] midnight  A real midnight instant.
+ * @param[in] days      Number of civil days to add (may be negative).
+ * @param[in] tz        Timezone the civil arithmetic is done in.
+ *
+ * @return The midnight @p days civil days later.
+ */
+time_t add_round_days_to_midnight(
+    time_t midnight,
+    int days,
+    const absl::TimeZone& tz = absl::LocalTimeZone());
 
 }  // namespace com::centreon::common::timeperiods
 
