@@ -46,6 +46,7 @@
 using com::centreon::common::timeperiods::calculate_time_from_day_of_month;
 using com::centreon::common::timeperiods::calculate_time_from_weekday_of_month;
 using com::centreon::common::timeperiods::timeperiod;
+using com::centreon::common::timeperiods::timeperiod_test_access;
 namespace cfg = com::centreon::engine::configuration;
 
 namespace {
@@ -456,7 +457,7 @@ void BM_add_round_days_absl(benchmark::State& state) {
 }
 BENCHMARK(BM_add_round_days_absl);
 
-// ── get_next_invalid_time_per_timeperiod: current vs one-pass Abseil ─────────
+// ── _get_next_invalid_time: current vs one-pass Abseil ──────────────────────
 //
 // Characterization showed the method is effectively a single pass: it returns
 // the end of the timerange containing preferred_time (no extension across
@@ -535,7 +536,7 @@ cfg::Timeperiod conf_exceptions() {
 
 // OLD: the library method as it is today.
 time_t next_invalid_old(timeperiod& tp, time_t pref, const absl::TimeZone& tz) {
-  return tp.get_next_invalid_time_per_timeperiod(pref, false, tz);
+  return timeperiod_test_access::next_invalid_time(tp, pref, false, tz);
 }
 
 // NEW: one-pass, day-0-only (valid for weekly timeperiods without exceptions or
@@ -626,15 +627,15 @@ BENCHMARK(BM_next_invalid_new_uncovered);
 // = the costly day-by-day crawl toward the next "3rd Monday".
 void BM_get_next_valid_weekly(benchmark::State& state) {
   for (auto _ : state)
-    benchmark::DoNotOptimize(g_workhours.get_next_valid_time_per_timeperiod(
-        k_sat_evening, false, g_tz));
+    benchmark::DoNotOptimize(timeperiod_test_access::next_valid_time(
+        g_workhours, k_sat_evening, false, g_tz));
 }
 BENCHMARK(BM_get_next_valid_weekly);
 
 void BM_get_next_valid_exceptions(benchmark::State& state) {
   for (auto _ : state)
-    benchmark::DoNotOptimize(
-        g_exceptions.get_next_valid_time_per_timeperiod(k_jan1, false, g_tz));
+    benchmark::DoNotOptimize(timeperiod_test_access::next_valid_time(
+        g_exceptions, k_jan1, false, g_tz));
 }
 BENCHMARK(BM_get_next_valid_exceptions);
 

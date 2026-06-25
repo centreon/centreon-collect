@@ -742,12 +742,11 @@ static bool _timerange_to_time_t(const timerange& trange,
  *  @return true if test_time is within the period.
  */
 bool timeperiod::check_time_against_period(time_t test_time,
-                                           const absl::TimeZone& tz) {
+                                           const absl::TimeZone& tz) const {
   timeperiod_manager::logger()->trace("check_time_against_period()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time =
-      get_next_valid_time_per_timeperiod(test_time, false, tz);
+  time_t next_valid_time = _get_next_valid_time(test_time, false, tz);
   timeperiod_manager::logger()->trace("check_time_against_period {} ret={}",
                                       get_name(), next_valid_time == test_time);
 
@@ -764,13 +763,13 @@ bool timeperiod::check_time_against_period(time_t test_time,
  *
  *  @return true if test_time is within the period.
  */
-bool timeperiod::check_time_against_period_for_notif(time_t test_time,
-                                                     const absl::TimeZone& tz) {
+bool timeperiod::check_time_against_period_for_notif(
+    time_t test_time,
+    const absl::TimeZone& tz) const {
   timeperiod_manager::logger()->trace("check_time_against_period_for_notif()");
 
   // Faked next valid time must be tested time.
-  time_t next_valid_time =
-      get_next_valid_time_per_timeperiod(test_time, true, tz);
+  time_t next_valid_time = _get_next_valid_time(test_time, true, tz);
   return next_valid_time == test_time;
 }
 
@@ -784,17 +783,21 @@ bool timeperiod::check_time_against_period_for_notif(time_t test_time,
  *  preferred_time is examined: a fixed instant cannot fall inside a future
  *  day's range.
  *
- *  @param[in] preferred_time   The preferred time to check.
- *  @param[in] notif_timeperiod If called for the notification logic.
- *  @param[in] tz               Timezone the period is evaluated in.
+ *  @param[in]     preferred_time   The preferred time to check.
+ *  @param[in]     notif_timeperiod If called for the notification logic.
+ *  @param[in]     tz               Timezone the period is evaluated in.
+ *  @param[in,out] chain            Periods already being evaluated up the call
+ *                                  stack (cyclic-exclusion guard); nullptr at
+ *                                  the top level.
  *
  *  @return The next invalid time.
  */
-time_t timeperiod::get_next_invalid_time_per_timeperiod(
+time_t timeperiod::_get_next_invalid_time(
     time_t preferred_time,
     bool notif_timeperiod,
-    const absl::TimeZone& tz) {
-  timeperiod_manager::logger()->trace("get_next_invalid_time_per_timeperiod()");
+    const absl::TimeZone& tz,
+    absl::flat_hash_set<const timeperiod*>* chain) const {
+  timeperiod_manager::logger()->trace("_get_next_invalid_time()");
 
   // Compute time information for preferred_time.
   time_info ti;
@@ -858,17 +861,23 @@ time_t timeperiod::get_next_invalid_time_per_timeperiod(
   }
 
   // An exclusion that becomes valid within the current day and before the end
-  // of the current window cuts it short.
+  // of the current window cuts it short. Mark this period in the chain while we
+  // recurse so a cyclic exclusion does not loop forever; erase it afterwards so
+  // a diamond (non-cyclic) exclusion graph is still evaluated on every path.
   time_t next_exclusion = (time_t)-1;
-  timeperiodexclusion tpe = std::move(this->get_exclusions());
-  for (auto& [name, excluded] : tpe) {
-    time_t valid = excluded->get_next_valid_time_per_timeperiod(
-        preferred_time, notif_timeperiod, tz);
-    if ((valid != (time_t)-1) &&
-        (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
-      next_exclusion = valid;
+  absl::flat_hash_set<const timeperiod*> local_chain;
+  if (!chain)
+    chain = &local_chain;
+  if (chain->insert(this).second) {
+    for (const auto& [name, excluded] : _exclusions) {
+      time_t valid = excluded->_get_next_valid_time(preferred_time,
+                                                    notif_timeperiod, tz, chain);
+      if ((valid != (time_t)-1) &&
+          (((time_t)-1 == next_exclusion) || (valid < next_exclusion)))
+        next_exclusion = valid;
+    }
+    chain->erase(this);
   }
-  _exclusions = std::move(tpe);
 
   if ((next_exclusion != (time_t)-1) &&
       (next_exclusion < _add_round_days_to_midnight(ti.midnight, 1, tz)) &&
@@ -917,17 +926,25 @@ static time_t _get_next_valid_time_in_timeranges(time_t preferred_time,
 /**
  *  Get the next valid time within this time period.
  *
- *  @param[in] preferred_time    The preferred time to check.
- *  @param[in] notif_timeperiod  If called for the notification logic.
- *  @param[in] tz                Timezone the period is evaluated in.
+ *  @param[in]     preferred_time   The preferred time to check.
+ *  @param[in]     notif_timeperiod If called for the notification logic.
+ *  @param[in]     tz               Timezone the period is evaluated in.
+ *  @param[in,out] chain            Periods already being evaluated up the call
+ *                                  stack (cyclic-exclusion guard); nullptr at
+ *                                  the top level.
  *
  *  @return The next valid time.
  */
-time_t timeperiod::get_next_valid_time_per_timeperiod(
+time_t timeperiod::_get_next_valid_time(
     time_t preferred_time,
     bool notif_timeperiod,
-    const absl::TimeZone& tz) {
-  timeperiod_manager::logger()->trace("get_next_valid_time_per_timeperiod()");
+    const absl::TimeZone& tz,
+    absl::flat_hash_set<const timeperiod*>* chain) const {
+  timeperiod_manager::logger()->trace("_get_next_valid_time()");
+
+  absl::flat_hash_set<const timeperiod*> local_chain;
+  if (!chain)
+    chain = &local_chain;
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1022,20 +1039,22 @@ time_t timeperiod::get_next_valid_time_per_timeperiod(
       }
     }
 
-    // Check exclusions.
+    // Check exclusions. Mark this period in the chain while we recurse so a
+    // cyclic exclusion does not loop forever; erase it afterwards so a diamond
+    // (non-cyclic) exclusion graph is still evaluated on every path.
     bool skipped = false;
     if (earliest_time != (time_t)-1) {
       time_t max_invalid = (time_t)-1;
-      timeperiodexclusion tpe = std::move(this->get_exclusions());
-
-      for (auto& [name, excluded] : tpe) {
-        time_t invalid = excluded->get_next_invalid_time_per_timeperiod(
-            earliest_time, notif_timeperiod, tz);
-        if ((invalid != (time_t)-1) &&
-            (((time_t)-1 == max_invalid) || (invalid > max_invalid)))
-          max_invalid = invalid;
+      if (chain->insert(this).second) {
+        for (const auto& [name, excluded] : _exclusions) {
+          time_t invalid = excluded->_get_next_invalid_time(
+              earliest_time, notif_timeperiod, tz, chain);
+          if ((invalid != (time_t)-1) &&
+              (((time_t)-1 == max_invalid) || (invalid > max_invalid)))
+            max_invalid = invalid;
+        }
+        chain->erase(this);
       }
-      _exclusions = std::move(tpe);
       if ((max_invalid != (time_t)-1) && (max_invalid != earliest_time)) {
         earliest_time = (time_t)-1;
         ti.preferred_time = max_invalid;
@@ -1061,8 +1080,8 @@ time_t timeperiod::get_next_valid_time_per_timeperiod(
   time_t valid_time =
       (earliest_time == (time_t)-1 && !notif_timeperiod) ? original_preferred_time
                                                          : earliest_time;
-  timeperiod_manager::logger()->trace(
-      "get_next_valid_time_per_timeperiod {} valid_time={}", _name, valid_time);
+  timeperiod_manager::logger()->trace("_get_next_valid_time {} valid_time={}",
+                                      _name, valid_time);
   return valid_time;
 }
 
@@ -1075,7 +1094,7 @@ time_t timeperiod::get_next_valid_time_per_timeperiod(
  *  @return The next valid time (at or after now).
  */
 time_t timeperiod::get_next_valid_time(time_t pref_time,
-                                       const absl::TimeZone& tz) {
+                                       const absl::TimeZone& tz) const {
   timeperiod_manager::logger()->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
@@ -1083,7 +1102,7 @@ time_t timeperiod::get_next_valid_time(time_t pref_time,
 
   // First check for possible timeperiod exclusions before getting a
   // valid_time.
-  return get_next_valid_time_per_timeperiod(preferred_time, false, tz);
+  return _get_next_valid_time(preferred_time, false, tz);
 }
 
 /**

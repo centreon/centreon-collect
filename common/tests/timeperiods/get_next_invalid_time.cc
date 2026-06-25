@@ -17,7 +17,7 @@
  *
  */
 
-// Characterization tests for timeperiod::get_next_invalid_time_per_timeperiod,
+// Characterization tests for timeperiod::_get_next_invalid_time,
 // pinning its behaviour before it is refactored (return value instead of an
 // out-parameter, then an Abseil rewrite).
 //
@@ -67,7 +67,7 @@ time_t at(int year, int month, int day, int hour, int min, int sec) {
 constexpr int kMonday = 1;
 
 time_t next_invalid(timeperiod* tp, time_t preferred, bool notif = false) {
-  return tp->get_next_invalid_time_per_timeperiod(preferred, notif, utc());
+  return timeperiod_test_access::next_invalid_time(*tp, preferred, notif, utc());
 }
 
 }  // namespace
