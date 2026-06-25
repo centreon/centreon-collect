@@ -179,13 +179,20 @@ Ordre suggéré, du moins risqué au plus risqué :
 3. Casser les couplages : logger injecté, `engine_error` → `msg_fmt`,
    `contains_illegal_object_chars` descendu, `daterange.hh` sans
    `engine/common.hh`.
-4. Décision structurante : sortir le **registre global statique**
-   `timeperiod::timeperiods`. Deux options :
+4. Décision structurante (**tranchée**) : sortir le **registre global statique**
+   `timeperiod::timeperiods`. Deux options étaient sur la table :
    - **A — lib de logique pure** : la map reste chez chaque consommateur ;
      `resolve()` reçoit la map. Le plus propre/réutilisable, mais touche la
      signature et le code engine qui s'appuie sur `timeperiod::timeperiods`.
    - **B — lib + manager** : la lib fournit un petit `timeperiod_manager` que
      chaque daemon instancie. Moins de churn côté engine, plus de surface d'API.
+
+   **Retenu : un hybride dominé par B.** Un `timeperiod_manager` (singleton
+   `load`/`unload`, logger et caractères illégaux injectés) possède la map et
+   porte les opérations de collection (lookup, résolution des exclusions). Mais
+   la classe valeur `timeperiod` reste **pure, façon A** : `resolve()` reçoit
+   `const timeperiod_map&` et aucune méthode d'évaluation ne dépend d'un registre
+   global — d'où une lib testable sans manager et réutilisable telle quelle.
 5. Déplacer la lib sous `common/timeperiods/`, namespace
    `com::centreon::common::timeperiods` (garder un alias de transition côté engine
    pendant la migration des ~25 fichiers consommateurs).
@@ -345,7 +352,9 @@ Autres pistes :
   déterministe du `get_next_valid_time` public), y accèdent via
   `struct timeperiod_test_access` (friend défini dans l'en-tête, à usage
   test/bench uniquement).
-- **Choix A vs B** pour le registre (cf. §8.4).
+- **Registre : choix A vs B — tranché (FAIT)** : hybride dominé par B
+  (`timeperiod_manager` possède la map, classe valeur gardée pure façon A) ;
+  détail en §8, étape 4.
 
 ## 10. Benchmarks — baseline actuelle
 
