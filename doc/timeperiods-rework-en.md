@@ -175,13 +175,20 @@ Suggested order, least to most risky:
 3. Break the couplings: injected logger, `engine_error` → `msg_fmt`,
    `contains_illegal_object_chars` moved down, `daterange.hh` without
    `engine/common.hh`.
-4. Structural decision: remove the **global static registry**
-   `timeperiod::timeperiods`. Two options:
+4. Structural decision (**settled**): remove the **global static registry**
+   `timeperiod::timeperiods`. Two options were on the table:
    - **A — pure-logic library**: the map stays with each consumer; `resolve()`
      receives the map. Cleanest/most reusable, but touches the signature and the
      engine code relying on `timeperiod::timeperiods`.
    - **B — library + manager**: the library provides a small `timeperiod_manager`
      each daemon instantiates. Less engine churn, more API surface.
+
+   **Chosen: a B-dominated hybrid.** A `timeperiod_manager` (a `load`/`unload`
+   singleton, with logger and illegal characters injected) owns the map and
+   carries the collection-level operations (lookup, exclusion resolution). But
+   the `timeperiod` value class stays **pure, A-style**: `resolve()` takes a
+   `const timeperiod_map&` and no evaluation method depends on a global registry
+   — so the library is testable without the manager and reusable as is.
 5. Move the library under `common/timeperiods/`, namespace
    `com::centreon::common::timeperiods` (keep an engine-side transition alias
    while migrating the ~25 consumer files).
@@ -338,7 +345,9 @@ Other leads:
   the internal method directly (to avoid the non-deterministic clamp-to-`now` of
   the public `get_next_valid_time`), reach it via `struct timeperiod_test_access`
   (a friend defined in the header, for test/bench use only).
-- **Choice A vs B** for the registry (cf. §8.4).
+- **Registry: choice A vs B — settled (DONE)**: a B-dominated hybrid
+  (`timeperiod_manager` owns the map, the value class kept pure A-style); details
+  in §8, step 4.
 
 ## 10. Benchmarks — current baseline
 
