@@ -336,8 +336,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/processing/stat_visitable.cc
     ${SRC_DIR}/stats/center.cc
     ${SRC_DIR}/stats/helper.cc
-    ${SRC_DIR}/time/daterange.cc
-    ${SRC_DIR}/time/timeperiod.cc
     ${SRC_DIR}/time/timerange.cc
     ${SRC_DIR}/time/timezone_locker.cc
     ${SRC_DIR}/time/timezone_manager.cc
