@@ -868,7 +868,9 @@ time_t timeperiod::_get_next_invalid_time(
   absl::flat_hash_set<const timeperiod*> local_chain;
   if (!chain)
     chain = &local_chain;
-  if (chain->insert(this).second) {
+  // A period with no exclusion is a leaf: nothing to recurse into, and it can
+  // never be part of an exclusion cycle, so skip the chain bookkeeping.
+  if (!_exclusions.empty() && chain->insert(this).second) {
     for (const auto& [name, excluded] : _exclusions) {
       time_t valid = excluded->_get_next_valid_time(preferred_time,
                                                     notif_timeperiod, tz, chain);
@@ -1045,7 +1047,9 @@ time_t timeperiod::_get_next_valid_time(
     bool skipped = false;
     if (earliest_time != (time_t)-1) {
       time_t max_invalid = (time_t)-1;
-      if (chain->insert(this).second) {
+      // A period with no exclusion is a leaf: nothing to recurse into, and it
+      // can never be part of an exclusion cycle, so skip the chain bookkeeping.
+      if (!_exclusions.empty() && chain->insert(this).second) {
         for (const auto& [name, excluded] : _exclusions) {
           time_t invalid = excluded->_get_next_invalid_time(
               earliest_time, notif_timeperiod, tz, chain);
