@@ -96,6 +96,7 @@ class stream : public io::stream,
 
   read_queue _read_queue;
   write_queue _write_queue;
+  time_t _last_full_write_queue_error = 0;
 
   std::atomic_bool _alive = true;
 

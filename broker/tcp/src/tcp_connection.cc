@@ -18,6 +18,7 @@
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -139,6 +140,15 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
 
   {
     std::lock_guard<std::mutex> lck(_exposed_write_queue_m);
+    if (_exposed_write_queue.size() >
+        multiplexing::muxer::event_queue_max_size()) {
+      time_t now = time(nullptr);
+      if (now > _last_full_write_queue_error) {
+        _last_full_write_queue_error = now;
+        SPDLOG_LOGGER_ERROR(_logger, "write queue full => remove oldest event");
+      }
+      _exposed_write_queue.pop();
+    }
     _exposed_write_queue.push(v);
   }
 
