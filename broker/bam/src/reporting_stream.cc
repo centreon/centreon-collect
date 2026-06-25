@@ -35,7 +35,6 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
-#include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/common/utf8.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/engine_conf/timeperiod_legacy.hh"

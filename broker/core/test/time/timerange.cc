@@ -19,23 +19,26 @@
 
 #include "com/centreon/broker/time/timerange.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/broker/time/timeperiod.hh"
 
 using namespace com::centreon::broker::time;
 
 TEST(Timerange, ParseWeirdTimerange) {
-  std::unique_ptr<timeperiod> tp;
-
-  // Here we tests weird timeranges but they should not throw
-  // Timerange parser must understands theses
-
-  ASSERT_NO_THROW(tp.reset(new timeperiod(
-      2, "test", "alias", "\r \r08:00\r-12:00\r", "\n\n08:00 - 12:00\r",
-      "08:00 -12:00\r", "08:00 - \n12:00\r", "08:00\t-\t12:00\r",
+  // Here we test weird (but valid) timerange strings; the parser must accept
+  // them. Index 0..6 mirrors the historical sunday..saturday day strings.
+  const char* const days[] = {
+      "\r \r08:00\r-12:00\r",
+      "\n\n08:00 - 12:00\r",
+      "08:00 -12:00\r",
+      "08:00 - \n12:00\r",
+      "08:00\t-\t12:00\r",
       "08:00-12:00,09:00-12:00,10:00-12:00",
-      "08:00-12:00 , 09:00-12:00, \r\n 10:00-12:00")));
+      "08:00-12:00 , 09:00-12:00, \r\n 10:00-12:00"};
 
-  auto& v = tp->get_timeranges();
+  timerange parser(0, 0);
+  std::vector<std::list<timerange>> v(7);
+  for (int i = 0; i < 7; ++i)
+    ASSERT_TRUE(parser.build_timeranges_from_string(days[i], v[i]));
+
   ASSERT_EQ(v[0].front().start(), 28800u);
   ASSERT_EQ(v[0].front().end(), 43200u);
   ASSERT_EQ(v[0].front().to_string(), "08:00-12:00");
