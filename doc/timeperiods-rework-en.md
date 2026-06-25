@@ -311,6 +311,33 @@ Other leads:
   would otherwise be missed, hence the guard). Identical result (validated by the
   whole `get_next_valid_time/*` suite). Bench: "3rd Monday" **9580 → 1454 ns
   (~6.6×)**; weekly case unchanged.
+- **`const` + thread-safe evaluation: exclusion cycle guard rewritten (DONE)**.
+  The evaluation methods (`check_time_against_period`,
+  `check_time_against_period_for_notif`, `get_next_valid_time` and the two
+  internal helpers) are now **`const`**. The old cycle guard — which temporarily
+  emptied `this->_exclusions` (a `std::move` round-trip) so a cyclic exclusion
+  (A excludes B, B excludes A) terminated when recursion came back to `this` —
+  **mutated the object**: it forbade `const` and, more importantly, **was not
+  thread-safe** (two threads evaluating the same timeperiod clobbered each
+  other's `_exclusions`). That is exactly the multi-threaded scenario targeted on
+  the Broker side, hence a latent bug. It is replaced by a **recursion set**
+  passed as a parameter (`absl::flat_hash_set<const timeperiod*>`, `nullptr` at
+  the top level): each level inserts itself before descending and erases itself
+  on return. Strictly identical semantics (it only blocks the ancestors of the
+  current call chain = a true cycle; a diamond exclusion graph is still evaluated
+  on every path), but the object is no longer mutated → **shared-state-free
+  evaluation, safe from multiple threads**. A `!_exclusions.empty()` guard means
+  a timeperiod with no exclusion (the hot path: 24x7/work hours) pays no
+  allocation. Validated by ut_common + ut_engine.
+- **Internal helper rename (DONE)**: `get_next_valid_time_per_timeperiod` /
+  `get_next_invalid_time_per_timeperiod` (a suffix left over from their
+  free-function days) become **private** `_get_next_valid_time` /
+  `_get_next_invalid_time`. No production caller outside the library
+  (engine/broker go through `check_time_against_period[_for_notif]` and
+  `get_next_valid_time`). The benchmark and the characterization test, which call
+  the internal method directly (to avoid the non-deterministic clamp-to-`now` of
+  the public `get_next_valid_time`), reach it via `struct timeperiod_test_access`
+  (a friend defined in the header, for test/bench use only).
 - **Choice A vs B** for the registry (cf. §8.4).
 
 ## 10. Benchmarks — current baseline
@@ -359,6 +386,12 @@ blow up and become uninterpretable.
   (1.5 µs → 16 → 66 → 524 µs → **9 ms** at depth 16). The exclusion recursion
   multiplicatively compounds each level's day-by-day scan → near geometric cost.
   A strong argument for the rework: deep exclusions are currently pathological.
+
+> **Note**: the cycle-guard rewrite (§9, `const` + thread-safe evaluation) does
+> **not** change this profile — the bench chain is acyclic, the geometric blowup
+> is intrinsic to each level's day-by-day recursion. The hot path with no
+> exclusion is unchanged (the `!_exclusions.empty()` guard). Cutting this cost
+> would require an algorithmic change, still under study.
 
 > **Critical `TZ` sensitivity**: `get_next_valid_time`/`check_time_against_period`
 > go through `localtime_r`/`mktime`. When `TZ` is unset, glibc `stat()`s
