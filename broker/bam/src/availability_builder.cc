@@ -64,7 +64,7 @@ void availability_builder::add_event(
     time_t start,
     time_t end,
     bool was_in_downtime,
-    time::timeperiod::ptr const& tp,
+    const timeperiod_ptr& tp,
     const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace(
       "availability_builder::add_event (status: {}, start: {}, end: {}, was in "

@@ -358,6 +358,7 @@ target_link_libraries(
           bbdo_bbdo
           broker_cache
           downtimes_lib
+          timeperiods
           pb_broker_lib
           ctncrypto
           pb_bbdo_lib

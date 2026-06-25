@@ -45,7 +45,6 @@
 
 namespace cfg = com::centreon::engine::configuration;
 using com::centreon::common::timeperiods::timeperiod;
-using com::centreon::common::timeperiods::timeperiod_test_access;
 
 namespace {
 
@@ -193,8 +192,7 @@ void check_fixture(const std::string& path) {
   auto tp = all[main.tp.timeperiod_name()];
   absl::TimeZone tz = load_zone(main.tz);
   time_t preferred = std::max(fx.preferred_time, fx.current_time);
-  time_t valid =
-      timeperiod_test_access::next_valid_time(*tp, preferred, true, tz);
+  time_t valid = tp->get_next_valid_time(preferred, true, tz);
 
   EXPECT_EQ(valid, fx.ref_time)
       << path << "\n  preferred=" << preferred << " got=" << valid

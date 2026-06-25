@@ -67,7 +67,7 @@ time_t at(int year, int month, int day, int hour, int min, int sec) {
 constexpr int kMonday = 1;
 
 time_t next_invalid(timeperiod* tp, time_t preferred, bool notif = false) {
-  return timeperiod_test_access::next_invalid_time(*tp, preferred, notif, utc());
+  return tp->get_next_invalid_time(preferred, notif, utc());
 }
 
 }  // namespace

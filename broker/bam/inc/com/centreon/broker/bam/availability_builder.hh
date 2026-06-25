@@ -19,7 +19,7 @@
 #ifndef CCB_BAM_AVAILABILITY_BUILDER_HH
 #define CCB_BAM_AVAILABILITY_BUILDER_HH
 
-#include "com/centreon/broker/time/timeperiod.hh"
+#include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker::bam {
@@ -54,7 +54,7 @@ class availability_builder {
                  time_t start,
                  time_t end,
                  bool was_in_downtime,
-                 time::timeperiod::ptr const& tp,
+                 const timeperiod_ptr& tp,
                  const std::shared_ptr<spdlog::logger>& logger);
 
   int get_available() const;
