@@ -220,3 +220,46 @@ BRCTSMNS
     Ctn Kindly Stop Broker
     Ctn Stop Map
     Ctn Stop Engine
+
+BRTCPWQF
+    [Documentation]    Given Broker configured with a map output and a small event queue
+    ...    When a map client connects with a tiny receive buffer and stops reading
+    ...    Then Broker logs "write queue full => remove oldest event"
+    [Tags]    broker    map    reverse connection    tcp
+    [Teardown]    Ctn Brtcpwqf Teardown
+    ${test_direct_grpc}    Ctn Is Using Direct Grpc
+    IF    ${test_direct_grpc}
+        Pass Execution    Test passes, skipping on direct grpc tests
+    END
+    Ctn Config Engine    ${1}    ${500}     ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central_map
+    Ctn Config Broker    module
+    Ctn Broker Config Remove Output    central     centreon-broker-master-rrd
+    Ctn Broker Config Source Log    central    ${True}
+    Ctn Broker Config Log    central    tcp    debug
+    Ctn Config BBDO3    ${1}
+    ${start}    Get Current Date
+    Ctn Set Tcp Wmem Small
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Wait For Engine To Be Ready    ${start}
+    Ctn Start Slow Map
+
+    ${random_string}    Generate Random String    2048    [LOWER]
+    ${content}    Create List    write queue full => remove oldest event
+    FOR    ${i}    IN RANGE   1000
+        Ctn Process Service Check Result    host_1    service_1    2    ${random_string}
+        Sleep    1ms
+    END
+    ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    Should Be True    ${result}    Broker write queue should have been reported as full
+    Ctn Kindly Stop Broker
+    Ctn Stop Engine
+
+
+*** Keywords ***
+Ctn Brtcpwqf Teardown
+    Ctn Restore Tcp Wmem
+    Ctn Stop Slow Map
+    Ctn Save Logs If Failed
