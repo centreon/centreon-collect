@@ -1,0 +1,39 @@
+--- a/src/google/protobuf/map_field.h	2026-01-12 17:32:06.000000000 +0100
++++ b/src/google/protobuf/map_field.h	2026-06-24 15:34:07.747162898 +0200
+@@ -32,7 +32,6 @@
+ #include "google/protobuf/repeated_field.h"
+ #include "google/protobuf/unknown_field_set.h"
+ 
+-
+ // Must be included last.
+ #include "google/protobuf/port_def.inc"
+ 
+@@ -412,10 +411,16 @@
+ 
+   class ReflectionPayload {
+    public:
+-    ReflectionPayload(Arena* arena, const Message* prototype)
+-        : repeated_field_(arena), prototype_(prototype) {}
++    explicit ReflectionPayload(Arena* arena, const Message* prototype)
++        : repeated_field_(Arena::Create<RepeatedPtrField<Message>>(arena)),
++          prototype_(prototype) {}
++    ~ReflectionPayload() {
++      if (repeated_field_->GetArena() == nullptr) {
++        delete repeated_field_;
++      }
++    }
+ 
+-    RepeatedPtrField<Message>& repeated_field() { return repeated_field_; }
++    RepeatedPtrField<Message>& repeated_field() { return *repeated_field_; }
+ 
+     const Message* prototype() const { return prototype_; }
+ 
+@@ -437,7 +442,7 @@
+     void Swap(ReflectionPayload& other);
+ 
+    private:
+-    RepeatedPtrField<Message> repeated_field_;
++    RepeatedPtrField<Message>* repeated_field_;
+     const Message* prototype_;
+     absl::Mutex mutex_;  // The thread to synchronize map and repeated
+                          // field needs to get lock first;

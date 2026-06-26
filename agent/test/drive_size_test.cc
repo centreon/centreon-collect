@@ -132,7 +132,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -140,7 +140,7 @@ TEST_F(drive_size_test, test_fs_filter1) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 0G Free: 1G");
@@ -199,7 +199,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -207,7 +207,7 @@ TEST_F(drive_size_test, test_fs_filter_percent) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -266,7 +266,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -274,7 +274,7 @@ TEST_F(drive_size_test, test_fs_filter2) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "CRITICAL: /data Total: 5G Used: 2G Free: 2G");
@@ -321,7 +321,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -329,7 +329,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_2) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -385,7 +385,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -393,7 +393,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_3) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, "OK: All storages are ok");
@@ -443,7 +443,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -451,7 +451,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
 
   checker->start_check(std::chrono::seconds(1));
   {
-    absl::MutexLock lck(&wait_m);
+    absl::MutexLock lck(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
 
     ASSERT_EQ(output, "WARNING: /run Total: 1G Used: 1.38% Free: 98.62%");
@@ -479,7 +479,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_4) {
   std::string output_save = output;
   std::list<com::centreon::common::perfdata> perfs_save = perfs;
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output, output_save);
@@ -508,7 +508,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -516,7 +516,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_5) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -568,7 +568,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -576,7 +576,7 @@ TEST_F(drive_size_test, test_fs_filter_percent_6) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -628,7 +628,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -636,7 +636,7 @@ TEST_F(drive_size_test, test_fs_filter_free_percent) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,
@@ -688,7 +688,7 @@ TEST_F(drive_size_test, test_fs_format_filter) {
           [[maybe_unused]] const std::list<com::centreon::common::perfdata>&
               perfdata,
           [[maybe_unused]] const std::list<std::string>& outputs) {
-        absl::MutexLock lck(&wait_m);
+        absl::MutexLock lck(wait_m);
         perfs = perfdata;
         output = outputs.front();
       },
@@ -696,7 +696,7 @@ TEST_F(drive_size_test, test_fs_format_filter) {
 
   checker->start_check(std::chrono::seconds(1));
 
-  absl::MutexLock lck(&wait_m);
+  absl::MutexLock lck(wait_m);
   wait_m.Await(absl::Condition(&is_complete));
 
   ASSERT_EQ(output,

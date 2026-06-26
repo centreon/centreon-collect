@@ -62,11 +62,11 @@ target_link_libraries(
   ccc PRIVATE
   gRPC::grpc++
   cerpc
-  pb_common_lib
   pb_broker_lib
-  protobuf::libprotobuf
   centreon_common
   process_stat
+  pb_common_lib
+  protobuf::libprotobuf
   fmt::fmt)
 
 set_target_properties(ccc PROPERTIES POSITION_INDEPENDENT_CODE ON)

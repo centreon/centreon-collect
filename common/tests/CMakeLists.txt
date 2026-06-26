@@ -117,6 +117,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_process
             centreon_grpc
             engine_conf
+            centreon_file_system
             log_v2
             gRPC::grpc++
             protobuf::libprotobuf

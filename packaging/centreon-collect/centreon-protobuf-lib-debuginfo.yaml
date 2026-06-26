@@ -1,0 +1,53 @@
+name: "centreon-protobuf-lib-debuginfo"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Debuginfo package for centreon-protobuf-lib.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../build/bbdo/libcentreon_pb_bbdo.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/bbdo/libcentreon_pb_bbdo.so.debug"
+    dst: "/usr/lib/debug/usr/lib/"
+    packager: deb
+
+  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so.debug"
+    dst: "/usr/lib/debug/usr/lib/"
+    packager: deb
+
+overrides:
+  rpm:
+    depends:
+      - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-protobuf-lib-dbgsym
+    replaces:
+      - centreon-protobuf-lib-dbgsym
+    provides:
+      - centreon-protobuf-lib-dbgsym
+
+rpm:
+  summary: Debuginfo package for centreon-protobuf-lib.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

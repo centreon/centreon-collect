@@ -346,8 +346,8 @@ int process::get_exit_code() {
 
 class TestConnector : public testing::Test {
  public:
-  void SetUp() override{};
-  void TearDown() override{};
+  void SetUp() override {};
+  void TearDown() override {};
   static void SetUpTestSuite() {
     _work_guard = std::make_unique<work_guard>(_io_context->get_executor());
     std::thread t([]() { _io_context->run(); });

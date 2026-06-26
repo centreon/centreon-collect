@@ -105,6 +105,15 @@ class grpc_server : public common::grpc::grpc_server_base,
     });
   }
 
+  ::grpc::Status Export(
+      ::grpc::ServerContext*,
+      ::grpc::ServerReaderWriter<::com::centreon::common::MessageToClient,
+                                 ::com::centreon::common::MessageToServer>*)
+      override {
+    abort();
+    return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+  }
+
   ::grpc::ServerBidiReactor<MessageToServer, MessageToClient>* Export(
       ::grpc::CallbackServerContext* context) {
     auto authctx = context->auth_context();
@@ -133,7 +142,7 @@ class client_reactor
   }
 
   bool wait(uint32_t expected_received_value) {
-    absl::MutexLock l(&_received_value_m);
+    absl::MutexLock l(_received_value_m);
 
     struct waiter {
       uint32_t expected;
@@ -155,7 +164,7 @@ class client_reactor
 
   void OnReadDone(bool ok) override {
     if (ok) {
-      absl::MutexLock l(&_received_value_m);
+      absl::MutexLock l(_received_value_m);
       SPDLOG_LOGGER_INFO(glogger, "receive {}", _response.int_value());
       _received_value = _response.int_value();
     }

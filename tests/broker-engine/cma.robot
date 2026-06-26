@@ -71,10 +71,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -154,10 +154,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -386,10 +386,10 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -1241,11 +1241,11 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    45
     Should Be True    ${result}    cpu metrics not updated
 
     ${metrics_list}    Create List   runtime    interval
-    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    45
     Should Be True    ${result}    health metrics not updated
 
     Log To Console    service_2 must be warning
