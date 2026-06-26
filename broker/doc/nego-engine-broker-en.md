@@ -14,6 +14,7 @@
 * [Reading Engine configuration](#reading-engine-configuration)
   * [Configuration management on the Engine side](#configuration-management-on-the-engine-side)
   * [Managing configuration sending by Broker to Engine](#managing-configuration-sending-by-broker-to-engine)
+    * [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)
   * [Calculating the difference](#calculating-the-difference)
   * [Writing configuration to database](#writing-configuration-to-database)
     * [Case study](#case-study)
@@ -407,6 +408,40 @@ configuration event.
 
 All these steps are done as a background task.
 
+#### Lifecycle of the `X.lck` file
+
+The `X.lck` file does not merely mean "a configuration has just arrived", but
+"a configuration is pending delivery to poller *X*". Its deletion is therefore
+**conditioned on the poller being present**:
+
+- Neither the `inotify` detection (`_watch_engine_conf`) nor the fallback scan
+  deletes the `.lck`. They only add the poller to the list to process.
+- The deletion happens only in `_check_last_engine_conf`, **after**
+  `_prepare_diff_for_poller` and **only if the poller is connected**
+  (`_is_engine_peer_connected`, i.e. present in `_engine_peers`).
+- If the poller is not connected yet, the `.lck` is kept. To avoid needlessly
+  re-parsing the configuration on every 5 s tick, a guard at the top of the
+  loop skips processing when the poller is not connected and `new-X.prot` has
+  already been prepared.
+
+Why this precaution? When a poller connects **after** its configuration has
+been prepared (for instance, its `.lck` was detected while it was still
+starting up), Broker finds the retained `.lck` through
+`_get_lck_file_if_exists` during `add_peer`. The poller is then re-queued and
+its configuration is delivered on the next tick. Without this retention, the
+prepared `diff-X.prot` would be left orphaned: the poller would connect with
+neither `X.prot` nor `X.lck`, and Broker would wrongly consider its
+configuration *lost or unknown* (see the
+[Configuration management on the Engine side](#configuration-management-on-the-engine-side)
+section).
+
+> **Fixed race.** This behavior fixes a race where, when not all known pollers
+> are connected at the same time, Broker published the global diff with a
+> subset of the pollers (those whose config had been *sent and acknowledged*)
+> and dropped the prepared configuration of the late poller. With the `.lck`
+> retention, that poller's configuration is delivered as soon as it connects,
+> and a new global diff is published to integrate it into the database.
+
 The BBDO stream in connection with poller *X* is configured on reading to also check if the connected `Engine` has a new version:
 
 1. `Broker` has the list of its interlocutors, among them the `Engine`s with current configuration and new one if present. It knows therefore if a new configuration is available for the `Engine` opposite.
@@ -529,6 +564,14 @@ processed:
 In all three cases, Broker simply resets `conf_unknown` to `false` without
 overwriting the file.
 
+> **Not to be confused with a late poller.** This `unknown=true` mechanism only
+> covers genuine configuration loss (no `<ID>.prot`, no `<ID>.lck`, no
+> `new-<ID>.prot` in progress). The case of a poller that connects *after* PHP
+> has pushed its configuration no longer lands here: the `<ID>.lck` is kept
+> until the connection (see [Lifecycle of the `X.lck` file](#lifecycle-of-the-xlck-file)),
+> so `_get_lck_file_if_exists` finds it and delivery resumes through the normal
+> flow instead of a `DiffState{unknown=true}`.
+
 ```mermaid
 sequenceDiagram
     participant E as Engine
@@ -536,7 +579,7 @@ sequenceDiagram
 
     E ->> B: BBDO connection and negotiation
     B ->> B: add_peer()
-    note right of B: Broker finds neither <ID>.prot<br/>nor <ID>.lck for this poller.<br/>The conf_unknown flag is set to true.
+    note right of B: Broker finds neither <ID>.prot, nor <ID>.lck,<br/>nor new-<ID>.prot for this poller.<br/>The conf_unknown flag is set to true.
     B ->> B: is_peer_conf_known() → false
     B ->> E: DiffState { unknown = true }
     note right of B: Broker asks Engine<br/>to send its configuration.
@@ -714,20 +757,30 @@ The timer executes the `config::applier::state::_check_last_engine_conf()` metho
 stateDiagram-v2
     [*] --> _watch_engine_conf(poller_ids)
     _watch_engine_conf(poller_ids) --> pour_chaque_poller_id
-    note right of _watch_engine_conf(poller_ids): This function retrieves IDs reported by inotify.<br/>And for each of them, it deletes the associated<br/>ID.lck file. The poller_ids set is completed.
-    lect_conf_engine: Reading Engine configuration
+    note right of _watch_engine_conf(poller_ids): This function retrieves IDs reported by inotify<br/>(completed by the fallback directory scan).<br/>The ID.lck file is NOT deleted here: it marks<br/>a configuration pending delivery.
     pour_chaque_poller_id: For each poller ID in poller_ids
-    pour_chaque_poller_id --> lect_conf_engine
+    state garde_attente <<choice>>
+    pour_chaque_poller_id --> garde_attente
+    garde_attente --> fin_pour_chaque_poller_id: Poller not connected AND new-ID.prot<br/>already present → keep the .lck<br/>and wait for the connection
+    lect_conf_engine: Reading Engine configuration
+    garde_attente --> lect_conf_engine: otherwise
     lect_conf_engine --> resolution_de_la_configuration_engine
     resolution_de_la_configuration_engine: Resolution and extension of Engine configuration
     resolution_de_la_configuration_engine --> ecriture_dans_fichier__new_ID_prot
     ecriture_dans_fichier__new_ID_prot: Writing configuration in State format<br/> to a new-ID.prot file
-    ecriture_dans_fichier__new_ID_prot --> suppression_fichier_lck
-    suppression_fichier_lck: Deletion of the ID.lck file<br/>(no-op if already deleted by _watch_engine_conf)
-    suppression_fichier_lck --> preparation_de_la_difference
+    ecriture_dans_fichier__new_ID_prot --> preparation_de_la_difference
     preparation_de_la_difference: _prepare_diff_for_poller(poller_id, state)
-    preparation_de_la_difference --> fin_pour_chaque_poller_id
-    note right of preparation_de_la_difference: This function prepares the difference<br/> between current and new configuration.<br/>It creates diff-ID.prot and new-ID.prot files
+    note right of preparation_de_la_difference: This function prepares the difference<br/> between current and new configuration.<br/>It creates the diff-ID.prot file.
+    preparation_de_la_difference --> suppression_conditionnelle_lck
+    suppression_conditionnelle_lck: Is the poller connected?
+    state lck_decision <<choice>>
+    suppression_conditionnelle_lck --> lck_decision
+    suppr_lck: Deletion of the ID.lck file
+    garde_lck: Keep ID.lck<br/>(replayed when the poller connects)
+    lck_decision --> suppr_lck: connected (_is_engine_peer_connected)
+    lck_decision --> garde_lck: not connected
+    suppr_lck --> fin_pour_chaque_poller_id
+    garde_lck --> fin_pour_chaque_poller_id
     fin_pour_chaque_poller_id: End of loop on poller IDs
     fin_pour_chaque_poller_id --> pour_chaque_poller_id
     fin_pour_chaque_poller_id --> [*]
