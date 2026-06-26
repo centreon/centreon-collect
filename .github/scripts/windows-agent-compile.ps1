@@ -63,8 +63,8 @@ Write-Host "install 7zip"
 #download and install 7zip
 choco install 7zip -y
 
-#cmake 4.3.2
-choco install cmake --version=4.3.2 -y
+#cmake 4.3.3
+choco install cmake --version=4.3.3 -y
 
 #set builtin here in order to not impact linux compil
 add_builtin_to_vcpkg_json
