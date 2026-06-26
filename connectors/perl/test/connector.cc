@@ -168,7 +168,7 @@ void process::start() {
                                 int exit_code,
                                 com::centreon::common::e_exit_status,
                                 const std::string& stdout, const std::string&) {
-        absl::MutexLock l(&me->_exit_code_m);
+        absl::MutexLock l(me->_exit_code_m);
         me->_exit_code = exit_code;
       },
       [me = shared_from_this()](const boost::system::error_code& err,
@@ -180,7 +180,7 @@ void process::start() {
 
 void process::_on_read_stdout(const boost::system::error_code& err,
                               const std::string_view& data) {
-  absl::MutexLock l(&_read_stdout_m);
+  absl::MutexLock l(_read_stdout_m);
   _read_stdout_err = err;
   if (err == asio::error::eof) {
     _read_stdout = "eof";
@@ -190,7 +190,7 @@ void process::_on_read_stdout(const boost::system::error_code& err,
 }
 
 std::string process::read_stdout(const duration& timeout) {
-  absl::MutexLock l(&_read_stdout_m);
+  absl::MutexLock l(_read_stdout_m);
   if (!_read_stdout.empty()) {
     return std::move(_read_stdout);
   }
@@ -203,7 +203,7 @@ std::string process::read_stdout(const duration& timeout) {
 }
 
 int process::get_exit_code() {
-  absl::MutexLock l(&_exit_code_m);
+  absl::MutexLock l(_exit_code_m);
   if (_exit_code) {
     return *_exit_code;
   }

@@ -223,7 +223,7 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Ctn Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
     ${start}    Ctn Get Round Current Date
 
-    ${content}    Create List    [victoria_metrics]    name: "metric_taratata"
+    ${content}    Create List    [victoria_metrics]    "name":"metric_taratata"
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    victoria should add metric in a request
 

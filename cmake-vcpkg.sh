@@ -278,7 +278,7 @@ fi
 if [ ! -d vcpkg ] ; then
   echo "No vcpkg directory. Cloning the repo"
   echo "Current dir: $PWD"
-  git clone -b 2025.04.09 https://github.com/Microsoft/vcpkg.git
+  git clone -b 2026.05.25 https://github.com/Microsoft/vcpkg.git
   ./vcpkg/bootstrap-vcpkg.sh
   echo "Current dir: $PWD"
 fi

@@ -18,6 +18,7 @@
 
 #include <re2/re2.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/connector/perl/check_child.hh"
 
 #include <EXTERN.h>
@@ -75,7 +76,7 @@ void check_child::_on_stdout_read(const boost::system::error_code& err,
   auto forward_to_handler = [&, this]() {
     for (const ConnectorMess& to_read : decoded) {
       SPDLOG_LOGGER_DEBUG(_logger, "{} receive from check_child pid={}: {}",
-                          _script_path, get_pid(), to_read.ShortDebugString());
+                          _script_path, get_pid(), to_read);
       if (to_read.has_result()) {
         _running = false;
       }
@@ -181,7 +182,7 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         break;
       }
       SPDLOG_LOGGER_TRACE(_logger, "pid: {} check_child receive: {}", getpid(),
-                          received.ShortDebugString());
+                          received);
       if (received.has_terminate()) {
         break;
       }
@@ -308,7 +309,7 @@ int check_child::_run(int stdin_fd, int stdout_fd, int) {
         res->mutable_after_last_check()->set_used_memory(new_load.used_memory);
         SPDLOG_LOGGER_TRACE(_logger,
                             "pid: {} check_child send to script_child: {}",
-                            getpid(), result.ShortDebugString());
+                            getpid(), result);
         boost::system::error_code send_error =
             _protocol.send(child_stdout, result);
         if (send_error) {

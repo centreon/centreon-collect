@@ -22,7 +22,8 @@ add_custom_command(OUTPUT "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc"
 
 include_directories(${PROJECT_SOURCE_DIR}/perl/inc/ 
   ${CMAKE_BINARY_DIR}/connectors/perl
-  ${CMAKE_SOURCE_DIR}/common/process/inc )
+  ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_SOURCE_DIR}/common/inc )
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
 add_library(pb_perl_connector_lib src/perl_connector.proto)
@@ -71,7 +72,6 @@ target_link_libraries(centreon_connector_perl
   absl::bits
   absl::raw_hash_set
   absl::hash
-  absl::low_level_hash
   absl::hashtablez_sampler
   pthread)
 

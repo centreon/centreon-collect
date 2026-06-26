@@ -105,8 +105,8 @@ static void _write_item(lua_State* L,
                         const google::protobuf::FieldDescriptor* f) {
   const google::protobuf::Reflection* refl = p->GetReflection();
   if (f) {
-    const std::string& entry_name = f->name();
-    lua_pushlstring(L, entry_name.c_str(), entry_name.size());
+    std::string_view entry_name = f->name();
+    lua_pushlstring(L, entry_name.data(), entry_name.length());
     if (f->is_repeated()) {
       size_t s = refl->FieldSize(*p, f);
       lua_newtable(L);

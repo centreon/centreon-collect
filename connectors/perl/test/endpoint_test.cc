@@ -284,12 +284,12 @@ TEST_F(EndpointTest, AsyncParentWriteChildRead) {
 
   par->async_write(endpoint::stdin, sent,
                    [&](const boost::system::error_code& ec) {
-                     absl::MutexLock l(&write_wait);
+                     absl::MutexLock l(write_wait);
                      write_ec = ec;
                      write_done = true;
                    });
 
-  absl::MutexLock lck(&write_wait);
+  absl::MutexLock lck(write_wait);
   write_wait.Await(absl::Condition(&write_done));
   ASSERT_TRUE(write_done);
   ASSERT_FALSE(write_ec) << "async write: " << write_ec.message();
@@ -323,7 +323,7 @@ TEST_F(EndpointTest, AsyncChildWriteParentRead) {
   bool read_done = false;
   par->async_read(endpoint::stdout,
                   [&](const boost::system::error_code& ec, ConnectorMess msg) {
-                    absl::MutexLock l(&recv_wait);
+                    absl::MutexLock l(recv_wait);
                     read_ec = ec;
                     received = std::move(msg);
                     read_done = true;
@@ -332,7 +332,7 @@ TEST_F(EndpointTest, AsyncChildWriteParentRead) {
   // Ensure the child has written before we start the event loop, so the pipe
   // buffer already contains data when the async_read poll fires.
   child_future.wait();
-  absl::MutexLock lck(&recv_wait);
+  absl::MutexLock lck(recv_wait);
   recv_wait.Await(absl::Condition(&read_done));
 
   ASSERT_TRUE(read_done);
@@ -365,7 +365,7 @@ TEST_F(EndpointTest, AsyncRoundTrip) {
         par->async_read(
             endpoint::stdout,
             [&](const boost::system::error_code& read_ec, ConnectorMess msg) {
-              absl::MutexLock l(&recv_wait);
+              absl::MutexLock l(recv_wait);
               final_ec = read_ec;
               response_msg = std::move(msg);
               round_trip_done = true;
@@ -388,7 +388,7 @@ TEST_F(EndpointTest, AsyncRoundTrip) {
 
   child_thread.join();
 
-  absl::MutexLock lck(&recv_wait);
+  absl::MutexLock lck(recv_wait);
   recv_wait.Await(absl::Condition(&round_trip_done));
 
   ASSERT_TRUE(round_trip_done);

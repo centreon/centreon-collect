@@ -58,18 +58,18 @@ class fork_wait : public com::centreon::common::fork<true> {
  protected:
   void _on_stdout_read(const boost::system::error_code&,
                        const std::string received) override {
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     _stdout += received;
   }
 
   void _on_stderr_read(const boost::system::error_code&,
                        const std::string received) override {
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     _stderr += received;
   }
 
   void _on_process_end() override {
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     _completed = true;
   }
 
@@ -82,7 +82,7 @@ class fork_wait : public com::centreon::common::fork<true> {
   const std::string& get_stderr() const { return _stderr; }
 
   void wait() {
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     if (!_completed) {
       _mu.Await(absl::Condition(&_completed));
     }

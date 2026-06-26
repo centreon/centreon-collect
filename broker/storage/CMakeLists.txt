@@ -41,13 +41,6 @@ set(CONFLICTMGR
     conflictmgr
     PARENT_SCOPE)
 add_dependencies(conflictmgr
-	pb_neb_lib
-	pb_header_lib
-	pb_storage_lib
-	pb_open_telemetry_lib
-	pb_bbdo_lib
-	pb_rebuild_message_lib
-	pb_remove_graph_message_lib
 	process_stat
 	)
 
@@ -82,8 +75,7 @@ set_target_properties(
 add_dependencies("${STORAGE}" pb_rebuild_message_lib
                  pb_remove_graph_message_lib table_max_size)
 target_link_libraries(${STORAGE} PRIVATE
-  conflictmgr rokerbase bbdo_storage
-  pb_rebuild_message_lib pb_remove_graph_message_lib)
+  conflictmgr rokerbase bbdo_storage centreon_pb_bbdo)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
 # Testing.

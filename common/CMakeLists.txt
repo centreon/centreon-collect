@@ -23,7 +23,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
 endif()
 
-# engine_conf provides centreon_common_timeperiod
+# centreon_engine_conf provides centreon_common_timeperiod
 # (the timeperiod proto + utils), which the agent needs on Windows too.
 add_subdirectory(engine_conf)
 

@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 #include <sys/stat.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/script_child.hh"
 
@@ -113,13 +114,12 @@ class ScriptChildTest : public ::testing::Test {
         g_io_context, com::centreon::connector::log::core(), script_path,
         [this](const std::shared_ptr<script_child>&, const ConnectorMess& msg) {
           SPDLOG_LOGGER_DEBUG(com::centreon::connector::log::core(),
-                              "main process receive {}",
-                              msg.ShortDebugString());
-          absl::MutexLock l(&_mu);
+                              "main process receive {}", msg);
+          absl::MutexLock l(_mu);
           _received.push_back(msg);
         },
         [this](const std::shared_ptr<script_child>&) {
-          absl::MutexLock l(&_mu);
+          absl::MutexLock l(_mu);
           _ended = true;
         },
         config(0, nullptr), argv0, -1);
@@ -137,7 +137,7 @@ class ScriptChildTest : public ::testing::Test {
   bool wait_for_messages(size_t n, int timeout_secs = 15) {
     _wait_count = n;
     auto deadline = absl::Now() + absl::Seconds(timeout_secs);
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     return _mu.AwaitWithDeadline(
         absl::Condition(this, &ScriptChildTest::received_enough), deadline);
   }
@@ -147,7 +147,7 @@ class ScriptChildTest : public ::testing::Test {
    */
   bool wait_for_end(int timeout_secs = 15) {
     auto deadline = absl::Now() + absl::Seconds(timeout_secs);
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     return _mu.AwaitWithDeadline(
         absl::Condition(this, &ScriptChildTest::process_ended), deadline);
   }
@@ -181,7 +181,7 @@ TEST_F(ScriptChildTest, ScriptFileNotFound) {
   ASSERT_TRUE(wait_for_messages(1))
       << "Timed out waiting for have_to_terminate";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), 1u);
   EXPECT_TRUE(_received[0].has_have_to_terminate());
   EXPECT_FALSE(_received[0].have_to_terminate().error().empty());
@@ -204,7 +204,7 @@ TEST_F(ScriptChildTest, ScriptSyntaxError) {
   ASSERT_TRUE(wait_for_messages(1))
       << "Timed out waiting for have_to_terminate";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), 1u);
   EXPECT_TRUE(_received[0].has_have_to_terminate());
   EXPECT_FALSE(_received[0].have_to_terminate().error().empty());
@@ -232,7 +232,7 @@ TEST_F(ScriptChildTest, OkCheck) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), 1u);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 1u);
@@ -254,7 +254,7 @@ TEST_F(ScriptChildTest, WarningCheck) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), 1u);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 2u);
@@ -275,7 +275,7 @@ TEST_F(ScriptChildTest, CriticalCheck) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), 1u);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 3u);
@@ -301,7 +301,7 @@ TEST_F(ScriptChildTest, CmdIdRoundTrip) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), kId);
 }
@@ -332,7 +332,7 @@ TEST_F(ScriptChildTest, StdoutAndStderrBothCaptured) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   const auto& res = _received[0].result();
   EXPECT_EQ(res.cmd_id(), 70u);
@@ -369,7 +369,7 @@ TEST_F(ScriptChildTest, ThreeSequentialChecks) {
     ASSERT_TRUE(wait_for_messages(id - 9))
         << "Timed out waiting for result " << id;
 
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     ASSERT_GE(_received.size(), id - 9);
     const ConnectorMess& last = _received.back();
     ASSERT_TRUE(last.has_result()) << "Expected result for cmd_id=" << id;
@@ -399,7 +399,7 @@ TEST_F(ScriptChildTest, ResultContainsLoadMetrics) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   const auto& res = _received[0].result();
   EXPECT_GT(res.after_first_check().nb_thread(), 0u);
@@ -436,7 +436,7 @@ TEST_F(ScriptChildTest, ConcurrentChecks) {
 
   ASSERT_TRUE(wait_for_messages(kCount)) << "Timed out waiting for 5 results";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_EQ(_received.size(), kCount);
   std::set<uint64_t> ids;
   for (const auto& msg : _received) {
@@ -483,7 +483,7 @@ TEST_F(ScriptChildTest, ScriptFileUpdatedTriggersReload) {
   ASSERT_TRUE(wait_for_messages(2, 5))
       << "No have_to_terminate received after mtime change";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   bool found = false;
   for (const auto& msg : _received) {
     if (msg.has_have_to_terminate()) {
@@ -518,7 +518,7 @@ TEST_F(ScriptChildTest, LargeStdout) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().status(), 0);
   EXPECT_GE(_received[0].result().stdout().size(), 50000u);
@@ -561,7 +561,7 @@ TEST_F(ScriptChildTest, CheckChildDiesNewOneCreatedForQueue) {
   ASSERT_TRUE(wait_for_messages(4, 30))
       << "Timed out: check_child death did not trigger queue dispatch";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   std::map<uint64_t, int> id_to_status;
   int child_end_count = 0;
   for (const auto& msg : _received) {
@@ -604,7 +604,7 @@ TEST_F(ScriptChildTest, CheckChildKilledAfterMaxExecute) {
   _child->write_mess_to_child_stdin(make_execute_with_max(300, 2));
   ASSERT_TRUE(wait_for_messages(1, 15)) << "Timed out waiting for first result";
   {
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     ASSERT_TRUE(_received[0].has_result());
     EXPECT_EQ(_received[0].result().cmd_id(), 300u);
     EXPECT_EQ(_received[0].result().status(), 0);
@@ -617,7 +617,7 @@ TEST_F(ScriptChildTest, CheckChildKilledAfterMaxExecute) {
   ASSERT_TRUE(wait_for_messages(3, 15))
       << "Timed out waiting for second result and child_end";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   bool has_result_301 = false;
   bool has_child_end = false;
   for (const auto& msg : _received) {
@@ -666,7 +666,7 @@ TEST_F(ScriptChildTest, ScriptReceivesMultipleArgs) {
 
   ASSERT_TRUE(wait_for_messages(1)) << "Timed out waiting for result";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   ASSERT_TRUE(_received[0].has_result());
   EXPECT_EQ(_received[0].result().cmd_id(), 50u);
   EXPECT_EQ(_received[0].result().status(), 0);
@@ -704,7 +704,7 @@ TEST_F(ScriptChildTest, ScriptArgsDifferPerSequentialCall) {
     ASSERT_TRUE(wait_for_messages(i + 1))
         << "Timed out waiting for result " << i + 1;
 
-    absl::MutexLock l(&_mu);
+    absl::MutexLock l(_mu);
     const ConnectorMess& last = _received.back();
     ASSERT_TRUE(last.has_result());
     EXPECT_EQ(last.result().cmd_id(), 60 + i);
@@ -744,7 +744,7 @@ TEST_F(ScriptChildTest, QueuedExecuteWithNoChildCreate) {
 
   ASSERT_TRUE(wait_for_messages(2, 30)) << "Timed out waiting for both results";
 
-  absl::MutexLock l(&_mu);
+  absl::MutexLock l(_mu);
   std::set<uint64_t> ids;
   for (const auto& msg : _received) {
     if (msg.has_result()) {

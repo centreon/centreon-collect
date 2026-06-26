@@ -64,8 +64,7 @@ add_dependencies(nebbase process_stat pb_common_lib table_max_size pb_neb_lib
                  pb_open_telemetry_lib)
 
 target_include_directories(nebbase PRIVATE ${PROJECT_SOURCE_DIR}/bam/inc)
-target_link_libraries(nebbase PRIVATE pb_neb_lib pb_header_lib pb_common_lib
-                                      pb_open_telemetry_lib)
+target_link_libraries(nebbase PRIVATE centreon_pb_bbdo)
 
 set_target_properties(nebbase PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(nebbase PRIVATE precomp_inc/precomp.hpp)
@@ -109,12 +108,8 @@ target_link_libraries(
   nebbase
   Boost::thread
   -Wl,--no-whole-archive
-  pb_bam_lib
-  pb_storage_lib
   multiplexing
-  pb_common_lib
-  pb_neb_lib
-  pb_header_lib)
+  centreon_pb_bbdo)
 
 get_property(
   CBMOD_DEFINES

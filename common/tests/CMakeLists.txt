@@ -119,7 +119,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             centreon_hexdump
             centreon_grpc
             centreon_file_system
-            engine_conf
+            centreon_engine_conf
             log_v2
             gRPC::grpc++
             protobuf::libprotobuf

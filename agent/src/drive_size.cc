@@ -212,7 +212,7 @@ drive_size_thread::get_fs_stats drive_size_thread::os_fs_stats;
 void drive_size_thread::run() {
   auto keep_object_alive = shared_from_this();
   while (_active) {
-    absl::MutexLock l(&_queue_m);
+    absl::MutexLock l(_queue_m);
     _queue_m.Await(absl::Condition(this, &drive_size_thread::has_to_stop_wait));
     if (!_active) {
       return;
@@ -247,7 +247,7 @@ void drive_size_thread::run() {
  *
  */
 void drive_size_thread::kill() {
-  absl::MutexLock l(&_queue_m);
+  absl::MutexLock l(_queue_m);
   _active = false;
 }
 
@@ -264,7 +264,7 @@ void drive_size_thread::async_get_fs_stats(
     const std::shared_ptr<filter>& request_filter,
     const time_point& timeout,
     handler_type&& handler) {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   _queue.push_back(
       {request_filter, std::forward<handler_type>(handler), timeout});
 }

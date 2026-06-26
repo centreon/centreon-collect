@@ -33,7 +33,7 @@ class mutex<true> : public absl::Mutex {};
 template <>
 class lock<true> : public absl::MutexLock {
  public:
-  lock(absl::Mutex* mut) : absl::MutexLock(mut) {}
+  lock(absl::Mutex& mut) : absl::MutexLock(mut) {}
 };
 
 template <>
@@ -42,7 +42,7 @@ class mutex<false> {};
 template <>
 class lock<false> {
  public:
-  lock(mutex<false>* /* dummy_mut*/) {}
+  lock(mutex<false>& /* dummy_mut*/) {}
 };
 
 struct boost_process;

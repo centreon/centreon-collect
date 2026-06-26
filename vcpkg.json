@@ -1,11 +1,6 @@
 {
   "dependencies": [
-    {
-      "name": "abseil",
-      "features": [
-        "cxx17"
-      ]
-    },
+    "abseil",
     "fmt",
     "grpc",
     "spdlog",
@@ -70,6 +65,10 @@
     },
     {
       "name": "openssl",
+      "platform": "windows"
+    },
+    {
+      "name": "zlib",
       "platform": "windows"
     }
   ]
