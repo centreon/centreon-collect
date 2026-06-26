@@ -2716,7 +2716,9 @@ static void forward_pb_host_status(const host* hst,
     }
 
     // Acknowledgement event.
-    handle_acknowledgement(state, host);
+    // Only process it when the acknowledgement actually changed.
+    if (attributes & engine::host::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, host);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
     com::centreon::broker::HostStatus& hscr = h.get()->mut_obj();
@@ -4713,7 +4715,9 @@ static void forward_pb_service_status(const engine::service* svc,
     }
 
     // Acknowledgement event.
-    handle_acknowledgement(state, asscr);
+    // Only process it when the acknowledgement actually changed.
+    if (attributes & engine::service::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, asscr);
   } else {
     auto s{std::make_shared<neb::pb_service_status>()};
     ServiceStatus& sscr = s.get()->mut_obj();
