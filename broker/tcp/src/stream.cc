@@ -100,8 +100,9 @@ stream::~stream() noexcept {
   absl::MutexLock l(&_instances_m);
   _instances->erase(this);
   _logger->info(
-      "TCP stream destroyed. Still {} threads configured on the thread pool",
-      _instances->size());
+      "TCP stream destroyed peer:{}. Still {} threads configured on the thread "
+      "pool",
+      _connection->peer(), _instances->size());
   _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();

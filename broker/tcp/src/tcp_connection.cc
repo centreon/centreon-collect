@@ -291,9 +291,8 @@ void tcp_connection::close() {
   if (!_closed) {
     std::chrono::system_clock::time_point timeout =
         std::chrono::system_clock::now() + std::chrono::seconds(10);
-    while (!_closed &&
-           (_writing || (_write_queue_has_events &&
-                         std::chrono::system_clock::now() < timeout))) {
+    while (!_closed && (_writing || _write_queue_has_events) &&
+           std::chrono::system_clock::now() < timeout) {
       _logger->debug("Finishing to write data before closing the connection");
       if (!_writing) {
         _writing = true;
