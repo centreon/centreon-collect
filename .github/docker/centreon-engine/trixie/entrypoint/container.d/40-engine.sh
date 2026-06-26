@@ -3,9 +3,12 @@
 set -e
 
 PLUGINS_JSON="/etc/centreon-engine/plugins.json"
+APT_LOCK="/var/lock/centreon-engine-apt.lock"
 
-# Install plugins listed in plugins.json (targeted, not greedy)
+# flock serializes this against other concurrent apt calls (41-custom-deps,
+# 45-plugin-watcher, 46-custom-deps-watcher) to avoid dpkg lock conflicts.
 (
+    flock -w 120 9 || { echo "apt lock timeout, skipping plugin install"; exit 0; }
     export DEBIAN_FRONTEND=noninteractive
     sudo apt-get update -qq
 
@@ -21,4 +24,4 @@ PLUGINS_JSON="/etc/centreon-engine/plugins.json"
     else
         echo "No plugins.json found at $PLUGINS_JSON, skipping plugin install"
     fi
-) &
+) 9>"${APT_LOCK}" &
