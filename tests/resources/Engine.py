@@ -124,8 +124,21 @@ class EngineInstance:
         else:
             makedirs(f"{VAR_ROOT}/lib/centreon/config",
                      mode=0o777, exist_ok=True)
-        if exists(f"{VAR_ROOT}/lib/centreon-engine/config0"):
-            shutil.rmtree(f"{VAR_ROOT}/lib/centreon-engine/config0")
+        # Wipe the engine runtime dir but keep the rw/ subdirectory: it holds
+        # the live external command FIFO of an already-running engine when
+        # Ctn Config Engine is called again to reconfigure before a reload. The
+        # engine does not recreate the FIFO on reload (open_command_file returns
+        # early once command_file_created is set), so deleting it would leave the
+        # command pipe gone and external commands silently lost.
+        engine_var_dir = f"{VAR_ROOT}/lib/centreon-engine/config0"
+        if exists(engine_var_dir):
+            for item in glob.glob(f"{engine_var_dir}/*"):
+                if os.path.basename(item) == "rw":
+                    continue
+                if os.path.isdir(item):
+                    shutil.rmtree(item)
+                else:
+                    os.remove(item)
 
         makedirs(f"{ETC_ROOT}/centreon-broker", mode=0o777, exist_ok=True)
         makedirs(f"{VAR_ROOT}/log/centreon-engine/", mode=0o777, exist_ok=True)
@@ -936,10 +949,16 @@ define contact {
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "check.sh", "notif.pl", "check_centreon_bam"]:
-                shutil.copyfile(f"{SCRIPT_DIR}/{file}",
-                                f"{ENGINE_HOME}/{file}")
-                chmod(f"{ENGINE_HOME}/{file}", stat.S_IRWXU |
-                      stat.S_IRGRP | stat.S_IXGRP)
+                # Copy to a temp file then atomically replace: a check process
+                # spawned by a previous test may still be executing the script,
+                # and truncating it in place raises ETXTBSY (Text file busy).
+                # os.replace swaps the directory entry without touching the
+                # inode the running process holds.
+                dst = f"{ENGINE_HOME}/{file}"
+                tmp = f"{dst}.tmp"
+                shutil.copyfile(f"{SCRIPT_DIR}/{file}", tmp)
+                chmod(tmp, stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
+                os.replace(tmp, dst)
             shutil.copyfile(
                 dirname(__file__) + "/db_variables.resource", "/tmp/db_variables.resource")
             if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
@@ -2350,6 +2369,42 @@ def ctn_get_service_command_id(service: int):
     """
     global engine
     return engine.service_cmd[service][8:]
+
+
+def ctn_wait_for_external_command_pipe(config: int = 0, timeout: int = TIMEOUT):
+    """
+    Wait until the engine external command named pipe of the given config is
+    a FIFO and is open for reading (i.e. the engine is actually consuming
+    external commands).
+
+    The 'check_for_external_commands()' log line only tells the checker started;
+    on a consecutive test the pipe may not yet be ready to be read, so a result
+    submitted right after can be written to a pipe with no reader (or, worse, to
+    a stale regular file created before the engine made the FIFO) and silently
+    lost. A non-blocking O_WRONLY open succeeds only when a reader has the FIFO
+    open (otherwise it raises ENXIO), which is the reliable readiness signal.
+
+    Args:
+        config (int): The engine config index (default 0).
+        timeout (int): A timeout in seconds.
+
+    Returns:
+        True if the pipe is a FIFO open for reading within the timeout, else
+        False.
+    """
+    pipe = f"{VAR_ROOT}/lib/centreon-engine/config{config}/rw/centengine.cmd"
+    limit = time.time() + int(timeout)
+    while time.time() < limit:
+        try:
+            if stat.S_ISFIFO(os.stat(pipe).st_mode):
+                fd = os.open(pipe, os.O_WRONLY | os.O_NONBLOCK)
+                os.close(fd)
+                return True
+        except OSError:
+            # ENOENT: FIFO not created yet; ENXIO: FIFO exists but no reader yet.
+            pass
+        time.sleep(0.5)
+    return False
 
 
 def ctn_get_host_command(host: int):

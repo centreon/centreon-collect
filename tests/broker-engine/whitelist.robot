@@ -297,6 +297,7 @@ Whitelist_NotReadable
     [Tags]    whitelist    engine MON-175809
     Ctn Config Engine    ${1}    ${50}    ${20}
     Empty Directory    /etc/centreon-engine-whitelist
+    Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
 
     ${whitelist_content}    Catenate
@@ -336,6 +337,7 @@ Whitelist_Directory_NotReadable
     [Documentation]    Given a centengine started by centreon-engine user, whitelist directories are not readable and centengine must log an error
     [Tags]    whitelist    engine MON-175809
     Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    central
     Ctn Config Broker    module    ${1}
 
     Run    chmod 700 -R /etc/centreon-engine-whitelist

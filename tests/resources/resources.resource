@@ -56,6 +56,17 @@ Ctn Clean Before Suite
     Ctn Clear Commands Status
     Ctn Clear Engine White List
 
+Ctn Clean Before Test
+    [Documentation]    Per-test isolation for suites that run several tests in a
+    ...    row: wipe the database, the persisted broker cache, the persisted
+    ...    centralized configuration (.prot / state.prot) and the logs, so residue
+    ...    from a previous test (leftover rows, a stale cached host, a previous
+    ...    run's larger Engine state replayed on restart) does not leak into the
+    ...    next one. These suites otherwise only clean at suite start.
+    Ctn Clean Before Suite
+    Ctn Clear Broker Cache
+    Ctn Clear Prot Files
+
 Ctn Clean Before Suite With rrdcached
     Ctn Clean Before Suite
     Log To Console    Starting RRDCached
@@ -157,8 +168,11 @@ Ctn Kindly Stop Broker
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
 
     #in some case tear down calls this function whereas broker has not been started
-    ${b1_obj}    Get Process Object   b1
-    IF    "${b1_obj}" == "${None}"
+    #Get Process Object raises "Non-existing index or alias" when b1 was never
+    #started, so we have to ignore that error instead of comparing to None.
+    ${status}    ${b1_obj}    Run Keyword And Ignore Error    Get Process Object    b1
+    IF    "${status}" == "FAIL"    RETURN
+    IF    ${{$b1_obj is None}}
         Log To Console    "central broker not started"
         RETURN
     END
@@ -263,7 +277,15 @@ Ctn Start Engine
             Log    can't remove ${lib}/rw/centengine.cmd don't worry
         END
         ${grpc_port}    Evaluate    ${idx} + 50001
-        Ctn Wait For Port Free    ${grpc_port}
+        # Fail fast instead of starting a doomed engine: if the gRPC port is still
+        # taken, a previous centengine was not stopped. Starting anyway leaves a
+        # second engine that cannot bind its gRPC server, and later gRPC queries
+        # silently hit the stale engine, cascading confusing failures to the rest
+        # of the suite.
+        ${free}    Ctn Wait For Port Free    ${grpc_port}
+        Should Be True
+        ...    ${free}
+        ...    gRPC port ${grpc_port} still in use: a previous centengine was not stopped.
         IF    ${with_centreon_engine_user}
             Run    chown -R centreon-engine: /tmp/etc/centreon-engine /tmp/etc/centreon-broker /tmp/var
         END
@@ -339,10 +361,22 @@ Ctn Stop Engine
         Log To Console    No engine to stop
         RETURN
     END
+    # Some tests configure engine instances without starting them (broker only
+    # tests). Only act on the instances whose process alias was really started,
+    # otherwise the Process library raises 'Non-existing index or alias'.
+    @{started}    Create List
     FOR    ${idx}    IN RANGE    0    ${count}
+        ${status}    ${pid}    Run Keyword And Ignore Error    Get Process Id    e${idx}
+        IF    "${status}" == "PASS"    Append To List    ${started}    ${idx}
+    END
+    IF    len($started) == 0
+        Log To Console    No running engine to stop
+        RETURN
+    END
+    FOR    ${idx}    IN    @{started}
         Send Signal To Process    SIGTERM    e${idx}
     END
-    FOR    ${idx}    IN RANGE    0    ${count}
+    FOR    ${idx}    IN    @{started}
         ${result}    Wait For Process    e${idx}    timeout=60s
         IF    "${result}" == "${None}"
             Log To Console    Failed to stop centengine
@@ -363,21 +397,9 @@ Ctn Stop Engine
 
 Ctn Stop Engine Broker And Save Logs
     [Arguments]    ${only_central}=False    ${no_rrd_test}=False
-    TRY
-        Ctn Stop Engine
-    EXCEPT
-        Log    can't kindly stop engine
-    END
-    TRY
-        Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
-    EXCEPT
-        Log    Can't kindly stop Broker
-    END
-    TRY
-        Ctn Kindly Stop Agent
-    EXCEPT
-        Log    Can't kindly stop Agent
-    END
+    Run Keyword And Continue On Failure    Ctn Stop Engine
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Broker    only_central=${only_central}    no_rrd_test=${no_rrd_test}
+    Run Keyword And Continue On Failure    Ctn Kindly Stop Agent
     Ctn Save Logs If Failed
 
 Ctn Get Engine Pid
@@ -561,6 +583,14 @@ Ctn Wait For Engine To Be Ready
         Should Be True
         ...    ${result}
         ...    A message telling check_for_external_commands() should be available in config${i}/centengine.log.
+        # The log line only means the external command checker started; make sure
+        # the command named pipe is actually a FIFO open for reading before
+        # returning, otherwise a result submitted right after can be written to a
+        # pipe with no reader (or a stale regular file) and silently lost.
+        ${pipe_ready}    Ctn Wait For External Command Pipe    ${i}    30
+        Should Be True
+        ...    ${pipe_ready}
+        ...    The engine external command pipe config${i}/rw/centengine.cmd should be a FIFO open for reading.
     END
 
 Ctn Wait For Engine Configuration To Be Applied
@@ -607,8 +637,9 @@ Ctn Kindly Stop Agent
     END
 
     #in most case centreon_agent is not started
-    ${centreon_agent_process}    Get Process Object  centreon_agent
+    ${status}    ${centreon_agent_process}    Run Keyword And Ignore Error    Get Process Object    centreon_agent
 
+    IF  "${status}" == "FAIL"  RETURN
     IF  ${{$centreon_agent_process is None}}  RETURN
 
     Send Signal To Process    SIGTERM    centreon_agent

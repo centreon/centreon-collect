@@ -7,6 +7,11 @@ the run's elapsed time (read from the process) and the number of finished tests.
 Usage:
     ./test-progress.py BRRDCDRBU1
     ./test-progress.py -f BRRDCDRBU1     # force regeneration of the dryrun cache
+    ./test-progress.py                   # auto-detect the currently running test
+
+When no test name is given, the script reads the running run's output.xml (which
+robot fills incrementally) and uses the last <test> tag it finds — i.e. the test
+currently executing — exactly as if that name had been passed on the command line.
 
 The script discovers the exact command line of the running `robot` process and
 reuses its arguments (suites, tags, tests…) to build the dryrun, so it works for
@@ -26,6 +31,7 @@ import argparse
 import glob
 import hashlib
 import os
+import re
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
@@ -42,11 +48,12 @@ OUTPUT_OPTS_WITH_VALUE = {
 
 
 def find_robot_run():
-    """Return (elapsed_seconds, robot_args) for the running real robot run.
+    """Return (elapsed_seconds, robot_args, pid) for the running real robot run.
 
     robot_args is the exact list of arguments passed to robot (everything after
-    the robot script in argv). Returns (None, None) if no run is detected. The
-    script's own `robot --dryrun` invocations are skipped.
+    the robot script in argv). pid is the robot process id (used to locate its
+    output.xml via /proc/<pid>/cwd). Returns (None, None, None) if no run is
+    detected. The script's own `robot --dryrun` invocations are skipped.
     """
     pgrep = subprocess.run(["pgrep", "-f", "bin/robot"],
                            capture_output=True, text=True)
@@ -66,8 +73,8 @@ def find_robot_run():
         et = subprocess.run(["ps", "-o", "etimes=", "-p", pid],
                             capture_output=True, text=True).stdout.strip()
         elapsed = int(et) if et.isdigit() else None
-        return elapsed, args
-    return None, None
+        return elapsed, args, pid
+    return None, None, None
 
 
 def strip_output_opts(args):
@@ -85,6 +92,61 @@ def strip_output_opts(args):
             continue
         out.append(a)
     return out
+
+
+# Matches the opening tag of a <test> element in robot's output.xml and captures
+# its name. Robot writes `<test id="..." name="..." line="...">`; the file is not
+# well-formed until the run ends, so we scan the raw bytes rather than parse it.
+TEST_TAG_RE = re.compile(rb'<test\b[^>]*\bname="([^"]*)"')
+
+
+def output_xml_path(run_args, pid):
+    """Locate the output.xml of the running robot run.
+
+    Honours -o/--output and -d/--outputdir from the discovered command line,
+    resolving relative paths against the robot process's working directory
+    (/proc/<pid>/cwd). Returns None if output is disabled (-o NONE).
+    """
+    output = "output.xml"
+    outputdir = None
+    i = 0
+    while i < len(run_args):
+        a = run_args[i]
+        if a in ("-o", "--output") and i + 1 < len(run_args):
+            output = run_args[i + 1]
+            i += 2
+            continue
+        if a in ("-d", "--outputdir") and i + 1 < len(run_args):
+            outputdir = run_args[i + 1]
+            i += 2
+            continue
+        i += 1
+    if output.upper() == "NONE":
+        return None
+    try:
+        cwd = os.readlink(f"/proc/{pid}/cwd")
+    except OSError:
+        cwd = os.getcwd()
+    if outputdir and not os.path.isabs(outputdir):
+        outputdir = os.path.join(cwd, outputdir)
+    if not os.path.isabs(output):
+        output = os.path.join(outputdir or cwd, output)
+    return output
+
+
+def last_test_in_output(path):
+    """Return the name of the last <test> tag in a (possibly partial) output.xml.
+
+    That is the test currently executing (or the last one finished), matching the
+    user's intent of "the last test whose tag is visible in the file".
+    """
+    try:
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return None
+    matches = TEST_TAG_RE.findall(data)
+    return matches[-1].decode() if matches else None
 
 
 def cache_path(robot_args):
@@ -163,15 +225,35 @@ def fmt_duration(seconds):
 def main():
     parser = argparse.ArgumentParser(
         description="Show a Robot test's position in the full run.")
-    parser.add_argument("test", help="test name, e.g. BRRDCDRBU1")
+    parser.add_argument("test", nargs="?",
+                        help="test name, e.g. BRRDCDRBU1; if omitted, the "
+                             "currently running test is auto-detected from the "
+                             "run's output.xml")
     parser.add_argument("-f", "--force", action="store_true",
                         help="regenerate the dryrun cache even if it exists")
     args = parser.parse_args()
 
     # Discover the running robot run to reuse its exact selection and timing.
-    elapsed, run_args = find_robot_run()
+    elapsed, run_args, pid = find_robot_run()
     robot_args = strip_output_opts(run_args) if run_args else DEFAULT_ARGS
     cache = cache_path(robot_args)
+
+    # No test name given: behave as if the user had typed the currently running
+    # test, read from the (incrementally filled) output.xml of the live run.
+    if args.test is None:
+        if run_args is None:
+            sys.exit("[error] no test name given and no running robot run "
+                     "detected — nothing to auto-detect")
+        out_xml = output_xml_path(run_args, pid)
+        if not out_xml or not os.path.exists(out_xml):
+            sys.exit(f"[error] no test name given and output.xml not found"
+                     f"{f' at {out_xml}' if out_xml else ''}")
+        args.test = last_test_in_output(out_xml)
+        if not args.test:
+            sys.exit(f"[error] could not detect the current test from "
+                     f"{out_xml} (no <test> tag yet?)")
+        print(f"[info] auto-detected current test: {args.test}",
+              file=sys.stderr)
 
     tests = load_tests(cache, robot_args, args.force)
     total = len(tests)

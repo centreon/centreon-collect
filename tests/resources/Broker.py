@@ -1411,21 +1411,27 @@ def ctn_check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
     return False
 
 
-def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
+def ctn_get_broker_stats_size(name, key, min_expected_value, timeout=TIMEOUT):
     """
-    Return the number of items under the given key in the stats file.
+    Return the number of items under the given key in the stats file. The
+    function polls the stats file until that number reaches min_expected_value
+    or the timeout expires. This wait is required because the value can grow
+    over time (e.g. database connections are re-established asynchronously after
+    MariaDB is (re)started), so returning on the first stable reading would
+    report a transient, too-low value.
 
     Args:
         name: The broker instance name among central, rrd and module%d.
         key: The key to work with.
+        min_expected_value: minimum value to wait for before returning.
         timeout (int, optional): Defaults to TIMEOUT = 30s.
 
     *Example:*
 
-    | ${size} | Get Broker Stats Size | central | poller | # 2 |
+    | ${size} | Get Broker Stats Size | central | poller | 2 |
     """
     limit = time.time() + timeout
-    retval = 0
+    value = 0
     if name == 'central':
         filename = "central-broker-master-stats.json"
     elif name == 'module':
@@ -1447,12 +1453,10 @@ def ctn_get_broker_stats_size(name, key, timeout=TIMEOUT):
             value = len(conf[key])
         else:
             value = 0
-        if value > retval:
-            retval = value
-        elif retval != 0:
-            return retval
+        if value >= min_expected_value:
+            return value
         time.sleep(5)
-    return retval
+    return value
 
 
 def ctn_get_broker_stats(name: str, expected: str, timeout: int, *keys):
@@ -3417,6 +3421,35 @@ def ctn_check_acknowledgement_in_logs_table(date: int, timeout: int = TIMEOUT):
         time.sleep(2)
     return False
 
+def ctn_wait_for_broker_to_be_ready(port: int = 51001, timeout=TIMEOUT):
+    """
+    Wait until the Broker gRPC server on the given port answers.
+
+    Ctn Start Broker returns as soon as the process is launched, before its gRPC
+    server is listening. A gRPC call issued right after a (re)start can then fail
+    with UNAVAILABLE / "Connection refused". This polls a lightweight RPC
+    (GetVersion) until it succeeds.
+
+    Args:
+        port: The Broker gRPC port (default 51001).
+        timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        True if the gRPC server answered within the timeout, else False.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                stub.GetVersion(empty_pb2.Empty())
+                return True
+            except Exception:
+                pass
+        time.sleep(0.5)
+    return False
+
+
 def ctn_get_host_ids(port: int, timeout=TIMEOUT):
     """
     Get the list of host ids from the Broker.
@@ -3438,24 +3471,41 @@ def ctn_get_host_ids(port: int, timeout=TIMEOUT):
                 logger.console("gRPC server not ready")
 
 
-def ctn_get_service_ids(port: int, timeout=TIMEOUT):
+def ctn_get_service_ids(port: int, expected_count=None, timeout=TIMEOUT):
     """
     Get the list of (host_id, service_id) pairs from the Broker cache.
 
+    The Broker cache is filled asynchronously after a configuration is applied,
+    so it may still be partially populated right after the database is already
+    up to date. When expected_count is provided, retry until the cache returns
+    that many pairs (or the timeout expires), to avoid comparing a fully-applied
+    database against a still-filling cache.
+
     Args:
         port: The gRPC port to use.
+        expected_count: If set, wait until the cache holds this many pairs.
         timeout: A timeout in seconds, 30s by default.
+
+    Returns:
+        The list of (host_id, service_id) pairs (the last value read if
+        expected_count is never reached within the timeout).
     """
+    if expected_count is not None:
+        expected_count = int(expected_count)
     limit = time.time() + timeout
+    retval = []
     while time.time() < limit:
         time.sleep(1)
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             try:
                 res = stub.GetServiceIds(empty_pb2.Empty())
-                return [(pair.host_id, pair.service_id) for pair in res.pairs]
+                retval = [(pair.host_id, pair.service_id) for pair in res.pairs]
+                if expected_count is None or len(retval) == expected_count:
+                    return retval
             except Exception:
                 logger.console("gRPC server not ready")
+    return retval
 
 
 def ctn_get_service_descriptions(port: int, timeout=TIMEOUT):
