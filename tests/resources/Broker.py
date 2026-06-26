@@ -2243,6 +2243,84 @@ def ctn_stop_map():
     logger.console("map_client_type stopped")
 
 
+_saved_tcp_wmem = None
+
+
+def ctn_set_tcp_wmem_small():
+    """
+    Reduce the TCP send buffer defaults system-wide so broker's socket send
+    buffer fills up quickly during the write-queue-full test.
+    The previous value is saved and can be restored with ctn_restore_tcp_wmem.
+    """
+    global _saved_tcp_wmem
+    result = subp.run(
+        ["sysctl", "-n", "net.ipv4.tcp_wmem"],
+        capture_output=True, text=True, check=True,
+    )
+    _saved_tcp_wmem = result.stdout.strip()
+    subp.run(
+        ["sysctl", "-w", "net.ipv4.tcp_wmem=4096 4096 16384"],
+        check=True,
+    )
+    logger.console(f"tcp_wmem set to small (was: {_saved_tcp_wmem})")
+
+
+def ctn_restore_tcp_wmem():
+    """
+    Restore net.ipv4.tcp_wmem to the value saved by ctn_set_tcp_wmem_small.
+    Safe to call even if ctn_set_tcp_wmem_small was never called.
+    """
+    global _saved_tcp_wmem
+    if _saved_tcp_wmem is not None:
+        subp.run(
+            ["sysctl", "-w", f"net.ipv4.tcp_wmem={_saved_tcp_wmem}"],
+            check=True,
+        )
+        logger.console(f"tcp_wmem restored to: {_saved_tcp_wmem}")
+        _saved_tcp_wmem = None
+
+
+
+
+def ctn_start_slow_map():
+    """
+    Launch slow_client.py that connects to broker's map output on port 5671,
+    completes the BBDO handshake, then stops reading so broker's write queue
+    fills up.
+
+    Args:
+        bbdo_version: BBDO version string to use for the handshake.
+    """
+    subp.Popen(
+        f"broker/slow_client.py \"3.0.0\"",
+        shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL,
+    )
+
+
+def ctn_stop_slow_map():
+    """
+    Stop the slow map client process started by ctn_start_slow_map.
+    """
+    for proc in psutil.process_iter():
+        if 'slow_client' in proc.name():
+            logger.console(
+                f"process '{proc.name()}' containing slow_client found: stopping it")
+            proc.terminate()
+            try:
+                logger.console("Waiting for 30s slow_client to stop")
+                proc.wait(30)
+            except Exception:
+                logger.console("slow_client don't want to stop => kill")
+                proc.kill()
+
+    for proc in psutil.process_iter():
+        if 'slow_client' in proc.name():
+            logger.console(f"process '{proc.name()}' still alive")
+            proc.kill()
+
+    logger.console("slow_client stopped")
+
+
 def ctn_get_indexes_to_rebuild(count: int, nb_day=180):
     """
     Get count indexes that are available to rebuild.
