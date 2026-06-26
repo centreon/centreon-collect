@@ -205,9 +205,10 @@ void tcp_connection::writing() {
     return;
   }
 
-  asio::async_write(_socket, asio::buffer(_write_queue.front()),
-                    _strand.wrap(std::bind(&tcp_connection::handle_write, ptr(),
-                                           std::placeholders::_1)));
+  asio::async_write(
+      _socket, asio::buffer(_write_queue.front()),
+      asio::bind_executor(_strand, std::bind(&tcp_connection::handle_write,
+                                             ptr(), std::placeholders::_1)));
 }
 
 /**
@@ -234,7 +235,8 @@ void tcp_connection::handle_write(const boost::system::error_code& ec) {
     if (_write_queue_has_events) {
       // The strand is useful because of the flush() method.
       asio::async_write(_socket, asio::buffer(_write_queue.front()),
-                        _strand.wrap(std::bind(&tcp_connection::handle_write,
+                        asio::bind_executor(
+                            _strand, std::bind(&tcp_connection::handle_write,
                                                ptr(), std::placeholders::_1)));
     } else
       writing();
@@ -255,7 +257,8 @@ void tcp_connection::start_reading() {
   }
   _socket.async_read_some(
       asio::buffer(_read_buffer),
-      _strand.wrap(std::bind(&tcp_connection::handle_read, ptr(),
+      asio::bind_executor(
+          _strand, std::bind(&tcp_connection::handle_read, ptr(),
                              std::placeholders::_1, std::placeholders::_2)));
 }
 

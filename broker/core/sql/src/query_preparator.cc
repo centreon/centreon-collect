@@ -112,7 +112,7 @@ mysql_stmt query_preparator::prepare_insert_into(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       query.append(entry_name);
@@ -208,7 +208,7 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
     int size = 0;
     for (int i = 0; i < desc->field_count(); i++) {
       // log_v2::neb()->info("{}", desc->field(i)->name());
-      const std::string entry_name = desc->field(i)->name();
+      std::string_view entry_name = desc->field(i)->name();
       query.append(entry_name);
       query.append(",");
       bind_mapping.insert(
@@ -353,7 +353,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
@@ -373,7 +373,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     const google::protobuf::FieldDescriptor* f =
         desc->FindFieldByNumber(e.number);
     if (f) {
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       if (entry_name.empty() || _excluded.find(entry_name) != _excluded.end())
         continue;
       key = fmt::format(":{}", entry_name);
@@ -535,7 +535,7 @@ mysql_stmt query_preparator::prepare_update_table(
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(entry_name, e.max_length, e.attribute);
       // Standard field.
@@ -664,7 +664,7 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
     if (f) {
       if (static_cast<uint32_t>(f->index()) >= pb_mapping.size())
         pb_mapping.resize(f->index() + 1);
-      const std::string& entry_name = f->name();
+      std::string_view entry_name = f->name();
       pb_mapping[f->index()] =
           std::make_tuple(u.name, u.max_length, u.attribute);
       query.append(fmt::format("{}=? AND ", u.name));

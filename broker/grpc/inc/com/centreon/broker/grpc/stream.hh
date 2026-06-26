@@ -26,25 +26,13 @@
 namespace centreon_stream = com::centreon::broker::stream;
 
 namespace com::centreon::broker {
-namespace stream {
-std::ostream& operator<<(std::ostream&, const CentreonEvent&);
-}
 
 namespace grpc {
 
 extern const std::string authorization_header;
 
-struct detail_centreon_event;
-std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
-
 using grpc_event_type = centreon_stream::CentreonEvent;
 using event_ptr = std::shared_ptr<grpc_event_type>;
-
-struct detail_centreon_event {
-  detail_centreon_event(const centreon_stream::CentreonEvent& todump)
-      : to_dump(todump) {}
-  const centreon_stream::CentreonEvent& to_dump;
-};
 
 /**
  * @brief we pass our protobuf objects to grpc_event without copy
@@ -172,7 +160,7 @@ class stream : public io::stream,
 template <class bireactor_class>
 template <class visitor>
 void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   for (const auto& inst : *_instances) {
     visit(*inst);
   }
@@ -181,19 +169,5 @@ void stream<bireactor_class>::visit_all_instances(visitor&& visit) {
 }  // namespace grpc
 
 }  // namespace com::centreon::broker
-
-namespace fmt {
-// formatter specializations for fmt
-template <>
-struct formatter<centreon_stream::CentreonEvent> : ostream_formatter {};
-
-template <>
-struct formatter<com::centreon::broker::grpc::detail_centreon_event>
-    : ostream_formatter {};
-
-template <>
-struct formatter<com::centreon::broker::io::raw> : ostream_formatter {};
-
-}  // namespace fmt
 
 #endif  // !CCB_GRPC_STREAM_HH

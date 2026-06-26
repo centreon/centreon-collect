@@ -269,7 +269,7 @@ void _build_environment_macros(nagios_macros& macros,
 com::centreon::common::process_args::pointer raw_v2::_args_from_cmd_line(
     const std::string& processed_cmd) {
   common::process_args::pointer args;
-  absl::MutexLock l(&_data_m);
+  absl::MutexLock l(_data_m);
   auto& cmd_line_index = _args_cache.get<0>();
   auto exist = cmd_line_index.find(processed_cmd);
   if (exist == cmd_line_index.end()) {
@@ -345,7 +345,7 @@ uint64_t raw_v2::run(const std::string& processed_cmd,
         std::chrono::seconds(timeout));
 
     {
-      absl::MutexLock l(&_data_m);
+      absl::MutexLock l(_data_m);
       _running.insert(new_process);
     }
 
@@ -385,7 +385,7 @@ void raw_v2::_on_complete(const common::process<true>& proc,
                       get_name(), command_id);
 
   {
-    absl::MutexLock l(&_data_m);
+    absl::MutexLock l(_data_m);
     _running.erase(proc.shared_from_this());
   }
 
@@ -463,7 +463,7 @@ void raw_v2::run(const std::string& processed_cmd,
          &done, &res](const common::process<true>&, int exit_code,
                       common::e_exit_status exit_status,
                       const std::string& std_out, const std::string& std_err) {
-          absl::MutexLock lck(&waiter);
+          absl::MutexLock lck(waiter);
           res.command_id = command_id;
           res.start_time = start;
           res.end_time = time(nullptr);
@@ -483,7 +483,7 @@ void raw_v2::run(const std::string& processed_cmd,
     throw;
   }
 
-  absl::MutexLock lck(&waiter);
+  absl::MutexLock lck(waiter);
   waiter.Await(absl::Condition(&done));
 
   if (res.exit_status == common::e_exit_status::timeout) {

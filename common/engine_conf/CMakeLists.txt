@@ -61,7 +61,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_definitions(-DDEFAULT_LOG_FILE="${ENGINE_VAR_LOG_DIR}/centengine.log")
 
   add_library(
-    engine_conf STATIC
+    centreon_engine_conf SHARED
     anomalydetection_helper.cc
     anomalydetection_helper.hh
     command_helper.cc
@@ -102,11 +102,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     tag_helper.hh
     timeperiod_helper.cc
     timeperiod_helper.hh)
-  add_dependencies(engine_conf target_state_proto)
-  target_link_libraries(engine_conf PUBLIC centreon_common_timeperiod)
+  add_dependencies(centreon_engine_conf target_state_proto)
+  target_link_libraries(centreon_engine_conf PUBLIC centreon_common_timeperiod fmt::fmt)
   include_directories(${CMAKE_SOURCE_DIR}/common/inc)
 
-  target_precompile_headers(engine_conf PRIVATE
+  target_precompile_headers(centreon_engine_conf PRIVATE
                             ${CMAKE_SOURCE_DIR}/common/precomp_inc/precomp.hh)
-  set_target_properties(engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
+  set_target_properties(centreon_engine_conf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()

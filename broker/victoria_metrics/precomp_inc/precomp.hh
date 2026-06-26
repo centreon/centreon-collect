@@ -41,8 +41,8 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
+#include <boost/container/string.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
-#include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>

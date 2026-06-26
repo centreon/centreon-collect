@@ -80,36 +80,36 @@ TEST(absl_flyweight, concurency) {
       for (unsigned action_index = 0; action_index < 10000; ++action_index) {
         switch (rand() % 6) {
           case 0: {
-            absl::MutexLock l(&test1_m);
+            absl::MutexLock l(test1_m);
             test1.emplace_back("toto");
             break;
           }
           case 1: {
-            absl::MutexLock l(&test2_m);
+            absl::MutexLock l(test2_m);
             test2.emplace_back("titi");
             break;
           }
           case 2: {
-            absl::MutexLock l(&test3_m);
+            absl::MutexLock l(test3_m);
             test3.emplace_back("tata");
             break;
           }
           case 3: {
-            absl::MutexLock l(&test1_m);
+            absl::MutexLock l(test1_m);
             if (!test1.empty()) {
               test1.erase(test1.begin() + rand() % test1.size());
             }
             break;
           }
           case 4: {
-            absl::MutexLock l(&test2_m);
+            absl::MutexLock l(test2_m);
             if (!test2.empty()) {
               test2.erase(test2.begin() + rand() % test2.size());
             }
             break;
           }
           case 5: {
-            absl::MutexLock l(&test3_m);
+            absl::MutexLock l(test3_m);
             if (!test3.empty()) {
               test3.erase(test3.begin() + rand() % test3.size());
             }

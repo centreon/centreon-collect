@@ -32,8 +32,8 @@ class lock_policy<true> {
   absl::Mutex _mut;
 
  public:
-  void lock() { _mut.Lock(); }
-  void unlock() { _mut.Unlock(); }
+  void lock() { _mut.lock(); }
+  void unlock() { _mut.unlock(); }
 };
 
 template <>

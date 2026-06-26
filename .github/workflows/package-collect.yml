@@ -157,10 +157,7 @@ jobs:
           ARCH: ${{ inputs.arch }}
           LEGACY_ENGINE: ${{ inputs.legacy_engine }}
         run: |
-          CMAKE="cmake3"
-          if [ "$PACKAGE_EXTENSION" = "deb" ]; then
-            CMAKE="cmake"
-          fi
+          CMAKE="cmake"
 
           if [ "$ARCH" = "arm64" ]; then
             export VCPKG_FORCE_SYSTEM_BINARIES=1
@@ -170,7 +167,9 @@ jobs:
           fi
 
           export VCPKG_ROOT="/vcpkg"
-          export PATH="$VCPKG_ROOT:$PATH"
+          export VCPKG_MAX_CONCURRENCY=8
+          export VCPKG_FORCE_SYSTEM_BINARIES=1
+          export PATH="$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH"
 
           mv /root/.cache /github/home/
 

@@ -50,7 +50,7 @@ child_process<use_mutex>::~child_process() {
  */
 template <bool use_mutex>
 int child_process<use_mutex>::get_pid() const {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     return _proc->proc.id();
   }
@@ -88,7 +88,7 @@ void child_process<use_mutex>::_on_process_end(
     const boost::system::error_code& err,
     int raw_exit_status) {
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       // due to a bug in boost::process, we don't take this error into account
       // if we had terminated child process before
@@ -121,7 +121,7 @@ void child_process<use_mutex>::_on_process_end(
 template <bool use_mutex>
 void child_process<use_mutex>::_stdin_write(
     const std::shared_ptr<std::string>& data) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdin_write_no_lock(data);
 }
 
@@ -148,7 +148,7 @@ void child_process<use_mutex>::_stdin_write_no_lock(
           [me = shared_from_this(), data](const boost::system::error_code& err,
                                           size_t nb_written [[maybe_unused]]) {
             me->_on_stdin_write(err);
-            detail::lock<use_mutex> l(&me->_protect);
+            detail::lock<use_mutex> l(me->_protect);
             me->_priv_on_stdin_write(err);
           });
     } catch (const std::exception& e) {
@@ -225,7 +225,7 @@ void child_process<use_mutex>::_on_stdout_read(
     size_t nb_read) {
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
@@ -250,7 +250,7 @@ void child_process<use_mutex>::_on_stdout_read(
     _on_stdout_read(err, received);
   }
   if (!err) {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     _stdout_read();
   } else {
     _on_completion();
@@ -291,7 +291,7 @@ void child_process<use_mutex>::_on_stderr_read(
     size_t nb_read) {
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       _completion_flags.fetch_or(e_completion_flags::stderr_eof);
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
@@ -318,7 +318,7 @@ void child_process<use_mutex>::_on_stderr_read(
     _on_stderr_read(err, received);
   }
   if (!err) {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     _stderr_read();
   } else {
     _on_completion();
@@ -351,7 +351,7 @@ void child_process<use_mutex>::_on_completion() {
  */
 template <bool use_mutex>
 bool child_process<use_mutex>::is_alive() const {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   return _proc && _proc->proc.is_open();
 }
 
@@ -361,7 +361,7 @@ bool child_process<use_mutex>::is_alive() const {
  */
 template <bool use_mutex>
 void child_process<use_mutex>::kill() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
     SPDLOG_LOGGER_INFO(_logger, "kill with SIGKILL process child pid:{}",
@@ -382,7 +382,7 @@ void child_process<use_mutex>::kill() {
  */
 template <bool use_mutex>
 void child_process<use_mutex>::request_exit() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
     SPDLOG_LOGGER_INFO(_logger, "kill with SIGTERM process child pid:{}",
