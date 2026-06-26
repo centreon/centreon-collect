@@ -166,13 +166,15 @@ mkdir -p /etc/centreon-engine \
          /usr/share/centreon/lib/centreon-broker \
          /usr/lib64/centreon-engine \
          /usr/lib/nagios/plugins \
+         /usr/lib/nagios/plugins/custom \
          /usr/lib64/nagios
 ln -s /usr/lib/nagios/plugins /usr/lib64/nagios/plugins
 chown -R centreon-engine:centreon-engine \
          /etc/centreon-engine \
          /var/lib/centreon-engine \
          /var/log/centreon-engine \
-         /var/lib/centreon/centplugins
+         /var/lib/centreon/centplugins \
+         /usr/lib/nagios/plugins/custom
 chown -R centreon-broker:centreon-broker \
           /etc/centreon-broker
 chmod 775 /etc/centreon-engine \
