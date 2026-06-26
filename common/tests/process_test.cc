@@ -304,11 +304,7 @@ static void run_with_streaming_handler(const std::string& cmd,
 
   using reader_type = std::function<void(const std::string_view&)>;
 
-  reader_type chunk_handler = [&](const boost::system::error_code& err,
-                                  const std::string_view& data) {
-    if (err) {
-      return;
-    }
+  reader_type chunk_handler = [&](const std::string_view& data) {
     absl::MutexLock l(mutex);
     ++chunk_count_out;
     for (unsigned char c : data) {

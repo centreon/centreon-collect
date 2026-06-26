@@ -37,6 +37,30 @@
 #pragma GCC diagnostic pop
 
 namespace proc = boost::process::v2;
+
+namespace com::centreon::common::detail {
+
+/**
+ * @brief The only goal of this struct is to hide boost::process implementation
+ * So, you will find a shared_ptr<boost_process> attribute in process class
+ * I don't know why, but you can't define a unique_ptr of unknown struct in a
+ * class attribute so, we use raw pointer instead
+ *
+ */
+struct boost_process {
+  boost_process(
+      boost::process::v2::basic_process<asio::io_context::executor_type>&&
+          proc_created)
+      : proc(std::move(proc_created)) {}
+
+  boost_process(const boost_process&) = delete;
+  boost_process& operator=(const boost_process&) = delete;
+
+  boost::process::v2::basic_process<asio::io_context::executor_type> proc;
+};
+
+}  // namespace com::centreon::common::detail
+
 using namespace com::centreon::common;
 
 /**
@@ -151,7 +175,7 @@ process<use_mutex>::~process() {
  */
 template <bool use_mutex>
 int process<use_mutex>::get_pid() const {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     return _proc->proc.id();
   }
@@ -311,7 +335,7 @@ template <bool use_mutex>
 void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
                                          int raw_exit_status) {
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       // due to a bug in boost::process, we don't take this error into account
       // if we had terminated child process before
@@ -344,7 +368,7 @@ void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
 template <bool use_mutex>
 void process<use_mutex>::_stdin_write(
     const std::shared_ptr<std::string>& data) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdin_write_no_lock(data);
 }
 
@@ -370,7 +394,7 @@ void process<use_mutex>::_stdin_write_no_lock(
           asio::buffer(*data),
           [me = shared_from_this(), data](const boost::system::error_code& err,
                                           size_t nb_written [[maybe_unused]]) {
-            detail::lock<use_mutex> l(&me->_protect);
+            detail::lock<use_mutex> l(me->_protect);
             me->_on_stdin_write(err);
           });
     } catch (const std::exception& e) {
@@ -449,7 +473,7 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
   bool eof = false;
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
@@ -477,7 +501,7 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
   if (!received.empty()) {
     _stdout_handler(received);
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _stdout_read();
     }
   }
@@ -523,7 +547,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
   bool eof = false;
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
@@ -552,7 +576,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
   if (!received.empty()) {
     _stderr_handler(received);
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _stderr_read();
     }
   }
@@ -570,7 +594,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
  */
 template <bool use_mutex>
 void process<use_mutex>::_on_timeout() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _exit_status = e_exit_status::timeout;
   if (_proc->proc.is_open()) {
     SPDLOG_LOGGER_ERROR(_logger, "pid:{} timeout process {} => kill",
@@ -593,7 +617,7 @@ void process<use_mutex>::_on_completion() {
   if (_completion_flags.compare_exchange_strong(
           expected, e_completion_flags::handler_called)) {
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _timeout_timer.cancel();
     }
     _handler(*this, _exit_code, _exit_status, _stdout, _stderr);
@@ -606,7 +630,7 @@ void process<use_mutex>::_on_completion() {
  */
 template <bool use_mutex>
 void process<use_mutex>::kill() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
     SPDLOG_LOGGER_INFO(_logger, "pid:{} kill process {}", child_pid, *_args);
