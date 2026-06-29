@@ -67,7 +67,7 @@ class state {
   state& operator=(state const& other) = delete;
   void apply(configuration::state const& my_state);
   service_book& book_service();
-  void visit(io::stream* visitor);
+  void visit(io::stream* visitor, bool seed_service_status);
   void save_to_cache(const std::string& name,
                      const std::deque<std::string>& pending_ext_cmds);
   void load_from_cache(const std::string& name,

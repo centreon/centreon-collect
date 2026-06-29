@@ -784,6 +784,74 @@ void stream::_update_metrics() {
   }
 }
 
+/**
+ * @brief Flush the pending host/service status bulk binds to the database.
+ *
+ * Regular host/service statuses are accumulated in bulk binds and normally sent
+ * by the periodic _check_queues() once a bind is ready(). Adaptive statuses
+ * (scheduled_downtime_depth, acknowledgement, notification number) are, on the
+ * other hand, applied immediately through a direct query. Both write the same
+ * columns of the same row and both target connection 0, so if a regular status
+ * carrying an older value is still buffered when an adaptive update runs, the
+ * later bulk flush would clobber the adaptive value (e.g. a stale
+ * scheduled_downtime_depth=0 overwriting the downtime-start depth=1, making a
+ * just-started downtime look inactive). Flushing the pending binds before the
+ * adaptive direct query preserves the per-row order (older bulk first, adaptive
+ * last).
+ *
+ * Serialized with _check_queues() through _status_bind_flush_m: both run
+ * apply_to_stmt()/run_statement() on the shared *_update statements but from
+ * different threads (the muxer write thread vs the io_context pool).
+ *
+ * @param force When true, flush every connection that has at least one pending
+ * row regardless of the ready() timer (used before an adaptive direct query);
+ * when false, keep the periodic semantics (flush only when a bind is ready()).
+ */
+void stream::_flush_status_binds(bool force) {
+  if (!_bulk_prepared_statement)
+    return;
+
+  absl::MutexLock lck(&_status_bind_flush_m);
+  auto flush = [this, force](std::unique_ptr<bulk_bind>& bind,
+                             database::mysql_stmt_base& stmt,
+                             database::mysql_error::code ec, const char* what,
+                             const char* bind_name) {
+    if (!bind)
+      return;
+    SPDLOG_LOGGER_TRACE(
+        _logger_sql,
+        "Check if some statements are ready,  {} connections count = {}",
+        bind_name, bind->connections_count());
+    for (uint32_t conn = 0; conn < bind->connections_count(); conn++) {
+      if (force ? bind->size(conn) > 0 : bind->ready(conn)) {
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "Sending {} {} rows on connection {}",
+                            bind->size(conn), what, conn);
+        // Setting the good bind to the stmt
+        bind->apply_to_stmt(conn);
+        // Executing the stmt (always connection 0, like the adaptive direct
+        // query, so per-row ordering is preserved).
+        _mysql.run_statement(stmt, ec, 0);
+      }
+    }
+  };
+
+  if (_store_in_hosts_services) {
+    flush(_hscr_bind, *_hscr_update, database::mysql_error::store_host_status,
+          "host status", "hscr_bind");
+    flush(_sscr_bind, *_sscr_update,
+          database::mysql_error::store_service_status, "service status",
+          "sscr_bind");
+  }
+  if (_store_in_resources) {
+    flush(_hscr_resources_bind, *_hscr_resources_update,
+          database::mysql_error::store_host_status, "host resource status",
+          "hscr_resources_bind");
+    flush(_sscr_resources_bind, *_sscr_resources_update,
+          database::mysql_error::store_service_status,
+          "service resource status", "sscr_resources_bind");
+  }
+}
+
 void stream::_check_queues(boost::system::error_code ec) {
   if (ec)
     _logger_sql->error("unified_sql: the queues check encountered an error: {}",
@@ -802,87 +870,8 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     try {
       if (_bulk_prepared_statement) {
-        if (_store_in_hosts_services) {
-          if (_hscr_bind) {
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready,  hscr_bind connections "
-                "count = {}",
-                _hscr_bind->connections_count());
-            for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
-                 conn++) {
-              if (_hscr_bind->ready(conn)) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger_sql,
-                    "Sending {} hosts rows of host status on connection {}",
-                    _hscr_bind->size(conn), conn);
-                // Setting the good bind to the stmt
-                _hscr_bind->apply_to_stmt(conn);
-                // Executing the stmt
-                _mysql.run_statement(
-                    *_hscr_update, database::mysql_error::store_host_status, 0);
-              }
-            }
-          }
-          if (_sscr_bind) {
-            SPDLOG_LOGGER_TRACE(
-                _logger_sql,
-                "Check if some statements are ready,  sscr_bind connections "
-                "count = {}",
-                _sscr_bind->connections_count());
-            for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
-                 conn++) {
-              if (_sscr_bind->ready(conn)) {
-                SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                    "Sending {} services rows of service "
-                                    "status on connection {}",
-                                    _sscr_bind->size(conn), conn);
-                // Setting the good bind to the stmt
-                _sscr_bind->apply_to_stmt(conn);
-                // Executing the stmt
-                _mysql.run_statement(
-                    *_sscr_update, database::mysql_error::store_service_status,
-                    0);
-              }
-            }
-          }
-        }
-        if (_store_in_resources) {
-          if (_hscr_resources_bind) {
-            for (uint32_t conn = 0;
-                 conn < _hscr_resources_bind->connections_count(); conn++) {
-              if (_hscr_resources_bind->ready(conn)) {
-                SPDLOG_LOGGER_DEBUG(
-                    _logger_sql,
-                    "Sending {} host rows of resource status on connection {}",
-                    _hscr_resources_bind->size(conn), conn);
-                // Setting the good bind to the stmt
-                _hscr_resources_bind->apply_to_stmt(conn);
-                // Executing the stmt
-                _mysql.run_statement(*_hscr_resources_update,
-                                     database::mysql_error::store_host_status,
-                                     0);
-              }
-            }
-          }
-          if (_sscr_resources_bind) {
-            for (uint32_t conn = 0;
-                 conn < _sscr_resources_bind->connections_count(); conn++) {
-              if (_sscr_resources_bind->ready(conn)) {
-                SPDLOG_LOGGER_DEBUG(_logger_sql,
-                                    "Sending {} service rows of resource "
-                                    "status on connection {}",
-                                    _sscr_resources_bind->size(conn), conn);
-                // Setting the good bind to the stmt
-                _sscr_resources_bind->apply_to_stmt(conn);
-                // Executing the stmt
-                _mysql.run_statement(
-                    *_sscr_resources_update,
-                    database::mysql_error::store_service_status, 0);
-              }
-            }
-          }
-        }
+        // Send the host/service status bulk binds that became ready.
+        _flush_status_binds(false);
         resources_done = true;
       }
 

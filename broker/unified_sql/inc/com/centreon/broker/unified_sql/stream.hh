@@ -363,6 +363,13 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_resources_update;
   std::unique_ptr<bulk_bind> _sscr_resources_bind;
 
+  /* Serializes the apply_to_stmt()/run_statement() of the host/service status
+   * bulk binds above. They are flushed both by the periodic _check_queues()
+   * (io_context pool thread) and, before an adaptive status direct query, by
+   * _flush_status_binds() (muxer write thread); both mutate the shared *_update
+   * statements, so the two callers must never run at the same time. */
+  mutable absl::Mutex _status_bind_flush_m;
+
   static const std::string _index_data_insert_request;
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -384,6 +391,8 @@ class stream : public io::stream {
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(boost::system::error_code ec)
       ABSL_SHARED_LOCKS_REQUIRED(_barrier_timer_m);
+  void _flush_status_binds(bool force)
+      ABSL_LOCKS_EXCLUDED(_status_bind_flush_m);
   void _check_deleted_index();
   void _check_rebuild_index();
 

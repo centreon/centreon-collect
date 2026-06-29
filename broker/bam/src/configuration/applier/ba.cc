@@ -218,11 +218,11 @@ std::shared_ptr<bam::ba> applier::ba::find_ba(uint32_t id) const {
  *
  *  @param[out] visitor  Visitor that will receive status.
  */
-void applier::ba::visit(io::stream* visitor) {
+void applier::ba::visit(io::stream* visitor, bool seed_service_status) {
   for (std::map<uint32_t, applied>::iterator it(_applied.begin()),
        end(_applied.end());
        it != end; ++it)
-    it->second.obj->visit(visitor);
+    it->second.obj->visit(visitor, seed_service_status);
 }
 
 /**

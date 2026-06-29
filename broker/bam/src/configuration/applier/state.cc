@@ -118,8 +118,8 @@ bam::service_book& applier::state::book_service() {
  *
  *  @param[out] visitor  Visitor.
  */
-void applier::state::visit(io::stream* visitor) {
-  _ba_applier.visit(visitor);
+void applier::state::visit(io::stream* visitor, bool seed_service_status) {
+  _ba_applier.visit(visitor, seed_service_status);
   _kpi_applier.visit(visitor);
 }
 

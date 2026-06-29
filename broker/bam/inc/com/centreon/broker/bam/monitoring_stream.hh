@@ -85,6 +85,11 @@ class monitoring_stream : public io::stream {
   bool _queue_external_commands_stopped;
 
   ba_svc_mapping _ba_mapping;
+  /* True until the first update() (cold start) completes. On a cold start the
+   * BA virtual service statuses are published to seed the RRD; on a reload they
+   * are not republished (the state is unchanged and already downstream), which
+   * would otherwise duplicate an RRD point at a constant last_check. */
+  bool _first_update{true};
   mutable std::mutex _statusm;
   mysql _mysql;
   unsigned _conf_queries_per_transaction;
@@ -115,6 +120,7 @@ class monitoring_stream : public io::stream {
   void _update_status(std::string const& status);
   void _async_write_external_commands();
   void _write_external_command(const std::string& cmd);
+  void _handle_inherited_downtime(uint32_t ba_id, bool in_downtime);
 
   void _read_cache();
   void _write_cache();

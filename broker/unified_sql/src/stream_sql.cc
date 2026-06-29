@@ -2298,6 +2298,12 @@ void stream::_process_pb_adaptive_host_status(
     return;
   }
 
+  /* This adaptive status is applied right away through a direct query while a
+   * regular host status for the same row may still sit in the bulk bind with an
+   * older value. Flush the pending binds first so this update is not later
+   * clobbered by the buffered (stale) one. */
+  _flush_status_binds(true);
+
   if (_store_in_hosts_services) {
     constexpr std::string_view buf("UPDATE hosts SET ");
     std::string query{buf};
@@ -4080,6 +4086,12 @@ void stream::_process_pb_adaptive_service_status(
         sscr.host_id(), sscr.service_id(), sscr.host_id());
     return;
   }
+
+  /* This adaptive status is applied right away through a direct query while a
+   * regular service status for the same row may still sit in the bulk bind with
+   * an older value. Flush the pending binds first so this update is not later
+   * clobbered by the buffered (stale) one. */
+  _flush_status_binds(true);
 
   if (_store_in_hosts_services) {
     constexpr std::string_view query("UPDATE services SET ");

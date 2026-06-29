@@ -241,7 +241,7 @@ void ba::set_downtime_behaviour(configuration::ba::downtime_behaviour value) {
  *
  *  @param[out] visitor  Visitor that will receive BA status and events.
  */
-void ba::visit(io::stream* visitor) {
+void ba::visit(io::stream* visitor, bool seed_service_status) {
   if (visitor) {
     // Commit initial events.
     _commit_initial_events(visitor);
@@ -249,12 +249,18 @@ void ba::visit(io::stream* visitor) {
     // If no event was cached, create one if necessary.
     com::centreon::broker::bam::state hard_state(get_state_hard());
     bool state_changed(false);
+    // True when a new BA event is opened during this visit, i.e. the BA really
+    // transitioned (state/downtime change) or its first event is created. The
+    // virtual service status' last_check is the event start_time, so it only
+    // moves forward when a new event is opened.
+    bool event_opened(false);
     if (!_event) {
       SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: ba::visit no event => creation of one");
       if (_last_kpi_update.is_null())
         _last_kpi_update = time(nullptr);
       _open_new_event(visitor, hard_state);
+      event_opened = true;
     }
     // If state changed, close event and open a new one.
     else if (_in_downtime != _event->obj().in_downtime() ||
@@ -272,17 +278,22 @@ void ba::visit(io::stream* visitor) {
       visitor->write(std::static_pointer_cast<io::data>(_event));
       _event.reset();
       _open_new_event(visitor, hard_state);
+      event_opened = true;
     }
 
     // Generate BA status event.
     auto status{_generate_ba_status(state_changed)};
     visitor->write(status);
 
-    // Generate virtual service status event.
-    if (_generate_virtual_status) {
-      auto status{_generate_virtual_service_status()};
-      visitor->write(status);
-    }
+    // Generate virtual service status event. It is published only when the BA
+    // transitioned (event_opened => last_check moved forward) or, at cold
+    // start, to seed the status downstream (seed_service_status). Re-emitting
+    // an unchanged status at a constant last_check would duplicate an RRD point
+    // and make RRD log an "ignored update error" (see BAWORST): this is exactly
+    // what happens on a reload of an unchanged BA (seed_service_status is false
+    // and no event is opened) and on repeated runtime visits with no change.
+    if (_generate_virtual_status && (seed_service_status || event_opened))
+      visitor->write(_generate_virtual_service_status());
   }
 }
 

@@ -182,7 +182,7 @@ class broker_state : public state {
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   bool has_connection_from_poller(uint64_t poller_id) const override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
-  void set_instance_running(uint64_t poller_id, bool running) noexcept
+  void set_instance_running(uint64_t poller_id, bool running) noexcept override
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
   std::vector<engine_peer> connected_pollers() const
       ABSL_LOCKS_EXCLUDED(_connected_peers_m);
