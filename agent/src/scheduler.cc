@@ -938,53 +938,64 @@ std::shared_ptr<check> scheduler::default_check_builder(
         args = &no_arg;
       }
 
+      std::optional<duration> custom_timeout;
+      if (args->IsObject() && args->HasMember("timeout")) {
+        auto timeout_sec = check::get_double(service.command_name(), "timeout",
+                                             (*args)["timeout"], true);
+        if (timeout_sec.has_value() && timeout_sec.value() > 0) {
+          custom_timeout =
+              std::chrono::seconds(static_cast<unsigned>(timeout_sec.value()));
+        }
+      }
+
+      std::shared_ptr<check> result;
       if (check_type == "cpu_percentage"sv) {
-        return std::make_shared<check_cpu>(io_context, logger,
-                                           first_start_expected, service, *args,
-                                           conf, std::move(handler), stat);
+        result = std::make_shared<check_cpu>(
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "health"sv) {
-        return std::make_shared<check_health>(
+        result = std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "custom"sv) {
-        return std::make_shared<check_custom>(
+        result = std::make_shared<check_custom>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat, credentials_decrypt);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
-        return std::make_shared<check_uptime>(
+        result = std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "storage"sv) {
-        return std::make_shared<check_drive_size>(
+        result = std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "memory"sv) {
-        return std::make_shared<check_memory>(
+        result = std::make_shared<check_memory>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "service"sv) {
-        return std::make_shared<check_service>(
+        result = std::make_shared<check_service>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "counter"sv) {
-        return std::make_shared<check_counter>(
+        result = std::make_shared<check_counter>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "tasksched"sv) {
-        return std::make_shared<check_sched>(
+        result = std::make_shared<check_sched>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "files"sv) {
-        return std::make_shared<check_files>(
+        result = std::make_shared<check_files>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
-        return check_event_log::load(io_context, logger, first_start_expected,
-                                     service, *args, conf, std::move(handler),
-                                     stat);
+        result = check_event_log::load(io_context, logger, first_start_expected,
+                                       service, *args, conf, std::move(handler),
+                                       stat);
       } else if (check_type == "process_nscp"sv) {
-        return std::make_shared<check_process>(
+        result = std::make_shared<check_process>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
 #endif
@@ -992,6 +1003,11 @@ std::shared_ptr<check> scheduler::default_check_builder(
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
                                   service.command_name(), command_line);
       }
+
+      if (custom_timeout.has_value()) {
+        result->set_custom_timeout(custom_timeout.value());
+      }
+      return result;
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,
