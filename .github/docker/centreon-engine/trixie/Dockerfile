@@ -200,6 +200,10 @@ COPY --from=extractor --link --chmod=755 /extracted/usr/sbin/centengine /usr/sbi
 # Core library
 COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_clib.so /usr/lib/libcentreon_clib.so
 
+# Protobuf shared libraries (centreon-protobuf-lib package)
+COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_engine_conf.so /usr/lib/libcentreon_engine_conf.so
+COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/libcentreon_pb_bbdo.so /usr/lib/libcentreon_pb_bbdo.so
+
 # Broker module (cbmod.so) - engine loads this
 COPY --from=extractor --link --chmod=755 /extracted/usr/lib*/cbmod.so /usr/lib/cbmod.so
 
@@ -226,6 +230,8 @@ COPY --chmod=600 ./.github/docker/centreon-engine/sudoersCentreon /etc/sudoers.d
 RUN echo "=== Verification ===" && \
     ls -lah /usr/sbin/centengine && \
     ls -lah /usr/lib/libcentreon_clib.so && \
+    ls -lah /usr/lib/libcentreon_engine_conf.so && \
+    ls -lah /usr/lib/libcentreon_pb_bbdo.so && \
     ls -lah /usr/lib/cbmod.so && \
     ls -lah /usr/lib64/centreon-engine/*.so && \
     ls -lah /usr/lib64/centreon-connector/ && \
