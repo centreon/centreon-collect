@@ -51,16 +51,7 @@ set_target_properties(${GRPC} PROPERTIES PREFIX ""
 target_link_libraries(
   ${GRPC}
   centreon_grpc
-  pb_neb_lib
-  pb_common_lib
-  pb_storage_lib
-  pb_bbdo_lib
-  pb_bam_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  pb_rebuild_message_lib
-  pb_remove_graph_message_lib
-  pb_header_lib
+  centreon_pb_bbdo
   centreon_common
   fmt::fmt)
 

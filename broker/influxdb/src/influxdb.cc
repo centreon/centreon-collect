@@ -85,7 +85,7 @@ void influxdb::write(storage::status const& s) {
  *  @param[in] m  The metric to write.
  */
 void influxdb::write(const storage::pb_metric& m) {
-  SPDLOG_LOGGER_TRACE(_logger, "append metric {}", m.obj().ShortDebugString());
+  SPDLOG_LOGGER_TRACE(_logger, "append metric {}", m);
   _query.append(_metric_query.append_metric(m));
 }
 
@@ -95,7 +95,7 @@ void influxdb::write(const storage::pb_metric& m) {
  *  @param[in] s  The status to write.
  */
 void influxdb::write(const storage::pb_status& s) {
-  SPDLOG_LOGGER_TRACE(_logger, "append status {}", s.obj().ShortDebugString());
+  SPDLOG_LOGGER_TRACE(_logger, "append status {}", s);
   _query.append(_status_query.append_status(s));
 }
 

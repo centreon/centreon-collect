@@ -103,7 +103,7 @@ template <typename applier>
 void agent_impl_base::_apply_to_all(applier&& apply) {
   std::vector<pointer> all_conn;
   {
-    absl::MutexLock l(_instances_m);
+    absl::MutexLock l(*_instances_m);
     all_conn.reserve(_no_configured_instance->size() +
                      _configured_instance->size());
     std::copy(_no_configured_instance->begin(), _no_configured_instance->end(),

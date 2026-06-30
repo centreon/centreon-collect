@@ -66,8 +66,7 @@ target_link_libraries(
   "${LUA}"
   PRIVATE ${LUA_LIBRARIES}
           bbdo_bam
-	  bbdo_storage
-	  pb_storage_lib
+          bbdo_storage
           fmt::fmt)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)

@@ -17,11 +17,13 @@
  *
  */
 
+#include <fmt/format.h>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
 #include "../src/broker.grpc.pb.h"
+#include "com/centreon/common/fmt_protobuf.hh"
 
 using namespace com::centreon::broker;
 
@@ -92,7 +94,8 @@ int main(int argc, char** argv) {
   else if (strcmp(argv[1], "GetVersion") == 0) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
-    std::cout << "GetVersion: " << version.DebugString();
+    std::cout << fmt::format("GetVersion: {}",
+                             com::centreon::common::multiline_output(version));
   }
 
   else if (strcmp(argv[1], "GetSqlManagerStatsValue") == 0) {

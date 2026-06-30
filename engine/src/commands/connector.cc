@@ -193,7 +193,7 @@ void connector::run(const std::string& processed_cmd,
 
   } result_waiter = {shared_from_this(), command_id, res};
 
-  absl::MutexLock lck(&_results_m);
+  absl::MutexLock lck(_results_m);
   bool have_result = _results_m.AwaitWithTimeout(
       absl::Condition(&result_waiter), absl::Seconds(timeout));
 
@@ -578,7 +578,7 @@ void connector::_recv_query_execute(const std::string_view& data) {
       if (_listener)
         (_listener->finished)(res);
     } else {
-      absl::MutexLock l(&_results_m);
+      absl::MutexLock l(_results_m);
       // Push result into list of results.
       _results[command_id] = res;
     }

@@ -58,7 +58,7 @@ struct string_string_view_hash {
  *
  */
 class global_cache_data : public global_cache {
-  using index_id_mapping = interprocess::flat_map<
+  using index_id_mapping = boost::container::flat_map<
       uint64_t /* metric_id */,
       host_serv_pair,
       std::less<uint64_t>,
@@ -66,7 +66,7 @@ class global_cache_data : public global_cache {
                                            segment_manager,
                                            4096>>;
 
-  using metric_id_mapping = interprocess::flat_map<
+  using metric_id_mapping = boost::container::flat_map<
       uint64_t /* metric_id */,
       uint64_t /* index_id */,
       std::less<uint64_t>,
@@ -83,13 +83,13 @@ class global_cache_data : public global_cache {
                 int32_t /* severity given by custom var*/>;
 
   using id_to_host =
-      interprocess::flat_map<uint64_t,
-                             host_custom_var_pair,
-                             std::less<uint64_t>,
-                             interprocess::private_node_allocator<
-                                 std::pair<uint64_t, host_custom_var_pair>,
-                                 segment_manager,
-                                 4096>>;
+      boost::container::flat_map<uint64_t,
+                                 host_custom_var_pair,
+                                 std::less<uint64_t>,
+                                 interprocess::private_node_allocator<
+                                     std::pair<uint64_t, host_custom_var_pair>,
+                                     segment_manager,
+                                     4096>>;
 
   /**
    * @brief severity is also given by a custom variable "CRITICALITY_LEVEL"
@@ -98,7 +98,7 @@ class global_cache_data : public global_cache {
   using service_custom_var_pair =
       std::pair<interprocess::offset_ptr<service>,
                 int32_t /* severity given by custom var*/>;
-  using id_to_serv = interprocess::flat_map<
+  using id_to_serv = boost::container::flat_map<
       host_serv_pair,
       service_custom_var_pair,
       std::less<host_serv_pair>,
@@ -107,7 +107,7 @@ class global_cache_data : public global_cache {
           segment_manager,
           65536>>;
 
-  using id_to_instance = interprocess::flat_map<
+  using id_to_instance = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<instance>,
       std::less<uint64_t>,
@@ -115,7 +115,7 @@ class global_cache_data : public global_cache {
           std::pair<uint64_t, interprocess::offset_ptr<instance>>>::type>;
 
   // groups
-  using id_to_host_group = interprocess::flat_map<
+  using id_to_host_group = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<host_group>,
       std::less<uint64_t>,
@@ -178,7 +178,7 @@ class global_cache_data : public global_cache {
               multi_index::identity<host_group_member>>>,
       managed_mapped_file::allocator<host_group_member>::type>;
 
-  using id_to_serv_group = interprocess::flat_map<
+  using id_to_serv_group = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<service_group>,
       std::less<uint64_t>,
@@ -248,7 +248,7 @@ class global_cache_data : public global_cache {
               multi_index::identity<service_group_member>>>,
       managed_mapped_file::allocator<service_group_member>::type>;
 
-  using id_to_dimension_ba_event = interprocess::flat_map<
+  using id_to_dimension_ba_event = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<dimension_ba_event>,
       std::less<uint64_t>,
@@ -256,7 +256,7 @@ class global_cache_data : public global_cache {
           std::pair<uint64_t,
                     interprocess::offset_ptr<dimension_ba_event>>>::type>;
 
-  using id_to_dimension_bv_event = interprocess::flat_map<
+  using id_to_dimension_bv_event = boost::container::flat_map<
       uint64_t,
       interprocess::offset_ptr<dimension_bv_event>,
       std::less<uint64_t>,
@@ -264,7 +264,7 @@ class global_cache_data : public global_cache {
           std::pair<uint64_t,
                     interprocess::offset_ptr<dimension_bv_event>>>::type>;
 
-  using id_to_dimension_ba_bv_relation = interprocess::flat_multimap<
+  using id_to_dimension_ba_bv_relation = boost::container::flat_multimap<
       uint64_t /* ba_id */,
       uint64_t /* bv_id */,
       std::less<uint64_t>,
@@ -276,13 +276,13 @@ class global_cache_data : public global_cache {
       pollers.insert(src->poller_id());
     }
     interprocess::offset_ptr<tag> data;
-    interprocess::flat_set<uint64_t,
-                           std::less<uint64_t>,
-                           managed_mapped_file::allocator<uint64_t>::type>
+    boost::container::flat_set<uint64_t,
+                               std::less<uint64_t>,
+                               managed_mapped_file::allocator<uint64_t>::type>
         pollers;
   };
 
-  using id_to_tag = interprocess::flat_map<
+  using id_to_tag = boost::container::flat_map<
       std::pair<uint64_t, TagType>,
       tag_poller,
       std::less<std::pair<uint64_t, TagType>>,

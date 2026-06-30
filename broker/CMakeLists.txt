@@ -315,7 +315,6 @@ add_dependencies(pb_broker_lib process_stat pb_common_lib)
 
 target_link_libraries(pb_broker_lib
   PRIVATE
-  pb_common_lib
   process_stat
 )
 
@@ -399,11 +398,6 @@ target_link_libraries(
   pb_broker_lib
   bbdo
   ctncrypto
-  pb_bbdo_lib
-  pb_common_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  pb_header_lib
   process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -427,9 +421,7 @@ target_link_libraries(
   multiplexing
   centreon_common
   centreon_process
-  pb_neb_lib
-  pb_bam_lib
-  pb_storage_lib
+  centreon_pb_bbdo
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive

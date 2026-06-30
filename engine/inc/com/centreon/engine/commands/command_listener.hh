@@ -45,11 +45,11 @@ class command_listener {
 
   virtual void finished(result const& res) noexcept = 0;
   void reg(command* const ptr, std::function<void()>& regf) {
-    absl::MutexLock l(&_clean_callbacks_m);
+    absl::MutexLock l(_clean_callbacks_m);
     _clean_callbacks.insert({ptr, regf});
   }
   void unreg(command* const ptr) {
-    absl::MutexLock l(&_clean_callbacks_m);
+    absl::MutexLock l(_clean_callbacks_m);
     _clean_callbacks.erase(ptr);
   }
 };

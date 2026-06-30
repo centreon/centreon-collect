@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-param($compile_ut="On",$compile_installer="Off")
+param($compile_ut = "On", $compile_installer = "Off")
 
 <#
 .SYNOPSIS
@@ -34,7 +34,7 @@ function add_builtin_to_vcpkg_json {
     foreach ($line in $content) {
         $newContent += $line
         if ($line -match "{" -and $inserted -eq 0) {
-            $newContent += '"builtin-baseline":"ef7dbf94b9198bc58f45951adcf1f041fcbc5ea0", ' #2025.06.13
+            $newContent += '"builtin-baseline":"d015e31e90838a4c9dfa3eed45979bc70d9357fc", ' #2026.05.25
             $inserted = 1
         }
     }
@@ -62,6 +62,9 @@ Write-Host "install 7zip"
 
 #download and install 7zip
 choco install 7zip -y
+
+#cmake 4.3.3
+choco install cmake --version=4.3.3 -y
 
 #set builtin here in order to not impact linux compil
 add_builtin_to_vcpkg_json
@@ -97,7 +100,7 @@ if ( $? -ne $true ) {
     [System.Environment]::SetEnvironmentVariable("PATH", $pwd.ToString() + "\vcpkg;" + $env:PATH)
 
     Write-Host "compile vcpkg dependencies"
-    vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows --overlay-ports=overlays-windows
+    vcpkg install --vcpkg-root $env:VCPKG_ROOT  --x-install-root build_windows\vcpkg_installed --x-manifest-root . --overlay-triplets custom-triplets --triplet x64-windows 
 
     if ( $? -eq $true ) {
         Write-Host "Compress binary archive"
@@ -117,7 +120,7 @@ cmake -DCMAKE_BUILD_TYPE=Release "-DWITH_TESTING=$compile_ut" -DWINDOWS=On -DBUI
 
 #Write-Host "------------- vcpkg used compiler ---------------"
 #Get-Content "build_windows\vcpkg_installed\vcpkg\compiler-file-hash-cache.json"
-#Write-Host "------------- build agent only ---------------"
+Write-Host "------------- build agent only ---------------"
 
 cmake --build build_windows --config Release
 

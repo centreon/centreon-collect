@@ -184,6 +184,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
+    Ctn Clear Db    resources
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker

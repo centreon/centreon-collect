@@ -42,7 +42,7 @@ class mutex<true> : public absl::Mutex {};
 template <>
 class lock<true> : public absl::MutexLock {
  public:
-  lock(absl::Mutex* mut) : absl::MutexLock(mut) {}
+  lock(absl::Mutex& mut) : absl::MutexLock(mut) {}
 };
 
 template <>
@@ -51,7 +51,7 @@ class mutex<false> {};
 template <>
 class lock<false> {
  public:
-  lock(mutex<false>* /* dummy_mut*/) {}
+  lock(mutex<false>& /* dummy_mut*/) {}
 };
 
 struct boost_process;
@@ -250,12 +250,12 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
                      const std::chrono::system_clock::duration& timeout);
 
   std::string get_stdout() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stdout;
   }
 
   std::string get_stderr() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stderr;
   }
 

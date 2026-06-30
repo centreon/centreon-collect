@@ -59,25 +59,6 @@ struct boost_process {
   boost::process::v2::basic_process<asio::io_context::executor_type> proc;
 };
 
-#if defined(BOOST_PROCESS_V2_WINDOWS)
-
-/**
- * @brief The only goal of this struct is to set CREATE_NO_WINDOW flag in
- * CreateProcess call. Agent only start console applications, so we ensure that
- * no parasit cmd windows will be created.
- */
-struct create_no_window {
-  template <class launcher>
-  boost::system::error_code on_setup(
-      launcher& windows_launcher,
-      const std::filesystem::path& /*executable*/,
-      std::wstring& /*cmd_line*/) {
-    windows_launcher.creation_flags |= CREATE_NO_WINDOW;
-    return {};
-  }
-};
-#endif
-
 }  // namespace com::centreon::common::detail
 
 using namespace com::centreon::common;
@@ -194,7 +175,7 @@ process<use_mutex>::~process() {
  */
 template <bool use_mutex>
 int process<use_mutex>::get_pid() const {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     return _proc->proc.id();
   }
@@ -221,7 +202,7 @@ void process<use_mutex>::start_process(
     reader_type&& stdout_handler,
     reader_type&& stderr_handler,
     const std::chrono::system_clock::duration& timeout) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdout_handler = std::move(stdout_handler);
   _stderr_handler = std::move(stderr_handler);
   _start_process_nolock(std::move(handler), timeout);
@@ -231,7 +212,7 @@ template <bool use_mutex>
 void process<use_mutex>::start_process(
     handler_type&& handler,
     const std::chrono::system_clock::duration& timeout) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdout_handler = reader_type();
   _stderr_handler = reader_type();
   _start_process_nolock(std::move(handler), timeout);
@@ -292,20 +273,24 @@ static const std::vector<std::string> _no_args;
 
 template <bool use_mutex>
 void process<use_mutex>::_create_process() {
+  boost::process::windows::default_launcher launcher;
+  // from boost process 1.91, batch files are not allowed to be launched by
+  // default
+  launcher.allow_batch_files = true;
+  // Agent only start console applications
+  launcher.creation_flags |= CREATE_NO_WINDOW;
+
   if (_env && !_env->env_buffer.empty()) {
     _proc = new detail::boost_process(
-        boost::process::v2::basic_process<asio::io_context::executor_type>(
-            *_io_context, _args->get_exe_path(), _args->get_args(),
-            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                              _stderr_pipe},
-            *_env, detail::create_no_window()));
+        launcher(*this->_io_context, _args->get_exe_path(), _args->get_args(),
+                 boost::process::v2::process_stdio{
+                     this->_stdin_pipe, this->_stdout_pipe, this->_stderr_pipe},
+                 *_env));
   } else {
-    _proc = new detail::boost_process(
-        boost::process::v2::basic_process<asio::io_context::executor_type>(
-            *_io_context, _args->get_exe_path(), _args->get_args(),
-            boost::process::v2::process_stdio{_stdin_pipe, _stdout_pipe,
-                                              _stderr_pipe},
-            detail::create_no_window()));
+    _proc = new detail::boost_process(launcher(
+        *this->_io_context, _args->get_exe_path(), _args->get_args(),
+        boost::process::v2::process_stdio{this->_stdin_pipe, this->_stdout_pipe,
+                                          this->_stderr_pipe}));
   }
   if (!_use_stdin) {  // we don't want a stdin for child process => stdin read
                       // from child process will get an eof
@@ -350,7 +335,7 @@ template <bool use_mutex>
 void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
                                          int raw_exit_status) {
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       // due to a bug in boost::process, we don't take this error into account
       // if we had terminated child process before
@@ -383,7 +368,7 @@ void process<use_mutex>::_on_process_end(const boost::system::error_code& err,
 template <bool use_mutex>
 void process<use_mutex>::_stdin_write(
     const std::shared_ptr<std::string>& data) {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _stdin_write_no_lock(data);
 }
 
@@ -409,7 +394,7 @@ void process<use_mutex>::_stdin_write_no_lock(
           asio::buffer(*data),
           [me = shared_from_this(), data](const boost::system::error_code& err,
                                           size_t nb_written [[maybe_unused]]) {
-            detail::lock<use_mutex> l(&me->_protect);
+            detail::lock<use_mutex> l(me->_protect);
             me->_on_stdin_write(err);
           });
     } catch (const std::exception& e) {
@@ -488,7 +473,7 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
   bool eof = false;
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
@@ -516,7 +501,7 @@ void process<use_mutex>::_on_stdout_read(const boost::system::error_code& err,
   if (!received.empty()) {
     _stdout_handler(received);
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _stdout_read();
     }
   }
@@ -562,7 +547,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
   bool eof = false;
   std::string received;
   {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     if (err) {
       if (err == asio::error::eof || err == asio::error::broken_pipe) {
         SPDLOG_LOGGER_DEBUG(_logger,
@@ -591,7 +576,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
   if (!received.empty()) {
     _stderr_handler(received);
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _stderr_read();
     }
   }
@@ -609,7 +594,7 @@ void process<use_mutex>::_on_stderr_read(const boost::system::error_code& err,
  */
 template <bool use_mutex>
 void process<use_mutex>::_on_timeout() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   _exit_status = e_exit_status::timeout;
   if (_proc->proc.is_open()) {
     SPDLOG_LOGGER_ERROR(_logger, "pid:{} timeout process {} => kill",
@@ -632,7 +617,7 @@ void process<use_mutex>::_on_completion() {
   if (_completion_flags.compare_exchange_strong(
           expected, e_completion_flags::handler_called)) {
     {
-      detail::lock<use_mutex> l(&_protect);
+      detail::lock<use_mutex> l(_protect);
       _timeout_timer.cancel();
     }
     _handler(*this, _exit_code, _exit_status, _stdout, _stderr);
@@ -645,7 +630,7 @@ void process<use_mutex>::_on_completion() {
  */
 template <bool use_mutex>
 void process<use_mutex>::kill() {
-  detail::lock<use_mutex> l(&_protect);
+  detail::lock<use_mutex> l(_protect);
   if (_proc) {
     auto child_pid = _proc->proc.handle().id();
     SPDLOG_LOGGER_INFO(_logger, "pid:{} kill process {}", child_pid, *_args);

@@ -98,12 +98,11 @@ target_precompile_headers(opentelemetry PRIVATE precomp_inc/precomp.hh)
 # set(EXTERNALCMD_MODULE "${EXTERNALCMD_MODULE}" PARENT_SCOPE)
 target_link_libraries(
   opentelemetry
-  PRIVATE protobuf::libprotobuf
-          Boost::program_options
+  PRIVATE Boost::program_options
           Boost::url
           centreon_http
-          pb_open_telemetry_lib
-          centreon_common_timeperiod
+          centreon_pb_bbdo
+          centreon_engine_conf
           fmt::fmt
           ctncrypto)
 
