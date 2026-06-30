@@ -47,6 +47,7 @@ overrides:
       - lua
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker = ${VERSION}-${RELEASE}${DIST}
+      - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
       - gnutls >= 3.6.0
       - mariadb-connector-c >= 3.1.10
     conflicts:
@@ -69,6 +70,7 @@ overrides:
       - liblua${LUA_VERSION}-0
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
       - libgnutls30
       - libssl1.1 | libssl3
       - libmariadb3
