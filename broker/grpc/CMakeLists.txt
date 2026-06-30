@@ -51,17 +51,8 @@ target_link_libraries(
   ${GRPC}
   PRIVATE
   centreon_grpc
-  -Wl,--whole-archive
-  pb_neb_lib
-  pb_storage_lib
-  pb_bbdo_lib
-  pb_bam_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  pb_rebuild_message_lib
-  pb_remove_graph_message_lib
-  pb_header_lib
-  -Wl,--no-whole-archive
+  centreon_pb_bbdo
+  centreon_common
   fmt::fmt)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)

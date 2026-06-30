@@ -298,11 +298,13 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
-  absl::MutexLock l(&_timer_m);
+  absl::MutexLock l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait([this](const boost::system::error_code& err) {
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
-    _check_queues(err);
+    if (!err) {
+      absl::ReaderMutexLock lck(_barrier_timer_m);
+      _check_queues(err);
+    }
   });
   _start_loop_timer();
   SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
@@ -311,14 +313,34 @@ stream::stream(const database_config& dbcfg,
 
 stream::~stream() noexcept {
   {
-    absl::MutexLock l(&_timer_m);
+    absl::MutexLock l(_timer_m);
     _group_clean_timer.cancel();
     _queues_timer.cancel();
     _loop_timer.cancel();
   }
   /* Let's wait a little if one of the timers is working during the cancellation
    */
-  absl::MutexLock lck(&_barrier_timer_m);
+  absl::MutexLock lck(_barrier_timer_m);
+  /* If there are data to write, we write them, so we force their readyness. */
+  if (_hscr_bind)
+    _hscr_bind->force_ready();
+  if (_sscr_bind)
+    _sscr_bind->force_ready();
+  if (_hscr_resources_bind)
+    _hscr_resources_bind->force_ready();
+  if (_sscr_resources_bind)
+    _sscr_resources_bind->force_ready();
+  if (_perfdata_query)
+    _perfdata_query->force_ready();
+  _cv.force_ready();
+  _cvs.force_ready();
+  if (_downtimes)
+    _downtimes->force_ready();
+  if (_comments)
+    _comments->force_ready();
+  if (_logs)
+    _logs->force_ready();
+  _check_queues({});
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 
@@ -1247,10 +1269,10 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
+    absl::ReaderMutexLock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     {
-      absl::MutexLock l(&_timer_m);
+      absl::MutexLock l(_timer_m);
       _start_loop_timer();
     }
   });

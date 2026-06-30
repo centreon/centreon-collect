@@ -399,9 +399,9 @@ EBDP5
     Ctn Remove Poller By Id    51001    ${4}
 
     # wait unified receive instance event
-    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${content}    Create List    central-broker-unified-sql read {"cat":"neb","elem":"Instance
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
+    Should Be True    ${result}    central-broker-unified-sql read {"cat":"neb","elem":"Instance is missing
 
     Ctn Stop engine
     Ctn Kindly Stop Broker
@@ -464,9 +464,9 @@ EBDP6
     Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
-    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${content}    Create List    central-broker-unified-sql read {"cat":"neb","elem":"Instance
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
+    Should Be True    ${result}    central-broker-unified-sql read {"cat":"neb","elem":"Instance is missing
 
     Ctn Stop Engine
     Ctn Kindly Stop Broker
@@ -529,9 +529,9 @@ EBDP7
     Ctn Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
-    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${content}    Create List    central-broker-unified-sql read {"cat":"neb","elem":"Instance
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
+    Should Be True    ${result}    central-broker-unified-sql read {"cat":"neb","elem":"Instance is missing
 
     Ctn Stop engine
     Ctn Kindly Stop Broker

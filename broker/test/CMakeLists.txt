@@ -123,7 +123,7 @@ target_link_libraries(
           test_util
           centreon_common
           fmt::fmt
-	  gRPC::grpc++)
+	        gRPC::grpc++)
 
 add_dependencies(
   ut_broker

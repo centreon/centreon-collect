@@ -411,7 +411,7 @@ void ::check_files_detail::check_files_thread::run() {
   auto keep_object_alive = shared_from_this();
 
   while (_active) {
-    absl::MutexLock l(&_queue_m);
+    absl::MutexLock l(_queue_m);
     _queue_m.Await(absl::Condition(this, &check_files_thread::has_to_wait));
 
     if (!_active) {
@@ -453,7 +453,7 @@ void ::check_files_detail::check_files_thread::run() {
 }
 
 void ::check_files_detail::check_files_thread::kill() {
-  absl::MutexLock l(&_queue_m);
+  absl::MutexLock l(_queue_m);
   _active = false;
 }
 
@@ -481,7 +481,7 @@ void ::check_files_detail::check_files_thread::async_get_files(
     const std::shared_ptr<filter>& request_filter,
     const time_point& timeout,
     handler_type&& handler) {
-  absl::MutexLock lck(&_queue_m);
+  absl::MutexLock lck(_queue_m);
   _queue.push_back(
       {request_filter, std::forward<handler_type>(handler), timeout});
 }

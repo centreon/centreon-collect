@@ -18,33 +18,33 @@ on:
   workflow_dispatch:
     inputs:
       nightly_manual_trigger:
-        description: 'Set to true for nightly run'
+        description: "Set to true for nightly run"
         required: true
         default: false
         type: boolean
       legacy_engine:
-        description: 'Compile Engine with legacy configuration library'
+        description: "Compile Engine with legacy configuration library"
         required: true
         default: true
         type: boolean
       robot_pattern:
-        description: 'filter robot files with regex'
+        description: "filter robot files with regex"
         required: true
-        default: '^((?!cma).)*$'
+        default: "^((?!cma).)*$"
         type: string
       packages_in_artifact:
-        description: 'Save packages in artifacts'
+        description: "Save packages in artifacts"
         required: true
         default: false
         type: boolean
       unit_tests:
-        description: 'Execute the unit tests'
+        description: "Execute the unit tests"
         required: true
         default: true
         type: boolean
 
   schedule:
-    - cron: '30 0 * * 1-5'
+    - cron: "30 0 * * 1-5"
   pull_request:
     paths:
       - ".version"
@@ -73,8 +73,8 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
-      - 'release-[2-9][0-9].[0-9][0-9]-next'
-      - 'hotfix-[2-9][0-9].[0-9][0-9]-next'
+      - "release-[2-9][0-9].[0-9][0-9]-next"
+      - "hotfix-[2-9][0-9].[0-9][0-9]-next"
     paths:
       - ".version"
       - ".version.centreon-collect"
@@ -182,12 +182,11 @@ jobs:
           DISTRIB: ${{ matrix.distrib }}
         run: |
           CMAKE="cmake"
-          if [[ "$DISTRIB" == "alma8" || "$DISTRIB" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
 
           export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
+          export VCPKG_MAX_CONCURRENCY=6
+          export VCPKG_FORCE_SYSTEM_BINARIES=1
+          export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
 
           mv /root/.cache /github/home/
 
@@ -350,42 +349,42 @@ jobs:
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el8-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el8
             image: centreon-collect-mysql-alma8-test
             package_extension: rpm
             arch: amd64
             database_type: mysql
             test_group_name: robot_test-mysql-el8-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el9
             image: centreon-collect-mysql-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mysql
             test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-arm64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: bookworm
             image: centreon-collect-mariadb-bookworm-test
             package_extension: deb
             arch: amd64
             database_type: mariadb
             test_group_name: robot_test-mariadb-bookworm-amd64
-            tests_params: '{}'
+            tests_params: "{}"
           - distrib: el9
             image: centreon-collect-mariadb-alma9-test
             package_extension: rpm
@@ -588,11 +587,7 @@ jobs:
 
   create-jira-nightly-ticket:
     runs-on: ubuntu-24.04
-    needs: [
-      get-environment,
-      deliver-rpm,
-      deliver-deb
-    ]
+    needs: [get-environment, deliver-rpm, deliver-deb]
     if: |
       needs.get-environment.outputs.is_nightly == 'true' && github.run_attempt == 1 &&
       (failure() || cancelled() || contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')) &&

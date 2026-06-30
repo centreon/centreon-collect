@@ -307,7 +307,7 @@ add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.pb.h
   )
 
-add_dependencies(pb_broker_lib process_stat)
+add_dependencies(pb_broker_lib process_stat pb_common_lib)
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Core library.
@@ -387,10 +387,7 @@ target_link_libraries(
   global_cache
   bbdo_bbdo
   pb_broker_lib
-  pb_bbdo_lib
-  pb_extcmd_lib
-  pb_open_telemetry_lib
-  pb_header_lib
+  bbdo
   process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -421,9 +418,7 @@ target_link_libraries(
   multiplexing
   centreon_common
   centreon_process
-  pb_neb_lib
-  pb_bam_lib
-  pb_storage_lib
+  centreon_pb_bbdo
   -Wl,--no-whole-archive
   nlohmann_json::nlohmann_json
   -Wl,--whole-archive

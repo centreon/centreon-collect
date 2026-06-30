@@ -179,11 +179,11 @@ BAM_STREAM_FILTER
         # Reject KpiEvent
         ${grep_res5}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event bam:KpiEvent .* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"bam","elem":"KpiEvent".* rejected by write filter    regexp=True
         # Reject storage
         ${grep_res6}    Grep File
         ...    ${centralLog}
-        ...    muxer centreon-bam-monitoring event storage:.* rejected by write filter    regexp=True
+        ...    muxer centreon-bam-monitoring event {"cat":"storage".* rejected by write filter    regexp=True
 
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
@@ -208,12 +208,12 @@ BAM_STREAM_FILTER
     # reject storage
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event storage:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"storage".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Storage category. They are not rejected.
     # reject neb
     ${grep_res}    Grep File
     ...    ${centralLog}
-    ...    centreon-bam-reporting event neb:.* rejected by write filter    regexp=True
+    ...    centreon-bam-reporting event {"cat":"neb".* rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    We should reject events of Neb category. They are not rejected.
 
 UNIFIED_SQL_FILTER

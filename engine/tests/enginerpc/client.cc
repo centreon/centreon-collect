@@ -17,11 +17,13 @@
  *
  */
 
+#include <fmt/format.h>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "engine/enginerpc/engine.grpc.pb.h"
 
 using namespace com::centreon::engine;
@@ -1376,11 +1378,14 @@ int main(int argc, char** argv) {
   if (strcmp(argv[1], "GetVersion") == 0) {
     Version version;
     status = client.GetVersion(&version) ? 0 : 1;
-    std::cout << "GetVersion: " << version.DebugString();
+
+    std::cout << fmt::format("GetVersion: {}",
+                             com::centreon::common::multiline_output(version));
   } else if (strcmp(argv[1], "GetStats") == 0) {
     Stats stats;
     status = client.GetStats(&stats) ? 0 : 2;
-    std::cout << "GetStats: " << stats.DebugString();
+    std::cout << fmt::format("GetStats: ",
+                             com::centreon::common::multiline_output(stats));
   } else if (strcmp(argv[1], "ProcessServiceCheckResult") == 0) {
     Check sc;
     sc.set_host_name(argv[2]);

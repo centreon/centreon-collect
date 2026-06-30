@@ -67,9 +67,7 @@ target_link_libraries(
   PRIVATE ${LUA_LIBRARIES}
           # crypto ssl bbdo_storage
           bbdo_bam
-	  bbdo_storage
-	  nebbase
-	  pb_storage_lib
+          bbdo_storage
           fmt::fmt)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)

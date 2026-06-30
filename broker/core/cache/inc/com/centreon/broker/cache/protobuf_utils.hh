@@ -34,8 +34,8 @@ using managed_mapped_file = interprocess::basic_managed_mapped_file<
 using segment_manager = managed_mapped_file::segment_manager;
 using char_allocator = managed_mapped_file::allocator<char>::type;
 
-using string =
-    interprocess::basic_string<char, std::char_traits<char>, char_allocator>;
+using string = boost::container::
+    basic_string<char, std::char_traits<char>, char_allocator>;
 
 class message;
 

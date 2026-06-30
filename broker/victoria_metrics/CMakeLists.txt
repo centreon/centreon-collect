@@ -58,8 +58,7 @@ set_target_properties("${VICTORIA_METRICS}" PROPERTIES PREFIX ""
 target_link_libraries("${VICTORIA_METRICS}" PRIVATE
   http_tsdb
   centreon_http
-  ctncrypto
-  bbdo_storage pb_storage_lib fmt::fmt)
+  bbdo_storage centreon_pb_bbdo fmt::fmt)
 target_precompile_headers(${VICTORIA_METRICS} PRIVATE precomp_inc/precomp.hh)
 
 # Testing.

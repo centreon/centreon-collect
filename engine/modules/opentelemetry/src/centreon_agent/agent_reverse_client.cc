@@ -44,7 +44,7 @@ agent_reverse_client::agent_reverse_client(
  *
  */
 agent_reverse_client::~agent_reverse_client() {
-  absl::MutexLock l(&_agents_m);
+  absl::MutexLock l(_agents_m);
   for (auto& conn : _agents) {
     conn.second->shutdown();
   }
@@ -57,7 +57,7 @@ agent_reverse_client::~agent_reverse_client() {
  * @param new_conf
  */
 void agent_reverse_client::update(const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_agents_m);
+  absl::MutexLock l(_agents_m);
 
   auto connection_iterator = _agents.begin();
 

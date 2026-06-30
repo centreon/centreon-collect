@@ -479,7 +479,7 @@ TEST_F(scheduler_test, correct_output_examplar) {
 
   ASSERT_TRUE(exported_request);
 
-  SPDLOG_INFO("export:{}", exported_request->otel_request().ShortDebugString());
+  SPDLOG_INFO("export:{}", exported_request->otel_request());
 
   ASSERT_EQ(exported_request->otel_request().resource_metrics_size(), 2);
   const ::opentelemetry::proto::metrics::v1::ResourceMetrics& res =

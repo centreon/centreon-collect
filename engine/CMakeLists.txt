@@ -538,6 +538,7 @@ if(LEGACY_ENGINE)
             Boost::program_options
             gRPC::grpc++
             -Wl,--no-whole-archive
+            protobuf::libprotobuf
             absl::any
             absl::log
             absl::base

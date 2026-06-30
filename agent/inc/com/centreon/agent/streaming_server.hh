@@ -66,6 +66,15 @@ class streaming_server : public common::grpc::grpc_server_base,
       const std::shared_ptr<common::grpc::grpc_config>& conf,
       const std::string& supervised_host);
 
+  ::grpc::Status Import(
+      ::grpc::ServerContext* /*context*/,
+      ::grpc::ServerReaderWriter<
+          ::com::centreon::agent::MessageFromAgent,
+          ::com::centreon::agent::MessageToAgent>* /*stream*/) override {
+    abort();
+    return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+  }
+
   ::grpc::ServerBidiReactor<MessageToAgent, MessageFromAgent>* Import(
       ::grpc::CallbackServerContext* context);
 

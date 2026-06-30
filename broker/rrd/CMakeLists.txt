@@ -108,9 +108,7 @@ target_link_libraries(
   "${RRD}" PRIVATE
   ${LIBRRD_LDFLAGS}
   bbdo_storage
-  pb_storage_lib
-  pb_rebuild_message_lib
-  pb_remove_graph_message_lib
+  centreon_pb_bbdo
   fmt::fmt
   stdc++fs)
 

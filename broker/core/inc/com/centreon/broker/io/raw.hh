@@ -54,11 +54,11 @@ class raw : public data {
     _buffer.insert(_buffer.end(), msg.begin(), msg.end());
   }
 
+  void dump(fmt::format_context::iterator& stream) const override;
+
  public:
   std::vector<char> _buffer;
 };
-
-std::ostream& operator<<(std::ostream& s, const raw& d);
 
 }  // namespace com::centreon::broker::io
 

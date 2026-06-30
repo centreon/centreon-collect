@@ -49,7 +49,6 @@ add_library(
 target_link_libraries("${GRAPHITE}" 
   http_tsdb
   bbdo_storage 
-  pb_storage_lib 
   fmt::fmt)
 target_precompile_headers(${GRAPHITE} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${GRAPHITE}" PROPERTIES PREFIX ""

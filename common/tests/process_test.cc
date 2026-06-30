@@ -90,7 +90,7 @@ class process_wait : public process<true> {
     process<true>::start_process(
         [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
-          absl::MutexLock l(&_waiter);
+          absl::MutexLock l(_waiter);
           _completed = true;
           _stdout = std_out;
           _stderr = std_err;
@@ -104,7 +104,7 @@ class process_wait : public process<true> {
     process<true>::start_process(
         [this](const process<true>&, int exit_code, int exit_status,
                const std::string& std_out, const std::string& std_err) {
-          absl::MutexLock l(&_waiter);
+          absl::MutexLock l(_waiter);
           _completed = true;
           _stdout = std_out;
           _stderr = std_err;
@@ -115,7 +115,7 @@ class process_wait : public process<true> {
   }
 
   void wait() {
-    absl::MutexLock l(&_waiter);
+    absl::MutexLock l(_waiter);
     if (!_completed) {
       _waiter.Await(absl::Condition(&_completed));
     }
@@ -304,7 +304,7 @@ static void run_with_streaming_handler(const std::string& cmd,
   using reader_type = std::function<void(const std::string_view&)>;
 
   reader_type chunk_handler = [&](const std::string_view& data) {
-    absl::MutexLock l(&mutex);
+    absl::MutexLock l(mutex);
     ++chunk_count_out;
     for (unsigned char c : data) {
       if (c != static_cast<unsigned char>('0' + expected_pos % 10)) {
@@ -322,14 +322,14 @@ static void run_with_streaming_handler(const std::string& cmd,
   proc->start_process(
       [&](const process<true>&, int, e_exit_status, const std::string&,
           const std::string&) {
-        absl::MutexLock l(&mutex);
+        absl::MutexLock l(mutex);
         completed = true;
       },
       std::move(use_stdout_handler ? chunk_handler : noop_handler),
       std::move(use_stdout_handler ? noop_handler : chunk_handler),
       std::chrono::seconds(10));
 
-  absl::MutexLock l(&mutex);
+  absl::MutexLock l(mutex);
   mutex.Await(absl::Condition(&completed));
 }
 
