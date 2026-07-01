@@ -434,6 +434,7 @@ void check_drive_size::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   if (!_worker_thread) {
     _worker = std::make_shared<check_drive_size_detail::drive_size_thread>(
@@ -444,7 +445,7 @@ void check_drive_size::start_check(const duration& timeout) {
   unsigned running_check_index = _get_running_check_index();
 
   _worker->async_get_fs_stats(
-      _filter, std::chrono::system_clock::now() + timeout,
+      _filter, std::chrono::system_clock::now() + effective_timeout,
       [me = shared_from_this(), running_check_index](
           const std::list<check_drive_size_detail::fs_stat>& result) {
         me->_completion_handler(running_check_index, result);
