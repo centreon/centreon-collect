@@ -16,6 +16,34 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# /tmp/docker.ready is touched once all container.d/*.sh entrypoint scripts
+# finished, right before gorgoned itself is exec'd - so it confirms the
+# container's setup completed but not that gorgoned has finished loading its
+# modules yet (see wait_for_log for that).
+wait_ready() {
+  local service="$1" timeout="${2:-30}"
+  for _ in $(seq 1 "$timeout"); do
+    if $COMPOSE exec -T "$service" test -f /tmp/docker.ready 2>/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "::error::$service did not report readiness (/tmp/docker.ready) within ${timeout}s"
+  $COMPOSE logs "$service" || true
+  return 1
+}
+
+wait_for_log() {
+  local service="$1" pattern="$2" timeout="${3:-15}"
+  for _ in $(seq 1 "$timeout"); do
+    if $COMPOSE logs "$service" 2>&1 | grep -qi "$pattern"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 echo "=== [T2.1] TYPE=poller without APP_SECRET/SALT must fail fast ==="
 set +e
 output=$(timeout 20 $COMPOSE run --rm poller-missing-secrets 2>&1)
@@ -36,7 +64,7 @@ $COMPOSE rm -f poller-missing-secrets > /dev/null 2>&1 || true
 echo "=== [T2.2] TYPE=poller with APP_SECRET/SALT writes engine-context.json ==="
 $COMPOSE run --rm engine-context-init
 $COMPOSE up -d poller-with-secrets
-sleep 5
+wait_ready poller-with-secrets || exit 1
 mode=$($COMPOSE exec -T poller-with-secrets stat -c %a /etc/centreon-engine/engine-context.json)
 if [ "$mode" != "640" ]; then
   echo "::error::engine-context.json mode is $mode, expected 640"
@@ -52,8 +80,8 @@ $COMPOSE down poller-with-secrets > /dev/null 2>&1 || true
 
 echo "=== [T2.3] Generic GORGONE__... env override is applied ==="
 $COMPOSE up -d poller-env-override
-sleep 5
-if ! $COMPOSE logs poller-env-override 2>&1 | grep -qi "gorgone__gorgone__gorgonecore__id environment variable"; then
+wait_ready poller-env-override || exit 1
+if ! wait_for_log poller-env-override "gorgone__gorgone__gorgonecore__id environment variable" 15; then
   echo "::error::generic env override GORGONE__GORGONE__GORGONECORE__ID was not applied (no matching debug log line)"
   $COMPOSE logs poller-env-override || true
   exit 1
@@ -65,8 +93,8 @@ echo "=== [T3a] CENTRAL_HOST/CENTRAL_PORT/GORGONE_TOKEN wiring reaches pullwss =
 $COMPOSE up -d central-stub
 sleep 2
 $COMPOSE up -d poller-central-contract
-sleep 5
-if ! $COMPOSE logs central-stub 2>&1 | grep -qi "starting data transfer loop"; then
+wait_ready poller-central-contract || exit 1
+if ! wait_for_log central-stub "starting data transfer loop" 15; then
   echo "::error::central-stub never received an inbound connection: CENTRAL_HOST/CENTRAL_PORT env wiring is broken"
   $COMPOSE logs central-stub || true
   $COMPOSE logs poller-central-contract || true

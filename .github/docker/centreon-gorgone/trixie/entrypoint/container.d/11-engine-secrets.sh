@@ -9,7 +9,7 @@ TYPE="${TYPE:-central}"
 
 if [ "$TYPE" != "poller" ]; then
     echo "=== Engine Secrets: central mode, skipping ==="
-    exit 0
+    return 0
 fi
 
 echo "=== Writing Engine Secrets ==="

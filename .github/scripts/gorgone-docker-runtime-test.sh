@@ -11,6 +11,8 @@ set -e
 IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 PLATFORM="${PLATFORM:-}"
 CONTAINER_NAME="gorgone-runtime-test-$$"
+ENGINE_RW_CONTAINER="gorgone-runtime-test-enginerw-$$"
+ENGINE_RW_VOLUME="gorgone-runtime-test-enginerw-vol-$$"
 READY_TIMEOUT="${READY_TIMEOUT:-30}"
 
 platform_args=()
@@ -20,7 +22,8 @@ fi
 
 cleanup() {
   docker logs "$CONTAINER_NAME" > /tmp/gorgone-runtime-test.log 2>&1 || true
-  docker rm -f "$CONTAINER_NAME" > /dev/null 2>&1 || true
+  docker rm -f "$CONTAINER_NAME" "$ENGINE_RW_CONTAINER" > /dev/null 2>&1 || true
+  docker volume rm "$ENGINE_RW_VOLUME" > /dev/null 2>&1 || true
 }
 trap cleanup EXIT
 
@@ -59,14 +62,67 @@ if [ "$uid" != "903" ]; then
 fi
 
 echo "=== [T1] Checking passwordless sudo ==="
-if ! docker exec "$CONTAINER_NAME" sudo -n true; then
-  echo "::error::sudo -n true failed inside the container: sudoers configuration is broken"
+# /etc/sudoers.d only whitelists a handful of exact commands (apt, apt-get,
+# chown, gorgone_install_plugins.pl) - "sudo -n true" is NOT among them and
+# would always fail, so exercise one of the actually-whitelisted commands.
+if ! docker exec "$CONTAINER_NAME" sh -c "sudo -n /usr/bin/apt-get --version > /dev/null"; then
+  echo "::error::sudo -n /usr/bin/apt-get failed inside the container: sudoers configuration is broken"
   exit 1
 fi
 
 echo "=== [T1] Scanning logs for unambiguous crash signatures ==="
 if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locate|Segmentation fault|Out of memory"; then
   echo "::error::gorgone logs contain a crash signature, see above"
+  exit 1
+fi
+
+# grpcurl is downloaded from a per-arch release tarball (amd64 vs arm64) and the
+# copied .proto files must resolve for gRPC-based centengine management to work.
+echo "=== [T1] Checking grpcurl runs for this architecture ==="
+if ! docker exec "$CONTAINER_NAME" grpcurl -version; then
+  echo "::error::grpcurl -version failed inside the container (binary/arch mismatch?)"
+  exit 1
+fi
+
+echo "=== [T1] Checking engine.proto resolves with grpcurl ==="
+# engine.proto has a relative import ("process_stat.proto") copied alongside
+# it - grpcurl only resolves that when invoked from within the same
+# directory (a "-import-path" pointing at that same directory does not
+# work here), so cd into it rather than passing an absolute -proto path.
+proto_check=$(docker exec "$CONTAINER_NAME" sh -c \
+  "cd /usr/share/centreon-engine/proto && grpcurl -plaintext -connect-timeout 2 -proto engine.proto 127.0.0.1:1 list" 2>&1) || true
+if ! echo "$proto_check" | grep -q "com.centreon.engine.Engine"; then
+  echo "::error::engine.proto failed to resolve with grpcurl:"
+  echo "$proto_check"
+  exit 1
+fi
+
+# Docker named volumes can come back root:root-owned (e.g. reused from a previous
+# root-run container, or certain orchestrator volume plugins) regardless of the
+# ownership baked into the image by the Dockerfile. container.d/00-init.sh is
+# supposed to fix this up for /var/lib/centreon-engine/rw on every boot.
+echo "=== [T1] Checking /var/lib/centreon-engine/rw ownership fix-up on a root-owned volume ==="
+docker volume create "$ENGINE_RW_VOLUME" > /dev/null
+docker run --rm -v "$ENGINE_RW_VOLUME:/vol" "${platform_args[@]}" alpine:3.20 chown 0:0 /vol > /dev/null
+docker run -d --name "$ENGINE_RW_CONTAINER" "${platform_args[@]}" \
+  -v "$ENGINE_RW_VOLUME:/var/lib/centreon-engine/rw" "$IMAGE" > /dev/null
+
+engine_rw_ready=0
+for _ in $(seq 1 "$READY_TIMEOUT"); do
+  if docker exec "$ENGINE_RW_CONTAINER" test -f /tmp/docker.ready 2>/dev/null; then
+    engine_rw_ready=1
+    break
+  fi
+  sleep 1
+done
+if [ "$engine_rw_ready" -ne 1 ]; then
+  echo "::error::gorgone container with a root-owned /var/lib/centreon-engine/rw volume did not report readiness within ${READY_TIMEOUT}s"
+  docker logs "$ENGINE_RW_CONTAINER" || true
+  exit 1
+fi
+rw_uid=$(docker exec "$ENGINE_RW_CONTAINER" stat -c %u /var/lib/centreon-engine/rw)
+if [ "$rw_uid" != "901" ]; then
+  echo "::error::/var/lib/centreon-engine/rw is owned by uid $rw_uid after boot, expected 901 (centreon-engine): the 00-init.sh ownership fix-up is broken"
   exit 1
 fi
 
