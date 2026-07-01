@@ -74,35 +74,25 @@ class notification_manager {
   bool _is_notification_viable_normal(uint64_t host_id,
                                       uint64_t service_id,
                                       const resource_state& rs,
-                                      const global_config& gc,
                                       std::time_t now,
-                                      reason_type type,
-                                      notification_option options);
+                                      reason_type type);
   bool _is_notification_viable_recovery(uint64_t host_id,
                                         uint64_t service_id,
                                         const resource_state& rs,
-                                        const global_config& gc,
+                                        const config& cfg,
                                         std::time_t now,
                                         reason_type type,
                                         notification_option options);
   bool _is_notification_viable_acknowledgement(const resource_state& rs,
-                                               const global_config& gc,
-                                               reason_type type,
-                                               notification_option options);
+                                               reason_type type);
   bool _is_notification_viable_flapping(uint64_t host_id,
                                         uint64_t service_id,
                                         const resource_state& rs,
-                                        const global_config& gc,
-                                        reason_type type,
-                                        notification_option options);
+                                        reason_type type);
   bool _is_notification_viable_downtime(const resource_state& rs,
-                                        const global_config& gc,
-                                        reason_type type,
-                                        notification_option options);
+                                        reason_type type);
   bool _is_notification_viable_custom(const resource_state& rs,
-                                      const global_config& gc,
-                                      reason_type type,
-                                      notification_option options);
+                                      reason_type type);
 
  public:
   static constexpr std::array<std::string_view, 9> tab_notification_str{{
