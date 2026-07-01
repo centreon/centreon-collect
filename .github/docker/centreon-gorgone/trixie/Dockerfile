@@ -120,43 +120,23 @@ APT::Install-Recommends "false";
 APT::Install-Suggests "false";
 EOF
 
-# Add Centreon plugins-stable repository (amd64 only — arm64 packages not published there)
+# Add Centreon plugins-stable repository (provides pre-built Perl modules for amd64 and arm64)
+# and install those packages plus runtime dependencies
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    bash -e <<EOF
+    bash -e <<'EOF'
 apt-get update
 apt-get install -y --no-install-recommends gnupg wget ca-certificates
-echo "deb [arch=amd64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
+echo "deb [arch=amd64,arm64] https://packages.centreon.com/apt-plugins-stable/ trixie main" \
     > /etc/apt/sources.list.d/centreon-plugins.list
 wget -O- https://apt-key.centreon.com | gpg --dearmor \
     | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
-EOF
-
-# amd64: install pre-built Centreon Perl packages.
-# arm64: build from CPAN (no arm64 packages in Centreon repo).
-# Install ONLY runtime dependencies (merged with arch-specific Perl install)
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    --mount=type=cache,target=/root/.cpanm \
-    bash -e <<'EOF'
 apt-get update
-ARCH=$(dpkg --print-architecture)
-if [ "$ARCH" = "amd64" ]; then
-    apt-get install -y --no-install-recommends \
-        libnet-curl-perl \
-        libcrypt-openssl-aes-perl \
-        libssh-session-perl \
-        libmojo-ioloop-signal-perl
-else
-    apt-get install -y --no-install-recommends \
-        cpanminus build-essential \
-        libcurl4-openssl-dev libssl-dev libssh-dev
-    cpanm --notest Net::Curl Crypt::OpenSSL::AES Libssh::Session Mojo::IOLoop::Signal
-    apt-get remove -y --purge cpanminus build-essential \
-        libcurl4-openssl-dev libssl-dev libssh-dev
-    apt-get autoremove -y
-fi
 apt-get install -y --no-install-recommends \
+    libnet-curl-perl \
+    libcrypt-openssl-aes-perl \
+    libssh-session-perl \
+    libmojo-ioloop-signal-perl \
     perl \
     libdbi-perl \
     libdbd-mysql-perl \
