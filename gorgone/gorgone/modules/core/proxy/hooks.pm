@@ -212,6 +212,8 @@ sub routing {
             $httpserver->{ready} = 1;
         } elsif (defined($data->{node_id}) && defined($synctime_nodes->{ $data->{node_id} })) {
             $synctime_nodes->{ $data->{node_id} }->{channel_ready} = 1;
+            $synctime_nodes->{ $data->{node_uid} }->{channel_ready} = 1;
+
         }
         return undef;
     }
@@ -316,6 +318,11 @@ sub routing {
     } else {
         $pool_id = rr_pool();
         $nodes_pool->{$target_parent} = $pool_id;
+        if ($target_parent == $register_nodes->{$target_parent}->{id}){
+            $nodes_pool->{$register_nodes->{$target_parent}->{uid}} = $nodes_pool->{$target_parent};
+        }else {
+            $nodes_pool->{$register_nodes->{$target_parent}->{id}} = $nodes_pool->{$target_parent};
+        }
     }
 
     my $identity = 'gorgone-proxy-' . $pool_id;

@@ -246,7 +246,8 @@ sub action_proxyaddnode {
         $self->send_internal_action({
             action => 'PROXYREADY',
             data   => {
-                node_id => $data->{id}
+                node_id  => $data->{id},
+                node_uid => $data->{uid},
             }
         });
         $self->{watchers}->{ $data->{id} } = $self->{loop}->io(
