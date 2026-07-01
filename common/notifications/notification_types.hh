@@ -95,12 +95,17 @@ enum notification_option {
 };
 
 /**
- * @brief Global notification configuration, as a value snapshot.
+ * @brief Effective notification configuration for a resource, as a value
+ * snapshot.
  *
- * Mirrors the few program-wide settings the viability logic needs, decoupled
- * from engine's pb_indexed_config.
+ * Mirrors the few configuration settings the viability logic needs, decoupled
+ * from engine's pb_indexed_config. Although the fields originate from
+ * program-wide (Engine) or per-poller (Broker) settings, they are resolved for
+ * a given resource: @c enabled already folds in the resource's own
+ * notification-enable flag, so a resource whose notifications are disabled
+ * yields @c enabled == false regardless of the program/poller setting.
  */
-struct global_config {
+struct config {
   bool enabled = false;
   bool send_recovery_notifications_anyway = false;
 };
@@ -112,7 +117,6 @@ struct global_config {
  * value, with no engine object dependency.
  */
 struct resource_state {
-  bool notifications_enabled = false;
   bool flapping = false;
   bool is_volatile = false;
   bool hard_state = false;

@@ -112,26 +112,41 @@ bool notification_manager::is_notification_viable(uint64_t host_id,
                                                   notification_category cat,
                                                   reason_type type,
                                                   notification_option options) {
-  global_config gc = _callbacks->get_global_config();
+  config cfg = _callbacks->get_config(host_id, service_id);
+
+  /* Forced notifications bust through everything, except a recovery (one never
+   * forces a recovery). Checked here, before the heavier get_state() query, so
+   * a forced notification or a globally-disabled resource skips it entirely. */
+  if (cat != cat_recovery && (options & notification_option_forced)) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
+                        "This is a forced notification, so we'll send it out.");
+    return true;
+  }
+
+  if (!cfg.enabled) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
+                        "Notifications are disabled, so notifications will "
+                        "not be sent out.");
+    return false;
+  }
+
   std::time_t now;
   std::time(&now);
   resource_state rs = _callbacks->get_state(host_id, service_id);
   switch (cat) {
     case cat_normal:
-      return _is_notification_viable_normal(host_id, service_id, rs, gc, now,
-                                            type, options);
+      return _is_notification_viable_normal(host_id, service_id, rs, now, type);
     case cat_recovery:
-      return _is_notification_viable_recovery(host_id, service_id, rs, gc, now,
+      return _is_notification_viable_recovery(host_id, service_id, rs, cfg, now,
                                               type, options);
     case cat_acknowledgement:
-      return _is_notification_viable_acknowledgement(rs, gc, type, options);
+      return _is_notification_viable_acknowledgement(rs, type);
     case cat_flapping:
-      return _is_notification_viable_flapping(host_id, service_id, rs, gc, type,
-                                              options);
+      return _is_notification_viable_flapping(host_id, service_id, rs, type);
     case cat_downtime:
-      return _is_notification_viable_downtime(rs, gc, type, options);
+      return _is_notification_viable_downtime(rs, type);
     case cat_custom:
-      return _is_notification_viable_custom(rs, gc, type, options);
+      return _is_notification_viable_custom(rs, type);
   }
   return false;
 }
@@ -140,10 +155,8 @@ bool notification_manager::_is_notification_viable_normal(
     uint64_t host_id,
     uint64_t service_id,
     const resource_state& rs,
-    const global_config& gc,
     std::time_t now,
-    reason_type type [[maybe_unused]],
-    notification_option options) {
+    reason_type type [[maybe_unused]]) {
   SPDLOG_LOGGER_TRACE(functions_logger(),
                       "notification::is_notification_viable_normal()");
 
@@ -151,27 +164,6 @@ bool notification_manager::_is_notification_viable_normal(
       current_notification(host_id, service_id, cat_normal);
   std::chrono::seconds notification_interval =
       !normal_notif ? rs.notification_interval : normal_notif->interval;
-
-  /* forced notifications bust through everything */
-  if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "This is a forced notification, so we'll send it out.");
-    return true;
-  }
-
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    return false;
-  }
-
-  if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    return false;
-  }
 
   if (rs.scheduled_downtime_depth > 0) {
     SPDLOG_LOGGER_DEBUG(
@@ -282,7 +274,7 @@ bool notification_manager::_is_notification_viable_recovery(
     uint64_t host_id,
     uint64_t service_id,
     const resource_state& rs,
-    const global_config& gc,
+    const config& cfg,
     std::time_t now,
     reason_type type [[maybe_unused]],
     notification_option options [[maybe_unused]]) {
@@ -291,87 +283,75 @@ bool notification_manager::_is_notification_viable_recovery(
   bool retval{true};
   bool send_later{false};
 
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    retval = false;
-  } else if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    retval = false;
-  } else {
-    // if send_recovery_notifications_anyway flag is set, we don't take
-    // timeperiod into account for recovery
-    if (!rs.in_notification_period) {
-      if (gc.send_recovery_notifications_anyway) {
-        SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                            "send_recovery_notifications_anyway flag enabled, "
-                            "recovery notification is viable even if we are "
-                            "out of timeperiod at this time.");
-      } else {
-        SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                            "This notifier shouldn't have notifications sent "
-                            "out at this time.");
-        retval = false;
-        send_later = true;
-      }
-    } else if (rs.scheduled_downtime_depth > 0) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier is currently in a scheduled downtime, so "
-          "we won't send notifications.");
-      retval = false;
-      send_later = true;
-    } else if (rs.flapping) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier is flapping, so we won't send notifications.");
-      retval = false;
-      send_later = true;
-    } else if (!rs.hard_state) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier is in soft state, so we won't send notifications.");
-      retval = false;
-      send_later = true;
-    } else if (rs.current_state != 0) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier state is not UP/OK to send a recovery notification");
-      retval = false;
-      send_later = true;
-    } else if (!((rs.notify_on & up) || (rs.notify_on & ok))) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier is not configured to send a recovery notification");
-      retval = false;
-      send_later = false;
-    } else if (rs.last_hard_state_change +
-                   rs.recovery_notification_delay.count() >
-               now) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "This notifier is configured with a recovery notification delay. "
-          "It won't send any recovery notification until timestamp "
-          "so it won't be sent until {}",
-          rs.last_hard_state_change + rs.recovery_notification_delay.count());
-      retval = false;
-      send_later = true;
-    } else if (notification_number(host_id, service_id) == 0) {
-      SPDLOG_LOGGER_DEBUG(
-          notifications_logger(),
-          "No notification has been sent to "
-          "announce a problem. So no recovery notification will be sent");
-      retval = false;
-    } else if (!current_notification(host_id, service_id, cat_normal)) {
+  // if send_recovery_notifications_anyway flag is set, we don't take
+  // timeperiod into account for recovery
+  if (!rs.in_notification_period) {
+    if (cfg.send_recovery_notifications_anyway) {
       SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                          "We should not send a notification "
-                          "since no normal notification has"
-                          " been sent before");
+                          "send_recovery_notifications_anyway flag enabled, "
+                          "recovery notification is viable even if we are "
+                          "out of timeperiod at this time.");
+    } else {
+      SPDLOG_LOGGER_DEBUG(notifications_logger(),
+                          "This notifier shouldn't have notifications sent "
+                          "out at this time.");
       retval = false;
+      send_later = true;
     }
+  } else if (rs.scheduled_downtime_depth > 0) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier is currently in a scheduled downtime, so "
+        "we won't send notifications.");
+    retval = false;
+    send_later = true;
+  } else if (rs.flapping) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier is flapping, so we won't send notifications.");
+    retval = false;
+    send_later = true;
+  } else if (!rs.hard_state) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier is in soft state, so we won't send notifications.");
+    retval = false;
+    send_later = true;
+  } else if (rs.current_state != 0) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier state is not UP/OK to send a recovery notification");
+    retval = false;
+    send_later = true;
+  } else if (!((rs.notify_on & up) || (rs.notify_on & ok))) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier is not configured to send a recovery notification");
+    retval = false;
+    send_later = false;
+  } else if (rs.last_hard_state_change +
+                 rs.recovery_notification_delay.count() >
+             now) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "This notifier is configured with a recovery notification delay. "
+        "It won't send any recovery notification until timestamp "
+        "so it won't be sent until {}",
+        rs.last_hard_state_change + rs.recovery_notification_delay.count());
+    retval = false;
+    send_later = true;
+  } else if (notification_number(host_id, service_id) == 0) {
+    SPDLOG_LOGGER_DEBUG(
+        notifications_logger(),
+        "No notification has been sent to "
+        "announce a problem. So no recovery notification will be sent");
+    retval = false;
+  } else if (!current_notification(host_id, service_id, cat_normal)) {
+    SPDLOG_LOGGER_DEBUG(notifications_logger(),
+                        "We should not send a notification "
+                        "since no normal notification has"
+                        " been sent before");
+    retval = false;
   }
 
   if (!retval) {
@@ -390,31 +370,9 @@ bool notification_manager::_is_notification_viable_recovery(
 
 bool notification_manager::_is_notification_viable_acknowledgement(
     const resource_state& rs,
-    const global_config& gc,
-    reason_type type [[maybe_unused]],
-    notification_option options) {
+    reason_type type [[maybe_unused]]) {
   SPDLOG_LOGGER_TRACE(functions_logger(),
                       "notification::is_notification_viable_acknowledgement()");
-  if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "This is a forced notification, so we'll send it out.");
-    return true;
-  }
-
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    return false;
-  }
-
-  if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    return false;
-  }
-
   if (rs.current_state == 0) {
     SPDLOG_LOGGER_DEBUG(notifications_logger(),
                         "The notifier is currently OK/UP, so we "
@@ -428,31 +386,9 @@ bool notification_manager::_is_notification_viable_flapping(
     uint64_t host_id,
     uint64_t service_id,
     const resource_state& rs,
-    const global_config& gc,
-    reason_type type,
-    notification_option options) {
+    reason_type type) {
   SPDLOG_LOGGER_TRACE(functions_logger(),
                       "notification::is_notification_viable_flapping()");
-  if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "This is a forced notification, so we'll send it out.");
-    return true;
-  }
-
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    return false;
-  }
-
-  if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    return false;
-  }
-
   /* Don't send a notification if we are not supposed to */
   notification_flag f;
   if (type == reason_flappingstart)
@@ -510,31 +446,9 @@ bool notification_manager::_is_notification_viable_flapping(
 
 bool notification_manager::_is_notification_viable_downtime(
     const resource_state& rs,
-    const global_config& gc,
-    reason_type type [[maybe_unused]],
-    notification_option options) {
+    reason_type type [[maybe_unused]]) {
   SPDLOG_LOGGER_TRACE(functions_logger(),
                       "notification::is_notification_viable_downtime()");
-  if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "This is a forced notification, so we'll send it out.");
-    return true;
-  }
-
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    return false;
-  }
-
-  if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    return false;
-  }
-
   if (!(rs.notify_on & downtime)) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger(),
@@ -553,31 +467,9 @@ bool notification_manager::_is_notification_viable_downtime(
 
 bool notification_manager::_is_notification_viable_custom(
     const resource_state& rs,
-    const global_config& gc,
-    reason_type type [[maybe_unused]],
-    notification_option options) {
+    reason_type type [[maybe_unused]]) {
   SPDLOG_LOGGER_TRACE(functions_logger(),
                       "notification::is_notification_viable_custom()");
-  if (options & notification_option_forced) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "This is a forced notification, so we'll send it out.");
-    return true;
-  }
-
-  if (!gc.enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are disabled, so notifications will "
-                        "not be sent out.");
-    return false;
-  }
-
-  if (!rs.notifications_enabled) {
-    SPDLOG_LOGGER_DEBUG(notifications_logger(),
-                        "Notifications are temporarily disabled for "
-                        "this notifier, so we won't send one out.");
-    return false;
-  }
-
   if (rs.scheduled_downtime_depth > 0) {
     SPDLOG_LOGGER_DEBUG(
         notifications_logger(),
