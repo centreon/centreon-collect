@@ -573,7 +573,7 @@ TEST_F(otl_converter_test, nagios_telegraf_le_ge) {
   boost::algorithm::replace_all(example, "check_icmp_critical_lt",
                                 "check_icmp_critical_le");
 
-  ::google::protobuf::util::JsonStringToMessage(example, request.get());
+  (void)::google::protobuf::util::JsonStringToMessage(example, request.get());
 
   metric_to_datapoints received;
   otl_data_point::extract_data_points(
@@ -600,7 +600,7 @@ TEST_F(otl_converter_test, nagios_telegraf_max) {
   std::string example = telegraf_example;
   boost::algorithm::replace_all(example, "check_icmp_min", "check_icmp_max");
 
-  ::google::protobuf::util::JsonStringToMessage(example, request.get());
+  (void)::google::protobuf::util::JsonStringToMessage(example, request.get());
 
   metric_to_datapoints received;
   otl_data_point::extract_data_points(

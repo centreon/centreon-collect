@@ -196,7 +196,7 @@ void to_agent_connector::start() {
  */
 void to_agent_connector::refresh_agent_configuration_if_needed(
     const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_connection_m);
+  absl::MutexLock l(_connection_m);
   if (_connection) {
     _connection->calc_and_send_config_if_needed(new_conf);
   }

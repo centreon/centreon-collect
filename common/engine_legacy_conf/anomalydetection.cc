@@ -748,7 +748,7 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
  *
  *  @exception msg_fmt if this anomalydetection is an invalid object.
  */
-void anomalydetection::check_validity(error_cnt& err) const {
+void anomalydetection::check_validity(error_cnt&) const {
   if (_service_description.empty())
     throw msg_fmt(
         "Service has no description (property 'service_description')");

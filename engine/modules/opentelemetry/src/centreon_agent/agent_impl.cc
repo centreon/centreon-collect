@@ -92,8 +92,8 @@ agent_impl<bireactor_class>::agent_impl(
       _exp_time(exp_time),
       _conf(conf),
       _metric_handler(handler),
-      _logger(logger),
       _write_pending(false),
+      _logger(logger),
       _alive(true),
       _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
@@ -145,7 +145,7 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   for (auto& instance : *_instances) {
     instance->calc_and_send_config_if_needed(new_conf);
   }
@@ -203,7 +203,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -293,7 +293,7 @@ void agent_impl<bireactor_class>::_write(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->insert(strm);
 }
 
@@ -418,7 +418,7 @@ void agent_impl<bireactor_class>::OnDone() {
              [me = std::enable_shared_from_this<
                   agent_impl<bireactor_class>>::shared_from_this(),
               logger = _logger]() {
-               absl::MutexLock l(&_instances_m);
+               absl::MutexLock l(_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                                    static_cast<void*>(me.get()));
                _instances->erase(
@@ -444,7 +444,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
       *_io_context, [me = std::enable_shared_from_this<
                          agent_impl<bireactor_class>>::shared_from_this(),
                      status, logger = _logger]() {
-        absl::MutexLock l(&_instances_m);
+        absl::MutexLock l(_instances_m);
         if (status.ok()) {
           SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                               static_cast<void*>(me.get()),
@@ -479,7 +479,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
   std::set<std::shared_ptr<agent_impl>>* to_shutdown;
   {
-    absl::MutexLock l(&_instances_m);
+    absl::MutexLock l(_instances_m);
     to_shutdown = _instances;
     _instances = new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
   }

@@ -722,13 +722,13 @@ TEST_F(check_files_test, two_checks_same_path) {
 
   auto run_one_check = [&](std::chrono::seconds timeout) {
     {
-      absl::MutexLock lk(&wait_m);
+      absl::MutexLock lk(wait_m);
       complete = false;
     }
     checker->start_check(timeout);
 
     // wait until the completion‑handler flips 'complete'
-    absl::MutexLock lk(&wait_m);
+    absl::MutexLock lk(wait_m);
     wait_m.Await(absl::Condition(&is_complete));
   };
 

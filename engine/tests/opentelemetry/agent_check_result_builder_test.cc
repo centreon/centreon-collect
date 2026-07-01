@@ -370,7 +370,8 @@ class otl_agent_check_result_builder_test : public TestEngine {
         std::make_shared< ::opentelemetry::proto::collector::metrics::v1::
                               ExportMetricsServiceRequest>();
 
-    ::google::protobuf::util::JsonStringToMessage(agent_exemple, request.get());
+    (void)::google::protobuf::util::JsonStringToMessage(agent_exemple,
+                                                        request.get());
 
     otl_data_point::extract_data_points(
         request, [&](const otl_data_point& data_pt) {

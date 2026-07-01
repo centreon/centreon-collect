@@ -472,7 +472,7 @@ void engine::clear() {
  * @return A shared_ptr to the muxer if it is running, nullptr otherwise.
  */
 std::shared_ptr<muxer> engine::get_muxer(const std::string& name) {
-  absl::MutexLock lck(&_running_muxers_m);
+  absl::MutexLock lck(_running_muxers_m);
   absl::erase_if(_running_muxers,
                  [](const std::pair<std::string, std::weak_ptr<muxer>>& p) {
                    return p.second.expired();
@@ -486,6 +486,6 @@ std::shared_ptr<muxer> engine::get_muxer(const std::string& name) {
 
 void engine::set_muxer(const std::string& name,
                        const std::shared_ptr<muxer>& muxer) {
-  absl::MutexLock lck(&_running_muxers_m);
+  absl::MutexLock lck(_running_muxers_m);
   _running_muxers[name] = muxer;
 }

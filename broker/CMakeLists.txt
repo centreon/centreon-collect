@@ -307,7 +307,7 @@ add_library(pb_broker_lib STATIC
     ${SRC_DIR}/broker.pb.h
   )
 
-add_dependencies(pb_broker_lib process_stat pb_common_lib)
+add_dependencies(pb_broker_lib process_stat)
 set_target_properties(pb_broker_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Core library.
@@ -387,7 +387,6 @@ target_link_libraries(
   global_cache
   bbdo_bbdo
   pb_broker_lib
-  bbdo
   process_stat)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)

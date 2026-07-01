@@ -161,7 +161,6 @@ add_library(centreon_pb_bbdo SHARED bbdo/centreon_pb_bbdo.cc)
 
 target_link_libraries(centreon_pb_bbdo
   pb_neb_lib
-  pb_common_lib
   pb_storage_lib
   pb_bbdo_lib
   pb_bam_lib

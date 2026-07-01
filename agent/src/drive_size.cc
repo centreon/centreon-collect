@@ -158,7 +158,7 @@ filter::filter(const rapidjson::Value& args) : _fs_type_filter(0xFFFFFFFFU) {
  * @return false not tested
  */
 bool filter::is_fs_yet_allowed(const std::string_view& fs) const {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   return _cache_allowed_fs.find(fs) != _cache_allowed_fs.end();
 }
 
@@ -170,7 +170,7 @@ bool filter::is_fs_yet_allowed(const std::string_view& fs) const {
  * @return false not tested
  */
 bool filter::is_fs_yet_excluded(const std::string_view& fs) const {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   return _cache_excluded_fs.find(fs) != _cache_excluded_fs.end();
 }
 
@@ -190,7 +190,7 @@ bool filter::is_allowed(const std::string_view& fs,
     return false;
   }
 
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
 
   bool yet_allowed = _cache_allowed_fs.find(fs) != _cache_allowed_fs.end();
   bool yet_excluded = _cache_excluded_fs.find(fs) != _cache_excluded_fs.end();
