@@ -187,7 +187,7 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
-  docker-runtime-test-t1:
+  docker-boot-test:
     needs: [get-environment, dockerize]
     runs-on: ubuntu-24.04
     strategy:
@@ -195,7 +195,7 @@ jobs:
       matrix:
         operating_system: [trixie]
         platform: [linux/amd64, linux/arm64]
-    name: docker runtime test T1 centreon-gorgone-${{ matrix.operating_system }} (${{ matrix.platform }})
+    name: docker boot test centreon-gorgone-${{ matrix.operating_system }} (${{ matrix.platform }})
     env:
       GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
     steps:
@@ -222,29 +222,29 @@ jobs:
         run: docker pull --platform "${{ matrix.platform }}" "$GORGONE_IMAGE"
         shell: bash
 
-      - name: Run T1 runtime test
+      - name: Run boot test
         env:
           IMAGE: ${{ env.GORGONE_IMAGE }}
           PLATFORM: ${{ matrix.platform }}
-        run: ./.github/scripts/gorgone-docker-runtime-test.sh
+        run: ./.github/scripts/gorgone-docker-boot-test.sh
         shell: bash
 
       - name: Upload debug artifacts on failure
         if: failure()
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: centreon-gorgone-runtime-test-t1-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
-          path: /tmp/gorgone-runtime-test.log
+          name: centreon-gorgone-boot-test-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/gorgone-boot-test.log
           retention-days: 1
 
-  docker-runtime-test-t2-t3a:
+  docker-config-wiring-test:
     needs: [get-environment, dockerize]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         operating_system: [trixie]
-    name: docker runtime test T2/T3a centreon-gorgone-${{ matrix.operating_system }}
+    name: docker config/wiring test centreon-gorgone-${{ matrix.operating_system }}
     env:
       GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
     steps:
@@ -262,13 +262,13 @@ jobs:
         run: docker pull --platform linux/amd64 "$GORGONE_IMAGE"
         shell: bash
 
-      - name: Run T2/T3a runtime test scenarios
+      - name: Run config/wiring test scenarios
         env:
           IMAGE: ${{ env.GORGONE_IMAGE }}
-        run: ./.github/scripts/gorgone-docker-runtime-test-t2-t3a.sh
+        run: ./.github/scripts/gorgone-docker-config-wiring-test.sh
         shell: bash
 
       - name: Dump compose logs on failure
         if: failure()
-        run: docker compose -f .github/docker/centreon-gorgone/docker-compose.runtime-test.yml -p gorgone-runtime-test logs
+        run: docker compose -f .github/docker/centreon-gorgone/docker-compose.config-wiring-test.yml -p gorgone-config-wiring-test logs
         shell: bash

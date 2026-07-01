@@ -1,7 +1,7 @@
-# Service definitions for the T2 (config contract) and T3a (CENTRAL_HOST/CENTRAL_PORT
-# wiring) runtime test scenarios on the centreon-gorgone product image.
+# Service definitions for the config-contract and central-endpoint-wiring
+# test scenarios on the centreon-gorgone product image.
 # Each scenario is driven individually via `docker compose run`/`up --no-deps` by
-# .github/scripts/gorgone-docker-runtime-test-t2-t3a.sh — this file only declares the services.
+# .github/scripts/gorgone-docker-config-wiring-test.sh — this file only declares the services.
 services:
   poller-missing-secrets:
     image: ${GORGONE_IMAGE}
@@ -12,7 +12,7 @@ services:
   # whose image ships it group-writable (775, centreon-engine group) with an existing
   # engine-context.json (see container.d/11-engine-secrets.sh comments). This service
   # reproduces that minimal precondition on the shared volume, since there is no real
-  # centengine container in this runtime test.
+  # centengine container in this test.
   engine-context-init:
     image: ${GORGONE_IMAGE}
     user: root

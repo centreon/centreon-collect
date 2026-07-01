@@ -1,11 +1,12 @@
 #!/bin/bash
 #
-# T1 runtime test for the centreon-gorgone product Docker image.
+# Boot test for the centreon-gorgone product Docker image.
 # Starts the image with default (customer out-of-the-box) settings and checks
 # that the container boots cleanly, runs as the expected non-root user, and
 # does not crash. No CENTRAL_HOST/CENTRAL_PORT is configured here on purpose:
 # pullwss is expected to log connection warnings in that case, this script
 # tolerates that and only fails on unambiguous crash signatures.
+# Also covers TYPE=poller boot and RSA key persistence across a restart.
 set -e
 
 IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
@@ -25,7 +26,7 @@ if [ -n "$PLATFORM" ]; then
 fi
 
 cleanup() {
-  docker logs "$CONTAINER_NAME" > /tmp/gorgone-runtime-test.log 2>&1 || true
+  docker logs "$CONTAINER_NAME" > /tmp/gorgone-boot-test.log 2>&1 || true
   docker rm -f "$CONTAINER_NAME" "$ENGINE_RW_CONTAINER" "$POLLER_CONTAINER" "$KEYS_CONTAINER" > /dev/null 2>&1 || true
   docker volume rm "$ENGINE_RW_VOLUME" "$POLLER_ENGINE_VOLUME" "$KEYS_VOLUME" > /dev/null 2>&1 || true
 }
@@ -60,14 +61,14 @@ wait_for_log() {
   return 1
 }
 
-echo "=== [T1] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
+echo "=== [boot] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
 docker run -d --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE"
 
-echo "=== [T1] Waiting for /tmp/docker.ready (timeout: ${READY_TIMEOUT}s) ==="
+echo "=== [boot] Waiting for /tmp/docker.ready (timeout: ${READY_TIMEOUT}s) ==="
 wait_ready "$CONTAINER_NAME" || exit 1
 echo "Container is ready."
 
-echo "=== [T1] Checking container is still running ==="
+echo "=== [boot] Checking container is still running ==="
 running=$(docker inspect -f '{{.State.Running}}' "$CONTAINER_NAME")
 if [ "$running" != "true" ]; then
   echo "::error::gorgone container is not running after startup"
@@ -75,14 +76,14 @@ if [ "$running" != "true" ]; then
   exit 1
 fi
 
-echo "=== [T1] Checking non-root user (expected uid 903, centreon-gorgone) ==="
+echo "=== [boot] Checking non-root user (expected uid 903, centreon-gorgone) ==="
 uid=$(docker exec "$CONTAINER_NAME" id -u)
 if [ "$uid" != "903" ]; then
   echo "::error::gorgone process runs as uid $uid, expected 903 (centreon-gorgone)"
   exit 1
 fi
 
-echo "=== [T1] Checking passwordless sudo ==="
+echo "=== [boot] Checking passwordless sudo ==="
 # /etc/sudoers.d only whitelists a handful of exact commands (apt, apt-get,
 # chown, gorgone_install_plugins.pl) - "sudo -n true" is NOT among them and
 # would always fail, so exercise one of the actually-whitelisted commands.
@@ -91,7 +92,7 @@ if ! docker exec "$CONTAINER_NAME" sh -c "sudo -n /usr/bin/apt-get --version > /
   exit 1
 fi
 
-echo "=== [T1] Scanning logs for unambiguous crash signatures ==="
+echo "=== [boot] Scanning logs for unambiguous crash signatures ==="
 if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locate|Segmentation fault|Out of memory"; then
   echo "::error::gorgone logs contain a crash signature, see above"
   exit 1
@@ -99,13 +100,13 @@ fi
 
 # grpcurl is downloaded from a per-arch release tarball (amd64 vs arm64) and the
 # copied .proto files must resolve for gRPC-based centengine management to work.
-echo "=== [T1] Checking grpcurl runs for this architecture ==="
+echo "=== [boot] Checking grpcurl runs for this architecture ==="
 if ! docker exec "$CONTAINER_NAME" grpcurl -version; then
   echo "::error::grpcurl -version failed inside the container (binary/arch mismatch?)"
   exit 1
 fi
 
-echo "=== [T1] Checking engine.proto resolves with grpcurl ==="
+echo "=== [boot] Checking engine.proto resolves with grpcurl ==="
 # engine.proto has a relative import ("process_stat.proto") copied alongside
 # it - grpcurl only resolves that when invoked from within the same
 # directory (a "-import-path" pointing at that same directory does not
@@ -122,7 +123,7 @@ fi
 # root-run container, or certain orchestrator volume plugins) regardless of the
 # ownership baked into the image by the Dockerfile. container.d/00-init.sh is
 # supposed to fix this up for /var/lib/centreon-engine/rw on every boot.
-echo "=== [T1] Checking /var/lib/centreon-engine/rw ownership fix-up on a root-owned volume ==="
+echo "=== [boot:engine-rw-ownership] Checking /var/lib/centreon-engine/rw ownership fix-up on a root-owned volume ==="
 docker volume create "$ENGINE_RW_VOLUME" > /dev/null
 docker run --rm -v "$ENGINE_RW_VOLUME:/vol" "${platform_args[@]}" alpine:3.20 chown 0:0 /vol > /dev/null
 docker run -d --name "$ENGINE_RW_CONTAINER" "${platform_args[@]}" \
@@ -139,7 +140,7 @@ fi
 # thin/placeholder path. Re-run the core health checks in poller mode so a
 # poller-specific regression (e.g. in the engine-secrets write) isn't masked
 # by only ever booting in central mode.
-echo "=== [T1] Checking boot in TYPE=poller mode ==="
+echo "=== [boot:poller] Checking boot in TYPE=poller mode ==="
 docker volume create "$POLLER_ENGINE_VOLUME" > /dev/null
 docker run --rm --user root --entrypoint sh -v "$POLLER_ENGINE_VOLUME:/vol" "${platform_args[@]}" "$IMAGE" \
   -c "chown centreon-engine:centreon-engine /vol && chmod 775 /vol" > /dev/null
@@ -171,7 +172,7 @@ fi
 # RSA node keys under /var/lib/centreon-gorgone/.keys must survive container
 # restarts (host reboot, image bump) - regenerating them on every boot would
 # silently break node identity/registration for customers.
-echo "=== [T1] Checking RSA key persistence across a restart ==="
+echo "=== [boot:key-persistence] Checking RSA key persistence across a restart ==="
 docker volume create "$KEYS_VOLUME" > /dev/null
 docker run -d --name "$KEYS_CONTAINER" "${platform_args[@]}" \
   -v "$KEYS_VOLUME:/var/lib/centreon-gorgone/.keys" "$IMAGE" > /dev/null
@@ -196,10 +197,10 @@ if [ "$privkey_hash_before" != "$privkey_hash_after" ]; then
   exit 1
 fi
 
-echo "=== [T1] Stopping container (validates entrypoint cleanup trap) ==="
+echo "=== [boot] Stopping container (validates entrypoint cleanup trap) ==="
 if ! docker stop "$CONTAINER_NAME" > /dev/null; then
   echo "::error::gorgone container did not stop cleanly within the default timeout"
   exit 1
 fi
 
-echo "=== [T1] PASSED for $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
+echo "=== [boot] PASSED for $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
