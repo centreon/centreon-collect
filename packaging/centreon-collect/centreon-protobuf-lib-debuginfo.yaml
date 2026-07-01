@@ -23,14 +23,6 @@ contents:
     dst: "/usr/lib/debug/usr/lib/"
     packager: deb
 
-  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so.debug"
-    dst: "/usr/lib/debug/usr/lib64/"
-    packager: rpm
-
-  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so.debug"
-    dst: "/usr/lib/debug/usr/lib/"
-    packager: deb
-
 overrides:
   rpm:
     depends:

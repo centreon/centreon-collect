@@ -24,14 +24,6 @@ contents:
     dst: "/usr/lib/"
     packager: deb
 
-  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so"
-    dst: "/usr/lib64/"
-    packager: rpm
-
-  - src: "../../build/common/engine_conf/libcentreon_engine_conf.so"
-    dst: "/usr/lib/"
-    packager: deb
-
 rpm:
   summary: Centreon protobuf object libraries.
   compression: zstd
