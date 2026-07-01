@@ -46,6 +46,20 @@ wait_ready() {
   return 1
 }
 
+# /tmp/docker.ready is set by the entrypoint *before* gorgoned is exec'd, so
+# it does not guarantee gorgoned has reached any particular point in its own
+# startup log yet - poll for that separately.
+wait_for_log() {
+  local container="$1" pattern="$2" timeout="${3:-15}"
+  for _ in $(seq 1 "$timeout"); do
+    if docker logs "$container" 2>&1 | grep -q "$pattern"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 echo "=== [T1] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
 docker run -d --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE"
 
@@ -162,7 +176,7 @@ docker volume create "$KEYS_VOLUME" > /dev/null
 docker run -d --name "$KEYS_CONTAINER" "${platform_args[@]}" \
   -v "$KEYS_VOLUME:/var/lib/centreon-gorgone/.keys" "$IMAGE" > /dev/null
 wait_ready "$KEYS_CONTAINER" || exit 1
-if ! docker logs "$KEYS_CONTAINER" 2>&1 | grep -q "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' written"; then
+if ! wait_for_log "$KEYS_CONTAINER" "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' written"; then
   echo "::error::first boot did not generate a new RSA private key as expected"
   docker logs "$KEYS_CONTAINER" || true
   exit 1
@@ -171,7 +185,7 @@ privkey_hash_before=$(docker exec "$KEYS_CONTAINER" sha256sum /var/lib/centreon-
 
 docker restart "$KEYS_CONTAINER" > /dev/null
 wait_ready "$KEYS_CONTAINER" || exit 1
-if ! docker logs "$KEYS_CONTAINER" 2>&1 | grep -q "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' loaded"; then
+if ! wait_for_log "$KEYS_CONTAINER" "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' loaded"; then
   echo "::error::restart did not load the existing RSA private key (looks regenerated instead of reused)"
   docker logs "$KEYS_CONTAINER" || true
   exit 1
