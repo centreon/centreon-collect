@@ -210,7 +210,7 @@ jobs:
       - name: Generate debug files
         if: ${{ ! inputs.only_robot_cma }}
         run: |
-          for file in $(find build/{broker,engine,clib,connectors} -name '*.so' -type f); do
+          for file in $(find build/{broker,engine,clib,connectors,bbdo,common/engine_conf} -name '*.so' -type f); do
             echo "Making a debug file of $file"
             objcopy --merge-notes --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
