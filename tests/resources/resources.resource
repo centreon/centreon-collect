@@ -258,8 +258,17 @@ Ctn Stop Processes
     Ctn Broker Config Reset
 
 Ctn Start Engine
-    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False
+    [Arguments]    ${newGeneration}=False     ${with_centreon_engine_user}=False    ${central_only}=False    ${with_extended_conf}=False    ${no_module_check}=False
     ${count}    Ctn Get Engines Count
+    # Safety: centengine loads the cbmod (broker module) from central-module*.json.
+    # If a test forgets "Ctn Config Broker module", centengine would silently use a
+    # stale file left over by a previous test. Fail fast unless the test opts out.
+    IF    not ${no_module_check}
+        ${module_ok}    Ctn Broker Module Configured
+        Should Be True
+        ...    ${module_ok}
+        ...    Ctn Config Broker module was not called in this test before Ctn Start Engine: centengine would load a stale/leftover central-module*.json. Add "Ctn Config Broker module" before Ctn Start Engine, or pass no_module_check=True if running centengine without a fresh cbmod config is intended.
+    END
     IF    ${newGeneration}
         Ctn Config BBDO3    ${count}    3.1.0    ${central_only}
     END

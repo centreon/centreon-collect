@@ -46,6 +46,35 @@ from confcmp import ConfComparator
 import Engine
 
 
+# Name of the test in which "Ctn Config Broker module" was last called. Used by
+# "Ctn Start Engine" to make sure the cbmod (broker module) configuration was
+# (re)generated for the current test instead of silently reusing a stale
+# central-module*.json left over by a previous test. Scoping it to the test name
+# avoids needing a reset hook and is independent of the order in which the broker
+# and the engine are configured within the test.
+_broker_module_configured_test = None
+
+
+def ctn_set_broker_module_configured():
+    """Record that 'Ctn Config Broker module' was called in the current test."""
+    global _broker_module_configured_test
+    try:
+        _broker_module_configured_test = BuiltIn().get_variable_value("${TEST NAME}")
+    except RobotNotRunningError:
+        _broker_module_configured_test = None
+
+
+def ctn_broker_module_configured() -> bool:
+    """Return True if 'Ctn Config Broker module' was called in the current test."""
+    try:
+        current = BuiltIn().get_variable_value("${TEST NAME}")
+    except RobotNotRunningError:
+        # Not inside a running test (e.g. import time): don't block.
+        return True
+    return _broker_module_configured_test is not None and \
+        _broker_module_configured_test == current
+
+
 def import_robot_resources():
     global DB_NAME_STORAGE, VAR_ROOT, ETC_ROOT, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT
     try:

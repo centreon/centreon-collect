@@ -563,6 +563,9 @@ def ctn_config_broker(name: str, poller_inst: int = 1):
             if default_transport == "grpc":
                 ctn_config_broker_bbdo_output(
                     f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
+        # Record that the cbmod configuration was generated for the current test
+        # so "Ctn Start Engine" can detect a forgotten "Ctn Config Broker module".
+        Common.ctn_set_broker_module_configured()
 
     else:
         buf = config[name].format(broker_id, broker_name,
