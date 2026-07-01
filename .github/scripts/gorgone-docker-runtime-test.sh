@@ -13,6 +13,10 @@ PLATFORM="${PLATFORM:-}"
 CONTAINER_NAME="gorgone-runtime-test-$$"
 ENGINE_RW_CONTAINER="gorgone-runtime-test-enginerw-$$"
 ENGINE_RW_VOLUME="gorgone-runtime-test-enginerw-vol-$$"
+POLLER_CONTAINER="gorgone-runtime-test-poller-$$"
+POLLER_ENGINE_VOLUME="gorgone-runtime-test-poller-enginevol-$$"
+KEYS_CONTAINER="gorgone-runtime-test-keys-$$"
+KEYS_VOLUME="gorgone-runtime-test-keys-vol-$$"
 READY_TIMEOUT="${READY_TIMEOUT:-30}"
 
 platform_args=()
@@ -22,28 +26,31 @@ fi
 
 cleanup() {
   docker logs "$CONTAINER_NAME" > /tmp/gorgone-runtime-test.log 2>&1 || true
-  docker rm -f "$CONTAINER_NAME" "$ENGINE_RW_CONTAINER" > /dev/null 2>&1 || true
-  docker volume rm "$ENGINE_RW_VOLUME" > /dev/null 2>&1 || true
+  docker rm -f "$CONTAINER_NAME" "$ENGINE_RW_CONTAINER" "$POLLER_CONTAINER" "$KEYS_CONTAINER" > /dev/null 2>&1 || true
+  docker volume rm "$ENGINE_RW_VOLUME" "$POLLER_ENGINE_VOLUME" "$KEYS_VOLUME" > /dev/null 2>&1 || true
 }
 trap cleanup EXIT
+
+# /tmp/docker.ready is touched once all container.d/*.sh entrypoint scripts
+# finished, right before gorgoned itself is exec'd.
+wait_ready() {
+  local container="$1" timeout="${2:-$READY_TIMEOUT}"
+  for _ in $(seq 1 "$timeout"); do
+    if docker exec "$container" test -f /tmp/docker.ready 2>/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "::error::$container did not report readiness (/tmp/docker.ready) within ${timeout}s"
+  docker logs "$container" || true
+  return 1
+}
 
 echo "=== [T1] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
 docker run -d --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE"
 
 echo "=== [T1] Waiting for /tmp/docker.ready (timeout: ${READY_TIMEOUT}s) ==="
-ready=0
-for _ in $(seq 1 "$READY_TIMEOUT"); do
-  if docker exec "$CONTAINER_NAME" test -f /tmp/docker.ready 2>/dev/null; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-if [ "$ready" -ne 1 ]; then
-  echo "::error::gorgone container did not report readiness (/tmp/docker.ready) within ${READY_TIMEOUT}s"
-  docker logs "$CONTAINER_NAME" || true
-  exit 1
-fi
+wait_ready "$CONTAINER_NAME" || exit 1
 echo "Container is ready."
 
 echo "=== [T1] Checking container is still running ==="
@@ -106,23 +113,72 @@ docker volume create "$ENGINE_RW_VOLUME" > /dev/null
 docker run --rm -v "$ENGINE_RW_VOLUME:/vol" "${platform_args[@]}" alpine:3.20 chown 0:0 /vol > /dev/null
 docker run -d --name "$ENGINE_RW_CONTAINER" "${platform_args[@]}" \
   -v "$ENGINE_RW_VOLUME:/var/lib/centreon-engine/rw" "$IMAGE" > /dev/null
-
-engine_rw_ready=0
-for _ in $(seq 1 "$READY_TIMEOUT"); do
-  if docker exec "$ENGINE_RW_CONTAINER" test -f /tmp/docker.ready 2>/dev/null; then
-    engine_rw_ready=1
-    break
-  fi
-  sleep 1
-done
-if [ "$engine_rw_ready" -ne 1 ]; then
-  echo "::error::gorgone container with a root-owned /var/lib/centreon-engine/rw volume did not report readiness within ${READY_TIMEOUT}s"
-  docker logs "$ENGINE_RW_CONTAINER" || true
-  exit 1
-fi
+wait_ready "$ENGINE_RW_CONTAINER" || exit 1
 rw_uid=$(docker exec "$ENGINE_RW_CONTAINER" stat -c %u /var/lib/centreon-engine/rw)
 if [ "$rw_uid" != "901" ]; then
   echo "::error::/var/lib/centreon-engine/rw is owned by uid $rw_uid after boot, expected 901 (centreon-engine): the 00-init.sh ownership fix-up is broken"
+  exit 1
+fi
+
+# TYPE=poller (config named "Poller-docker") is the actual primary customer
+# deployment mode - the default/central mode above is a comparatively
+# thin/placeholder path. Re-run the core health checks in poller mode so a
+# poller-specific regression (e.g. in the engine-secrets write) isn't masked
+# by only ever booting in central mode.
+echo "=== [T1] Checking boot in TYPE=poller mode ==="
+docker volume create "$POLLER_ENGINE_VOLUME" > /dev/null
+docker run --rm --user root --entrypoint sh -v "$POLLER_ENGINE_VOLUME:/vol" "${platform_args[@]}" "$IMAGE" \
+  -c "chown centreon-engine:centreon-engine /vol && chmod 775 /vol" > /dev/null
+docker run -d --name "$POLLER_CONTAINER" "${platform_args[@]}" \
+  -e TYPE=poller -e APP_SECRET=runtime-test-app-secret -e SALT=runtime-test-salt \
+  -v "$POLLER_ENGINE_VOLUME:/etc/centreon-engine" "$IMAGE" > /dev/null
+wait_ready "$POLLER_CONTAINER" || exit 1
+
+poller_uid=$(docker exec "$POLLER_CONTAINER" id -u)
+if [ "$poller_uid" != "903" ]; then
+  echo "::error::gorgone process runs as uid $poller_uid in poller mode, expected 903 (centreon-gorgone)"
+  exit 1
+fi
+if ! docker exec "$POLLER_CONTAINER" sh -c "sudo -n /usr/bin/apt-get --version > /dev/null"; then
+  echo "::error::sudo -n /usr/bin/apt-get failed inside the poller-mode container"
+  exit 1
+fi
+if docker logs "$POLLER_CONTAINER" 2>&1 | grep -Ei "Compilation failed|Can't locate|Segmentation fault|Out of memory"; then
+  echo "::error::poller-mode gorgone logs contain a crash signature, see above"
+  exit 1
+fi
+poller_running=$(docker inspect -f '{{.State.Running}}' "$POLLER_CONTAINER")
+if [ "$poller_running" != "true" ]; then
+  echo "::error::gorgone container exited after boot in poller mode"
+  docker logs "$POLLER_CONTAINER" || true
+  exit 1
+fi
+
+# RSA node keys under /var/lib/centreon-gorgone/.keys must survive container
+# restarts (host reboot, image bump) - regenerating them on every boot would
+# silently break node identity/registration for customers.
+echo "=== [T1] Checking RSA key persistence across a restart ==="
+docker volume create "$KEYS_VOLUME" > /dev/null
+docker run -d --name "$KEYS_CONTAINER" "${platform_args[@]}" \
+  -v "$KEYS_VOLUME:/var/lib/centreon-gorgone/.keys" "$IMAGE" > /dev/null
+wait_ready "$KEYS_CONTAINER" || exit 1
+if ! docker logs "$KEYS_CONTAINER" 2>&1 | grep -q "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' written"; then
+  echo "::error::first boot did not generate a new RSA private key as expected"
+  docker logs "$KEYS_CONTAINER" || true
+  exit 1
+fi
+privkey_hash_before=$(docker exec "$KEYS_CONTAINER" sha256sum /var/lib/centreon-gorgone/.keys/rsakey.priv.pem)
+
+docker restart "$KEYS_CONTAINER" > /dev/null
+wait_ready "$KEYS_CONTAINER" || exit 1
+if ! docker logs "$KEYS_CONTAINER" 2>&1 | grep -q "Private key file '/var/lib/centreon-gorgone/.keys/rsakey.priv.pem' loaded"; then
+  echo "::error::restart did not load the existing RSA private key (looks regenerated instead of reused)"
+  docker logs "$KEYS_CONTAINER" || true
+  exit 1
+fi
+privkey_hash_after=$(docker exec "$KEYS_CONTAINER" sha256sum /var/lib/centreon-gorgone/.keys/rsakey.priv.pem)
+if [ "$privkey_hash_before" != "$privkey_hash_after" ]; then
+  echo "::error::RSA private key changed across a restart (was regenerated instead of reused): before=$privkey_hash_before after=$privkey_hash_after"
   exit 1
 fi
 
