@@ -1257,7 +1257,10 @@ void applier::state::_apply_diff_conf(
   APPLY_DIFF(global_service_event_handler);
   APPLY_DIFF(illegal_object_chars);
   APPLY_DIFF(illegal_output_chars);
-  APPLY_DIFF(interval_length);
+  /* interval_length is not optional in DiffState: 0 (not a valid value)
+   * means "not part of the diff". */
+  if (diff.interval_length() > 0)
+    pb_indexed_config.mut_state().set_interval_length(diff.interval_length());
   APPLY_DIFF(ochp_command);
   APPLY_DIFF(ocsp_command);
   APPLY_DIFF(use_timezone);

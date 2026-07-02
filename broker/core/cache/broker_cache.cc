@@ -42,9 +42,9 @@ broker_cache::broker_cache(std::shared_ptr<spdlog::logger> logger)
   const auto& cache_dir = config::applier::state::instance().cache_dir();
   if (cache_dir.empty()) {
     // No cache directory configured — typically a unit-test context.
-    // Build a path that is unique per process AND per broker_cache instance
-    // so that parallel CI runs and successive deinit/init cycles within the
-    // same process never share a file.
+    // Use a per-process file so parallel CI runs never share one. Within the
+    // process, every broker_cache instance shares this file (it is written at
+    // destruction and reloaded at construction).
     _cache_file = std::filesystem::temp_directory_path() /
                   fmt::format("broker_cache_{}.prot", ::getpid());
     SPDLOG_LOGGER_DEBUG(_logger,
@@ -96,7 +96,10 @@ void broker_cache::merge(
     _instances.insert_or_assign(
         state.poller_id(),
         instance_info{state.poller_name(), state.enable_notifications(),
-                      state.send_recovery_notifications_anyway()});
+                      state.send_recovery_notifications_anyway(),
+                      state.interval_length() > 0
+                          ? std::chrono::seconds(state.interval_length())
+                          : instance_info::default_interval_length});
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -326,11 +329,12 @@ void broker_cache::apply(
   //   if (diff.has_poller_name())
   //     _instances.insert_or_assign(diff.poller_id(), diff.poller_name());
 
-  /* A diff may toggle the program-wide notification flags without resending the
-   * whole state, so keep the cached values in sync. */
+  /* A diff may toggle the program-wide notification flags or interval_length
+   * without resending the whole state, so keep the cached values in sync. */
   if (section_enabled(CACHE_INSTANCES) &&
       (diff.has_enable_notifications() ||
-       diff.has_send_recovery_notifications_anyway())) {
+       diff.has_send_recovery_notifications_anyway() ||
+       diff.interval_length() > 0)) {
     auto it = _instances.find(diff.poller_id());
     if (it != _instances.end()) {
       if (diff.has_enable_notifications())
@@ -338,6 +342,11 @@ void broker_cache::apply(
       if (diff.has_send_recovery_notifications_anyway())
         it->second.send_recovery_notifications_anyway =
             diff.send_recovery_notifications_anyway();
+      /* interval_length is not optional in DiffState: 0 (not a valid value)
+       * means "not part of the diff". */
+      if (diff.interval_length() > 0)
+        it->second.interval_length =
+            std::chrono::seconds(diff.interval_length());
     }
   }
 
@@ -1083,9 +1092,9 @@ void broker_cache::update_instance(
   absl::WriterMutexLock l{&_mutex};
   auto& obj = instance->obj();
   if (obj.running()) {
-    /* The neb Instance event does not carry enable_notifications, so only
-     * refresh the name and keep any notifications_enabled value already set by
-     * merge()/apply(). */
+    /* The neb Instance event carries none of the poller settings
+     * (notifications_enabled, interval_length...), so only refresh the name
+     * and keep the values already set by merge()/apply(). */
     _instances[obj.instance_id()].name = obj.name();
   } else
     _instances.erase(obj.instance_id());
@@ -2308,6 +2317,22 @@ bool broker_cache::send_recovery_notifications_anyway(
   if (found == _instances.end())
     return false;
   return found->second.send_recovery_notifications_anyway;
+}
+
+/**
+ * @brief Get the duration of one "interval unit" for the given poller.
+ *
+ * @param instance_id The poller ID.
+ *
+ * @return The poller's interval_length (the Engine default of 60s when the
+ * poller is unknown).
+ */
+std::chrono::seconds broker_cache::interval_length(uint64_t instance_id) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto found = _instances.find(instance_id);
+  if (found == _instances.end())
+    return instance_info::default_interval_length;
+  return found->second.interval_length;
 }
 
 /**

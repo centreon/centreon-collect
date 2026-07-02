@@ -17,6 +17,9 @@
  *
  */
 #include <gtest/gtest.h>
+#include <unistd.h>
+
+#include <filesystem>
 
 #include "broker/core/config/applier/broker_state.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -30,6 +33,22 @@ using com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
+
+/* Every broker_cache of this process shares the same fallback cache file
+ * (/tmp/broker_cache_<pid>.prot), written at destruction and reloaded at
+ * construction. Remove it before each test — OnTestStart fires before the
+ * fixture's SetUp — so no state leaks from one test to the next through the
+ * disk. */
+class ClearBrokerCacheFileListener : public testing::EmptyTestEventListener {
+  void OnTestStart(const testing::TestInfo& test_info
+                   [[maybe_unused]]) override {
+    std::error_code ec;
+    std::filesystem::remove(
+        std::filesystem::temp_directory_path() /
+            ("broker_cache_" + std::to_string(::getpid()) + ".prot"),
+        ec);
+  }
+};
 
 class CentreonBrokerEnvironment : public testing::Environment {
  public:
@@ -60,6 +79,8 @@ int main(int argc, char* argv[]) {
 
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
+  testing::UnitTest::GetInstance()->listeners().Append(
+      new ClearBrokerCacheFileListener());
 
   log_v2::load("test");
   com::centreon::common::pool::load(g_io_context,
