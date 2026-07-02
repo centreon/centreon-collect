@@ -248,6 +248,11 @@ WORKDIR /var/lib/centreon-engine
 
 USER centreon-engine
 
+# /tmp/docker.ready is touched by 99-logs.sh once every container.d/*.sh
+# entrypoint script has run, right before centengine itself is exec'd.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 \
+    CMD test -f /tmp/docker.ready
+
 ENTRYPOINT ["/var/lib/centreon-engine/container.sh"]
 
 CMD ["/usr/sbin/centengine", "/etc/centreon-engine/centengine.cfg"]

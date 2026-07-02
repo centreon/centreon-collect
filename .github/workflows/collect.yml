@@ -462,6 +462,12 @@ jobs:
 
     name: dockerize ${{ matrix.image }}-${{ matrix.distrib }}
 
+    # Matrix job outputs come from the last completed matrix leg. Safe here
+    # because compute-tag only depends on the ref/major_version, never on
+    # matrix.image or matrix.distrib, so every leg produces the same tag.
+    outputs:
+      image_tag: ${{ steps.compute-tag.outputs.tag }}
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -558,6 +564,95 @@ jobs:
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+  docker-boot-test:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]
+        platform: [linux/amd64, linux/arm64]
+    name: docker boot test centreon-engine-${{ matrix.distrib }} (${{ matrix.platform }})
+    env:
+      ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Login to registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a # v4.0.0
+
+      - name: Replace / with - in the platform name
+        id: platform-name
+        run: echo "dashed=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Pull image for ${{ matrix.platform }}
+        run: docker pull --platform "${{ matrix.platform }}" "$ENGINE_IMAGE"
+        shell: bash
+
+      - name: Run boot test
+        env:
+          IMAGE: ${{ env.ENGINE_IMAGE }}
+          PLATFORM: ${{ matrix.platform }}
+        run: ./.github/scripts/centreon-engine-docker-boot-test.sh
+        shell: bash
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: centreon-engine-boot-test-${{ matrix.distrib }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/centreon-engine-boot-test.log
+          retention-days: 1
+
+  docker-config-wiring-test:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [trixie]
+    name: docker config/wiring test centreon-engine-${{ matrix.distrib }}
+    env:
+      ENGINE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-engine-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Login to registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Pull image
+        run: docker pull --platform linux/amd64 "$ENGINE_IMAGE"
+        shell: bash
+
+      - name: Run config/wiring test scenarios
+        env:
+          IMAGE: ${{ env.ENGINE_IMAGE }}
+        run: ./.github/scripts/centreon-engine-docker-config-wiring-test.sh
+        shell: bash
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: centreon-engine-config-wiring-test-${{ matrix.distrib }}
+          path: /tmp/centreon-engine-config-wiring-test.log
+          retention-days: 1
 
   robot-test:
     needs: [get-environment, get-aws-environment, changes, package]

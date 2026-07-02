@@ -1,0 +1,198 @@
+#!/bin/bash
+#
+# Config-contract and wiring test scenarios for the centreon-engine product
+# Docker image. Each scenario starts its own container (via `docker create` +
+# `docker cp` to inject config files before the entrypoint ever runs, so no
+# docker-compose/volumes are needed) so it can assert its own logs/state
+# independently.
+#
+# Flakiness note: plugins.json/custom-deps.json installs run via `apt_install_pkgs`
+# in the *background* (`&`), started *after* /tmp/docker.ready is touched by
+# 99-logs.sh. Never treat readiness as "install finished" - always poll the
+# actual package state (dpkg-query) with a timeout.
+set -e
+
+IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
+: > "$LOG_FILE"
+
+PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
+
+declare -a CONTAINERS=()
+declare -a TMPFILES=()
+
+cleanup() {
+  local c
+  for c in "${CONTAINERS[@]}"; do
+    { echo "=== docker logs $c ==="; docker logs "$c"; } >> "$LOG_FILE" 2>&1 || true
+    docker rm -f "$c" > /dev/null 2>&1 || true
+  done
+  rm -f "${TMPFILES[@]}" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+wait_ready() {
+  local container="$1" timeout="${2:-30}"
+  for _ in $(seq 1 "$timeout"); do
+    if docker exec "$container" test -f /tmp/docker.ready 2>/dev/null; then
+      return 0
+    fi
+    sleep 1
+  done
+  echo "::error::$container did not report readiness (/tmp/docker.ready) within ${timeout}s"
+  docker logs "$container" || true
+  return 1
+}
+
+wait_for_pkg_installed() {
+  local container="$1" pkg="$2" timeout="${3:-90}"
+  for _ in $(seq 1 "$timeout"); do
+    if docker exec "$container" sh -c "dpkg-query -W -f='\${Status}' '$pkg' 2>/dev/null" | grep -q "^install ok installed$"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+wait_for_log() {
+  local container="$1" pattern="$2" timeout="${3:-90}"
+  for _ in $(seq 1 "$timeout"); do
+    if docker logs "$container" 2>&1 | grep -qi "$pattern"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+# create+cp+start: injects config files into /etc/centreon-engine before the
+# entrypoint runs, without needing bind mounts.
+create_with_configs() {
+  local container="$1"; shift
+  docker create --name "$container" "$IMAGE" > /dev/null
+  CONTAINERS+=("$container")
+  while [ "$#" -ge 2 ]; do
+    docker cp "$1" "$container:/etc/centreon-engine/$2"
+    shift 2
+  done
+  docker start "$container" > /dev/null
+}
+
+echo "=== [config:custom-deps-install] custom-deps.json installs a plain valid apt package ==="
+deps_file=$(mktemp); TMPFILES+=("$deps_file")
+echo '{"apt": ["cowsay"]}' > "$deps_file"
+create_with_configs centreon-engine-cfg-install-$$ "$deps_file" custom-deps.json
+wait_ready centreon-engine-cfg-install-$$ || exit 1
+if ! wait_for_pkg_installed centreon-engine-cfg-install-$$ cowsay; then
+  echo "::error::cowsay was not installed from custom-deps.json"
+  exit 1
+fi
+echo "OK: cowsay installed from custom-deps.json."
+
+echo "=== [config:custom-deps-isolate-invalid] a mix of valid+invalid packages still installs the valid one ==="
+deps_file=$(mktemp); TMPFILES+=("$deps_file")
+echo '{"apt": ["this-package-does-not-exist-xyz", "figlet"]}' > "$deps_file"
+create_with_configs centreon-engine-cfg-mixed-$$ "$deps_file" custom-deps.json
+wait_ready centreon-engine-cfg-mixed-$$ || exit 1
+if ! wait_for_pkg_installed centreon-engine-cfg-mixed-$$ figlet; then
+  echo "::error::figlet (the valid package in a mixed valid+invalid list) was not installed - the 'isolate unavailable apt packages' fix regressed"
+  exit 1
+fi
+if ! wait_for_log centreon-engine-cfg-mixed-$$ "skipping unavailable package: this-package-does-not-exist-xyz" 15; then
+  echo "::error::expected a 'skipping unavailable package' warning for this-package-does-not-exist-xyz"
+  exit 1
+fi
+echo "OK: valid package installed and invalid one isolated/skipped, per-package retry fallback confirmed."
+
+echo "=== [config:custom-deps-hot-reload] custom-deps.json changes at runtime trigger inotify install ==="
+docker run -d --name centreon-engine-cfg-reload-$$ "$IMAGE" > /dev/null
+CONTAINERS+=("centreon-engine-cfg-reload-$$")
+wait_ready centreon-engine-cfg-reload-$$ || exit 1
+docker exec centreon-engine-cfg-reload-$$ sh -c 'echo "{\"apt\": [\"sl\"]}" > /etc/centreon-engine/custom-deps.json'
+if ! wait_for_pkg_installed centreon-engine-cfg-reload-$$ sl; then
+  echo "::error::sl was not installed after custom-deps.json was updated at runtime - inotify hot-reload is broken"
+  exit 1
+fi
+echo "OK: custom-deps.json hot-reload installed the new package without a restart."
+
+echo "=== [config:concurrent-apt-callers] plugins.json + custom-deps.json installing at the same boot do not hit a dpkg lock conflict ==="
+installed_version=$(docker run --rm --entrypoint dpkg-query "$IMAGE" -W -f='${Version}' "$PLUGIN_PKG" 2>/dev/null)
+plugins_file=$(mktemp); TMPFILES+=("$plugins_file")
+deps_file=$(mktemp); TMPFILES+=("$deps_file")
+printf '{"%s": "0.0.0-force-reinstall"}' "$PLUGIN_PKG" > "$plugins_file"
+echo '{"apt": ["cowsay"]}' > "$deps_file"
+create_with_configs centreon-engine-cfg-concurrent-$$ "$plugins_file" plugins.json "$deps_file" custom-deps.json
+wait_ready centreon-engine-cfg-concurrent-$$ || exit 1
+if ! wait_for_pkg_installed centreon-engine-cfg-concurrent-$$ cowsay 120; then
+  echo "::error::cowsay (from custom-deps.json) was not installed while plugins.json was installing concurrently"
+  exit 1
+fi
+if ! wait_for_log centreon-engine-cfg-concurrent-$$ "installed: ${PLUGIN_PKG}" 120; then
+  echo "::error::$PLUGIN_PKG (from plugins.json, forced reinstall from $installed_version) was not (re)installed while custom-deps.json was installing concurrently"
+  exit 1
+fi
+if docker logs centreon-engine-cfg-concurrent-$$ 2>&1 | grep -Ei "could not get lock|dpkg was interrupted|Unable to lock"; then
+  echo "::error::a dpkg/apt lock conflict was logged - the flock serialization between concurrent apt callers is broken"
+  exit 1
+fi
+echo "OK: plugins.json and custom-deps.json installed concurrently with no dpkg lock conflict."
+
+echo "=== [config:plugins-up-to-date-skip] plugins.json requesting the already-installed version is a no-op ==="
+plugins_file=$(mktemp); TMPFILES+=("$plugins_file")
+printf '{"%s": "%s"}' "$PLUGIN_PKG" "$installed_version" > "$plugins_file"
+create_with_configs centreon-engine-cfg-skip-$$ "$plugins_file" plugins.json
+wait_ready centreon-engine-cfg-skip-$$ || exit 1
+sleep 3
+if docker logs centreon-engine-cfg-skip-$$ 2>&1 | grep -q "Installing plugins from plugins.json"; then
+  echo "::error::plugins.json triggered an install even though the requested version ($installed_version) was already installed"
+  exit 1
+fi
+echo "OK: plugins.json correctly skipped an already up-to-date package."
+
+echo "=== [config:custom-plugins-volume] a script mounted at /usr/lib/nagios/plugins/custom is usable ==="
+plugins_dir=$(mktemp -d); TMPFILES+=("$plugins_dir")
+cat > "$plugins_dir/check_dummy.sh" <<'SCRIPT'
+#!/bin/sh
+echo "OK - dummy check"
+exit 0
+SCRIPT
+chmod 755 "$plugins_dir/check_dummy.sh"
+docker run -d --name centreon-engine-cfg-customvol-$$ \
+  -v "$plugins_dir:/usr/lib/nagios/plugins/custom:ro" "$IMAGE" > /dev/null
+CONTAINERS+=("centreon-engine-cfg-customvol-$$")
+wait_ready centreon-engine-cfg-customvol-$$ || exit 1
+output=$(docker exec centreon-engine-cfg-customvol-$$ /usr/lib/nagios/plugins/custom/check_dummy.sh)
+if [ "$output" != "OK - dummy check" ]; then
+  echo "::error::mounted custom plugin did not run as expected, got: $output"
+  exit 1
+fi
+echo "OK: user script mounted at /usr/lib/nagios/plugins/custom ran successfully as centreon-engine."
+
+echo "=== [wiring:grpc-get-version] the engine gRPC management API (port 50155) actually answers ==="
+docker run -d --name centreon-engine-wiring-$$ "$IMAGE" > /dev/null
+CONTAINERS+=("centreon-engine-wiring-$$")
+wait_ready centreon-engine-wiring-$$ || exit 1
+# rpc_listen_address is forced to 0.0.0.0 by 05-engine-config.sh, but centengine
+# still needs a moment after /tmp/docker.ready (set before centengine is exec'd)
+# to actually bind the gRPC listener.
+grpc_output=""
+for _ in $(seq 1 15); do
+  grpc_output=$(docker run --rm --network "container:centreon-engine-wiring-$$" \
+    -v "$REPO_ROOT/engine/enginerpc:/protos/enginerpc:ro" \
+    -v "$REPO_ROOT/common/process_stat:/protos/process_stat:ro" \
+    fullstorydev/grpcurl:latest -plaintext \
+    -import-path /protos/enginerpc -import-path /protos/process_stat \
+    -proto engine.proto 127.0.0.1:50155 com.centreon.engine.Engine/GetVersion 2>&1) && break
+  sleep 1
+done
+echo "$grpc_output"
+if ! echo "$grpc_output" | grep -q '"major"'; then
+  echo "::error::GetVersion did not return a version payload over gRPC on port 50155:"
+  echo "$grpc_output"
+  exit 1
+fi
+echo "OK: engine gRPC management API answered GetVersion on port 50155."
+
+echo "=== [config/wiring] PASSED ==="
