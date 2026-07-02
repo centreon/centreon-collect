@@ -1,15 +1,25 @@
 #!/bin/bash
 #
 # Boot test for the centreon-engine product Docker image.
-# Starts the image with default (customer out-of-the-box) settings and checks
-# that the container boots cleanly, runs as the expected non-root user, and
-# does not crash. No plugins.json/custom-deps.json is mounted here on purpose -
-# that's the config tier's job (see centreon-engine-docker-config-wiring-test.sh).
+# Starts the image with a minimal-but-valid monitoring configuration and
+# checks that the container boots cleanly, runs as the expected non-root
+# user, and does not crash. No plugins.json/custom-deps.json is seeded here
+# on purpose - that's the config tier's job (see
+# centreon-engine-docker-config-wiring-test.sh).
+#
+# Why a fixture config is required at all: centreon-engine does NOT run
+# usefully out of the box. With nothing mounted, /etc/centreon-engine only
+# has the empty templates baked in at build time, and the real product is
+# designed to crash-loop until a Centreon Central pushes real configuration
+# into that path - confirmed against the actual image while writing this
+# test (see .github/docker/centreon-engine/fixtures/minimal-config/).
 set -e
 
 IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 PLATFORM="${PLATFORM:-}"
 CONTAINER_NAME="centreon-engine-boot-test-$$"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+FIXTURE_DIR="$REPO_ROOT/.github/docker/centreon-engine/fixtures/minimal-config"
 
 platform_args=()
 if [ -n "$PLATFORM" ]; then
@@ -38,7 +48,10 @@ wait_ready() {
 }
 
 echo "=== [boot] Starting $IMAGE ${PLATFORM:+(platform: $PLATFORM)} ==="
-docker run -d --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE"
+docker create --name "$CONTAINER_NAME" "${platform_args[@]}" "$IMAGE" > /dev/null
+docker cp "$FIXTURE_DIR/engine/." "$CONTAINER_NAME:/etc/centreon-engine"
+docker cp "$FIXTURE_DIR/broker/." "$CONTAINER_NAME:/etc/centreon-broker"
+docker start "$CONTAINER_NAME" > /dev/null
 
 echo "=== [boot] Waiting for /tmp/docker.ready ==="
 wait_ready "$CONTAINER_NAME" || exit 1

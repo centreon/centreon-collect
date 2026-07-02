@@ -6,6 +6,13 @@
 # docker-compose/volumes are needed) so it can assert its own logs/state
 # independently.
 #
+# Every scenario seeds the minimal-config fixture first: centreon-engine does
+# not run usefully out of the box (empty templates only) and is designed to
+# crash-loop until a Centreon Central pushes real configuration - confirmed
+# against the actual image while writing this test. See
+# .github/docker/centreon-engine/fixtures/minimal-config/ and
+# centreon-engine-docker-boot-test.sh for the same rationale.
+#
 # Flakiness note: plugins.json/custom-deps.json installs run via `apt_install_pkgs`
 # in the *background* (`&`), started *after* /tmp/docker.ready is touched by
 # 99-logs.sh. Never treat readiness as "install finished" - always poll the
@@ -14,6 +21,7 @@ set -e
 
 IMAGE="${IMAGE:?ERROR: IMAGE env var must be set to the image reference to test}"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+FIXTURE_DIR="$REPO_ROOT/.github/docker/centreon-engine/fixtures/minimal-config"
 LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
 : > "$LOG_FILE"
 
@@ -67,13 +75,23 @@ wait_for_log() {
   return 1
 }
 
-# create+cp+start: injects config files into /etc/centreon-engine before the
-# entrypoint runs, without needing bind mounts.
+# create+cp+start: seeds the minimal-config fixture, then overlays any extra
+# config files given as "<local-path> <dest-filename>" pairs, before the
+# entrypoint runs - without needing bind mounts. Extra -v args (e.g. for the
+# custom-plugins-volume scenario) can be passed via CREATE_EXTRA_ARGS.
 create_with_configs() {
   local container="$1"; shift
-  docker create --name "$container" "$IMAGE" > /dev/null
+  # shellcheck disable=SC2086
+  docker create --name "$container" ${CREATE_EXTRA_ARGS:-} "$IMAGE" > /dev/null
   CONTAINERS+=("$container")
+  docker cp "$FIXTURE_DIR/engine/." "$container:/etc/centreon-engine"
+  docker cp "$FIXTURE_DIR/broker/." "$container:/etc/centreon-broker"
   while [ "$#" -ge 2 ]; do
+    # mktemp files are 0600 owned by the runner's uid; docker cp preserves
+    # mode+uid, and check_custom_deps.py/check_plugins.py run as centreon-engine
+    # (uid 901) - without this they'd hit a silent permission-denied read and
+    # install nothing. Make it world-readable so 901 can read it regardless.
+    chmod 644 "$1"
     docker cp "$1" "$container:/etc/centreon-engine/$2"
     shift 2
   done
@@ -107,8 +125,7 @@ fi
 echo "OK: valid package installed and invalid one isolated/skipped, per-package retry fallback confirmed."
 
 echo "=== [config:custom-deps-hot-reload] custom-deps.json changes at runtime trigger inotify install ==="
-docker run -d --name centreon-engine-cfg-reload-$$ "$IMAGE" > /dev/null
-CONTAINERS+=("centreon-engine-cfg-reload-$$")
+create_with_configs centreon-engine-cfg-reload-$$
 wait_ready centreon-engine-cfg-reload-$$ || exit 1
 docker exec centreon-engine-cfg-reload-$$ sh -c 'echo "{\"apt\": [\"sl\"]}" > /etc/centreon-engine/custom-deps.json'
 if ! wait_for_pkg_installed centreon-engine-cfg-reload-$$ sl; then
@@ -159,9 +176,8 @@ echo "OK - dummy check"
 exit 0
 SCRIPT
 chmod 755 "$plugins_dir/check_dummy.sh"
-docker run -d --name centreon-engine-cfg-customvol-$$ \
-  -v "$plugins_dir:/usr/lib/nagios/plugins/custom:ro" "$IMAGE" > /dev/null
-CONTAINERS+=("centreon-engine-cfg-customvol-$$")
+CREATE_EXTRA_ARGS="-v $plugins_dir:/usr/lib/nagios/plugins/custom:ro" \
+  create_with_configs centreon-engine-cfg-customvol-$$
 wait_ready centreon-engine-cfg-customvol-$$ || exit 1
 output=$(docker exec centreon-engine-cfg-customvol-$$ /usr/lib/nagios/plugins/custom/check_dummy.sh)
 if [ "$output" != "OK - dummy check" ]; then
@@ -171,8 +187,7 @@ fi
 echo "OK: user script mounted at /usr/lib/nagios/plugins/custom ran successfully as centreon-engine."
 
 echo "=== [wiring:grpc-get-version] the engine gRPC management API (port 50155) actually answers ==="
-docker run -d --name centreon-engine-wiring-$$ "$IMAGE" > /dev/null
-CONTAINERS+=("centreon-engine-wiring-$$")
+create_with_configs centreon-engine-wiring-$$
 wait_ready centreon-engine-wiring-$$ || exit 1
 # rpc_listen_address is forced to 0.0.0.0 by 05-engine-config.sh, but centengine
 # still needs a moment after /tmp/docker.ready (set before centengine is exec'd)
