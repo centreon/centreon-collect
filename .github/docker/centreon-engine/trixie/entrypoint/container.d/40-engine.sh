@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+# Sourced by container.sh, which already sets `set -e` for the whole entrypoint.
 
 PLUGINS_JSON="/etc/centreon-engine/plugins.json"
 

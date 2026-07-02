@@ -1,10 +1,12 @@
 #!/bin/sh
 
-set -e
+# This script is sourced by container.sh (see 00-init loop), so it runs in the
+# parent shell: use `return` (not `exit`, which would kill the whole entrypoint
+# before centengine starts) and let container.sh own `set -e`.
 
 DEPS_JSON="/etc/centreon-engine/custom-deps.json"
 
-[ -f "$DEPS_JSON" ] || exit 0
+[ -f "$DEPS_JSON" ] || return 0
 
 . /var/lib/centreon-engine/apt_install.sh
 
