@@ -100,7 +100,7 @@ check one poller cannot connect to a central with env var ${id}
     ...    AND
     ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
-    ${start_date}    Get Current Date    increment=-10s
+    ${start_date}    Get Current Date
     @{process_list}    Set Variable    ${mode}_gorgone_central_simple    ${mode}_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
     Set Environment Variable    GORGONE_TOKEN    ${env_token}
@@ -108,14 +108,19 @@ check one poller cannot connect to a central with env var ${id}
     Check Poller Is Connected    port=8086    expected_nb=0
     Ctn Check No Error In Logs    ${mode}_gorgone_poller_2_simple
     # we need to find the message that explains the connection refusal
-    ${log_central_query}    Create List    ${message}
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}    timeout=70
-    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
+    ${log_central_query}    Create List    ${message_central}
+    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
+    Should Be True    ${logs_central}    Didn't find the logs in the central file : ${logs_central}
+    ${log_poller_query}    Create List
+    ...    [pullwss] websocket message: {"code":500,"message":"invalid token"}
+    ...    [pullwss] websocket closed with status 1005
+    ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${mode}_gorgone_poller_2_simple/gorgoned.log    content=${log_poller_query}    date=${start_date}
+    Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
 
-    Examples:    id    mode    env_token    message    --
-        ...    1    pullwss    Central-1:centralCMAtoken      [proxy-httpserver] invalid token -
-        ...    2    pullwss    poller-2:myPollerToken         [proxy-httpserver] invalid token -
-        ...    3    pullwss    poller-3:myPollerToken         [proxy-httpserver] invalid token -
+    Examples:    id    mode    env_token    message_central    --
+        ...    1    pullwss    Central-1:centralCMAtoken      [proxy-httpserver] invalid token
+        ...    2    pullwss    poller-2:myPollerToken         [proxy-httpserver] invalid token
+        ...    3    pullwss    poller-3:myPollerToken         [proxy-httpserver] invalid token
         ...    4    pullwss    do_not_exists:myPollerToken    [proxy-httpserver] cannot get token
 
 check poller token revocation
@@ -124,42 +129,67 @@ check poller token revocation
     ...    AND
     ...    Stop Gorgone And Remove Gorgone Config    @{process_list}    sql_file=${ROOT_CONFIG}database${/}delete_pollers.sql
 
+    Set Local Variable    ${revoked_url}    http://127.0.0.1:80/set-poller-4-is-revoked
+    Set Local Variable    ${expired_url}    http://127.0.0.1:80/set-poller-4-is-expired
+    Set Local Variable    ${port}    8086
+    Set Local Variable    ${timeout}    11
+    Set Local Variable    ${sleep}    6
+    Set Local Variable    ${central_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log
+    Set Local Variable    ${poller_log_file}    /var/log/centreon-gorgone/pullwss_gorgone_poller_2_simple/gorgoned.log
+    ${log_poller_query}    Create List
+    ...    [pullwss] websocket message: {"code":500,"message":"invalid token"}
+    ...    [pullwss] websocket closed with status 1005
+
     ${start_date}    Get Current Date
     @{process_list}    Set Variable    pullwss_gorgone_central_simple    pullwss_gorgone_poller_2_simple
     Log To Console    \nStarting the gorgone setup
     Set Environment Variable    GORGONE_TOKEN    poller-4:myPollerToken
-    ${response}=    PUT    http://127.0.0.1:80/set-poller-4-is-revoked/false
-    ${response}=    PUT    http://127.0.0.1:80/set-poller-4-is-expired/false
+    ${response}    PUT    ${revoked_url}/false
+    ${response}    PUT    ${expired_url}/false
     Setup Two Gorgone Instances    communication_mode=pullwss    central_name=pullwss_gorgone_central_simple    poller_name=pullwss_gorgone_poller_2_simple
     Ctn Check No Error In Logs    pullwss_gorgone_poller_2_simple
     ${log_central_query}    Create List    [proxy-httpserver] invalid token
     # The poller is connected
-    Check Poller Is Connected    port=8086    expected_nb=2
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Not Be True    ${logs_central}    Did find the logs in the poller file : ${logs_central}
-    Sleep    6
+    Check Poller Is Connected    port=${port}    expected_nb=2
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
+    ${start_date}    Get Current Date
+    Sleep    ${sleep}
     # Still connected
-    Check Poller Is Connected    port=8086    expected_nb=2
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Not Be True    ${logs_central}    Did find the logs in the poller file : ${logs_central}
+    Check Poller Is Connected    port=${port}    expected_nb=2
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${response}=    PUT    http://127.0.0.1:80/set-poller-4-is-revoked/true
-    Sleep    6
+    ${response}    PUT    ${revoked_url}/true
+    ${start_date}    Get Current Date
+    Sleep    ${sleep}
     # The poller is disconnected
-    Check Poller Is Connected    port=8086    expected_nb=0
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
+    Check Poller Is Connected    port=${port}    expected_nb=0
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_central}    Didn't find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${response}=    PUT    http://127.0.0.1:80/set-poller-4-is-revoked/false
-    Sleep    6
+    ${response}    PUT    ${revoked_url}/false
+    ${start_date}    Get Current Date
+    Sleep    ${sleep}
     # The poller is connected
-    Check Poller Is Connected    port=8086    expected_nb=0
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
+    Check Poller Is Connected    port=${port}    expected_nb=2
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_central}    Did find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Not Be True    ${logs_poller}    Did find the logs in the poller file : ${logs_poller}
     # Token revoked
-    ${response}=    PUT    http://127.0.0.1:80/set-poller-4-is-expired/true
-    Sleep    6
+    ${response}    PUT    ${expired_url}/true
+    ${start_date}    Get Current Date
+    Sleep    ${sleep}
     # The poller is disconnected
-    Check Poller Is Connected    port=8086    expected_nb=0
-    ${logs_central}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/pullwss_gorgone_central_simple/gorgoned.log    content=${log_central_query}    date=${start_date}
-    Should Be True    ${logs_central}    Didn't find the logs in the poller file : ${logs_central}
+    Check Poller Is Connected    port=${port}    expected_nb=0
+    ${logs_central}    Ctn Find In Log With Timeout    log=${central_log_file}    content=${log_central_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_central}    Didn't find the logs in the central file : ${logs_central}
+    ${logs_poller}    Ctn Find In Log With Timeout    log=${poller_log_file}    content=${log_poller_query}    date=${start_date}    timeout=${timeout}
+    Should Be True    ${logs_poller}    Didn't find the logs in the poller file : ${logs_poller}

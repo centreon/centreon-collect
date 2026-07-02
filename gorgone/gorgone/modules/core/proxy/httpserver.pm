@@ -209,9 +209,10 @@ sub run {
                 my ($status, $results) = $self->{tpapi_centreonv2}->get_api_token(
                     token_name => $token_name
                 );
-                if ($status == 0 && defined($results->{token})) {
-                    if ($results->{is_revoked}
-                        || str2time($results->{expiration_date}) < time()) {
+                if ($status != 0
+                    || !defined($results->{token})
+                    || $results->{is_revoked}
+                    || str2time($results->{expiration_date}) < time()) {
                         $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token: ' . $token_name);
                         $connector->{ws_clients}->{$ws_id}->{logged} = 0;
                         $self->close_websocket(
@@ -219,9 +220,6 @@ sub run {
                             message => 'invalid token',
                             ws_id   => $ws_id
                         );
-                    }
-                } else {
-                    $self->{logger}->writeLogDebug('[proxy-httpserver] cannot get token ' . $token_name . ' - ' . $self->{tpapi_centreonv2}->error());
                 }
             }
         }
@@ -503,7 +501,7 @@ sub is_logged_websocket {
                 $self->{logger}->writeLogDebug('[proxy-httpserver] invalid token - ' . $token_name);
                 $self->close_websocket(
                     code    => 500,
-                    message => 'token authorization unallowed',
+                    message => 'invalid token',
                     ws_id   => $options{ws_id}
                 );
                 return 0;
@@ -518,7 +516,7 @@ sub is_logged_websocket {
         || $self->{config}->{httpserver}->{token} ne $token)) {
         $self->close_websocket(
             code    => 500,
-            message => 'token authorization unallowed',
+            message => 'invalid token',
             ws_id   => $options{ws_id}
         );
         return 0;
