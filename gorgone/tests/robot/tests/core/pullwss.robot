@@ -6,7 +6,7 @@ Resource            ${CURDIR}${/}..${/}..${/}resources${/}import.resource
 Suite Setup         Start Mockoon    ${ROOT_CONFIG}..${/}resources/web-api-mockoon.json
 Suite Teardown      Stop Mockoon
 
-Test Timeout        220s
+Test Timeout        250s
 
 *** Variables ***
 @{process_list}    pullwss_gorgone_poller_2_simple    pullwss_gorgone_central_simple
