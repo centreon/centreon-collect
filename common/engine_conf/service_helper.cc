@@ -239,6 +239,7 @@ void service_helper::_init() {
                                 action_svc_flapping | action_svc_downtime);
   obj->set_obsess_over_service(true);
   obj->set_process_perf_data(true);
+  obj->set_recovery_notification_delay(0);
   obj->set_retain_nonstatus_information(true);
   obj->set_retain_status_information(true);
   obj->set_retry_interval(1);

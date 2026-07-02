@@ -57,12 +57,14 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
+    _logger = log_v2::instance().get(log_v2::LUA);
     std::error_code ec;
     std::filesystem::remove("/tmp/broker_test.cache", ec);
     if (ec)
       _logger->error("Failed to remove .cache directory: {}", ec.message());
-
-    _logger = log_v2::instance().get(log_v2::LUA);
+    /* Shared by many tests of this file; a test failing mid-way leaves it
+     * behind and its content would leak into the next test's checks. */
+    std::filesystem::remove("/tmp/log", ec);
 
     try {
       config::applier::init<
@@ -4354,7 +4356,8 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   for (auto it1 = l2.begin(); it1 != l2.end();) {
     if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
         *it1 == "is_volatile" || *it1 == "long_output" ||
-        *it1 == "severity_id" || *it1 == "tags" || *it1 == "type" ||
+        *it1 == "recovery_notification_delay" || *it1 == "severity_id" ||
+        *it1 == "tags" || *it1 == "type" ||
         *it1 == "dependent_service_id") {
       ++it1;
       continue;
@@ -4436,7 +4439,8 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "icon_id" || *it1 == "severity_id" || *it1 == "tags") {
+    if (*it1 == "icon_id" || *it1 == "recovery_notification_delay" ||
+        *it1 == "severity_id" || *it1 == "tags") {
       ++it1;
       continue;
     }
