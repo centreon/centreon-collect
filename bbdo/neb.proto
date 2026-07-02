@@ -157,6 +157,9 @@ message Service {
   /* Only set for anomaly detection services: ID of the service whose metrics
    * are monitored by this anomaly detection. */
   uint64 dependent_service_id = 88;
+
+  /* In interval_length units, like first_notification_delay. */
+  uint32 recovery_notification_delay = 89;
 }
 
 /**
@@ -368,6 +371,8 @@ message Host {
   uint64 severity_id = 80;
   repeated TagInfo tags = 81;
   uint64 icon_id = 82;
+  /* In interval_length units, like first_notification_delay. */
+  uint32 recovery_notification_delay = 83;
 }
 
 /**

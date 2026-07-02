@@ -4357,10 +4357,11 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "dependent_service_id" || *it1 == "host_name" ||
-        *it1 == "icon_id" || *it1 == "internal_id" || *it1 == "is_volatile" ||
-        *it1 == "long_output" || *it1 == "severity_id" || *it1 == "tags" ||
-        *it1 == "type") {
+    if (*it1 == "host_name" || *it1 == "icon_id" || *it1 == "internal_id" ||
+        *it1 == "is_volatile" || *it1 == "long_output" ||
+        *it1 == "recovery_notification_delay" || *it1 == "severity_id" ||
+        *it1 == "tags" || *it1 == "type" ||
+        *it1 == "dependent_service_id") {
       ++it1;
       continue;
     }
@@ -4447,7 +4448,8 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
 
   auto it = l1.begin();
   for (auto it1 = l2.begin(); it1 != l2.end();) {
-    if (*it1 == "icon_id" || *it1 == "severity_id" || *it1 == "tags") {
+    if (*it1 == "icon_id" || *it1 == "recovery_notification_delay" ||
+        *it1 == "severity_id" || *it1 == "tags") {
       ++it1;
       continue;
     }

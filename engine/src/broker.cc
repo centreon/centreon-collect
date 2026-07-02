@@ -563,6 +563,8 @@ static void forward_pb_host(int type,
     host.set_event_handler_enabled(eh->event_handler_enabled());
     host.set_execution_time(eh->get_execution_time());
     host.set_first_notification_delay(eh->get_first_notification_delay());
+    host.set_recovery_notification_delay(
+        eh->get_recovery_notification_delay());
     host.set_notification_number(eh->get_notification_number());
     host.set_flap_detection(eh->flap_detection_enabled());
     host.set_flap_detection_on_down(
@@ -1056,6 +1058,8 @@ static void forward_pb_service(int type,
     srv.set_event_handler_enabled(es->event_handler_enabled());
     srv.set_execution_time(es->get_execution_time());
     srv.set_first_notification_delay(es->get_first_notification_delay());
+    srv.set_recovery_notification_delay(
+        es->get_recovery_notification_delay());
     srv.set_notification_number(es->get_notification_number());
     srv.set_flap_detection(es->flap_detection_enabled());
     srv.set_flap_detection_on_critical(

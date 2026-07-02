@@ -483,7 +483,7 @@ message Anomalydetection {
   bool retain_nonstatus_information = 36;    // Optional - Default value: true
   bool retain_status_information = 37;       // Optional - Default value: true
   uint32 retry_interval = 38;                // Optional - Default value: 1
-  optional uint32 recovery_notification_delay = 39;  // Optional
+  uint32 recovery_notification_delay = 39;  // Optional - Default value: 0
   StringSet servicegroups = 40;
   string service_description = 41;
   uint64 host_id = 42;
@@ -647,7 +647,7 @@ message Host {
   bool retain_nonstatus_information = 41;  // Optional - Default value: true
   bool retain_status_information = 42;     // Optional - Default value: true
   uint32 retry_interval = 43;              // Optional - Default value: 1
-  optional uint32 recovery_notification_delay = 44;  // Optional
+  uint32 recovery_notification_delay = 44;  // Optional - Default value: 0
   uint32 stalking_options = 45;  // Optional - Default value: action_hst_none
   string statusmap_image = 46;
   optional string timezone = 47;  // Optional
@@ -801,7 +801,7 @@ message Service {
   bool retain_nonstatus_information = 36;    // Optional - Default value: true
   bool retain_status_information = 37;       // Optional - Default value: true
   uint32 retry_interval = 38;                // Optional - Default value: 1
-  optional uint32 recovery_notification_delay = 39;  // Optional
+  uint32 recovery_notification_delay = 39;  // Optional - Default value: 0
   StringSet servicegroups = 40;
   string service_description = 41;
   uint64 host_id = 42;
