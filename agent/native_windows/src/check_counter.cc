@@ -454,6 +454,7 @@ void check_counter::start_check(const duration& timeout) {
   if (!_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   std::string output;
   std::list<common::perfdata> perf;
@@ -472,7 +473,7 @@ void check_counter::start_check(const duration& timeout) {
       // if we need two samples, we need to wait for the second one
       duration wait_duration =
           std::min(get_raw_start_expected().get_step() / 2,
-                   timeout - std::chrono::milliseconds(500));
+                   effective_timeout - std::chrono::milliseconds(500));
 
       _measure_timer.expires_after(wait_duration);
       _measure_timer.async_wait(
