@@ -119,6 +119,7 @@ std::list<std::string> client::methods() const {
       service_descriptor = p->FindServiceByName("com.centreon.engine.Engine");
       break;
     default:
+      service_descriptor = nullptr;
       // Should not occur
       assert(1 == 0);
   }
@@ -162,6 +163,7 @@ std::string client::call(const std::string& cmd, const std::string& args) {
       cmd_str = absl::StrFormat("/com.centreon.engine.Engine/%s", cmd);
       break;
     default:
+      service_descriptor = nullptr;
       // Should not occur
       assert(1 == 0);
   }
@@ -346,6 +348,7 @@ std::string client::info_method(const std::string& cmd) const {
       cmd_str = absl::StrFormat("/com.centreon.engine.Engine/%s", cmd);
       break;
     default:
+      service_descriptor = nullptr;
       // Should not occur
       assert(1 == 0);
   }
