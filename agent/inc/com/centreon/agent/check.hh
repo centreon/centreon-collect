@@ -172,6 +172,8 @@ class check : public std::enable_shared_from_this<check> {
 
   asio::system_timer _time_out_timer;
 
+  std::optional<duration> _custom_timeout;
+
   void _start_timeout_timer(const duration& timeout);
 
   bool _running_check = false;
@@ -275,6 +277,13 @@ class check : public std::enable_shared_from_this<check> {
   uint64_t get_service_id() const { return _service.service_id(); }
 
   const engine_to_agent_request_ptr& get_conf() const { return _conf; }
+
+  void set_custom_timeout(const duration& timeout) {
+    _custom_timeout = timeout;
+  }
+  const std::optional<duration>& get_custom_timeout() const {
+    return _custom_timeout;
+  }
 
   const time_point& get_last_start() const { return _last_start; }
 

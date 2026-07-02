@@ -1117,6 +1117,8 @@ void check_files::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
+
   if (!_worker_thread_files_check) {
     _worker_files_check =
         std::make_shared<check_files_detail::check_files_thread>(_io_context,
@@ -1126,7 +1128,7 @@ void check_files::start_check(const duration& timeout) {
   }
   unsigned running_check_index = _get_running_check_index();
   _worker_files_check->async_get_files(
-      _filter, std::chrono::system_clock::now() + timeout,
+      _filter, std::chrono::system_clock::now() + effective_timeout,
       [me = shared_from_this(), running_check_index](
           const absl::flat_hash_map<std::string,
                                     std::unique_ptr<file_metadata>>& result,

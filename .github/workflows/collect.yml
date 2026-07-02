@@ -403,7 +403,7 @@ jobs:
         run: |
           ls -lh *.rpm
           mkdir packages-centreon
-          mv centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
+          mv centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core}-"${MAJOR_VERSION}"*.rpm packages-centreon/
           ls -lh packages-centreon/
         shell: bash
 
@@ -491,7 +491,7 @@ jobs:
       - name: Prepare packages directory
         run: |
           mkdir -p packages-centreon/amd64 packages-centreon/arm64
-          for deb in centreon-{clib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${{ needs.get-environment.outputs.major_version }}*.deb; do
+          for deb in centreon-{clib,protobuf-lib,engine,engine-daemon,engine-opentelemetry,broker,broker-core,broker-cbd,connector-perl,connector-ssh}_${{ needs.get-environment.outputs.major_version }}*.deb; do
             [[ ! -f "$deb" ]] && continue
             if [[ "$deb" == *_amd64.deb ]]; then
               mv "$deb" packages-centreon/amd64/
