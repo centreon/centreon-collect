@@ -24,6 +24,17 @@ REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FIXTURE_DIR="$REPO_ROOT/.github/docker/centreon-engine/fixtures/minimal-config"
 LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
 : > "$LOG_FILE"
+READY_TIMEOUT="${READY_TIMEOUT:-60}"
+
+# grpcurl is a build tool for the *test runner*, not the image under test -
+# pinned to the same version .github/docker/centreon-gorgone/trixie/Dockerfile
+# already uses for the same purpose, and downloaded directly from GitHub
+# releases rather than pulled from Docker Hub (this repo's CI otherwise only
+# pulls from its own internal registry or debian's default apt mirrors).
+GRPCURL_BIN="$(mktemp -d)/grpcurl"
+curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" \
+  | tar -xz -C "$(dirname "$GRPCURL_BIN")" grpcurl
+chmod +x "$GRPCURL_BIN"
 
 PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
 
@@ -41,7 +52,7 @@ cleanup() {
 trap cleanup EXIT
 
 wait_ready() {
-  local container="$1" timeout="${2:-30}"
+  local container="$1" timeout="${2:-$READY_TIMEOUT}"
   for _ in $(seq 1 "$timeout"); do
     if docker exec "$container" test -f /tmp/docker.ready 2>/dev/null; then
       return 0
@@ -187,18 +198,15 @@ fi
 echo "OK: user script mounted at /usr/lib/nagios/plugins/custom ran successfully as centreon-engine."
 
 echo "=== [wiring:grpc-get-version] the engine gRPC management API (port 50155) actually answers ==="
-create_with_configs centreon-engine-wiring-$$
+CREATE_EXTRA_ARGS="-p 50155:50155" create_with_configs centreon-engine-wiring-$$
 wait_ready centreon-engine-wiring-$$ || exit 1
 # rpc_listen_address is forced to 0.0.0.0 by 05-engine-config.sh, but centengine
 # still needs a moment after /tmp/docker.ready (set before centengine is exec'd)
 # to actually bind the gRPC listener.
 grpc_output=""
 for _ in $(seq 1 15); do
-  grpc_output=$(docker run --rm --network "container:centreon-engine-wiring-$$" \
-    -v "$REPO_ROOT/engine/enginerpc:/protos/enginerpc:ro" \
-    -v "$REPO_ROOT/common/process_stat:/protos/process_stat:ro" \
-    fullstorydev/grpcurl:latest -plaintext \
-    -import-path /protos/enginerpc -import-path /protos/process_stat \
+  grpc_output=$("$GRPCURL_BIN" -plaintext \
+    -import-path "$REPO_ROOT/engine/enginerpc" -import-path "$REPO_ROOT/common/process_stat" \
     -proto engine.proto 127.0.0.1:50155 com.centreon.engine.Engine/GetVersion 2>&1) && break
   sleep 1
 done

@@ -20,6 +20,10 @@ PLATFORM="${PLATFORM:-}"
 CONTAINER_NAME="centreon-engine-boot-test-$$"
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FIXTURE_DIR="$REPO_ROOT/.github/docker/centreon-engine/fixtures/minimal-config"
+# QEMU-emulated arm64 (C++ startup, protobuf config parsing, apt-get update) is
+# measured well under 10s natively on amd64, but give it a generous margin
+# under emulation rather than risk a flaky timeout on that leg.
+READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
 platform_args=()
 if [ -n "$PLATFORM" ]; then
@@ -35,7 +39,7 @@ trap cleanup EXIT
 # /tmp/docker.ready is touched by 99-logs.sh once all container.d/*.sh
 # entrypoint scripts finished, right before centengine itself is exec'd.
 wait_ready() {
-  local container="$1" timeout="${2:-30}"
+  local container="$1" timeout="${2:-$READY_TIMEOUT}"
   for _ in $(seq 1 "$timeout"); do
     if docker exec "$container" test -f /tmp/docker.ready 2>/dev/null; then
       return 0
