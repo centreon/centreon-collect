@@ -4688,12 +4688,26 @@ def ctn_create_single_day_time_period(idx: int, time_period_name: str, date, min
     begin = my_date.time()
     end = my_date + datetime.timedelta(minutes=minute_duration)
 
+    # A date exception cannot wrap past midnight: an inverted range such as
+    # "23:59-00:01" would be empty. Split the range on each involved day.
+    if end.date() == my_date.date():
+        ranges = [
+            f'    {my_date.date().isoformat()}  '
+            f'{begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}']
+    else:
+        ranges = [f'    {my_date.date().isoformat()}  '
+                  f'{begin.strftime("%H:%M")}-24:00']
+        if end.time() != datetime.time(0, 0):
+            ranges.append(f'    {end.date().isoformat()}  '
+                          f'00:00-{end.time().strftime("%H:%M")}')
+
+    time_ranges = '\n'.join(ranges)
     with open(filename, "a+") as f:
         f.write(f"""
 define timeperiod {{
     timeperiod_name     {time_period_name}
     alias               {time_period_name}
-    {my_date.date().isoformat()}  {begin.strftime("%H:%M")}-{end.time().strftime("%H:%M")}
+{time_ranges}
 }}
 """)
 
