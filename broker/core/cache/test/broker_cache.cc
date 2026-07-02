@@ -813,3 +813,51 @@ TEST_F(BrokerCacheTest, Merge) {
   ASSERT_EQ(_cache->servicegroup(1)->obj().name(), "new_sg1");
   ASSERT_EQ(_cache->servicegroup(5)->obj().name(), "sg5");
 }
+
+TEST_F(BrokerCacheTest, InstanceIntervalLength) {
+  using namespace std::chrono_literals;
+
+  /* Unknown poller: the Engine default. */
+  ASSERT_EQ(_cache->interval_length(1), 60s);
+
+  /* merge(State) feeds the poller's interval_length. */
+  com::centreon::engine::configuration::State state;
+  state.set_poller_id(1);
+  state.set_poller_name("poller1");
+  state.set_interval_length(30);
+  _cache->merge(state);
+  ASSERT_EQ(_cache->instance(1), "poller1");
+  ASSERT_EQ(_cache->interval_length(1), 30s);
+
+  /* A diff can hot-change it without resending the whole state. */
+  com::centreon::engine::configuration::DiffState diff;
+  diff.set_poller_id(1);
+  diff.set_interval_length(10);
+  _cache->apply(diff);
+  ASSERT_EQ(_cache->interval_length(1), 10s);
+
+  /* A diff leaving interval_length at 0 (not a valid value, meaning "not part
+   * of the diff") leaves the cached value untouched. */
+  com::centreon::engine::configuration::DiffState diff_no_field;
+  diff_no_field.set_poller_id(1);
+  _cache->apply(diff_no_field);
+  ASSERT_EQ(_cache->interval_length(1), 10s);
+
+  /* The neb Instance event carries no interval_length: it refreshes the
+   * poller's name but preserves the cached value. */
+  auto inst = std::make_shared<neb::pb_instance>();
+  inst->mut_obj().set_instance_id(1);
+  inst->mut_obj().set_name("renamed");
+  inst->mut_obj().set_running(true);
+  _cache->update_instance(inst);
+  ASSERT_EQ(_cache->instance(1), "renamed");
+  ASSERT_EQ(_cache->interval_length(1), 10s);
+
+  /* A State not carrying interval_length (proto3 zero) falls back to the
+   * default instead of storing a zero multiplier. */
+  com::centreon::engine::configuration::State state2;
+  state2.set_poller_id(2);
+  state2.set_poller_name("poller2");
+  _cache->merge(state2);
+  ASSERT_EQ(_cache->interval_length(2), 60s);
+}

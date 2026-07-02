@@ -23,6 +23,7 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
+#include <chrono>
 #include <filesystem>
 
 #include "com/centreon/broker/bam/internal.hh"
@@ -307,9 +308,14 @@ class broker_cache {
    * it carries the few program-wide Engine settings Broker needs to answer for
    * the poller (e.g. when computing notifications on Broker's side). */
   struct instance_info {
+    /* Duration of one Engine "interval unit", used to convert the interval
+     * counts of the poller's configuration into absolute durations. */
+    static constexpr std::chrono::seconds default_interval_length{60};
+
     std::string name;
     bool notifications_enabled = true;
     bool send_recovery_notifications_anyway = false;
+    std::chrono::seconds interval_length = default_interval_length;
   };
 
   enum cache_section : uint32_t {
@@ -520,6 +526,8 @@ class broker_cache {
   bool notifications_enabled(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   bool send_recovery_notifications_anyway(uint64_t instance_id) const
+      ABSL_LOCKS_EXCLUDED(_mutex);
+  std::chrono::seconds interval_length(uint64_t instance_id) const
       ABSL_LOCKS_EXCLUDED(_mutex);
   void remove_instance(uint64_t instance_id) ABSL_LOCKS_EXCLUDED(_mutex);
   std::shared_ptr<neb::pb_host> host(const std::string& host_name) const

@@ -1076,7 +1076,9 @@ message DiffState {
   optional string global_service_event_handler = 60;
   optional string illegal_object_chars = 61;
   optional string illegal_output_chars = 62;
-  optional uint32 interval_length = 63;
+  /* Not optional: 0 is not a valid interval_length, so 0 means "not part
+   * of the diff". */
+  uint32 interval_length = 63;
   optional string ochp_command = 64;
   optional string ocsp_command = 65;
   optional string use_timezone = 66;
