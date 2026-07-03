@@ -24,8 +24,8 @@
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/macros/defines.hh"
 #include "com/centreon/engine/neberrors.hh"
-#include "com/centreon/engine/timezone.hh"
 #include "common/timeperiods/timeperiod.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;

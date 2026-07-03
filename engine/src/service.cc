@@ -31,9 +31,9 @@
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -41,6 +41,7 @@ using namespace com::centreon::common::timeperiods;
 using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::string;
+using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 service_map service::services;
@@ -2310,7 +2311,7 @@ int service::run_scheduled_check(int check_options, double latency) {
         // Set the next check time for next week.
         if (!time_is_valid && this->check_period_ptr &&
             !this->check_period_ptr->check_time_against_period(next_valid_time,
-                                                              tz)) {
+                                                               tz)) {
           set_next_check((time_t)(next_valid_time + 60 * 60 * 24 * 7));
           SPDLOG_LOGGER_WARN(
               runtime_logger,
@@ -2908,7 +2909,8 @@ bool service::verify_check_viability(int check_options,
     {
       if (this->check_period_ptr &&
           !this->check_period_ptr->check_time_against_period(
-              (unsigned long)current_time, string_to_timezone(get_timezone()))) {
+              (unsigned long)current_time,
+              string_to_timezone(get_timezone()))) {
         preferred_time = current_time;
         if (time_is_valid)
           *time_is_valid = false;

@@ -22,6 +22,7 @@ add_library(timeperiods STATIC
   timeperiod.cc
   timeperiod_manager.cc
   timerange.cc
+  timezone.cc
 )
 
 target_include_directories(timeperiods PUBLIC
