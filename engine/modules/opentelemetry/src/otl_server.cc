@@ -262,7 +262,7 @@ std::shared_ptr<metric_service> metric_service::load(
   metric_request_ptr shared_request =
       _allocator->get_metric_request_ptr_from_raw(request);
 
-  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", *request);
+  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", otl_formatter{*request});
   if (shared_request) {
     _request_handler(shared_request);
   } else {
