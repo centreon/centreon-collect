@@ -1,7 +1,9 @@
 name: zzz-skip-debug
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - MON-203184-add-e2e-runtime-tests-centreon-engine
 
 jobs:
   get-environment:
