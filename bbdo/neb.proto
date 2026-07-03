@@ -160,6 +160,9 @@ message Service {
 
   /* In interval_length units, like first_notification_delay. */
   uint32 recovery_notification_delay = 89;
+
+  /* Empty means "inherit the host timezone". */
+  string timezone = 90;
 }
 
 /**
@@ -917,9 +920,9 @@ message BrokerCache {
    * when notification_mode=broker). */
   repeated Downtime active_downtimes = 8;
 
-  /* Next internal_id to mint for a Broker-originated downtime comment. Persisted
-   * so the partitioned counter (>= INT32_MAX/2) stays monotonic across restarts
-   * (only meaningful when notification_mode=broker). */
+  /* Next internal_id to mint for a Broker-originated downtime comment.
+   * Persisted so the partitioned counter (>= INT32_MAX/2) stays monotonic
+   * across restarts (only meaningful when notification_mode=broker). */
   uint64 next_downtime_comment_id = 9;
 
   /* Open acknowledgements held in the cache, persisted so Broker can still

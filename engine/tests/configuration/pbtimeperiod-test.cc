@@ -971,3 +971,92 @@ TEST_P(timeperiod_config_parser_test, VerifyParserContent) {
   ASSERT_TRUE(comparator.is_equal());
   ASSERT_TRUE(comparator.is_result_equal());
 }
+
+/**
+ * @brief timeperiod_helper::expand accepts a valid exclusion.
+ *
+ * Timeperiods carry nothing to expand, but a timeperiod may exclude others by
+ * name. When every excluded name refers to a defined timeperiod (here A
+ * excludes B, both present), expand() reports no error and does not throw.
+ */
+TEST(TimeperiodHelperExpand, ValidExclusion) {
+  configuration::State s;
+  auto* a = s.add_timeperiods();
+  a->set_timeperiod_name("A");
+  a->set_alias("A");
+  a->mutable_exclude()->add_data("B");
+  auto* b = s.add_timeperiods();
+  b->set_timeperiod_name("B");
+  b->set_alias("B");
+
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(timeperiod_helper::expand(s, err));
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+/**
+ * @brief timeperiod_helper::expand rejects an exclusion pointing nowhere.
+ *
+ * An exclusion referring to a timeperiod that is not defined anywhere would
+ * leave a dangling exclusion once the runtime objects are linked, so it makes
+ * the whole configuration invalid: expand() counts one error and throws.
+ */
+TEST(TimeperiodHelperExpand, MissingExclusion) {
+  configuration::State s;
+  auto* a = s.add_timeperiods();
+  a->set_timeperiod_name("A");
+  a->set_alias("A");
+  a->mutable_exclude()->add_data("ghost"); /* not defined anywhere */
+
+  configuration::error_cnt err;
+  ASSERT_THROW(timeperiod_helper::expand(s, err), std::exception);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+/**
+ * @brief timeperiod_helper::expand reports every defective timeperiod at once.
+ *
+ * expand() does not stop on the first bad exclusion: it logs and counts each
+ * unresolved one over the whole state before throwing (two here → two errors).
+ * This is what lets the upcoming Broker gRPC configuration check list all the
+ * offending timeperiods to the user, not just the first.
+ */
+TEST(TimeperiodHelperExpand, AllMissingExclusionsReported) {
+  configuration::State s;
+  auto* a = s.add_timeperiods();
+  a->set_timeperiod_name("A");
+  a->set_alias("A");
+  a->mutable_exclude()->add_data("ghost1"); /* not defined */
+  auto* b = s.add_timeperiods();
+  b->set_timeperiod_name("B");
+  b->set_alias("B");
+  b->mutable_exclude()->add_data("ghost2"); /* not defined */
+
+  configuration::error_cnt err;
+  ASSERT_THROW(timeperiod_helper::expand(s, err), std::exception);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+/**
+ * @brief timeperiod_helper::expand accepts a circular exclusion.
+ *
+ * A cycle (A excludes B, B excludes A) is not a missing reference: both
+ * timeperiods exist, so expand() reports no error. The runtime evaluation
+ * breaks the cycle with its traversal-chain guard, and Engine has always
+ * tolerated circular exclusions, so expand() must not be stricter.
+ */
+TEST(TimeperiodHelperExpand, CircularExclusionAccepted) {
+  configuration::State s;
+  auto* a = s.add_timeperiods();
+  a->set_timeperiod_name("A");
+  a->set_alias("A");
+  a->mutable_exclude()->add_data("B");
+  auto* b = s.add_timeperiods();
+  b->set_timeperiod_name("B");
+  b->set_alias("B");
+  b->mutable_exclude()->add_data("A");
+
+  configuration::error_cnt err;
+  ASSERT_NO_THROW(timeperiod_helper::expand(s, err));
+  ASSERT_EQ(err.config_errors, 0u);
+}

@@ -20,15 +20,13 @@
 #include <memory>
 #include "absl/synchronization/mutex.h"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
-#include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
-#include "broker/core/cache/broker_cache.hh"
+
 #include "broker/core/config/applier/state.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/bbdo2_to_bbdo3.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/engine_conf/state.pb.h"
+#include "common/timeperiods/timezone.hh"
 
 namespace com::centreon::broker::cache {
 
@@ -100,6 +98,17 @@ void broker_cache::merge(
                       state.interval_length() > 0
                           ? std::chrono::seconds(state.interval_length())
                           : instance_info::default_interval_length});
+
+  /* Work on timeperiods */
+  if (!state.timeperiods().empty()) {
+    for (const engine::configuration::Timeperiod& tp : state.timeperiods()) {
+      _timeperiods.insert_or_assign(
+          tp.timeperiod_name(),
+          std::make_shared<common::timeperiods::timeperiod>(tp));
+      _timeperiod_pollers[tp.timeperiod_name()].insert(state.poller_id());
+    }
+    _resolve_timeperiods();
+  }
 
   /* Work on severities */
   if (section_enabled(CACHE_SEVERITIES)) {
@@ -347,6 +356,39 @@ void broker_cache::apply(
       if (diff.interval_length() > 0)
         it->second.interval_length =
             std::chrono::seconds(diff.interval_length());
+    }
+  }
+
+  /* Work on timeperiods. */
+  {
+    const engine::configuration::DiffTimeperiod& dtp = diff.timeperiods();
+
+    /* This condition is useful to avoid calling _resolve_timeperiods() when
+     * nothing changed. */
+    if (dtp.added_size() || dtp.modified_size() || dtp.removed_size()) {
+      for (const engine::configuration::Timeperiod& tp : dtp.added()) {
+        _timeperiods.insert_or_assign(
+            tp.timeperiod_name(),
+            std::make_shared<common::timeperiods::timeperiod>(tp));
+        _timeperiod_pollers[tp.timeperiod_name()].insert(diff.poller_id());
+      }
+      for (const engine::configuration::Timeperiod& tp : dtp.modified()) {
+        _timeperiods.insert_or_assign(
+            tp.timeperiod_name(),
+            std::make_shared<common::timeperiods::timeperiod>(tp));
+        _timeperiod_pollers[tp.timeperiod_name()].insert(diff.poller_id());
+      }
+      for (const std::string& name : dtp.removed()) {
+        auto it = _timeperiod_pollers.find(name);
+        if (it != _timeperiod_pollers.end()) {
+          it->second.erase(diff.poller_id());
+          if (it->second.empty()) {
+            _timeperiod_pollers.erase(it);
+            _timeperiods.erase(name);
+          }
+        }
+      }
+      _resolve_timeperiods();
     }
   }
 
@@ -919,8 +961,9 @@ void broker_cache::_fill_host(Host* obj,
                        cfg.host_name(), cfg.host_id());
     return;
   }
-  BOOST_PP_SEQ_FOR_EACH(translate, ,
-                        (host_id)(action_url)(address)(alias)(check_command)(check_freshness)(check_interval)(check_period)(display_name)(event_handler)(event_handler_enabled)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(icon_image)(icon_image_alt)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_host)(retain_nonstatus_information)(retain_status_information)(retry_interval)(statusmap_image)(timezone)(severity_id)(icon_id));
+  BOOST_PP_SEQ_FOR_EACH(
+      translate, ,
+      (host_id)(action_url)(address)(alias)(check_command)(check_freshness)(check_interval)(check_period)(display_name)(event_handler)(event_handler_enabled)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(icon_image)(icon_image_alt)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_host)(retain_nonstatus_information)(retain_status_information)(retry_interval)(statusmap_image)(timezone)(severity_id)(icon_id));
   obj->set_name(cfg.host_name());
   obj->set_active_checks(cfg.checks_active());
   obj->set_passive_checks(cfg.checks_passive());
@@ -973,9 +1016,8 @@ void broker_cache::_fill_host(Host* obj,
  */
 template <typename ConfigType>
 void broker_cache::_fill_service_common(Service* obj, const ConfigType& cfg) {
-  BOOST_PP_SEQ_FOR_EACH(
-      translate, ,
-      (host_id)(service_id)(action_url)(check_freshness)(check_interval)(display_name)(event_handler)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(host_name)(icon_image)(icon_image_alt)(is_volatile)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_service)(retain_nonstatus_information)(retain_status_information)(retry_interval)(severity_id)(icon_id));
+  BOOST_PP_SEQ_FOR_EACH(translate,
+                        , (host_id)(service_id)(action_url)(check_freshness)(check_interval)(display_name)(event_handler)(first_notification_delay)(recovery_notification_delay)(freshness_threshold)(high_flap_threshold)(host_name)(icon_image)(icon_image_alt)(is_volatile)(low_flap_threshold)(max_check_attempts)(notes)(notes_url)(notification_interval)(notification_period)(obsess_over_service)(retain_nonstatus_information)(retain_status_information)(retry_interval)(timezone)(severity_id)(icon_id));
   obj->set_default_active_checks(cfg.checks_active());
   obj->set_default_passive_checks(cfg.checks_passive());
   obj->set_default_event_handler_enabled(cfg.event_handler_enabled());
@@ -1106,9 +1148,25 @@ void broker_cache::update_instance(
  * @param instance_id The ID of the instance to remove
  */
 void broker_cache::remove_instance(uint64_t instance_id) {
+  absl::WriterMutexLock l{&_mutex};
+
+  /* Drop this poller's references to notification timeperiods, erasing those
+   * no longer referenced by any poller. Timeperiods are cached regardless of
+   * the enabled sections (see merge()), so this cleanup runs unconditionally,
+   * before the section guard below. */
+  std::vector<std::string> orphaned_timeperiods;
+  for (auto& [name, pollers] : _timeperiod_pollers) {
+    pollers.erase(instance_id);
+    if (pollers.empty())
+      orphaned_timeperiods.push_back(name);
+  }
+  for (const std::string& name : orphaned_timeperiods) {
+    _timeperiod_pollers.erase(name);
+    _timeperiods.erase(name);
+  }
+
   if (!section_enabled(CACHE_INSTANCES | CACHE_HOSTS | CACHE_SERVICES))
     return;
-  absl::WriterMutexLock l{&_mutex};
   _instances.erase(instance_id);
 
   auto& index_svc = _services.get<by_id>();
@@ -2333,6 +2391,53 @@ std::chrono::seconds broker_cache::interval_length(uint64_t instance_id) const {
   if (found == _instances.end())
     return instance_info::default_interval_length;
   return found->second.interval_length;
+}
+
+/**
+ * @brief (Re)link the exclusion pointers of every cached timeperiod.
+ *
+ * Called after any change to _timeperiods (merge()/apply()). A timeperiod's
+ * exclusions hold raw pointers into sibling timeperiods; when insert_or_assign
+ * replaces an object, every timeperiod excluding it must be re-linked, so the
+ * whole set is resolved against itself. Resolution errors (an exclusion naming
+ * an unknown timeperiod) are logged and skipped per object rather than
+ * propagated, so a single bad configuration cannot abort the whole merge.
+ *
+ * Must be called with _mutex held for writing.
+ */
+void broker_cache::_resolve_timeperiods() {
+  uint32_t warnings = 0, errors = 0;
+  for (auto& [name, tp] : _timeperiods) {
+    try {
+      tp->resolve(_timeperiods, warnings, errors);
+    } catch (const std::exception& e) {
+      _logger->error("broker_cache: cannot resolve timeperiod '{}': {}", name,
+                     e.what());
+    }
+  }
+}
+
+/**
+ * @brief Tell whether @p now falls within the given notification timeperiod.
+ *
+ * The cache-owned _timeperiods map is only mutated by merge()/apply() under
+ * _mutex, so evaluating under the reader lock keeps the whole check race-free.
+ *
+ * @param period_name The notification timeperiod name; an empty or unknown
+ * name means notifications are allowed at any time.
+ * @param timezone The resource timezone directive (possibly empty).
+ * @param now The time to test.
+ *
+ * @return true if notifications are allowed at @p now.
+ */
+bool broker_cache::in_notification_period(const std::string& period_name,
+                                          const std::string& timezone,
+                                          std::time_t now) const {
+  absl::ReaderMutexLock l{&_mutex};
+  auto it = _timeperiods.find(period_name);
+  return it == _timeperiods.end() ||
+         it->second->check_time_against_period_for_notif(
+             now, common::timeperiods::string_to_timezone(timezone));
 }
 
 /**

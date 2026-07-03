@@ -18,12 +18,15 @@
  */
 #include "common/engine_conf/timeperiod_helper.hh"
 
+#include <absl/container/flat_hash_set.h>
 #include <absl/strings/str_format.h>
 #include <fmt/ranges.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using com::centreon::exceptions::msg_fmt;
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::engine::configuration {
 
@@ -276,6 +279,52 @@ void timeperiod_helper::check_validity(error_cnt& err) const {
   if (o->timeperiod_name().empty()) {
     err.config_errors++;
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
+  }
+}
+
+/**
+ * @brief Check the cross-references between timeperiods.
+ *
+ * Timeperiods carry no template nor group to expand, but a timeperiod may
+ * exclude others by name. This validates that every excluded name refers to a
+ * timeperiod defined in the same configuration: an exclusion pointing nowhere
+ * would leave a dangling exclusion pointer once the runtime timeperiod objects
+ * are linked (both Engine and, in centralized mode, Broker go through this
+ * expand before building any timeperiod object). A missing reference makes the
+ * whole configuration invalid.
+ *
+ * Every offending exclusion is logged and counted before throwing, so a single
+ * pass reports all the defective timeperiods at once (the upcoming Broker gRPC
+ * configuration-check must be able to list them all, not just the first).
+ * Circular exclusions (A excludes B, B excludes A) are NOT rejected here: both
+ * timeperiods exist, the runtime evaluation breaks the cycle with its
+ * traversal-chain guard, and Engine has always tolerated them.
+ *
+ * @param s The configuration state.
+ * @param err An error counter.
+ */
+void timeperiod_helper::expand(configuration::State& s,
+                               configuration::error_cnt& err) {
+  absl::flat_hash_set<std::string_view> names;
+  names.reserve(s.timeperiods().size());
+  for (const Timeperiod& tp : s.timeperiods())
+    names.emplace(tp.timeperiod_name());
+
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  uint32_t errors = 0;
+  for (const Timeperiod& tp : s.timeperiods())
+    for (const std::string& excluded : tp.exclude().data())
+      if (!names.contains(excluded)) {
+        logger->error(
+            "Excluded time period '{}' specified in time period '{}' is not "
+            "defined anywhere",
+            excluded, tp.timeperiod_name());
+        ++errors;
+      }
+
+  if (errors) {
+    err.config_errors += errors;
+    throw msg_fmt("Cannot resolve {} time period exclusion(s)", errors);
   }
 }
 

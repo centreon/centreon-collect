@@ -35,9 +35,9 @@
 #include "com/centreon/engine/sehandlers.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timezone.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_types.hh"
+#include "common/timeperiods/timezone.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -46,6 +46,7 @@ using namespace com::centreon::common::notifications;
 using namespace com::centreon::common::downtimes;
 using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::string;
+using com::centreon::common::timeperiods::string_to_timezone;
 namespace notifications = com::centreon::common::notifications;
 
 host_map host::hosts;

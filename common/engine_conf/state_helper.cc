@@ -32,6 +32,7 @@
 #include "common/engine_conf/serviceescalation_helper.hh"
 #include "common/engine_conf/servicegroup_helper.hh"
 #include "common/engine_conf/severity_helper.hh"
+#include "common/engine_conf/timeperiod_helper.hh"
 #include "common/log_v2/log_v2.hh"
 
 using com::centreon::common::log_v2::log_v2;
@@ -568,6 +569,9 @@ void state_helper::expand(configuration::error_cnt& err) {
   // Expand serviceescalations
   serviceescalation_helper::expand(pb_config, err, m_hostgroups,
                                    m_servicegroups);
+  // Timeperiods carry nothing to expand, but their mutual exclusions are
+  // cross-checked here so a dangling exclusion invalidates the configuration.
+  timeperiod_helper::expand(pb_config, err);
   // Expand custom variables
   state_helper::_expand_cv(pb_config);
 }

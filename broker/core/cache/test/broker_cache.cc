@@ -19,12 +19,10 @@
 #include "broker/core/cache/broker_cache.hh"
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <filesystem>
 #include "broker/core/config/applier/broker_state.hh"
-#include "com/centreon/broker/neb/internal.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/timeperiods/timeperiod_manager.hh"
 #include "gmock/gmock.h"
-#include "neb.pb.h"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::cache;
@@ -39,6 +37,10 @@ class BrokerCacheTest : public ::testing::Test {
     _logger = spdlog::default_logger();
 
     config::applier::state::load<config::applier::broker_state>("unittest");
+    /* The cache owns its own timeperiod set; the process-wide manager is only
+     * loaded so the timeperiods library has a real logger and illegal-chars
+     * validator (as init.cc does in production). */
+    com::centreon::common::timeperiods::timeperiod_manager::load(_logger, {});
     _cache = std::make_unique<broker_cache>(_logger);
     _cache->enable_section(
         com::centreon::broker::cache::broker_cache::CACHE_ALL);
@@ -773,4 +775,108 @@ TEST_F(BrokerCacheTest, InstanceIntervalLength) {
   state2.set_poller_name("poller2");
   _cache->merge(state2);
   ASSERT_EQ(_cache->interval_length(2), 60s);
+}
+
+/**
+ * @brief The cache resolves a resource's notification timeperiod by name.
+ *
+ * in_notification_period() answers whether a given instant falls in a
+ * timeperiod. An empty or unknown name means "notify at any time"; a known
+ * timeperiod is evaluated against its timeranges (a 24x7 one is always valid,
+ * an empty one never is). This also checks that the set is kept in sync by
+ * both feeding paths: the full state (merge()) and an incremental diff
+ * (apply(), covering add, modify and remove).
+ */
+TEST_F(BrokerCacheTest, NotificationPeriod) {
+  std::time_t now = std::time(nullptr);
+
+  /* An empty or unknown period name means "notify at any time". */
+  ASSERT_TRUE(_cache->in_notification_period("", "", now));
+  ASSERT_TRUE(_cache->in_notification_period("nonexistent", "", now));
+
+  /* Feed a 24x7 timeperiod and an empty (never valid) one via merge(State). */
+  com::centreon::engine::configuration::State state;
+  state.set_poller_id(1);
+  auto* always = state.mutable_timeperiods()->Add();
+  always->set_timeperiod_name("always");
+  always->set_alias("always");
+  auto add_full_day = [](auto* day) {
+    auto* r = day->Add();
+    r->set_range_start(0);
+    r->set_range_end(86400);
+  };
+  auto* days = always->mutable_timeranges();
+  add_full_day(days->mutable_sunday());
+  add_full_day(days->mutable_monday());
+  add_full_day(days->mutable_tuesday());
+  add_full_day(days->mutable_wednesday());
+  add_full_day(days->mutable_thursday());
+  add_full_day(days->mutable_friday());
+  add_full_day(days->mutable_saturday());
+  auto* never = state.mutable_timeperiods()->Add();
+  never->set_timeperiod_name("never");
+  never->set_alias("never");
+  _cache->merge(state);
+
+  ASSERT_TRUE(_cache->in_notification_period("always", "", now));
+  ASSERT_FALSE(_cache->in_notification_period("never", "", now));
+
+  /* A diff can add, modify and remove timeperiods. */
+  com::centreon::engine::configuration::DiffState diff;
+  diff.set_poller_id(1);
+  diff.mutable_timeperiods()->add_removed("never");
+  auto* modified = diff.mutable_timeperiods()->add_modified();
+  modified->set_timeperiod_name("always");
+  modified->set_alias("always"); /* all timeranges gone: never valid */
+  _cache->apply(diff);
+
+  /* Removed: no longer constrains anything. Modified: emptied, never valid. */
+  ASSERT_TRUE(_cache->in_notification_period("never", "", now));
+  ASSERT_FALSE(_cache->in_notification_period("always", "", now));
+}
+
+/**
+ * @brief Notification timeperiods are reference-counted per poller.
+ *
+ * When several pollers define the same timeperiod, it stays in the cache as
+ * long as at least one poller references it, and is dropped only when the last
+ * reference disappears. This checks both removal paths: a diff removing the
+ * timeperiod from one poller (it must survive while another still references
+ * it) and a poller disconnection through remove_instance() (the last reference
+ * gone, the timeperiod must be dropped, so an unknown name again means "notify
+ * at any time").
+ */
+TEST_F(BrokerCacheTest, NotificationPeriodPollerRefCount) {
+  std::time_t now = std::time(nullptr);
+
+  auto make_never_tp = [](auto* state) {
+    auto* tp = state->mutable_timeperiods()->Add();
+    tp->set_timeperiod_name("shared");
+    tp->set_alias("shared"); /* no timerange: never valid */
+  };
+
+  /* Two pollers define the same "shared" (never-valid) timeperiod. */
+  com::centreon::engine::configuration::State state1;
+  state1.set_poller_id(1);
+  make_never_tp(&state1);
+  _cache->merge(state1);
+
+  com::centreon::engine::configuration::State state2;
+  state2.set_poller_id(2);
+  make_never_tp(&state2);
+  _cache->merge(state2);
+
+  ASSERT_FALSE(_cache->in_notification_period("shared", "", now));
+
+  /* Poller 1 drops it via a diff: still referenced by poller 2, so it stays. */
+  com::centreon::engine::configuration::DiffState diff;
+  diff.set_poller_id(1);
+  diff.mutable_timeperiods()->add_removed("shared");
+  _cache->apply(diff);
+  ASSERT_FALSE(_cache->in_notification_period("shared", "", now));
+
+  /* Poller 2 disconnects: last reference gone, the timeperiod is dropped and
+   * an unknown name means "notify at any time" again. */
+  _cache->remove_instance(2);
+  ASSERT_TRUE(_cache->in_notification_period("shared", "", now));
 }
