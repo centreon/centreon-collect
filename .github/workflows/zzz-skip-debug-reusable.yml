@@ -1,0 +1,47 @@
+name: zzz-skip-debug-reusable
+
+on:
+  push:
+    branches:
+      - MON-203184-add-e2e-runtime-tests-centreon-engine
+
+jobs:
+  get-environment:
+    uses: ./.github/workflows/get-environment.yml
+    with:
+      version_file: CMakeLists.txt
+      nightly_manual_trigger: false
+      labels: ""
+
+  dockerize-engine-broker:
+    needs: [get-environment]
+    runs-on: ubuntu-24.04
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [a, b]
+        distrib: [trixie]
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=v1" >> "$GITHUB_OUTPUT"
+      - run: echo "skip_workflow=${{ needs.get-environment.outputs.skip_workflow }}"
+
+  docker-boot-test-default:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "ran with default no-if condition"
+
+  docker-boot-test-debug:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - run: echo '${{ toJSON(needs) }}'
