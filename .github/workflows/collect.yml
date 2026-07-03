@@ -565,26 +565,16 @@ jobs:
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
 
-  # TEMP diagnostic jobs for the docker-boot-test/docker-config-wiring-test skip
-  # investigation (MON-203184) - to be removed once the root cause is found.
-  docker-boot-test-debug-env-only:
-    needs: [get-environment]
-    if: always()
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo '${{ toJSON(needs) }}'
-
-  docker-boot-test-debug:
-    needs: [get-environment, dockerize-engine-broker]
-    if: always()
-    runs-on: ubuntu-24.04
-    steps:
-      - run: |
-          echo '${{ toJSON(needs) }}'
-          echo "image_tag=[${{ needs.dockerize-engine-broker.outputs.image_tag }}]"
-
   docker-boot-test:
     needs: [get-environment, dockerize-engine-broker]
+    # Confirmed by direct observation (toJSON(needs) in a same-run diagnostic
+    # job): the implicit success() default skips this job even though both
+    # direct needs resolve to "success" in the needs context. Made explicit
+    # to work around it.
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -635,6 +625,11 @@ jobs:
 
   docker-config-wiring-test:
     needs: [get-environment, dockerize-engine-broker]
+    # See docker-boot-test's if: comment - same workaround needed here.
+    if: |
+      ! cancelled() &&
+      needs.get-environment.result == 'success' &&
+      needs.dockerize-engine-broker.result == 'success'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
