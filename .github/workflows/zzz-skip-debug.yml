@@ -1,0 +1,51 @@
+name: zzz-skip-debug
+
+on:
+  workflow_dispatch:
+
+jobs:
+  get-environment:
+    runs-on: ubuntu-24.04
+    outputs:
+      dummy: "ok"
+    steps:
+      - run: echo "fake get-environment"
+
+  dockerize-engine-broker:
+    needs: [get-environment]
+    runs-on: ubuntu-24.04
+    if: |
+      true &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled')
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [a, b]
+        distrib: [trixie]
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - id: tag
+        run: echo "tag=v1" >> "$GITHUB_OUTPUT"
+
+  docker-boot-test-default:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "ran with default (no if:) condition"
+
+  docker-boot-test-debug:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    if: always()
+    steps:
+      - run: echo '${{ toJSON(needs) }}'
+
+  docker-boot-test-explicit:
+    needs: [get-environment, dockerize-engine-broker]
+    runs-on: ubuntu-24.04
+    if: ${{ !cancelled() && needs.dockerize-engine-broker.result == 'success' }}
+    steps:
+      - run: echo "ran with explicit if: condition"
