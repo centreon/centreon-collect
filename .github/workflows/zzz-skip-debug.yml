@@ -36,7 +36,7 @@ jobs:
     needs: [get-environment, dockerize-engine-broker]
     runs-on: ubuntu-24.04
     steps:
-      - run: echo "ran with default (no if:) condition"
+      - run: echo "ran with default no-if condition"
 
   docker-boot-test-debug:
     needs: [get-environment, dockerize-engine-broker]
@@ -50,4 +50,4 @@ jobs:
     runs-on: ubuntu-24.04
     if: ${{ !cancelled() && needs.dockerize-engine-broker.result == 'success' }}
     steps:
-      - run: echo "ran with explicit if: condition"
+      - run: echo "ran with explicit condition"
