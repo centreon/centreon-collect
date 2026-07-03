@@ -567,10 +567,6 @@ jobs:
 
   docker-boot-test:
     needs: [get-environment, dockerize-engine-broker]
-    # Confirmed by direct observation (toJSON(needs) in a same-run diagnostic
-    # job): the implicit success() default skips this job even though both
-    # direct needs resolve to "success" in the needs context. Made explicit
-    # to work around it.
     if: |
       ! cancelled() &&
       needs.get-environment.result == 'success' &&
@@ -625,7 +621,6 @@ jobs:
 
   docker-config-wiring-test:
     needs: [get-environment, dockerize-engine-broker]
-    # See docker-boot-test's if: comment - same workaround needed here.
     if: |
       ! cancelled() &&
       needs.get-environment.result == 'success' &&
