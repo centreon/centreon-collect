@@ -1,0 +1,30 @@
+on:
+  workflow_call:
+    inputs:
+      fail_it:
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      skip_workflow:
+        value: ${{ jobs.run.outputs.skip_workflow }}
+      stability:
+        value: ${{ jobs.run.outputs.stability }}
+      is_nightly:
+        value: ${{ jobs.run.outputs.is_nightly }}
+      labels:
+        value: ${{ jobs.run.outputs.labels }}
+      trigger_packaging:
+        value: ${{ jobs.run.outputs.trigger_packaging }}
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    outputs:
+      skip_workflow: "false"
+      stability: "canary"
+      is_nightly: "false"
+      labels: '["build-docker-collect"]'
+      trigger_packaging: "true"
+    steps:
+      - run: echo "fake reusable workflow ran"
