@@ -2317,7 +2317,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH
     Ctn Config Broker    module
     Ctn Config Broker    rrd
 
-    ${token}    Ctn Create Jwt Token    ${60}
+    ${token}    Ctn Create Jwt Token    ${120}
 
     Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
     Ctn Add Token Otl Server Module    0    ${token}   
@@ -2408,7 +2408,7 @@ BEOTEL_CENTREON_AGENT_TOKEN_AGENT_TELEGRAPH_2
     Ctn Config Broker    module
     Ctn Config Broker    rrd
 
-    ${token}    Ctn Create Jwt Token    ${15}
+    ${token}    Ctn Create Jwt Token    ${30}
 
     Ctn Config Centreon Agent    ${None}    ${None}    /tmp/server_grpc.crt    ${token}
     Ctn Add Token Otl Server Module    0    ${token}   

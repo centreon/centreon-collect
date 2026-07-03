@@ -94,14 +94,10 @@ void open_telemetry::_reload() {
 
   if (!_conf || *_conf != *new_conf) {
     // 0 in conf means logs all object
-    fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
-                       ExportMetricsServiceRequest>::max_length_log =
-        new_conf->get_max_length_grpc_log()
-            ? new_conf->get_max_length_grpc_log()
-            : -1;
-    fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
-                       ExportMetricsServiceRequest>::json_grpc_format =
-        new_conf->get_json_grpc_log();
+    otl_formatter::max_length_log = new_conf->get_max_length_grpc_log()
+                                        ? new_conf->get_max_length_grpc_log()
+                                        : -1;
+    otl_formatter::json_grpc_format = new_conf->get_json_grpc_log();
 
     _conf = std::move(new_conf);
 

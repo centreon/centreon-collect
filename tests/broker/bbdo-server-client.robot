@@ -265,7 +265,7 @@ BSCSSTG2
     ...    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    encrypted connection    write: buff:    write done: buff:
+    ${content}    Create List    encrypted connection    write:    write done:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No information about TLS activation.
     Ctn Kindly Stop Broker
@@ -439,7 +439,7 @@ BSCSSGA2
     Ctn Broker Config Source Log    rrd    1
     ${start}    Get Current Date
     Ctn Start Broker
-    ${content}    Create List    receive: buff
+    ${content}    Create List    receive:
     ${result}    Ctn Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
     Should Be True    ${result}    If the authorization token is the same on both side, no issue
     Ctn Kindly Stop Broker

@@ -1,20 +1,20 @@
 /**
- * Copyright 2012-2013,2015 Centreon
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * For more information : contact@centreon.com
- */
+* Copyright 2012-2013,2015 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
+*/
 
 #include "com/centreon/broker/misc/misc.hh"
 
@@ -76,10 +76,8 @@ uint16_t misc::crc16_ccitt(char const* data, uint32_t data_len) {
 std::string misc::exec(std::string const& cmd) {
   std::array<char, 128> buffer;
   std::string result;
-  struct file_closer {
-    void operator()(FILE* to_close) const { pclose(to_close); }
-  };
-  std::unique_ptr<FILE, file_closer> pipe(popen(cmd.c_str(), "r"));
+  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
+                                                pclose);
   if (!pipe)
     throw std::runtime_error("popen() failed!");
 

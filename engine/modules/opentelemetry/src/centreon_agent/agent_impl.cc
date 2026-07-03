@@ -328,8 +328,8 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
     if (_exp_time != std::chrono::system_clock::time_point::min() &&
         _exp_time != std::chrono::system_clock::time_point::max() &&
         _exp_time <= std::chrono::system_clock::now()) {
-      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
-                          static_cast<void*>(this), _class_name);
+      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired: {}",
+                          static_cast<void*>(this), _class_name, _exp_time);
       on_error();
       this->shutdown();
       return;
@@ -339,7 +339,7 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
       absl::MutexLock l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive from {}: {}",
                           static_cast<const void*>(this), _class_name,
-                          get_peer(), *_read_current);
+                          get_peer(), otl_formatter{*_read_current});
       readden = _read_current;
       _read_current.reset();
     }
@@ -371,7 +371,7 @@ void agent_impl<bireactor_class>::start_write() {
   }
   SPDLOG_LOGGER_TRACE(_logger, "{:p} {} send to {}: {}",
                       static_cast<void*>(this), _class_name, get_peer(),
-                      *to_send);
+                      otl_formatter{*to_send});
   bireactor_class::StartWrite(to_send.get());
 }
 
@@ -389,7 +389,7 @@ void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
       _write_pending = false;
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,
-                          **_write_queue.begin());
+                          otl_formatter{**_write_queue.begin()});
       _write_queue.pop_front();
     }
     start_write();
