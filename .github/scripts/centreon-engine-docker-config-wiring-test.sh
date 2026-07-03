@@ -186,7 +186,10 @@ cat > "$plugins_dir/check_dummy.sh" <<'SCRIPT'
 echo "OK - dummy check"
 exit 0
 SCRIPT
-chmod 755 "$plugins_dir/check_dummy.sh"
+# mktemp -d defaults to 0700, unreadable by centreon-engine (uid 901) inside
+# the container - the file's own 755 isn't enough if the directory itself
+# blocks traversal for non-owners.
+chmod 755 "$plugins_dir" "$plugins_dir/check_dummy.sh"
 CREATE_EXTRA_ARGS="-v $plugins_dir:/usr/lib/nagios/plugins/custom:ro" \
   create_with_configs centreon-engine-cfg-customvol-$$
 wait_ready centreon-engine-cfg-customvol-$$ || exit 1
