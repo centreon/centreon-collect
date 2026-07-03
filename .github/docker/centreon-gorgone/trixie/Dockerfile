@@ -271,6 +271,10 @@ WORKDIR /etc/centreon-gorgone/
 
 USER centreon-gorgone
 
+# container.d/99-logs.sh touches this file once every startup script has run.
+HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=3 \
+    CMD test -f /tmp/docker.ready
+
 ENTRYPOINT ["/usr/local/lib/centreon-gorgone/container.sh"]
 
 CMD ["/usr/bin/perl", "/usr/bin/gorgoned", "--config=/etc/centreon-gorgone/config.yaml", "--severity=debug", "--flushoutput"]

@@ -102,6 +102,10 @@ jobs:
     name: dockerize centreon-gorgone-${{ matrix.operating_system }}
     env:
       project: centreon-gorgone
+    # Matrix job outputs come from the last completed matrix leg; safe only while
+    # operating_system has a single value (trixie). Revisit if this matrix grows.
+    outputs:
+      image_tag: ${{ steps.compute-tag.outputs.tag }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -182,3 +186,89 @@ jobs:
           secrets: |
             "ARTIFACTORY_INTERNAL_REPO_USERNAME=${{ secrets.ARTIFACTORY_INTERNAL_REPO_USERNAME }}"
             "ARTIFACTORY_INTERNAL_REPO_PASSWORD=${{ secrets.ARTIFACTORY_INTERNAL_REPO_PASSWORD }}"
+
+  docker-boot-test:
+    needs: [get-environment, dockerize]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+        platform: [linux/amd64, linux/arm64]
+    name: docker boot test centreon-gorgone-${{ matrix.operating_system }} (${{ matrix.platform }})
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Set up QEMU
+        if: ${{ matrix.platform == 'linux/arm64' }}
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Replace / with - in the platform name
+        id: platform-name
+        run: echo "dashed=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Pull image for ${{ matrix.platform }}
+        run: docker pull --platform "${{ matrix.platform }}" "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run boot test
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+          PLATFORM: ${{ matrix.platform }}
+        run: ./.github/scripts/gorgone-docker-boot-test.sh
+        shell: bash
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: centreon-gorgone-boot-test-${{ matrix.operating_system }}-${{ steps.platform-name.outputs.dashed }}
+          path: /tmp/gorgone-boot-test.log
+          retention-days: 1
+
+  docker-config-wiring-test:
+    needs: [get-environment, dockerize]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        operating_system: [trixie]
+    name: docker config/wiring test centreon-gorgone-${{ matrix.operating_system }}
+    env:
+      GORGONE_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-gorgone-${{ matrix.operating_system }}:${{ needs.dockerize.outputs.image_tag }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Login to registry
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - name: Pull image
+        run: docker pull --platform linux/amd64 "$GORGONE_IMAGE"
+        shell: bash
+
+      - name: Run config/wiring test scenarios
+        env:
+          IMAGE: ${{ env.GORGONE_IMAGE }}
+        run: ./.github/scripts/gorgone-docker-config-wiring-test.sh
+        shell: bash
+
+      - name: Dump compose logs on failure
+        if: failure()
+        run: docker compose -f .github/docker/centreon-gorgone/docker-compose.config-wiring-test.yml -p gorgone-config-wiring-test logs
+        shell: bash

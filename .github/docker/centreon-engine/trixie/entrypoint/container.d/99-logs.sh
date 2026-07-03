@@ -3,6 +3,6 @@
 touch /tmp/docker.ready
 echo "Centreon Engine is ready"
 
-# centengine logs directly to stdout (log_v2_logger=stdout set by 05-engine-config.sh)
-# so no tailing or piping needed — docker logs captures everything natively.
+# centengine logs to a file (log_v2_logger=file); 10-log-tail_background.sh
+# streams that file to stdout, so docker logs shows it too.
 exec "$@"
