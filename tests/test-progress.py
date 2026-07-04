@@ -119,6 +119,12 @@ def strip_output_opts(args):
 # well-formed until the run ends, so we scan the raw bytes rather than parse it.
 TEST_TAG_RE = re.compile(rb'<test\b[^>]*\bname="([^"]*)"')
 
+# Matches a <status status="..."> tag and captures the status word (PASS, FAIL,
+# SKIP, NOT RUN). Both keywords and the test itself carry one; inside a
+# <test>…</test> block the test's own status is the last one (written just before
+# </test>), which is what we key on.
+STATUS_TAG_RE = re.compile(rb'<status\b[^>]*\bstatus="([A-Z ]+)"')
+
 
 def output_xml_path(run_args, pid):
     """Locate the output.xml of the running robot run.
@@ -185,18 +191,19 @@ def last_test_in_output(path):
 
 
 class TailTestScanner:
-    """Incrementally track the last <test> tag of a growing output.xml.
+    """Incrementally track the current test and each finished test's status.
 
-    Robot appends to output.xml as it runs and the file can grow very large,
-    so re-reading it fully at every refresh gets expensive. Instead, remember
-    the offset already scanned and only read the bytes appended since. A small
-    tail of the previous chunk is kept so a tag split across two reads is
-    still matched (re-matching an already-seen tag in that overlap is harmless:
-    only the most recent match is retained).
+    Robot appends to output.xml as it runs and the file can grow very large, so
+    re-reading it fully at every refresh gets expensive. Instead, remember the
+    offset already scanned and only read the bytes appended since, buffering
+    them until a complete `<test>…</test>` block is available. Each block yields
+    the test name and its result (the block's last <status>, i.e. the test-level
+    one). The buffer only ever holds the bytes of the test currently running, so
+    it stays small. The still-open <test> tag left in the buffer gives the test
+    in progress.
     """
 
-    # An opening <test ...> tag is far smaller than this overlap.
-    _OVERLAP = 4096
+    _CLOSE = b"</test>"
 
     def __init__(self, path):
         """Constructor.
@@ -206,33 +213,51 @@ class TailTestScanner:
         """
         self._path = path
         self._offset = 0
-        self._tail = b""
+        self._buf = b""
         self._last = None
+        self._results = {}          # test name -> status word (PASS/FAIL/…)
 
-    def last_test(self):
+    def scan(self):
         """Scan the bytes appended to the file since the previous call.
 
         Returns:
-            The name of the last <test> tag seen so far, or None if no tag
-            has been seen yet.
+            A tuple (current, results): the name of the last <test> tag seen so
+            far (the test in progress, or None), and the dict mapping each
+            finished test name to its status word.
         """
         try:
             if os.path.getsize(self._path) < self._offset:
                 # File truncated/replaced (new run?): rescan from the start.
-                self._offset, self._tail = 0, b""
+                self._offset, self._buf = 0, b""
+                self._last, self._results = None, {}
             with open(self._path, "rb") as f:
                 f.seek(self._offset)
                 data = f.read()
         except OSError:
-            return self._last
-        if data:
-            self._offset += len(data)
-            buf = self._tail + data
-            matches = TEST_TAG_RE.findall(buf)
-            if matches:
-                self._last = matches[-1].decode()
-            self._tail = buf[-self._OVERLAP:]
-        return self._last
+            return self._last, self._results
+        if not data:
+            return self._last, self._results
+        self._offset += len(data)
+        self._buf += data
+        # Consume every complete test block; the test-level status is the last
+        # <status> in the block (keyword statuses come before it).
+        while True:
+            close = self._buf.find(self._CLOSE)
+            if close == -1:
+                break
+            block = self._buf[:close]
+            self._buf = self._buf[close + len(self._CLOSE):]
+            names = TEST_TAG_RE.findall(block)
+            if names:
+                name = names[-1].decode()
+                statuses = STATUS_TAG_RE.findall(block)
+                self._results[name] = statuses[-1].decode() if statuses else ""
+                self._last = name
+        # The test still open (no </test> yet) is the one in progress.
+        open_names = TEST_TAG_RE.findall(self._buf)
+        if open_names:
+            self._last = open_names[-1].decode()
+        return self._last, self._results
 
 
 def cache_path(robot_args):
@@ -395,13 +420,20 @@ def status_lines(test_name, idx, total, elapsed, colour):
     return lines, pct
 
 
-def progress_bar(pct, width, colour):
-    """Render a progress bar, e.g. [████░░░]  42.0 %.
+def progress_bar(pct, width, colour, failed_idx=frozenset(), total=0):
+    """Render a progress bar, e.g. [██▉█░░░]  42.0 %.
+
+    The filled part is green, except the columns mapping to a failed test, which
+    are red — so a failure shows up as a red slice at its position in the run.
 
     Args:
         pct: Progress percentage (0-100).
         width: Total width of the rendered bar, in terminal columns.
         colour: Use ANSI colors in the rendered bar.
+        failed_idx: 0-based positions (in the full selection) of the tests that
+            failed so far.
+        total: Total number of selected tests (to map a test position to a bar
+            column). 0 disables the per-test coloring.
 
     Returns:
         The progress bar as a single printable line.
@@ -409,10 +441,23 @@ def progress_bar(pct, width, colour):
     label = f" {pct:5.1f} %"
     bar_width = max(10, width - len(label) - 2)
     filled = round(bar_width * pct / 100)
-    bar = "█" * filled + "░" * (bar_width - filled)
-    if colour:
-        bar = f"\033[1;32m{bar[:filled]}\033[0m\033[2m{bar[filled:]}\033[0m"
-        label = f"\033[1;38;5;208m{label}\033[0m"
+    if not colour:
+        return f"[{'█' * filled}{'░' * (bar_width - filled)}]{label}"
+
+    # Column a failed test lands on (same proportional mapping as `filled`).
+    failed_cols = {j * bar_width // total for j in failed_idx} if total else set()
+    green, red, dim, reset = "\033[1;32m", "\033[1;31m", "\033[2m", "\033[0m"
+    # Emit the filled part as color runs so a red slice stands out without one
+    # escape per cell.
+    segments, c = [], 0
+    while c < filled:
+        is_failed = c in failed_cols
+        start = c
+        while c < filled and (c in failed_cols) == is_failed:
+            c += 1
+        segments.append(f"{red if is_failed else green}{'█' * (c - start)}{reset}")
+    bar = f"{''.join(segments)}{dim}{'░' * (bar_width - filled)}{reset}"
+    label = f"\033[1;38;5;208m{label}\033[0m"
     return f"[{bar}]{label}"
 
 
@@ -451,9 +496,12 @@ def progress_loop(tests, run_args, pid):
             if not et.isdigit():
                 break
             elapsed = int(et)
-            detected = scanner.last_test()
+            detected, results = scanner.scan()
             if detected in index:
                 current = detected
+            # 0-based positions of the tests that failed so far.
+            failed_idx = frozenset(index[n] for n, st in results.items()
+                                   if st == "FAIL" and n in index)
             width = shutil.get_terminal_size().columns
             header = time.strftime("Following robot run — %H:%M:%S "
                                    "(Ctrl-C to stop watching)")
@@ -464,7 +512,13 @@ def progress_loop(tests, run_args, pid):
             else:
                 body, pct = status_lines(current, index[current], total,
                                          elapsed, colour)
-            screen = [header, ""] + body + ["", progress_bar(pct, width, colour)]
+            if failed_idx:
+                count = str(len(failed_idx))
+                if colour:
+                    count = f"\033[1;31m{count}\033[0m"          # bright bold red
+                body.append(f"Failures    : {count}")
+            screen = [header, ""] + body + [
+                "", progress_bar(pct, width, colour, failed_idx, total)]
             # Home + clear-below redraws in place without full-screen flicker.
             sys.stdout.write("\033[H\033[J" if colour else "")
             sys.stdout.write("\n".join(screen) + "\n")
