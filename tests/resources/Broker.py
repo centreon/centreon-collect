@@ -4399,3 +4399,44 @@ def ctn_broker_delete_downtime(downtime_id: int, port: int = 51001):
         req = broker_pb2.GenericNameOrIndex()
         req.idx = int(downtime_id)
         stub.DeleteDowntime(req)
+
+
+def ctn_broker_check_poller_config(directory: str, port: int = 51001, timeout: int = TIMEOUT):
+    """
+    Call the broker gRPC CheckPollerConfig on an Engine configuration directory
+    (the one holding centengine.cfg and the other .cfg files) and return the
+    result in a Robot-friendly form.
+
+    Args:
+        directory: The poller configuration directory to validate.
+        port: The broker gRPC port (default 51001).
+        timeout: Seconds to keep retrying while the gRPC server is not ready.
+
+    Returns:
+        A dict {"ok": bool, "diagnostics": [{"severity": "WARNING"|"ERROR",
+        "message": str}, ...]}, or None if the gRPC server never answered.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            req = broker_pb2.CheckPollerConfigRequest()
+            req.directory = directory
+            try:
+                res = stub.CheckPollerConfig(req)
+            except Exception as e:
+                logger.console(f"gRPC server not ready: {e}")
+                continue
+            return {
+                "ok": res.ok,
+                "diagnostics": [
+                    {
+                        "severity": broker_pb2.ConfigDiagnostic.Severity.Name(
+                            d.severity),
+                        "message": d.message,
+                    }
+                    for d in res.diagnostics
+                ],
+            }
+    return None
