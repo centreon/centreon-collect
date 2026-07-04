@@ -27,7 +27,7 @@
 #include "com/centreon/engine/engine_notification_callbacks.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
+#include "com/centreon/engine/globals.hh"
 
 #include "common/log_v2/config.hh"
 
@@ -76,7 +76,7 @@ std::unique_ptr<configuration::state_helper> init_config_state() {
       std::make_unique<engine_downtime_callbacks>());
   notifications::notification_manager::load(
       std::make_unique<engine_notification_callbacks>());
-  timeperiod_manager::load(log_v2::instance().get(log_v2::CONFIG), {});
+  ::timeperiods.clear();
 
   return retval;
 }
@@ -88,6 +88,5 @@ void deinit_config_state(void) {
   checks::checker::deinit();
 
   notifications::notification_manager::unload();
-  timeperiod_manager::unload();
   com::centreon::common::downtimes::downtime_manager::unload();
 }

@@ -19,7 +19,6 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "common/timeperiods/timeperiod.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -119,10 +118,10 @@ void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   // Find the timeperiod.
   if (!get_escalation_period().empty()) {
     timeperiod_map::const_iterator it{
-        timeperiod_manager::instance().timeperiods().find(
+        ::timeperiods.find(
             get_escalation_period())};
 
-    if (it == timeperiod_manager::instance().timeperiods().end() ||
+    if (it == ::timeperiods.end() ||
         !it->second) {
       config_logger->error(
           "Error: Escalation period '{}' specified in escalation is not "

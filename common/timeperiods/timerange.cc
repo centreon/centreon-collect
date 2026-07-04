@@ -19,24 +19,25 @@
 #include "common/timeperiods/timerange.hh"
 #include <fmt/ostream.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
 namespace com::centreon::common::timeperiods {
 
 timerange::timerange(uint64_t start, uint64_t end) {
-  // Make sure we have the data we need.
-  if (start > 86400) {
-    timeperiod_manager::logger()->error(
-        "Error: Start time {} is not valid for timeperiod", start);
-    throw msg_fmt("Could not create timerange start '{}' end '{}'", start, end);
-  }
-  if (end > 86400) {
-    timeperiod_manager::logger()->error(
-        "Error: End time {} is not valid for timeperiod", end);
-    throw msg_fmt("Could not create timerange start '{}' end '{}'", start, end);
-  }
+  // Make sure we have the data we need. The exception carries the offending
+  // bound; the caller building the timeperiod surfaces it (no logging here, so
+  // timerange does not depend on the timeperiod_manager).
+  if (start > 86400)
+    throw msg_fmt(
+        "Could not create timerange: start time {} is not valid (must be "
+        "<= 86400)",
+        start);
+  if (end > 86400)
+    throw msg_fmt(
+        "Could not create timerange: end time {} is not valid (must be "
+        "<= 86400)",
+        end);
 
   _range_start = start;
   _range_end = end;

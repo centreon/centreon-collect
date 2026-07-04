@@ -31,6 +31,7 @@
 #include "common/crypto/aes256.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/log_v2/log_v2.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
@@ -139,6 +140,11 @@ extern unsigned int enable_flap_detection;
 extern char* use_timezone;
 extern char* illegal_object_chars;
 extern char* illegal_output_chars;
+
+/* The process-wide collection of timeperiods, keyed by name. Owned here (no
+ * more timeperiod_manager); created empty at startup and cleared at shutdown
+ * (see main.cc) so its destruction happens at a controlled point. */
+extern timeperiod_map timeperiods;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 

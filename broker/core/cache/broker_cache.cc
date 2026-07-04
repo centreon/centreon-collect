@@ -104,7 +104,7 @@ void broker_cache::merge(
     for (const engine::configuration::Timeperiod& tp : state.timeperiods()) {
       _timeperiods.insert_or_assign(
           tp.timeperiod_name(),
-          std::make_shared<common::timeperiods::timeperiod>(tp));
+          std::make_shared<common::timeperiods::timeperiod>(tp, _logger));
       _timeperiod_pollers[tp.timeperiod_name()].insert(state.poller_id());
     }
     _resolve_timeperiods();
@@ -369,13 +369,13 @@ void broker_cache::apply(
       for (const engine::configuration::Timeperiod& tp : dtp.added()) {
         _timeperiods.insert_or_assign(
             tp.timeperiod_name(),
-            std::make_shared<common::timeperiods::timeperiod>(tp));
+            std::make_shared<common::timeperiods::timeperiod>(tp, _logger));
         _timeperiod_pollers[tp.timeperiod_name()].insert(diff.poller_id());
       }
       for (const engine::configuration::Timeperiod& tp : dtp.modified()) {
         _timeperiods.insert_or_assign(
             tp.timeperiod_name(),
-            std::make_shared<common::timeperiods::timeperiod>(tp));
+            std::make_shared<common::timeperiods::timeperiod>(tp, _logger));
         _timeperiod_pollers[tp.timeperiod_name()].insert(diff.poller_id());
       }
       for (const std::string& name : dtp.removed()) {

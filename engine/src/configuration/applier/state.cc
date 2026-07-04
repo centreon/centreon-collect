@@ -22,7 +22,6 @@
 #include <sys/resource.h>
 #include <chrono>
 #include <cstdint>
-#include "common/timeperiods/timeperiod_manager.hh"
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -221,9 +220,7 @@ void applier::state::clear() {
   engine::host::hosts_by_id.clear();
   engine::hostdependency::hostdependencies.clear();
   engine::hostescalation::hostescalations.clear();
-  com::centreon::common::timeperiods::timeperiod_manager::instance()
-      .timeperiods()
-      .clear();
+  ::timeperiods.clear();
   engine::comment::set_next_comment_id(1llu);
 
   applier::scheduler::instance().clear();

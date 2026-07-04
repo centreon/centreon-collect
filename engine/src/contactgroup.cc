@@ -115,7 +115,7 @@ void contactgroup::resolve(uint32_t& w __attribute__((unused)), uint32_t& e) {
   }
 
   /* Check for illegal characters in contact group name. */
-  if (contains_illegal_object_chars(const_cast<char*>(_name.c_str()))) {
+  if (contains_illegal_object_chars(_name)) {
     config_logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",

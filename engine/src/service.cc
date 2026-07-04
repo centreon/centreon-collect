@@ -3581,7 +3581,7 @@ void service::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check for illegal characters in service description */
-  if (contains_illegal_object_chars(name().c_str())) {
+  if (contains_illegal_object_chars(name())) {
     config_logger->error(
         "Error: The description string for service '{}' on host '{}' contains "
         "one or more illegal characters.",

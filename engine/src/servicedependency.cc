@@ -23,7 +23,6 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -336,10 +335,10 @@ void servicedependency::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
   // Find the timeperiod.
   if (!get_dependency_period().empty()) {
     timeperiod_map::const_iterator it{
-        timeperiod_manager::instance().timeperiods().find(
+        ::timeperiods.find(
             get_dependency_period())};
 
-    if (it == timeperiod_manager::instance().timeperiods().end() ||
+    if (it == ::timeperiods.end() ||
         !it->second) {
       config_logger->error(
           "Error: Dependency period '{}' specified in service dependency for "
