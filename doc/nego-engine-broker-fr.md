@@ -690,6 +690,80 @@ il utilise aussi cette librairie.
 La surveillance en utilisant `inotify` est faite au sein de la classe
 `config::applier::state`.
 
+## Valider une configuration de poller : l'endpoint gRPC `CheckPollerConfig`
+
+Comme `Broker` lit et résout déjà les configurations de poller avec la
+librairie `engine_conf` (voir ci-dessus), il peut aussi en *valider* une à la
+demande, sans l'appliquer. C'est exposé par un nouvel endpoint gRPC du service
+Broker (`broker/core/brokerrpc/broker.proto`), pensé comme le pendant central et
+en-ligne de `centengine --verify-config` :
+
+```proto
+rpc CheckPollerConfig(CheckPollerConfigRequest) returns (CheckPollerConfigResponse) {}
+
+// répertoire contenant centengine.cfg et les autres fichiers .cfg
+message CheckPollerConfigRequest  { string directory = 1; }
+message ConfigDiagnostic {
+  enum Severity { WARNING = 0; ERROR = 1; }
+  Severity severity = 1;
+  string message = 2;
+}
+message CheckPollerConfigResponse { bool ok = 1; repeated ConfigDiagnostic diagnostics = 2; }
+```
+
+Pour un répertoire rempli par PHP (les répertoires mêmes que `Broker` ingère en
+mode centralisé), l'endpoint renvoie la liste des problèmes de configuration
+trouvés et un drapeau `ok`, `true` s'il n'y a aucune *erreur* (les warnings ne
+rendent pas une configuration inutilisable).
+
+### Implémentation
+
+`CheckPollerConfig` réutilise exactement le pipeline hors-ligne employé pour
+lire une configuration de poller : `parser::build_test_file` (réécrit les
+chemins `cfg_file=` / `resource_file=` pour qu'ils se résolvent dans le
+répertoire), puis `parser::parse`, puis `state_helper::expand`. La seule
+nouveauté est *la façon de collecter les problèmes*.
+
+La validation signale les problèmes en loguant (warnings/erreurs) et, pour
+quelques échecs bloquants, en levant une exception. `Broker` est multithreadé,
+donc le check ne doit **pas** toucher le logger `CONFIG` partagé : spdlog ne
+protège pas la liste de sinks d'un logger contre une modification concurrente
+pendant que d'autres threads loguent dessus — ajouter un sink à la volée serait
+une *data race*. À la place, `parser` et `state_helper::expand` ont été rendus
+capables de recevoir un **logger injecté** (par défaut le logger `CONFIG`
+partagé, donc tous les appelants existants sont inchangés), et
+`CheckPollerConfig` leur passe un **logger dédié, mono-thread** adossé à un *sink
+capturant* en mémoire. Ce logger n'est utilisé que par le thread du handler gRPC,
+donc le sink n'a besoin d'aucun verrou (`base_sink<null_mutex>`) et les loggers
+partagés ne sont jamais modifiés. Les enregistrements `warn`/`err` capturés
+deviennent les diagnostics `WARNING`/`ERROR` ; une exception fatale est attrapée
+et ajoutée comme dernier `ERROR`. `ok` vaut `config_errors == 0` et aucune
+exception levée.
+
+### Portée et feuille de route
+
+C'est un check **structurel** : `parse` + `expand` attrapent les fichiers
+manquants, les templates non résolus, les problèmes d'appartenance aux groupes
+de hosts/services et les références croisées de timeperiods (par exemple une
+timeperiod dont l'`exclude` nomme une timeperiod inexistante).
+
+Ce n'est **pas encore** un équivalent complet de `centengine --verify-config`.
+L'essentiel des warnings/erreurs de verify-config est produit plus tard, par
+`applier::state::apply` (la phase de *resolve*), via les méthodes `check()` des
+objets runtime d'Engine (`host`, `service`, `contact`, `notifier`, …). Ce code
+est propre à Engine, n'est pas lié dans `cbd`, et l'hôte du Broker central n'a
+pas forcément `centengine` installé — `Broker` ne peut donc pas l'exécuter.
+
+Le plan est de **déplacer progressivement ces checks dans `engine_conf`** :
+porter chaque check depuis le `check()` d'un objet runtime d'Engine vers le
+helper protobuf correspondant (`*_helper::check_validity` pour les checks
+par-objet, `*_helper::expand` pour les checks croisés) afin qu'il tourne sur le
+`State`, et le retirer de l'applier d'Engine. Chaque check porté a alors un
+foyer unique, est capté par `CheckPollerConfig` (Broker) via `parse`+`expand`, et
+reste disponible pour Engine (dont `verify_config` fait aussi `parse`+`expand`
+avant l'applier) — sans être exécuté deux fois. À mesure qu'`engine_conf`
+acquiert ces checks, `CheckPollerConfig` devient un vrai verify-config central.
+
 ## Calcul de la différence
 
 `Broker` est notifié sur les nouvelles versions de configuration

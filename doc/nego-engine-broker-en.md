@@ -500,6 +500,78 @@ This resolution code was originally in `Engine` but it was moved to the `engine_
 
 Monitoring using `inotify` is done within the `config::applier::state` class.
 
+## Validating a poller configuration: the `CheckPollerConfig` gRPC endpoint
+
+Because Broker already reads and resolves poller configurations with the
+`engine_conf` library (see above), it can also *validate* one on demand, without
+applying it. This is exposed as a new gRPC endpoint on the Broker service
+(`broker/core/brokerrpc/broker.proto`), meant as a central, on-line counterpart
+of `centengine --verify-config`:
+
+```proto
+rpc CheckPollerConfig(CheckPollerConfigRequest) returns (CheckPollerConfigResponse) {}
+
+// directory holding centengine.cfg and the other .cfg files
+message CheckPollerConfigRequest  { string directory = 1; }
+message ConfigDiagnostic {
+  enum Severity { WARNING = 0; ERROR = 1; }
+  Severity severity = 1;
+  string message = 2;
+}
+message CheckPollerConfigResponse { bool ok = 1; repeated ConfigDiagnostic diagnostics = 2; }
+```
+
+Given a directory that PHP filled (the very directories Broker ingests in
+centralized mode), the endpoint returns the list of configuration problems it
+found and an `ok` flag, `true` when there is no *error* (warnings do not make a
+configuration unusable).
+
+### Implementation
+
+`CheckPollerConfig` reuses the exact offline pipeline used to read a poller
+configuration: `parser::build_test_file` (rewrites the `cfg_file=` /
+`resource_file=` paths so they resolve inside the directory), then
+`parser::parse`, then `state_helper::expand`. The only new concern is *how the
+problems are collected*.
+
+The validation reports problems by logging (warnings/errors) and, for a few hard
+failures, by throwing. Broker is multithreaded, so the check must **not** touch
+the shared `CONFIG` logger: spdlog does not guard a logger's sink list against
+concurrent modification while other threads log through it, so adding a sink on
+the fly would be a data race. Instead, `parser` and `state_helper::expand` were
+made to accept an **injected logger** (defaulting to the shared `CONFIG` logger,
+so every existing caller is unchanged), and `CheckPollerConfig` passes a
+**dedicated, single-threaded logger** backed by an in-memory *capturing sink*.
+That logger is used by the RPC handler thread alone, so the sink needs no
+locking (`base_sink<null_mutex>`) and the shared loggers are never modified. The
+captured `warn`/`err` records become `WARNING`/`ERROR` diagnostics; a thrown
+fatal failure is caught and appended as a final `ERROR`. `ok` is
+`config_errors == 0` and no exception was thrown.
+
+### Scope and roadmap
+
+This is a **structural** check: `parse` + `expand` catch missing files,
+unresolvable templates, host/service-group membership problems and timeperiod
+cross-references (for example a timeperiod whose `exclude` names an undefined
+one).
+
+It is **not yet** a full equivalent of `centengine --verify-config`. Most of
+verify-config's warnings/errors are produced later, by `applier::state::apply`
+(the *resolve* phase), through the `check()` methods of Engine's runtime objects
+(`host`, `service`, `contact`, `notifier`, …). That code is Engine-only, is not
+linked into `cbd`, and the central Broker host may not even have `centengine`
+installed — so Broker cannot run it.
+
+The plan is to progressively **move those checks into `engine_conf`**: port each
+check from an Engine runtime object's `check()` into the matching protobuf-level
+helper (`*_helper::check_validity` for per-object checks, `*_helper::expand` for
+cross-object ones) so it runs on the `State`, and remove it from the Engine
+applier. Each ported check then has a single home, is picked up by
+`CheckPollerConfig` (Broker) via `parse`+`expand`, and stays available to Engine
+(whose `verify_config` also runs `parse`+`expand` before the applier) — without
+being run twice. As `engine_conf` gains these checks, `CheckPollerConfig`
+becomes a true, central verify-config.
+
 ## Calculating the difference
 
 `Broker` is notified of new `Engine` configuration versions.
