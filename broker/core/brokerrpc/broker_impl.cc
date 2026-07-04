@@ -20,8 +20,12 @@
 #include "broker/core/brokerrpc/broker_impl.hh"
 #include <google/protobuf/util/time_util.h>
 #include <grpcpp/support/status.h>
+#include <spdlog/details/null_mutex.h>
+#include <spdlog/sinks/base_sink.h>
 #include <algorithm>
 #include "common/downtimes/downtime_manager.hh"
+#include "common/engine_conf/parser.hh"
+#include "common/engine_conf/state_helper.hh"
 
 #include "broker/core/cache/broker_cache.hh"
 #include "broker/core/config/applier/broker_state.hh"
@@ -38,6 +42,34 @@ using com::centreon::common::crypto::aes256;
 using com::centreon::common::downtimes::downtime;
 using com::centreon::common::downtimes::downtime_manager;
 using com::centreon::common::log_v2::log_v2;
+
+namespace {
+/**
+ * @brief A spdlog sink that keeps the log records in memory instead of writing
+ * them anywhere.
+ *
+ * Used by CheckPollerConfig to collect the warnings/errors that the config
+ * validation logs. It is attached to a dedicated, single-threaded logger (only
+ * the RPC handler thread uses it), so it needs no locking (null_mutex) and
+ * never touches broker's shared loggers.
+ */
+class capturing_sink
+    : public spdlog::sinks::base_sink<spdlog::details::null_mutex> {
+ public:
+  struct record {
+    spdlog::level::level_enum level;
+    std::string message;
+  };
+  std::vector<record> records;
+
+ protected:
+  void sink_it_(const spdlog::details::log_msg& msg) override {
+    records.push_back(
+        {msg.level, std::string(msg.payload.data(), msg.payload.size())});
+  }
+  void flush_() override {}
+};
+}  // namespace
 
 broker_impl::broker_impl() {}
 
@@ -1355,5 +1387,79 @@ grpc::Status broker_impl::DeleteDowntime(grpc::ServerContext* context
     return grpc::Status(grpc::StatusCode::NOT_FOUND,
                         fmt::format("downtime {} not found", request->idx()));
 
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief Validate an Engine poller configuration directory without applying it.
+ *
+ * Reuses the same offline pipeline as the centralized-config ingestion
+ * (build_test_file + parser::parse + state_helper::expand), but routes all the
+ * validation logging to a dedicated in-memory sink so the problems can be
+ * returned to the caller. Broker's shared loggers are never touched.
+ *
+ * @param request The directory holding centengine.cfg and the other .cfg files.
+ * @param response The diagnostics collected and whether the config is usable.
+ *
+ * @return grpc::Status::OK (validation outcome is carried in the response).
+ */
+grpc::Status broker_impl::CheckPollerConfig(
+    grpc::ServerContext* context [[maybe_unused]],
+    const CheckPollerConfigRequest* request,
+    CheckPollerConfigResponse* response) {
+  namespace conf = com::centreon::engine::configuration;
+
+  // Dedicated single-threaded logger: its records are captured here instead of
+  // going to broker's shared CONFIG logger (no locking, no shared state).
+  auto sink = std::make_shared<capturing_sink>();
+  auto logger =
+      std::make_shared<spdlog::logger>("check-poller-config", sink);
+  logger->set_level(spdlog::level::warn);  // only warnings and errors matter
+
+  // build_test_file rewrites the cfg_file=/resource_file= paths to resolve
+  // inside the directory, so the derived file must live in it.
+  std::filesystem::path dir(request->directory());
+  std::filesystem::path cfg = dir / "centengine.cfg";
+  std::filesystem::path test = dir / "centengine.test";
+
+  std::error_code ec;
+  conf::parser::build_test_file(test, cfg, ec);
+  if (ec) {
+    auto* d = response->add_diagnostics();
+    d->set_severity(ConfigDiagnostic_Severity_ERROR);
+    d->set_message(fmt::format("cannot read the configuration in '{}': {}",
+                               dir.string(), ec.message()));
+    response->set_ok(false);
+    return grpc::Status::OK;
+  }
+
+  conf::State state;
+  conf::state_helper state_hlp(&state);
+  conf::error_cnt err;
+  conf::parser p{logger};
+  std::string thrown;
+  try {
+    p.parse(test.string(), &state, err);
+    state_hlp.expand(err, logger);
+  } catch (const std::exception& e) {
+    thrown = e.what();
+  }
+  std::filesystem::remove(test, ec);  // best-effort cleanup of the derived file
+
+  // Logged warnings/errors first (chronological), then the fatal exception.
+  for (const auto& r : sink->records) {
+    auto* d = response->add_diagnostics();
+    d->set_severity(r.level >= spdlog::level::err
+                        ? ConfigDiagnostic_Severity_ERROR
+                        : ConfigDiagnostic_Severity_WARNING);
+    d->set_message(r.message);
+  }
+  if (!thrown.empty()) {
+    auto* d = response->add_diagnostics();
+    d->set_severity(ConfigDiagnostic_Severity_ERROR);
+    d->set_message(thrown);
+  }
+
+  response->set_ok(err.config_errors == 0 && thrown.empty());
   return grpc::Status::OK;
 }

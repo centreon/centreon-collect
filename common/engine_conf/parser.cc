@@ -52,10 +52,16 @@ using ::google::protobuf::Message;
 using ::google::protobuf::Reflection;
 
 /**
- *  Default constructor.
+ *  Constructor.
  *
+ *  @param[in] logger  The logger the parser (and the validation it runs) logs
+ *                     through. When null, the shared CONFIG logger is used;
+ *                     pass a dedicated logger (e.g. a capturing one for a
+ *                     config check) to avoid touching the shared logger.
  */
-parser::parser() : _logger{log_v2::instance().get(log_v2::CONFIG)} {}
+parser::parser(std::shared_ptr<spdlog::logger> logger)
+    : _logger{logger ? std::move(logger)
+                     : log_v2::instance().get(log_v2::CONFIG)} {}
 
 /**
  *  Parse configuration file.

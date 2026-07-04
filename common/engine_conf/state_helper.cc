@@ -523,7 +523,8 @@ bool state_helper::apply_extended_conf(
  * @param pb_config The protobuf configuration state to expand.
  * @param err The error count object to update in case of errors.
  */
-void state_helper::expand(configuration::error_cnt& err) {
+void state_helper::expand(configuration::error_cnt& err,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
 
   absl::flat_hash_map<std::string_view, const configuration::Host*> m_host;
@@ -571,7 +572,7 @@ void state_helper::expand(configuration::error_cnt& err) {
                                    m_servicegroups);
   // Timeperiods carry nothing to expand, but their mutual exclusions are
   // cross-checked here so a dangling exclusion invalidates the configuration.
-  timeperiod_helper::expand(pb_config, err);
+  timeperiod_helper::expand(pb_config, err, logger);
   // Expand custom variables
   state_helper::_expand_cv(pb_config);
 }
