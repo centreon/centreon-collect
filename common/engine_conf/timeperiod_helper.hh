@@ -22,6 +22,10 @@
 
 #include "common/engine_conf/message_helper.hh"
 
+namespace spdlog {
+class logger;
+}
+
 namespace com::centreon::engine::configuration {
 
 class timeperiod_helper : public message_helper {
@@ -43,7 +47,12 @@ class timeperiod_helper : public message_helper {
 
   bool hook(std::string_view key, std::string_view value) override;
 
-  static void expand(configuration::State& s, configuration::error_cnt& err);
+  /* logger defaults to the shared CONFIG logger; pass a dedicated one (e.g. a
+   * capturing logger for a config check) to keep the validation logs off the
+   * shared logger. */
+  static void expand(configuration::State& s,
+                     configuration::error_cnt& err,
+                     const std::shared_ptr<spdlog::logger>& logger = nullptr);
 };
 
 std::string daterange_to_str(const Daterange& dr);

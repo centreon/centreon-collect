@@ -304,18 +304,19 @@ void timeperiod_helper::check_validity(error_cnt& err) const {
  * @param err An error counter.
  */
 void timeperiod_helper::expand(configuration::State& s,
-                               configuration::error_cnt& err) {
+                               configuration::error_cnt& err,
+                               const std::shared_ptr<spdlog::logger>& logger) {
   absl::flat_hash_set<std::string_view> names;
   names.reserve(s.timeperiods().size());
   for (const Timeperiod& tp : s.timeperiods())
     names.emplace(tp.timeperiod_name());
 
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
   uint32_t errors = 0;
   for (const Timeperiod& tp : s.timeperiods())
     for (const std::string& excluded : tp.exclude().data())
       if (!names.contains(excluded)) {
-        logger->error(
+        log->error(
             "Excluded time period '{}' specified in time period '{}' is not "
             "defined anywhere",
             excluded, tp.timeperiod_name());
