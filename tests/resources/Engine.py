@@ -1801,6 +1801,32 @@ def ctn_add_host_group(index: int, id_host_group: int, members: list):
         f.write(engine.create_host_group(id_host_group, mbs))
 
 
+def ctn_engine_config_add_timeperiod(index: int, name: str, alias: str = None, exclude: str = None):
+    """
+    Append a timeperiod definition to the timeperiods.cfg of the engine
+    configuration `index`. Handy to inject an invalid timeperiod (e.g. one whose
+    `exclude` points at a non-existent timeperiod) to exercise configuration
+    checking.
+
+    Args:
+        index (int): index of the configuration (from 0).
+        name (str): the timeperiod_name of the block to add.
+        alias (str, optional): the alias; defaults to `name`.
+        exclude (str, optional): a value for the `exclude` directive (a
+            timeperiod name, possibly non-existent to make the config invalid).
+    """
+    conf_dir = engine.get_config_dir(index)
+    block = "define timeperiod {\n"
+    block += f"    name                           {name}\n"
+    block += f"    timeperiod_name                {name}\n"
+    block += f"    alias                          {alias or name}\n"
+    if exclude is not None:
+        block += f"    exclude                        {exclude}\n"
+    block += "}\n"
+    with open(f"{conf_dir}/timeperiods.cfg", "a+") as f:
+        f.write(block)
+
+
 def ctn_remove_host_group(index: int, id_host_group: int):
     """
     Remove a host group from the engine instance index.
