@@ -35,15 +35,14 @@
 #include <vector>
 
 #include "common/timeperiods/timeperiod.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
 namespace cfg = com::centreon::engine::configuration;
 
-// The timeperiods library is now self-contained: it logs through
-// timeperiod_manager::logger() and provides its own (library-local)
-// contains_illegal_object_chars, so no engine global needs to be supplied here.
+// The timeperiods library is self-contained: timeperiods log through their own
+// injected logger (here the default null-sink) and the benchmark holds its own
+// local timeperiod_map, so no engine global or manager is needed.
 
 namespace {
 
@@ -210,8 +209,7 @@ BENCHMARK(BM_gnvt_exceptions);
 // purpose, so the timeperiod stays satisfiable and the call returns quickly
 // (no full one-year scan).
 void BM_gnvt_exclusion(benchmark::State& state) {
-  auto& tps = timeperiod_manager::instance().timeperiods();
-  tps.clear();
+  timeperiod_map tps;
 
   cfg::Timeperiod h;
   h.set_timeperiod_name("holidays");
@@ -225,14 +223,13 @@ void BM_gnvt_exclusion(benchmark::State& state) {
   tps.emplace("work_excl", tp);
 
   uint32_t w = 0, e = 0;
-  timeperiod_manager::instance().resolve(*tp, w, e);
+  tp->resolve(tps, w, e);
 
   time_t out = 0;
   for (auto _ : state) {
     out = tp.get()->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
-  tps.clear();
 }
 BENCHMARK(BM_gnvt_exclusion);
 
@@ -246,8 +243,7 @@ BENCHMARK(BM_gnvt_exclusion);
 // Sundays / Mon-Sat with the parity of the depth, always bounded.
 void BM_gnvt_exclusion_chain(benchmark::State& state) {
   const int depth = static_cast<int>(state.range(0));
-  auto& tps = timeperiod_manager::instance().timeperiods();
-  tps.clear();
+  timeperiod_map tps;
 
   std::vector<std::shared_ptr<timeperiod>> chain;
   chain.reserve(depth + 1);
@@ -277,7 +273,7 @@ void BM_gnvt_exclusion_chain(benchmark::State& state) {
   // Resolve every period so exclusion pointers are wired across the chain.
   uint32_t w = 0, e = 0;
   for (auto& tp : chain)
-    timeperiod_manager::instance().resolve(*tp, w, e);
+    tp->resolve(tps, w, e);
 
   timeperiod* root = tps.at("chain_0").get();
   time_t out = 0;
@@ -285,7 +281,6 @@ void BM_gnvt_exclusion_chain(benchmark::State& state) {
     out = root->get_next_valid_time(k_wed_noon);
     benchmark::DoNotOptimize(out);
   }
-  tps.clear();
 }
 BENCHMARK(BM_gnvt_exclusion_chain)->RangeMultiplier(2)->Range(1, 16);
 
@@ -299,17 +294,9 @@ int main(int argc, char** argv) {
   setenv("TZ", "UTC", 1);
   tzset();
 
-  // Load the manager with a null-sink logger so the library logs nowhere and
-  // instance() is available (the exclusion benchmark registers timeperiods).
-  timeperiod_manager::load(
-      std::make_shared<spdlog::logger>(
-          "bench", std::make_shared<spdlog::sinks::null_sink_mt>()),
-      {});
-
   benchmark::Initialize(&argc, argv);
   benchmark::RunSpecifiedBenchmarks();
   benchmark::Shutdown();
 
-  timeperiod_manager::unload();
   return 0;
 }

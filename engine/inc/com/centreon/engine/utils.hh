@@ -57,7 +57,7 @@ void setup_sighandler();
 void sighandler(int sig);
 // tests whether or not an object name (host, service, etc.) contains illegal
 // characters
-bool contains_illegal_object_chars(char const* name);
+bool contains_illegal_object_chars(const std::string& name);
 bool set_cloexec(int fd);
 
 // Cleanup Functions

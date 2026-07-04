@@ -18,7 +18,7 @@
  */
 
 #include <gtest/gtest.h>
-#include "common/timeperiods/timeperiod_manager.hh"
+#include "com/centreon/engine/globals.hh"
 
 #include <chrono>
 
@@ -1394,10 +1394,7 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
-                .timeperiods()
-                .size(),
-            1u);
+  ASSERT_EQ(::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -1435,10 +1432,7 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   auto hit = engine::host::hosts_by_id.find(svc->host_id());
   auto hst = hit->second;
 
-  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
-                .timeperiods()
-                .size(),
-            1u);
+  ASSERT_EQ(::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
@@ -1473,10 +1467,7 @@ TEST_F(EngineRpc, ChangeContactObjectCharVar) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  ASSERT_EQ(com::centreon::common::timeperiods::timeperiod_manager::instance()
-                .timeperiods()
-                .size(),
-            1u);
+  ASSERT_EQ(::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 

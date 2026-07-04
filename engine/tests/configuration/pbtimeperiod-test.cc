@@ -17,7 +17,6 @@
  *
  */
 #include <fstream>
-#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <regex>
 
@@ -169,9 +168,7 @@ time_period_comparator::time_period_comparator(
     : _conf_tp(conf_tp) {
   com::centreon::engine::configuration::applier::timeperiod applier;
 
-  com::centreon::common::timeperiods::timeperiod_manager::instance()
-      .timeperiods()
-      .clear();
+  ::timeperiods.clear();
 
   for (const std::string& line : timeperiod_content) {
     if (line[0] == '#')
@@ -509,8 +506,7 @@ time_period_comparator::time_period_comparator(
   }
 
   applier.add_object(conf_tp);
-  _result = com::centreon::common::timeperiods::timeperiod_manager::instance()
-                .timeperiods()[conf_tp.timeperiod_name()];
+  _result = ::timeperiods[conf_tp.timeperiod_name()];
 }
 
 std::ostream& operator<<(std::ostream& s,
@@ -926,11 +922,9 @@ class timeperiod_config_parser_test
   static void TearDownTestSuite(){};
 
  protected:
-  void SetUp() override {
-    timeperiod_manager::load(spdlog::default_logger(), {});
-  }
+  void SetUp() override { ::timeperiods.clear(); }
 
-  void TearDown() override { timeperiod_manager::unload(); }
+  void TearDown() override { ::timeperiods.clear(); }
 };
 
 INSTANTIATE_TEST_SUITE_P(timeperiod_config_parser_test,

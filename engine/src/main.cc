@@ -21,7 +21,6 @@
 
 #include <unistd.h>
 #include <random>
-#include "common/timeperiods/timeperiod_manager.hh"
 
 #include <boost/asio.hpp>
 #include <boost/program_options.hpp>
@@ -65,7 +64,6 @@ namespace po = boost::program_options;
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/parser.hh"
 #include "common/notifications/notification_manager.hh"
-#include "common/timeperiods/timeperiod_manager.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -98,10 +96,6 @@ int main(int argc, char* argv[]) {
 
   notifications::notification_manager::load(
       std::make_unique<engine_notification_callbacks>());
-
-  /* The forbidden characters are not known yet at startup; they are refreshed
-   * by applier::globals once the configuration is applied. */
-  timeperiod_manager::load(log_v2::instance().get(log_v2::CONFIG), {});
 
   // Initialize the initial configuration state.
   {
@@ -275,7 +269,7 @@ int main(int argc, char* argv[]) {
                     << servicegroup::servicegroups.size()
                     << " service groups.\n Checked " << service::services.size()
                     << " services.\n Checked "
-                    << timeperiod_manager::instance().timeperiods().size()
+                    << ::timeperiods.size()
                     << " time periods.\n\n Total Warnings: "
                     << err.config_warnings
                     << "\n Total Errors:   " << err.config_errors << std::endl;
@@ -523,7 +517,9 @@ int main(int argc, char* argv[]) {
   g_io_context->stop();
   com::centreon::common::pool::unload();
   notifications::notification_manager::unload();
-  timeperiod_manager::unload();
+  /* Destroy the timeperiods at a controlled point (they are a global now, no
+   * more timeperiod_manager) so it does not happen during static destruction. */
+  ::timeperiods.clear();
   downtimes::downtime_manager::unload();
   stop_rpc_server();
 

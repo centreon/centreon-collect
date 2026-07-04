@@ -334,10 +334,10 @@ void parse_check_output(std::string const& buffer,
  *  @return True if the object name contains an illegal character, false
  *          otherwise.
  */
-bool contains_illegal_object_chars(char const* name) {
-  if (!name || !illegal_object_chars)
+bool contains_illegal_object_chars(const std::string& name) {
+  if (!illegal_object_chars)
     return false;
-  return strpbrk(name, illegal_object_chars) ? true : false;
+  return name.find_first_of(illegal_object_chars) != std::string::npos;
 }
 
 /******************************************************************/

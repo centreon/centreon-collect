@@ -3551,7 +3551,7 @@ void host::resolve(uint32_t& w, uint32_t& e) {
   }
 
   /* check for illegal characters in host name */
-  if (contains_illegal_object_chars(name().c_str())) {
+  if (contains_illegal_object_chars(name())) {
     config_logger->error(
         "Error: The name of host '{}' contains one or more illegal characters.",
         name());

@@ -61,6 +61,7 @@ char* global_host_event_handler(NULL);
 char* global_service_event_handler(NULL);
 char* illegal_object_chars(NULL);
 char* illegal_output_chars(NULL);
+timeperiod_map timeperiods;
 char* log_file(NULL);
 std::string macro_user[MAX_USER_MACROS];   // $USERx$ macros
 std::string macro_x_names[MACRO_X_COUNT];  // The macro names
