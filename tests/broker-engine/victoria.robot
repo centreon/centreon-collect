@@ -1,12 +1,12 @@
 *** Settings ***
 Documentation       Centreon Broker victoria metrics tests
 
-Resource    ../resources/import.resource
+Resource            ../resources/import.resource
 
-Suite Setup    Ctn Clean Before Suite
-Suite Teardown    Ctn Clean After Suite
-Test Setup    Ctn Stop Processes
-Test Teardown    Ctn Save Logs If Failed
+Suite Setup         Ctn Clean Before Suite
+Suite Teardown      Ctn Clean After Suite
+Test Setup          Ctn Stop Processes
+Test Teardown       Ctn Save Logs If Failed
 
 
 *** Test Cases ***
@@ -27,7 +27,10 @@ VICT_ONE_CHECK_METRIC
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Start Server    127.0.0.1    8000
+    # Listen on :: so the mock accepts both IPv6 ([::1]) and IPv4 (127.0.0.1)
+    # connections: Broker resolves the "localhost" db_host and connects to [::1]
+    # first, then 127.0.0.1.
+    Start Server    ::    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -70,7 +73,15 @@ VICT_ONE_CHECK_METRIC
     [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
-    [Documentation]    victoria metrics status output
+    [Documentation]    Scenario: Victoria metrics status output
+    ...    Given Broker is configured with a unified_sql output and a victoria_metrics output
+    ...    And a mock HTTP server listening for the victoria_metrics requests
+    ...    When Engine processes an OK service check result for service_314
+    ...    Then the mock server receives a status request with value 100
+    ...    When Engine processes a WARNING hard service result for service_314
+    ...    Then the mock server receives a status request with value 75
+    ...    When Engine processes a CRITICAL hard service result for service_314
+    ...    Then the mock server receives a status request with value 0
     [Tags]    broker    engine    victoria_metrics
     Ctn Config Engine    ${1}    ${50}    ${20}
     Ctn Config Broker    rrd
@@ -86,7 +97,10 @@ VICT_ONE_CHECK_STATUS
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start Engine
-    Start Server    127.0.0.1    8000
+    # Listen on :: so the mock accepts both IPv6 ([::1]) and IPv4 (127.0.0.1)
+    # connections: Broker resolves the "localhost" db_host and connects to [::1]
+    # first, then 127.0.0.1.
+    Start Server    ::    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -223,7 +237,10 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    victoria should add metric in a request
 
-    Start Server    127.0.0.1    8000
+    # Listen on :: so the mock accepts both IPv6 ([::1]) and IPv4 (127.0.0.1)
+    # connections: Broker resolves the "localhost" db_host and connects to [::1]
+    # first, then 127.0.0.1.
+    Start Server    ::    8000
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00
     ${now}    Get Current Date    result_format=epoch
     WHILE    ${now} < ${timeout}
