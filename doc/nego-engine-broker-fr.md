@@ -764,6 +764,113 @@ reste disponible pour Engine (dont `verify_config` fait aussi `parse`+`expand`
 avant l'applier) — sans être exécuté deux fois. À mesure qu'`engine_conf`
 acquiert ces checks, `CheckPollerConfig` devient un vrai verify-config central.
 
+### Analyse : porter les checks de `resolve()` sur le `State`
+
+Le gros de la validation « verify-config » vit dans les méthodes
+`resolve(uint32_t& w, uint32_t& e)` des objets runtime d'Engine. Il y en a
+**13** : `notifier`, `service`, `host`, `contact`, `contactgroup`, `hostgroup`,
+`servicegroup`, `escalation`, `hostescalation`, `serviceescalation`,
+`hostdependency`, `servicedependency`, `anomalydetection`.
+
+Chacune se décompose en deux parties nettes :
+
+- **Validation** — soit une propriété intrinsèque de l'objet, soit l'existence
+  d'une référence (« est-ce que X existe / X == Y »). **Entièrement calculable
+  sur le `State` protobuf**, sans objet runtime.
+- **Câblage runtime** — sauvegarde de pointeurs (`*_ptr`, `it->second = …`),
+  liens inverses (`services.insert`, `add_child_host`,
+  `get_escalations().push_back`, `get_parent_groups()`), notifications
+  event-broker (`broker_relation_data`, `broker_group_member`). Ça n'a rien à
+  voir avec la validation et **reste dans l'applier d'Engine**.
+
+Aucune de ces 13 méthodes ne fait de validation qui exige un objet runtime
+vivant → **les 13 sont migrables** vers `engine_conf`, de façon uniforme.
+
+Contenu de validation à porter, par objet :
+
+| Objet | Contrôles de validation (→ portables sur State) |
+|-------|--------------------------------------------------|
+| notifier | event_handler & check_command existent ; check_period & notification_period existent ; contacts & contactgroups existent |
+| service | (notifier) + host référencé existe ; recovery cohérent ; `notification_interval < check_interval` ; caractères illégaux |
+| host | (notifier) + « aucun service » (warn) ; chaque service de l'host existe ; parents existent ; caractères illégaux ; recovery cohérent |
+| contact | commandes notif host+service non vides ; timeperiods de notif existent ; recovery host+service cohérent ; caractères illégaux |
+| contactgroup | chaque membre existe ; caractères illégaux |
+| hostgroup / servicegroup | chaque membre existe ; caractères illégaux |
+| escalation | escalation_period existe ; contactgroups existent |
+| hostescalation / serviceescalation | host / service existe (+ escalation) |
+| hostdependency / servicedependency | host/service dépendant & maître existent ; non circulaire ; dependency_period existe |
+| anomalydetection | (= service) + service parent existe |
+
+Côté State, le validateur porté construit d'abord des index nom→objet (commands,
+timeperiods, contacts, contactgroups, hosts, services) plus un index
+host→services (que `resolve()` bâtit aujourd'hui comme effet de bord), puis
+parcourt chaque type en accumulant `(w, e)` dans `error_cnt`.
+
+### Ce qu'`expand()` couvre déjà (et ce qui reste à porter)
+
+`expand()` et `resolve()` sont **complémentaires**, avec très peu de
+recouvrement.
+
+`expand()` s'occupe de **l'intégrité des appartenances de groupe** : il valide et
+remplit host↔hostgroup, service↔servicegroup, contact↔contactgroup, aplatit les
+groupes imbriqués, **éclate** les dépendances/escalations basées sur des groupes
+en entrées concrètes (puis vide les champs de groupe), fait hériter le service de
+son host (host_id, contacts, contactgroups, notif interval/period, timezone), et
+cross-check les exclusions de timeperiods. **Point important : après `expand`,
+tout est référencé par nom concret** (`host_name`, `(host_name,
+service_description)`) → le validateur porté utilise exactement les mêmes lookups
+par nom que `resolve()`.
+
+Ce qu'`expand()` ne fait **pas**, et qui reste donc à porter depuis `resolve()` :
+les références *feuilles* (commandes, timeperiods, contacts, contactgroups d'un
+notifier, membres déclarés côté définition d'un groupe, hosts/services
+d'escalations/dépendances/parents), et les contrôles purs (circularité, « host
+sans service », cohérence recovery, interval, champs requis, caractères
+illégaux).
+
+### Passer d'un throw précoce à une accumulation
+
+Objectif visé : que `CheckPollerConfig` **rapporte toutes les erreurs d'un coup**
+et n'échoue qu'à la fin, au lieu de s'arrêter au premier `throw`. Aujourd'hui
+`parse`+`expand` mélangent deux comportements : `error_cnt err` **accumule**
+(`config_warnings`/`config_errors`), mais ~54 sites font aussi un `throw` qui
+avorte le reste.
+
+Les throws se répartissent en deux familles :
+
+- **`check_validity()` (~34 sites, phase parse)** — champs d'identité
+  obligatoires manquants (nom, adresse, command line, id, type). Un objet sans
+  nom/id ne peut plus être indexé ni référencé → ce sont les candidats
+  *légitimes* à rester fatals (ou à droper l'objet). **Analyse détaillée encore
+  à faire.**
+- **`expand()` & apparentés (~20 sites)** — références croisées introuvables.
+  **Analysés : aucun n'est réellement fatal** (aucun crash/corruption si on
+  l'enlève). Deux formes :
+  - *Accumulable* (throw en branche `else`, rien à sauter) :
+    `hostdependency:199/211`, `host_helper:343`, `hostescalation:168`,
+    `serviceescalation:189`, `timeperiod:328`.
+  - *Accumulable-avec-garde* (le throw ne protégeait qu'un déréférencement
+    d'itérateur `end()` juste en dessous — il suffit de sauter ce bloc via
+    `continue`) : `service_helper:302/324`, `contact_helper:180`,
+    `serviceescalation:207`, `servicedependency:327/344`, `contactgroup:136`,
+    `servicegroup:129`.
+
+Trois points concrets :
+
+1. `timeperiod_helper.cc:328` est déjà le modèle cible (logge + compte chaque
+   erreur, throw en dernière instruction) → le convertir = retirer le throw.
+2. `servicedependency::_expand_services` (327/344) ne compte pas encore et sa
+   fonction n'a pas de paramètre `error_cnt& err` → il faut l'ajouter à la
+   signature.
+3. `state_helper::hook` (6 throws, 99-214) n'est **pas** dans `expand` : c'est le
+   hook du parseur (clé/valeur), sans accès à `error_cnt` → mécanisme
+   d'accumulation distinct (changement de signature).
+
+Bugs latents repérés au passage : `double user_value` non initialisé utilisé si
+`SimpleAtod` échoue (`state_helper:130/153`) ; `std::cout` de debug
+(`servicegroup_helper:125`) ; typo « Coulx » (`servicedependency:344`) ; `;` vide
+(`servicedependency:342`).
+
 ## Calcul de la différence
 
 `Broker` est notifié sur les nouvelles versions de configuration
