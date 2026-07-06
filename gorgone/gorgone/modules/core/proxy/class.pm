@@ -243,6 +243,7 @@ sub action_proxyaddnode {
             type     => $self->get_core_config(name => 'internal_com_type'),
             path     => $self->get_core_config(name => 'internal_com_path')
         );
+        $self->{internal_channels}->{ $data->{uid} } = $self->{internal_channels}->{ $data->{id} };
         $self->send_internal_action({
             action => 'PROXYREADY',
             data   => {
@@ -263,6 +264,8 @@ sub action_proxyaddnode {
     $self->{clients}->{ $data->{id} }->{delete}            = 0;
     $self->{clients}->{ $data->{id} }->{class}             = undef;
     $self->{clients}->{ $data->{id} }->{com_read_internal} = 1;
+    # allow to target a poller in push mode by both id and uid.
+    $self->{clients}->{$data->{uid}} = $self->{clients}->{ $data->{id} };
 }
 
 sub action_proxydelnode {
