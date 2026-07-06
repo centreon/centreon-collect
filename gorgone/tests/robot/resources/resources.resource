@@ -265,9 +265,8 @@ Setup Remote And Poller And Central Instances
     Log To Console    poller was started and seem connected to ${R_port}...
 
 Setup Two Gorgone Instances
-    [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2
+    [Arguments]    ${central_config}=@{EMPTY}    ${poller_config}=@{EMPTY}    ${communication_mode}=push_zmq    ${central_name}=gorgone_central    ${poller_name}=gorgone_poller_2    ${check_connection}=True
     ${start_time}   Get Time    str=epoch
-
 
     Ctn Init Tests
     # This change to the schema should be integrated by php team, for now we will check everything work with a temporary fix
@@ -291,8 +290,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${central_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=5556    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2
+        END
 
     ELSE IF    '${communication_mode}' == 'pullwss'
 
@@ -310,8 +311,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=8086    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=8086    expected_nb=2
+            Check Poller Communicate     2
+        END
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
 
         @{central_pullwss_config}=    Copy List    ${central_config}
@@ -330,8 +333,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=8086    expected_nb=2
-        Check Poller Communicate     2
+        IF    ${check_connection}
+            Check Poller Is Connected    port=8086    expected_nb=2
+            Check Poller Communicate     2
+        END
     ELSE IF    '${communication_mode}' == 'pull'
         @{central_pull_config}=    Copy List    ${central_config}
         Append To List    ${central_pull_config}    ${pull_central_config}    ${gorgone_core_config}
@@ -347,8 +352,10 @@ Setup Two Gorgone Instances
         Start Gorgone    debug    ${poller_name}
         # wait until gorgone http server bind the http api port.
         Wait Until Port Is Bind    8085
-        Check Poller Is Connected    port=5556    expected_nb=2
-        Check Poller Communicate     2    max_failed_attempt=1
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2    max_failed_attempt=1
+        END
     ELSE
         Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, pullwss, pull.
     END
