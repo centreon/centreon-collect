@@ -26,6 +26,8 @@ check central don't eat cpu when poller is not connected
     Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}/database/insert_push_poller.sql
     Start Gorgone    debug    ${central_name}
     Wait Until Port Is Bind    8085
+    ${none}=    GET  http://127.0.0.1:${api_port}/api/internal/nodes/${poller_id}/ping
+
     Ctn Wait Until Poller Fail To Connect    1
     Ctn Check Cpu Until Timeout    
 

@@ -231,7 +231,7 @@ Setup Remote And Poller And Central Instances
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
     ELSE IF    '${communication_mode}' == 'pullwss_uid'
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
-        ${poller_id}=    Set Variable    42992345
+        ${poller_id}=    Set Variable    299123456
 
     ELSE IF   '${communication_mode}' == 'pull'
         ${C_port}    Set Variable    5556
@@ -295,6 +295,29 @@ Setup Two Gorgone Instances
             Check Poller Communicate     2
         END
 
+    ELSE IF    '${communication_mode}' == 'push_zmq_uuid'
+        @{central_push_config}=    Copy List    ${central_config}
+        Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
+
+        @{poller_push_config}=    Copy List    ${poller_config}
+        Append To List    ${poller_push_config}    ${push_poller_config}
+
+        ${poller_id}=    Set Variable    299123456
+
+        Setup Gorgone Config    ${central_push_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_push_poller.sql
+        Setup Gorgone Config    ${poller_push_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}
+
+
+        Start Gorgone    debug    ${poller_name}
+        Wait Until Port Is Bind    5556
+        Start Gorgone    debug    ${central_name}
+        # wait until gorgone http server bind the http api port.
+        Wait Until Port Is Bind    8085
+        IF    ${check_connection}
+            Check Poller Is Connected    port=5556    expected_nb=2
+            Check Poller Communicate     2
+        END
+
     ELSE IF    '${communication_mode}' == 'pullwss'
 
         @{central_pullwss_config}=    Copy List    ${central_config}
@@ -323,7 +346,7 @@ Setup Two Gorgone Instances
         @{poller_pullwss_config}=    Copy List    ${poller_config}
         Append To List    ${poller_pullwss_config}    ${gorgone_core_config}    ${pullwss_poller_config}
 
-        ${poller_id}=    Set Variable    2
+        ${poller_id}=    Set Variable    299123456
 
         Setup Gorgone Config    ${central_pullwss_config}    gorgone_name=${central_name}    sql_file=${ROOT_CONFIG}database/insert_pullwss_poller.sql
         Setup Gorgone Config    ${poller_pullwss_config}     gorgone_name=${poller_name}    replace_from=${{['@POLLERID@']}}    replace_to=${{['${poller_id}']}}

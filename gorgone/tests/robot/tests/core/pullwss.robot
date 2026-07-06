@@ -54,7 +54,7 @@ check two poller can connect to a central
     ${id}=    Set Variable    4
     ${fromname}=    Set Variable    @POLLERID@
     IF    '${mode}' == 'pullwss_uid'
-        ${id}=    Set Variable    44992764
+        ${id}=    Set Variable    499123456
     END
      @{poller_pullwss_config}=    Create List  ${gorgone_core_config}    ${poller_config}
 
