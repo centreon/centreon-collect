@@ -6,6 +6,11 @@ concurrency:
 
 on:
   workflow_dispatch:
+    inputs:
+      simulate_promote_tag:
+        description: 'Test-only: force additional_tag to this value to exercise promote-docker-tag on a throwaway tag. Never use "develop" here.'
+        required: false
+        default: ''
   push:
     branches:
       - develop
@@ -147,10 +152,18 @@ jobs:
         env:
           RAW_REF: ${{ github.head_ref || github.ref_name }}
           MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
+          SIMULATE_PROMOTE_TAG: ${{ inputs.simulate_promote_tag }}
         run: |
+          if [[ "$SIMULATE_PROMOTE_TAG" == "develop" ]]; then
+            echo "::error::simulate_promote_tag must not be 'develop' — use a throwaway value to avoid clobbering the real floating tag."
+            exit 1
+          fi
           if [[ "$RAW_REF" == "develop" ]]; then
             echo "tag=develop-${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
             echo "additional_tag=develop" >> "$GITHUB_OUTPUT"
+          elif [[ -n "$SIMULATE_PROMOTE_TAG" ]]; then
+            echo "tag=${MAJOR_VERSION}-promote-test" >> "$GITHUB_OUTPUT"
+            echo "additional_tag=${SIMULATE_PROMOTE_TAG}" >> "$GITHUB_OUTPUT"
           elif [[ "$RAW_REF" =~ ^dev-[0-9]+\.[0-9]+\.x$ ]]; then
             echo "tag=${MAJOR_VERSION}" >> "$GITHUB_OUTPUT"
             echo "additional_tag=" >> "$GITHUB_OUTPUT"
