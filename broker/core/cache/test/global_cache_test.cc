@@ -18,6 +18,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <sys/stat.h>
+#include <boost/interprocess/exceptions.hpp>
 
 #include "bbdo/neb.pb.h"
 
@@ -1040,6 +1042,81 @@ TEST_F(global_cache_test, EnumerateServiceGroup) {
   EXPECT_EQ(found.size(), 2u);
   EXPECT_EQ(found[10], "sg_10");
   EXPECT_EQ(found[20], "sg_20");
+
+  obj.reset();
+  global_cache::unload();
+}
+
+// ---------------------------------------------------------------------------
+// Regression test for MON-204419: growing the memory-mapped cache file must
+// not leave the dirty flag pointer dangling in the old, unmapped segment.
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, GrowDoesNotCorruptDirtyFlag) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  struct ::stat initial_info;
+  ASSERT_EQ(::stat("/tmp/cache_test.rt", &initial_info), 0);
+
+  // Inject enough services to force the memory-mapped cache file to grow.
+  // Growing releases the old mapping and remaps the file, possibly at a
+  // different address. Before the fix, the cached _dirty pointer kept
+  // pointing into the old, now unmapped, segment, so the next write would
+  // dereference a dangling pointer and crash the process.
+  constexpr unsigned nb_services = 200000;
+  for (unsigned ii = 0; ii < nb_services; ++ii) {
+    auto host = std::make_shared<neb::pb_host>();
+    host->mut_obj().set_host_id(ii);
+    host->mut_obj().set_name(fmt::format("host_{}", ii));
+    host->mut_obj().set_enabled(true);
+    obj->write(host);
+
+    auto service = std::make_shared<neb::pb_service>();
+    service->mut_obj().set_host_id(ii);
+    service->mut_obj().set_service_id(ii + 1);
+    service->mut_obj().set_description(fmt::format("service_{}", ii + 1));
+    service->mut_obj().set_enabled(true);
+    obj->write(service);
+  }
+
+  struct ::stat grown_info;
+  ASSERT_EQ(::stat("/tmp/cache_test.rt", &grown_info), 0);
+  // The file must actually have grown, otherwise the grow/_dirty code path
+  // this test targets would never have been exercised.
+  ASSERT_NE(initial_info.st_size, grown_info.st_size);
+
+  // The dirty flag must still be usable after growth: writing and reading
+  // back must not crash and must return correct data.
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(nb_services);
+  host->mut_obj().set_name("host_after_grow");
+  host->mut_obj().set_enabled(true);
+  ASSERT_NO_THROW(obj->write(host));
+
+  {
+    global_cache::lock l;
+    auto* h = obj->get_host(nb_services, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(to_string(h->name()), "host_after_grow");
+  }
+
+  {
+    global_cache::lock l;
+    auto* h = obj->get_host(0, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(to_string(h->name()), "host_0");
+  }
+
+  {
+    global_cache::lock l;
+    auto* s = obj->get_service(10, 11, l);
+    ASSERT_TRUE(s);
+    EXPECT_EQ(to_string(s->description()), "service_11");
+  }
 
   obj.reset();
   global_cache::unload();
