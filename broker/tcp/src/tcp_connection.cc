@@ -18,6 +18,7 @@
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
+#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
