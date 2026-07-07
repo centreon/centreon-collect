@@ -45,6 +45,13 @@ class contact_helper : public message_helper {
       configuration::error_cnt& err,
       const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
           m_contactgroups);
+
+  static void resolve(const configuration::Contact& c,
+                      const absl::flat_hash_set<std::string_view>& commands,
+                      const absl::flat_hash_set<std::string_view>& timeperiod,
+                      std::string_view illegal_chars,
+                      configuration::error_cnt& err,
+                      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 

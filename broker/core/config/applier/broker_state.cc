@@ -29,6 +29,7 @@
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/common/file.hh"
 #include "com/centreon/common/pool.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/engine_conf/indexed_state.hh"
 #include "common/engine_conf/parser.hh"
@@ -831,6 +832,15 @@ void broker_state::_check_last_engine_conf() {
         state->set_config_version(version);
         state->set_poller_id(poller_id);
         state_hlp.expand(err);
+        // We do not trust the pushed configuration: validate it before storing
+        // and delivering it. If it is invalid, refuse to push it (the throw is
+        // caught below, so the .prot is not written and no diff is prepared).
+        state_hlp.resolve(err, _logger);
+        if (err.config_errors)
+          throw com::centreon::exceptions::msg_fmt(
+              "configuration for poller {} (version '{}') has {} error(s); "
+              "refusing to push it to the poller",
+              poller_id, version, err.config_errors);
         if (!std::filesystem::exists(pollers_config_dir())) {
           std::filesystem::create_directories(pollers_config_dir(), ec);
           if (ec) {
@@ -879,8 +889,19 @@ void broker_state::_check_last_engine_conf() {
               "configuration is retried once it connects",
               poller_id);
       } catch (const std::exception& e) {
-        _logger->error("error while parsing poller {} Engine configuration: {}",
+        _logger->error("rejecting invalid configuration for poller {}: {}",
                        poller_id, e.what());
+        /* The pushed configuration is structurally invalid (parse/expand/resolve
+         * error): it will never become valid on its own, so consume its .lck
+         * unconditionally instead of retrying it forever. PHP creates a fresh
+         * .lck when it pushes a corrected configuration. */
+        std::filesystem::path lck_file =
+            cache_config_dir() / fmt::format("{}.lck", poller_id);
+        std::error_code lck_ec;
+        std::filesystem::remove(lck_file, lck_ec);
+        if (lck_ec)
+          _logger->warn("Cannot remove lock file '{}' of rejected config: {}",
+                        lck_file.string(), lck_ec.message());
       }
     } else
       _logger->error("Cannot create Engine configuration test file '{}': {}",

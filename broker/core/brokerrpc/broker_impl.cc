@@ -1441,6 +1441,7 @@ grpc::Status broker_impl::CheckPollerConfig(
   try {
     p.parse(test.string(), &state, err);
     state_hlp.expand(err, logger);
+    state_hlp.resolve(err, logger);
   } catch (const std::exception& e) {
     thrown = e.what();
   }

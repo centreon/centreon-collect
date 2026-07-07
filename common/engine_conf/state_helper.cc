@@ -616,4 +616,40 @@ void state_helper::_expand_cv(configuration::State& s) {
   }
 }
 
+/**
+ * @brief Validate the whole configuration once it has been expanded.
+ *
+ * This is the configuration-level counterpart of the Engine runtime objects'
+ * `resolve()` methods: it must run after `expand()` and only accumulates
+ * warnings/errors into @a err (it never throws), performing no runtime wiring.
+ * It builds the cross-reference indexes needed by the per-object validators
+ * (command and timeperiod names for now) and delegates to each
+ * `*_helper::resolve`. Consumed by CheckPollerConfig (Broker) and by Engine's
+ * verify-config / start / reload paths.
+ *
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger for the diagnostics; defaults to the shared CONFIG
+ * logger when null.
+ */
+void state_helper::resolve(error_cnt& err,
+                           const std::shared_ptr<spdlog::logger>& logger) {
+  configuration::State& pb_config = *static_cast<State*>(mut_obj());
+  auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
+
+  absl::flat_hash_set<std::string_view> timeperiod;
+  timeperiod.reserve(pb_config.timeperiods().size());
+  for (const auto& tp : pb_config.timeperiods())
+    timeperiod.insert(tp.timeperiod_name());
+
+  absl::flat_hash_set<std::string_view> command;
+  command.reserve(pb_config.commands().size());
+  for (const auto& cmd : pb_config.commands())
+    command.insert(cmd.command_name());
+
+  const std::string& illegal_chars = pb_config.illegal_object_chars();
+  for (auto& c : pb_config.contacts()) {
+    contact_helper::resolve(c, command, timeperiod, illegal_chars, err, log);
+  }
+}
+
 }  // namespace com::centreon::engine::configuration
