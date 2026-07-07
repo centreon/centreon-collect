@@ -128,7 +128,8 @@ target_link_libraries(
           log_v2
           test_util
           fmt::fmt
-          gRPC::grpc++)
+          gRPC::grpc++
+          stdc++fs)
 
 add_dependencies(
   ut_broker
