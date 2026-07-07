@@ -327,7 +327,11 @@ sub routing {
 
     my $identity = 'gorgone-proxy-' . $pool_id;
     if ($is_ctrl_channel == 0 && $synctime_nodes->{$target_parent}->{channel_ready} == 1) {
-        $identity = 'gorgone-proxy-channel-' . $target_parent;
+        if ($target_parent == $register_nodes->{$target_parent}->{id}) {
+            $identity = 'gorgone-proxy-channel-' . $target_parent;
+        } else {
+            $identity = 'gorgone-proxy-channel-' . $register_nodes->{$target_parent}->{id};
+        }
     }
     if ($register_nodes->{$target_parent}->{type} eq 'wss' || $register_nodes->{$target_parent}->{type} eq 'pullwss') {
         $identity = 'gorgone-proxy-httpserver';

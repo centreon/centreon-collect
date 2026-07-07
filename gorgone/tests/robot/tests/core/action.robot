@@ -70,12 +70,14 @@ action module with ${communication_mode} communcation mode
     ${logs_poller}    Ctn Find In Log With Timeout    log=/var/log/centreon-gorgone/${communication_mode}_gorgone_poller_2/gorgoned.log    content=${log_poller2_query_sync}    date=${start_date}    timeout=10
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file: ${logs_poller}
 
-    Examples:    communication_mode   poller_id    --
+    Examples:    communication_mode    poller_id    --
         ...    push_zmq    2
+        ...    push_zmq    299123456
         ...    push_zmq_uuid    299123456
+        ...    push_zmq_uuid    2
         ...    pullwss    2
         ...    pullwss_uid    299123456
-        ...    pull
+        ...    pull    2
 
 *** Keywords ***
 Test Sync Action Module
