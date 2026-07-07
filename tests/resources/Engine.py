@@ -805,6 +805,10 @@ define command {{
     command_name                    test-notif
     command_line                    {0}/notif.pl
 }}
+define command {{
+    command_name                    command_notif
+    command_line                    {0}/notif.pl
+}}
 """.format(ENGINE_HOME))
             with open(f"{config_dir}/connectors.cfg", "w") as f:
                 f.write("""define connector {
@@ -879,6 +883,8 @@ define timeperiod {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
 }
 define contact {
     contact_name                   U1
