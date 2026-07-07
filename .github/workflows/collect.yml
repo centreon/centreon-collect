@@ -448,7 +448,8 @@ jobs:
       needs.get-environment.outputs.stability != 'stable' &&
       (
         needs.get-environment.outputs.is_nightly == 'true' ||
-        contains(needs.get-environment.outputs.labels, 'build-docker-collect')
+        contains(needs.get-environment.outputs.labels, 'build-docker-collect') ||
+        needs.get-environment.outputs.stability == 'testing'
       ) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
@@ -691,6 +692,66 @@ jobs:
           docker buildx imagetools create \
             --tag "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.additional_tag }}" \
             "${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}:${{ needs.dockerize-engine-broker.outputs.image_tag }}"
+        shell: bash
+
+  promote-docker-to-pulp:
+    needs: [get-environment]
+    if: |
+      needs.get-environment.outputs.skip_workflow == 'false' &&
+      needs.get-environment.outputs.stability == 'stable' &&
+      github.event_name != 'workflow_dispatch' &&
+      ! cancelled() &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
+      github.repository == 'centreon/centreon-collect'
+    runs-on: centreon-ubuntu-22.04
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [centreon-engine, centreon-broker]
+        distrib: [trixie]
+    name: promote ${{ matrix.image }}-${{ matrix.distrib }} to Pulp stable
+    # HARBOR_TAG reconstructs the release/hotfix branch name (<release_type>-<major_version>-next)
+    # that dockerize-engine-broker tagged the image with while that branch was 'testing'.
+    # release_type comes from the annotated component tag's message ("release ..."/"hotfix ...",
+    # see .github/actions/release-new/action.yml), not from this event's own ref.
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Login to Harbor registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.HARBOR_CENTREON_PULL_USERNAME }}
+          password: ${{ secrets.HARBOR_CENTREON_PULL_TOKEN }}
+
+      - uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Promote Harbor candidate to Pulp stable (best-effort, non-blocking)
+        continue-on-error: true
+        id: promote-pulp
+        env:
+          PULP_URL: https://pulp-api.apps.centreon.com
+          PULP_OIDC_AUDIENCE: https://pulp.dev.centreon.io
+          BASE_PATH: centreon/${{ matrix.image }}-${{ matrix.distrib }}
+          HARBOR_IMAGE: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}-${{ matrix.distrib }}
+          HARBOR_TAG: ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next
+          PULP_TAGS: ${{ needs.get-environment.outputs.major_version }}.${{ needs.get-environment.outputs.minor_version }} ${{ needs.get-environment.outputs.major_version }}
+          MODULE: ${{ matrix.image }}
+          OS: ${{ matrix.distrib }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+          PLATFORMS: linux/amd64,linux/arm64
+        run: bash .github/scripts/docker-push-to-pulp.sh
+        shell: bash
+
+      - name: Warn if Pulp stable delivery failed
+        if: steps.promote-pulp.outcome == 'failure'
+        run: |
+          echo "::warning::Pulp delivery failed for ${{ matrix.image }}-${{ matrix.distrib }} (Harbor tag ${{ needs.get-environment.outputs.release_type }}-${{ needs.get-environment.outputs.major_version }}-next). This release is available on Harbor but was NOT published to Pulp — investigate before relying on public delivery for this version."
         shell: bash
 
   robot-test:
