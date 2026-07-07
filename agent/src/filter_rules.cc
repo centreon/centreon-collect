@@ -132,25 +132,39 @@ const bp::symbols<filter_combinator::logical_operator>
         {"or", filter_combinator::logical_operator::filter_or}};
 
 /**
+ * @brief Semantic action that explicitly constructs a filter_combinator from
+ * the parsed attribute tuple.
+ *
+ * Without this, Boost.Parser attempts implicit attribute synthesis from the
+ * tuple produced by operator>> and *, which is fragile across Boost versions
+ * and may silently produce incorrect results. Calling the constructor
+ * explicitly guarantees the right overload is used regardless of the
+ * Boost.Parser version.
+ */
+auto const create_filter_combinator = [](auto& ctx) {
+  bp::_val(ctx) = filter_combinator(std::move(bp::_attr(ctx)));
+};
+
+/**
  * @brief beware to the orders, we first try to decode a filter before decoding
  * a sub combinator
  *
  */
 const auto filter_combinator_rule1_def =
-    (label_compare_to_value_rule | label_compare_to_string_rule |
-     label_in_rule | filter_combinator_rule2) >>
-    *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
-      (label_compare_to_value_rule | label_compare_to_string_rule |
-       label_in_rule | filter_combinator_rule2));
+    ((label_compare_to_value_rule | label_compare_to_string_rule |
+      label_in_rule | filter_combinator_rule2) >>
+     *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
+       (label_compare_to_value_rule | label_compare_to_string_rule |
+        label_in_rule | filter_combinator_rule2)))[create_filter_combinator];
 
 const auto filter_combinator_rule2_def =
     '(' >> *bp::ws >> filter_combinator_rule >> *bp::ws >> ')';
 
-const auto filter_combinator_rule_def = (filter_combinator_rule1 |
-                                         filter_combinator_rule2) >>
-                                        *(logical_operator_symbols >>
-                                          (filter_combinator_rule1 |
-                                           filter_combinator_rule2));
+const auto filter_combinator_rule_def =
+    ((filter_combinator_rule1 | filter_combinator_rule2) >>
+     *(logical_operator_symbols >>
+       (filter_combinator_rule1 |
+        filter_combinator_rule2)))[create_filter_combinator];
 
 /**
  * wchar_t version
@@ -169,20 +183,21 @@ const auto label_in_rule_w_def =
     *bp::ws >> ')';
 
 const auto filter_combinator_rule1_w_def =
-    (label_compare_to_value_rule | label_compare_to_string_rule_w |
-     label_in_rule_w | filter_combinator_rule2_w) >>
-    *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
-      (label_compare_to_value_rule | label_compare_to_string_rule_w |
-       label_in_rule_w | filter_combinator_rule2_w));
+    ((label_compare_to_value_rule | label_compare_to_string_rule_w |
+      label_in_rule_w | filter_combinator_rule2_w) >>
+     *(+bp::ws >> logical_operator_symbols >> +bp::ws >>
+       (label_compare_to_value_rule | label_compare_to_string_rule_w |
+        label_in_rule_w |
+        filter_combinator_rule2_w)))[create_filter_combinator];
 
 const auto filter_combinator_rule2_w_def =
     '(' >> *bp::ws >> filter_combinator_rule_w >> *bp::ws >> ')';
 
-const auto filter_combinator_rule_w_def = (filter_combinator_rule1_w |
-                                           filter_combinator_rule2_w) >>
-                                          *(logical_operator_symbols >>
-                                            (filter_combinator_rule1_w |
-                                             filter_combinator_rule2_w));
+const auto filter_combinator_rule_w_def =
+    ((filter_combinator_rule1_w | filter_combinator_rule2_w) >>
+     *(logical_operator_symbols >>
+       (filter_combinator_rule1_w |
+        filter_combinator_rule2_w)))[create_filter_combinator];
 
 BOOST_PARSER_DEFINE_RULES(label_compare_to_value_rule,
                           label_compare_to_string_rule,

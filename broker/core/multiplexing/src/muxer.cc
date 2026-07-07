@@ -49,7 +49,7 @@ static void add_bench_point(bbdo::pb_bench& event,
                             const std::string& muxer_name,
                             const char* funct_name)
     ABSL_LOCKS_EXCLUDED(_add_bench_point_m) {
-  absl::MutexLock lck(&_add_bench_point_m);
+  absl::MutexLock lck(_add_bench_point_m);
   com::centreon::broker::TimePoint* muxer_tp = event.mut_obj().add_points();
   muxer_tp->set_name(muxer_name);
   muxer_tp->set_function(funct_name);
@@ -93,7 +93,7 @@ muxer::muxer(std::string name,
   absl::SetMutexDeadlockDetectionMode(absl::OnDeadlockCycle::kAbort);
   absl::EnableMutexInvariantDebugging(true);
   // Load head queue file back in memory.
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   if (_persistent) {
     try {
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
@@ -197,7 +197,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  */
 muxer::~muxer() noexcept {
   {
-    absl::MutexLock lock(&_events_m);
+    absl::MutexLock lock(_events_m);
     SPDLOG_LOGGER_INFO(
         _logger, "Destroying muxer {:p} {}: number of events in the queue: {}",
         static_cast<void*>(this), _name, _events_size);
@@ -230,7 +230,7 @@ void muxer::ack_events(int count) {
     SPDLOG_LOGGER_DEBUG(
         _logger, "multiplexing: acknowledging {} events from {} event queue",
         count, _name);
-    absl::MutexLock lck(&_events_m);
+    absl::MutexLock lck(_events_m);
     for (int i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
         _logger->error(
@@ -271,7 +271,7 @@ int32_t muxer::stop() {
   SPDLOG_LOGGER_INFO(_logger,
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   _update_stats();
   return 0;
 }
@@ -311,7 +311,7 @@ void muxer::_execute_reader_if_needed() {
                [me = shared_from_this(), this] {
                  std::shared_ptr<data_handler> to_call;
                  {
-                   absl::MutexLock lck(&_events_m);
+                   absl::MutexLock lck(_events_m);
                    to_call = _data_handler;
                  }
                  if (to_call) {
@@ -350,7 +350,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     {
       // we stop this first loop when mux queue is full in order to release
       // mutex to let read to do its job before writing to file
-      absl::MutexLock lck(&_events_m);
+      absl::MutexLock lck(_events_m);
       _logger->trace(
           "muxer::publish ({}) starting the loop to stack events --- "
           "events_size = {} <> {}",
@@ -367,8 +367,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         if (event->type() == bbdo::pb_bench::static_type()) {
           add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
                           _name, "publish");
-          SPDLOG_LOGGER_INFO(_logger, "{} bench publish {}", _name,
-                             io::data::dump_json{*event});
+          SPDLOG_LOGGER_INFO(_logger, "{} bench publish {}", _name, *event);
         }
 
         SPDLOG_LOGGER_TRACE(
@@ -386,7 +385,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     }
 
     if (evt == event_queue.end()) {
-      absl::MutexLock lck(&_events_m);
+      absl::MutexLock lck(_events_m);
       _update_stats();
       return;
     }
@@ -396,7 +395,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       continue;
     }
     /* The queue is full. The rest is put in the retention file. */
-    absl::MutexLock lck(&_events_m);
+    absl::MutexLock lck(_events_m);
     for (; evt != event_queue.end(); ++evt) {
       auto event = *evt;
       if (!_write_filter.allows(event->type())) {
@@ -409,8 +408,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                         "retention_publish");
         SPDLOG_LOGGER_INFO(_logger, "muxer {} bench publish to file {} {}",
-                           _name, _queue_file_name,
-                           io::data::dump_json{*event});
+                           _name, _queue_file_name, *event);
       }
       if (!_file) {
         QueueFileStats* s = _center->muxer_stats(_name)->mutable_queue_file();
@@ -447,7 +445,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
 bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   _logger->trace("muxer {:p}:read() call", static_cast<void*>(this));
   bool timed_out{false};
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
 
   // No data is directly available.
   if (_pos == _events.end()) {
@@ -481,8 +479,7 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
-      SPDLOG_LOGGER_INFO(_logger, "{} bench read {}", _name,
-                         io::data::dump_json{*event});
+      SPDLOG_LOGGER_INFO(_logger, "{} bench read {}", _name, *event);
     }
   } else {
     SPDLOG_LOGGER_TRACE(_logger, "{} queue size {} no event available", _name,
@@ -515,7 +512,7 @@ const std::string& muxer::write_filters_as_str() const {
  *  @return  The size of the event queue.
  */
 uint32_t muxer::get_event_queue_size() const {
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   return _events_size;
 }
 
@@ -527,7 +524,7 @@ void muxer::nack_events() {
                       "multiplexing: reprocessing unacknowledged events from "
                       "{} event queue with {} waiting events",
                       _name, _events_size);
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   _pos = _events.begin();
   _update_stats();
 }
@@ -539,7 +536,7 @@ void muxer::nack_events() {
  */
 void muxer::statistics(nlohmann::json& tree) const {
   // Lock object.
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
 
   // Queue file mode.
   bool queue_file_enabled(_file.get());
@@ -578,8 +575,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
     if (d->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                       "write");
-      SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name,
-                         io::data::dump_json{*d});
+      SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name, *d);
     }
     _engine->publish(d);
   } else {
@@ -605,8 +601,7 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
       if (d->type() == bbdo::pb_bench::static_type()) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                         "write");
-        SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name,
-                           io::data::dump_json{*d});
+        SPDLOG_LOGGER_INFO(_logger, "{} bench write {}", _name, *d);
       }
       ++list_iter;
     } else {
@@ -785,11 +780,11 @@ void muxer::unsubscribe() {
 
 void muxer::set_action_on_new_data(
     const std::shared_ptr<data_handler>& handler) {
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   _data_handler = handler;
 }
 
 void muxer::clear_action_on_new_data() {
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
   _data_handler.reset();
 }

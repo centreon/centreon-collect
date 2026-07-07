@@ -86,7 +86,7 @@ void server_bireactor::on_error() {
 }
 
 void server_bireactor::shutdown() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (_alive) {
     _alive = false;
     agent_impl<::grpc::ServerBidiReactor<agent::MessageFromAgent,
@@ -226,7 +226,7 @@ agent_service::Export(::grpc::CallbackServerContext* context) {
 
   std::shared_ptr<server_bireactor> new_reactor;
   {
-    absl::MutexLock l(&_conf_m);
+    absl::MutexLock l(_conf_m);
     new_reactor = std::make_shared<server_bireactor>(
         _io_context, _conf, _metric_handler, _logger, context->peer(), _stats,
         exp_time);
@@ -242,6 +242,6 @@ void agent_service::shutdown_all_accepted() {
 }
 
 void agent_service::update(const agent_config::pointer& conf) {
-  absl::MutexLock l(&_conf_m);
+  absl::MutexLock l(_conf_m);
   _conf = conf;
 }

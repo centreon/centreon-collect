@@ -59,17 +59,14 @@ add_library(
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh")
-add_dependencies(${LUA} pb_neb_lib pb_storage_lib pb_bam_lib process_stat
-                 pb_open_telemetry_lib)
+add_dependencies(${LUA} centreon_pb_bbdo process_stat global_cache)
 
 target_link_libraries(
   "${LUA}"
   PRIVATE ${LUA_LIBRARIES}
           # crypto ssl bbdo_storage
           bbdo_bam
-	  bbdo_storage
-	  nebbase
-	  pb_storage_lib
+          bbdo_storage
           fmt::fmt)
 
 target_precompile_headers(${LUA} PRIVATE precomp_inc/precomp.hpp)

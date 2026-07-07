@@ -64,6 +64,7 @@ target_link_libraries(
   pb_broker_lib
   centreon_common
   process_stat
+  protobuf::libprotobuf
   fmt::fmt)
 set_target_properties(ccc PROPERTIES COMPILE_FLAGS "-fPIC")
 

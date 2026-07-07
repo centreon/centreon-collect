@@ -123,7 +123,7 @@ void dependency::set_contains_circular_path(bool contains_circular_path) {
  *
  *  @return True if is the same object, otherwise false.
  */
-bool dependency::operator==(dependency const& obj) noexcept {
+bool dependency::operator==(const dependency& obj) const {
   return _dependency_type == obj.get_dependency_type() &&
          _dependent_hostname == obj.get_dependent_hostname() &&
          _hostname == obj.get_hostname() &&
@@ -142,7 +142,7 @@ bool dependency::operator==(dependency const& obj) noexcept {
  *
  *  @return True if is not the same object, otherwise false.
  */
-bool dependency::operator!=(dependency const& obj) noexcept {
+bool dependency::operator!=(dependency const& obj) const {
   return !(*this == obj);
 }
 
@@ -154,7 +154,7 @@ bool dependency::operator!=(dependency const& obj) noexcept {
  *
  *  @return True if the first object is strictly less than the second.
  */
-bool dependency::operator<(dependency const& obj) noexcept {
+bool dependency::operator<(dependency const& obj) const {
   if (_dependent_hostname != obj.get_dependent_hostname())
     return _dependent_hostname < obj.get_dependent_hostname();
   else if (_hostname != obj.get_hostname())

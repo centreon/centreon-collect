@@ -42,7 +42,7 @@ class config {
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
-  std::size_t _max_size;
+  std::size_t _max_size = 0;
   uint32_t _flush_interval;
   bool _log_pid;
   bool _log_source;

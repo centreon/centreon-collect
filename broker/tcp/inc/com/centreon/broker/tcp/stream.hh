@@ -75,7 +75,7 @@ class stream : public io::stream {
 
 template <class visitor>
 void stream::visit_all_instances(visitor&& visit) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   for (const auto& inst : *_instances) {
     visit(*inst);
   }

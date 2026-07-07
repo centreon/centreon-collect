@@ -23,6 +23,7 @@
 #include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
@@ -523,7 +524,7 @@ static std::ostream& operator<<(std::ostream& s,
                                 const std::list<configuration::Timerange>& tr) {
   s << '(';
   for (auto& t : tr) {
-    s << t.DebugString() << ", ";
+    s << fmt::format("{}, ", t);
   }
   s << ')';
   return s;
@@ -533,7 +534,7 @@ static std::ostream& operator<<(std::ostream& s,
                                 const std::list<configuration::Daterange>& dr) {
   s << '(';
   for (auto& d : dr) {
-    s << d.DebugString() << ", ";
+    s << fmt::format("{}, ", d);
   }
   s << ')';
   return s;
@@ -759,7 +760,7 @@ static bool operator==(
 
 static std::ostream& operator<<(std::ostream& s,
                                 const configuration::StringSet& exclude) {
-  s << exclude.DebugString();
+  s << fmt::format("{}", exclude);
   return s;
 }
 
@@ -778,7 +779,7 @@ bool time_period_comparator::is_equal() const {
   if (!(_timeranges == _conf_tp.timeranges())) {
     std::cerr << "timeranges difference" << std::endl;
     std::cerr << "_timeranges=" << _timeranges << std::endl;
-    std::cerr << "_conf_tp.timeranges= " << _conf_tp.timeranges().DebugString()
+    std::cerr << fmt::format("_conf_tp.timeranges= {}", _conf_tp.timeranges())
               << std::endl;
     return false;
   }
@@ -786,7 +787,7 @@ bool time_period_comparator::is_equal() const {
   if (!(_exceptions == _conf_tp.exceptions())) {
     std::cerr << "exception difference" << std::endl;
     std::cerr << "_exceptions= " << _exceptions << std::endl;
-    std::cerr << "_conf_tp.exceptions= " << _conf_tp.exceptions().DebugString()
+    std::cerr << fmt::format("_conf_tp.exceptions= {}", _conf_tp.exceptions())
               << std::endl;
     return false;
   }
@@ -816,7 +817,7 @@ bool time_period_comparator::is_result_equal() const {
   if (!(_timeranges == _result->days)) {
     std::cerr << "timeranges difference" << std::endl;
     // std::cerr << "_timeranges= " << _timeranges << std::endl;
-    std::cerr << "_conf_tp.timeranges= " << _conf_tp.timeranges().DebugString()
+    std::cerr << fmt::format("_conf_tp.timeranges= {}", _conf_tp.timeranges())
               << std::endl;
     return false;
   }
@@ -824,7 +825,7 @@ bool time_period_comparator::is_result_equal() const {
   if (!(_exceptions == _result->exceptions)) {
     std::cerr << "exception difference" << std::endl;
     // std::cerr << "_exceptions= " << _exceptions << std::endl;
-    std::cerr << "_conf_tp.exceptions= " << _conf_tp.exceptions().DebugString()
+    std::cerr << fmt::format("_conf_tp.exceptions= {}", _conf_tp.exceptions())
               << std::endl;
     return false;
   }
@@ -910,7 +911,7 @@ class timeperiod_config_parser_test
  protected:
  public:
   static void SetUpTestSuite() { pb_config.Clear(); }
-  static void TearDownTestSuite(){};
+  static void TearDownTestSuite() {};
 
  protected:
   void SetUp() override {}

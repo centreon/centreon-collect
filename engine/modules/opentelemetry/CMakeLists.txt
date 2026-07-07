@@ -102,6 +102,7 @@ target_link_libraries(
   PRIVATE fmt::fmt
 	  opentelemetry_base
 	  pb_open_telemetry_lib
+    centreon_pb_bbdo
 	  protobuf::libprotobuf
 	  Boost::url
 	  Boost::program_options

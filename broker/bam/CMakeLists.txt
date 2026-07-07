@@ -87,7 +87,7 @@ add_library(
   ${SRC_DIR}/service_book.cc
   ${SRC_DIR}/service_listener.cc
   ${SRC_DIR}/timeperiod_map.cc)
-target_link_libraries("${BAM}" PRIVATE bbdo_storage bbdo_bam pb_bam_lib
+target_link_libraries("${BAM}" PRIVATE bbdo_storage bbdo_bam centreon_pb_bbdo
                       fmt::fmt)
 target_precompile_headers("${BAM}" REUSE_FROM multiplexing)
 set_target_properties("${BAM}" PROPERTIES PREFIX ""

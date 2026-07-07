@@ -1,0 +1,32 @@
+name: "centreon-protobuf-lib"
+arch: "${ARCH}"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Centreon Protobuf shared libraries for Centreon Collect products,
+  including BBDO and Engine configuration protocol buffer libraries.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://www.centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "../../build/bbdo/libcentreon_pb_bbdo.so"
+    dst: "/usr/lib64/"
+    packager: rpm
+
+  - src: "../../build/bbdo/libcentreon_pb_bbdo.so"
+    dst: "/usr/lib/"
+    packager: deb
+
+rpm:
+  summary: Centreon protobuf object libraries.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

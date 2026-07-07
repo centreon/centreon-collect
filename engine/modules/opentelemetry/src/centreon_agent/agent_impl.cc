@@ -92,8 +92,8 @@ agent_impl<bireactor_class>::agent_impl(
       _exp_time(exp_time),
       _conf(conf),
       _metric_handler(handler),
-      _logger(logger),
       _write_pending(false),
+      _logger(logger),
       _alive(true),
       _stats(stats) {
   SPDLOG_LOGGER_DEBUG(logger, "create {} this={:p}", _class_name,
@@ -123,7 +123,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     _conf = new_conf;
   }
   auto to_call = std::packaged_task<int(void)>(
@@ -145,7 +145,7 @@ void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::all_agent_calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   for (auto& instance : *_instances) {
     instance->calc_and_send_config_if_needed(new_conf);
   }
@@ -203,7 +203,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
     cnf->set_export_period(_conf->get_export_period());
     cnf->set_max_concurrent_checks(_conf->get_max_concurrent_checks());
     cnf->set_use_exemplar(true);
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -250,7 +250,7 @@ void agent_impl<bireactor_class>::on_request(
   agent_config::pointer agent_conf;
   if (request->has_init()) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
@@ -275,7 +275,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::_write(
     const std::shared_ptr<agent::MessageToAgent>& request) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -293,7 +293,7 @@ void agent_impl<bireactor_class>::_write(
 template <class bireactor_class>
 void agent_impl<bireactor_class>::register_stream(
     const std::shared_ptr<agent_impl>& strm) {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->insert(strm);
 }
 
@@ -304,7 +304,7 @@ void agent_impl<bireactor_class>::register_stream(
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::start_read() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (!_alive) {
     return;
   }
@@ -328,18 +328,18 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
     if (_exp_time != std::chrono::system_clock::time_point::min() &&
         _exp_time != std::chrono::system_clock::time_point::max() &&
         _exp_time <= std::chrono::system_clock::now()) {
-      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
-                          static_cast<void*>(this), _class_name);
+      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired: {}",
+                          static_cast<void*>(this), _class_name, _exp_time);
       on_error();
       this->shutdown();
       return;
     }
     std::shared_ptr<agent::MessageFromAgent> readden;
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive from {}: {}",
                           static_cast<const void*>(this), _class_name,
-                          get_peer(), *_read_current);
+                          get_peer(), otl_formatter{*_read_current});
       readden = _read_current;
       _read_current.reset();
     }
@@ -362,7 +362,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::start_write() {
   std::shared_ptr<agent::MessageToAgent> to_send;
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive || _write_pending || _write_queue.empty()) {
       return;
     }
@@ -371,7 +371,7 @@ void agent_impl<bireactor_class>::start_write() {
   }
   SPDLOG_LOGGER_TRACE(_logger, "{:p} {} send to {}: {}",
                       static_cast<void*>(this), _class_name, get_peer(),
-                      *to_send);
+                      otl_formatter{*to_send});
   bireactor_class::StartWrite(to_send.get());
 }
 
@@ -385,11 +385,11 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
   if (ok) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _write_pending = false;
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,
-                          **_write_queue.begin());
+                          otl_formatter{**_write_queue.begin()});
       _write_queue.pop_front();
     }
     start_write();
@@ -418,7 +418,7 @@ void agent_impl<bireactor_class>::OnDone() {
              [me = std::enable_shared_from_this<
                   agent_impl<bireactor_class>>::shared_from_this(),
               logger = _logger]() {
-               absl::MutexLock l(&_instances_m);
+               absl::MutexLock l(_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                                    static_cast<void*>(me.get()));
                _instances->erase(
@@ -444,7 +444,7 @@ void agent_impl<bireactor_class>::OnDone(const ::grpc::Status& status) {
       *_io_context, [me = std::enable_shared_from_this<
                          agent_impl<bireactor_class>>::shared_from_this(),
                      status, logger = _logger]() {
-        absl::MutexLock l(&_instances_m);
+        absl::MutexLock l(_instances_m);
         if (status.ok()) {
           SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                               static_cast<void*>(me.get()),
@@ -479,7 +479,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::shutdown_all() {
   std::set<std::shared_ptr<agent_impl>>* to_shutdown;
   {
-    absl::MutexLock l(&_instances_m);
+    absl::MutexLock l(_instances_m);
     to_shutdown = _instances;
     _instances = new std::set<std::shared_ptr<agent_impl<bireactor_class>>>;
   }

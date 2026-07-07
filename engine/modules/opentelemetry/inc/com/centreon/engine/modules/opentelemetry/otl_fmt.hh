@@ -20,6 +20,22 @@
 #define CCE_MOD_OTL_SERVER_OTL_FMT_HH
 
 #include <google/protobuf/util/json_util.h>
+#include "com/centreon/common/fmt_protobuf.hh"
+
+namespace com::centreon::engine::modules::opentelemetry {
+struct otl_formatter {
+  const ::google::protobuf::Message& mess;
+
+  /**
+   * @brief if this static parameter is < 0, we dump all request, otherwise, we
+   * limit dump length to this value
+   *
+   */
+  static int max_length_log;
+  static bool json_grpc_format;
+};
+
+}  // namespace com::centreon::engine::modules::opentelemetry
 
 namespace fmt {
 
@@ -29,105 +45,35 @@ namespace fmt {
  *
  * @code {.c++}
  *      ::opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest
- * request; SPDLOG_LOGGER_TRACE(log_v2::otl(), "receive {}", request);
+ * request; SPDLOG_LOGGER_TRACE(log_v2::otl(), "receive {}",
+ * otl_formatter{request});
  * @endcode
  *
  *
  */
 template <>
-struct formatter<
-    ::opentelemetry::proto::collector::metrics::v1::ExportMetricsServiceRequest>
-    : formatter<std::string> {
-  /**
-   * @brief if this static parameter is < 0, we dump all request, otherwise, we
-   * limit dump length to this value
-   *
-   */
-  static int max_length_log;
-  static bool json_grpc_format;
-  template <typename FormatContext>
-  auto format(const ::opentelemetry::proto::collector::metrics::v1::
-                  ExportMetricsServiceRequest& p,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
-    if (json_grpc_format) {
-      std::string output;
-      auto status = google::protobuf::util::MessageToJsonString(p, &output);
-      return formatter<std::string>::format(
-          max_length_log > 0 ? output.substr(0, max_length_log) : output, ctx);
-    } else {
-      return formatter<std::string>::format(
-          max_length_log > 0 ? p.ShortDebugString().substr(0, max_length_log)
-                             : p.ShortDebugString(),
-          ctx);
-    }
+struct formatter<com::centreon::engine::modules::opentelemetry::otl_formatter> {
+  constexpr auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) {
+    return ctx.begin();
   }
-};
-
-template <>
-struct formatter<com::centreon::agent::MessageFromAgent>
-    : formatter<std::string> {
-  /**
-   * @brief if this static parameter is < 0, we dump all request, otherwise, we
-   * limit dump length to this value
-   *
-   */
   template <typename FormatContext>
-  auto format(const com::centreon::agent::MessageFromAgent& p,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
-    using otl_formatter =
-        formatter< ::opentelemetry::proto::collector::metrics::v1::
-                       ExportMetricsServiceRequest>;
-
-    if (otl_formatter::json_grpc_format) {
-      std::string output;
-      auto status [[maybe_unused]] =
-          google::protobuf::util::MessageToJsonString(p, &output);
-      return formatter<std::string>::format(
-          otl_formatter::max_length_log > 0
-              ? output.substr(0, otl_formatter::max_length_log)
-              : output,
-          ctx);
+  auto format(
+      const com::centreon::engine::modules::opentelemetry::otl_formatter& mess,
+      FormatContext& ctx) const -> decltype(ctx.out()) {
+    auto out = ctx.out();
+    com::centreon::common::back_iterator_output_stream<
+        fmt::format_context::iterator>
+        output_stream(out, mess.max_length_log);
+    if (mess.json_grpc_format) {
+      [[maybe_unused]] auto ignored =
+          ::google::protobuf::json::MessageToJsonStream(mess.mess,
+                                                        &output_stream);
     } else {
-      return formatter<std::string>::format(
-          otl_formatter::max_length_log > 0
-              ? p.ShortDebugString().substr(0, otl_formatter::max_length_log)
-              : p.ShortDebugString(),
-          ctx);
+      google::protobuf::TextFormat::Printer printer;
+      printer.SetSingleLineMode(true);
+      printer.Print(mess.mess, &output_stream);
     }
-  }
-};
-
-template <>
-struct formatter<com::centreon::agent::MessageToAgent>
-    : formatter<std::string> {
-  /**
-   * @brief if this static parameter is < 0, we dump all request, otherwise, we
-   * limit dump length to this value
-   *
-   */
-  template <typename FormatContext>
-  auto format(const com::centreon::agent::MessageToAgent& p,
-              FormatContext& ctx) const -> decltype(ctx.out()) {
-    using otl_formatter =
-        formatter< ::opentelemetry::proto::collector::metrics::v1::
-                       ExportMetricsServiceRequest>;
-
-    if (otl_formatter::json_grpc_format) {
-      std::string output;
-      auto status [[maybe_unused]] =
-          google::protobuf::util::MessageToJsonString(p, &output);
-      return formatter<std::string>::format(
-          otl_formatter::max_length_log > 0
-              ? output.substr(0, otl_formatter::max_length_log)
-              : output,
-          ctx);
-    } else {
-      return formatter<std::string>::format(
-          otl_formatter::max_length_log > 0
-              ? p.ShortDebugString().substr(0, otl_formatter::max_length_log)
-              : p.ShortDebugString(),
-          ctx);
-    }
+    return out;
   }
 };
 

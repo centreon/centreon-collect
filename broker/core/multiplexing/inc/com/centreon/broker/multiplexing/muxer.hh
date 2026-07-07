@@ -163,7 +163,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
 template <class container>
 bool muxer::read(container& to_fill, size_t max_to_read) noexcept {
   _logger->debug("muxer::read ({}) call", _name);
-  absl::MutexLock lck(&_events_m);
+  absl::MutexLock lck(_events_m);
 
   size_t nb_read = 0;
   while (_pos != _events.end() && nb_read < max_to_read) {

@@ -1,11 +1,6 @@
 {
   "dependencies": [
-    {
-      "name": "abseil",
-      "features": [
-        "cxx17"
-      ]
-    },
+    "abseil",
     "fmt",
     "grpc",
     "spdlog",
@@ -63,6 +58,14 @@
     {
       "name": "nlohmann-json",
       "platform": "linux"
+    },
+    {
+      "name": "openssl",
+      "platform": "windows"
+    },
+    {
+      "name": "zlib",
+      "platform": "windows"
     }
   ]
 }

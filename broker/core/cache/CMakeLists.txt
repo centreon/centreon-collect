@@ -64,6 +64,7 @@ if(WITH_TESTING)
   )
 
   target_precompile_headers(ut_cache REUSE_FROM  global_cache )
+  set_target_properties(ut_cache PROPERTIES POSITION_INDEPENDENT_CODE ON)
   set(TESTS_SOURCES
       ${TESTS_SOURCES} 
       ${TEST_DIR}/global_cache_test.cc

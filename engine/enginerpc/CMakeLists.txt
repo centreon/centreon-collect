@@ -55,7 +55,6 @@ add_library(
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.cc
   ${CMAKE_CURRENT_BINARY_DIR}/engine.grpc.pb.h
   ${CMAKE_CURRENT_BINARY_DIR}/engine.pb.h)
-target_link_libraries(cerpc PRIVATE protobuf::libprotobuf)
 add_dependencies(cerpc engine_rpc process_stat)
 
 if(LEGACY_ENGINE)

@@ -39,6 +39,7 @@ namespace multi_index = boost::multi_index;
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -83,8 +84,7 @@ class agent_to_engine_test : public TestEngine {
 
   void SetUp() override {
     spdlog::default_logger()->set_level(spdlog::level::trace);
-    ::fmt::formatter< ::opentelemetry::proto::collector::metrics::v1::
-                          ExportMetricsServiceRequest>::json_grpc_format = true;
+    otl_formatter::json_grpc_format = true;
     timeperiod::timeperiods.clear();
     contact::contacts.clear();
     host::hosts.clear();
@@ -289,7 +289,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
 
   start_server(listen_endpoint, agent_conf,
                [&](const metric_request_ptr& metric) {
-                 absl::MutexLock l(&mut);
+                 absl::MutexLock l(mut);
                  received.push_back(metric);
                  for (const opentelemetry::proto::metrics::v1::ResourceMetrics&
                           res_metric : metric->resource_metrics()) {
@@ -307,7 +307,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
   auto metric_received = [&]() { return resource_metrics.size() >= 3; };
 
   mut.LockWhen(absl::Condition(&metric_received));
-  mut.Unlock();
+  mut.unlock();
 
   agent_client->shutdown();
 
@@ -326,7 +326,7 @@ TEST_F(agent_to_engine_test, server_send_conf_to_agent_and_receive_metrics) {
     } else if (compare_to_expected_host_metric(*to_compare)) {
       host_metric_found = true;
     } else {
-      SPDLOG_ERROR("bad resource metric: {}", to_compare->DebugString());
+      SPDLOG_ERROR("bad resource metric: {}", *to_compare);
       ASSERT_TRUE(false);
     }
   }

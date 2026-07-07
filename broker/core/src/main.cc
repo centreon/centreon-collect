@@ -43,9 +43,9 @@ namespace asio = boost::asio;
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <boost/container/string.hpp>
+#include <boost/container/vector.hpp>
 #include <boost/interprocess/allocators/private_node_allocator.hpp>
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/containers/vector.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
 #include "com/centreon/broker/brokerrpc.hh"

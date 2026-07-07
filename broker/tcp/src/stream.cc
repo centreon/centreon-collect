@@ -64,7 +64,7 @@ stream::stream(const io::endpoint* parent,
       _logger(logger) {
   assert(_connection->port());
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->insert(this);
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
                 _instances->size(),
@@ -88,7 +88,7 @@ stream::stream(const io::endpoint* parent,
       _parent(parent),
       _logger(logger) {
   assert(_connection->port());
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->insert(this);
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
@@ -100,7 +100,7 @@ stream::stream(const io::endpoint* parent,
  *  Destructor.
  */
 stream::~stream() noexcept {
-  absl::MutexLock l(&_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->erase(this);
   _logger->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "

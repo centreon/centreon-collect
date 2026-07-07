@@ -99,7 +99,7 @@ void agent_connection::on_error() {
  *
  */
 void agent_connection::shutdown() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (_alive) {
     _alive = false;
     agent_impl<::grpc::ClientBidiReactor<agent::MessageToAgent,
@@ -170,7 +170,7 @@ std::shared_ptr<to_agent_connector> to_agent_connector::load(
  *
  */
 void to_agent_connector::start() {
-  absl::MutexLock l(&_connection_m);
+  absl::MutexLock l(_connection_m);
   if (!_alive) {
     return;
   }
@@ -196,7 +196,7 @@ void to_agent_connector::start() {
  */
 void to_agent_connector::refresh_agent_configuration_if_needed(
     const agent_config::pointer& new_conf) {
-  absl::MutexLock l(&_connection_m);
+  absl::MutexLock l(_connection_m);
   if (_connection) {
     _connection->calc_and_send_config_if_needed(new_conf);
   }
@@ -208,7 +208,7 @@ void to_agent_connector::refresh_agent_configuration_if_needed(
  *
  */
 void to_agent_connector::shutdown() {
-  absl::MutexLock l(&_connection_m);
+  absl::MutexLock l(_connection_m);
   if (_alive) {
     SPDLOG_LOGGER_INFO(get_logger(), "shutdown client of {}",
                        get_conf()->get_hostport());

@@ -156,6 +156,7 @@ target_link_libraries("${CBMOD}" PRIVATE
   protobuf::libprotobuf
   Boost::thread
   -Wl,--no-whole-archive
+  centreon_pb_bbdo
 )
 
 set_target_properties(

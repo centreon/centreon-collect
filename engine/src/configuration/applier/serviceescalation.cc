@@ -17,6 +17,7 @@
  *
  */
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -107,9 +108,10 @@ void applier::serviceescalation::add_object(
   if (obj.hosts().data().size() != 1 || !obj.hostgroups().data().empty() ||
       obj.service_description().data().size() != 1 ||
       !obj.servicegroups().data().empty()) {
-    throw engine_error() << "Could not create service escalation with multiple "
-                            "hosts / host groups / services / service groups: "
-                         << obj.DebugString();
+    throw engine_error() << fmt::format(
+        "Could not create service escalation with multiple hosts / host groups "
+        "/ services / service groups: {}",
+        obj);
   }
 
   // Logging.

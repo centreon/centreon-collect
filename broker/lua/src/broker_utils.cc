@@ -146,7 +146,7 @@ static void _message_to_json(std::ostringstream& oss,
         continue;
       }
     }
-    const std::string& entry_name = f->name();
+    std::string_view entry_name = f->name();
     if (f->is_repeated()) {
       size_t s = refl->FieldSize(*p, f);
       if (i > 0)

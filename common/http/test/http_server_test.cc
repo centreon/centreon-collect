@@ -303,12 +303,12 @@ TEST_P(http_server_test, many_request_by_connection) {
       ASSERT_EQ(req->body(), response->body());
       if (resp_cpt.fetch_add(1) >= 199) {
         SPDLOG_LOGGER_INFO(logger, "notify");
-        absl::MutexLock lck(&waiter);
+        absl::MutexLock lck(waiter);
         done = true;
       }
     });
   }
-  absl::MutexLock l(&waiter);
+  absl::MutexLock l(waiter);
   waiter.Await(absl::Condition(&done));
   SPDLOG_LOGGER_INFO(logger, "shutdown client");
   client->shutdown();
@@ -366,12 +366,12 @@ TEST_P(http_server_test, many_request_and_many_connection) {
       ASSERT_FALSE(err);
       ASSERT_EQ(req->body(), response->body());
       if (resp_cpt.fetch_add(1) >= 999) {
-        absl::MutexLock lck(&waiter);
+        absl::MutexLock lck(waiter);
         done = true;
       }
     });
   }
-  absl::MutexLock l(&waiter);
+  absl::MutexLock l(waiter);
   waiter.Await(absl::Condition(&done));
   client->shutdown();
 }

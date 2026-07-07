@@ -55,6 +55,12 @@ std::array<std::pair<uint32_t, std::string>, 3> const host::tab_host_states{
 host_map host::hosts;
 host_id_map host::hosts_by_id;
 
+static inline struct tm local_tm(time_t when) {
+  struct tm t;
+  localtime_r(&when, &t);
+  return t;
+}
+
 /*
  *  @param[in] name                          Host name.
  *  @param[in] display_name                  Display name.
@@ -2029,7 +2035,7 @@ bool host::schedule_check(time_t check_time,
           checks_logger,
           "Keeping original host check event at {:%Y-%m-%dT%H:%M:%S} (ignoring "
           "the new one at {:%Y-%m-%dT%H:%M:%S}).",
-          fmt::localtime(get_next_check()), fmt::localtime(check_time));
+          local_tm(get_next_check()), local_tm(check_time));
     }
   }
 
@@ -3618,8 +3624,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
                         "Rescheduling next check of host: {} of last check at "
                         "{:%Y-%m-%dT%H:%M:%S} and next "
                         "check at {:%Y-%m-%dT%H:%M:%S}",
-                        name(), fmt::localtime(get_last_check()),
-                        fmt::localtime(next_check));
+                        name(), local_tm(get_last_check()),
+                        local_tm(next_check));
 
     /* default is to reschedule host check unless a test below fails... */
     set_should_be_scheduled(true);

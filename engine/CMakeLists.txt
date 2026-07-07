@@ -538,6 +538,7 @@ if(LEGACY_ENGINE)
             Boost::program_options
             gRPC::grpc++
             -Wl,--no-whole-archive
+            centreon_pb_bbdo
             absl::any
             absl::log
             absl::base
