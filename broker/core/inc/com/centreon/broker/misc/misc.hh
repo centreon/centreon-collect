@@ -40,7 +40,10 @@ template <std::size_t N>
 std::string exec(const char (&cmd)[N]) {
   std::array<char, 128> buffer;
   std::string result;
-  std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+  struct file_closer {
+    void operator()(FILE* to_close) const { pclose(to_close); }
+  };
+  std::unique_ptr<FILE, file_closer> pipe(popen(cmd, "r"));
   if (!pipe)
     throw std::runtime_error("popen() failed!");
 
