@@ -27,6 +27,10 @@ ${DBNAME_STORAGE}           centreon-storage
 ${DBUSER}                   centreon
 ${DBPASSWORD}               password
 
+# centarl gorgone rest api port. there can be remote server in some tests, but the central gorgone rest api is always present.
+${Capi_port}                8085
+${Rapi_port}                8095
+
 *** Keywords ***
 Start Gorgone
     [Arguments]    ${SEVERITY}    ${ALIAS}
