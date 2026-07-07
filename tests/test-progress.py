@@ -513,10 +513,27 @@ def progress_loop(tests, run_args, pid):
                 body, pct = status_lines(current, index[current], total,
                                          elapsed, colour)
             if failed_idx:
-                count = str(len(failed_idx))
+                # Failed test names, in run order (their position in the run).
+                failed_names = sorted(
+                    (n for n, st in results.items()
+                     if st == "FAIL" and n in index),
+                    key=lambda n: index[n])
+                count_str = str(len(failed_idx))
+                label = "Failures    : "
+                # Fit the list within the terminal width, cutting it with an
+                # ellipsis when it does not fit ("…" at the end).
+                avail = width - len(label) - len(count_str) - 2   # 2 = "  "
+                names_str = ", ".join(failed_names)
+                if avail < 1:
+                    names_str = ""
+                elif len(names_str) > avail:
+                    names_str = names_str[:avail - 1] + "…"
+                sep = "  " if names_str else ""
                 if colour:
-                    count = f"\033[1;31m{count}\033[0m"          # bright bold red
-                body.append(f"Failures    : {count}")
+                    count_str = f"\033[1;31m{count_str}\033[0m"    # bright bold red
+                    if names_str:
+                        names_str = f"\033[1;31m{names_str}\033[0m"
+                body.append(f"{label}{count_str}{sep}{names_str}")
             screen = [header, ""] + body + [
                 "", progress_bar(pct, width, colour, failed_idx, total)]
             # Home + clear-below redraws in place without full-screen flicker.
