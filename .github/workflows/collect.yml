@@ -666,10 +666,8 @@ jobs:
     needs: [get-environment, dockerize-engine-broker, docker-boot-test, docker-config-wiring-test]
     if: |
       ! cancelled() &&
-      needs.get-environment.result == 'success' &&
-      needs.dockerize-engine-broker.result == 'success' &&
-      needs.docker-boot-test.result == 'success' &&
-      needs.docker-config-wiring-test.result == 'success' &&
+      ! contains(needs.*.result, 'failure') &&
+      ! contains(needs.*.result, 'cancelled') &&
       needs.dockerize-engine-broker.outputs.additional_tag != ''
     runs-on: ubuntu-24.04
     strategy:
