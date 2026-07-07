@@ -26,7 +26,7 @@ check central don't eat cpu when poller is not connected
     ${poller_id_copy}=    Create List    ${poller_id}
     ${replace_from}=    Create List    @POLLERID@
     @{central_push_config}=    Create List    ${push_central_config}    ${gorgone_core_config}
-    
+
     Setup Gorgone Config
     ...    ${central_push_config}
     ...    gorgone_name=${central_name}
