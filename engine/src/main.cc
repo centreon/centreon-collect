@@ -52,6 +52,7 @@ namespace po = boost::program_options;
 #include "com/centreon/engine/engine_notification_callbacks.hh"
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
+#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/macros/misc.hh"
@@ -248,6 +249,7 @@ int main(int argc, char* argv[]) {
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
+            state_hlp.resolve(err);
           }
           configuration::applier::state::instance().apply(*pb_cfg, err);
           std::cout << "\n Checked " << commands::command::commands.size()
@@ -268,8 +270,7 @@ int main(int argc, char* argv[]) {
                     << " service escalations.\n Checked "
                     << servicegroup::servicegroups.size()
                     << " service groups.\n Checked " << service::services.size()
-                    << " services.\n Checked "
-                    << ::timeperiods.size()
+                    << " services.\n Checked " << ::timeperiods.size()
                     << " time periods.\n\n Total Warnings: "
                     << err.config_warnings
                     << "\n Total Errors:   " << err.config_errors << std::endl;
@@ -309,6 +310,7 @@ int main(int argc, char* argv[]) {
             if (broker_config.empty())
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
+            state_hlp.resolve(err);
           }
 
           // Parse retention.
@@ -365,10 +367,18 @@ int main(int argc, char* argv[]) {
             }
           }
           if (!proto_valid) {
+            /* A user-edited centengine.cfg must be validated before we start;
+             * the proto pushed by Broker (proto_valid) is already validated by
+             * Broker (CheckPollerConfig) and is trusted as-is. */
             configuration::state_helper state_hlp(new_conf.get());
             configuration::parser p;
             p.parse(config_file, new_conf.get(), err);
             state_hlp.expand(err);
+            state_hlp.resolve(err);
+            if (err.config_errors)
+              throw engine_error() << fmt::format(
+                  "Cannot start: the configuration has {} error(s)",
+                  err.config_errors);
           }
           configuration::extended_conf::load_all(extended_conf_file.begin(),
                                                  extended_conf_file.end());
@@ -518,7 +528,8 @@ int main(int argc, char* argv[]) {
   com::centreon::common::pool::unload();
   notifications::notification_manager::unload();
   /* Destroy the timeperiods at a controlled point (they are a global now, no
-   * more timeperiod_manager) so it does not happen during static destruction. */
+   * more timeperiod_manager) so it does not happen during static destruction.
+   */
   ::timeperiods.clear();
   downtimes::downtime_manager::unload();
   stop_rpc_server();

@@ -185,4 +185,136 @@ void contact_helper::expand(
     }
   }
 }
+
+/**
+ * @brief Validate a Contact against the rest of the configuration.
+ *
+ * This is the configuration-level equivalent of the former
+ * `engine::contact::resolve()`: it only accumulates warnings/errors into @a err
+ * (it never throws) and performs no runtime wiring. It expects to run on a
+ * post-`expand` State, and that `check_validity` has already rejected contacts
+ * with no name. Checks performed: the host/service notification commands are
+ * defined and exist, the host/service notification timeperiods exist, and the
+ * recovery notification options are consistent.
+ *
+ * @param c The Contact to validate.
+ * @param commands Names of every command defined in the configuration.
+ * @param timeperiods Names of every timeperiod defined in the configuration.
+ * @param illegal_chars Characters forbidden in object names (State's
+ * illegal_object_chars).
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger receiving the human-readable diagnostics.
+ */
+void contact_helper::resolve(
+    const configuration::Contact& c,
+    const absl::flat_hash_set<std::string_view>& commands,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    std::string_view illegal_chars,
+    configuration::error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  /* Some checks are already done by contact_helper::check_validity */
+
+  /* check service notification commands */
+  if (c.service_notification_commands().data_size() == 0) {
+    logger->error(
+        "Error: Contact '{}' has no service notification commands defined!",
+        c.contact_name());
+    err.config_errors++;
+  } else {
+    for (auto& cmd : c.service_notification_commands().data()) {
+      if (!commands.contains(cmd)) {
+        logger->error(
+            "Error: Service notification command '{}' specified for contact "
+            "'{}' is not defined anywhere!",
+            cmd, c.contact_name());
+        err.config_errors++;
+      }
+    }
+  }
+
+  /* check host notification commands */
+  if (c.host_notification_commands().data_size() == 0) {
+    logger->error(
+        "Error: Contact '{}' has no host notification commands defined!",
+        c.contact_name());
+    err.config_errors++;
+  } else {
+    for (auto& cmd : c.host_notification_commands().data()) {
+      if (!commands.contains(cmd)) {
+        logger->error(
+            "Error: Host notification command '{}' specified for contact '{}' "
+            "is not defined anywhere!",
+            cmd, c.contact_name());
+        err.config_errors++;
+      }
+    }
+  }
+
+  /* check service notification timeperiod */
+  if (c.service_notification_period().empty()) {
+    logger->warn(
+        "Warning: Contact '{}' has no service notification time period "
+        "defined!",
+        c.contact_name());
+    err.config_warnings++;
+  } else {
+    if (!timeperiods.contains(c.service_notification_period())) {
+      logger->error(
+          "Error: Service notification period '{}' specified for contact '{}' "
+          "is not defined anywhere!",
+          c.service_notification_period(), c.contact_name());
+      err.config_errors++;
+    }
+  }
+
+  /* check host notification timeperiod */
+  if (c.host_notification_period().empty()) {
+    logger->warn(
+        "Warning: Contact '{}' has no host notification time period defined!",
+        c.contact_name());
+    err.config_warnings++;
+  } else {
+    if (!timeperiods.contains(c.host_notification_period())) {
+      logger->error(
+          "Error: Host notification period '{}' specified for contact '{}' is "
+          "not defined anywhere!",
+          c.host_notification_period(), c.contact_name());
+      err.config_errors++;
+    }
+  }
+
+  /* check for sane host recovery options */
+  if ((c.host_notification_options() & action_hst_up) &&
+      !(c.host_notification_options() &
+        (action_hst_down | action_hst_unreachable))) {
+    logger->warn(
+        "Warning: Host recovery notification option for contact '{}' doesn't "
+        "make any sense - specify down "
+        "and/or unreachable options as well",
+        c.contact_name());
+    err.config_warnings++;
+  }
+
+  /* check for sane service recovery options */
+  if ((c.service_notification_options() & action_svc_ok) &&
+      !(c.service_notification_options() &
+        (action_svc_critical | action_svc_warning))) {
+    logger->warn(
+        "Warning: Service recovery notification option for contact '{}' "
+        "doesn't make any sense - specify critical and/or warning options as "
+        "well",
+        c.contact_name());
+    err.config_warnings++;
+  }
+
+  /* check for illegal characters in contact name */
+  if (name_contains_illegal_chars(c.contact_name(), illegal_chars)) {
+    logger->error(
+        "Error: The name of contact '{}' contains one or more illegal "
+        "characters.",
+        c.contact_name());
+    err.config_errors++;
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

@@ -317,7 +317,7 @@ void applier::contact::remove_object(const std::string& key) {
  *  @param[in,out] obj  Object to resolve.
  */
 void applier::contact::resolve_object(const configuration::Contact& obj,
-                                      error_cnt& err) {
+                                      [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving contact '{}'.", obj.contact_name());
 
@@ -328,41 +328,41 @@ void applier::contact::resolve_object(const configuration::Contact& obj,
     throw engine_error() << fmt::format(
         "Cannot resolve non-existing contact '{}'", obj.contact_name());
 
+  // This is pure wiring: the existence of the referenced notification commands
+  // and timeperiods is validated by state_helper::resolve (single home). Here
+  // we only link the objects that exist and leave the rest unwired.
   ct_it->second->get_host_notification_commands().clear();
-
-  // Add all the host notification commands.
   for (auto& cmd : obj.host_notification_commands().data()) {
-    command_map::const_iterator itt(commands::command::commands.find(cmd));
+    command_map::const_iterator itt = commands::command::commands.find(cmd);
     if (itt != commands::command::commands.end())
       ct_it->second->get_host_notification_commands().push_back(itt->second);
-    else {
-      ++err.config_errors;
-      throw engine_error() << fmt::format(
-          "Could not add host notification command '{}' to contact '{}': the "
-          "command does not exist",
-          cmd, obj.contact_name());
-    }
   }
 
   ct_it->second->get_service_notification_commands().clear();
-
-  // Add all the service notification commands.
   for (auto& cmd : obj.service_notification_commands().data()) {
-    command_map::const_iterator itt(commands::command::commands.find(cmd));
+    command_map::const_iterator itt = commands::command::commands.find(cmd);
     if (itt != commands::command::commands.end())
       ct_it->second->get_service_notification_commands().push_back(itt->second);
-    else {
-      ++err.config_errors;
-      throw engine_error() << fmt::format(
-          "Could not add service notification command '{}' to contact '{}': "
-          "the command does not exist",
-          cmd, obj.contact_name());
-    }
   }
 
   // Remove contact group links.
   ct_it->second->get_parent_groups().clear();
 
-  // Resolve contact.
-  ct_it->second->resolve(err.config_warnings, err.config_errors);
+  // Wire the notification timeperiod pointers (nullptr if empty or unknown).
+  if (obj.service_notification_period().empty())
+    ct_it->second->set_service_notification_period_ptr(nullptr);
+  else {
+    timeperiod_map::const_iterator it =
+        ::timeperiods.find(obj.service_notification_period());
+    ct_it->second->set_service_notification_period_ptr(
+        it != ::timeperiods.end() ? it->second.get() : nullptr);
+  }
+  if (obj.host_notification_period().empty())
+    ct_it->second->set_host_notification_period_ptr(nullptr);
+  else {
+    timeperiod_map::const_iterator it =
+        ::timeperiods.find(obj.host_notification_period());
+    ct_it->second->set_host_notification_period_ptr(
+        it != ::timeperiods.end() ? it->second.get() : nullptr);
+  }
 }

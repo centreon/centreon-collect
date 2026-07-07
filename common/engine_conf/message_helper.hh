@@ -66,6 +66,8 @@ bool fill_host_notification_options(uint16_t* options,
                                     const std::string_view& value);
 bool fill_service_notification_options(uint16_t* options,
                                        const std::string_view& value);
+bool name_contains_illegal_chars(std::string_view name,
+                                 std::string_view illegal_chars);
 
 /**
  * @brief The base message helper used by every helpers. It defines the common

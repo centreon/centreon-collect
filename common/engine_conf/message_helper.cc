@@ -275,6 +275,26 @@ std::string_view message_helper::validate_key(
 }
 
 /**
+ * @brief Tell whether an object name contains one of the illegal characters.
+ *
+ * Configuration-level equivalent of Engine's `contains_illegal_object_chars()`:
+ * it reads the blacklist from the State (`illegal_object_chars`) instead of the
+ * Engine global, so it can be used by the `*_helper::resolve` validators.
+ *
+ * @param name The object name to check.
+ * @param illegal_chars The set of forbidden characters (State's
+ * `illegal_object_chars`); an empty string disables the check.
+ *
+ * @return True if @a name contains at least one character of @a illegal_chars.
+ */
+bool name_contains_illegal_chars(std::string_view name,
+                                 std::string_view illegal_chars) {
+  if (illegal_chars.empty())
+    return false;
+  return name.find_first_of(illegal_chars) != std::string_view::npos;
+}
+
+/**
  * @brief This function does nothing but it is derived in several message
  * helpers to insert custom variables.
  *
