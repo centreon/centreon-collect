@@ -44,6 +44,11 @@ class hostdependency_helper : public message_helper {
       error_cnt& err,
       absl::flat_hash_map<std::string_view, configuration::Hostgroup*>&
           m_hostgroups);
+  static void resolve(const Hostdependency& hd,
+                      const absl::flat_hash_set<std::string_view>& hosts,
+                      const absl::flat_hash_set<std::string_view>& timeperiods,
+                      error_cnt& err,
+                      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 
