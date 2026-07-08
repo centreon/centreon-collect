@@ -4,18 +4,6 @@
 ARG USE_SOURCE_GORGONE=false
 
 #############################################
-# Stage 0: Build buf (provides "buf curl") from source. Used instead of
-# grpcurl: same plaintext/local-schema gRPC call capability, but actively
-# released (monthly) with fresh dependencies, vs. grpcurl's release binary
-# which stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
-# (grpc, x/net, x/oauth2) since March 2025. Building from source also means
-# we always get the current Go toolchain regardless of buf's own release
-# cadence.
-#############################################
-FROM golang:1-trixie AS buf-builder
-RUN go install github.com/bufbuild/buf/cmd/buf@v1.71.0
-
-#############################################
 # Stage 1: Extract files from .deb packages
 #############################################
 FROM debian:13-slim AS extractor
@@ -241,10 +229,25 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # Install buf (used as "buf curl") for gRPC-based centengine management
-# (replaces HTTP api_control calls). Binary comes from the buf-builder
-# stage - see rationale there.
-COPY --from=buf-builder --link --chmod=755 /go/bin/buf /usr/local/bin/buf
-RUN mkdir -p /usr/share/centreon-engine/proto
+# (replaces HTTP api_control calls, and grpcurl - grpcurl's only tagged
+# release stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
+# since March 2025). Unlike grpcurl, buf releases monthly and its binaries
+# are rebuilt with a current Go toolchain each time (v1.71.0 verified
+# locally: built with Go 1.26.4), so downloading it is as fresh as building
+# from source - without the multi-minutes-under-QEMU cost of compiling Go
+# for arm64 in CI.
+RUN bash -e <<'EOF'
+ARCH=$(dpkg --print-architecture)
+case "$ARCH" in
+    amd64) BUF_ARCH="x86_64" ;;
+    arm64) BUF_ARCH="aarch64" ;;
+    *) echo "Unsupported arch: $ARCH" && exit 1 ;;
+esac
+curl -sSL -o /usr/local/bin/buf \
+    "https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-${BUF_ARCH}"
+chmod +x /usr/local/bin/buf
+mkdir -p /usr/share/centreon-engine/proto
+EOF
 
 # Copy engine proto definitions for buf curl (no reflection API on centengine)
 COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
