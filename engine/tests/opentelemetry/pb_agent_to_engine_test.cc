@@ -92,8 +92,7 @@ class agent_to_engine_test : public TestEngine {
 
   void SetUp() override {
     spdlog::default_logger()->set_level(spdlog::level::trace);
-    ::fmt::formatter<::opentelemetry::proto::collector::metrics::v1::
-                         ExportMetricsServiceRequest>::json_grpc_format = true;
+    otl_formatter::json_grpc_format = true;
     timeperiod::timeperiods.clear();
     contact::contacts.clear();
     host::hosts.clear();

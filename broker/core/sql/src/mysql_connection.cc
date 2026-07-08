@@ -969,6 +969,7 @@ void mysql_connection::_run() {
       }
     }
   }
+  lck.lock();
   _clear_connection();
   _state = finished;
   _start_condition.notify_all();
@@ -1112,6 +1113,8 @@ void mysql_connection::_process_while_empty_task(
   }
 
   if (_tasks_list.empty()) {
+    lock.unlock();
+    std::unique_lock<std::mutex> l(_start_m);
     _state = finished;
     _start_condition.notify_all();
   } else {
