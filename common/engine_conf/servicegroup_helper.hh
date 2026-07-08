@@ -22,6 +22,12 @@
 
 #include "common/engine_conf/message_helper.hh"
 
+// A forward declaration is enough here since spdlog::logger is only used behind
+// a std::shared_ptr.
+namespace spdlog {
+class logger;
+}
+
 namespace com::centreon::engine::configuration {
 
 class servicegroup_helper : public message_helper {
@@ -45,6 +51,14 @@ class servicegroup_helper : public message_helper {
       configuration::error_cnt& err,
       const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           m_servicegroups);
+
+  static void resolve(
+      const configuration::Servicegroup& sg,
+      const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+          services,
+      std::string_view illegal_chars,
+      configuration::error_cnt& err,
+      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 

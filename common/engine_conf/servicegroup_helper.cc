@@ -142,4 +142,52 @@ void servicegroup_helper::_resolve_members(
   sg_conf->clear_servicegroup_members();
   resolved.emplace(sg_conf->servicegroup_name());
 }
+
+/**
+ * @brief Validate a Servicegroup against the rest of the configuration.
+ *
+ * This is the configuration-level equivalent of the former
+ * `engine::servicegroup::resolve()`: it only accumulates warnings/errors into
+ * @a err (it never throws) and performs no runtime wiring. It expects to run on
+ * a post-`expand` State (nested servicegroup members are already flattened into
+ * concrete (host, service) members). Checks performed: every member service is
+ * defined, and the service group name has no illegal character.
+ *
+ * @param sg The Servicegroup to validate.
+ * @param services The (host_name, service_description) pair of every service
+ * defined in the configuration.
+ * @param illegal_chars Characters forbidden in object names (State's
+ * illegal_object_chars).
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger receiving the human-readable diagnostics.
+ */
+void servicegroup_helper::resolve(
+    const configuration::Servicegroup& sg,
+    const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+        services,
+    std::string_view illegal_chars,
+    configuration::error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  /* Check members: every service of the group must be defined somewhere. */
+  for (auto& member : sg.members().data()) {
+    if (!services.contains(
+            std::make_pair(std::string_view(member.first()),
+                           std::string_view(member.second())))) {
+      logger->error(
+          "Error: Service '{}' on host '{}' specified in service group '{}' is "
+          "not defined anywhere!",
+          member.second(), member.first(), sg.servicegroup_name());
+      err.config_errors++;
+    }
+  }
+
+  /* Check for illegal characters in servicegroup name. */
+  if (name_contains_illegal_chars(sg.servicegroup_name(), illegal_chars)) {
+    logger->error(
+        "Error: The name of servicegroup '{}' contains one or more illegal "
+        "characters.",
+        sg.servicegroup_name());
+    err.config_errors++;
+  }
+}
 }  // namespace com::centreon::engine::configuration
