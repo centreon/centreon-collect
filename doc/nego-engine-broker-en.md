@@ -629,10 +629,44 @@ identically everywhere:
 The plan is to progressively **port each Engine runtime `resolve()` check onto
 the `State`**: move the validation part into the matching `*_helper::resolve`
 (driven by `state_helper::resolve`) and leave only the runtime wiring in the
-Engine applier. **Contact is the pilot — already ported** (`contact_helper::resolve`,
-called by `state_helper::resolve`, with the applier reduced to pure wiring). As
-`engine_conf` gains the remaining checks, `CheckPollerConfig` becomes a true,
-central verify-config.
+Engine applier. **`contact` (the pilot) and `contactgroup` are already ported**
+(`contact_helper::resolve` / `contactgroup_helper::resolve`, called by
+`state_helper::resolve`, with the applier reduced to pure wiring — for
+`contactgroup` this also made `add_object`/`modify_object` tolerant: a member
+that does not exist is skipped, not thrown on). As `engine_conf` gains the
+remaining checks, `CheckPollerConfig` becomes a true, central verify-config.
+
+### Recommended porting order
+
+`contact` and `contactgroup` are done. The remaining 11 are best ported in waves
+that build up the shared name indexes in `state_helper::resolve` from the
+simplest, most self-contained validators to the most algorithmic — each wave is
+independently testable:
+
+1. **Groups** — `hostgroup`, `servicegroup` (member-exists + illegal characters,
+   exactly like `contactgroup`). They add the `hosts` / `services` name indexes
+   that every later wave reuses. Note: `expand()` already validates group
+   *membership integrity*; `resolve` only adds the members declared on the
+   group-definition side.
+2. **Escalations** — factor the shared `escalation` checks first
+   (escalation_period + contactgroups exist), then `hostescalation` /
+   `serviceescalation` (the referenced host / service exists).
+3. **Dependencies** — `hostdependency`, `servicedependency`: dependent & master
+   host/service exist, dependency_period exists, plus the first genuinely
+   algorithmic check — **circularity** (graph traversal).
+4. **The notifier family** — `notifier` has no standalone proto message (host and
+   service embed its fields), so its shared validation becomes a helper called by
+   both `host_helper::resolve` and `service_helper::resolve` (event_handler,
+   check_command, check_period, notification_period, contacts and contactgroups
+   exist). Then `host` (parents/children, its services) and `service`
+   (`notification_interval < check_interval`), with `anomalydetection` (≈ service)
+   coming almost for free. Kept last: most complex and reuses every index built by
+   the earlier waves.
+
+The reverse choice — doing the notifier family first (≈ 80 % of verify-config's
+real value, and the pattern is already proven by `contact`) — is defensible, at
+the cost of building all indexes at once and tackling the graph checks earlier.
+The progressive order above is preferred for lower per-step risk.
 
 ### Analysis: porting `resolve()` checks onto the `State`
 
@@ -676,14 +710,17 @@ On the State side, the ported validator first builds name→object indexes
 host→services index (which `resolve()` builds today as a side effect), then walks
 each type accumulating `(w, e)` into `error_cnt`.
 
-> **Implemented so far.** `state_helper::resolve` builds the command and
-> timeperiod name indexes (non-owning `flat_hash_set<string_view>`, mirroring
-> `expand`) and walks the **contacts**, delegating each to
-> `contact_helper::resolve`. The latter checks: host/service notification
-> commands non-empty **and** defined; host/service notification timeperiods
-> defined; sane host/service recovery options; illegal characters in the
-> contact name. The remaining 12 object types are still validated by the Engine
-> applier and stay on the roadmap above.
+> **Implemented so far.** `state_helper::resolve` builds the command, timeperiod
+> and contact name indexes (non-owning `flat_hash_set<string_view>`, mirroring
+> `expand`), then walks the **contacts** and the **contactgroups**:
+> - `contact_helper::resolve` checks: host/service notification commands
+>   non-empty **and** defined; host/service notification timeperiods defined;
+>   sane host/service recovery options; illegal characters in the contact name.
+> - `contactgroup_helper::resolve` checks: every member contact is defined;
+>   illegal characters in the contact group name.
+>
+> The remaining 11 object types are still validated by the Engine applier and
+> stay on the roadmap above.
 
 ### What `expand()` already covers (and what remains to port)
 

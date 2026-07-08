@@ -826,10 +826,45 @@ identiquement partout :
 Le plan est de **porter progressivement chaque `resolve()` runtime d'Engine sur
 le `State`** : déplacer la partie validation dans le `*_helper::resolve`
 correspondant (piloté par `state_helper::resolve`) et ne laisser que le câblage
-runtime dans l'applier d'Engine. **Le contact est le pilote — déjà porté**
-(`contact_helper::resolve`, appelé par `state_helper::resolve`, l'applier réduit
-au pur câblage). À mesure qu'`engine_conf` acquiert les checks restants,
-`CheckPollerConfig` devient un vrai verify-config central.
+runtime dans l'applier d'Engine. **`contact` (le pilote) et `contactgroup` sont
+déjà portés** (`contact_helper::resolve` / `contactgroup_helper::resolve`,
+appelés par `state_helper::resolve`, l'applier réduit au pur câblage — pour
+`contactgroup` cela a aussi rendu `add_object`/`modify_object` tolérants : un
+membre inexistant est ignoré, plus de throw). À mesure qu'`engine_conf` acquiert
+les checks restants, `CheckPollerConfig` devient un vrai verify-config central.
+
+### Ordre de portage recommandé
+
+`contact` et `contactgroup` sont faits. Les 11 restants sont à porter par vagues
+qui construisent au fur et à mesure les index de noms partagés dans
+`state_helper::resolve`, du validateur le plus simple et autonome au plus
+algorithmique — chaque vague est testable isolément :
+
+1. **Les groupes** — `hostgroup`, `servicegroup` (membre-existe + caractères
+   illégaux, exactement comme `contactgroup`). Ils ajoutent les index de noms
+   `hosts` / `services` que toutes les vagues suivantes réutilisent. Note :
+   `expand()` valide déjà l'*intégrité des appartenances* de groupe ; `resolve`
+   n'ajoute que les membres déclarés côté définition du groupe.
+2. **Les escalations** — factoriser d'abord les checks partagés d'`escalation`
+   (escalation_period + contactgroups existent), puis `hostescalation` /
+   `serviceescalation` (le host / service référencé existe).
+3. **Les dépendances** — `hostdependency`, `servicedependency` : host/service
+   dépendant & maître existent, dependency_period existe, plus le premier check
+   réellement algorithmique — la **circularité** (parcours de graphe).
+4. **La famille notifier** — `notifier` n'a pas de message proto autonome (host et
+   service embarquent ses champs), donc sa validation partagée devient un helper
+   appelé par `host_helper::resolve` et `service_helper::resolve` (event_handler,
+   check_command, check_period, notification_period, contacts et contactgroups
+   existent). Puis `host` (parents/enfants, ses services) et `service`
+   (`notification_interval < check_interval`), `anomalydetection` (≈ service)
+   venant presque gratuitement. Gardée pour la fin : la plus complexe et réutilise
+   tous les index construits par les vagues précédentes.
+
+Le choix inverse — attaquer la famille notifier en premier (≈ 80 % de la valeur
+réelle de verify-config, et le pattern est déjà prouvé par `contact`) — est
+défendable, au prix de construire tous les index d'un coup et d'aborder les checks
+de graphe plus tôt. L'ordre progressif ci-dessus est préféré pour un risque
+moindre à chaque étape.
 
 ### Analyse : porter les checks de `resolve()` sur le `State`
 
@@ -874,13 +909,18 @@ host→services (que `resolve()` bâtit aujourd'hui comme effet de bord), puis
 parcourt chaque type en accumulant `(w, e)` dans `error_cnt`.
 
 > **Implémenté à ce jour.** `state_helper::resolve` construit les index de noms
-> de commandes et de timeperiods (`flat_hash_set<string_view>` non-possédants,
-> à l'image d'`expand`) et parcourt les **contacts**, en déléguant chacun à
-> `contact_helper::resolve`. Ce dernier vérifie : commandes de notification
-> host/service non vides **et** définies ; timeperiods de notification
-> host/service définies ; options de recovery host/service cohérentes ;
-> caractères illégaux dans le nom du contact. Les 12 autres types d'objets sont
-> encore validés par l'applier d'Engine et restent sur la feuille de route
+> de commandes, de timeperiods et de contacts (`flat_hash_set<string_view>`
+> non-possédants, à l'image d'`expand`), puis parcourt les **contacts** et les
+> **contactgroups** :
+> - `contact_helper::resolve` vérifie : commandes de notification host/service
+>   non vides **et** définies ; timeperiods de notification host/service
+>   définies ; options de recovery host/service cohérentes ; caractères illégaux
+>   dans le nom du contact.
+> - `contactgroup_helper::resolve` vérifie : chaque contact membre est défini ;
+>   caractères illégaux dans le nom du groupe de contacts.
+>
+> Les 11 autres types d'objets sont encore validés par l'applier d'Engine et
+> restent sur la feuille de route
 > ci-dessus.
 
 ### Ce qu'`expand()` couvre déjà (et ce qui reste à porter)
