@@ -131,7 +131,6 @@ target_link_libraries(
           test_util
           fmt::fmt
           gRPC::grpc++
-          protobuf::libprotobuf
           stdc++fs)
 
 add_dependencies(
