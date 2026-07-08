@@ -89,4 +89,48 @@ void hostgroup_helper::expand(configuration::State& s,
   }
 }
 
+/**
+ * @brief Validate a Hostgroup against the rest of the configuration.
+ *
+ * This is the configuration-level equivalent of the former
+ * `engine::hostgroup::resolve()`: it only accumulates warnings/errors into
+ * @a err (it never throws) and performs no runtime wiring. It expects to run on
+ * a post-`expand` State (members are flattened to concrete host names).
+ * Checks performed: every member host is defined, and the host group name has
+ * no illegal character.
+ *
+ * @param hg The Hostgroup to validate.
+ * @param hosts Names of every host defined in the configuration.
+ * @param illegal_chars Characters forbidden in object names (State's
+ * illegal_object_chars).
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger receiving the human-readable diagnostics.
+ */
+void hostgroup_helper::resolve(
+    const configuration::Hostgroup& hg,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    std::string_view illegal_chars,
+    configuration::error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  /* Check members: every host of the group must be defined somewhere. */
+  for (auto& member : hg.members().data()) {
+    if (!hosts.contains(member)) {
+      logger->error(
+          "Error: Host '{}' specified in host group '{}' is not defined "
+          "anywhere!",
+          member, hg.hostgroup_name());
+      err.config_errors++;
+    }
+  }
+
+  /* Check for illegal characters in hostgroup name. */
+  if (name_contains_illegal_chars(hg.hostgroup_name(), illegal_chars)) {
+    logger->error(
+        "Error: The name of hostgroup '{}' contains one or more illegal "
+        "characters.",
+        hg.hostgroup_name());
+    err.config_errors++;
+  }
+}
+
 }  // namespace com::centreon::engine::configuration
