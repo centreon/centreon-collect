@@ -636,15 +636,32 @@ void state_helper::resolve(error_cnt& err,
   configuration::State& pb_config = *static_cast<State*>(mut_obj());
   auto log = logger ? logger : log_v2::instance().get(log_v2::CONFIG);
 
+  /* Build a name index and, doing so, reject any object defined more than once
+   * under the same name: a named object must be unique. The insertion failing
+   * means the name was already seen. */
+  auto index_unique_names = [&](const auto& objects, auto&& name_of,
+                                std::string_view type_label) {
+    absl::flat_hash_set<std::string_view> names;
+    names.reserve(objects.size());
+    for (const auto& o : objects) {
+      if (!names.insert(name_of(o)).second) {
+        log->error("Error: {} '{}' is defined more than once", type_label,
+                   name_of(o));
+        err.config_errors++;
+      }
+    }
+    return names;
+  };
+
   absl::flat_hash_set<std::string_view> timeperiod;
   timeperiod.reserve(pb_config.timeperiods().size());
   for (const auto& tp : pb_config.timeperiods())
     timeperiod.insert(tp.timeperiod_name());
 
-  absl::flat_hash_set<std::string_view> command;
-  command.reserve(pb_config.commands().size());
-  for (const auto& cmd : pb_config.commands())
-    command.insert(cmd.command_name());
+  absl::flat_hash_set<std::string_view> command = index_unique_names(
+      pb_config.commands(),
+      [](const Command& c) -> std::string_view { return c.command_name(); },
+      "command");
 
   absl::flat_hash_set<std::string_view> contact;
   contact.reserve(pb_config.contacts().size());
