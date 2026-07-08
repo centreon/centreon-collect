@@ -137,19 +137,36 @@ void applier::hostdependency::remove_object(uint64_t hash_key) {
  */
 void applier::hostdependency::resolve_object(
     const configuration::Hostdependency& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving a host dependency.");
 
-  // Find host escalation
+  // Find host dependency
   auto k = hostdependency_key(obj);
 
   auto it = engine::hostdependency::hostdependencies_find(
       {obj.dependent_hosts().data(0), k});
 
   if (engine::hostdependency::hostdependencies.end() == it)
-    throw engine_error() << "Cannot resolve non-existing host escalation";
+    throw engine_error() << "Cannot resolve non-existing host dependency";
 
-  // Resolve host dependency.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the dependent host, the master host
+  // and the dependency period is validated by state_helper::resolve (single
+  // home). Here we only wire the objects that exist and leave the rest unwired.
+  host_map::const_iterator hit = host::hosts.find(obj.dependent_hosts().data(0));
+  it->second->dependent_host_ptr =
+      hit != host::hosts.end() ? hit->second.get() : nullptr;
+
+  hit = host::hosts.find(obj.hosts().data(0));
+  it->second->master_host_ptr =
+      hit != host::hosts.end() ? hit->second.get() : nullptr;
+
+  if (obj.dependency_period().empty())
+    it->second->dependency_period_ptr = nullptr;
+  else {
+    timeperiod_map::const_iterator pit{
+        ::timeperiods.find(obj.dependency_period())};
+    it->second->dependency_period_ptr =
+        pit != ::timeperiods.end() ? pit->second.get() : nullptr;
+  }
 }

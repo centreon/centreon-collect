@@ -244,4 +244,63 @@ void hostdependency_helper::expand(
     s.mutable_hostdependencies()->AddAllocated(hd.release());
 }
 
+/**
+ * @brief Validate a host dependency once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `hostdependency::resolve()`: it only
+ * accumulates warnings/errors into @a err (it never throws) and performs no
+ * runtime wiring. After expand(), each surviving host dependency references
+ * exactly one host and one dependent host (hostgroups and multi-host forms have
+ * already been decomposed), so `.data(0)` is safe here.
+ *
+ * @param hd The host dependency to validate.
+ * @param hosts Index of every defined host name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void hostdependency_helper::resolve(
+    const Hostdependency& hd,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  // Find the dependent host.
+  if (!hosts.contains(hd.dependent_hosts().data(0))) {
+    err.config_errors++;
+    log->error(
+        "Error: Dependent host specified in host dependency for "
+        "host '{}' is not defined anywhere!",
+        hd.dependent_hosts().data(0));
+  }
+
+  // Find the host we're depending on.
+  if (!hosts.contains(hd.hosts().data(0))) {
+    err.config_errors++;
+    log->error(
+        "Error: Host '{}' specified in host dependency for host '{}' is not "
+        "defined anywhere!",
+        hd.hosts().data(0), hd.dependent_hosts().data(0));
+  }
+
+  // Make sure they're not the same host.
+  if (hd.dependent_hosts().data(0) == hd.hosts().data(0)) {
+    err.config_errors++;
+    log->error(
+        "Error: Host dependency definition for host '{}' is circular (it "
+        "depends on itself)!",
+        hd.dependent_hosts().data(0));
+  }
+
+  // Find the dependency period.
+  if (!hd.dependency_period().empty() &&
+      !timeperiods.contains(hd.dependency_period())) {
+    err.config_errors++;
+    log->error(
+        "Error: Dependency period '{}' specified in host dependency for host "
+        "'{}' is not defined anywhere!",
+        hd.dependency_period(), hd.dependent_hosts().data(0));
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

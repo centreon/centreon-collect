@@ -68,6 +68,37 @@ class Pb_Resolve : public ::testing::Test {
     svc->set_service_description(description);
   }
 
+  // Add a host dependency between two hosts. It uses the single-host form and a
+  // known dependency type so that expand() keeps it as-is instead of
+  // decomposing it (which would run resolve() several times).
+  static Hostdependency* add_hostdependency(State& s,
+                                            const std::string& dependent_host,
+                                            const std::string& host) {
+    Hostdependency* hd = s.add_hostdependencies();
+    hd->set_dependency_type(DependencyKind::notification_dependency);
+    hd->mutable_dependent_hosts()->add_data(dependent_host);
+    hd->mutable_hosts()->add_data(host);
+    return hd;
+  }
+
+  // Add a service dependency between two services. It keeps the default
+  // (unknown) dependency type: servicedependency::expand rebuilds its whole list
+  // from scratch and decomposes such a dependency into its notification and
+  // execution variants, exactly like a parsed configuration. Each validation
+  // issue is therefore reported once per variant (i.e. twice).
+  static Servicedependency* add_servicedependency(State& s,
+                                                  const std::string& dep_host,
+                                                  const std::string& dep_svc,
+                                                  const std::string& host,
+                                                  const std::string& svc) {
+    Servicedependency* sd = s.add_servicedependencies();
+    sd->mutable_dependent_hosts()->add_data(dep_host);
+    sd->mutable_dependent_service_description()->add_data(dep_svc);
+    sd->mutable_hosts()->add_data(host);
+    sd->mutable_service_description()->add_data(svc);
+    return sd;
+  }
+
   // Add a fully valid contact (existing periods + commands) to the State.
   static Contact* add_valid_contact(State& s) {
     Contact* c = s.add_contacts();
@@ -397,4 +428,171 @@ TEST_F(Pb_Resolve, ServicegroupNameWithIllegalChars) {
   hlp.resolve(err);
   ASSERT_EQ(err.config_warnings, 0u);
   ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host dependency between two defined hosts and a defined dependency period
+// resolves without any warning or error.
+TEST_F(Pb_Resolve, HostdependencyValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  Hostdependency* hd = add_hostdependency(s, "host_1", "host_2");
+  hd->set_dependency_period("24x7");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A host dependency whose dependent host is not defined is a single error.
+TEST_F(Pb_Resolve, HostdependencyNonExistingDependentHost) {
+  State s = base_state();
+  add_host(s, "host_2");
+  add_hostdependency(s, "ghost", "host_2");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host dependency whose master host is not defined is a single error.
+TEST_F(Pb_Resolve, HostdependencyNonExistingMasterHost) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "ghost");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host dependency of a host on itself is a single error (circular).
+TEST_F(Pb_Resolve, HostdependencyCircular) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_hostdependency(s, "host_1", "host_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host dependency referencing a non-existing dependency period is a single
+// error.
+TEST_F(Pb_Resolve, HostdependencyNonExistingDependencyPeriod) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  Hostdependency* hd = add_hostdependency(s, "host_1", "host_2");
+  hd->set_dependency_period("ghost_tp");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A service dependency between two defined services and a defined dependency
+// period resolves without any warning or error (both expanded variants are
+// valid).
+TEST_F(Pb_Resolve, ServicedependencyValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  add_service(s, "host_1", "svc_1");
+  add_service(s, "host_2", "svc_2");
+  Servicedependency* sd =
+      add_servicedependency(s, "host_1", "svc_1", "host_2", "svc_2");
+  sd->set_dependency_period("24x7");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A service dependency whose dependent service is not defined is an error,
+// reported once per expanded variant (notification + execution).
+TEST_F(Pb_Resolve, ServicedependencyNonExistingDependentService) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  add_service(s, "host_2", "svc_2");
+  add_servicedependency(s, "host_1", "ghost_svc", "host_2", "svc_2");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A service dependency whose master service is not defined is an error,
+// reported once per expanded variant (notification + execution).
+TEST_F(Pb_Resolve, ServicedependencyNonExistingMasterService) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  add_service(s, "host_1", "svc_1");
+  add_servicedependency(s, "host_1", "svc_1", "host_2", "ghost_svc");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A service dependency of a service on itself is a circular error, reported once
+// per expanded variant (notification + execution).
+TEST_F(Pb_Resolve, ServicedependencyCircular) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  add_servicedependency(s, "host_1", "svc_1", "host_1", "svc_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A service dependency referencing a non-existing dependency period is an error,
+// reported once per expanded variant (notification + execution).
+TEST_F(Pb_Resolve, ServicedependencyNonExistingDependencyPeriod) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_host(s, "host_2");
+  add_service(s, "host_1", "svc_1");
+  add_service(s, "host_2", "svc_2");
+  Servicedependency* sd =
+      add_servicedependency(s, "host_1", "svc_1", "host_2", "svc_2");
+  sd->set_dependency_period("ghost_tp");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 2u);
 }

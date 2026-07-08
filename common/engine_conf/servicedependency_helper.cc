@@ -349,4 +349,70 @@ void servicedependency_helper::_expand_services(
   }
 }
 
+/**
+ * @brief Validate a service dependency once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `servicedependency::resolve()`: it
+ * only accumulates warnings/errors into @a err (it never throws) and performs
+ * no runtime wiring. After expand(), each surviving service dependency
+ * references exactly one (host, service) pair on each side (host groups, service
+ * groups and multi-service forms have already been decomposed), so `.data(0)` is
+ * safe here.
+ *
+ * @param sd The service dependency to validate.
+ * @param services Index of every defined (host, service description) pair.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void servicedependency_helper::resolve(
+    const Servicedependency& sd,
+    const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+        services,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  std::pair<std::string_view, std::string_view> dependent{
+      sd.dependent_hosts().data(0), sd.dependent_service_description().data(0)};
+  std::pair<std::string_view, std::string_view> master{
+      sd.hosts().data(0), sd.service_description().data(0)};
+
+  // Find the dependent service.
+  if (!services.contains(dependent)) {
+    err.config_errors++;
+    log->error(
+        "Error: Dependent service '{}' on host '{}' specified in service "
+        "dependency is not defined anywhere!",
+        dependent.second, dependent.first);
+  }
+
+  // Find the service we're depending on.
+  if (!services.contains(master)) {
+    err.config_errors++;
+    log->error(
+        "Error: Service '{}' on host '{}' specified in service dependency for "
+        "service '{}' on host '{}' is not defined anywhere!",
+        master.second, master.first, dependent.second, dependent.first);
+  }
+
+  // Make sure they're not the same service.
+  if (dependent == master) {
+    err.config_errors++;
+    log->error(
+        "Error: Service dependency definition for service '{}' on host '{}' is "
+        "circular (it depends on itself)!",
+        dependent.second, dependent.first);
+  }
+
+  // Find the dependency period.
+  if (!sd.dependency_period().empty() &&
+      !timeperiods.contains(sd.dependency_period())) {
+    err.config_errors++;
+    log->error(
+        "Error: Dependency period '{}' specified in service dependency for "
+        "service '{}' on host '{}' is not defined anywhere!",
+        sd.dependency_period(), dependent.second, dependent.first);
+  }
+}
+
 }  // namespace com::centreon::engine::configuration
