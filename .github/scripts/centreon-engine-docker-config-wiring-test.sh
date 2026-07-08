@@ -28,10 +28,18 @@ READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
 # buf (used as "buf curl") is a build tool for the *test runner*, not the
 # image under test - same tool .github/docker/centreon-gorgone/trixie/Dockerfile
-# uses for the same purpose (see rationale there: grpcurl's release binary
-# stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps).
+# uses for the same purpose (see rationale there: buf releases monthly with
+# a current Go toolchain, unlike grpcurl's long-abandoned release, so its
+# binary is downloaded rather than built - no compile cost either way here).
 BUF_DIR="$(mktemp -d)"
-GOBIN="$BUF_DIR" go install github.com/bufbuild/buf/cmd/buf@v1.71.0
+case "$(uname -m)" in
+  x86_64) BUF_ARCH="x86_64" ;;
+  aarch64|arm64) BUF_ARCH="aarch64" ;;
+  *) echo "::error::Unsupported runner architecture: $(uname -m)" && exit 1 ;;
+esac
+curl -sSL -o "$BUF_DIR/buf" \
+  "https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-${BUF_ARCH}"
+chmod +x "$BUF_DIR/buf"
 BUF_BIN="$BUF_DIR/buf"
 
 # engine.proto's relative import ("process_stat.proto") only resolves when
