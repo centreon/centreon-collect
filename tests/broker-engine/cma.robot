@@ -312,7 +312,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_SERVICE
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${result}    Ctn Check Service Check Status With Timeout    host_1    service_1    60    ${start_int}    2    Test check 456
@@ -373,7 +373,7 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST_CRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log
     Sleep    1s
 

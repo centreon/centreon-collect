@@ -1355,6 +1355,39 @@ def ctn_engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, valu
         f.writelines(lines)
 
 
+def _ctn_engine_set_command_line(idx: int, name_pattern: str, new_command: str):
+    """
+    Replace in place the command_line of every command whose command_name
+    matches name_pattern (a regex fragment) in the commands.cfg of Engine
+    config idx. Shared core of ctn_engine_config_change_command (matches
+    command_<index>) and ctn_engine_config_add_command (matches an exact name).
+
+    Args:
+        idx (int): Index of the configuration (from 0)
+        name_pattern (str): Regex fragment matched against the command name.
+        new_command (str): The new command line.
+
+    Returns:
+        int: The number of command definitions updated.
+    """
+    path = f"{engine.get_config_dir(idx)}/commands.cfg"
+    with open(path, "r") as f:
+        lines = f.readlines()
+    name_re = re.compile(rf"^\s+command_name\s+{name_pattern}\s*$")
+    count = 0
+    for i, line in enumerate(lines):
+        if name_re.match(line):
+            for j in range(i + 1, len(lines)):
+                if re.match(r"^\s+command_line\s+", lines[j]):
+                    lines[j] = f"    command_line                    {new_command}\n"
+                    break
+            count += 1
+    if count:
+        with open(path, "w") as f:
+            f.writelines(lines)
+    return count
+
+
 def ctn_engine_config_change_command(idx: int, command_index: str, new_command: str):
     """
     Changes the command line of command whose index is command_index in the Engine config idx.
@@ -1364,28 +1397,18 @@ def ctn_engine_config_change_command(idx: int, command_index: str, new_command: 
         command_index (str): Index of the command (may be a regex)
         new_command (str): The new command line.
     """
-    conf_dir = engine.get_config_dir(idx)
-    with open(f"{conf_dir}/commands.cfg", "r") as f:
-        lines = f.readlines()
-    new_lines = []
-    r = re.compile(rf"^\s+command_name\s+command_{command_index}$")
-    found = 0
-    for line in lines:
-        if found == 1:
-            found = 0
-            new_lines.append(
-                f"    command_line                    {new_command}\n")
-        else:
-            new_lines.append(line)
-        if r.match(line) is not None:
-            found = 1
-    with open(f"{conf_dir}/commands.cfg", "w") as f:
-        f.writelines(new_lines)
+    _ctn_engine_set_command_line(idx, rf"command_{command_index}", new_command)
 
 
 def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     """
-    Add a new command in the commands.cfg for the Engine config idx.
+    Define a command in the commands.cfg for the Engine config idx.
+
+    This is an upsert: if a command with command_name already exists (typically
+    one provided by the default configuration), its command_line is replaced in
+    place. A command name must not be defined twice - a duplicate is rejected as
+    a configuration error (see CheckPollerConfig / state_helper::resolve) - so
+    this keyword overrides rather than appends a second definition.
 
     Args:
         idx (int): Index of the Engine configuration (from 0)
@@ -1393,8 +1416,13 @@ def ctn_engine_config_add_command(idx: int, command_name: str, new_command: str,
         new_command (str): Command line
         connector (str, optional): Defaults to None.
     """
-    conf_dir = engine.get_config_dir(idx)
-    with open(f"{conf_dir}/commands.cfg", "a") as f:
+    # If the command already exists, replace its command_line in place instead
+    # of appending a duplicate definition.
+    if _ctn_engine_set_command_line(idx, re.escape(command_name), new_command):
+        return
+
+    path = f"{engine.get_config_dir(idx)}/commands.cfg"
+    with open(path, "a") as f:
         if connector is None:
             f.write(f"""define command {{
         command_name                   {command_name}

@@ -115,3 +115,26 @@ BCPC5
     Should Not Be Empty    ${errors}    the missing contact must be reported as an error
     ${joined}    Evaluate    " ".join($errors)
     Should Contain    ${joined}    ghost_contact    the error must name the missing contact
+
+BCPC6
+    [Documentation]    Scenario: a command defined twice under the same name makes the check fail
+    ...    Given a centralized engine configuration with a command defined twice
+    ...    When CheckPollerConfig is called on the poller configuration directory
+    ...    Then ok is false and an ERROR diagnostic names the duplicated command
+    [Tags]    broker    grpc    config    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    # Append a second definition of the same command name: a named object must
+    # not be defined twice. Single spaces only: Robot splits arguments on runs
+    # of 2+ spaces.
+    Append To File
+    ...    ${PollerConfigDir}/commands.cfg
+    ...    \ndefine command {\ncommand_name dup_command\ncommand_line /usr/bin/true\n}\ndefine command {\ncommand_name dup_command\ncommand_line /usr/bin/false\n}\n
+    Ctn Config Broker    central
+    Ctn Start Broker
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a command defined twice must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    Should Not Be Empty    ${errors}    the duplicated command must be reported as an error
+    ${joined}    Evaluate    " ".join($errors)
+    Should Contain    ${joined}    dup_command    the error must name the duplicated command
