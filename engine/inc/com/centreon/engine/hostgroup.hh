@@ -54,7 +54,6 @@ class hostgroup {
   void set_action_url(std::string const& action_url);
   bool operator==(hostgroup const& obj) = delete;
   bool operator!=(hostgroup const& obj1) = delete;
-  void resolve(uint32_t& w, uint32_t& e);
 
   host_map_unsafe members;
 
