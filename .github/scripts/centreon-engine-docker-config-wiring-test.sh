@@ -28,13 +28,13 @@ READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
 # grpcurl is a build tool for the *test runner*, not the image under test -
 # pinned to the same version .github/docker/centreon-gorgone/trixie/Dockerfile
-# already uses for the same purpose, and downloaded directly from GitHub
-# releases rather than pulled from Docker Hub (this repo's CI otherwise only
-# pulls from its own internal registry or debian's default apt mirrors).
-GRPCURL_BIN="$(mktemp -d)/grpcurl"
-curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_x86_64.tar.gz" \
-  | tar -xz -C "$(dirname "$GRPCURL_BIN")" grpcurl
-chmod +x "$GRPCURL_BIN"
+# already uses for the same purpose. Built from source with `go install`
+# rather than fullstorydev's precompiled release tarball, whose binaries stay
+# pinned to whatever Go stdlib version was current when they were cut (GHSA
+# flagged the v1.9.3 release binary for a since-patched Go stdlib CVE).
+GRPCURL_DIR="$(mktemp -d)"
+GOBIN="$GRPCURL_DIR" go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3
+GRPCURL_BIN="$GRPCURL_DIR/grpcurl"
 
 PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
 

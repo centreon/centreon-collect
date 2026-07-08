@@ -4,6 +4,14 @@
 ARG USE_SOURCE_GORGONE=false
 
 #############################################
+# Stage 0: Build grpcurl from source (always uses an up-to-date Go
+# toolchain, unlike fullstorydev's precompiled release tarballs which
+# stay pinned to whatever Go version was current when they were cut)
+#############################################
+FROM golang:1-trixie AS grpcurl-builder
+RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3
+
+#############################################
 # Stage 1: Extract files from .deb packages
 #############################################
 FROM debian:13-slim AS extractor
@@ -229,18 +237,10 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
 # Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
-RUN bash -e <<'EOF'
-ARCH=$(dpkg --print-architecture)
-case "$ARCH" in
-    amd64) GRPCURL_ARCH="x86_64" ;;
-    arm64) GRPCURL_ARCH="arm64" ;;
-    *) echo "Unsupported arch: $ARCH" && exit 1 ;;
-esac
-curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_${GRPCURL_ARCH}.tar.gz" \
-    | tar -xz -C /usr/local/bin/ grpcurl
-chmod +x /usr/local/bin/grpcurl
-mkdir -p /usr/share/centreon-engine/proto
-EOF
+# Binary comes from the grpcurl-builder stage, compiled from source with an
+# up-to-date Go toolchain instead of fullstorydev's stale precompiled release
+COPY --from=grpcurl-builder --link --chmod=755 /go/bin/grpcurl /usr/local/bin/grpcurl
+RUN mkdir -p /usr/share/centreon-engine/proto
 
 # Copy engine proto definitions for grpcurl (no reflection API on centengine)
 COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
