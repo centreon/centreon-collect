@@ -4,24 +4,24 @@
 SERVICE="$2"
 ACTION="$1"
 
-GRPCURL_OPTS="-plaintext -import-path /usr/share/centreon-engine/proto -proto engine.proto"
-ENGINE_GRPC_ADDR="${SERVICE}:50155"
+BUF_OPTS="--schema /usr/share/centreon-engine/proto --protocol grpc --http2-prior-knowledge"
+ENGINE_GRPC_ADDR="http://${SERVICE}:50155"
 
 case "$SERVICE" in
   centengine)
     case "$ACTION" in
       reload)
         # RESTART signal = SIGHUP equivalent (config reload, process stays up)
-        grpcurl $GRPCURL_OPTS \
+        buf curl $BUF_OPTS \
           -d '{"process": "RESTART"}' \
-          "$ENGINE_GRPC_ADDR" com.centreon.engine.Engine/SignalProcess
+          "$ENGINE_GRPC_ADDR/com.centreon.engine.Engine/SignalProcess"
         exit $?
         ;;
       restart)
         # SHUTDOWN signal — Docker restart:always/unless-stopped brings the container back
-        grpcurl $GRPCURL_OPTS \
+        buf curl $BUF_OPTS \
           -d '{"process": "SHUTDOWN"}' \
-          "$ENGINE_GRPC_ADDR" com.centreon.engine.Engine/SignalProcess
+          "$ENGINE_GRPC_ADDR/com.centreon.engine.Engine/SignalProcess"
         exit $?
         ;;
       *)

@@ -4,12 +4,16 @@
 ARG USE_SOURCE_GORGONE=false
 
 #############################################
-# Stage 0: Build grpcurl from source (always uses an up-to-date Go
-# toolchain, unlike fullstorydev's precompiled release tarballs which
-# stay pinned to whatever Go version was current when they were cut)
+# Stage 0: Build buf (provides "buf curl") from source. Used instead of
+# grpcurl: same plaintext/local-schema gRPC call capability, but actively
+# released (monthly) with fresh dependencies, vs. grpcurl's release binary
+# which stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
+# (grpc, x/net, x/oauth2) since March 2025. Building from source also means
+# we always get the current Go toolchain regardless of buf's own release
+# cadence.
 #############################################
-FROM golang:1-trixie AS grpcurl-builder
-RUN go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3
+FROM golang:1-trixie AS buf-builder
+RUN go install github.com/bufbuild/buf/cmd/buf@v1.71.0
 
 #############################################
 # Stage 1: Extract files from .deb packages
@@ -236,13 +240,13 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
-# Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
-# Binary comes from the grpcurl-builder stage, compiled from source with an
-# up-to-date Go toolchain instead of fullstorydev's stale precompiled release
-COPY --from=grpcurl-builder --link --chmod=755 /go/bin/grpcurl /usr/local/bin/grpcurl
+# Install buf (used as "buf curl") for gRPC-based centengine management
+# (replaces HTTP api_control calls). Binary comes from the buf-builder
+# stage - see rationale there.
+COPY --from=buf-builder --link --chmod=755 /go/bin/buf /usr/local/bin/buf
 RUN mkdir -p /usr/share/centreon-engine/proto
 
-# Copy engine proto definitions for grpcurl (no reflection API on centengine)
+# Copy engine proto definitions for buf curl (no reflection API on centengine)
 COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
 COPY --link --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
 

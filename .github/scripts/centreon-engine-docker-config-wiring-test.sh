@@ -26,15 +26,19 @@ LOG_FILE=/tmp/centreon-engine-config-wiring-test.log
 : > "$LOG_FILE"
 READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
-# grpcurl is a build tool for the *test runner*, not the image under test -
-# pinned to the same version .github/docker/centreon-gorgone/trixie/Dockerfile
-# already uses for the same purpose. Built from source with `go install`
-# rather than fullstorydev's precompiled release tarball, whose binaries stay
-# pinned to whatever Go stdlib version was current when they were cut (GHSA
-# flagged the v1.9.3 release binary for a since-patched Go stdlib CVE).
-GRPCURL_DIR="$(mktemp -d)"
-GOBIN="$GRPCURL_DIR" go install github.com/fullstorydev/grpcurl/cmd/grpcurl@v1.9.3
-GRPCURL_BIN="$GRPCURL_DIR/grpcurl"
+# buf (used as "buf curl") is a build tool for the *test runner*, not the
+# image under test - same tool .github/docker/centreon-gorgone/trixie/Dockerfile
+# uses for the same purpose (see rationale there: grpcurl's release binary
+# stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps).
+BUF_DIR="$(mktemp -d)"
+GOBIN="$BUF_DIR" go install github.com/bufbuild/buf/cmd/buf@v1.71.0
+BUF_BIN="$BUF_DIR/buf"
+
+# engine.proto's relative import ("process_stat.proto") only resolves when
+# both files sit in the same directory - mirrors how the Dockerfile copies
+# them flat into /usr/share/centreon-engine/proto in the shipped image.
+ENGINE_PROTO_DIR="$(mktemp -d)"
+cp "$REPO_ROOT/engine/enginerpc/engine.proto" "$REPO_ROOT/common/process_stat/process_stat.proto" "$ENGINE_PROTO_DIR/"
 
 PLUGIN_PKG="centreon-plugin-applications-monitoring-centreon-poller"
 
@@ -208,9 +212,8 @@ wait_ready centreon-engine-wiring-$$ || exit 1
 # to actually bind the gRPC listener.
 grpc_output=""
 for _ in $(seq 1 15); do
-  grpc_output=$("$GRPCURL_BIN" -plaintext \
-    -import-path "$REPO_ROOT/engine/enginerpc" -import-path "$REPO_ROOT/common/process_stat" \
-    -proto engine.proto 127.0.0.1:50155 com.centreon.engine.Engine/GetVersion 2>&1) && break
+  grpc_output=$("$BUF_BIN" curl --schema "$ENGINE_PROTO_DIR" --protocol grpc --http2-prior-knowledge \
+    http://127.0.0.1:50155/com.centreon.engine.Engine/GetVersion 2>&1) && break
   sleep 1
 done
 echo "$grpc_output"
