@@ -74,6 +74,47 @@ ECEMPTYNAME
     ${out}    Get File    /tmp/output.txt
     Should Contain    ${out}    Contact has no name    the report must mention the nameless contact
 
+ECGNCM
+    [Documentation]    Scenario: a contact group with a non-existing member is rejected
+    ...    Given an engine configuration with a contact group referencing an undefined contact
+    ...    When centengine verifies the configuration (-v)
+    ...    Then the configuration is reported invalid (non-zero return code and the missing contact is named)
+    [Tags]    engine    config    contactgroup    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    Ctn Add Contact Group    ${0}    0    ["ghost_contact"]    name=badcg
+    ${result}    Run Process
+    ...    /usr/sbin/centengine    -v    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    stdout=/tmp/output.txt    stderr=/tmp/error.txt
+    Should Not Be Equal As Integers
+    ...    ${result.rc}    ${0}
+    ...    verify-config must reject a contact group with a non-existing member
+    ${out}    Get File    /tmp/output.txt
+    Should Contain    ${out}    ghost_contact    the report must name the missing contact
+
+ECGEMPTYNAME
+    [Documentation]    Scenario: a contact group with no name is rejected
+    ...    Given an engine configuration with a contact group that has no contactgroup_name
+    ...    When centengine verifies the configuration (-v)
+    ...    Then the configuration is reported invalid (non-zero return code and "Contactgroup has no name")
+    [Tags]    engine    config    contactgroup    MON-187019
+    Ctn Config Engine    ${1}
+    Ctn Config Broker    module
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    # Inject a contact group block with no contactgroup_name at all.
+    # Single spaces only: Robot splits arguments on runs of 2+ spaces.
+    Append To File
+    ...    ${EtcRoot}/centreon-engine/config0/contactgroups.cfg
+    ...    \ndefine contactgroup {\nalias noname\nregister 1\n}\n
+    ${result}    Run Process
+    ...    /usr/sbin/centengine    -v    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    stdout=/tmp/output.txt    stderr=/tmp/error.txt
+    Should Not Be Equal As Integers
+    ...    ${result.rc}    ${0}    verify-config must reject a contact group with no name
+    ${out}    Get File    /tmp/output.txt
+    Should Contain    ${out}    Contactgroup has no name    the report must mention the nameless contact group
+
 *** Keywords ***
 Ctn Start Engine With Args
     [Arguments]    @{options}
