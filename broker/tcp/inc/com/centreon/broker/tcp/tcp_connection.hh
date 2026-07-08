@@ -34,6 +34,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   std::atomic_bool _write_queue_has_events;
   std::atomic_bool _writing;
   std::condition_variable _writing_cv;
+  time_t _last_full_write_queue_error = 0;
 
   std::atomic<int32_t> _acks;
   std::atomic_bool _reading;

@@ -1,5 +1,5 @@
 /**
- * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,10 +103,9 @@ stream::~stream() noexcept {
   absl::MutexLock l(_instances_m);
   _instances->erase(this);
   _logger->info(
-      "TCP stream destroyed. Still {} configured on a thread pool of {} "
-      "threads",
-      _instances->size(),
-      com::centreon::common::pool::instance().get_pool_size());
+      "TCP stream destroyed peer:{}. Still {} threads configured on the thread "
+      "pool",
+      _connection->peer(), _instances->size());
   _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();

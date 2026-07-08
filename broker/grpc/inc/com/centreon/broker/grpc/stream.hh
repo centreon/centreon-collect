@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon
+ * Copyright 2022-2026 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,6 +84,7 @@ class stream : public io::stream,
 
   read_queue _read_queue;
   write_queue _write_queue;
+  time_t _last_full_write_queue_error = 0;
 
   std::atomic_bool _alive = true;
 

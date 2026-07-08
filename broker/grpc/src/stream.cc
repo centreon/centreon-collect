@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
+#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -298,9 +299,21 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
     to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
                                                  raw_src->_buffer.end());
   }
-  {
-    std::lock_guard l(_write_m);
-    _write_queue.push(to_send);
+  if (to_send) {
+    {
+      std::lock_guard l(_write_m);
+      if (_write_queue.size() > multiplexing::muxer::event_queue_max_size()) {
+        time_t now = time(nullptr);
+        if (now > _last_full_write_queue_error) {
+          _last_full_write_queue_error = now;
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "write queue full => remove oldest event");
+        }
+        _write_queue.pop();
+      }
+      _write_queue.push(to_send);
+    }
+    start_write();
   }
   start_write();
   return 0;
