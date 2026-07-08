@@ -96,3 +96,22 @@ BCPC4
     ${joined}    Evaluate    " ".join($errors)
     Should Contain    ${joined}    U1    the error must name the contact
     Should Contain    ${joined}    host notification commands    the error must mention the missing commands
+
+BCPC5
+    [Documentation]    Scenario: a contact group with a non-existing member makes the check fail
+    ...    Given a centralized engine configuration with a contact group referencing an undefined contact
+    ...    When CheckPollerConfig is called on the poller configuration directory
+    ...    Then ok is false and an ERROR diagnostic reports the missing contact
+    [Tags]    broker    grpc    config    MON-187019
+    Ctn Config Centralized Engine    ${1}
+    Ctn Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    Ctn Add Contact Group    ${0}    0    ["ghost_contact"]    name=badcg
+    Ctn Config Broker    central
+    Ctn Start Broker
+    ${res}    Ctn Broker Check Poller Config    ${PollerConfigDir}
+    Should Not Be Equal    ${res}    ${None}    CheckPollerConfig did not answer
+    Should Not Be True    ${res}[ok]    a contact group with a non-existing member must not be ok
+    ${errors}    Evaluate    [d['message'] for d in $res['diagnostics'] if d['severity'] == 'ERROR']
+    Should Not Be Empty    ${errors}    the missing contact must be reported as an error
+    ${joined}    Evaluate    " ".join($errors)
+    Should Contain    ${joined}    ghost_contact    the error must name the missing contact

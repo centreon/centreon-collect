@@ -574,13 +574,14 @@ define command {{
         return retval
 
     @staticmethod
-    def create_contact_group(id, mbs):
+    def create_contact_group(id, mbs, name=None):
+        cg_name = name if name is not None else f"contactgroup_{id}"
         retval = """define contactgroup {{
-    contactgroup_name              contactgroup_{0}
-    alias                          contactgroup_{0}
+    contactgroup_name              {0}
+    alias                          {0}
     members                        {1}
 }}
-""".format(id, ",".join(mbs))
+""".format(cg_name, ",".join(mbs))
         logger.console('\n'.join(_truncate_line(line) for line in retval.splitlines()))
         return retval
 
@@ -2090,18 +2091,22 @@ def ctn_rename_service_group(index: int, old_servicegroup_name: str, new_service
         f.writelines(ll)
 
 
-def ctn_add_contact_group(index: int, id_contact_group: int, members: list):
+def ctn_add_contact_group(index: int, id_contact_group: int, members: list, name: str = None):
     """
-    Add a contact group on the engine instance index.
+    Add a contact group on the engine instance index. The members may
+    reference non-existing contacts on purpose (to exercise the configuration
+    validation).
 
     Args:
         index (int): Index of the poller configuration (from 0).
-        id_contact_group (int): ID of new contactgroup.
+        id_contact_group (int): ID of new contactgroup, used to name it unless
+            'name' is given.
         members (list): A list of the members (by name).
+        name (str): Override the default 'contactgroup_{id}' name.
     """
     conf_dir = engine.get_config_dir(index)
     with open(f"{conf_dir}/contactgroups.cfg", "a+") as f:
-        f.write(engine.create_contact_group(id_contact_group, members))
+        f.write(engine.create_contact_group(id_contact_group, members, name))
 
 
 def ctn_create_service(index: int, host_id: int, cmd_id: int):
