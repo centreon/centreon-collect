@@ -311,6 +311,10 @@ int main(int argc, char* argv[]) {
               broker_config = pb_cfg->broker_module_cfg_file();
             state_hlp.expand(err);
             state_hlp.resolve(err);
+            if (err.config_errors)
+              throw engine_error() << fmt::format(
+                  "Cannot test scheduling: the configuration has {} error(s)",
+                  err.config_errors);
           }
 
           // Parse retention.
