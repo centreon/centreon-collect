@@ -98,23 +98,21 @@ if docker logs "$CONTAINER_NAME" 2>&1 | grep -Ei "Compilation failed|Can't locat
   exit 1
 fi
 
-# grpcurl is downloaded from a per-arch release tarball (amd64 vs arm64) and the
-# copied .proto files must resolve for gRPC-based centengine management to work.
-echo "=== [boot] Checking grpcurl runs for this architecture ==="
-if ! docker exec "$CONTAINER_NAME" grpcurl -version; then
-  echo "::error::grpcurl -version failed inside the container (binary/arch mismatch?)"
+# buf (used as "buf curl") is built from source per-arch and the copied
+# .proto files must resolve for gRPC-based centengine management to work.
+echo "=== [boot] Checking buf runs for this architecture ==="
+if ! docker exec "$CONTAINER_NAME" buf --version; then
+  echo "::error::buf --version failed inside the container (binary/arch mismatch?)"
   exit 1
 fi
 
-echo "=== [boot] Checking engine.proto resolves with grpcurl ==="
+echo "=== [boot] Checking engine.proto resolves with buf ==="
 # engine.proto has a relative import ("process_stat.proto") copied alongside
-# it - grpcurl only resolves that when invoked from within the same
-# directory (a "-import-path" pointing at that same directory does not
-# work here), so cd into it rather than passing an absolute -proto path.
-proto_check=$(docker exec "$CONTAINER_NAME" sh -c \
-  "cd /usr/share/centreon-engine/proto && grpcurl -plaintext -connect-timeout 2 -proto engine.proto 127.0.0.1:1 list" 2>&1) || true
-if ! echo "$proto_check" | grep -q "com.centreon.engine.Engine"; then
-  echo "::error::engine.proto failed to resolve with grpcurl:"
+# it - "buf build" on the directory parses the whole schema without needing
+# to reach a live gRPC server.
+proto_check=$(docker exec "$CONTAINER_NAME" buf build /usr/share/centreon-engine/proto -o /dev/null 2>&1) || true
+if [ -n "$proto_check" ]; then
+  echo "::error::engine.proto failed to resolve with buf:"
   echo "$proto_check"
   exit 1
 fi

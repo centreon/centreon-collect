@@ -228,21 +228,28 @@ COPY --chown=centreon-gorgone:centreon-gorgone --chmod=775 \
      .github/docker/centreon-gorgone/trixie/config/40-gorgoned.yaml \
      /etc/centreon-gorgone/config.d/40-gorgoned.yaml
 
-# Install grpcurl for gRPC-based centengine management (replaces HTTP api_control calls)
+# Install buf (used as "buf curl") for gRPC-based centengine management
+# (replaces HTTP api_control calls, and grpcurl - grpcurl's only tagged
+# release stayed pinned to a Go 1.21.1 toolchain and CVE'd transitive deps
+# since March 2025). Unlike grpcurl, buf releases monthly and its binaries
+# are rebuilt with a current Go toolchain each time (v1.71.0 verified
+# locally: built with Go 1.26.4), so downloading it is as fresh as building
+# from source - without the multi-minutes-under-QEMU cost of compiling Go
+# for arm64 in CI.
 RUN bash -e <<'EOF'
 ARCH=$(dpkg --print-architecture)
 case "$ARCH" in
-    amd64) GRPCURL_ARCH="x86_64" ;;
-    arm64) GRPCURL_ARCH="arm64" ;;
+    amd64) BUF_ARCH="x86_64" ;;
+    arm64) BUF_ARCH="aarch64" ;;
     *) echo "Unsupported arch: $ARCH" && exit 1 ;;
 esac
-curl -sSL "https://github.com/fullstorydev/grpcurl/releases/download/v1.9.3/grpcurl_1.9.3_linux_${GRPCURL_ARCH}.tar.gz" \
-    | tar -xz -C /usr/local/bin/ grpcurl
-chmod +x /usr/local/bin/grpcurl
+curl -sSL -o /usr/local/bin/buf \
+    "https://github.com/bufbuild/buf/releases/download/v1.71.0/buf-Linux-${BUF_ARCH}"
+chmod +x /usr/local/bin/buf
 mkdir -p /usr/share/centreon-engine/proto
 EOF
 
-# Copy engine proto definitions for grpcurl (no reflection API on centengine)
+# Copy engine proto definitions for buf curl (no reflection API on centengine)
 COPY --link --chmod=644 engine/enginerpc/engine.proto /usr/share/centreon-engine/proto/engine.proto
 COPY --link --chmod=644 common/process_stat/process_stat.proto /usr/share/centreon-engine/proto/process_stat.proto
 
