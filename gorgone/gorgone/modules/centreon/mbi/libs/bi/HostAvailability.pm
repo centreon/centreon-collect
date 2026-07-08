@@ -142,7 +142,7 @@ sub getHGMonthAvailability {
 	my $db = $self->{"centstorage"};
 	
 	$self->{"logger"}->writeLog("DEBUG","[HOST] Calculating availability for hosts");
-	my $query = "SELECT h.hg_id, h.hc_id, hc.id as cat_id, hg.id as group_id, ha.liveservice_id, avg(available/(available+unavailable+unreachable)) as av_percent,";
+	my $query = "SELECT h.hg_id, h.hc_id, MAX(hc.id) as cat_id, MAX(hg.id) as group_id, ha.liveservice_id, avg(available/(available+unavailable+unreachable)) as av_percent,";
 	$query .= " sum(available) as av_time, sum(unavailable) as unav_time, sum(alert_unavailable_opened) as unav_opened, sum(alert_unavailable_closed) as unav_closed,";
 	$query .= " sum(alert_unreachable_opened) as unr_opened, sum(alert_unreachable_closed) as unr_closed";
 	$query .= " FROM ".$self->{"name"}." ha";
@@ -151,7 +151,7 @@ sub getHGMonthAvailability {
 	$query .= " STRAIGHT_JOIN mod_bi_hostgroups hg ON (h.hg_name=hg.hg_name AND h.hg_id=hg.hg_id)";
 	$query .= " STRAIGHT_JOIN mod_bi_hostcategories hc ON (h.hc_name=hc.hc_name AND h.hc_id=hc.hc_id)";
 	$query .= " WHERE t.year = YEAR('".$start."') AND t.month = MONTH('".$start."') and t.hour=0";
-	$query .= " GROUP BY h.hg_id, h.hc_id,hc.id,hg.id,  ha.liveservice_id";
+	$query .= " GROUP BY h.hg_id, h.hc_id, ha.liveservice_id";
 	my $sth = $db->query({ query => $query });
 	
 	$self->{"logger"}->writeLog("DEBUG","[HOST] Calculating MTBF/MTRS/MTBSI for Host");	
