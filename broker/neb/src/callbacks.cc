@@ -2180,7 +2180,9 @@ int neb::callback_pb_host_status(int callback_type [[maybe_unused]],
       gl_publisher.write(h);
     }
     // Acknowledgement event.
-    handle_acknowledgement(state, hst);
+    // Only process it when the acknowledgement actually changed.
+    if (hsd->attributes & engine::host::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, hst);
   } else {
     auto h{std::make_shared<neb::pb_host_status>()};
     HostStatus& hscr = h.get()->mut_obj();
@@ -3510,7 +3512,9 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
     gl_publisher.write(as);
 
     // Acknowledgement event.
-    handle_acknowledgement(state, asscr);
+    // Only process it when the acknowledgement actually changed.
+    if (ds->attributes & engine::service::STATUS_ACKNOWLEDGEMENT)
+      handle_acknowledgement(state, asscr);
   } else {
     auto s{std::make_shared<neb::pb_service_status>()};
     ServiceStatus& sscr = s.get()->mut_obj();

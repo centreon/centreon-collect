@@ -821,6 +821,89 @@ def ctn_check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int,
     return False
 
 
+def ctn_check_service_resource_acknowledged_with_timeout(hostname: str, service_desc: str, acknowledged: int, timeout: int):
+    """
+    Check that the acknowledged column of a service is set to the given value in
+    both the centreon_storage.services and centreon_storage.resources tables
+    within the given timeout.
+
+    Args:
+        hostname (str): The host name of the service.
+        service_desc (str): The description of the service.
+        acknowledged (int): The expected value (0 or 1) of the acknowledged columns.
+        timeout (int): The timeout in seconds.
+
+    Returns:
+        True if both services.acknowledged and resources.acknowledged equal the
+        expected value, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.acknowledged AS svc_ack, r.acknowledged AS res_ack FROM services s JOIN hosts h ON s.host_id=h.host_id JOIN resources r ON r.id=s.service_id AND r.parent_id=s.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['svc_ack'] is not None and result[0]['res_ack'] is not None:
+                    logger.console(
+                        f"services.acknowledged={result[0]['svc_ack']}, resources.acknowledged={result[0]['res_ack']}")
+                    if int(result[0]['svc_ack']) == acknowledged and int(result[0]['res_ack']) == acknowledged:
+                        return True
+        time.sleep(1)
+    return False
+
+
+def ctn_check_acknowledgement_inconsistency_with_timeout(hostname: str, service_desc: str, timeout: int):
+    """
+    Detect inconsistency for a service acknowledgement: the
+    acknowledgement has been terminated (centreon_storage.acknowledgements.deletion_time
+    is set) while the service is still flagged as acknowledged in the services
+    and/or resources tables (services.acknowledged=1 or resources.acknowledged=1).
+
+    The three tables must always agree. This keyword polls and returns True as
+    soon as such an inconsistency is observed within the timeout, False otherwise.
+
+    Args:
+        hostname (str): The host name of the service.
+        service_desc (str): The description of the service.
+        timeout (int): The timeout in seconds.
+
+    Returns:
+        True if the inconsistency is observed within timeout, False otherwise.
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT a.deletion_time AS ack_del, s.acknowledged AS svc_ack, r.acknowledged AS res_ack FROM acknowledgements a JOIN hosts h ON a.host_id=h.host_id JOIN services s ON s.host_id=a.host_id AND s.service_id=a.service_id JOIN resources r ON r.parent_id=a.host_id AND r.id=a.service_id WHERE h.name='{hostname}' AND s.description='{service_desc}' ORDER BY a.entry_time DESC LIMIT 1")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    row = result[0]
+                    logger.console(
+                        f"acknowledgements.deletion_time={row['ack_del']}, services.acknowledged={row['svc_ack']}, resources.acknowledged={row['res_ack']}")
+                    if row['ack_del'] is not None and (int(row['svc_ack']) == 1 or int(row['res_ack']) == 1):
+                        return True
+        time.sleep(1)
+    return False
+
+
 def ctn_check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
     limit = time.time() + timeout
     while time.time() < limit:
