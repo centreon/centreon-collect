@@ -21,6 +21,13 @@
 
 #include "common/engine_conf/message_helper.hh"
 
+// This header is pulled in by the Engine runtime header contactgroup.hh, hence
+// into translation units that do not include spdlog. A forward declaration is
+// enough here since spdlog::logger is only used behind a std::shared_ptr.
+namespace spdlog {
+class logger;
+}
+
 namespace com::centreon::engine::configuration {
 
 /**
@@ -49,6 +56,12 @@ class contactgroup_helper : public message_helper {
       configuration::error_cnt& err,
       const absl::flat_hash_map<std::string_view, configuration::Contactgroup*>&
           m_contactgroups);
+
+  static void resolve(const configuration::Contactgroup& cg,
+                      const absl::flat_hash_set<std::string_view>& contacts,
+                      std::string_view illegal_chars,
+                      configuration::error_cnt& err,
+                      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 

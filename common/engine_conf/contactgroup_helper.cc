@@ -148,4 +148,49 @@ void contactgroup_helper::_resolve_members(
   }
 }
 
+/**
+ * @brief Validate a Contactgroup against the rest of the configuration.
+ *
+ * This is the configuration-level equivalent of the former
+ * `engine::contactgroup::resolve()`: it only accumulates warnings/errors into
+ * @a err (it never throws) and performs no runtime wiring. It expects to run on
+ * a post-`expand` State (members are flattened to concrete contact names), and
+ * that `check_validity` has already rejected contact groups with no name.
+ * Checks performed: every member contact is defined, and the contact group name
+ * has no illegal character.
+ *
+ * @param cg The Contactgroup to validate.
+ * @param contacts Names of every contact defined in the configuration.
+ * @param illegal_chars Characters forbidden in object names (State's
+ * illegal_object_chars).
+ * @param err Warning/error counters, incremented in place.
+ * @param logger Logger receiving the human-readable diagnostics.
+ */
+void contactgroup_helper::resolve(
+    const configuration::Contactgroup& cg,
+    const absl::flat_hash_set<std::string_view>& contacts,
+    std::string_view illegal_chars,
+    configuration::error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  /* Check members: every contact of the group must be defined somewhere. */
+  for (auto& member : cg.members().data()) {
+    if (!contacts.contains(member)) {
+      logger->error(
+          "Error: Contact '{}' specified in contact group '{}' is not defined "
+          "anywhere!",
+          member, cg.contactgroup_name());
+      err.config_errors++;
+    }
+  }
+
+  /* Check for illegal characters in contact group name. */
+  if (name_contains_illegal_chars(cg.contactgroup_name(), illegal_chars)) {
+    logger->error(
+        "Error: The name of contact group '{}' contains one or more illegal "
+        "characters.",
+        cg.contactgroup_name());
+    err.config_errors++;
+  }
+}
+
 }  // namespace com::centreon::engine::configuration

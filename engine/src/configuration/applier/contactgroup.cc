@@ -45,18 +45,13 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
   pb_indexed_config.mut_contactgroups().emplace(
       name, std::make_unique<Contactgroup>(obj));
 
-  // Create contact group.
+  // Create contact group. This is pure wiring: a member that does not exist is
+  // skipped (not linked), the existence of the members being validated by
+  // state_helper::resolve (single home).
   auto cg = std::make_shared<engine::contactgroup>(obj);
   for (auto& member : obj.members().data()) {
     auto ct_it{engine::contact::contacts.find(member)};
-    if (ct_it == engine::contact::contacts.end()) {
-      config_logger->error(
-          "Error: Contact '{}' specified in contact group '{}' is not defined "
-          "anywhere!",
-          member, cg->get_name());
-      throw engine_error() << "Error: Cannot resolve contact group "
-                           << obj.contactgroup_name() << "'";
-    } else {
+    if (ct_it != engine::contact::contacts.end()) {
       cg->get_members().insert({ct_it->first, ct_it->second});
       broker_group(NEBTYPE_CONTACTGROUP_ADD, cg.get());
     }
@@ -97,18 +92,12 @@ void applier::contactgroup::modify_object(
     to_modify->mutable_members()->CopyFrom(new_object.members());
     it_obj->second->clear_members();
 
+    // Pure wiring: a member that does not exist is skipped (not linked); the
+    // existence of the members is validated by state_helper::resolve.
     for (auto& contact : new_object.members().data()) {
       contact_map::const_iterator ct_it{
           engine::contact::contacts.find(contact)};
-      if (ct_it == engine::contact::contacts.end()) {
-        config_logger->error(
-            "Error: Contact '{}' specified in contact group '{}' is not "
-            "defined anywhere!",
-            contact, it_obj->second->get_name());
-        throw engine_error()
-            << fmt::format("Error: Cannot resolve contact group '{}'",
-                           new_object.contactgroup_name());
-      } else {
+      if (ct_it != engine::contact::contacts.end()) {
         it_obj->second->get_members().insert({ct_it->first, ct_it->second});
         broker_group(NEBTYPE_CONTACTGROUP_ADD, it_obj->second.get());
       }
@@ -152,7 +141,7 @@ void applier::contactgroup::remove_object(const std::string& key) {
  */
 void applier::contactgroup::resolve_object(
     const configuration::Contactgroup& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 
@@ -164,8 +153,12 @@ void applier::contactgroup::resolve_object(
         "Error: Cannot resolve non-existing contact group '{}'",
         obj.contactgroup_name());
 
-  // Resolve contact group.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the existence of the member contacts and the illegal
+  // characters in the name are validated by state_helper::resolve (single
+  // home). Here we only wire each existing member back to its group.
+  for (auto& member : it->second->get_members())
+    member.second->get_parent_groups()[it->second->get_name()] =
+        it->second.get();
 }
 
 /**

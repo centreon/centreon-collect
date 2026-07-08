@@ -646,9 +646,18 @@ void state_helper::resolve(error_cnt& err,
   for (const auto& cmd : pb_config.commands())
     command.insert(cmd.command_name());
 
+  absl::flat_hash_set<std::string_view> contact;
+  contact.reserve(pb_config.contacts().size());
+  for (const auto& c : pb_config.contacts())
+    contact.insert(c.contact_name());
+
   const std::string& illegal_chars = pb_config.illegal_object_chars();
   for (auto& c : pb_config.contacts()) {
     contact_helper::resolve(c, command, timeperiod, illegal_chars, err, log);
+  }
+
+  for (auto& cg : pb_config.contactgroups()) {
+    contactgroup_helper::resolve(cg, contact, illegal_chars, err, log);
   }
 }
 
