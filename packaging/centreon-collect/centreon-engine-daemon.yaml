@@ -153,8 +153,6 @@ overrides:
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine-opentelemetry = ${VERSION}-${RELEASE}${DIST}
       - centreon-protobuf-lib = ${VERSION}-${RELEASE}${DIST}
-      - gnutls >= 3.6.0
-      - mariadb-connector-c >= 3.1.10
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -174,10 +172,6 @@ overrides:
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine-opentelemetry (= ${VERSION}-${RELEASE}${DIST})
       - centreon-protobuf-lib (= ${VERSION}-${RELEASE}${DIST})
-      - libgnutls30
-      - libssl1.1 | libssl3
-      - libmariadb3
-      - zlib1g
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev

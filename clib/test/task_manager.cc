@@ -111,8 +111,11 @@ TEST(ClibTaskManager, ExecuteRecurring) {
     tm.add(t2, timestamp(), 1, false, false);
     tm.add(t2, timestamp(), 1, false, false);
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     ASSERT_EQ(tm.execute(timestamp::now()), 4u);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     ASSERT_EQ(tm.execute(timestamp::now()), 4u);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
     ASSERT_EQ(tm.execute(timestamp::now()), 4u);
     delete t2;
   }
