@@ -71,13 +71,16 @@ action module with ${communication_mode} communcation mode
     Should Be True    ${logs_poller}    Didn't found the logs in the poller file: ${logs_poller}
 
     Examples:    communication_mode    poller_id    --
-        ...    push_zmq    2
-        ...    push_zmq    299123456
-        ...    push_zmq_uuid    299123456
-        ...    push_zmq_uuid    2
-        ...    pullwss    2
-        ...    pullwss_uid    299123456
-        ...    pull    2
+        ...    push_zmq        2
+        ...    push_zmq        299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
+        ...    pull            2
+        ...    pull            299123456
+        ...    pullwss         2
+        ...    pullwss         299123456
+        ...    pullwss_uid     2
+        ...    pullwss_uid     299123456
 
 *** Keywords ***
 Test Sync Action Module

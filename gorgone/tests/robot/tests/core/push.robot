@@ -41,10 +41,10 @@ check central don't eat cpu when poller is not connected
     Ctn Wait Until Poller Fail To Connect    1
     Ctn Check Cpu Until Timeout
     Examples:    communication_mode    poller_id    --
-        ...    push_zmq    2
-        ...    push_zmq    299123456
-        ...    push_zmq_uuid    2
-        ...    push_zmq_uuid    299123456
+        ...    push_zmq        2
+        ...    push_zmq        299123456
+        ...    push_zmq_uid    2
+        ...    push_zmq_uid    299123456
 
 *** Keywords ***
 Ctn Check Cpu Until Timeout

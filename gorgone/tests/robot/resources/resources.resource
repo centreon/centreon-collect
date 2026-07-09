@@ -299,7 +299,7 @@ Setup Two Gorgone Instances
             Check Poller Communicate     2
         END
 
-    ELSE IF    '${communication_mode}' == 'push_zmq_uuid'
+    ELSE IF    '${communication_mode}' == 'push_zmq_uid'
         @{central_push_config}=    Copy List    ${central_config}
         Append To List    ${central_push_config}    ${push_central_config}    ${gorgone_core_config}
 
@@ -384,7 +384,7 @@ Setup Two Gorgone Instances
             Check Poller Communicate     2    max_failed_attempt=1
         END
     ELSE
-        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, pullwss, pull.
+        Fail    Unknown communication mode: ${communication_mode}. Please use one of the following: push_zmq, push_zmq_uid, pullwss, pullwss_uid, pull.
     END
     ${end_time}   Get Time    str=epoch
     ${duration}=    Evaluate    ${end_time} - ${start_time}
