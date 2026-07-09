@@ -394,14 +394,16 @@ jobs:
       fail-fast: false
       # TEMP(test-pulp-unstable): build every distrib/arch (overriding the dynamic
       # cma_matrix) so the Pulp delivery test exercises all distribs — this list
-      # matches the deliver-rpm-pulp / deliver-deb-pulp matrices.
+      # matches the deliver-rpm-pulp / deliver-deb-pulp matrices. RHEL uses the
+      # alma8/9/10 names (the packaging image + parse-distrib input); parse-distrib
+      # maps them to repo_distrib_name el8/9/10, matching the deliver cache_key.
       matrix:
         include:
-          - operating_system: el8
+          - operating_system: alma8
             arch: amd64
-          - operating_system: el9
+          - operating_system: alma9
             arch: amd64
-          - operating_system: el10
+          - operating_system: alma10
             arch: amd64
           - operating_system: bullseye
             arch: amd64
