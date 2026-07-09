@@ -64,6 +64,7 @@ apt-get install -y \
     ninja-build \
     openssl \
     pkg-config \
+    procps \
     python3 \
     strace \
     zlib1g-dev
