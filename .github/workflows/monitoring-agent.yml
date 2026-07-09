@@ -385,10 +385,8 @@ jobs:
   package-linux:
     needs:
       [get-environment, get-aws-environment, changes, check-version-consistency]
+    # TEMP(test-pulp-unstable): force Linux package build to run regardless of changes/stability so deliver-*-pulp has freshly built packages in cache
     if: |
-      needs.changes.outputs.trigger_packaging == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -470,14 +468,7 @@ jobs:
       jira_api_token: ${{ secrets.XRAY_JIRA_TOKEN }}
 
   deliver-rpm:
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+    if: false # TEMP(test-pulp-unstable): disable Artifactory RPM delivery, validate Pulp only
 
     needs: [get-environment, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
@@ -514,16 +505,15 @@ jobs:
 
   deliver-rpm-pulp:
     continue-on-error: true
+    # TEMP(test-pulp-unstable): run regardless of changes/stability to validate Pulp delivery
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    needs: [get-environment, build-and-test-agent-windows, robot-test]
+    # TEMP(test-pulp-unstable): depend on package-linux so the RPM package cache is guaranteed ready (drop Windows/robot deps)
+    needs: [get-environment, package-linux]
     runs-on: centreon-ubuntu-22.04
     strategy:
       fail-fast: false
@@ -554,7 +544,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-rpm-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable # TEMP(test-pulp-unstable): force unstable Pulp suite
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
@@ -569,14 +559,7 @@ jobs:
           echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-deb:
-    if: |
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+    if: false # TEMP(test-pulp-unstable): disable Artifactory DEB delivery, validate Pulp only
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
     runs-on: centreon-ubuntu-22.04
@@ -627,16 +610,15 @@ jobs:
 
   deliver-deb-pulp:
     continue-on-error: true
+    # TEMP(test-pulp-unstable): run regardless of changes/stability to validate Pulp delivery
     if: |
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled') &&
       github.repository == 'centreon/centreon-collect'
 
-    needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
+    # TEMP(test-pulp-unstable): depend on package-linux so the DEB package cache is guaranteed ready (drop Windows/robot deps)
+    needs: [get-environment, package-linux]
     runs-on: centreon-ubuntu-22.04
     strategy:
       fail-fast: false
@@ -683,7 +665,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.run_id }}-${{ github.sha }}-deb-centreon-monitoring-agent-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable # TEMP(test-pulp-unstable): force unstable Pulp suite
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
@@ -697,14 +679,7 @@ jobs:
           echo "::warning::Pulp delivery failed (non-blocking during the Artifactory-to-Pulp migration; Artifactory delivery remains authoritative). See the 'Deliver packages on Pulp' step for the guardrail / auth / upload error."
 
   deliver-windows:
-    if: |
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      github.repository == 'centreon/centreon-collect'
+    if: false # TEMP(test-pulp-unstable): disable Artifactory Windows delivery, validate Pulp only
 
     needs: [get-environment, changes, build-and-test-agent-windows, robot-test]
     runs-on: windows-latest

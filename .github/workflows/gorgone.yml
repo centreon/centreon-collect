@@ -175,10 +175,8 @@ jobs:
 
   package:
     needs: [get-environment, changes, unit-test-perl]
+    # TEMP(test-pulp-unstable): force package to run regardless of changes/stability so deliver-*-pulp has freshly built packages in cache
     if: |
-      needs.changes.outputs.trigger_packaging == 'true' &&
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.get-environment.outputs.stability != 'stable' &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -455,14 +453,7 @@ jobs:
   deliver-rpm:
     runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled')
+    if: false # TEMP(test-pulp-unstable): disable Artifactory RPM delivery, validate Pulp only
 
     strategy:
       fail-fast: false
@@ -490,12 +481,10 @@ jobs:
   deliver-rpm-pulp:
     continue-on-error: true
     runs-on: centreon-ubuntu-22.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
+    # TEMP(test-pulp-unstable): depend on package so the RPM package cache is guaranteed ready
+    needs: [get-environment, package]
+    # TEMP(test-pulp-unstable): run regardless of changes/stability to validate Pulp delivery
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      ((needs.get-environment.outputs.delivery_type == 'feature' && contains(github.event.pull_request.labels.*.name, 'delivery-feature')) ||
-      contains(fromJson('["testing", "unstable"]'), needs.get-environment.outputs.stability)) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
       ! contains(needs.*.result, 'cancelled')
@@ -523,7 +512,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-rpm-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable # TEMP(test-pulp-unstable): force unstable Pulp suite
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           delivery_type: ${{ needs.get-environment.outputs.delivery_type }}
@@ -540,14 +529,7 @@ jobs:
   deliver-deb:
     runs-on: ubuntu-24.04
     needs: [get-environment, unit-test-perl, robot-test, changes]
-    if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
-      ! cancelled() &&
-      ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+    if: false # TEMP(test-pulp-unstable): disable Artifactory DEB delivery, validate Pulp only
 
     strategy:
       fail-fast: false
@@ -573,15 +555,13 @@ jobs:
   deliver-deb-pulp:
     continue-on-error: true
     runs-on: centreon-ubuntu-22.04
-    needs: [get-environment, unit-test-perl, robot-test, changes]
+    # TEMP(test-pulp-unstable): depend on package so the DEB package cache is guaranteed ready
+    needs: [get-environment, package]
+    # TEMP(test-pulp-unstable): run regardless of changes/stability to validate Pulp delivery
     if: |
-      needs.get-environment.outputs.skip_workflow == 'false' &&
-      needs.changes.outputs.trigger_delivery == 'true' &&
-      contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability) &&
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
-      ! contains(needs.*.result, 'cancelled') &&
-      (needs.get-environment.outputs.is_cloud == 'false' || needs.get-environment.outputs.stability == 'unstable')
+      ! contains(needs.*.result, 'cancelled')
 
     strategy:
       fail-fast: false
@@ -606,7 +586,7 @@ jobs:
           distrib: ${{ matrix.distrib }}
           version: ${{ needs.get-environment.outputs.major_version }}
           cache_key: ${{ github.sha }}-${{ github.run_id }}-deb-${{ matrix.distrib }}
-          stability: ${{ needs.get-environment.outputs.stability }}
+          stability: unstable # TEMP(test-pulp-unstable): force unstable Pulp suite
           release_type: ${{ needs.get-environment.outputs.release_type }}
           is_cloud: ${{ needs.get-environment.outputs.is_cloud }}
           pulp_url: ${{ vars.PULP_API_URL }}
