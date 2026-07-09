@@ -300,7 +300,6 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           SPDLOG_LOGGER_INFO(_logger, "global_cache open file {}", _file_path);
           this->managed_map(false);
-          _dirty = dirty;
           return;
         } else {
           if (dirty) {
@@ -393,7 +392,6 @@ void global_cache::managed_map(bool create) {
   if (create) {
     _file->find_or_construct<collect_version>("collect_version")(expected);
     _dirty = _file->find_or_construct<bool>("dirty")(false);
-    return;
   } else {
     collect_version* version =
         _file->find<collect_version>("collect_version").first;
@@ -408,6 +406,7 @@ void global_cache::managed_map(bool create) {
           expected.minor, expected.patch, _file_path);
       throw std::invalid_argument(detail);
     }
+    _dirty = _file->find_or_construct<bool>("dirty")(false);
   }
 }
 
