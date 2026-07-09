@@ -22,6 +22,12 @@
 
 #include "common/engine_conf/message_helper.hh"
 
+// A forward declaration is enough here since spdlog::logger is only used behind
+// a std::shared_ptr.
+namespace spdlog {
+class logger;
+}
+
 namespace com::centreon::engine::configuration {
 
 /**
@@ -41,6 +47,16 @@ class anomalydetection_helper : public message_helper {
 
   bool insert_customvariable(std::string_view key,
                              std::string_view value) override;
+  static void resolve(
+      const Anomalydetection& ad,
+      const absl::flat_hash_set<std::string_view>& hosts,
+      const absl::flat_hash_set<std::string_view>& contacts,
+      const absl::flat_hash_set<std::string_view>& contactgroups,
+      const absl::flat_hash_set<std::string_view>& commands,
+      const absl::flat_hash_set<std::string_view>& timeperiods,
+      std::string_view illegal_chars,
+      error_cnt& err,
+      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 

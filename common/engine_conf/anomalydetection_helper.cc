@@ -19,6 +19,7 @@
 #include "common/engine_conf/anomalydetection_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/notifier_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -281,5 +282,84 @@ bool anomalydetection_helper::insert_customvariable(std::string_view key,
   new_cv->set_name(key.data(), key.size());
   new_cv->set_value(value.data(), value.size());
   return true;
+}
+
+/**
+ * @brief Validate an anomaly detection once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `anomalydetection::resolve()`, which
+ * delegated to `service::resolve()`. The notifier-common part is delegated to
+ * notifier_resolve() (the Anomalydetection overload skips check_command and
+ * check_period, which the message does not carry — they are derived from the
+ * dependent service at wiring time). It only accumulates warnings/errors into
+ * @a err (it never throws) and performs no runtime wiring.
+ *
+ * @param ad The anomaly detection to validate.
+ * @param hosts Index of every defined host name.
+ * @param contacts Index of every defined contact name.
+ * @param contactgroups Index of every defined contact group name.
+ * @param commands Index of every defined command name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param illegal_chars Characters forbidden in object names.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void anomalydetection_helper::resolve(
+    const Anomalydetection& ad,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_set<std::string_view>& contacts,
+    const absl::flat_hash_set<std::string_view>& contactgroups,
+    const absl::flat_hash_set<std::string_view>& commands,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    std::string_view illegal_chars,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  // Common notifier validation (event handler command, periods, contacts,
+  // contact groups). check_command/check_period are skipped for anomaly
+  // detections.
+  notifier_resolve(ad, contacts, contactgroups, commands, timeperiods, err,
+                   log);
+
+  // The host carrying the anomaly detection must be defined.
+  if (!hosts.contains(ad.host_name())) {
+    err.config_errors++;
+    log->error(
+        "Error: Host '{}' specified in service '{}' not defined anywhere!",
+        ad.host_name(), ad.service_description());
+  }
+
+  // Sane recovery notification options.
+  if (ad.notifications_enabled() &&
+      (ad.notification_options() & action_svc_ok) &&
+      !(ad.notification_options() & action_svc_warning) &&
+      !(ad.notification_options() & action_svc_critical)) {
+    err.config_warnings++;
+    log->warn(
+        "Warning: Recovery notification option in service '{}' for host '{}' "
+        "doesn't make any sense - specify warning and /or critical options as "
+        "well",
+        ad.service_description(), ad.host_name());
+  }
+
+  // Notification interval shorter than the check interval.
+  if (ad.notifications_enabled() && ad.notification_interval() &&
+      ad.notification_interval() < ad.check_interval()) {
+    err.config_warnings++;
+    log->warn(
+        "Warning: Service '{}' on host '{}' has a notification interval less "
+        "than its check interval! Notifications are only re-sent after checks "
+        "are made, so the effective notification interval will be that of the "
+        "check interval.",
+        ad.service_description(), ad.host_name());
+  }
+
+  // Illegal characters in the service description.
+  if (name_contains_illegal_chars(ad.service_description(), illegal_chars)) {
+    err.config_errors++;
+    log->error(
+        "Error: The description string for service '{}' on host '{}' contains "
+        "one or more illegal characters.",
+        ad.service_description(), ad.host_name());
+  }
 }
 }  // namespace com::centreon::engine::configuration

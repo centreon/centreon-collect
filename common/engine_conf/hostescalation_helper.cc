@@ -183,4 +183,57 @@ void hostescalation_helper::expand(
   for (auto& e : resolved)
     s.mutable_hostescalations()->AddAllocated(e.release());
 }
+
+/**
+ * @brief Validate a host escalation once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `hostescalation::resolve()` (and its
+ * `escalation::resolve()` base): it only accumulates warnings/errors into @a err
+ * (it never throws) and performs no runtime wiring. After expand(), each host
+ * escalation references exactly one host, so `.data(0)` is safe here.
+ *
+ * @param he The host escalation to validate.
+ * @param hosts Index of every defined host name.
+ * @param contactgroups Index of every defined contact group name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void hostescalation_helper::resolve(
+    const Hostescalation& he,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_set<std::string_view>& contactgroups,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  // Find the host.
+  if (!hosts.contains(he.hosts().data(0))) {
+    err.config_errors++;
+    log->error(
+        "Error: Host '{}' specified in host escalation is not defined "
+        "anywhere!",
+        he.hosts().data(0));
+  }
+
+  // Find the escalation period.
+  if (!he.escalation_period().empty() &&
+      !timeperiods.contains(he.escalation_period())) {
+    err.config_errors++;
+    log->error(
+        "Error: Escalation period '{}' specified in host escalation is not "
+        "defined anywhere!",
+        he.escalation_period());
+  }
+
+  // Check all contact groups.
+  for (auto& cg : he.contactgroups().data()) {
+    if (!contactgroups.contains(cg)) {
+      err.config_errors++;
+      log->error(
+          "Error: Contact group '{}' specified in host escalation for this "
+          "notifier is not defined anywhere!",
+          cg);
+    }
+  }
+}
 }  // namespace com::centreon::engine::configuration

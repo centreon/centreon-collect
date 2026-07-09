@@ -22,6 +22,12 @@
 
 #include "common/engine_conf/message_helper.hh"
 
+// A forward declaration is enough here since spdlog::logger is only used behind
+// a std::shared_ptr.
+namespace spdlog {
+class logger;
+}
+
 namespace com::centreon::engine::configuration {
 
 size_t serviceescalation_key(const Serviceescalation& se);
@@ -42,6 +48,14 @@ class serviceescalation_helper : public message_helper {
           hostgroups,
       const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
           servicegroups);
+  static void resolve(
+      const Serviceescalation& se,
+      const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+          services,
+      const absl::flat_hash_set<std::string_view>& contactgroups,
+      const absl::flat_hash_set<std::string_view>& timeperiods,
+      error_cnt& err,
+      const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace com::centreon::engine::configuration
 

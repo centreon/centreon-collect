@@ -612,152 +612,77 @@ bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
 }
 
 /**
- *  This method resolves pointers involved in this notifier life. If a pointer
- *  cannot be resolved, an exception is thrown.
+ * @brief Wire the runtime pointers of the notifier from its configuration
+ * names.
  *
- * @param w Warnings given by the method.
- * @param e Errors given by the method. An exception is thrown is at less an
- * error is rised.
+ * This is the wiring counterpart of the former `notifier::resolve()`: the
+ * existence of the referenced objects is now validated by state_helper::resolve
+ * (single home), so here we only resolve name -> pointer and leave anything
+ * missing unwired. It is called by the host/service/anomalydetection appliers,
+ * which run before the escalation appliers; the escalation list is therefore
+ * cleared here and refilled by those appliers.
  */
-void notifier::resolve(uint32_t& w, uint32_t& e) {
-  uint32_t warnings = 0, errors = 0;
-
-  /* This list will be filled in {hostescalation,serviceescalation}::resolve */
+void notifier::resolve_pointers() {
+  // Refilled by {host,service}escalation resolution, which runs afterwards.
   _escalations.clear();
 
-  /* check the event handler command */
+  // Event handler command.
   if (!event_handler().empty()) {
     size_t pos{event_handler().find_first_of('!')};
     std::string cmd_name{event_handler().substr(0, pos)};
-
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Event handler command '{}' specified for host '{}' not "
-          "defined anywhere",
-          cmd_name, get_display_name());
-      errors++;
-    } else
-      /* save the pointer to the event handler command for later */
+    if (cmd_found != commands::command::commands.end() && cmd_found->second)
       set_event_handler_ptr(cmd_found->second.get());
   }
 
-  /* hosts that don't have check commands defined shouldn't ever be checked...
-   */
+  // Check command.
   if (!check_command().empty()) {
     size_t pos{check_command().find_first_of('!')};
     std::string cmd_name{check_command().substr(0, pos)};
-
     command_map::iterator cmd_found{commands::command::commands.find(cmd_name)};
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Notifier check command '{}' specified for host '{}' is not "
-          "defined anywhere!",
-          cmd_name, get_display_name());
-      errors++;
-    } else
-      /* save the pointer to the check command for later */
+    if (cmd_found != commands::command::commands.end() && cmd_found->second)
       set_check_command_ptr(cmd_found->second);
   }
 
-  if (check_period().empty()) {
-    SPDLOG_LOGGER_WARN(
-        config_logger,
-        "Warning: Notifier '{}' has no check time period defined!",
-        get_display_name());
-    warnings++;
+  // Check period.
+  if (check_period().empty())
     check_period_ptr = nullptr;
-  } else {
-    timeperiod_map::const_iterator found_it{
-        ::timeperiods.find(check_period())};
-
-    if (found_it == ::timeperiods.end() ||
-        !found_it->second) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Check period '{}' specified for host '{}' is not defined "
-          "anywhere!",
-          check_period(), get_display_name());
-      errors++;
-      check_period_ptr = nullptr;
-    } else
-      /* save the pointer to the check timeperiod for later */
-      check_period_ptr = found_it->second.get();
+  else {
+    timeperiod_map::const_iterator found_it{::timeperiods.find(check_period())};
+    check_period_ptr = (found_it != ::timeperiods.end() && found_it->second)
+                           ? found_it->second.get()
+                           : nullptr;
   }
 
-  /* check all contacts */
+  // Contacts.
   for (contact_map::iterator it = mut_contacts().begin(),
                              end = mut_contacts().end();
        it != end; ++it) {
     contact_map::const_iterator found_it{contact::contacts.find(it->first)};
-    if (found_it == contact::contacts.end() || !found_it->second.get()) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Contact '{}' specified in notifier '{}' is not defined "
-          "anywhere!",
-          it->first, get_display_name());
-      errors++;
-    } else
-      /* save the pointer to the contact */
+    if (found_it != contact::contacts.end() && found_it->second)
       it->second = found_it->second;
   }
 
-  /* check all contact groups */
+  // Contact groups.
   for (contactgroup_map::iterator it = get_contactgroups().begin(),
                                   end = get_contactgroups().end();
        it != end; ++it) {
-    // Find the contact group.
     contactgroup_map::const_iterator found_it{
         contactgroup::contactgroups.find(it->first)};
-
-    if (found_it == contactgroup::contactgroups.end()) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Contact group '{}' specified in host '{}' is not defined "
-          "anywhere!",
-          it->first, get_display_name());
-      errors++;
-    } else
+    if (found_it != contactgroup::contactgroups.end())
       it->second = found_it->second;
   }
 
-  // Check notification timeperiod.
+  // Notification period.
   if (!notification_period().empty()) {
     timeperiod_map::const_iterator found_it{
-        ::timeperiods.find(
-            notification_period())};
-
-    if (found_it == ::timeperiods.end() ||
-        !found_it->second.get()) {
-      SPDLOG_LOGGER_ERROR(
-          config_logger,
-          "Error: Notification period '{}' specified for notifier '{}' is not "
-          "defined anywhere!",
-          notification_period(), get_display_name());
-      errors++;
-      _notification_period_ptr = nullptr;
-    } else
-      // Save the pointer to the notification timeperiod for later.
-      _notification_period_ptr = found_it->second.get();
-  } else if (get_notifications_enabled()) {
-    SPDLOG_LOGGER_WARN(
-        config_logger,
-        "Warning: Notifier '{}' has no notification time period defined!",
-        get_display_name());
-    warnings++;
+        ::timeperiods.find(notification_period())};
+    _notification_period_ptr =
+        (found_it != ::timeperiods.end() && found_it->second)
+            ? found_it->second.get()
+            : nullptr;
+  } else
     _notification_period_ptr = nullptr;
-  }
-
-  w += warnings;
-  e += errors;
-
-  if (e)
-    throw engine_error() << "Cannot resolve host '" << get_display_name()
-                         << "'";
 }
 
 std::array<notifications::notification*, 6>

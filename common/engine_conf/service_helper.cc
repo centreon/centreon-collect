@@ -19,7 +19,7 @@
 #include "service_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/engine_conf/message_helper.hh"
+#include "common/engine_conf/notifier_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -344,6 +344,82 @@ void service_helper::expand(
       if (service_cfg.timezone().empty())
         service_cfg.set_timezone(it->second->timezone());
     }
+  }
+}
+
+/**
+ * @brief Validate a service once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `service::resolve()` (whose
+ * notifier-common part is delegated to notifier_resolve()): it only accumulates
+ * warnings/errors into @a err (it never throws) and performs no runtime wiring
+ * (the host backlink is wired by the applier).
+ *
+ * @param svc The service to validate.
+ * @param hosts Index of every defined host name.
+ * @param contacts Index of every defined contact name.
+ * @param contactgroups Index of every defined contact group name.
+ * @param commands Index of every defined command name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param illegal_chars Characters forbidden in object names.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void service_helper::resolve(
+    const Service& svc,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_set<std::string_view>& contacts,
+    const absl::flat_hash_set<std::string_view>& contactgroups,
+    const absl::flat_hash_set<std::string_view>& commands,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    std::string_view illegal_chars,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  // Common notifier validation (event handler/check commands, periods,
+  // contacts, contact groups).
+  notifier_resolve(svc, contacts, contactgroups, commands, timeperiods, err,
+                   log);
+
+  // The host carrying the service must be defined.
+  if (!hosts.contains(svc.host_name())) {
+    err.config_errors++;
+    log->error(
+        "Error: Host '{}' specified in service '{}' not defined anywhere!",
+        svc.host_name(), svc.service_description());
+  }
+
+  // Sane recovery notification options.
+  if (svc.notifications_enabled() &&
+      (svc.notification_options() & action_svc_ok) &&
+      !(svc.notification_options() & action_svc_warning) &&
+      !(svc.notification_options() & action_svc_critical)) {
+    err.config_warnings++;
+    log->warn(
+        "Warning: Recovery notification option in service '{}' for host '{}' "
+        "doesn't make any sense - specify warning and /or critical options as "
+        "well",
+        svc.service_description(), svc.host_name());
+  }
+
+  // Notification interval shorter than the check interval.
+  if (svc.notifications_enabled() && svc.notification_interval() &&
+      svc.notification_interval() < svc.check_interval()) {
+    err.config_warnings++;
+    log->warn(
+        "Warning: Service '{}' on host '{}' has a notification interval less "
+        "than its check interval! Notifications are only re-sent after checks "
+        "are made, so the effective notification interval will be that of the "
+        "check interval.",
+        svc.service_description(), svc.host_name());
+  }
+
+  // Illegal characters in the service description.
+  if (name_contains_illegal_chars(svc.service_description(), illegal_chars)) {
+    err.config_errors++;
+    log->error(
+        "Error: The description string for service '{}' on host '{}' contains "
+        "one or more illegal characters.",
+        svc.service_description(), svc.host_name());
   }
 }
 }  // namespace com::centreon::engine::configuration

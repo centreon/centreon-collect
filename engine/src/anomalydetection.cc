@@ -1305,11 +1305,6 @@ const std::string& anomalydetection::get_thresholds_file() const {
   return _thresholds_file;
 }
 
-void anomalydetection::resolve(uint32_t& w, uint32_t& e) {
-  set_check_period(_dependent_service->check_period());
-  service::resolve(w, e);
-}
-
 /**
  * @brief update sensitivity member and recalculate all bounds
  *

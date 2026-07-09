@@ -359,7 +359,7 @@ void applier::anomalydetection::remove_object(
  */
 void applier::anomalydetection::resolve_object(
     const configuration::Anomalydetection& obj,
-    error_cnt& err) {
+    [[maybe_unused]] error_cnt& err) {
   // Logging.
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Resolving anomalydetection '{}' of host '{}'.",
@@ -385,6 +385,30 @@ void applier::anomalydetection::resolve_object(
         static_cast<uint64_t>(it->second->check_interval()));
   }
 
-  // Resolve anomalydetection.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the notifier part, the host and the service
+  // description are validated by state_helper::resolve (single home). An anomaly
+  // detection derives its check period from its dependent service. Here we only
+  // wire the runtime backlinks.
+  auto* ad = static_cast<engine::anomalydetection*>(it->second.get());
+
+  // An anomaly detection derives its check period from its dependent service;
+  // set it before wiring so the check period pointer resolves correctly.
+  if (ad->get_dependent_service())
+    ad->set_check_period(ad->get_dependent_service()->check_period());
+
+  // Wire the notifier-common runtime pointers (contacts, contact groups,
+  // commands, periods) and clear the escalations (refilled by the escalation
+  // appliers, which run afterwards).
+  ad->resolve_pointers();
+
+  host_map::const_iterator hit{engine::host::hosts.find(obj.host_name())};
+  if (hit == engine::host::hosts.end() || !hit->second)
+    ad->set_host_ptr(nullptr);
+  else {
+    ad->set_host_ptr(hit->second.get());
+    hit->second->services.insert(
+        {{obj.host_name(), obj.service_description()}, ad});
+    broker_relation_data(NEBTYPE_PARENT_ADD, ad->get_host_ptr(), nullptr,
+                         nullptr, ad);
+  }
 }

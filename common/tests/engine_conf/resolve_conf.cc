@@ -53,19 +53,23 @@ class Pb_Resolve : public ::testing::Test {
     t->set_alias(name);
   }
 
-  // Add a defined host to the State.
+  // Add a defined host to the State. A check period is set so the notifier
+  // validation (now run on every host) does not raise the "no check time
+  // period" warning.
   static void add_host(State& s, const std::string& name) {
     Host* h = s.add_hosts();
     h->set_host_name(name);
+    h->set_check_period("24x7");
   }
 
-  // Add a defined service to the State.
+  // Add a defined service to the State (with a check period, see add_host).
   static void add_service(State& s,
                           const std::string& host,
                           const std::string& description) {
     Service* svc = s.add_services();
     svc->set_host_name(host);
     svc->set_service_description(description);
+    svc->set_check_period("24x7");
   }
 
   // Add a host dependency between two hosts. It uses the single-host form and a
@@ -97,6 +101,61 @@ class Pb_Resolve : public ::testing::Test {
     sd->mutable_hosts()->add_data(host);
     sd->mutable_service_description()->add_data(svc);
     return sd;
+  }
+
+  // Add a contact group (with no member) to the State.
+  static Contactgroup* add_contactgroup(State& s, const std::string& name) {
+    Contactgroup* cg = s.add_contactgroups();
+    cg->set_contactgroup_name(name);
+    return cg;
+  }
+
+  // Add a host escalation for a single host (expand keeps it as one entry).
+  static Hostescalation* add_hostescalation(State& s, const std::string& host) {
+    Hostescalation* he = s.add_hostescalations();
+    he->mutable_hosts()->add_data(host);
+    return he;
+  }
+
+  // Add a service escalation for a single (host, service) pair.
+  static Serviceescalation* add_serviceescalation(State& s,
+                                                  const std::string& host,
+                                                  const std::string& svc) {
+    Serviceescalation* se = s.add_serviceescalations();
+    se->mutable_hosts()->add_data(host);
+    se->mutable_service_description()->add_data(svc);
+    return se;
+  }
+
+  // Add a host with a defined check period so the notifier-common validation
+  // does not raise the "no check time period" warning. Built as raw protobuf,
+  // notifications_enabled stays false, so no notification-period warning either.
+  static Host* add_notifier_host(State& s, const std::string& name) {
+    Host* h = s.add_hosts();
+    h->set_host_name(name);
+    h->set_check_period("24x7");
+    return h;
+  }
+
+  // Add a service on a host, with a defined check period (see add_notifier_host).
+  static Service* add_notifier_service(State& s,
+                                       const std::string& host,
+                                       const std::string& desc) {
+    Service* svc = s.add_services();
+    svc->set_host_name(host);
+    svc->set_service_description(desc);
+    svc->set_check_period("24x7");
+    return svc;
+  }
+
+  // Add an anomaly detection on a host. It has no check command/period fields.
+  static Anomalydetection* add_anomalydetection(State& s,
+                                                const std::string& host,
+                                                const std::string& desc) {
+    Anomalydetection* ad = s.add_anomalydetections();
+    ad->set_host_name(host);
+    ad->set_service_description(desc);
+    return ad;
   }
 
   // Add a fully valid contact (existing periods + commands) to the State.
@@ -595,4 +654,266 @@ TEST_F(Pb_Resolve, ServicedependencyNonExistingDependencyPeriod) {
   hlp.resolve(err);
   ASSERT_EQ(err.config_warnings, 0u);
   ASSERT_EQ(err.config_errors, 2u);
+}
+
+// A host escalation on a defined host, with a defined contact group and a
+// defined escalation period, resolves without any warning or error.
+TEST_F(Pb_Resolve, HostescalationValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_contactgroup(s, "cg1");
+  Hostescalation* he = add_hostescalation(s, "host_1");
+  he->mutable_contactgroups()->add_data("cg1");
+  he->set_escalation_period("24x7");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A host escalation on a non-existing host is a single error.
+TEST_F(Pb_Resolve, HostescalationNonExistingHost) {
+  State s = base_state();
+  add_hostescalation(s, "ghost");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host escalation referencing a non-existing contact group is a single error.
+TEST_F(Pb_Resolve, HostescalationNonExistingContactgroup) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostescalation* he = add_hostescalation(s, "host_1");
+  he->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host escalation referencing a non-existing escalation period is a single
+// error.
+TEST_F(Pb_Resolve, HostescalationNonExistingEscalationPeriod) {
+  State s = base_state();
+  add_host(s, "host_1");
+  Hostescalation* he = add_hostescalation(s, "host_1");
+  he->set_escalation_period("ghost_tp");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A service escalation on a defined service, with a defined contact group and a
+// defined escalation period, resolves without any warning or error.
+TEST_F(Pb_Resolve, ServiceescalationValid) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  add_contactgroup(s, "cg1");
+  Serviceescalation* se = add_serviceescalation(s, "host_1", "svc_1");
+  se->mutable_contactgroups()->add_data("cg1");
+  se->set_escalation_period("24x7");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A service escalation on a non-existing service is a single error.
+TEST_F(Pb_Resolve, ServiceescalationNonExistingService) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_serviceescalation(s, "host_1", "ghost_svc");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A service escalation referencing a non-existing contact group is a single
+// error.
+TEST_F(Pb_Resolve, ServiceescalationNonExistingContactgroup) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  Serviceescalation* se = add_serviceescalation(s, "host_1", "svc_1");
+  se->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A service escalation referencing a non-existing escalation period is a single
+// error.
+TEST_F(Pb_Resolve, ServiceescalationNonExistingEscalationPeriod) {
+  State s = base_state();
+  add_host(s, "host_1");
+  add_service(s, "host_1", "svc_1");
+  Serviceescalation* se = add_serviceescalation(s, "host_1", "svc_1");
+  se->set_escalation_period("ghost_tp");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host with a defined check period, a defined check command and no other
+// referenced object resolves without any warning or error.
+TEST_F(Pb_Resolve, HostValid) {
+  State s = base_state();
+  Host* h = add_notifier_host(s, "host_1");
+  h->set_check_command("cmd");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A host whose check command is not defined is a single error.
+TEST_F(Pb_Resolve, HostNonExistingCheckCommand) {
+  State s = base_state();
+  Host* h = add_notifier_host(s, "host_1");
+  h->set_check_command("ghost_cmd");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host referencing a non-existing parent host is a single error.
+TEST_F(Pb_Resolve, HostNonExistingParent) {
+  State s = base_state();
+  Host* h = add_notifier_host(s, "host_1");
+  h->mutable_parents()->add_data("ghost");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host referencing a non-existing contact group is a single error.
+TEST_F(Pb_Resolve, HostNonExistingContactgroup) {
+  State s = base_state();
+  Host* h = add_notifier_host(s, "host_1");
+  h->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// A host with no check time period gets a single warning (no error).
+TEST_F(Pb_Resolve, HostNoCheckPeriodWarning) {
+  State s = base_state();
+  Host* h = s.add_hosts();
+  h->set_host_name("host_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 1u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A service on a defined host, with a defined check period and check command,
+// resolves without any warning or error.
+TEST_F(Pb_Resolve, ServiceValid) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("cmd");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// A service whose check command is not defined is a single error.
+TEST_F(Pb_Resolve, ServiceNonExistingCheckCommand) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Service* svc = add_notifier_service(s, "host_1", "svc_1");
+  svc->set_check_command("ghost_cmd");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
+}
+
+// An anomaly detection on a defined host resolves cleanly (it has no check
+// command/period, so the notifier-common validation skips those checks).
+TEST_F(Pb_Resolve, AnomalydetectionValid) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  add_anomalydetection(s, "host_1", "ad_1");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 0u);
+}
+
+// An anomaly detection referencing a non-existing contact group is a single
+// error.
+TEST_F(Pb_Resolve, AnomalydetectionNonExistingContactgroup) {
+  State s = base_state();
+  add_notifier_host(s, "host_1");
+  Anomalydetection* ad = add_anomalydetection(s, "host_1", "ad_1");
+  ad->mutable_contactgroups()->add_data("ghost_cg");
+
+  state_helper hlp(&s);
+  error_cnt err;
+  hlp.expand(err);
+  hlp.resolve(err);
+  ASSERT_EQ(err.config_warnings, 0u);
+  ASSERT_EQ(err.config_errors, 1u);
 }
