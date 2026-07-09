@@ -47,6 +47,7 @@ contents:
       mode: 0770
 
 scripts:
+  preinstall: ./scripts/centreon-gorgone-centreon-config-preinstall.sh
   postinstall: ./scripts/centreon-gorgone-centreon-config-postinstall.sh
 
 overrides:
