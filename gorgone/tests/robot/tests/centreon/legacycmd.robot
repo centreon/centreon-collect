@@ -37,7 +37,7 @@ Legacycmd with ${communication_mode} communication
         ...    pullwss_uid    2
         ...    pullwss_uid    299123456
         ...    pull           2
-#        ...    pull           299123456
+        ...    pull           299123456
         
 *** Keywords ***
 Legacycmd Teardown
@@ -63,7 +63,7 @@ Push Engine And vmware Configuration
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/vmware/${poller_id}/centreon_vmware.json
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/broker/${poller_id}/broker.cfg
     Run    sed -i -e 's/@COMMUNICATION_MODE@/${comm}/g' /var/cache/centreon/config/engine/${poller_id}/engine-hosts.cfg
-    Run    dd if=/dev/urandom of=/var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg bs=60MB count=1 iflag=fullblock
+    Run    dd if=/dev/urandom of=/var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg bs=1MB count=1 iflag=fullblock
     ${MD5Start}=    Run    md5sum /var/cache/centreon/config/engine/${poller_id}/randomBigFile.cfg | cut -f 1 -d " "
     Run    chown www-data:www-data /var/cache/centreon/config/*/${poller_id}/*
     Run    chmod 644 /var/cache/centreon/config/*/${poller_id}/*
