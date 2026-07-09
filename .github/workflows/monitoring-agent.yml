@@ -392,8 +392,37 @@ jobs:
       ! contains(needs.*.result, 'cancelled')
     strategy:
       fail-fast: false
+      # TEMP(test-pulp-unstable): build every distrib/arch (overriding the dynamic
+      # cma_matrix) so the Pulp delivery test exercises all distribs — this list
+      # matches the deliver-rpm-pulp / deliver-deb-pulp matrices.
       matrix:
-        include: ${{ fromJson(needs.get-environment.outputs.cma_matrix) }}
+        include:
+          - operating_system: el8
+            arch: amd64
+          - operating_system: el9
+            arch: amd64
+          - operating_system: el10
+            arch: amd64
+          - operating_system: bullseye
+            arch: amd64
+          - operating_system: bullseye
+            arch: arm64
+          - operating_system: bookworm
+            arch: amd64
+          - operating_system: bookworm
+            arch: arm64
+          - operating_system: trixie
+            arch: amd64
+          - operating_system: trixie
+            arch: arm64
+          - operating_system: jammy
+            arch: amd64
+          - operating_system: jammy
+            arch: arm64
+          - operating_system: noble
+            arch: amd64
+          - operating_system: noble
+            arch: arm64
 
     name: package ${{ matrix.operating_system }} ${{ matrix.arch }}
 
