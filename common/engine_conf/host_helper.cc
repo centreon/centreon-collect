@@ -19,6 +19,7 @@
 #include "common/engine_conf/host_helper.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/notifier_helper.hh"
 
 using com::centreon::exceptions::msg_fmt;
 
@@ -345,6 +346,69 @@ void host_helper::expand(
             host_cfg.host_name(), grp);
       }
     }
+  }
+}
+
+/**
+ * @brief Validate a host once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `host::resolve()` (whose
+ * notifier-common part is delegated to notifier_resolve()): it only accumulates
+ * warnings/errors into @a err (it never throws) and performs no runtime wiring
+ * (the services/parent backlinks are wired by the applier).
+ *
+ * @param hst The host to validate.
+ * @param hosts Index of every defined host name.
+ * @param contacts Index of every defined contact name.
+ * @param contactgroups Index of every defined contact group name.
+ * @param commands Index of every defined command name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param illegal_chars Characters forbidden in object names.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void host_helper::resolve(
+    const Host& hst,
+    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_set<std::string_view>& contacts,
+    const absl::flat_hash_set<std::string_view>& contactgroups,
+    const absl::flat_hash_set<std::string_view>& commands,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    std::string_view illegal_chars,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  // Common notifier validation (event handler/check commands, periods,
+  // contacts, contact groups).
+  notifier_resolve(hst, contacts, contactgroups, commands, timeperiods, err,
+                   log);
+
+  // Every parent host must be defined.
+  for (auto& p : hst.parents().data()) {
+    if (!hosts.contains(p)) {
+      err.config_errors++;
+      log->error("Error: '{}' is not a valid parent for host '{}'!", p,
+                 hst.host_name());
+    }
+  }
+
+  // Illegal characters in the host name.
+  if (name_contains_illegal_chars(hst.host_name(), illegal_chars)) {
+    err.config_errors++;
+    log->error(
+        "Error: The name of host '{}' contains one or more illegal characters.",
+        hst.host_name());
+  }
+
+  // Sane recovery notification options.
+  if (hst.notifications_enabled() &&
+      (hst.notification_options() & action_hst_up) &&
+      !(hst.notification_options() & action_hst_down) &&
+      !(hst.notification_options() & action_hst_unreachable)) {
+    err.config_warnings++;
+    log->warn(
+        "Warning: Recovery notification option in host '{}' definition doesn't "
+        "make any sense - specify down and/or unreachable options as well",
+        hst.host_name());
   }
 }
 

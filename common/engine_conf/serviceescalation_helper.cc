@@ -226,4 +226,62 @@ void serviceescalation_helper::expand(
   for (auto& e : resolved)
     s.mutable_serviceescalations()->AddAllocated(e.release());
 }
+
+/**
+ * @brief Validate a service escalation once the State has been expanded.
+ *
+ * Counterpart of the former Engine runtime `serviceescalation::resolve()` (and
+ * its `escalation::resolve()` base): it only accumulates warnings/errors into
+ * @a err (it never throws) and performs no runtime wiring. After expand(), each
+ * service escalation references exactly one (host, service) pair, so `.data(0)`
+ * is safe here.
+ *
+ * @param se The service escalation to validate.
+ * @param services Index of every defined (host, service description) pair.
+ * @param contactgroups Index of every defined contact group name.
+ * @param timeperiods Index of every defined timeperiod name.
+ * @param err Warning/error counters, incremented in place.
+ * @param log Logger for the diagnostics.
+ */
+void serviceescalation_helper::resolve(
+    const Serviceescalation& se,
+    const absl::flat_hash_set<std::pair<std::string_view, std::string_view>>&
+        services,
+    const absl::flat_hash_set<std::string_view>& contactgroups,
+    const absl::flat_hash_set<std::string_view>& timeperiods,
+    error_cnt& err,
+    const std::shared_ptr<spdlog::logger>& log) {
+  std::pair<std::string_view, std::string_view> svc{
+      se.hosts().data(0), se.service_description().data(0)};
+
+  // Find the service.
+  if (!services.contains(svc)) {
+    err.config_errors++;
+    log->error(
+        "Error: Service '{}' on host '{}' specified in service escalation is "
+        "not defined anywhere!",
+        svc.second, svc.first);
+  }
+
+  // Find the escalation period.
+  if (!se.escalation_period().empty() &&
+      !timeperiods.contains(se.escalation_period())) {
+    err.config_errors++;
+    log->error(
+        "Error: Escalation period '{}' specified in service escalation is not "
+        "defined anywhere!",
+        se.escalation_period());
+  }
+
+  // Check all contact groups.
+  for (auto& cg : se.contactgroups().data()) {
+    if (!contactgroups.contains(cg)) {
+      err.config_errors++;
+      log->error(
+          "Error: Contact group '{}' specified in service escalation for this "
+          "notifier is not defined anywhere!",
+          cg);
+    }
+  }
+}
 }  // namespace com::centreon::engine::configuration

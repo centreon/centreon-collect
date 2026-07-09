@@ -21,6 +21,7 @@
 #include <rapidjson/rapidjson.h>
 #include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/engine_conf/anomalydetection_helper.hh"
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/contactgroup_helper.hh"
 #include "common/engine_conf/host_helper.hh"
@@ -668,6 +669,11 @@ void state_helper::resolve(error_cnt& err,
   for (const auto& c : pb_config.contacts())
     contact.insert(c.contact_name());
 
+  absl::flat_hash_set<std::string_view> contactgroup;
+  contactgroup.reserve(pb_config.contactgroups().size());
+  for (const auto& cg : pb_config.contactgroups())
+    contactgroup.insert(cg.contactgroup_name());
+
   absl::flat_hash_set<std::string_view> host;
   host.reserve(pb_config.hosts().size());
   for (const auto& h : pb_config.hosts())
@@ -701,6 +707,30 @@ void state_helper::resolve(error_cnt& err,
 
   for (auto& sd : pb_config.servicedependencies()) {
     servicedependency_helper::resolve(sd, service, timeperiod, err, log);
+  }
+
+  for (auto& he : pb_config.hostescalations()) {
+    hostescalation_helper::resolve(he, host, contactgroup, timeperiod, err, log);
+  }
+
+  for (auto& se : pb_config.serviceescalations()) {
+    serviceescalation_helper::resolve(se, service, contactgroup, timeperiod, err,
+                                      log);
+  }
+
+  for (auto& h : pb_config.hosts()) {
+    host_helper::resolve(h, host, contact, contactgroup, command, timeperiod,
+                         illegal_chars, err, log);
+  }
+
+  for (auto& svc : pb_config.services()) {
+    service_helper::resolve(svc, host, contact, contactgroup, command,
+                            timeperiod, illegal_chars, err, log);
+  }
+
+  for (auto& ad : pb_config.anomalydetections()) {
+    anomalydetection_helper::resolve(ad, host, contact, contactgroup, command,
+                                     timeperiod, illegal_chars, err, log);
   }
 }
 

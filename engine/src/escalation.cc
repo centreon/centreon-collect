@@ -18,7 +18,6 @@
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "common/timeperiods/timeperiod.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::common::timeperiods;
@@ -111,53 +110,6 @@ bool escalation::is_viable(int state __attribute__((unused)),
       (notification_number > _last_notification && _last_notification != 0))
     return false;
   return true;
-}
-
-void escalation::resolve(uint32_t& w [[maybe_unused]], uint32_t& e) {
-  uint32_t errors = 0;
-  // Find the timeperiod.
-  if (!get_escalation_period().empty()) {
-    timeperiod_map::const_iterator it{
-        ::timeperiods.find(
-            get_escalation_period())};
-
-    if (it == ::timeperiods.end() ||
-        !it->second) {
-      config_logger->error(
-          "Error: Escalation period '{}' specified in escalation is not "
-          "defined anywhere!",
-          get_escalation_period());
-      errors++;
-    } else
-      // Save the timeperiod pointer for later.
-      escalation_period_ptr = it->second.get();
-  }
-
-  // Check all contact groups.
-  for (contactgroup_map::iterator it = _contact_groups.begin(),
-                                  end = _contact_groups.end();
-       it != end; ++it) {
-    // Find the contact group.
-    contactgroup_map::iterator it_cg{
-        contactgroup::contactgroups.find(it->first)};
-
-    if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-      config_logger->error(
-          "Error: Contact group '{}' specified in escalation for this notifier "
-          "is not defined "
-          "anywhere!",
-          it->first);
-      errors++;
-    } else {
-      // Save the contactgroup pointer for later.
-      it->second = it_cg->second;
-    }
-  }
-
-  if (errors) {
-    e += errors;
-    throw engine_error() << "Cannot resolve notifier escalation";
-  }
 }
 
 size_t escalation::internal_key() const {

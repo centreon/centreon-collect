@@ -452,7 +452,7 @@ void applier::service::remove_object(const std::pair<uint64_t, uint64_t>& key) {
  *  @param[in] obj  Service object.
  */
 void applier::service::resolve_object(const configuration::Service& obj,
-                                      error_cnt& err) {
+                                      [[maybe_unused]] error_cnt& err) {
   // Logging.
   config_logger->debug("Resolving service '{}' of host '{}'.",
                        obj.service_description(), obj.host_name());
@@ -477,8 +477,26 @@ void applier::service::resolve_object(const configuration::Service& obj,
         static_cast<uint64_t>(it->second->check_interval()));
   }
 
-  // Resolve service.
-  it->second->resolve(err.config_warnings, err.config_errors);
+  // This is pure wiring: the notifier part, the host and the service
+  // description are validated by state_helper::resolve (single home). Here we
+  // only wire the host backlink.
+  auto* s = it->second.get();
+
+  // Wire the notifier-common runtime pointers (contacts, contact groups,
+  // commands, periods) and clear the escalations (refilled by the escalation
+  // appliers, which run afterwards).
+  s->resolve_pointers();
+
+  host_map::const_iterator hit{engine::host::hosts.find(obj.host_name())};
+  if (hit == engine::host::hosts.end() || !hit->second)
+    s->set_host_ptr(nullptr);
+  else {
+    s->set_host_ptr(hit->second.get());
+    hit->second->services.insert(
+        {{obj.host_name(), obj.service_description()}, s});
+    broker_relation_data(NEBTYPE_PARENT_ADD, s->get_host_ptr(), nullptr,
+                         nullptr, s);
+  }
 }
 
 /**
