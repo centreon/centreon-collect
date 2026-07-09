@@ -4695,6 +4695,54 @@ define servicedependency {{
 """)
 
 
+def ctn_add_host_escalation(idx: int, host_name: str, contact_groups: str, escalation_period: str = "24x7"):
+    """
+    Add a host escalation on a host in the escalations.cfg file.
+
+    Args:
+        idx: Index of the poller (from 0).
+        host_name: Host name the escalation applies to.
+        contact_groups: Contact group name(s) notified by the escalation.
+        escalation_period: Escalation timeperiod name (default 24x7).
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/escalations.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define hostescalation {{
+    host_name          {host_name}
+    escalation_period  {escalation_period}
+    escalation_options d,u,r
+    contact_groups     {contact_groups}
+}}
+""")
+
+
+def ctn_add_service_escalation(idx: int, host_name: str, service_description: str, contact_groups: str, escalation_period: str = "24x7"):
+    """
+    Add a service escalation on a service in the escalations.cfg file.
+
+    Args:
+        idx: Index of the poller (from 0).
+        host_name: Host name of the host containing the service.
+        service_description: Description of the service the escalation applies to.
+        contact_groups: Contact group name(s) notified by the escalation.
+        escalation_period: Escalation timeperiod name (default 24x7).
+    """
+    conf_dir = engine.get_config_dir(idx)
+    filename = f"{conf_dir}/escalations.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define serviceescalation {{
+    host_name           {host_name}
+    service_description {service_description}
+    escalation_period   {escalation_period}
+    escalation_options  w,u,c,r
+    contact_groups      {contact_groups}
+}}
+""")
+
+
 def ctn_get_service_command(host_id: int, service_id: int):
     cmd = engine.service_cmd[service_id]
     if cmd.startswith("command_"):
