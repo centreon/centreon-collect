@@ -1256,3 +1256,77 @@ TEST(parser, boolean2) {
   // Check global params
   ASSERT_FALSE(s.log_conf().log_pid());
 }
+
+// uid present -> poller_id() returns the 64-bit value.
+TEST(parser, uid_overrides_poller_id) {
+  std::string config_file(misc::temp_path());
+  FILE* f = fopen(config_file.c_str(), "w");
+  ASSERT_TRUE(f);
+  std::string data{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "    \"broker_id\": 1,\n"
+      "    \"broker_name\": \"test-broker\",\n"
+      "    \"poller_id\": 2,\n"
+      "    \"uid\": 123456789012345678,\n"
+      "    \"poller_name\": \"test-poller\"\n"
+      "  }\n"
+      "}\n"};
+  ASSERT_EQ(fwrite(data.c_str(), data.size(), 1, f), 1u);
+  fclose(f);
+
+  config::parser p;
+  config::state s{p.parse(config_file, false)};
+  ::remove(config_file.c_str());
+
+  ASSERT_EQ(s.poller_id(), 123456789012345678ULL);
+}
+
+// uid absent -> poller_id() returns the legacy
+TEST(parser, no_uid_keeps_poller_id) {
+  std::string config_file(misc::temp_path());
+  FILE* f = fopen(config_file.c_str(), "w");
+  ASSERT_TRUE(f);
+  std::string data{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "    \"broker_id\": 1,\n"
+      "    \"broker_name\": \"test-broker\",\n"
+      "    \"poller_id\": 3,\n"
+      "    \"poller_name\": \"test-poller\"\n"
+      "  }\n"
+      "}\n"};
+  ASSERT_EQ(fwrite(data.c_str(), data.size(), 1, f), 1u);
+  fclose(f);
+
+  config::parser p;
+  config::state s{p.parse(config_file, false)};
+  ::remove(config_file.c_str());
+
+  ASSERT_EQ(s.poller_id(), 3ULL);
+}
+
+// uid present -> poller_id() returns the 64-bit value.
+TEST(parser, uid_overrides_poller_id_2) {
+  std::string config_file(misc::temp_path());
+  FILE* f = fopen(config_file.c_str(), "w");
+  ASSERT_TRUE(f);
+  std::string data{
+      "{\n"
+      "  \"centreonBroker\": {\n"
+      "    \"broker_id\": 1,\n"
+      "    \"broker_name\": \"test-broker\",\n"
+      "    \"uid\": 123456789012345678,\n"
+      "    \"poller_id\": 2,\n"
+      "    \"poller_name\": \"test-poller\"\n"
+      "  }\n"
+      "}\n"};
+  ASSERT_EQ(fwrite(data.c_str(), data.size(), 1, f), 1u);
+  fclose(f);
+
+  config::parser p;
+  config::state s{p.parse(config_file, false)};
+  ::remove(config_file.c_str());
+
+  ASSERT_EQ(s.poller_id(), 123456789012345678ULL);
+}

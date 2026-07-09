@@ -21,6 +21,8 @@
 #include "centreon_agent/agent_impl.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/timeperiod.hh"
+#include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/crypto/base64.hh"
 
@@ -53,7 +55,7 @@ absl::Mutex* agent_impl_base::_instances_m = new absl::Mutex;
  * @param conf
  */
 void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   auto me = shared_from_this();
   _configured_instance->get<1>().erase(me);
   if (conf.services().empty()) {
@@ -73,7 +75,7 @@ void agent_impl_base::_on_new_conf(const agent::AgentConfiguration& conf) {
  */
 void agent_impl_base::_on_done() {
   auto me = shared_from_this();
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   _configured_instance->get<1>().erase(me);
   _no_configured_instance->erase(me);
 }
@@ -97,7 +99,7 @@ void agent_impl_base::all_agent_calc_and_send_config_if_needed(
  * @param serv_id
  */
 void agent_impl_base::force_check(uint64_t host_id, uint64_t serv_id) {
-  absl::MutexLock l(_instances_m);
+  absl::MutexLock l(*_instances_m);
   auto& host_serv_index = _configured_instance->get<0>();
   auto search = host_serv_index.find(std::make_pair(host_id, serv_id));
   if (search == host_serv_index.end()) {
@@ -192,7 +194,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::calc_and_send_config_if_needed(
     const agent_config::pointer& new_conf) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     _conf = new_conf;
   }
   auto to_call = std::packaged_task<int(void)>(
@@ -214,6 +216,8 @@ static bool add_command_to_agent_conf(
     uint32_t check_interval,
     uint32_t retry_interval,
     uint32_t max_attempts,
+    const std::string& check_period_name,
+    const std::string& timezone,
     com::centreon::agent::AgentConfiguration* cnf,
     const std::shared_ptr<spdlog::logger>& logger,
     const std::string& peer,
@@ -248,8 +252,43 @@ static bool add_command_to_agent_conf(
   serv->set_check_interval(check_interval * pb_config.interval_length());
   serv->set_retry_interval(retry_interval * pb_config.interval_length());
   serv->set_max_attempts(max_attempts);
+  if (!check_period_name.empty()) {
+    serv->set_check_period_name(check_period_name);
+  }
+  if (!timezone.empty()) {
+    serv->set_timezone(timezone);
+    // Resolve the configured IANA zone to its current effective UTC offset and
+    // DST state.
+    time_t now = ::time(nullptr);
+    struct tm tmv = {};
+    {
+      com::centreon::engine::timezone_locker lock(timezone);
+      ::localtime_r(&now, &tmv);
+    }
+    serv->set_utc_offset(static_cast<int32_t>(tmv.tm_gmtoff));
+    serv->set_dst_active(tmv.tm_isdst > 0);
+  }
 
   return true;
+}
+
+// copy the matching configuration::Timeperiod protos into cnf.
+static void _serialize_timeperiods(
+    com::centreon::agent::AgentConfiguration* cnf) {
+  absl::flat_hash_set<std::string> seen;
+
+  for (const auto& svc : cnf->services()) {
+    if (!svc.check_period_name().empty())
+      seen.insert(svc.check_period_name());
+  }
+
+  for (const auto& tp : pb_config.timeperiods()) {
+    if (!tp.timeperiod_name().empty() &&
+        seen.find(tp.timeperiod_name()) != seen.end()) {
+      auto timeperiod = cnf->add_timeperiods();
+      timeperiod->CopyFrom(tp);
+    }
+  }
 }
 
 /**
@@ -296,7 +335,7 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
           *new_conf);
     }
 
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -308,20 +347,21 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
               const std::string& cmd_name, const std::string& cmd_line,
               const std::string& service, uint64_t host_id, uint64_t service_id,
               uint32_t check_interval, uint32_t retry_interval,
-              uint32_t max_attempts,
+              uint32_t max_attempts, const std::string& check_period_name,
+              const std::string& timezone,
               const std::shared_ptr<spdlog::logger>& logger) {
             return add_command_to_agent_conf(
                 cmd_name, cmd_line, service, host_id, service_id,
-                check_interval, retry_interval, max_attempts, cnf, logger, peer,
-                crypt_credentials);
+                check_interval, retry_interval, max_attempts, check_period_name,
+                timezone, cnf, logger, peer, crypt_credentials);
           },
           _whitelist_cache, _logger);
       if (command_added == e_get_otel_commands_ret::no_cma_service) {
         SPDLOG_LOGGER_ERROR(_logger, "No command found for agent {} : {}",
-                            get_peer(), _agent_info->init().ShortDebugString());
+                            get_peer(), _agent_info->init());
       } else if (command_added == e_get_otel_commands_ret::unknown_host) {
         SPDLOG_LOGGER_ERROR(_logger, "unknown host for agent {} : {}",
-                            get_peer(), _agent_info->init().ShortDebugString());
+                            get_peer(), _agent_info->init());
         // notify broker of an unknown cma host
         com::centreon::broker::UnknownHost to_send;
         const auto& agent_info = _agent_info->init();
@@ -336,6 +376,8 @@ void agent_impl<bireactor_class>::_calc_and_send_config_if_needed() {
         broker_agent_unknown_host(to_send);
       }
     }
+    _serialize_timeperiods(cnf);
+
     if (!_last_sent_config ||
         !::google::protobuf::util::MessageDifferencer::Equals(
             *cnf, _last_sent_config->config())) {
@@ -365,7 +407,7 @@ void agent_impl<bireactor_class>::on_request(
   agent_config::pointer agent_conf;
   if (request->has_init()) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _agent_info = request;
       agent_conf = _conf;
       _last_sent_config.reset();
@@ -392,7 +434,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::_write(
     const std::shared_ptr<agent::MessageToAgent>& request) {
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive) {
       return;
     }
@@ -420,7 +462,7 @@ void agent_impl<bireactor_class>::register_stream(
  */
 template <class bireactor_class>
 void agent_impl<bireactor_class>::start_read() {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   if (!_alive) {
     return;
   }
@@ -444,18 +486,18 @@ void agent_impl<bireactor_class>::OnReadDone(bool ok) {
     if (_exp_time != std::chrono::system_clock::time_point::min() &&
         _exp_time != std::chrono::system_clock::time_point::max() &&
         _exp_time <= std::chrono::system_clock::now()) {
-      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired",
-                          static_cast<void*>(this), _class_name);
+      SPDLOG_LOGGER_ERROR(_logger, "{:p} {} token expired: {}",
+                          static_cast<void*>(this), _class_name, _exp_time);
       on_error();
       this->shutdown();
       return;
     }
     std::shared_ptr<agent::MessageFromAgent> readden;
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} receive from {}: {}",
                           static_cast<const void*>(this), _class_name,
-                          get_peer(), *_read_current);
+                          get_peer(), otl_formatter{*_read_current});
       readden = _read_current;
       _read_current.reset();
     }
@@ -478,7 +520,7 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::start_write() {
   std::shared_ptr<agent::MessageToAgent> to_send;
   {
-    absl::MutexLock l(&_protect);
+    absl::MutexLock l(_protect);
     if (!_alive || _write_pending || _write_queue.empty()) {
       return;
     }
@@ -487,7 +529,7 @@ void agent_impl<bireactor_class>::start_write() {
   }
   SPDLOG_LOGGER_TRACE(_logger, "{:p} {} send to {}: {}",
                       static_cast<void*>(this), _class_name, get_peer(),
-                      *to_send);
+                      otl_formatter{*to_send});
   bireactor_class::StartWrite(to_send.get());
 }
 
@@ -501,11 +543,11 @@ template <class bireactor_class>
 void agent_impl<bireactor_class>::OnWriteDone(bool ok) {
   if (ok) {
     {
-      absl::MutexLock l(&_protect);
+      absl::MutexLock l(_protect);
       _write_pending = false;
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} {} sent",
                           static_cast<const void*>(this), _class_name,
-                          **_write_queue.begin());
+                          otl_formatter{**_write_queue.begin()});
       _write_queue.pop_front();
     }
     start_write();

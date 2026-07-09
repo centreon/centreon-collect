@@ -1,0 +1,25 @@
+{
+    "centreonBroker": {
+        "broker_id": 7,
+        "broker_name": "e2e-test-module",
+        "poller_id": 1,
+        "poller_name": "e2e-test-poller",
+        "module_directory": "/usr/share/centreon/lib/centreon-broker",
+        "log_timestamp": false,
+        "log_thread_id": false,
+        "event_queue_max_size": 100000,
+        "command_file": "",
+        "cache_directory": "/var/lib/centreon-engine",
+        "bbdo_version": "3.0.1",
+        "log": {
+            "directory": "/var/log/centreon-broker",
+            "filename": "",
+            "max_size": 0,
+            "loggers": null
+        },
+        "output": [],
+        "grpc": {
+            "port": 51007
+        }
+    }
+}

@@ -29,7 +29,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     crypto/base64.cc
     crypto/aes256.cc
     engine_conf/expand_conf.cc
-    file_test.cc
+    file_system_test.cc
+    fork_test.cc
     grpc/grpc_test.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.pb.cc
     ${CMAKE_BINARY_DIR}/common/tests/grpc/grpc_test.grpc.pb.cc
@@ -43,6 +44,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     process_test.cc
     rapidjson_helper_test.cc
     test_main.cc
+    timeperiod_utils_test.cc
     utf8_test.cc
     ${TESTS_SOURCES})
 else()
@@ -114,8 +116,10 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
             ctncrypto
             centreon_http
             centreon_process
+            centreon_hexdump
             centreon_grpc
-            engine_conf
+            centreon_file_system
+            centreon_engine_conf
             log_v2
             gRPC::grpc++
             protobuf::libprotobuf
@@ -143,6 +147,7 @@ else()
     ut_common
     PRIVATE centreon_common
             centreon_process
+            centreon_hexdump
             ctncrypto
             centreon_grpc
             Boost::program_options

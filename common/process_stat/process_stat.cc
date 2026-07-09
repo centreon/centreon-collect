@@ -19,11 +19,17 @@
 
 #include <boost/exception/errinfo_file_name.hpp>
 #include <boost/throw_exception.hpp>
+#include "file_system.hh"
 
 #include "process_stat.hh"
 
 using namespace com::centreon::common;
 
+/**
+ * @brief do not use read_file_content because it's not usable with special
+ * files
+ *
+ */
 static auto read_file = [](const std::string& file_path) -> std::string {
   std::ifstream file(file_path);
   if (file.is_open()) {
@@ -71,6 +77,7 @@ static auto extract_io_value = [](const std::string_view& label_value,
 process_stat::process_stat(pid_t process_id)
     : _pid(process_id),
       _num_threads(0),
+      _opened_fds(0),
       _query_read_bytes(0),
       _query_write_bytes(0),
       _real_read_bytes(0),
@@ -116,7 +123,7 @@ process_stat::process_stat(pid_t process_id)
   auto field_iter = stat_fields.begin();
   std::advance(field_iter, 13);
   uint64_t value = 0;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
 
   unsigned tick_per_second = sysconf(_SC_CLK_TCK);
   timespec ts_boot_time;
@@ -127,12 +134,12 @@ process_stat::process_stat(pid_t process_id)
 
   _user_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 1);
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _kernel_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 5);
-  absl::SimpleAtoi(*field_iter, &_num_threads);
+  (void)absl::SimpleAtoi(*field_iter, &_num_threads);
   std::advance(field_iter, 2);
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _starttime =
       boot_time + std::chrono::milliseconds(value * 1000 / tick_per_second);
 
@@ -142,12 +149,16 @@ process_stat::process_stat(pid_t process_id)
   stat_fields = absl::StrSplit(file_content, ' ');
   unsigned page_size = getpagesize();
   field_iter = stat_fields.begin();
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _vm_size = value * page_size;
   ++field_iter;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _res_size = value * page_size;
   ++field_iter;
-  absl::SimpleAtoi(*field_iter, &value);
+  (void)absl::SimpleAtoi(*field_iter, &value);
   _shared_size = value * page_size;
+
+  // file descriptors
+  std::list<std::filesystem::path> fds = dir_content(proc_path + "fd", false);
+  _opened_fds = fds.size() > 0 ? (fds.size() - 1) : 0;
 }

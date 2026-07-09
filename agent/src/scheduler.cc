@@ -32,6 +32,7 @@
 #include "check_uptime.hh"
 #endif
 #include "check_exec.hh"
+#include "com/centreon/common/check_timeperiod.hh"
 #include "com/centreon/common/rapidjson_helper.hh"
 #include "com/centreon/common/utf8.hh"
 #include "drive_size.hh"
@@ -39,6 +40,88 @@
 #include "common/crypto/aes256.hh"
 
 using namespace com::centreon::agent;
+
+namespace {
+// Format a UTC offset given in seconds east of UTC as a signed "+HH:MM" /
+// "-HH:MM" string for human-readable diagnostics.
+std::string format_utc_offset(int32_t off) {
+  const char sign = off < 0 ? '-' : '+';
+  const int abs_s = off < 0 ? -off : off;
+  auto two = [](int v) {
+    const std::string s = std::to_string(v);
+    return s.size() < 2 ? "0" + s : s;
+  };
+  return std::string(1, sign) + two(abs_s / 3600) + ":" +
+         two((abs_s % 3600) / 60);
+}
+}  // namespace
+
+void scheduler::check_host_timezone(
+    const std::shared_ptr<spdlog::logger>& logger,
+    int32_t cfg_offset,
+    bool cfg_dst,
+    const std::string& cfg_tz_name) {
+  // --- Read this host's current local UTC offset + DST (platform-specific).
+  int32_t host_off = 0;
+  bool host_dst = false;
+#ifdef _WIN32
+  TIME_ZONE_INFORMATION tzi;
+  const DWORD id = GetTimeZoneInformation(&tzi);
+  if (id == TIME_ZONE_ID_INVALID) {
+    SPDLOG_LOGGER_ERROR(
+        logger, "cannot retreive the timezone information form api windows");
+    return;
+  }
+  const long active_bias =
+      (id == TIME_ZONE_ID_DAYLIGHT) ? tzi.DaylightBias : tzi.StandardBias;
+  host_off = -static_cast<int32_t>((tzi.Bias + active_bias) * 60);
+  host_dst = (id == TIME_ZONE_ID_DAYLIGHT);
+#else
+  // POSIX: tm_gmtoff already folds in any active DST.
+  const time_t now = time(nullptr);
+  struct tm tmv = {};
+  if (!localtime_r(&now, &tmv)) {
+    SPDLOG_LOGGER_ERROR(logger, "cannot retreive the timezone information");
+    return;
+  }
+  host_off = static_cast<int32_t>(tmv.tm_gmtoff);
+  host_dst = tmv.tm_isdst > 0;
+#endif
+
+  // Strip a leading POSIX ':' (":Europe/Paris") for a cleaner message.
+  std::string_view tz = cfg_tz_name;
+  if (!tz.empty() && tz.front() == ':')
+    tz.remove_prefix(1);
+
+  // not the same offset
+  if (cfg_offset != host_off) {
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "host timezone mismatch - configured zone '{}' is at UTC{} (DST {}) "
+        "but the agent host is at UTC{} (DST {}); timeperiod checks may be "
+        "evaluated at the wrong local time",
+        tz, format_utc_offset(cfg_offset), cfg_dst ? "on" : "off",
+        format_utc_offset(host_off), host_dst ? "on" : "off");
+    return;
+  }
+  // not same dst (daylight save time)
+  if (cfg_dst != host_dst) {
+    SPDLOG_LOGGER_ERROR(
+        logger,
+        "configured zone '{}' and the agent host currently agree at UTC{} but "
+        "handle DST differently (configured DST {}, host DST {}); timeperiod "
+        "checks may diverge at the next DST transition",
+        tz, format_utc_offset(host_off), cfg_dst ? "on" : "off",
+        host_dst ? "on" : "off");
+    return;
+  }
+  SPDLOG_LOGGER_DEBUG(
+      logger,
+      "host timezone match - configured zone '{}' and the agent host are both "
+      "at UTC{} (DST {})",
+      tz, format_utc_offset(host_off), host_dst ? "on" : "off");
+  return;
+}
 
 /**
  * @brief destructor
@@ -83,7 +166,7 @@ void scheduler::_start_send_timer() {
  * @param err
  */
 void scheduler::_send_timer_handler(const boost::system::error_code& err) {
-  if (err) {
+  if (err || !_alive) {
     return;
   }
   if (_current_request->mutable_otel_request()->resource_metrics_size() > 0) {
@@ -137,7 +220,7 @@ void scheduler::_start_check_timer() {
  * @param err
  */
 void scheduler::_check_timer_handler(const boost::system::error_code& err) {
-  if (err) {
+  if (err || !_alive) {
     return;
   }
   _start_waiting_check();
@@ -150,15 +233,73 @@ void scheduler::_check_timer_handler(const boost::system::error_code& err) {
  * check started are removed from queue and will be inserted once completed
  */
 void scheduler::_start_waiting_check() {
+  std::vector<std::pair<const check::pointer, uint64_t>> save_defer_checks;
   time_point now = std::chrono::system_clock::now();
+  const time_t now_t = std::chrono::system_clock::to_time_t(now);
   if (!_waiting_check_queue.empty()) {
     for (check_queue::iterator to_check = _waiting_check_queue.begin();
          !_waiting_check_queue.empty() &&
          to_check != _waiting_check_queue.end() &&
          to_check->second->get_start_expected() <= now &&
          _active_check < _conf->config().max_concurrent_checks();) {
+      const std::string& period_name =
+          to_check->second->get_check_period_name();
+      const bool in_period = com::centreon::common::is_time_in_period_by_name(
+          now_t, period_name, _timeperiods);
+      SPDLOG_LOGGER_DEBUG(
+          _logger,
+          "timeperiod check: service='{}' period='{}' now={} in_period={}",
+          to_check->second->get_service(),
+          period_name.empty() ? "(none)" : period_name, now_t, in_period);
+      if (!in_period) {
+        // next_valid_time_in_period_by_name returns now_t (= orig) when no
+        // valid slot is found in the next 366 days (get_next_valid_time uses
+        // notif=false, which falls back to orig on failure).  Comparing
+        // next_t > now_t therefore distinguishes a real future opening from
+        // the "period has no active windows" sentinel.
+        const time_t next_t =
+            com::centreon::common::next_valid_time_in_period_by_name(
+                now_t, period_name, _timeperiods);
+        const check::pointer deferred = to_check->second;
+        to_check = _waiting_check_queue.erase(to_check);
+        time_step slot(_check_time_step);
+        if (next_t > now_t) {
+          SPDLOG_LOGGER_DEBUG(
+              _logger,
+              "service '{}': outside period '{}', next open at {} ({}s from "
+              "now)",
+              deferred->get_service(), period_name, next_t, next_t - now_t);
+          slot.increment_to_after_min(
+              std::chrono::system_clock::from_time_t(next_t));
+        } else {
+          // next_t == now_t: no valid window in the next 366 days.
+          // Defer by the same horizon so we do not spin wastefully.  Any
+          // engine config update triggers update() which rebuilds the queue,
+          // so a corrected period will be picked up regardless.
+          static constexpr auto one_year =
+              std::chrono::seconds(366 * 24 * 60 * 60);
+          SPDLOG_LOGGER_DEBUG(
+              _logger,
+              "service '{}': period '{}' has no active time in the next "
+              "year, deferring by one year",
+              deferred->get_service(), period_name);
+          slot.increment_to_after_min(now + one_year);
+        }
+        save_defer_checks.push_back(std::pair(deferred, slot.get_step_index()));
+        continue;
+      }
+      SPDLOG_LOGGER_DEBUG(_logger,
+                          "service '{}': inside period '{}', starting check",
+                          to_check->second->get_service(), period_name);
       _start_check(to_check->second);
       to_check = _waiting_check_queue.erase(to_check);
+    }
+
+    for (const auto& defer_check : save_defer_checks) {
+      uint64_t steps = defer_check.second;
+      while (!_waiting_check_queue.emplace(steps, defer_check.first).second) {
+        ++steps;
+      }
     }
   }
 }
@@ -222,6 +363,12 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
       }
       if (serv.max_attempts() == 0) {
         serv.set_max_attempts(3);  // three attempt by default
+      }
+      // An empty service_description is the host check
+      // note: older engines that don't send the field.
+      if (serv.service_description().empty() && serv.has_utc_offset()) {
+        check_host_timezone(_logger, serv.utc_offset(), serv.dst_active(),
+                            serv.timezone());
       }
       uint32_t check_interval = serv.check_interval();
       uint32_t retry_interval = serv.retry_interval();
@@ -327,6 +474,15 @@ void scheduler::update(const engine_to_agent_request_ptr& conf) {
   }
 
   _conf = conf;
+
+  _timeperiods.clear();
+  for (const auto& tp : conf->config().timeperiods()) {
+    if (tp.has_timeperiod_name()) {
+      _timeperiods.emplace(tp.timeperiod_name(), &tp);
+      SPDLOG_LOGGER_DEBUG(_logger, "registered timeperiod '{}'",
+                          tp.timeperiod_name());
+    }
+  }
 
   // first start check in waiting queue
   _start_waiting_check();
@@ -782,53 +938,64 @@ std::shared_ptr<check> scheduler::default_check_builder(
         args = &no_arg;
       }
 
+      std::optional<duration> custom_timeout;
+      if (args->IsObject() && args->HasMember("timeout")) {
+        auto timeout_sec = check::get_double(service.command_name(), "timeout",
+                                             (*args)["timeout"], true);
+        if (timeout_sec.has_value() && timeout_sec.value() > 0) {
+          custom_timeout =
+              std::chrono::seconds(static_cast<unsigned>(timeout_sec.value()));
+        }
+      }
+
+      std::shared_ptr<check> result;
       if (check_type == "cpu_percentage"sv) {
-        return std::make_shared<check_cpu>(io_context, logger,
-                                           first_start_expected, service, *args,
-                                           conf, std::move(handler), stat);
+        result = std::make_shared<check_cpu>(
+            io_context, logger, first_start_expected, service, *args, conf,
+            std::move(handler), stat);
       } else if (check_type == "health"sv) {
-        return std::make_shared<check_health>(
+        result = std::make_shared<check_health>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "custom"sv) {
-        return std::make_shared<check_custom>(
+        result = std::make_shared<check_custom>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat, credentials_decrypt);
 #ifdef _WIN32
       } else if (check_type == "uptime"sv) {
-        return std::make_shared<check_uptime>(
+        result = std::make_shared<check_uptime>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "storage"sv) {
-        return std::make_shared<check_drive_size>(
+        result = std::make_shared<check_drive_size>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "memory"sv) {
-        return std::make_shared<check_memory>(
+        result = std::make_shared<check_memory>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "service"sv) {
-        return std::make_shared<check_service>(
+        result = std::make_shared<check_service>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "counter"sv) {
-        return std::make_shared<check_counter>(
+        result = std::make_shared<check_counter>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "tasksched"sv) {
-        return std::make_shared<check_sched>(
+        result = std::make_shared<check_sched>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "files"sv) {
-        return std::make_shared<check_files>(
+        result = std::make_shared<check_files>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
       } else if (check_type == "eventlog_nscp"sv) {
-        return check_event_log::load(io_context, logger, first_start_expected,
-                                     service, *args, conf, std::move(handler),
-                                     stat);
+        result = check_event_log::load(io_context, logger, first_start_expected,
+                                       service, *args, conf, std::move(handler),
+                                       stat);
       } else if (check_type == "process_nscp"sv) {
-        return std::make_shared<check_process>(
+        result = std::make_shared<check_process>(
             io_context, logger, first_start_expected, service, *args, conf,
             std::move(handler), stat);
 #endif
@@ -836,6 +1003,11 @@ std::shared_ptr<check> scheduler::default_check_builder(
         throw exceptions::msg_fmt("command {}, unknown native check:{}",
                                   service.command_name(), command_line);
       }
+
+      if (custom_timeout.has_value()) {
+        result->set_custom_timeout(custom_timeout.value());
+      }
+      return result;
     } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(logger, "unexpected error: {}", e.what());
       return check_dummy::load(io_context, logger, first_start_expected,

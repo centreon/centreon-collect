@@ -57,7 +57,7 @@ class state {
  private:
   const common::PeerType _peer_type;
   std::string _cache_dir;
-  uint32_t _poller_id;
+  uint64_t _poller_id;
   uint32_t _rpc_port;
   bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
@@ -112,7 +112,7 @@ class state {
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
   bbdo::bbdo_version get_bbdo_version() const noexcept;
-  uint32_t poller_id() const noexcept;
+  uint64_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& broker_name() const noexcept;
   const std::string& poller_name() const noexcept;

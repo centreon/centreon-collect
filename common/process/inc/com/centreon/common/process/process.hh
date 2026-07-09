@@ -19,52 +19,12 @@
 #ifndef CENTREON_COMMON_PROCESS_HH
 #define CENTREON_COMMON_PROCESS_HH
 
+#include <memory>
 #include "boost/process/v2/environment.hpp"
+#include "com/centreon/common/process/child_process.hh"
 #include "com/centreon/common/process/process_args.hh"
 
 namespace com::centreon::common {
-
-namespace detail {
-// here to limit included files
-struct boost_process;
-}  // namespace detail
-
-namespace detail {
-template <bool use_mutex>
-class mutex;
-
-template <bool use_mutex>
-class lock;
-
-template <>
-class mutex<true> : public absl::Mutex {};
-
-template <>
-class lock<true> : public absl::MutexLock {
- public:
-  lock(absl::Mutex* mut) : absl::MutexLock(mut) {}
-};
-
-template <>
-class mutex<false> {};
-
-template <>
-class lock<false> {
- public:
-  lock(mutex<false>* /* dummy_mut*/) {}
-};
-
-struct boost_process;
-
-}  // namespace detail
-
-/**
- * @brief status of execution of a child process
- * crash is never returned but is there to ensure backward compatibility
- * with clib
- *
- */
-enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
 
 /**
  * @brief This class creates a child process, stdin, stdout and stderr are piped
@@ -92,8 +52,8 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  *
  * pipe to stdin is optional because some windows scripts may fails if they do
  * not manage stdin
- * You can write to stdin with write_to_stdin method. writes are non blocking,
- * buffered and thread safe.
+ * You can write to stdin with write_to_child_stdin method. writes are non
+ * blocking, buffered and thread safe.
  *
  * Example:
  * @code {.cpp}
@@ -118,10 +78,8 @@ enum e_exit_status { normal = 0, crash = 1, timeout = 2 };
  * @tparam use_mutex true for multi-threads programs
  */
 template <bool use_mutex = true>
-class process : public std::enable_shared_from_this<process<use_mutex>> {
+class process : public child_process<use_mutex> {
  public:
-  using std::enable_shared_from_this<process<use_mutex>>::shared_from_this;
-
   using shared_env = std::shared_ptr<boost::process::v2::process_environment>;
 
  private:
@@ -129,27 +87,13 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
   const bool _use_setpgid;
   const bool _use_stdin;
   const shared_env _env;
-  std::deque<std::shared_ptr<std::string>> _stdin_write_queue
-      ABSL_GUARDED_BY(_protect);
-  bool _write_pending = false;
-  const std::shared_ptr<spdlog::logger> _logger;
 
-  const std::shared_ptr<asio::io_context> _io_context;
+  using child_process<use_mutex>::_protect;
+  using child_process<use_mutex>::_logger;
+  using child_process<use_mutex>::_proc;
+  using child_process<use_mutex>::_use_stderr_pipe;
+
   asio::system_timer _timeout_timer ABSL_GUARDED_BY(_protect);
-  asio::readable_pipe _stdout_pipe ABSL_GUARDED_BY(_protect);
-  asio::readable_pipe _stderr_pipe ABSL_GUARDED_BY(_protect);
-  asio::writable_pipe _stdin_pipe ABSL_GUARDED_BY(_protect);
-  detail::boost_process* _proc = nullptr;
-  /**
-   * @brief workaround
-   * in process lib, terminate method calls waitpid and father process can get
-   * exit status. Then on async_wait completion, waitpid is also called and
-   * waitpid may return ECHILD( unknown child). So in that case, we don't take
-   * this error into account and we use status previously stored in first
-   * waitpid
-   * issue: https://github.com/boostorg/process/issues/496
-   */
-  bool _terminated = false;
 
   using handler_type = std::function<void(const process<use_mutex>& proc,
                                           int /*exit_code*/,
@@ -158,53 +102,26 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
                                           const std::string& /*stderr*/
                                           )>;
 
-  using reader_type = std::function<void(const std::string_view&)>;
+  using reader_type = std::function<void(const boost::system::error_code&,
+                                         const std::string_view&)>;
 
   handler_type _handler;
   std::string _stdout ABSL_GUARDED_BY(_protect);
   reader_type _stdout_handler;
   std::string _stderr ABSL_GUARDED_BY(_protect);
   reader_type _stderr_handler;
-  e_exit_status _exit_status = e_exit_status::crash;
-  int _exit_code = -1;
-
-  enum e_completion_flags : unsigned {
-    process_end = 1,
-    stdout_eof = 2,
-    stderr_eof = 4,
-    all_completed = 7,
-    handler_called = 8
-  };
-
-  std::atomic_uint _completion_flags = 0;
 
   void _start_process_nolock(handler_type&& handler,
                              const std::chrono::system_clock::duration& timeout)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
 
-  void _stdin_write_no_lock(const std::shared_ptr<std::string>& data)
-      ABSL_EXCLUSIVE_LOCKS_REQUIRED(_protect);
-  void _stdin_write(const std::shared_ptr<std::string>& data);
-
-  void _stdout_read();
-  void _stderr_read();
-
-  char _stdout_read_buffer[0x1000];
-  char _stderr_read_buffer[0x1000];
-
-  mutable detail::mutex<use_mutex> _protect;
-
-  void _on_stdout_read(const boost::system::error_code& err, size_t nb_read);
-  void _on_stderr_read(const boost::system::error_code& err, size_t nb_read);
-
-  void _on_process_end(const boost::system::error_code& err,
-                       int raw_exit_status);
-
-  void _on_stdin_write(const boost::system::error_code& err);
+  void _on_stdout_read(const boost::system::error_code& err,
+                       const std::string received) override;
+  void _on_stderr_read(const boost::system::error_code& err,
+                       const std::string received) override;
+  void _on_process_end() override;
 
   void _on_timeout();
-
-  void _on_completion();
 
   void _create_process();
 
@@ -234,12 +151,17 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
 
   ~process();
 
+  std::shared_ptr<process<use_mutex>> shared_from_this() {
+    return std::static_pointer_cast<process<use_mutex>>(
+        child_process<use_mutex>::shared_from_this());
+  }
+
+  std::shared_ptr<const process<use_mutex>> shared_from_this() const {
+    return std::static_pointer_cast<const process<use_mutex>>(
+        child_process<use_mutex>::shared_from_this());
+  }
+
   static process_args::pointer parse_cmd_line(const std::string_view& cmd_line);
-
-  int get_pid() const;
-
-  template <typename string_class>
-  void write_to_stdin(const string_class& content);
 
   void start_process(handler_type&& handler,
                      const std::chrono::system_clock::duration& timeout);
@@ -250,22 +172,16 @@ class process : public std::enable_shared_from_this<process<use_mutex>> {
                      const std::chrono::system_clock::duration& timeout);
 
   std::string get_stdout() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stdout;
   }
 
   std::string get_stderr() const {
-    detail::lock<use_mutex> l(&_protect);
+    detail::lock<use_mutex> l(_protect);
     return _stderr;
   }
 
-  std::shared_ptr<spdlog::logger> get_logger() const { return _logger; }
-
   const std::string& get_exe_path() const { return _args->get_exe_path(); }
-
-  int get_exit_code() const { return _exit_code; }
-
-  void kill();
 };
 
 /**
@@ -291,28 +207,13 @@ process<use_mutex>::process(
     bool use_stdin,
     const std::initializer_list<string_type>& args,
     const shared_env& env)
-    : _args(std::make_shared<process_args>(exe_path, args)),
+    : child_process<use_mutex>(io_context, logger),
+      _args(std::make_shared<process_args>(exe_path, args)),
       _use_setpgid(use_setpgid),
       _use_stdin(use_stdin),
       _env(env),
-      _logger(logger),
-      _io_context(io_context),
-      _timeout_timer(*io_context),
-      _stdout_pipe(*io_context),
-      _stderr_pipe(*io_context),
-      _stdin_pipe(*io_context) {}
-
-/**
- * @brief write string to child process stdin
- *
- * @tparam string_class such as string_view, char* string or anything else that
- * can be used to construct a std::string
- * @param content
- */
-template <bool use_mutex>
-template <typename string_class>
-void process<use_mutex>::write_to_stdin(const string_class& content) {
-  _stdin_write(std::make_shared<std::string>(content));
+      _timeout_timer(*io_context) {
+  _use_stderr_pipe = true;
 }
 
 }  // namespace com::centreon::common

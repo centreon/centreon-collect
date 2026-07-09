@@ -140,3 +140,27 @@ https://github.com/centreon/centreon-collect/blob/develop/perl-libs/lib/centreon
 ## *modules*
 
 See the *configuration* titles of the modules documentations listed [here](../docs/modules.md).
+
+## environment variables
+
+Gorgone can be configured with environment variables. This is useful when using Gorgone in a containerized environment, for example.
+
+The order of precedence for configuration values is the following (from lowest to highest) : default values, configuration files, long environment variables, short environment variables, command line arguments.
+Each higer level of precedence will override the previous one.
+
+2 type of variables are supported. The command line arguments can be set with this format : 
+`GORGONE_CONFIG`, `GORGONE_VAULT_FILE`, `GORGONE_LOG_FILE`, `GORGONE_LOG_LEVEL`. See `gorgone --help` for an updated list of supported arguments.
+
+the configuration files variables can be set with the format `GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS=1.1.1.1` to set the address directive of the pullwss module for exemple. The format is `GORGONE__` followed by the path to the directive in the configuration file, with each level separated by 2 underscore `__`. for a complete list of available directives, see individual module documentation.
+
+you can use environment variable for the database configuration too : `gorgone__centreon__database__db_configuration__username='centreon'`
+
+some configuration can be made with shorter variable name : 
+
+| short name        | full name                                   |
+|:------------------|:--------------------------------------------|
+| GORGONE_UID       | GORGONE__GORGONE__GORGONE_CORE__ID          |
+| GORGONE_TOKEN     | GORGONE__GORGONE__MODULES__PULLWSS__TOKEN   | 
+| CENTRAL_HOST      | GORGONE__GORGONE__MODULES__PULLWSS__ADDRESS | 
+| CENTRAL_PORT      | GORGONE__GORGONE__MODULES__PULLWSS__PORT    |
+

@@ -193,7 +193,7 @@ void connector::run(const std::string& processed_cmd,
 
   } result_waiter = {shared_from_this(), command_id, res};
 
-  absl::MutexLock lck(&_results_m);
+  absl::MutexLock lck(_results_m);
   bool have_result = _results_m.AwaitWithTimeout(
       absl::Condition(&result_waiter), absl::Seconds(timeout));
 
@@ -410,18 +410,28 @@ void connector::_connector_start_nolock() {
                                   const std::string& /*stdout*/,
                                   const std::string& /*stderr*/
         ) { me->_on_process_end(proc); },
-        [me = shared_from_this(),
-         proc = _process->weak_from_this()](const std::string_view& received) {
-          auto sub_process = proc.lock();
-          if (sub_process) {
-            me->_on_stdout_recv(sub_process, received);
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stdout_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
           }
         },
-        [me = shared_from_this(),
-         proc = _process->weak_from_this()](const std::string_view& received) {
-          auto sub_process = proc.lock();
-          if (sub_process) {
-            me->_on_stderr_recv(sub_process, received);
+        [me = shared_from_this(), proc = _process->weak_from_this()](
+            const boost::system::error_code& err,
+            const std::string_view& received) {
+          if (!err) {
+            auto sub_process = proc.lock();
+            if (sub_process) {
+              me->_on_stderr_recv(
+                  std::static_pointer_cast<common::process<true>>(sub_process),
+                  received);
+            }
           }
         },
         {
@@ -578,7 +588,7 @@ void connector::_recv_query_execute(const std::string_view& data) {
       if (_listener)
         (_listener->finished)(res);
     } else {
-      absl::MutexLock l(&_results_m);
+      absl::MutexLock l(_results_m);
       // Push result into list of results.
       _results[command_id] = res;
     }
@@ -682,7 +692,7 @@ void connector::_send_query_execute_nolock(const std::string& cmdline,
   oss << "2" << '\0' << command_id << '\0' << timeout << '\0'
       << start.to_seconds() << '\0' << cmdline << _query_ending;
 
-  _process->write_to_stdin(oss.str());
+  _process->write_to_child_stdin(oss.str());
 }
 
 /**
@@ -691,7 +701,7 @@ void connector::_send_query_execute_nolock(const std::string& cmdline,
 void connector::_send_query_quit_nolock() {
   SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_quit");
   std::string query("4\0", 2);
-  _process->write_to_stdin(query);
+  _process->write_to_child_stdin(query);
 }
 
 /**
@@ -701,7 +711,7 @@ void connector::_send_query_version_nolock() {
   SPDLOG_LOGGER_TRACE(_logger, "connector::_send_query_version");
   std::string query("0");
   query.append(_query_ending);
-  _process->write_to_stdin(query);
+  _process->write_to_child_stdin(query);
 }
 
 /**

@@ -171,6 +171,17 @@ EBNSGU3_${test_label}
 
     Should Be True    len("""${grep_result}""") > 10    servicegroup_1 not found in /tmp/lua-engine.log
 
+    # The alias is carried only by the protobuf ServiceGroup event (neb.proto
+    # field 6, PB_SERVICE_GROUP).
+    IF    ${Use_BBDO3}
+        FOR    ${loop_index}    IN RANGE    30
+            ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_alias:servicegroup_1
+            IF    len("""${grep_result}""") > 10    BREAK
+            Sleep    1s
+        END
+        Should Be True    len("""${grep_result}""") > 10    servicegroup_1 alias not found in /tmp/lua-engine.log
+    END
+
     Ctn Rename Service Group    ${0}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${1}    servicegroup_1    servicegroup_test
     Ctn Rename Service Group    ${2}    servicegroup_1    servicegroup_test

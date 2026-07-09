@@ -25,9 +25,11 @@ jobs:
       - name: Check if feature branch had associated feature repository
         id: check_feature_repository
         shell: bash
+        env:
+          GH_HEAD_REF: ${{ github.head_ref }}
         run: |
           set -x
-          feature_ticket=$(echo "${{ github.head_ref }}" | grep -oE 'MON-[0-9]+')
+          feature_ticket=$(echo "$GH_HEAD_REF" | grep -oE 'MON-[0-9]+')
           if [[ -z "$feature_ticket" ]]; then
             echo "::notice::Ticket ID not found due to the branch name not corresponding to standards."
             echo "repositories_found=false" >> "$GITHUB_OUTPUT"
@@ -44,10 +46,12 @@ jobs:
         if: |
           steps.check_feature_repository.outputs.repositories_found == 'true'
         shell: bash
+        env:
+          GH_HEAD_REF: ${{ github.head_ref }}
         run: |
           set -x
-          if [[ -n $(gh pr list --repo centreon/centreon-modules --head ${{ github.head_ref }} --state open --json number | jq -r '.[].number') ]] \
-          || [[ -n $(gh pr list --repo centreon/centreon-collect --head ${{ github.head_ref }} --state open --json number | jq -r '.[].number') ]]; then
+          if [[ -n $(gh pr list --repo centreon/centreon-modules --head "$GH_HEAD_REF" --state open --json number | jq -r '.[].number') ]] \
+          || [[ -n $(gh pr list --repo centreon/centreon-collect --head "$GH_HEAD_REF" --state open --json number | jq -r '.[].number') ]]; then
             echo "::notice::Other open feature pull requests have been found on other repositories: no feature repository deletion will be requested."
             echo "feature_prs_found=true" >> "$GITHUB_OUTPUT"
           else
@@ -60,12 +64,15 @@ jobs:
         if: |
           steps.check_feature_repository.outputs.repositories_found == 'true' &&
           steps.check_other_feature_prs.outputs.feature_prs_found == 'false'
+        env:
+          GH_HEAD_REF: ${{ github.head_ref }}
+          CENTREON_TECHNIQUE_PAT: ${{ secrets.CENTREON_TECHNIQUE_PAT }}
         run: |
           set -x
           echo "Sending repository dispatch to delete feature repository workflow..."
-          feature_ticket=$(echo "${{ github.head_ref }}" | grep -oE 'MON-[0-9]+')
+          feature_ticket=$(echo "$GH_HEAD_REF" | grep -oE 'MON-[0-9]+')
           curl --fail-with-body -X POST \
-            -H "Authorization: Bearer ${{ secrets.CENTREON_TECHNIQUE_PAT }}" \
+            -H "Authorization: Bearer $CENTREON_TECHNIQUE_PAT" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/centreon/delivery-tooling/dispatches \
             -d "$(jq -n \

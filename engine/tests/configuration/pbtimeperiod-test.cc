@@ -23,6 +23,7 @@
 #include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
 
+#include "com/centreon/common/fmt_protobuf.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
@@ -218,7 +219,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_date].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_date].push_front(toadd);
         continue;
       }
     }
@@ -243,7 +244,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_date].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_date].push_front(toadd);
         continue;
       }
     }
@@ -270,7 +271,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_date].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_date].push_front(toadd);
         continue;
       }
     }
@@ -296,7 +297,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::calendar_date].push_front(toadd);
+        _exceptions[Daterange_TypeRange_calendar_date].push_front(toadd);
         continue;
       }
     }
@@ -325,7 +326,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::calendar_date].push_front(toadd);
+        _exceptions[Daterange_TypeRange_calendar_date].push_front(toadd);
         continue;
       }
     }
@@ -344,7 +345,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_day].push_front(toadd);
         continue;
       }
     }
@@ -366,7 +367,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_day].push_front(toadd);
         continue;
       }
     }
@@ -389,7 +390,7 @@ time_period_comparator::time_period_comparator(
         toadd.set_swday_offset(day_month_index);
         toadd.set_ewday_offset(day_month_index);
 
-        _exceptions[daterange::week_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_week_day].push_front(toadd);
         continue;
       }
     }
@@ -417,7 +418,7 @@ time_period_comparator::time_period_comparator(
         toadd.set_swday_offset(day_month_index_start);
         toadd.set_ewday_offset(day_month_index_end);
 
-        _exceptions[daterange::week_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_week_day].push_front(toadd);
         continue;
       }
     }
@@ -445,7 +446,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_week_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_week_day].push_front(toadd);
         continue;
       }
     }
@@ -479,7 +480,7 @@ time_period_comparator::time_period_comparator(
           new_tr->CopyFrom(tr);
         }
 
-        _exceptions[daterange::month_week_day].push_front(toadd);
+        _exceptions[Daterange_TypeRange_month_week_day].push_front(toadd);
         continue;
       }
     }
@@ -526,7 +527,7 @@ static std::ostream& operator<<(std::ostream& s,
                                 const std::list<configuration::Timerange>& tr) {
   s << '(';
   for (auto& t : tr) {
-    s << t.DebugString() << ", ";
+    s << fmt::format("{}, ", t);
   }
   s << ')';
   return s;
@@ -536,7 +537,7 @@ static std::ostream& operator<<(std::ostream& s,
                                 const std::list<configuration::Daterange>& dr) {
   s << '(';
   for (auto& d : dr) {
-    s << d.DebugString() << ", ";
+    s << fmt::format("{}, ", d);
   }
   s << ')';
   return s;
@@ -570,40 +571,6 @@ static bool operator==(
   if (excl1.size() != excl2.size()) {
     std::cerr << "Exclude arrays have not the same size." << std::endl;
     return false;
-  }
-  return true;
-}
-
-static bool operator==(
-    const std::array<std::list<configuration::Timerange>, 7>& timerange1,
-    const std::array<std::list<engine::timerange>, 7>& timerange2) {
-  auto check_timeranges = [](const std::string_view day, auto& day1,
-                             auto& day2) -> bool {
-    if (day1.size() != day2.size()) {
-      std::cerr << day << " timeranges have not the same size: first size: "
-                << day1.size() << " ; second size: " << day2.size()
-                << std::endl;
-      return false;
-    }
-    for (auto& tr2 : day2) {
-      bool found = false;
-      for (auto& tr1 : day1) {
-        if (tr1.range_start() == tr2.get_range_start() &&
-            tr1.range_end() == tr2.get_range_end()) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        std::cerr << day << " timeranges are not the same." << std::endl;
-        return false;
-      }
-    }
-    return true;
-  };
-  for (int32_t i = 0; i < 7; i++) {
-    if (!check_timeranges(day_label[i], timerange1[i], timerange2[i]))
-      return false;
   }
   return true;
 }
@@ -671,54 +638,6 @@ static bool operator!=(const std::set<std::string>& exclude1,
   return !(exclude1 == exclude2);
 }
 
-static bool operator==(const Daterange& dr1, const engine::daterange& dr2) {
-  if (static_cast<uint32_t>(dr1.type()) !=
-      static_cast<uint32_t>(dr2.get_type())) {
-    std::cerr << "Dateranges not of the same type." << std::endl;
-    return false;
-  }
-  bool retval =
-      dr1.syear() == dr2.get_syear() && dr1.smon() == dr2.get_smon() &&
-      dr1.smday() == dr2.get_smday() && dr1.swday() == dr2.get_swday() &&
-      dr1.swday_offset() == dr2.get_swday_offset() &&
-      dr1.eyear() == dr2.get_eyear() && dr1.emon() == dr2.get_emon() &&
-      dr1.emday() == dr2.get_emday() && dr1.ewday() == dr2.get_ewday() &&
-      dr1.ewday_offset() == dr2.get_ewday_offset();
-
-  return retval;
-}
-
-static bool operator==(
-    const std::array<std::list<configuration::Daterange>,
-                     configuration::Daterange_TypeRange_none>& exc1,
-    const std::array<std::list<engine::daterange>,
-                     configuration::Daterange_TypeRange_none>& exc2) {
-  auto compare_dateranges =
-      [](int32_t idx, const std::list<configuration::Daterange>& lst1,
-         const std::list<engine::daterange>& lst2) -> bool {
-    for (auto& dr1 : lst1) {
-      bool found = false;
-      for (auto& dr2 : lst2) {
-        if (dr1 == dr2) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) {
-        std::cerr << "Dateranges at index " << idx
-                  << " are not equals in exception arrays" << std::endl;
-        return false;
-      }
-    }
-    return true;
-  };
-  for (uint32_t idx = 0; idx < exc1.size(); idx++) {
-    if (!compare_dateranges(idx, exc1[idx], exc2[idx]))
-      return false;
-  }
-  return true;
-}
-
 static bool operator==(
     const std::array<std::list<configuration::Daterange>,
                      configuration::Daterange_TypeRange_none>& exc1,
@@ -763,7 +682,7 @@ static bool operator==(
 
 static std::ostream& operator<<(std::ostream& s,
                                 const configuration::StringSet& exclude) {
-  s << exclude.DebugString();
+  s << fmt::format("{}", exclude);
   return s;
 }
 
@@ -782,7 +701,7 @@ bool time_period_comparator::is_equal() const {
   if (!(_timeranges == _conf_tp.timeranges())) {
     std::cerr << "timeranges difference" << std::endl;
     std::cerr << "_timeranges=" << _timeranges << std::endl;
-    std::cerr << "_conf_tp.timeranges= " << _conf_tp.timeranges().DebugString()
+    std::cerr << fmt::format("_conf_tp.timeranges= {}", _conf_tp.timeranges())
               << std::endl;
     return false;
   }
@@ -790,7 +709,7 @@ bool time_period_comparator::is_equal() const {
   if (!(_exceptions == _conf_tp.exceptions())) {
     std::cerr << "exception difference" << std::endl;
     std::cerr << "_exceptions= " << _exceptions << std::endl;
-    std::cerr << "_conf_tp.exceptions= " << _conf_tp.exceptions().DebugString()
+    std::cerr << fmt::format("_conf_tp.exceptions= {}", _conf_tp.exceptions())
               << std::endl;
     return false;
   }
@@ -817,18 +736,18 @@ bool time_period_comparator::is_result_equal() const {
     return false;
   }
 
-  if (!(_timeranges == _result->days)) {
+  if (!(_timeranges == _result->get_config().timeranges())) {
     std::cerr << "timeranges difference" << std::endl;
     // std::cerr << "_timeranges= " << _timeranges << std::endl;
-    std::cerr << "_conf_tp.timeranges= " << _conf_tp.timeranges().DebugString()
+    std::cerr << fmt::format("_conf_tp.timeranges= {}", _conf_tp.timeranges())
               << std::endl;
     return false;
   }
 
-  if (!(_exceptions == _result->exceptions)) {
+  if (!(_exceptions == _result->get_config().exceptions())) {
     std::cerr << "exception difference" << std::endl;
     // std::cerr << "_exceptions= " << _exceptions << std::endl;
-    std::cerr << "_conf_tp.exceptions= " << _conf_tp.exceptions().DebugString()
+    std::cerr << fmt::format("_conf_tp.exceptions= {}", _conf_tp.exceptions())
               << std::endl;
     return false;
   }

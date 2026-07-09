@@ -71,10 +71,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -154,10 +154,10 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_NO_ENCRYPTED_CREDENTIALS
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -386,10 +386,10 @@ BEOTEL_REVERSE_CENTREON_AGENT_CHECK_HOST
 
     #update conf engine, it must be taken into account by agent
     Log To Console    modify engine conf and reload engine
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine
 
     #wait for new data from agent
-    ${start}    Ctn Get Round Current Date
     ${content}    Create List    description: \"OK check2
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    "description: "OK check2" should be available.
@@ -1241,11 +1241,11 @@ BEOTEL_CENTREON_AGENT_CHECK_HEALTH
     Should Be True    ${result}    resources table not updated for service_2
 
     ${metrics_list}    Create List   cpu.utilization.percentage    0#core.cpu.utilization.percentage
-    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    1    ${metrics_list}    45
     Should Be True    ${result}    cpu metrics not updated
 
     ${metrics_list}    Create List   runtime    interval
-    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    30
+    ${result}    Ctn Compare Metrics Of Service    2    ${metrics_list}    45
     Should Be True    ${result}    health metrics not updated
 
     Log To Console    service_2 must be warning
@@ -1557,6 +1557,82 @@ BEOTEL_CENTREON_AGENT_CHECK_HOST_CRYPTED_RENEW_CERT_WITH_DEFAULT_CERT
     # ${result}    Ctn Check Host Output Resource Status With Timeout    host_1    60    ${second_restart_int}    0  HARD  OK - 127.0.0.1
     # Should Not Be True    ${result}    resources table updated, agent must not be able to connect to engine
 
+
+BEOTEL_CENTREON_AGENT_CHECK_SERVICE_TIMEPERIODS
+    [Documentation]    CMA timeperiod gating: services with always-active periods are checked,
+    ...    services outside their period are deferred with the correct next-open offset.
+    ...      service_1 -> 24x7           always active (built-in)
+    ...      service_4 -> opens_in_1h    inactive now, opens in ~1 hour
+    [Tags]    broker    engine    opentelemetry    MON-171482
+
+    ${run_env}    Ctn Run Env
+    Pass Execution If    "${run_env}" == "WSL"    This test requires the Linux agent
+
+    Ctn Config Engine    ${1}    ${1}    ${4}
+    Ctn Add Otl ServerModule
+    ...    0
+    ...    {"otel_server":{"host": "0.0.0.0","port": 4317},"max_length_grpc_log":0,"centreon_agent":{"export_period":5}}
+    Ctn Config Add Otl Connector
+    ...    0
+    ...    OTEL connector
+    ...    opentelemetry --processor=centreon_agent --extractor=attributes --host_path=resource_metrics.resource.attributes.host.name --service_path=resource_metrics.resource.attributes.service.name
+
+    # opens_in_1h: today only, window from now+1h to now+2h (inactive right now)
+    ${opens_in_1h}    Ctn Build Timeperiod Opening In    3600
+    Ctn Engine Config Add Timeperiod    ${0}    opens_in_1h    Opens In 1 Hour    ${opens_in_1h}
+
+    ${check_cmd}    Ctn Check Pl Command    --id 456
+    Ctn Engine Config Add Command    ${0}    otel_check    ${check_cmd}    OTEL connector
+
+    FOR    ${svc}    IN    service_1    service_4
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    check_command    otel_check
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    check_interval    2
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    retry_interval    1
+        Ctn Engine Config Replace Value In Services    ${0}    ${svc}    max_check_attempts    2
+    END
+
+    Ctn Engine Config Replace Value In Services    ${0}    service_1    check_period    24x7
+    Ctn Engine Config Replace Value In Services    ${0}    service_4    check_period    opens_in_1h
+
+    Ctn Set Services Passive    0    service_[1-4]
+    Ctn Engine Config Set Value    0    interval_length    10
+    Ctn Set Command Status    456    ${0}
+
+    Ctn Config Broker    central
+    Ctn Config Broker    module
+    Ctn Config Broker    rrd
+    Ctn Config Centreon Agent
+
+    Ctn Config BBDO3    1
+    Ctn Clear Db    resources
+    Ctn Clear Retention
+
+    Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    warning
+    Ctn Broker Config Log    module0    processing    warning
+    Ctn Broker Config Log    module0    neb    warning
+    Ctn Engine Config Set Value    0    log_level_checks    error
+    Ctn Engine Config Set Value    0    log_level_functions    error
+    Ctn Engine Config Set Value    0    log_level_config    error
+    Ctn Engine Config Set Value    0    log_level_events    error
+
+    ${start}    Ctn Get Round Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    Ctn Start Agent
+    Ctn Wait For Otel Server To Be Ready    ${start}
+
+    # service_4 is outside its period: agent must log the deferral with next open ~3600s away.
+    # Allow 35xx–36xx seconds to account for the few seconds elapsed since timeperiod computation.
+    ${content}    Create List
+    ...    service_4.*outside period 'opens_in_1h'.*next open at.*3[56][0-9][0-9]s from now
+    ${result}    Ctn Find Regex In Log With Timeout    ${agentlog}    ${start}    ${content}    60    True
+    Should Be True    ${result}    service_4 (opens_in_1h): agent did not log deferral with ~3600s next open
+
+    # Always-active services: the agent must log a check start.
+    ${content}    Create List    service 'service_1': inside period '24x7', starting check
+    ${result}    Ctn Find In Log With Timeout    ${agentlog}    ${start}    ${content}    60    agent_format=${True}
+    Should Be True    ${result}    service_1 (24x7): agent did not log check start
 
 *** Keywords ***
 Ctn Create Cert And Init

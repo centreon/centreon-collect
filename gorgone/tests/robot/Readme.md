@@ -12,7 +12,7 @@ and there is an up to date centreon/centreon repository next to this one.
 
 First you need to build the test image, we use bookworm and will tag it 'gorgone-bookworm', see .github/docker for other supported OS :
 ```
-docker build --no-cache --file ./.github/docker/Dockerfile.gorgone-testing-bookworm --progress=plain -t gorgone-bookworm . 
+docker build --file ./.github/docker/gorgone/bookworm/Dockerfile.testing-dependencies --progress=plain -t gorgone-bookworm . 
 ```
 
 Now you can launch it with a mariadb container, this is where you will run all tests.
@@ -25,17 +25,20 @@ docker run --env MYSQL_USER=centreon --env MYSQL_PASSWORD=password --env MARIADB
 docker run --network robot-gorgone-bookworm --name 'gorgone-bookworm' -v $(pwd):/centreon-collect/:rw  -v $(pwd)/../centreon:/centreon/:rw -it  gorgone-bookworm bash
 ```
 
-Connect to the robot bookworm container, go to the mount point, and create the database needed : 
+Connect to the robot bookworm container, go to the mount point, and create the databases needed : 
 ```
 cd /
 
 # please check .github/workflows/gorgone.yml file for any update on this.
 
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon\`"
+mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-remote\`"
 mysql -h mariadb -u root -ppassword -e "CREATE DATABASE \`centreon-storage\`"
 mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON centreon.* TO 'centreon'@'%'"
-mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON  \`centreon-storage\`.* TO 'centreon'@'%'"
+mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON \`centreon-remote\`.* TO 'centreon'@'%'"
+mysql -h mariadb -u root -ppassword -e "GRANT ALL PRIVILEGES ON \`centreon-storage\`.* TO 'centreon'@'%'"
 mysql -h mariadb -u root -ppassword 'centreon' < centreon/centreon/www/install/createTables.sql
+mysql -h mariadb -u root -ppassword 'centreon-remote' < centreon/centreon/www/install/createTables.sql
 mysql -h mariadb -u root -ppassword 'centreon-storage' < centreon/centreon/www/install/createTablesCentstorage.sql
 # we install gorgone because we want all dependancy to come from the package manager to be sure they work.
 # locally you should use the code in the repository, which is controlled in robot execution by the argument -v 'gorgone_binary:...'
@@ -48,7 +51,7 @@ cd /centreon-collect/
 ### Execute all tests
 Launch robot tests with parameters to connect to the db and use the local gorgone binary : 
 ```
-robot --loglevel TRACE -v 'gorgone_binary:/centreon-collect/gorgone/gorgoned' -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' gorgone/tests/robot/tests
+robot --loglevel TRACE -v 'gorgone_binary:/centreon-collect/gorgone/gorgoned' -v 'DBHOST:mariadb' -v 'DBNAME:centreon' -v 'DBNAME_STORAGE:centreon-storage' -v 'DBUSER:centreon' /centreon-collect/gorgone/tests/robot/tests/
 ```
 
 ### Filter tests by tags
@@ -70,7 +73,7 @@ docker exec -it gorgone-bookworm bash
 
 No magic here, but you want at least to install the following binary to look at the file and see gorgone status : 
 ```
-apt install -y vim nano htop top
+apt install -y vim nano htop top strace
 ```
 
 #### debug installation
@@ -93,8 +96,8 @@ mkdir -p /usr/share/perl5/centreon/ && cp -r /centreon-collect/perl-libs/lib/cen
 
 You can use perl debug mechanism on gorgone to add breakpoint or to see the code coverage : 
 ```bash
-apt install -y cpanminus
-cpanm Devel::Cover Devel::Camelcadedb
+apt install -y cpanminus libdevel-cover-perl
+cpanm Devel::Camelcadedb
 ```
 
 To see the code coverage, run your robot test with this variable environment : 

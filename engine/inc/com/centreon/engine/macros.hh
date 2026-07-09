@@ -45,7 +45,7 @@ int grab_contact_macros_r(nagios_macros* mac,
                           com::centreon::engine::contact* cntct);
 
 int grab_custom_macro_value_r(nagios_macros* mac,
-                              std::string const& macro_name,
+                              const std::string_view& macro_name,
                               std::string const& arg1,
                               std::string const& arg2,
                               std::string& output);
@@ -69,7 +69,7 @@ int grab_standard_contact_macro_r(nagios_macros* mac,
                                   com::centreon::engine::contact* temp_contact,
                                   std::string& output);
 int grab_custom_object_macro_r(nagios_macros* mac,
-                               std::string const& macro_name,
+                               const std::string_view& macro_name,
                                com::centreon::engine::map_customvar const& vars,
                                std::string& output);
 

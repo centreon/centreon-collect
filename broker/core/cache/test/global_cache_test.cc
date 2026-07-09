@@ -18,6 +18,8 @@
  */
 
 #include <gtest/gtest.h>
+#include <sys/stat.h>
+#include <boost/interprocess/exceptions.hpp>
 
 #include "bbdo/neb.pb.h"
 
@@ -195,8 +197,16 @@ TEST_F(global_cache_test, CanBeMoved) {
   ::remove(temp_path);
 
   // use old map address to force global cache to use another one
-  boost::interprocess::managed_mapped_file dummy2(
-      interprocess::create_only, temp_path, 0x10000, mapping_begin);
+  try {
+    // sometimes, OS refuses to do this fixed mapping
+    boost::interprocess::managed_mapped_file dummy2(
+        interprocess::create_only, temp_path, 0x10000, mapping_begin);
+  } catch (const boost::interprocess::interprocess_exception& err) {
+    std::cout << "[   WARNING   ] we can't create dummy mapping => we skip "
+                 "this test: "
+              << err.what() << std::endl;
+    return;
+  }
 
   obj = global_cache::load(g_io_context, "/tmp/cache_test");
   mapping_begin = obj->get_address();
@@ -373,6 +383,48 @@ TEST_F(global_cache_test, Group) {
     std::ostringstream host_grp;
     obj->append_host_group(54, host_grp);
     ASSERT_EQ(host_grp.str(), "5,6,7,8,9,10,11,12,14");
+  }
+}
+
+// The service group alias (neb.proto field 6, PB_SERVICE_GROUP) is carried by
+// the full ServiceGroup event but not by the ServiceGroupMember event. A member
+// event arriving after the group event must not erase the cached alias.
+TEST_F(global_cache_test, ServiceGroupAlias) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  auto serv_group = std::make_shared<neb::pb_service_group>();
+  serv_group->mut_obj().set_servicegroup_id(42);
+  serv_group->mut_obj().set_name("servicegroup_42");
+  serv_group->mut_obj().set_alias("alias_42");
+  serv_group->mut_obj().set_enabled(true);
+  obj->write(serv_group);
+
+  {
+    global_cache::lock l;
+    const service_group* sg = obj->get_service_group(42, l);
+    ASSERT_NE(sg, nullptr);
+    ASSERT_STREQ(sg->alias().c_str(), "alias_42");
+  }
+
+  // A member event carries no alias; it must keep the previously cached one.
+  auto serv_grp_member = std::make_shared<neb::pb_service_group_member>();
+  serv_grp_member->mut_obj().set_servicegroup_id(42);
+  serv_grp_member->mut_obj().set_name("servicegroup_42");
+  serv_grp_member->mut_obj().set_host_id(1);
+  serv_grp_member->mut_obj().set_service_id(2);
+  serv_grp_member->mut_obj().set_poller_id(0);
+  serv_grp_member->mut_obj().set_enabled(true);
+  obj->write(serv_grp_member);
+
+  {
+    global_cache::lock l;
+    const service_group* sg = obj->get_service_group(42, l);
+    ASSERT_NE(sg, nullptr);
+    ASSERT_STREQ(sg->alias().c_str(), "alias_42");
   }
 }
 
@@ -1124,4 +1176,79 @@ TEST_F(global_cache_test, ServiceMovedBetweenPollers) {
   const cache::service* s = obj->get_service(1, 2, l);
   ASSERT_NE(s, nullptr);
   ASSERT_EQ(s->instance_id(), 20);
+}
+
+// ---------------------------------------------------------------------------
+// Regression test for MON-204419: growing the memory-mapped cache file must
+// not leave the dirty flag pointer dangling in the old, unmapped segment.
+// ---------------------------------------------------------------------------
+
+TEST_F(global_cache_test, GrowDoesNotCorruptDirtyFlag) {
+  global_cache::unload();
+  ::remove("/tmp/cache_test.rt");
+  ::remove("/tmp/cache_test.cnf");
+  global_cache::pointer obj =
+      global_cache::load(g_io_context, "/tmp/cache_test");
+
+  struct ::stat initial_info;
+  ASSERT_EQ(::stat("/tmp/cache_test.rt", &initial_info), 0);
+
+  // Inject enough services to force the memory-mapped cache file to grow.
+  // Growing releases the old mapping and remaps the file, possibly at a
+  // different address. Before the fix, the cached _dirty pointer kept
+  // pointing into the old, now unmapped, segment, so the next write would
+  // dereference a dangling pointer and crash the process.
+  constexpr unsigned nb_services = 200000;
+  for (unsigned ii = 0; ii < nb_services; ++ii) {
+    auto host = std::make_shared<neb::pb_host>();
+    host->mut_obj().set_host_id(ii);
+    host->mut_obj().set_name(fmt::format("host_{}", ii));
+    host->mut_obj().set_enabled(true);
+    obj->write(host);
+
+    auto service = std::make_shared<neb::pb_service>();
+    service->mut_obj().set_host_id(ii);
+    service->mut_obj().set_service_id(ii + 1);
+    service->mut_obj().set_description(fmt::format("service_{}", ii + 1));
+    service->mut_obj().set_enabled(true);
+    obj->write(service);
+  }
+
+  struct ::stat grown_info;
+  ASSERT_EQ(::stat("/tmp/cache_test.rt", &grown_info), 0);
+  // The file must actually have grown, otherwise the grow/_dirty code path
+  // this test targets would never have been exercised.
+  ASSERT_NE(initial_info.st_size, grown_info.st_size);
+
+  // The dirty flag must still be usable after growth: writing and reading
+  // back must not crash and must return correct data.
+  auto host = std::make_shared<neb::pb_host>();
+  host->mut_obj().set_host_id(nb_services);
+  host->mut_obj().set_name("host_after_grow");
+  host->mut_obj().set_enabled(true);
+  ASSERT_NO_THROW(obj->write(host));
+
+  {
+    global_cache::lock l;
+    auto* h = obj->get_host(nb_services, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(to_string(h->name()), "host_after_grow");
+  }
+
+  {
+    global_cache::lock l;
+    auto* h = obj->get_host(0, l);
+    ASSERT_TRUE(h);
+    EXPECT_EQ(to_string(h->name()), "host_0");
+  }
+
+  {
+    global_cache::lock l;
+    auto* s = obj->get_service(10, 11, l);
+    ASSERT_TRUE(s);
+    EXPECT_EQ(to_string(s->description()), "service_11");
+  }
+
+  obj.reset();
+  global_cache::unload();
 }

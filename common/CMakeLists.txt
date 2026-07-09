@@ -21,8 +21,11 @@ project("Centreon common" C CXX)
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   add_subdirectory(log_v2)
-  add_subdirectory(engine_conf)
 endif()
+
+# centreon_engine_conf provides centreon_common_timeperiod
+# (the timeperiod proto + utils), which the agent needs on Windows too.
+add_subdirectory(engine_conf)
 
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc/com/centreon/common")
@@ -34,12 +37,10 @@ set(TEST_DIR "${PROJECT_SOURCE_DIR}/tests")
 # Set sources.
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
   set(SOURCES
-      ${SRC_DIR}/hex_dump.cc
       ${SRC_DIR}/perfdata.cc
       ${SRC_DIR}/pool.cc
       ${SRC_DIR}/rapidjson_helper.cc
       ${SRC_DIR}/utf8.cc
-      ${SRC_DIR}/file.cc
       ${SRC_DIR}/threshold.cc
       )
 else()
@@ -60,7 +61,13 @@ set_property(TARGET centreon_common PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 target_precompile_headers(centreon_common PRIVATE precomp_inc/precomp.hh)
 
+add_library(centreon_hexdump STATIC ${SRC_DIR}/hex_dump.cc)
+set_property(TARGET centreon_hexdump PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+target_precompile_headers(centreon_hexdump REUSE_FROM centreon_common)
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+  add_subdirectory(file_system)
   add_subdirectory(http)
   add_subdirectory(vault)
   add_subdirectory(process_stat)

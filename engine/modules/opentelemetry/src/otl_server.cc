@@ -94,7 +94,7 @@ class request_response_allocator
  */
 metric_request_ptr request_response_allocator::get_metric_request_ptr_from_raw(
     const otl_col_metrics::ExportMetricsServiceRequest* raw_request) {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   auto found = _allocated.find(raw_request);
   if (found != _allocated.end()) {
     return found->second;
@@ -110,7 +110,7 @@ metric_request_ptr request_response_allocator::get_metric_request_ptr_from_raw(
  */
 void request_response_allocator::release_request(
     const otl_col_metrics::ExportMetricsServiceRequest* raw_request) {
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _allocated.erase(raw_request);
 }
 
@@ -126,7 +126,7 @@ void request_response_allocator::release_request(
 request_response_allocator::AllocateMessages() {
   request_response_holder* ret =
       new request_response_holder(shared_from_this());
-  absl::MutexLock l(&_protect);
+  absl::MutexLock l(_protect);
   _allocated.emplace(ret->request(), ret->get_request());
   return ret;
 }
@@ -262,7 +262,7 @@ std::shared_ptr<metric_service> metric_service::load(
   metric_request_ptr shared_request =
       _allocator->get_metric_request_ptr_from_raw(request);
 
-  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", *request);
+  SPDLOG_LOGGER_TRACE(_logger, "receive:{}", otl_formatter{*request});
   if (shared_request) {
     _request_handler(shared_request);
   } else {

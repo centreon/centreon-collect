@@ -123,7 +123,6 @@ jobs:
         "CMakeListsWindows.txt"
         "vcpkg.json"
         "overlays/**"
-        "overlays-windows/**"
         "selinux/centreon-monitoring-agent/**"
         "!**/test/**"
         "!**/tests/**"
@@ -231,8 +230,10 @@ jobs:
           timestamp-digest: SHA256
 
       - name: Build installer and sign
+        env:
+          INSTALLER_SIGNING: ${{ (inputs.force_signing == true || contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) && 'ON' || 'OFF' }}
         run: |
-          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=On -DWITH_INSTALLER_SIGNING=${{ (inputs.force_signing == true || contains(fromJson('["unstable", "testing"]'), needs.get-environment.outputs.stability)) && 'ON' || 'OFF' }} -Bbuild_windows
+          cmake -DCMAKE_BUILD_TYPE=Release -DWITH_TESTING=On -DWINDOWS=On -DBUILD_FROM_CACHE=On -S. -DVCPKG_CRT_LINKAGE=dynamic -DBUILD_SHARED_LIBS=OFF -DWITH_BUILD_AGENT_INSTALLER=On "-DWITH_INSTALLER_SIGNING=$env:INSTALLER_SIGNING" -Bbuild_windows
           cmake --build build_windows --config Release
 
       - name: Installer test
@@ -240,7 +241,7 @@ jobs:
         shell: powershell
 
       - name: Cache monitoring agent
-        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
@@ -311,14 +312,15 @@ jobs:
         shell: bash
 
       - name: Compile centreon-collect
+        env:
+          OPERATING_SYSTEM: ${{ matrix.operating_system }}
         run: |
           CMAKE="cmake"
-          if [[ "${{ matrix.operating_system }}" == "alma8" || "${{ matrix.operating_system }}" == "alma9" ]]; then
-            CMAKE="cmake3"
-          fi
 
           export VCPKG_ROOT=/vcpkg
-          export PATH=$VCPKG_ROOT:$PATH
+          export VCPKG_MAX_CONCURRENCY=6
+          export VCPKG_FORCE_SYSTEM_BINARIES=1
+          export PATH=$VCPKG_ROOT:/opt/cmake-4.3.3/bin:$PATH
 
           mv /root/.cache /github/home/
 
@@ -587,21 +589,25 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Restore cache monitoring agent
-        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: agent\installer\centreon-monitoring-agent.exe
           key: ${{ github.run_id }}-${{ github.sha }}-exe-centreon-monitoring-agent-${{ github.head_ref || github.ref_name }}
           fail-on-cache-miss: true
 
       - name: Deliver
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
         run: |
-          Write-Host "[DEBUG] deliver to testing - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
-          Write-Host "[DEBUG] deliver to testing - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
+          Write-Host "[DEBUG] deliver to testing - Major version: $env:CMA_MAJOR_VERSION"
+          Write-Host "[DEBUG] deliver to testing - Minor version: $env:CMA_MINOR_VERSION"
 
-          $VERSION = "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $STABILITY = "${{ needs.get-environment.outputs.stability }}"
+          $VERSION = "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $STABILITY = "$env:STABILITY"
 
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.cma_major_version }}/$STABILITY/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/$env:CMA_MAJOR_VERSION/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 
@@ -682,16 +688,21 @@ jobs:
           JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
 
       - name: Promote testing to stable
+        env:
+          CMA_MAJOR_VERSION: ${{ needs.get-environment.outputs.cma_major_version }}
+          CMA_MINOR_VERSION: ${{ needs.get-environment.outputs.cma_minor_version }}
+          STABILITY: ${{ needs.get-environment.outputs.stability }}
+          MAJOR_VERSION: ${{ needs.get-environment.outputs.major_version }}
         run: |
-          Write-Host "[DEBUG] promote to stable - Major version: ${{ needs.get-environment.outputs.cma_major_version }}"
-          Write-Host "[DEBUG] promote to stable - Minor version: ${{ needs.get-environment.outputs.cma_minor_version }}"
+          Write-Host "[DEBUG] promote to stable - Major version: $env:CMA_MAJOR_VERSION"
+          Write-Host "[DEBUG] promote to stable - Minor version: $env:CMA_MINOR_VERSION"
 
-          $VERSION= "${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $MODULE_NAME= "monitoring-agent-${{ needs.get-environment.outputs.cma_major_version }}.${{ needs.get-environment.outputs.cma_minor_version }}"
-          $STABILITY= "${{ needs.get-environment.outputs.stability }}"
+          $VERSION= "$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $MODULE_NAME= "monitoring-agent-$env:CMA_MAJOR_VERSION.$env:CMA_MINOR_VERSION"
+          $STABILITY= "$env:STABILITY"
 
-          $SRC_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/testing/windows/"
-          $TARGET_PATH = "installers/monitoring-agent/${{ needs.get-environment.outputs.major_version }}/$STABILITY/windows/"
+          $SRC_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/testing/windows/"
+          $TARGET_PATH = "installers/monitoring-agent/$env:MAJOR_VERSION/$STABILITY/windows/"
 
           $VERSION_EXE = "centreon-monitoring-agent-${VERSION}.exe"
 

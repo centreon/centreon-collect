@@ -1,5 +1,5 @@
 #
-# Copyright 2011-2015,2017-2019 Centreon
+# Copyright 2011-2015,2017-2019,2026 Centreon
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,15 @@
 add_custom_command(OUTPUT "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc"
   COMMAND "${PERL_EXECUTABLE}" "-MExtUtils::Embed" "-e" "xsinit" "--" "-o" "${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc")
 
-include_directories(${PROJECT_SOURCE_DIR}/perl/inc/)
+include_directories(${PROJECT_SOURCE_DIR}/perl/inc/ 
+  ${CMAKE_BINARY_DIR}/connectors/perl
+  ${CMAKE_SOURCE_DIR}/common/process/inc
+  ${CMAKE_SOURCE_DIR}/common/inc )
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
+
+add_library(pb_perl_connector_lib src/perl_connector.proto)
+set_target_properties(pb_perl_connector_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+protobuf_generate(TARGET pb_perl_connector_lib)
 
 # Perl connector.
 add_executable(centreon_connector_perl
@@ -31,30 +38,41 @@ add_executable(centreon_connector_perl
   ${PROJECT_SOURCE_DIR}/common/src/reporter.cc
   ${PROJECT_SOURCE_DIR}/common/src/result.cc
   ${PROJECT_SOURCE_DIR}/common/src/parser.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/main.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/checks/check.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/embedded_perl.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/options.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/config.cc
   ${PROJECT_SOURCE_DIR}/perl/src/orders/parser.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/check_child.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/main.cc
   ${PROJECT_SOURCE_DIR}/perl/src/policy.cc
-  ${PROJECT_SOURCE_DIR}/perl/src/script.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/protocol.cc
+  ${PROJECT_SOURCE_DIR}/perl/src/script_child.cc
   ${PROJECT_SOURCE_DIR}/perl/src/xs_init.cc
-
-  # Headers.
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/log.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/reporter.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/result.hh
-  ${PROJECT_SOURCE_DIR}/common/inc/com/centreon/connector/parser.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/checks/check.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/embedded_perl.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/options.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/orders/parser.hh
-  ${PROJECT_SOURCE_DIR}/perl/inc/com/centreon/connector/perl/policy.hh
 )
+
+
+
+
 add_dependencies(centreon_connector_perl centreon_clib)
-target_link_libraries(centreon_connector_perl centreon_clib ${PERL_LIBRARIES} spdlog::spdlog fmt::fmt
-  absl::any absl::log absl::base absl::bits
-  absl::raw_hash_set absl::hash absl::low_level_hash absl::hashtablez_sampler
+target_link_libraries(centreon_connector_perl 
+  centreon_process_no_crypto
+  centreon_file_system
+  centreon_hexdump
+  process_stat
+  ${PERL_LIBRARIES}
+  pb_perl_connector_lib
+  protobuf::libprotobuf
+  Boost::program_options
+  Boost::process
+  re2::re2
+  spdlog::spdlog
+  fmt::fmt
+  OpenSSL::SSL
+  absl::any
+  absl::log
+  absl::base
+  absl::bits
+  absl::raw_hash_set
+  absl::hash
+  absl::hashtablez_sampler
   pthread)
 
 target_precompile_headers(centreon_connector_perl PRIVATE ${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh)

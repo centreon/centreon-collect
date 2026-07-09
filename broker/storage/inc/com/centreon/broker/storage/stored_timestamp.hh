@@ -37,19 +37,19 @@ class stored_timestamp {
   enum state_type { responsive, unresponsive };
 
  private:
-  uint32_t _instance_id;
+  uint64_t _instance_id;
   timestamp _ts;
   state_type _state;
 
  public:
   stored_timestamp() noexcept;
-  stored_timestamp(uint32_t id, state_type s) noexcept;
+  stored_timestamp(uint64_t id, state_type s) noexcept;
   stored_timestamp(stored_timestamp const& right) noexcept;
   ~stored_timestamp() noexcept = default;
 
   stored_timestamp& operator=(stored_timestamp const&) = default;
 
-  uint32_t get_id() const noexcept;
+  uint64_t get_id() const noexcept;
   state_type get_state() const noexcept;
   void set_state(state_type state) noexcept;
   void update_timestamp() noexcept;

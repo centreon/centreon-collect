@@ -186,7 +186,7 @@ global_cache::~global_cache() {
  */
 com::centreon::broker::cache::global_cache::pointer
 com::centreon::broker::cache::global_cache::instance_ptr() {
-  absl::MutexLock l(&_instance_m);
+  absl::MutexLock l(_instance_m);
   return _instance;
 }
 
@@ -300,7 +300,6 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           SPDLOG_LOGGER_INFO(_logger, "global_cache open file {}", _file_path);
           this->managed_map(false);
-          _dirty = dirty;
           return;
         } else {
           if (dirty) {
@@ -393,7 +392,6 @@ void global_cache::managed_map(bool create) {
   if (create) {
     _file->find_or_construct<collect_version>("collect_version")(expected);
     _dirty = _file->find_or_construct<bool>("dirty")(false);
-    return;
   } else {
     collect_version* version =
         _file->find<collect_version>("collect_version").first;
@@ -408,6 +406,7 @@ void global_cache::managed_map(bool create) {
           expected.minor, expected.patch, _file_path);
       throw std::invalid_argument(detail);
     }
+    _dirty = _file->find_or_construct<bool>("dirty")(false);
   }
 }
 
@@ -494,7 +493,7 @@ global_cache::pointer global_cache::load(
     unsigned grow_step,
     unsigned nb_update_before_save,
     std::chrono::system_clock::duration save_interval) {
-  absl::MutexLock instance_lock(&_instance_m);
+  absl::MutexLock instance_lock(_instance_m);
   if (!_instance) {
     std::shared_ptr<global_cache> conf_cache(new global_cache_data(
         io_context, file_path, e_cache_type::conf, nullptr, grow_step,
@@ -522,7 +521,7 @@ global_cache::pointer global_cache::load(
  *
  */
 void global_cache::unload() {
-  absl::MutexLock instance_lock(&_instance_m);
+  absl::MutexLock instance_lock(_instance_m);
   if (_instance) {
     _instance->stop();
     _instance.reset();

@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2026 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
+#include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/common/pool.hh"
 #include "common/log_v2/log_v2.hh"
@@ -30,62 +31,6 @@
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
-
-namespace com::centreon::broker {
-namespace stream {
-
-/**
- * @brief << operator for CentreonEvent
- * used by fmt with ostream_formatter
- *
- * @param st
- * @param to_dump
- * @return * std::ostream&
- */
-std::ostream& operator<<(std::ostream& st,
-                         const centreon_stream::CentreonEvent& to_dump) {
-  if (to_dump.IsInitialized()) {
-    if (to_dump.has_buffer()) {
-      st << "buff: "
-         << com::centreon::common::debug_buf(to_dump.buffer().data(),
-                                             to_dump.buffer().length(), 20);
-    } else {
-      std::string dump{to_dump.ShortDebugString()};
-      if (dump.size() > 200) {
-        dump.resize(200);
-        st << fmt::format(" content:'{}...'", dump);
-      } else
-        st << " content:'" << dump << '\'';
-    }
-  }
-  return st;
-}
-}  // namespace stream
-namespace grpc {
-/**
- * @brief << operator for detail_centreon_event with more details than
- * CentreonEvent used by fmt with ostream_formatter
- *
- * @param st
- * @param to_dump
- * @return * std::ostream&
- */
-std::ostream& operator<<(std::ostream& st,
-                         const detail_centreon_event& to_dump) {
-  if (to_dump.to_dump.IsInitialized()) {
-    if (to_dump.to_dump.has_buffer()) {
-      st << "buff: "
-         << com::centreon::common::debug_buf(to_dump.to_dump.buffer().data(),
-                                             to_dump.to_dump.buffer().length(),
-                                             100);
-    } else {
-      st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
-    }
-  }
-  return st;
-}
-}  // namespace grpc
-}  // namespace com::centreon::broker
 
 /**
  * @brief this header is used to identify poller
@@ -103,12 +48,12 @@ const std::string com::centreon::broker::grpc::authorization_header(
  * @tparam bireactor_class
  */
 template <class bireactor_class>
-std::set<std::shared_ptr<stream<bireactor_class>>>*
+absl::flat_hash_set<std::shared_ptr<stream<bireactor_class>>>*
     stream<bireactor_class>::_instances =
-        new std::set<std::shared_ptr<stream<bireactor_class>>>;
+        new absl::flat_hash_set<std::shared_ptr<stream<bireactor_class>>>;
 
 template <class bireactor_class>
-std::mutex stream<bireactor_class>::_instances_m;
+absl::Mutex stream<bireactor_class>::_instances_m;
 
 /**
  * @brief Construct a new stream<bireactor class>::stream object
@@ -118,10 +63,12 @@ std::mutex stream<bireactor_class>::_instances_m;
  * @param class_name used by logs to identify server or client case
  */
 template <class bireactor_class>
-stream<bireactor_class>::stream(const grpc_config::pointer& conf,
+stream<bireactor_class>::stream(const io::endpoint* parent,
+                                const grpc_config::pointer& conf,
                                 const std::string_view& class_name,
                                 const std::string& peer)
     : io::stream("GRPC"),
+      _parent(parent),
       _conf(conf),
       _class_name(class_name),
       _peer(peer),
@@ -150,7 +97,7 @@ stream<bireactor_class>::~stream() {
 template <class bireactor_class>
 void stream<bireactor_class>::register_stream(
     const std::shared_ptr<stream<bireactor_class>>& strm) {
-  std::lock_guard l(_instances_m);
+  absl::MutexLock l(_instances_m);
   _instances->insert(strm);
 }
 
@@ -229,7 +176,7 @@ bool stream<bireactor_class>::read(std::shared_ptr<io::data>& d,
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(
           to_convert.buffer().begin(), to_convert.buffer().end());
       SPDLOG_LOGGER_TRACE(_logger, "{:p} {} read:{}", static_cast<void*>(this),
-                          _class_name, *std::static_pointer_cast<io::raw>(d));
+                          _class_name, *d);
       return true;
     } else {
       d = protobuf_to_event(first);
@@ -357,6 +304,15 @@ int32_t stream<bireactor_class>::write(std::shared_ptr<io::data> const& d) {
   if (to_send) {
     {
       std::lock_guard l(_write_m);
+      if (_write_queue.size() > multiplexing::muxer::event_queue_max_size()) {
+        time_t now = time(nullptr);
+        if (now > _last_full_write_queue_error) {
+          _last_full_write_queue_error = now;
+          SPDLOG_LOGGER_ERROR(_logger,
+                              "write queue full => remove oldest event");
+        }
+        _write_queue.pop();
+      }
       _write_queue.push(to_send);
     }
     start_write();
@@ -381,7 +337,7 @@ void stream<bireactor_class>::OnDone() {
              [me = std::enable_shared_from_this<
                   stream<bireactor_class>>::shared_from_this(),
               logger = _logger]() {
-               std::lock_guard l(_instances_m);
+               absl::MutexLock l(_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} server::OnDone()",
                                    static_cast<void*>(me.get()));
                _instances->erase(
@@ -408,7 +364,7 @@ void stream<bireactor_class>::OnDone(const ::grpc::Status& status) {
              [me = std::enable_shared_from_this<
                   stream<bireactor_class>>::shared_from_this(),
               status, logger = _logger]() {
-               std::lock_guard l(_instances_m);
+               absl::MutexLock l(_instances_m);
                SPDLOG_LOGGER_DEBUG(logger, "{:p} client::OnDone({}) {}",
                                    static_cast<void*>(me.get()),
                                    status.error_message(),

@@ -112,7 +112,18 @@ sub disconnect_zmq_socket_and_exit {
     $connector->{logger}->writeLogInfo("[pullwss] exit now.");
     exit(0);
 }
+=head3 $self->send_message(message => $message)
 
+Send a message to the remote node through the websocket connection, encoding HTML before sending.
+
+parameters:
+
+=over 4
+
+=item * message: message to send as a string.
+
+=back
+=cut
 sub send_message {
     my ($self, %options) = @_;
     $connector->{logger}->writeLogDebug("[pullwss] read message from internal, sending to remote node : $options{message}");
@@ -159,7 +170,7 @@ sub wss_connect {
     my $proto = 'ws';
     if (defined($self->{config}->{ssl}) && $self->{config}->{ssl} eq 'true') {
         $proto = 'wss';
-        $self->{ua}->insecure(1);
+        $self->{ua}->insecure($self->{config}->{https_cert_no_verify} // 1);
     }
 
     $self->{ua}->websocket(

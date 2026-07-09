@@ -153,7 +153,7 @@ message Service {
    * here. */
   uint64 internal_id = 86;
   uint64 icon_id = 87;
-  int32 instance_id = 88;
+  uint64 instance_id = 88;
 }
 
 /**
@@ -346,7 +346,7 @@ message Host {
   string name = 59;
   string icon_image = 60;
   string icon_image_alt = 61;
-  int32 instance_id = 62;
+  uint64 instance_id = 62;
   double low_flap_threshold = 63;
   string notes = 64;
   string notes_url = 65;
@@ -708,6 +708,7 @@ message ServiceGroup {
   uint64 servicegroup_id = 3;
   string name = 4;
   uint64 poller_id = 5;
+  string alias = 6;
 }
 
 /* io::neb, neb::de_pb_host_group_member, 25 */
@@ -817,7 +818,7 @@ message Tag {
   Action action = 2;
   TagType type = 3;
   string name = 4;
-  int64 poller_id = 5;
+  uint64 poller_id = 5;
 }
 /* Ignore */
 message TagInfo {
@@ -838,14 +839,14 @@ message AgentInfo {
 
 /* io::neb, neb::de_pb_agent_stats, 57 */
 message AgentStats {
-  int64 poller_id = 1;
+  uint64 poller_id = 1;
   repeated AgentInfo stats = 2;
 }
 
 /* This message is sent to broker when a cma connect to engine with an unknown hostname */
 /* io::neb, neb::de_pb_unknown_host, 58 */
 message UnknownHost {
-  int64 poller_id = 1;
+  uint64 poller_id = 1;
   string host_name = 2;
   string host_template = 3;
   string os = 4;

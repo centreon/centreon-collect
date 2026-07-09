@@ -7,12 +7,18 @@ end
 
 function write(e)
     local service_group_name = broker_cache:get_servicegroup_name(1)
+    local service_group_alias = broker_cache:get_servicegroup_alias(1)
     local host_group_name = broker_cache:get_hostgroup_name(1)
 
     if service_group_name then
         broker_log:info(0, "service_group_name:" .. service_group_name)
     else
         broker_log:info(0, "no service_group_name 1")
+    end
+    if service_group_alias then
+        broker_log:info(0, "service_group_alias:" .. service_group_alias)
+    else
+        broker_log:info(0, "no service_group_alias 1")
     end
     if host_group_name then
         broker_log:info(0, "host_group_name:" .. host_group_name)

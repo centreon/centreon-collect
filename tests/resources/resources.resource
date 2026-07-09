@@ -370,8 +370,8 @@ Ctn Save Logs
     Copy Files    ${ENGINE_LOG}/config1/*.dat    ${failDir1}
 
     Copy Files    ${ENGINE_LOG}/*.log    ${failDir}
-    Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
-    Copy Files    ${EtcRoot}/centreon-engine/config1/*.cfg    ${failDir}/etc/centreon-engine/config1
+    Copy Files    ${EtcRoot}/centreon-engine/config0/*    ${failDir}/etc/centreon-engine/config0
+    Copy Files    ${EtcRoot}/centreon-engine/config1/*    ${failDir}/etc/centreon-engine/config1
     Copy Files    ${EtcRoot}/centreon-engine/*.json    ${failDir}/etc/centreon-engine
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}

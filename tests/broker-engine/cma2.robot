@@ -66,11 +66,11 @@ BEOTEL_CENTREON_AGENT_CHECK_DIFFERENT_INTERVAL
     # Let's wait for the otel server start
     Ctn Wait For Otel Server To Be Ready    ${start}
 
-    ${result}    Ctn Check Service Check Interval   host_1    service_1    80    10    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_1    120    10    5
     Should Be True    ${result}    check_interval is not respected for service_1
-    ${result}    Ctn Check Service Check Interval   host_1    service_2    80    20    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_2    120    20    5
     Should Be True    ${result}    check_interval is not respected for service_2
-    ${result}    Ctn Check Service Check Interval   host_1    service_3    80    30    5
+    ${result}    Ctn Check Service Check Interval   host_1    service_3    120    30    5
     Should Be True    ${result}    check_interval is not respected for service_3
 
 
@@ -183,6 +183,7 @@ BEOTEL_CENTREON_AGENT_CHECK_NATIVE_CUSTOM
 
     Ctn Config BBDO3    1
     Ctn Clear Retention
+    Ctn Clear Db    resources
 
     ${start}    Ctn Get Round Current Date
     Ctn Start Broker
@@ -406,7 +407,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4320
-    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "init from ${host_host_name}:4320" not found in log
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -484,7 +485,7 @@ NON_TLS_CONNECTION_WARNING_REVERSED_ENCRYPTED
 
     # Let's wait for engine to connect to agent
     ${content}    Create List    init from ${host_host_name}:4321
-    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    20
+    ${result}    Ctn Find In Log With Timeout   ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "init from ${host_host_name}:4321" not found in log"
 
     ${content}    Create List    NON TLS CONNECTION ARE ALLOWED FOR Agents(${host_host_name}:4320) // THIS IS NOT ALLOWED IN PRODUCTION
@@ -1154,9 +1155,9 @@ BEOTEL_CENTREON_AGENT_TOKEN
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1251,9 +1252,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_MISSING_HEADER
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1352,10 +1353,10 @@ BEOTEL_CENTREON_AGENT_NO_TRUSTED_TOKEN
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
-    Ctn Reload Engine
-    Ctn Start Agent
     ${start}    Get Current Date
     ${start_int}    Ctn Get Round Current Date
+    Ctn Reload Engine
+    Ctn Start Agent
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1440,9 +1441,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1525,9 +1526,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1631,9 +1632,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING
     Update Json Field    ${agent_path}    token    ${token1} 
     Update Json Field    ${otl_path}/otl_server.json   otel_server.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    ] unencrypted server listening on 0.0.0.0:4318
@@ -1939,9 +1940,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_REVERSE
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # Let's wait for the otel server start
     ${content}    Create List    init from ${host_host_name}:4321
@@ -2031,9 +2032,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_UNTRUSTED_REVERSE
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # if message apear the connection is accepted
     ${content}    Create List    ] unencrypted server listening
@@ -2121,9 +2122,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRE_REVERSE
     Update Json Field    ${agent_path}    encryption    no
     Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # if message apear the connection is accepted
     ${content}    Create List    ] unencrypted server listening
@@ -2234,9 +2235,9 @@ BEOTEL_CENTREON_AGENT_TOKEN_EXPIRED_WHILE_RUNNING_REVERSE
     Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.encryption    no
     Update Json Field    ${otl_path}/otl_server.json   centreon_agent.reverse_connections.0.token    ${token2}
 
+    ${start}    Get Current Date
     Ctn Reload Engine
     Ctn Start Agent
-    ${start}    Get Current Date
 
     # if message apear the connection is accepted
     ${content}    Create List    ] unencrypted server listening

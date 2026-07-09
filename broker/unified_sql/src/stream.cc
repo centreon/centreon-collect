@@ -231,11 +231,11 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
-  absl::MutexLock l(&_timer_m);
+  absl::MutexLock l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
-      absl::ReaderMutexLock lck(&_barrier_timer_m);
+      absl::ReaderMutexLock lck(_barrier_timer_m);
       _check_queues(err);
     }
   });
@@ -246,14 +246,14 @@ stream::stream(const database_config& dbcfg,
 
 stream::~stream() noexcept {
   {
-    absl::MutexLock l(&_timer_m);
+    absl::MutexLock l(_timer_m);
     _group_clean_timer.cancel();
     _queues_timer.cancel();
     _loop_timer.cancel();
   }
   /* Let's wait a little if one of the timers is working during the cancellation
    */
-  absl::MutexLock lck(&_barrier_timer_m);
+  absl::MutexLock lck(_barrier_timer_m);
   /* If there are data to write, we write them, so we force their readyness. */
   if (_hscr_bind)
     _hscr_bind->force_ready();
@@ -286,7 +286,7 @@ void stream::_load_deleted_instances() {
   try {
     mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
-      int32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
             _logger_sql,
@@ -379,7 +379,7 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_instance_id.get());
     while (_mysql.fetch_row(res)) {
-      uint32_t instance_id = res.value_as_i32(0);
+      auto instance_id = res.value_as_u64(0);
       _stored_timestamps.insert(
           {instance_id,
            stored_timestamp(instance_id, stored_timestamp::unresponsive)});
@@ -454,8 +454,8 @@ void stream::_load_caches() {
   try {
     mysql_result res(future_hi.get());
     while (_mysql.fetch_row(res)) {
-      int32_t host_id = res.value_as_i32(0);
-      int32_t instance_id = res.value_as_i32(1);
+      uint64_t host_id = res.value_as_u64(0);
+      uint64_t instance_id = res.value_as_u64(1);
       if (host_id > 0 && instance_id > 0)
         _cache_host_instance[host_id] = instance_id;
       else {
@@ -1199,10 +1199,10 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
-    absl::ReaderMutexLock lck(&_barrier_timer_m);
+    absl::ReaderMutexLock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     {
-      absl::MutexLock l(&_timer_m);
+      absl::MutexLock l(_timer_m);
       _start_loop_timer();
     }
   });

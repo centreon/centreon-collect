@@ -20,6 +20,7 @@
 syntax = "proto3";
 
 import "opentelemetry/proto/collector/metrics/v1/metrics_service.proto";
+import "timeperiod.proto";
 
 package com.centreon.agent;
 
@@ -97,6 +98,8 @@ message AgentConfiguration {
   // encryption keys to decrypt and crypt commands
   string key = 9;
   string salt = 10;
+  // timeperiod definitions referenced by services' check_period_name
+  repeated com.centreon.engine.configuration.Timeperiod timeperiods = 11;
 }
 
 // Service (poller configuration definition)
@@ -110,6 +113,10 @@ message Service {
   uint64 service_id = 6;
   uint32 retry_interval = 7;
   uint64 max_attempts = 8;
+  string check_period_name = 9;
+  string timezone = 10;
+  optional sint32 utc_offset = 11;
+  optional bool dst_active = 12;
 }
 
 // message used by engine to make agent do a force check

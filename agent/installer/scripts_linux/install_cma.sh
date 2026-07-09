@@ -1,6 +1,6 @@
 #!/bin/bash
 #===============================================================================
-# Copyright 2025 Centreon
+# Copyright 2026 Centreon
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -34,7 +34,7 @@
 # Options:
 #   -e, --endpoint       Poller endpoint (IP:PORT or DNS:PORT) [REQUIRED]
 #   -t, --token          Authentication token (can be entered interactively if not provided)
-#   -n, --hostname       Host name as defined in Centreon (default: system hostname)
+#   -n, --host           Host name as defined in Centreon (default: system hostname)
 #   -v, --version        Centreon version (24.10 or 25.10, default: 24.10)
 #   -c, --encryption     Encryption mode: full, insecure, or no (default: no)
 #   -r, --reverse        Enable poller-initiated (reversed) connection mode
@@ -170,12 +170,12 @@ REQUIRED OPTIONS:
 
 OPTIONAL OPTIONS:
     -t, --token <TOKEN>           Authentication token (can be entered interactively if not provided)
-    -n, --hostname <NAME>         Host name as defined in Centreon (default: system hostname)
+    -n, --host <NAME>             Host name as defined in Centreon (default: system hostname)
     -v, --version <VERSION>       Centreon version: 24.10 or 25.10 (default: ${DEFAULT_CENTREON_VERSION})
     -c, --encryption <MODE>       Encryption mode: full, insecure, or no (default: ${DEFAULT_ENCRYPTION})
     -r, --reverse                 Enable poller-initiated (reversed) connection mode
-    -a, --ca <PATH>          Path to CA certificate file (used with encryption=full/insecure)
-    -N, --common-name <NAME>          CA common name (optional, used with encryption=full/insecure)
+    -a, --ca <PATH>               Path to CA certificate file (used with encryption=full/insecure)
+    -N, --common-name <NAME>      CA common name (optional, used with encryption=full/insecure)
     -C, --cert <PATH>             Path to public certificate file (required for TLS in reverse mode)
     -k, --key <PATH>              Path to private key file (required for TLS in reverse mode)
     -f, --fingerprint <STRING>    Certificate fingerprint for validation
@@ -541,13 +541,33 @@ determine_package_manager() {
 ensure_installed_tools() {
     local missing_packages=()
     
+    #update (mandatory in order to have needed glibc version)
+    case "${PKG_MANAGER}" in
+        dnf|yum)
+            ${PKG_MANAGER} update -y
+            ;;
+        apt)
+            apt-get update -qq
+            ;;
+    esac
+
     # Check which tools are missing
     command -v curl &> /dev/null || missing_packages+=("curl")
     command -v hostname &> /dev/null || missing_packages+=("hostname")
     
-    # For Debian/Ubuntu, also check for gpg (provided by gnupg package)
+    #add mandatory packages
     if [[ "${PKG_MANAGER}" == "apt" ]]; then
         command -v gpg &> /dev/null || missing_packages+=("gnupg")
+        dpkg -s lsb-release &> /dev/null || missing_packages+=("lsb-release")
+        dpkg -s ca-certificates &> /dev/null || missing_packages+=("ca-certificates")
+        dpkg -s apt-transport-https &> /dev/null || missing_packages+=("apt-transport-https")
+        dpkg -s wget &> /dev/null || missing_packages+=("wget")
+        dpkg -s gnupg2 &> /dev/null || missing_packages+=("gnupg2")
+        if [[ ${OS_VERSION_MAJOR} -le 12 ]]; then
+            dpkg -s software-properties-common &> /dev/null || missing_packages+=("software-properties-common")
+        fi
+    else
+        rpm -ql procps-ng &> /dev/null || missing_packages+=("procps-ng")
     fi
     
     # If all tools are installed, return early
@@ -569,7 +589,6 @@ ensure_installed_tools() {
             ${PKG_MANAGER} install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
         apt)
-            apt-get update -qq
             apt-get install -qq -y "${missing_packages[@]}" || die "Failed to install packages: ${missing_packages[*]}"
             ;;
     esac
@@ -616,22 +635,6 @@ github_api_call() {
 # Returns: The CMA version tag (e.g., "centreon-monitoring-agent-25.10.1")
 get_latest_cma_version() {
     local centreon_version="$1"
-    local latest_tag="${centreon_version}-latest"
-    
-    log_info "Fetching latest CMA version for Centreon ${centreon_version}..."
-    
-    # Get the commit SHA for the latest tag
-    local commit_sha
-    local tag_response
-    tag_response=$(github_api_call "${GITHUB_API_URL}/git/refs/tags/${latest_tag}")
-    
-    commit_sha=$(echo "${tag_response}" | grep -o '"sha": *"[^"]*"' | head -1 | cut -d'"' -f4)
-    
-    if [[ -z "${commit_sha}" ]]; then
-        die "Failed to fetch tag ${latest_tag} from GitHub"
-    fi
-
-    log_info "Commit SHA for ${latest_tag}: ${commit_sha}"
     
     # Search through paginated results to find the CMA tag
     # Keep searching until we find the tag or reach the last page (less than 100 items)
@@ -645,7 +648,7 @@ get_latest_cma_version() {
         page_content=$(github_api_call "${GITHUB_API_URL}/tags?per_page=100&page=${page}")
         
         # Try to find the CMA tag in this page
-        cma_tag=$(echo "${page_content}" | grep -B5 "\"sha\": \"${commit_sha}\"" | grep '"name":' | grep "centreon-monitoring-agent-" | head -1 | cut -d'"' -f4)
+        cma_tag=$(echo "${page_content}" | grep name.*centreon-monitoring-agent-${centreon_version} | cut -d'"' -f4 | sort -rV | head -1)
         
         # If we found the tag, exit the loop
         if [[ -n "${cma_tag}" ]]; then
@@ -942,6 +945,11 @@ install_centreon_plugins() {
         return 0
     fi
 
+    if [ ! -d "/var/lib/centreon/centplugins" ]; then
+        mkdir -p /var/lib/centreon/centplugins
+        chown centreon-monitoring-agent: /var/lib/centreon/centplugins
+    fi
+    
     case "${PKG_MANAGER}" in
         dnf|yum)
             configure_plugins_repo_rhel
@@ -1266,9 +1274,6 @@ main() {
     # Ensure required tools are installed
     ensure_installed_tools
 
-    # Install plugins if requested
-    install_centreon_plugins
-
     # Install CMA agent
     install_cma_agent
 
@@ -1277,6 +1282,9 @@ main() {
 
     # Configure and start service
     configure_service
+
+    # Install plugins if requested
+    install_centreon_plugins
 
     echo ""
     log_info "=== Script execution completed ==="

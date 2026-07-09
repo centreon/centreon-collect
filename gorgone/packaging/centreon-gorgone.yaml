@@ -218,6 +218,7 @@ overrides:
       - libdbi-perl
       - libdbd-sqlite3-perl
       - libdbd-mysql-perl
+      - libdbd-mariadb-perl
       - libhttp-daemon-perl
       - libhttp-daemon-ssl-perl
       - libnetaddr-ip-perl

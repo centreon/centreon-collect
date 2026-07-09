@@ -64,6 +64,17 @@ if(WITH_ASAN)
   endif()
 endif()
 
+# With ASIO DEBUGGING ENABLED
+option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
+
+if(WITH_DEBUG_ASIO)
+  message(STATUS "compilation with asio debug")
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_ASIO_ENABLE_BUFFER_DEBUGGING -DBOOST_ASIO_ENABLE_HANDLER_TRACKING"
+  )
+endif()
+
 set(ALLOW_DUPLICATE_EXECUTABLE TRUE)
 
 set(BUILD_ARGS "-w" "dupbuild=warn")
@@ -94,9 +105,14 @@ add_definitions("-DSPDLOG_FMT_EXTERNAL")
 # Find the location of the gRPC plugin
 get_target_property(GRPC_CPP_PLUGIN gRPC::grpc_cpp_plugin LOCATION)
 
-add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR}")
-add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR}")
-add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH}")
+# Strip leading zeros (e.g. "09") so these expand to valid C++ integer
+# literals instead of being misread as octal constants by the preprocessor.
+string(REGEX REPLACE "^0+([0-9])" "\\1" COLLECT_MAJOR_INT "${COLLECT_MAJOR}")
+string(REGEX REPLACE "^0+([0-9])" "\\1" COLLECT_MINOR_INT "${COLLECT_MINOR}")
+string(REGEX REPLACE "^0+([0-9])" "\\1" COLLECT_PATCH_INT "${COLLECT_PATCH}")
+add_definitions("-DCOLLECT_MAJOR=${COLLECT_MAJOR_INT}")
+add_definitions("-DCOLLECT_MINOR=${COLLECT_MINOR_INT}")
+add_definitions("-DCOLLECT_PATCH=${COLLECT_PATCH_INT}")
 
 include(FindPkgConfig)
 pkg_check_modules(MARIADB REQUIRED libmariadb)
