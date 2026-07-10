@@ -1,12 +1,17 @@
 #!/bin/bash
 
 fixConfigurationFileRights() {
-  # force update of configuration file rights since they are not updated automatically by nfpm
+  # force update of configuration file rights since they are not updated automatically by nfpm.
+  # Also runs on fresh install: if another package (e.g. centreon-auto-discovery-server) drops a
+  # file into /etc/centreon-gorgone/config.d before this package installs, dpkg creates that
+  # directory with default root:root ownership and never corrects it afterwards.
+  chown centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/config.d
+  chmod 0770 /etc/centreon-gorgone/config.d
+  chown centreon-gorgone:centreon-gorgone /etc/centreon-gorgone/config.d/cron.d
+  chmod 0770 /etc/centreon-gorgone/config.d/cron.d
   chmod 0640 /etc/centreon-gorgone/config.d/30-centreon.yaml
   chmod 0640 /etc/centreon-gorgone/config.d/31-centreon-api.yaml
   chmod 0640 /etc/centreon-gorgone/config.d/50-centreon-audit.yaml
-  chmod 0770 /etc/centreon-gorgone/config.d
-  chmod 0770 /etc/centreon-gorgone/config.d/cron.d
 }
 
 manageUserGroups() {
@@ -47,6 +52,7 @@ fi
 case "$action" in
   "1" | "install")
     manageUserGroups
+    fixConfigurationFileRights
     addGorgoneSshKeys
     ;;
   "2" | "upgrade")
@@ -57,6 +63,7 @@ case "$action" in
   *)
     # $1 == version being installed
     manageUserGroups
+    fixConfigurationFileRights
     addGorgoneSshKeys
     ;;
 esac
