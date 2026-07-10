@@ -118,6 +118,7 @@ sub cache_refresh {
     }
 
     $self->{pollers} = $datas;
+    # both uid and id are used as key, but they contain the same pointer to the same data as value. This allow to reach a poller by both it's id and uid.
     for my $key (keys(%{$self->{pollers}})){
         my $uid = $self->{pollers}->{$key}->{uid};
         $self->{pollers}->{$uid} = $self->{pollers}->{$key};
