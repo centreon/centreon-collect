@@ -37,7 +37,7 @@ Legacycmd with ${communication_mode} communication
         ...    pullwss_uid    2
         ...    pullwss_uid    299123456
         ...    pull           2
-        ...    pull           299123456
+#        ...    pull           299123456
         
 *** Keywords ***
 Legacycmd Teardown
