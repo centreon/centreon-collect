@@ -255,7 +255,7 @@ jobs:
                   -GNinja \
                   -DDEBUG_ROBOT=OFF \
                   -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
-                  -DCMAKE_BUILD_TYPE=Debug \
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   -DWITH_PREFIX=/usr \
                   -DWITH_PREFIX_BIN=/usr/sbin \
                   -DWITH_USER_BROKER=centreon-broker \
@@ -664,7 +664,13 @@ jobs:
           retention-days: 1
 
   promote-docker-tag:
-    needs: [get-environment, dockerize-engine-broker, docker-boot-test, docker-config-wiring-test]
+    needs:
+      [
+        get-environment,
+        dockerize-engine-broker,
+        docker-boot-test,
+        docker-config-wiring-test,
+      ]
     if: |
       ! cancelled() &&
       ! contains(needs.*.result, 'failure') &&
