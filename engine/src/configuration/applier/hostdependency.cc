@@ -136,8 +136,7 @@ void applier::hostdependency::remove_object(uint64_t hash_key) {
  *  @param[in] obj  Hostdependency object.
  */
 void applier::hostdependency::resolve_object(
-    const configuration::Hostdependency& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Hostdependency& obj) {
   // Logging.
   config_logger->debug("Resolving a host dependency.");
 
@@ -153,7 +152,8 @@ void applier::hostdependency::resolve_object(
   // This is pure wiring: the existence of the dependent host, the master host
   // and the dependency period is validated by state_helper::resolve (single
   // home). Here we only wire the objects that exist and leave the rest unwired.
-  host_map::const_iterator hit = host::hosts.find(obj.dependent_hosts().data(0));
+  host_map::const_iterator hit =
+      host::hosts.find(obj.dependent_hosts().data(0));
   it->second->dependent_host_ptr =
       hit != host::hosts.end() ? hit->second.get() : nullptr;
 

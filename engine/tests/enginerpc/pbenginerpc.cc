@@ -18,20 +18,20 @@
  */
 
 #include <gtest/gtest.h>
+#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
+#include "common/engine_conf/hostgroup_helper.hh"
+#include "helper.hh"
 
 #include <chrono>
 
 #include <fstream>
 #include <thread>
 
-#include "com/centreon/engine/host.hh"
-
 #include "com/centreon/engine/enginerpc.hh"
 
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
-#include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -46,8 +46,7 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/version.hh"
 #include "common/downtimes/downtime_manager.hh"
-#include "common/engine_conf/hostgroup_helper.hh"
-#include "helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -75,7 +74,7 @@ class EngineRpc : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     /* hosts */
     configuration::Host hst_child;
@@ -94,8 +93,8 @@ class EngineRpc : public TestEngine {
     hst.set_host_id(12);
     hst_aply.add_object(hst);
 
-    hst_aply.resolve_object(hst, err);
-    hst_aply2.resolve_object(hst_child, err);
+    hst_aply.resolve_object(hst);
+    hst_aply2.resolve_object(hst_child);
 
     ASSERT_EQ(engine::host::hosts.size(), 2u);
 
@@ -113,7 +112,7 @@ class EngineRpc : public TestEngine {
     hg_hlp.hook("members", "test_host");
     hg_aply.add_object(hg);
     _state_hlp->expand(err);
-    hg_aply.resolve_object(hg, err);
+    hg_aply.resolve_object(hg);
 
     /* service */
     configuration::Service svc{
@@ -129,7 +128,7 @@ class EngineRpc : public TestEngine {
     svc_aply.add_object(svc);
     cmd_aply.add_object(cmd);
 
-    svc_aply.resolve_object(svc, err);
+    svc_aply.resolve_object(svc);
 
     configuration::Anomalydetection ad{new_pb_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
@@ -139,7 +138,7 @@ class EngineRpc : public TestEngine {
     configuration::applier::anomalydetection ad_aply;
     ad_aply.add_object(ad);
 
-    ad_aply.resolve_object(ad, err);
+    ad_aply.resolve_object(ad);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -173,7 +172,7 @@ class EngineRpc : public TestEngine {
 
     sg_aply.add_object(sg);
     _state_hlp->expand(err);
-    sg_aply.resolve_object(sg, err);
+    sg_aply.resolve_object(sg);
   }
 
   void TearDown() override {

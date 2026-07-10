@@ -157,5 +157,4 @@ void applier::connector::remove_object(const std::string& key) {
  *
  *  @param[in] obj Unused.
  */
-void applier::connector::resolve_object(const configuration::Connector&,
-                                        error_cnt& err [[maybe_unused]]) {}
+void applier::connector::resolve_object(const configuration::Connector&) {}

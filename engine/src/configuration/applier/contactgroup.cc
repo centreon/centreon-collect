@@ -140,8 +140,7 @@ void applier::contactgroup::remove_object(const std::string& key) {
  * @param obj Contact group configuration to resolve.
  */
 void applier::contactgroup::resolve_object(
-    const configuration::Contactgroup& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Contactgroup& obj) {
   // Logging.
   config_logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 

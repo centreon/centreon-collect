@@ -19,13 +19,16 @@
 
 #include <gtest/gtest.h>
 #include <fstream>
+#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/macros/grab_host.hh"
+#include "com/centreon/engine/macros/process.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/hostgroup_helper.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -36,13 +39,10 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/macros.hh"
-#include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/macros/process.hh"
-#include "common/timeperiods/timeperiod.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -562,9 +562,9 @@ TEST_F(MacroHostname, HostGroupName) {
 
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -605,9 +605,9 @@ TEST_F(MacroHostname, HostGroupAlias) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1119,9 +1119,9 @@ TEST_F(MacroHostname, HostGroupNames) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1287,9 +1287,9 @@ TEST_F(MacroHostname, HostGroupNotes) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1330,9 +1330,9 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1373,9 +1373,9 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1416,9 +1416,9 @@ TEST_F(MacroHostname, HostGroupMembers) {
   configuration::error_cnt err;
   ASSERT_NO_THROW(_state_hlp->expand(err));
 
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a, err));
-  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c, err));
-  ASSERT_NO_THROW(hg_aply.resolve_object(hg, err));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
 
   int now{500000000};
   set_time(now);
@@ -1570,8 +1570,8 @@ TEST_F(MacroHostname, HostChildren) {
 
   configuration::error_cnt err;
   _state_hlp->expand(err);
-  hst_aply.resolve_object(hst_child, err);
-  hst_aply.resolve_object(hst_parent, err);
+  hst_aply.resolve_object(hst_child);
+  hst_aply.resolve_object(hst_parent);
 
   int now{500000000};
   set_time(now);

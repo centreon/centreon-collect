@@ -46,7 +46,7 @@ class hostgroup_helper : public message_helper {
   static void expand(configuration::State& s, configuration::error_cnt& err);
 
   static void resolve(const configuration::Hostgroup& hg,
-                      const absl::flat_hash_set<std::string_view>& hosts,
+                      const absl::flat_hash_map<std::string_view, bool>& hosts,
                       std::string_view illegal_chars,
                       configuration::error_cnt& err,
                       const std::shared_ptr<spdlog::logger>& logger);

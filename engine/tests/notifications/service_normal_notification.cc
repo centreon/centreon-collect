@@ -19,14 +19,13 @@
 
 #include <fmt/format.h>
 #include <gtest/gtest.h>
+#include <com/centreon/engine/macros/grab_host.hh>
+#include <com/centreon/engine/macros/process.hh>
 
 #include <cstring>
 
 #include <com/centreon/engine/macros.hh>
-#include <com/centreon/engine/macros/grab_host.hh>
-#include <com/centreon/engine/macros/process.hh>
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -37,6 +36,7 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -62,8 +62,8 @@ class ServiceNotification : public TestEngine {
     ct_aply.add_object(ctct);
     ct_aply.add_object(ctct1);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
-    ct_aply.resolve_object(ctct1, err);
+    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct1);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::Service svc{
@@ -74,8 +74,8 @@ class ServiceNotification : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -773,7 +773,7 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   ct_aply.add_object(ctct);
   error_cnt err;
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -781,14 +781,14 @@ TEST_F(ServiceNotification, ServiceEscalationCG) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   int now{50000};
   set_time(now);

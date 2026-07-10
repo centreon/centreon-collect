@@ -115,7 +115,7 @@ TEST_F(ApplierPbCommand, PbNewCommandWithConnectorFromConfig) {
   command_map::iterator found = commands::command::commands.find("cmd");
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
-  ASSERT_NO_THROW(aply.resolve_object(cmd, err));
+  ASSERT_NO_THROW(aply.resolve_object(cmd));
 }
 
 // Given some command/connector appliers
@@ -147,7 +147,7 @@ TEST_F(ApplierPbCommand, PbNewCommandAndConnectorWithSameName) {
   ASSERT_EQ(found->second->get_name(), "cmd");
   ASSERT_EQ(found->second->get_command_line(), "echo 1");
 
-  aply.resolve_object(cmd, err);
+  aply.resolve_object(cmd);
   connector_map::iterator found_con{
       commands::connector::connectors.find("cmd")};
   ASSERT_TRUE(found_con != commands::connector::connectors.end());
@@ -274,7 +274,7 @@ TEST_F(ApplierPbCommand, PbComplexCommand) {
 
   _state_hlp->expand(err);
   // hst_aply.expand_objects(pb_indexed_config);
-  hst_aply.resolve_object(hst, err);
+  hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());
@@ -340,7 +340,7 @@ TEST_F(ApplierPbCommand, PbComplexCommandWithContact) {
 
   _state_hlp->expand(err);
   // hst_aply.expand_objects(pb_indexed_config);
-  hst_aply.resolve_object(hst, err);
+  hst_aply.resolve_object(hst);
   ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());

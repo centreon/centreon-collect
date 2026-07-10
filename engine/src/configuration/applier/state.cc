@@ -22,6 +22,8 @@
 #include <sys/resource.h>
 #include <chrono>
 #include <cstdint>
+#include "common/crypto/aes256.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -53,8 +55,6 @@
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xsddefault.hh"
-#include "common/crypto/aes256.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1845,7 +1845,7 @@ void applier::state::_resolve(
 
   for (auto& [key, obj] : cfg) {
     try {
-      aplyr.resolve_object(*obj.get(), err);
+      aplyr.resolve_object(*obj.get());
     } catch (const std::exception& e) {
       if (verify_config) {
         ++err.config_errors;

@@ -18,14 +18,14 @@
  */
 
 #include <gtest/gtest.h>
+#include "com/centreon/engine/globals.hh"
 
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
-#include "com/centreon/engine/globals.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -93,7 +93,7 @@ TEST_F(ApplierServicegroup, PbResolveEmptyservicegroup) {
   grp.set_servicegroup_name("test");
   aplyr.add_object(grp);
   _state_hlp->expand(err);
-  aplyr.resolve_object(grp, err);
+  aplyr.resolve_object(grp);
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
 }
@@ -112,7 +112,7 @@ TEST_F(ApplierServicegroup, PbResolveInexistentService) {
   fill_pair_string_group(grp.mutable_members(), "host1,non_existing_service");
   aplyr.add_object(grp);
   _state_hlp->expand(err);
-  ASSERT_NO_THROW(aplyr.resolve_object(grp, err));
+  ASSERT_NO_THROW(aplyr.resolve_object(grp));
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
   // The non-existing member is kept but left unwired (no runtime service).
@@ -159,7 +159,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   fill_pair_string_group(grp.mutable_members(), "test_host,test");
   aply_grp.add_object(grp);
   _state_hlp->expand(err);
-  ASSERT_NO_THROW(aply_grp.resolve_object(grp, err));
+  ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 }
 
 // Given a servicegroup with a service already configured
@@ -210,7 +210,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   aply_svc.add_object(*svc);
   aply_grp.add_object(*grp);
   aply_grp.add_object(*grp1);
-  aply_grp.resolve_object(*grp, err);
+  aply_grp.resolve_object(*grp);
   ASSERT_TRUE(grp->members().data().size() == 1);
 
   auto found = pb_indexed_config.servicegroups().find({"big_group", 0});
@@ -265,7 +265,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   aply_svc.add_object(*svc);
   aply_grp.add_object(*grp);
   aply_grp.add_object(*grp1);
-  aply_grp.resolve_object(*grp, err);
+  aply_grp.resolve_object(*grp);
   ASSERT_TRUE(grp->members().data().size() == 1);
 
   auto found = pb_indexed_config.servicegroups().find({"big_group", 0});
@@ -324,7 +324,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   aply_svc.add_object(*svc);
   aply_svc.add_object(*svc1);
   aply_grp.add_object(*grp);
-  aply_grp.resolve_object(*grp, err);
+  aply_grp.resolve_object(*grp);
   ASSERT_TRUE(grp->members().data().size() == 2);
 
   engine::servicegroup* sg =

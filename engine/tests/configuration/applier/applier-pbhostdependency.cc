@@ -18,9 +18,10 @@
  */
 
 #include <gtest/gtest.h>
+#include "common/engine_conf/message_helper.hh"
+#include "helper.hh"
 
 #include "../../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -32,9 +33,8 @@
 #include "com/centreon/engine/configuration/applier/hostdependency.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "common/engine_conf/indexed_state.hh"
-#include "common/engine_conf/message_helper.hh"
 #include "common/engine_conf/service_helper.hh"
-#include "helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -57,21 +57,21 @@ class HostDependency : public TestEngine {
     configuration::error_cnt err;
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::applier::host hst_aply;
 
     configuration::Host hst1{new_pb_configuration_host("host1", "admin", 18)};
     hst_aply.add_object(hst1);
-    hst_aply.resolve_object(hst1, err);
+    hst_aply.resolve_object(hst1);
 
     configuration::Host hst2{new_pb_configuration_host("host2", "admin", 19)};
     hst_aply.add_object(hst2);
-    hst_aply.resolve_object(hst2, err);
+    hst_aply.resolve_object(hst2);
 
     configuration::Host hst3{new_pb_configuration_host("host3", "admin", 20)};
     hst_aply.add_object(hst3);
-    hst_aply.resolve_object(hst3, err);
+    hst_aply.resolve_object(hst3);
   }
 
   void TearDown() override { deinit_config_state(); }
@@ -84,13 +84,13 @@ TEST_F(HostDependency, PbCircularDependency2) {
       new_pb_configuration_hostdependency("host1", "host2")};
   _state_hlp->expand(err);
   hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1, err);
+  hd_aply.resolve_object(hd1);
 
   configuration::Hostdependency hd2{
       new_pb_configuration_hostdependency("host2", "host1")};
   _state_hlp->expand(err);
   hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2, err);
+  hd_aply.resolve_object(hd2);
 
   ASSERT_EQ(pre_flight_circular_check(&err.config_warnings, &err.config_errors),
             ERROR);
@@ -103,19 +103,19 @@ TEST_F(HostDependency, PbCircularDependency3) {
   configuration::error_cnt err;
   _state_hlp->expand(err);
   hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1, err);
+  hd_aply.resolve_object(hd1);
 
   configuration::Hostdependency hd2{
       new_pb_configuration_hostdependency("host2", "host3")};
   _state_hlp->expand(err);
   hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2, err);
+  hd_aply.resolve_object(hd2);
 
   configuration::Hostdependency hd3{
       new_pb_configuration_hostdependency("host3", "host1")};
   _state_hlp->expand(err);
   hd_aply.add_object(hd3);
-  hd_aply.resolve_object(hd3, err);
+  hd_aply.resolve_object(hd3);
 
   ASSERT_EQ(pre_flight_circular_check(&err.config_warnings, &err.config_errors),
             ERROR);
@@ -129,7 +129,7 @@ TEST_F(HostDependency, PbRemoveHostdependency) {
   _state_hlp->expand(err);
   uint64_t hash_key = hostdependency_key(hd1);
   hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1, err);
+  hd_aply.resolve_object(hd1);
 
   ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
   hd_aply.remove_object(hash_key);

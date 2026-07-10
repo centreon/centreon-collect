@@ -42,7 +42,7 @@ class contact {
   void modify_object(configuration::Contact* to_modify,
                      const configuration::Contact& new_object);
   void remove_object(const std::string& key);
-  void resolve_object(const configuration::Contact& obj, error_cnt& err);
+  void resolve_object(const configuration::Contact& obj);
 };
 
 }  // namespace com::centreon::engine::configuration::applier

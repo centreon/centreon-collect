@@ -447,8 +447,7 @@ void applier::host::remove_object(uint64_t host_id) {
  *
  * @param obj Host protobuf configuration object.
  */
-void applier::host::resolve_object(const configuration::Host& obj,
-                                   error_cnt& err) {
+void applier::host::resolve_object(const configuration::Host& obj) {
   // Logging.
   config_logger->debug("Resolving host '{}'.", obj.host_name());
 
@@ -491,11 +490,6 @@ void applier::host::resolve_object(const configuration::Host& obj,
   for (auto& [key, svc] : engine::service::services) {
     if (h->name() == key.first)
       h->services.insert({key, svc.get()});
-  }
-  if (h->services.empty()) {
-    config_logger->warn(
-        "Warning: Host '{}' has no services associated with it!", h->name());
-    err.config_warnings++;
   }
 
   // Wire the parent hosts and the reverse (child) links; a parent that does not

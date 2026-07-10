@@ -18,11 +18,11 @@
  */
 
 #include <gtest/gtest.h>
+#include "com/centreon/engine/configuration/applier/state.hh"
 
 #include <cstring>
 
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
@@ -33,11 +33,11 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -62,7 +62,7 @@ class PbServiceRetention : public TestEngine {
     ct_aply.add_object(ctct);
     configuration::error_cnt err;
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Host hst = new_pb_configuration_host("test_host", "admin");
     configuration::applier::host hst_aply;
@@ -73,8 +73,8 @@ class PbServiceRetention : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;

@@ -470,7 +470,8 @@ static void forward_pb_host(int type,
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger,
-                      "callbacks: generating pb host event protobuf");
+                      "callbacks: generating pb host {} event protobuf",
+                      eh->host_id());
 
   if (type == NEBTYPE_ADAPTIVEHOST_UPDATE &&
       modified_attribute != MODATTR_ALL) {

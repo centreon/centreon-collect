@@ -163,8 +163,7 @@ void applier::hostescalation::remove_object(uint64_t hash_key) {
  *  @param[in] obj  Hostescalation object.
  */
 void applier::hostescalation::resolve_object(
-    const configuration::Hostescalation& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Hostescalation& obj) {
   // Logging.
   config_logger->debug("Resolving a host escalation.");
 

@@ -45,7 +45,7 @@ class connector {
   void modify_object(configuration::Connector* to_modify,
                      const configuration::Connector& new_obj);
   void remove_object(const std::string& key);
-  void resolve_object(const configuration::Connector& obj, error_cnt& err);
+  void resolve_object(const configuration::Connector& obj);
 };
 
 }  // namespace applier

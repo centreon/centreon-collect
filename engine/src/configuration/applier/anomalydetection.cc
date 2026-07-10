@@ -358,8 +358,7 @@ void applier::anomalydetection::remove_object(
  *  @param[in] obj  Service object.
  */
 void applier::anomalydetection::resolve_object(
-    const configuration::Anomalydetection& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Anomalydetection& obj) {
   // Logging.
   SPDLOG_LOGGER_DEBUG(config_logger,
                       "Resolving anomalydetection '{}' of host '{}'.",
@@ -386,9 +385,9 @@ void applier::anomalydetection::resolve_object(
   }
 
   // This is pure wiring: the notifier part, the host and the service
-  // description are validated by state_helper::resolve (single home). An anomaly
-  // detection derives its check period from its dependent service. Here we only
-  // wire the runtime backlinks.
+  // description are validated by state_helper::resolve (single home). An
+  // anomaly detection derives its check period from its dependent service. Here
+  // we only wire the runtime backlinks.
   auto* ad = static_cast<engine::anomalydetection*>(it->second.get());
 
   // An anomaly detection derives its check period from its dependent service;

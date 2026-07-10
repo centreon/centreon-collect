@@ -18,15 +18,16 @@
  */
 
 #include <gtest/gtest.h>
+#include <com/centreon/engine/macros/grab_host.hh>
+#include <com/centreon/engine/macros/process.hh>
+#include "com/centreon/engine/configuration/applier/state.hh"
+#include "common/timeperiods/timeperiod.hh"
 
 #include <cstring>
 
 #include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include <com/centreon/engine/macros.hh>
-#include <com/centreon/engine/macros/grab_host.hh>
-#include <com/centreon/engine/macros/process.hh>
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
@@ -35,10 +36,9 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
-#include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
-#include "common/timeperiods/timeperiod.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "gtest/gtest.h"
 #include "helper.hh"
 
@@ -64,8 +64,8 @@ class ServiceTimePeriodNotification : public TestEngine {
         new_pb_configuration_contact("admin1", false, "c,r")};
     ct_aply.add_object(ctct1);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
-    ct_aply.resolve_object(ctct1, err);
+    ct_aply.resolve_object(ctct);
+    ct_aply.resolve_object(ctct1);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
@@ -76,8 +76,8 @@ class ServiceTimePeriodNotification : public TestEngine {
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
 
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -133,21 +133,21 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodOk) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -239,14 +239,14 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se;
@@ -260,7 +260,7 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodKo) {
   se_hlp.hook("contact_groups", "test_cg");
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
   for (int i = 0; i < 7; ++i) {
     timerange_list list_time;
     list_time.emplace_back(35000, 85000);
@@ -357,21 +357,21 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodOut) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -485,21 +485,21 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserOut) {
 
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -612,21 +612,21 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserIn) {
 
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -739,21 +739,21 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserAll) {
   error_cnt err;
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -859,21 +859,21 @@ TEST_F(ServiceTimePeriodNotification, TimePeriodUserNone) {
   error_cnt err;
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {
@@ -978,21 +978,21 @@ TEST_F(ServiceTimePeriodNotification, NoTimePeriodUser) {
   error_cnt err;
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg{
       new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
   configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
       "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
   _state_hlp->expand(err);
-  se_aply.resolve_object(se, err);
+  se_aply.resolve_object(se);
 
   // uint64_t id{_svc->get_next_notification_id()};
   for (int i = 0; i < 7; ++i) {

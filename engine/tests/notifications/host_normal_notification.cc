@@ -24,7 +24,6 @@
 
 #include "../helper.hh"
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/config.hh"
@@ -38,6 +37,7 @@
 #include "com/centreon/engine/retention/dump.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "common/notifications/notification_manager.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -61,12 +61,12 @@ class HostNotification : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst, err);
+    hst_aply.resolve_object(hst);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -598,7 +598,7 @@ TEST_F(HostNotification, HostEscalation) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -606,14 +606,14 @@ TEST_F(HostNotification, HostEscalation) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::hostescalation he_aply;
   configuration::Hostescalation he{
       new_pb_configuration_hostescalation("test_host", "test_cg")};
   he_aply.add_object(he);
   _state_hlp->expand(err);
-  he_aply.resolve_object(he, err);
+  he_aply.resolve_object(he);
 
   int now{50000};
   set_time(now);
@@ -726,7 +726,7 @@ TEST_F(HostNotification, HostDependency) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -734,20 +734,20 @@ TEST_F(HostNotification, HostDependency) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::host h_aply;
   configuration::Host h{new_pb_configuration_host("dep_host", "admin", 15)};
   h_aply.add_object(h);
   _state_hlp->expand(err);
-  h_aply.resolve_object(h, err);
+  h_aply.resolve_object(h);
 
   configuration::applier::hostdependency hd_aply;
   configuration::Hostdependency hd{
       new_pb_configuration_hostdependency("test_host", "dep_host")};
   _state_hlp->expand(err);
   hd_aply.add_object(hd);
-  hd_aply.resolve_object(hd, err);
+  hd_aply.resolve_object(hd);
 
   int now{50000};
   set_time(now);
@@ -870,7 +870,7 @@ TEST_F(HostNotification, HostEscalationOneTime) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -878,14 +878,14 @@ TEST_F(HostNotification, HostEscalationOneTime) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::hostescalation he_aply;
   configuration::Hostescalation he{
       new_pb_configuration_hostescalation("test_host", "test_cg", 1, 0)};
   he_aply.add_object(he);
   _state_hlp->expand(err);
-  he_aply.resolve_object(he, err);
+  he_aply.resolve_object(he);
 
   int now{50000};
   set_time(now);
@@ -968,7 +968,7 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -976,14 +976,14 @@ TEST_F(HostNotification, HostEscalationOneTimeNotifInter0) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::hostescalation he_aply;
   configuration::Hostescalation he{
       new_pb_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   _state_hlp->expand(err);
-  he_aply.resolve_object(he, err);
+  he_aply.resolve_object(he);
 
   int now{50000};
   set_time(now);
@@ -1066,7 +1066,7 @@ TEST_F(HostNotification, HostEscalationRetention) {
       new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
   _state_hlp->expand(err);
-  ct_aply.resolve_object(ctct, err);
+  ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
   configuration::Contactgroup cg;
@@ -1074,14 +1074,14 @@ TEST_F(HostNotification, HostEscalationRetention) {
   fill_pb_configuration_contactgroup(&cg_hlp, "test_cg", "test_contact");
   cg_aply.add_object(cg);
   _state_hlp->expand(err);
-  cg_aply.resolve_object(cg, err);
+  cg_aply.resolve_object(cg);
 
   configuration::applier::hostescalation he_aply;
   configuration::Hostescalation he{
       new_pb_configuration_hostescalation("test_host", "test_cg", 1, 0, 0)};
   he_aply.add_object(he);
   _state_hlp->expand(err);
-  he_aply.resolve_object(he, err);
+  he_aply.resolve_object(he);
 
   int now{50000};
   set_time(now);

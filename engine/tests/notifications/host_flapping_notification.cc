@@ -18,19 +18,19 @@
  */
 
 #include <cstring>
+#include "common/engine_conf/contact_helper.hh"
+#include "common/engine_conf/host_helper.hh"
+#include "helper.hh"
 
 #include <regex>
 
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
-#include "common/engine_conf/contact_helper.hh"
-#include "common/engine_conf/host_helper.hh"
-#include "helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -52,7 +52,7 @@ class HostFlappingNotification : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::applier::host hst_aply;
     configuration::Host hst;
@@ -62,7 +62,7 @@ class HostFlappingNotification : public TestEngine {
     hst.set_host_id(12);
     hst_hlp.hook("contacts", "admin");
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst, err);
+    hst_aply.resolve_object(hst);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
@@ -78,7 +78,7 @@ class HostFlappingNotification : public TestEngine {
     hst_child.set_host_id(13);
     hst_child_hlp.hook("contacts", "admin");
     hst_aply.add_object(hst_child);
-    hst_aply.resolve_object(hst_child, err);
+    hst_aply.resolve_object(hst_child);
 
     _host2 = hm.begin()->second;
     _host2->set_current_state(engine::host::state_up);

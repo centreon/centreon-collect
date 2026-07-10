@@ -164,8 +164,7 @@ void applier::serviceescalation::remove_object(uint64_t hash_key) {
  *  @param[in] obj  Serviceescalation object.
  */
 void applier::serviceescalation::resolve_object(
-    const configuration::Serviceescalation& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Serviceescalation& obj) {
   // Logging.
   config_logger->debug("Resolving a service escalation.");
 

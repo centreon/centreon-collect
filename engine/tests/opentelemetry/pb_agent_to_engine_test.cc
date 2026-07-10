@@ -19,6 +19,9 @@
 
 #include <absl/container/btree_set.h>
 #include <absl/synchronization/mutex.h>
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/host.hh"
+#include "com/centreon/engine/service.hh"
 
 #include <grpcpp/grpcpp.h>
 #include <gtest/gtest.h>
@@ -29,7 +32,6 @@
 #include <boost/multi_index/member.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
-#include "com/centreon/engine/globals.hh"
 
 namespace multi_index = boost::multi_index;
 
@@ -37,8 +39,6 @@ namespace multi_index = boost::multi_index;
 #include "opentelemetry/proto/metrics/v1/metrics.pb.h"
 
 #include "com/centreon/engine/contact.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
@@ -120,7 +120,7 @@ class agent_to_engine_test : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::Host hst =
         new_pb_configuration_host("test_host", "admin", 1, "agent", 1);
@@ -143,10 +143,10 @@ class agent_to_engine_test : public TestEngine {
     svc_no_otel.set_check_interval(1);
     svc_aply.add_object(svc_no_otel);
 
-    hst_aply.resolve_object(hst, err);
-    svc_aply.resolve_object(svc, err);
-    svc_aply.resolve_object(svc2, err);
-    svc_aply.resolve_object(svc_no_otel, err);
+    hst_aply.resolve_object(hst);
+    svc_aply.resolve_object(svc);
+    svc_aply.resolve_object(svc2);
+    svc_aply.resolve_object(svc_no_otel);
   }
 
   void TearDown() override {

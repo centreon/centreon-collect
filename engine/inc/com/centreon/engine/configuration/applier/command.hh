@@ -47,7 +47,7 @@ class command {
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
   void remove_object(const std::string& key);
-  void resolve_object(const configuration::Command& obj, error_cnt& err);
+  void resolve_object(const configuration::Command& obj);
 };
 }  // namespace applier
 }  // namespace configuration

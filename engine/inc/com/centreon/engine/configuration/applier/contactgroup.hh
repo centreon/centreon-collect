@@ -48,7 +48,7 @@ class contactgroup {
   void modify_object(configuration::Contactgroup* to_modify,
                      const configuration::Contactgroup& new_object);
   void remove_object(const std::string& key);
-  void resolve_object(const configuration::Contactgroup& obj, error_cnt& err);
+  void resolve_object(const configuration::Contactgroup& obj);
 };
 
 }  // namespace applier

@@ -727,11 +727,16 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Ctn Config Broker Sql Output    central    unified_sql
     Ctn Config BBDO3    ${2}
     Ctn Broker Config Log    module0    neb    debug
+    Ctn Broker Config Log    module1    neb    debug
+    Ctn Broker Config Log    module0    config    debug
+    Ctn Broker Config Log    module1    config    debug
     Ctn Broker Config Log    central    sql    trace
+    Ctn Broker Config Log    module0    core    error
+    Ctn Broker Config Log    module1    core    error
     Ctn Clear Retention
 
     Sleep    1s
-    Ctn Start engine
+    Ctn Start Engine
     Ctn Start Broker
 
     ${result}    Ctn Check Resources Tags With Timeout    0    1    hostgroup    [1]    60    True
@@ -749,9 +754,13 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     Ctn Engine Config Remove Host    ${1}    host_6
     Ctn Engine Config Remove All Services From Host    ${1}    host_5
     Ctn Engine Config Remove All Services From Host    ${1}    host_6
+    # host_5 and host_6 were the only members of hostgroup 1 on poller 1; now that
+    # they are gone the hostgroup must be dropped too, otherwise it keeps listing
+    # undefined members and config validation rejects the whole reload.
+    Ctn Remove Host Group    ${1}    1
     Ctn Engine Config Remove Tag    ${1}    1
 
-    ${start}    Get Current Date
+    ${start}    Ctn Get Round Current Date
     Ctn Reload Engine    poller_index=${1}
     Ctn Reload Broker
 
@@ -760,8 +769,8 @@ MOVE_HOST_OF_HOSTGROUP_TO_ANOTHER_POLLER
     ${result}    Ctn Check Resources Tags With Timeout    0    2    hostgroup    [1]    60    True
     Should Be True    ${result}    Host 2 should have hostgroup tags 1
 
-    ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    ${60}    False
-    Should Be True    ${result}    tag 1 yet attached to host_5
+    ${result}    Ctn Check Resources Tags With Timeout    0    5    hostgroup    [1]    60    False
+    Should Be True    ${result}    tag 1 still attached to host_5
 
     ${content}    Create List    processing tag
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60

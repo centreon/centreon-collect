@@ -18,13 +18,13 @@
  */
 
 #include <gtest/gtest.h>
+#include "common/downtimes/downtime.hh"
 #include "common/downtimes/downtime_finder.hh"
 
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
-#include "common/downtimes/downtime.hh"
 #include "common/downtimes/downtime_manager.hh"
 #include "helper.hh"
 #include "test_engine.hh"
@@ -58,8 +58,8 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
         new_pb_configuration_host("other_host", "admin", 2)};
     hst_aply.add_object(hst2);
 
-    hst_aply.resolve_object(hst, err);
-    hst_aply.resolve_object(hst1, err);
+    hst_aply.resolve_object(hst);
+    hst_aply.resolve_object(hst1);
 
     configuration::Service svc{
         new_pb_configuration_service("first_host", "test_service", "admin", 8)};
@@ -82,11 +82,11 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
         new_pb_configuration_service("test_host", "new_svc2", "admin", 12)};
     svc_aply.add_object(svc4);
 
-    svc_aply.resolve_object(svc, err);
-    svc_aply.resolve_object(svc1, err);
-    svc_aply.resolve_object(svc2, err);
-    svc_aply.resolve_object(svc3, err);
-    svc_aply.resolve_object(svc4, err);
+    svc_aply.resolve_object(svc);
+    svc_aply.resolve_object(svc1);
+    svc_aply.resolve_object(svc2);
+    svc_aply.resolve_object(svc3);
+    svc_aply.resolve_object(svc4);
 
     downtime_manager::instance().clear_scheduled_downtimes();
     downtime_manager::instance().initialize_downtime_data();

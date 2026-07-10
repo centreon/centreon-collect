@@ -157,8 +157,7 @@ void applier::servicedependency::remove_object(uint64_t hash_key) {
  *  @param[in] obj  Servicedependency object.
  */
 void applier::servicedependency::resolve_object(
-    const configuration::Servicedependency& obj,
-    [[maybe_unused]] error_cnt& err) {
+    const configuration::Servicedependency& obj) {
   // Logging.
   config_logger->debug("Resolving a service dependency.");
 
@@ -175,9 +174,9 @@ void applier::servicedependency::resolve_object(
   // service and the dependency period is validated by state_helper::resolve
   // (single home). Here we only wire the objects that exist and leave the rest
   // unwired.
-  service_map::const_iterator svc_it = service::services.find(
-      {obj.dependent_hosts().data(0),
-       obj.dependent_service_description().data(0)});
+  service_map::const_iterator svc_it =
+      service::services.find({obj.dependent_hosts().data(0),
+                              obj.dependent_service_description().data(0)});
   it->second->dependent_service_ptr =
       svc_it != service::services.end() ? svc_it->second.get() : nullptr;
 
