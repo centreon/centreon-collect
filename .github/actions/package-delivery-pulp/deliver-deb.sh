@@ -70,26 +70,15 @@ if [[ ${#FILES[@]} -eq 0 ]]; then
   exit 1
 fi
 
-# the deb repository/distribution ($REPOSITORY_NAME, e.g. ubuntu-standard-internal)
-# is shared by every distrib of the same family (jammy+noble, bullseye+bookworm+
-# trixie), which run as parallel matrix jobs. get-or-create is not atomic: they all
-# see "not found" and race to create it, and the losers hit a uniqueness error. so
-# tolerate the race — if create fails because a concurrent job won, re-check and
-# proceed; only fail if the resource is genuinely still absent.
-ensure_deb_resource() {
-  local kind=$1 label=$2; shift 2
-  pulp deb "$kind" show --name "$REPOSITORY_NAME" >/dev/null 2>&1 && return 0
-  echo "[INFO] Creating deb $kind $label"
-  pulp deb "$kind" create "$@" >/dev/null 2>&1 && return 0
-  # a concurrent job may have created it between our show and create
-  pulp deb "$kind" show --name "$REPOSITORY_NAME" >/dev/null 2>&1 && return 0
-  echo "::error::Failed to create deb $kind $REPOSITORY_NAME"
-  return 1
-}
+if ! pulp deb repository show --name "$REPOSITORY_NAME" >/dev/null 2>&1; then
+  echo "::error::deb repository $REPOSITORY_NAME does not exist. Pulp repositories and distributions are provisioned centrally by delivery-tooling create-repos; run create-repos for this version before delivering."
+  exit 1
+fi
 
-ensure_deb_resource repository "$REPOSITORY_NAME" --name "$REPOSITORY_NAME"
-ensure_deb_resource distribution "$REPOSITORY_NAME served at $BASE_PATH" \
-  --name "$REPOSITORY_NAME" --base-path "$BASE_PATH" --repository "$REPOSITORY_NAME"
+if ! pulp deb distribution show --name "$REPOSITORY_NAME" >/dev/null 2>&1; then
+  echo "::error::deb distribution $REPOSITORY_NAME does not exist. Pulp distributions are provisioned centrally by delivery-tooling create-repos; run create-repos for this version before delivering. Refusing to create it here to avoid an unguarded distribution."
+  exit 1
+fi
 
 REPOSITORY_HREF=$(pulp deb repository show --name "$REPOSITORY_NAME" | jq -r '.pulp_href')
 
