@@ -18,7 +18,6 @@
  */
 
 #include "../test_engine.hh"
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -28,6 +27,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -51,7 +51,7 @@ class ServiceFlappingNotification : public TestEngine {
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
     _state_hlp->expand(err);
-    ct_aply.resolve_object(ctct, err);
+    ct_aply.resolve_object(ctct);
 
     configuration::applier::command cmd_aply;
     configuration::Command cmd;
@@ -70,7 +70,7 @@ class ServiceFlappingNotification : public TestEngine {
     hst.set_checks_active(false);
     hst.set_checks_passive(true);
     hst_aply.add_object(hst);
-    hst_aply.resolve_object(hst, err);
+    hst_aply.resolve_object(hst);
 
     configuration::applier::service svc_aply;
     configuration::Service svc;
@@ -85,7 +85,7 @@ class ServiceFlappingNotification : public TestEngine {
     svc.set_host_id(12);
 
     svc_aply.add_object(svc);
-    svc_aply.resolve_object(svc, err);
+    svc_aply.resolve_object(svc);
 
     service_map const& sv{engine::service::services};
 

@@ -44,8 +44,7 @@ class anomalydetection {
   void modify_object(configuration::Anomalydetection* old_obj,
                      const configuration::Anomalydetection& new_obj);
   void remove_object(const std::pair<uint64_t, uint64_t>& key);
-  void resolve_object(const configuration::Anomalydetection& obj,
-                      error_cnt& err);
+  void resolve_object(const configuration::Anomalydetection& obj);
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

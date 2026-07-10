@@ -219,7 +219,7 @@ TEST_F(ApplierPbContact, PbResolveValidContact) {
   configuration::Contact ctct(valid_pb_contact_config());
   aply.add_object(ctct);
   _state_hlp->expand(err);
-  ASSERT_NO_THROW(aply.resolve_object(ctct, err));
+  ASSERT_NO_THROW(aply.resolve_object(ctct));
   ASSERT_EQ(err.config_warnings, 0);
   ASSERT_EQ(err.config_errors, 0);
 }

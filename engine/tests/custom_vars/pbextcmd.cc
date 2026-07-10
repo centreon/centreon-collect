@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include "common/tests/timeperiods/utils.hh"
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
@@ -30,6 +29,7 @@
 #include "common/engine_conf/contact_helper.hh"
 #include "common/engine_conf/host_helper.hh"
 #include "common/engine_conf/message_helper.hh"
+#include "common/tests/timeperiods/utils.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -96,7 +96,7 @@ TEST_F(PbCustomVar, UpdateHostCustomVar) {
   ASSERT_NE(hst_found, engine::host::hosts.end());
   ASSERT_TRUE(pb_indexed_config.hosts().size() == 1);
 
-  hst_aply.resolve_object(hst, err);
+  hst_aply.resolve_object(hst);
   ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());

@@ -451,8 +451,7 @@ void applier::service::remove_object(const std::pair<uint64_t, uint64_t>& key) {
  *
  *  @param[in] obj  Service object.
  */
-void applier::service::resolve_object(const configuration::Service& obj,
-                                      [[maybe_unused]] error_cnt& err) {
+void applier::service::resolve_object(const configuration::Service& obj) {
   // Logging.
   config_logger->debug("Resolving service '{}' of host '{}'.",
                        obj.service_description(), obj.host_name());

@@ -358,7 +358,8 @@ void host_helper::expand(
  * (the services/parent backlinks are wired by the applier).
  *
  * @param hst The host to validate.
- * @param hosts Index of every defined host name.
+ * @param hosts Index of every defined host name; the mapped bool is true when
+ * the host carries at least one service or anomaly detection.
  * @param contacts Index of every defined contact name.
  * @param contactgroups Index of every defined contact group name.
  * @param commands Index of every defined command name.
@@ -369,7 +370,7 @@ void host_helper::expand(
  */
 void host_helper::resolve(
     const Host& hst,
-    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_map<std::string_view, bool>& hosts,
     const absl::flat_hash_set<std::string_view>& contacts,
     const absl::flat_hash_set<std::string_view>& contactgroups,
     const absl::flat_hash_set<std::string_view>& commands,
@@ -381,6 +382,13 @@ void host_helper::resolve(
   // contacts, contact groups).
   notifier_resolve(hst, contacts, contactgroups, commands, timeperiods, err,
                    log);
+
+  // A host with no service (nor anomaly detection) attached is a warning.
+  if (auto it = hosts.find(hst.host_name()); it != hosts.end() && !it->second) {
+    err.config_warnings++;
+    log->warn("Warning: Host '{}' has no services associated with it!",
+              hst.host_name());
+  }
 
   // Every parent host must be defined.
   for (auto& p : hst.parents().data()) {

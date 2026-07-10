@@ -44,7 +44,7 @@ class hostescalation {
   void modify_object(configuration::Hostescalation* old_obj,
                      const configuration::Hostescalation& new_obj);
   void remove_object(uint64_t hash_key);
-  void resolve_object(const configuration::Hostescalation& obj, error_cnt& err);
+  void resolve_object(const configuration::Hostescalation& obj);
 };
 
 }  // namespace applier

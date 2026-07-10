@@ -137,8 +137,7 @@ void applier::hostgroup::remove_object(
  *
  *  @param[in] obj  Object to resolved.
  */
-void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj,
-                                        [[maybe_unused]] error_cnt& err) {
+void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj) {
   // Logging.
   config_logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 

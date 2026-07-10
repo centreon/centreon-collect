@@ -188,9 +188,9 @@ void hostescalation_helper::expand(
  * @brief Validate a host escalation once the State has been expanded.
  *
  * Counterpart of the former Engine runtime `hostescalation::resolve()` (and its
- * `escalation::resolve()` base): it only accumulates warnings/errors into @a err
- * (it never throws) and performs no runtime wiring. After expand(), each host
- * escalation references exactly one host, so `.data(0)` is safe here.
+ * `escalation::resolve()` base): it only accumulates warnings/errors into @a
+ * err (it never throws) and performs no runtime wiring. After expand(), each
+ * host escalation references exactly one host, so `.data(0)` is safe here.
  *
  * @param he The host escalation to validate.
  * @param hosts Index of every defined host name.
@@ -201,7 +201,7 @@ void hostescalation_helper::expand(
  */
 void hostescalation_helper::resolve(
     const Hostescalation& he,
-    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_map<std::string_view, bool>& hosts,
     const absl::flat_hash_set<std::string_view>& contactgroups,
     const absl::flat_hash_set<std::string_view>& timeperiods,
     error_cnt& err,

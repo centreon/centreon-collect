@@ -108,7 +108,7 @@ void hostgroup_helper::expand(configuration::State& s,
  */
 void hostgroup_helper::resolve(
     const configuration::Hostgroup& hg,
-    const absl::flat_hash_set<std::string_view>& hosts,
+    const absl::flat_hash_map<std::string_view, bool>& hosts,
     std::string_view illegal_chars,
     configuration::error_cnt& err,
     const std::shared_ptr<spdlog::logger>& logger) {

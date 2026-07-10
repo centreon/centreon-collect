@@ -33,7 +33,7 @@ class tag {
   void modify_object(configuration::Tag* to_modify,
                      const configuration::Tag& new_object);
   void remove_object(const std::tuple<uint64_t, uint32_t, uint32_t>& key);
-  void resolve_object(const configuration::Tag& obj, error_cnt& err);
+  void resolve_object(const configuration::Tag& obj);
 };
 }  // namespace applier
 }  // namespace com::centreon::engine::configuration

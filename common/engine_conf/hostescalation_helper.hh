@@ -52,7 +52,7 @@ class hostescalation_helper : public message_helper {
           m_hostgroups);
   static void resolve(
       const Hostescalation& he,
-      const absl::flat_hash_set<std::string_view>& hosts,
+      const absl::flat_hash_map<std::string_view, bool>& hosts,
       const absl::flat_hash_set<std::string_view>& contactgroups,
       const absl::flat_hash_set<std::string_view>& timeperiods,
       error_cnt& err,

@@ -167,8 +167,8 @@ void stream::clean_tables(uint32_t instance_id) {
 
   /* When Broker owns downtimes, the downtime comments (entry_type=2) belong to
    * Broker's downtime_manager and must survive a poller restart, just like the
-   * downtimes themselves (see the downtime-cancellation guard above). So we keep
-   * them out of the per-instance purge. */
+   * downtimes themselves (see the downtime-cancellation guard above). So we
+   * keep them out of the per-instance purge. */
   const char* keep_downtime_comments =
       com::centreon::common::downtimes::downtime_manager::is_loaded()
           ? " AND entry_type<>2"
@@ -715,9 +715,9 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       where = fmt::format("internal_id={} AND instance_id={}",
                           cmmnt.internal_id(), cmmnt.instance_id());
     else if (cmmnt.service_id() != 0)
-      where = fmt::format("host_id={} AND service_id={} AND instance_id={}",
-                          cmmnt.host_id(), cmmnt.service_id(),
-                          cmmnt.instance_id());
+      where =
+          fmt::format("host_id={} AND service_id={} AND instance_id={}",
+                      cmmnt.host_id(), cmmnt.service_id(), cmmnt.instance_id());
     else
       where = fmt::format(
           "host_id={} AND (service_id=0 OR service_id IS NULL) AND "
@@ -1720,8 +1720,9 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   // Log message.
   SPDLOG_LOGGER_INFO(_logger_sql,
                      "unified_sql: processing pb host event (poller: {}, host: "
-                     "{}, name: {}, state: {})",
-                     h.instance_id(), h.host_id(), h.name(), h.state());
+                     "{}, name: {}, state: {}, enabled: {})",
+                     h.instance_id(), h.host_id(), h.name(), h.state(),
+                     h.enabled());
 
   // Processing
   if (_is_valid_poller(h.instance_id())) {

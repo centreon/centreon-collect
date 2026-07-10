@@ -130,8 +130,7 @@ void applier::tag::remove_object(
  *
  *  @param[in] obj  Object to resolve.
  */
-void applier::tag::resolve_object(const configuration::Tag& obj,
-                                  error_cnt& err [[maybe_unused]]) {
+void applier::tag::resolve_object(const configuration::Tag& obj) {
   tag_map::const_iterator tg_it{
       engine::tag::tags.find({obj.key().id(), obj.key().type()})};
   if (tg_it == engine::tag::tags.end() || !tg_it->second) {

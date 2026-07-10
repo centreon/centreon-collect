@@ -161,8 +161,7 @@ void applier::command::remove_object(const std::string& key) {
  *
  *  @param[in] obj  Command object.
  */
-void applier::command::resolve_object(const configuration::Command& obj,
-                                      error_cnt& err [[maybe_unused]]) {
+void applier::command::resolve_object(const configuration::Command& obj) {
   if (!obj.connector().empty()) {
     connector_map::iterator found =
         commands::connector::connectors.find(obj.connector());
