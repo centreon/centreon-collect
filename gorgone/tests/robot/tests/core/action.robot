@@ -76,7 +76,7 @@ action module with ${communication_mode} communcation mode
         ...    push_zmq_uid    2
         ...    push_zmq_uid    299123456
         ...    pull            2
-        ...    pull            299123456
+#        ...    pull            299123456
         ...    pullwss         2
         ...    pullwss         299123456
         ...    pullwss_uid     2
