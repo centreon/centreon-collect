@@ -93,6 +93,7 @@ void check_exec::start_check(const duration& timeout) {
   if (!check::_start_check(timeout)) {
     return;
   }
+  const duration effective_timeout = get_custom_timeout().value_or(timeout);
 
   try {
     auto proc = std::make_shared<com::centreon::common::process<false>>(
@@ -109,7 +110,7 @@ void check_exec::start_check(const duration& timeout) {
             int exit_status, const std::string& std_out, const std::string&) {
           me->on_completion(running_index, exit_code, exit_status, std_out);
         },
-        timeout + std::chrono::milliseconds(100));
+        effective_timeout + std::chrono::milliseconds(100));
     _pid = proc->get_pid();
     if (_credentials_decrypt) {
       _process_args->clear_unencrypted_args();
