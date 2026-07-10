@@ -15,6 +15,13 @@ homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:
+  - dst: "/etc/centreon-gorgone/config.d"
+    type: dir
+    file_info:
+      owner: centreon-gorgone
+      group: centreon-gorgone
+      mode: 0770
+
   - src: "./configuration/centreon.yaml"
     dst: "/etc/centreon-gorgone/config.d/30-centreon.yaml"
     type: config|noreplace
