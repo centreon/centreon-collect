@@ -98,9 +98,28 @@ uv pip install py-cpuinfo cython unqlite gitpython boto3
 
 ## Implemented tests
 
-Here is the list of the currently implemented tests:
+Here are the currently implemented tests, grouped by the directory that contains
+them. Each section is introduced by its number of tests.
+
+## Table of contents
+
+- [Bam](#bam) (76 tests)
+- [Benchmarks](#benchmarks) (1 test)
+- [Broker](#broker) (92 tests)
+- [Broker/database](#brokerdatabase) (15 tests)
+- [Broker/engine](#brokerengine) (386 tests)
+- [Ccc](#ccc) (8 tests)
+- [Centralized/configuration](#centralizedconfiguration) (65 tests)
+- [Connector perl](#connector-perl) (4 tests)
+- [Connector ssh](#connector-ssh) (8 tests)
+- [Engine](#engine) (150 tests)
+- [Severities](#severities) (27 tests)
+- [Vault](#vault) (22 tests)
 
 ### Bam
+
+This chapter contains 76 tests.
+
 1. **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
 2. **BABOO**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
 3. **BABOOAND**: With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
@@ -401,9 +420,15 @@ Here is the list of the currently implemented tests:
      * **THEN** the database should still contain a BA service with name "test" and parent_name "_Module_BAM_1"
 
 ### Benchmarks
+
+This chapter contains 1 test.
+
 1. **BENCH_RRD_METRIC_RETENTION**: Benchmark: inject 12 h of back-fill data through the retention buffer and measure merge latency.  Injects ${N_OLD_POINTS} old-timestamped pb_metric events per metric (${N_METRICS} metrics) via BBDO v3 directly to the central broker, then one current-time event per metric to trigger the junction merge. Reports injection throughput and end-to-end merge latency.
 
 ### Broker
+
+This chapter contains 92 tests.
+
 1. **BC1**: Central and RRD brokers are started. Then we check they are correctly connected. RRD broker is stopped. The connection is lost. Then RRD broker is started again. The connection is re-established. Central broker is stopped. The connection is lost. Then Central broker is started again. The connection is re-established.
 2. **BCL1**: Starting broker with option '-s foobar' should return an error
 3. **BCL2**: Starting broker with option '-s5' should work
@@ -691,6 +716,9 @@ Here is the list of the currently implemented tests:
 92. **START_STOP_CBD**: restart cbd with unified_sql services state must not be null after restart
 
 ### Broker/database
+
+This chapter contains 15 tests.
+
 1. **DEDICATED_DB_CONNECTION_1_yes**: count database connection
 2. **DEDICATED_DB_CONNECTION_2_yes**: count database connection
 3. **DEDICATED_DB_CONNECTION_3_no**: count database connection
@@ -741,6 +769,9 @@ Here is the list of the currently implemented tests:
 15. **NetworkDbFail5**: network failure test between broker and database (shutting down connection for 60s)
 
 ### Broker/engine
+
+This chapter contains 386 tests.
+
 1. **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
 2. **ANO_DT1**: downtime on dependent service is inherited by ano
 3. **ANO_DT2**: 
@@ -1798,6 +1829,9 @@ Here is the list of the currently implemented tests:
      * **THEN** it sends no notification because its dependency already notified
 
 ### Ccc
+
+This chapter contains 8 tests.
+
 1. **BECCC1**: ccc without port fails with an error message
 2. **BECCC2**: ccc with -p 51001 connects to central cbd gRPC server.
 3. **BECCC3**: ccc with -p 50001 connects to centengine gRPC server.
@@ -1808,6 +1842,9 @@ Here is the list of the currently implemented tests:
 8. **BECCC8**: ccc with -p 50001 EnableServiceNotifications{"names":{"host_name": "host_1", "service_name": "service_1"}} works and returns an empty message.
 
 ### Centralized/configuration
+
+This chapter contains 65 tests.
+
 1. **BECFGVAL1**: **SCENARIO:** PHP pushes an invalid poller configuration without asking for a CheckPollerConfig
 
      * **GIVEN** a centralized engine configuration where contact U1 has no host_notification_commands
@@ -2325,6 +2362,9 @@ Here is the list of the currently implemented tests:
      * **AND** the configuration reload should complete successfully
 
 ### Connector perl
+
+This chapter contains 4 tests.
+
 1. **CCONPERL**: **SCENARIO:** Single host check via Perl Connector in centralized configuration
 
      * **GIVEN** a centralized engine and broker configuration with the Perl Connector
@@ -2339,6 +2379,9 @@ Here is the list of the currently implemented tests:
 4. **CONPERLM**: Ten forced checks are scheduled on ten hosts configured with the Perl Connector. The we get the result of each of them.
 
 ### Connector ssh
+
+This chapter contains 8 tests.
+
 1. **CTest6Hosts**: **SCENARIO:** SSH checks succeed on 6 hosts in centralized configuration
 
      * **GIVEN** a centralized engine and broker configuration with 6 hosts reachable via SSH
@@ -2367,6 +2410,9 @@ Here is the list of the currently implemented tests:
 8. **TestWhiteList**: as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
 
 ### Engine
+
+This chapter contains 150 tests.
+
 1. **CEBSN5**: 
      * **GIVEN** a centralized Engine configuration where contactgroup_1 is empty and inherits from a full template
      * **AND** the template defines alias, members, and contactgroup_members
@@ -2854,6 +2900,9 @@ Here is the list of the currently implemented tests:
 150. **VERIFY_CONF**: Scenario Verify deprecated engine configuration options are logged as warnings Given the engine and broker are configured with module 1 And the engine configuration is set with deprecated options When the engine is started Then a warning message for 'auto_reschedule_checks' should be logged And a warning message for 'auto_rescheduling_interval' should be logged And a warning message for 'auto_rescheduling_window' should be logged And the engine should be stopped
 
 ### Severities
+
+This chapter contains 27 tests.
+
 1. **BECSEV1**: **FEATURE:** Severity Management between Engine and Broker
      As a Centreon administrator
      I want to configure severities in Engine
@@ -3085,6 +3134,9 @@ Here is the list of the currently implemented tests:
      * **AND** services on poller 1 that lost their severity should have severity_id=None
 
 ### Vault
+
+This chapter contains 22 tests.
+
 1. **BAEBC**: Broker is used to AES256 decrypt a content not well encrypted
 2. **BAEBS**: Broker is used to AES256 encrypt a content but the salt is wrong.
 3. **BAEOK**: Broker is used to AES256 encrypt a content.
