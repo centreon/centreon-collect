@@ -5,7 +5,7 @@ Resource            ../resources/import.resource
 
 Suite Setup         Ctn Clean Before Suite
 Suite Teardown      Ctn Clean After Suite
-Test Setup          Ctn Stop Processes
+Test Setup          Run Keywords    Ctn Stop Processes    AND    Remove File    ${rrdLog}
 Test Teardown       Ctn Save Logs If Failed
 
 
@@ -204,7 +204,7 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Ctn Stop Engine    AND    Ctn Kindly Stop Broker    no_rrd_test=True    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown

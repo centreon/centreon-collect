@@ -1110,12 +1110,12 @@ def ctn_engine_config_set_value(idx: int, key: str, value: str, force: bool = Fa
                     replaced = True
                     break
             else:
-                lines[i] = "{}={}\n".format(key, value)
+                lines[i] = f"{key}={value}\n"
                 replaced = True
                 break
 
     if not replaced and force:
-        lines.append("{}={}\n".format(key, value))
+        lines.append(f"{key}={value}\n")
 
     with open(filename, "w") as f:
         f.writelines(lines)
