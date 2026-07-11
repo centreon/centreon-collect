@@ -202,12 +202,6 @@ std::ostream& operator<<(std::ostream& os, servicedependency const& obj) {
         "  fail_on_pending:               "
      << obj.get_fail_on_pending()
      << "\n"
-        "  circular_path_checked:         "
-     << obj.get_circular_path_checked()
-     << "\n"
-        "  contains_circular_path:        "
-     << obj.get_contains_circular_path()
-     << "\n"
         "  master_service_ptr:            "
      << master_svc_str
      << "\n"
@@ -219,73 +213,6 @@ std::ostream& operator<<(std::ostream& os, servicedependency const& obj) {
      << "\n"
         "}\n";
   return os;
-}
-
-/**
- *  Checks to see if there exists a circular dependency for a service.
- *
- *  @param[in] root_dep        Root dependency.
- *  @param[in] dep             Dependency.
- *  @param[in] dependency_type Dependency type.
- *
- *  @return true if circular path was found, false otherwise.
- */
-bool servicedependency::check_for_circular_servicedependency_path(
-    servicedependency* dep,
-    types dependency_type) {
-  if (!dep)
-    return false;
-
-  // This is not the proper dependency type.
-  if (_dependency_type != dependency_type ||
-      dep->get_dependency_type() != dependency_type)
-    return false;
-
-  // Don't go into a loop, don't bother checking anymore if we know this
-  // dependency already has a loop.
-  if (_contains_circular_path)
-    return true;
-
-  // Dependency has already been checked - there is a path somewhere,
-  // but it may not be for this particular dep... This should speed up
-  // detection for some loops.
-  if (dep->get_circular_path_checked())
-    return false;
-
-  // Set the check flag so we don't get into an infinite loop.
-  dep->set_circular_path_checked(true);
-
-  // Is this service dependent on the root service?
-  // Is this host dependent on the root host?
-  if (dep != this) {
-    if (dependent_service_ptr == dep->master_service_ptr) {
-      _contains_circular_path = true;
-      dep->set_contains_circular_path(true);
-      return true;
-    }
-  }
-
-  // Notification dependencies are ok at this point as long as they
-  // don't inherit.
-  if (dependency_type == dependency::notification &&
-      !dep->get_inherits_parent())
-    return false;
-
-  // Check all parent dependencies.
-  for (servicedependency_mmap::iterator
-           it(servicedependency::servicedependencies.begin()),
-       end(servicedependency::servicedependencies.end());
-       it != end; ++it) {
-    // Only check parent dependencies.
-    if (dep->master_service_ptr != it->second->dependent_service_ptr)
-      continue;
-
-    if (check_for_circular_servicedependency_path(it->second.get(),
-                                                  dependency_type))
-      return true;
-  }
-
-  return false;
 }
 
 /**

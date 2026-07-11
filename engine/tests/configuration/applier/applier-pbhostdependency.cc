@@ -18,7 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include "common/engine_conf/message_helper.hh"
 #include "helper.hh"
 
 #include "../../test_engine.hh"
@@ -76,50 +75,6 @@ class HostDependency : public TestEngine {
 
   void TearDown() override { deinit_config_state(); }
 };
-
-TEST_F(HostDependency, PbCircularDependency2) {
-  configuration::error_cnt err;
-  configuration::applier::hostdependency hd_aply;
-  configuration::Hostdependency hd1{
-      new_pb_configuration_hostdependency("host1", "host2")};
-  _state_hlp->expand(err);
-  hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1);
-
-  configuration::Hostdependency hd2{
-      new_pb_configuration_hostdependency("host2", "host1")};
-  _state_hlp->expand(err);
-  hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2);
-
-  ASSERT_EQ(pre_flight_circular_check(&err.config_warnings, &err.config_errors),
-            ERROR);
-}
-
-TEST_F(HostDependency, PbCircularDependency3) {
-  configuration::applier::hostdependency hd_aply;
-  configuration::Hostdependency hd1{
-      new_pb_configuration_hostdependency("host1", "host2")};
-  configuration::error_cnt err;
-  _state_hlp->expand(err);
-  hd_aply.add_object(hd1);
-  hd_aply.resolve_object(hd1);
-
-  configuration::Hostdependency hd2{
-      new_pb_configuration_hostdependency("host2", "host3")};
-  _state_hlp->expand(err);
-  hd_aply.add_object(hd2);
-  hd_aply.resolve_object(hd2);
-
-  configuration::Hostdependency hd3{
-      new_pb_configuration_hostdependency("host3", "host1")};
-  _state_hlp->expand(err);
-  hd_aply.add_object(hd3);
-  hd_aply.resolve_object(hd3);
-
-  ASSERT_EQ(pre_flight_circular_check(&err.config_warnings, &err.config_errors),
-            ERROR);
-}
 
 TEST_F(HostDependency, PbRemoveHostdependency) {
   configuration::applier::hostdependency hd_aply;

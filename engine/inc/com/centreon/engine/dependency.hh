@@ -52,10 +52,6 @@ class dependency {
   void set_inherits_parent(bool inherits_parent);
   bool get_fail_on_pending() const;
   void set_fail_on_pending(bool fail_on_pending);
-  bool get_circular_path_checked() const;
-  void set_circular_path_checked(bool circular_path_checked);
-  bool get_contains_circular_path() const;
-  void set_contains_circular_path(bool contains_circular_path);
   virtual bool get_fail_on(int state) const = 0;
 
   virtual bool operator==(dependency const& obj) noexcept;
@@ -72,8 +68,6 @@ class dependency {
   std::string _dependency_period;
   bool _inherits_parent;
   bool _fail_on_pending;
-  bool _circular_path_checked;
-  bool _contains_circular_path;
 };
 
 };  // namespace com::centreon::engine

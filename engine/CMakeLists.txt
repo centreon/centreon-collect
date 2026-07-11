@@ -386,7 +386,6 @@ set(FILES
     "${SRC_DIR}/check_result.cc"
     "${SRC_DIR}/command_manager.cc"
     "${SRC_DIR}/comment.cc"
-    "${SRC_DIR}/config.cc"
     "${SRC_DIR}/contact.cc"
     "${SRC_DIR}/contactgroup.cc"
     "${SRC_DIR}/customvariable.cc"
