@@ -752,12 +752,6 @@ TEST_F(HostNotification, HostDependency) {
   int now{50000};
   set_time(now);
 
-  uint32_t w = 0, e = 0;
-  pre_flight_circular_check(&w, &e);
-
-  ASSERT_EQ(w, 0);
-  ASSERT_EQ(e, 0);
-
   _host->set_current_state(engine::host::state_up);
   _host->set_notification_interval(1);
   _host->set_last_hard_state(engine::host::state_up);

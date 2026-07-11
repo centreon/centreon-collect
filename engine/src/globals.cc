@@ -81,7 +81,6 @@ bool sighup{false};
 int sigrestart(false);
 int sigshutdown(false);
 int test_scheduling(false);
-int verify_circular_paths(true);
 int verify_config(false);
 nebcallback* neb_callback_list[NEBCALLBACK_NUMITEMS];
 sched_info scheduling_info;

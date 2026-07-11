@@ -134,8 +134,6 @@ int main(int argc, char* argv[]) {
       ("verify-config,v", "Verify all configuration data")
       ("test-scheduling,s", "Show projected/recommended check scheduling and other diagnostic info"
        " based on the current configuration files")
-      ("dont-verify-paths,x",
-       "Don't check for circular object paths - USE WITH CAUTION!")
       ("diagnose,D", "Generate a diagnostic file")
       ("broker-config,b", po::value<std::string>()->value_name("module_file"),
        "Broker configuration file")
@@ -198,8 +196,6 @@ int main(int argc, char* argv[]) {
         verify_config = true;
       if (vm.count("test-scheduling"))
         test_scheduling = true;
-      if (vm.count("dont-verify-paths"))
-        verify_circular_paths = false;
       if (vm.count("diagnose"))
         diagnose = true;
       if (vm.count("proto-conf"))

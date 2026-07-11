@@ -36,9 +36,7 @@ dependency::dependency(size_t key,
       _hostname{hostname},
       _dependency_period{dependency_period},
       _inherits_parent{inherits_parent},
-      _fail_on_pending{fail_on_pending},
-      _circular_path_checked{false},
-      _contains_circular_path{false} {
+      _fail_on_pending{fail_on_pending} {
   if (dependent_hostname.empty() || hostname.empty()) {
     config_logger->error("Error: NULL host name in host dependency definition");
     throw engine_error() << "Could not create execution "
@@ -95,22 +93,6 @@ void dependency::set_fail_on_pending(bool fail_on_pending) {
   _fail_on_pending = fail_on_pending;
 }
 
-bool dependency::get_circular_path_checked() const {
-  return _circular_path_checked;
-}
-
-void dependency::set_circular_path_checked(bool circular_path_checked) {
-  _circular_path_checked = circular_path_checked;
-}
-
-bool dependency::get_contains_circular_path() const {
-  return _contains_circular_path;
-}
-
-void dependency::set_contains_circular_path(bool contains_circular_path) {
-  _contains_circular_path = contains_circular_path;
-}
-
 /**
  *  Equal operator.
  *
@@ -125,9 +107,7 @@ bool dependency::operator==(dependency const& obj) noexcept {
          _hostname == obj.get_hostname() &&
          _dependency_period == obj.get_dependency_period() &&
          _inherits_parent == obj.get_inherits_parent() &&
-         _fail_on_pending == obj.get_fail_on_pending() &&
-         _circular_path_checked == obj.get_circular_path_checked() &&
-         _contains_circular_path == obj.get_contains_circular_path();
+         _fail_on_pending == obj.get_fail_on_pending();
 }
 
 /**
@@ -163,9 +143,7 @@ bool dependency::operator<(dependency const& obj) noexcept {
     return _inherits_parent < obj.get_inherits_parent();
   else if (_fail_on_pending != obj.get_fail_on_pending())
     return _fail_on_pending < obj.get_fail_on_pending();
-  else if (_circular_path_checked != obj.get_circular_path_checked())
-    return _circular_path_checked < obj.get_circular_path_checked();
-  return _contains_circular_path < obj.get_contains_circular_path();
+  return false;
 }
 
 size_t dependency::internal_key() const {
