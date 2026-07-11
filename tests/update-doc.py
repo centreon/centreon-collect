@@ -378,37 +378,72 @@ uv pip install py-cpuinfo cython unqlite gitpython boto3
 
 ## Implemented tests
 
-Here is the list of the currently implemented tests:
+Here are the currently implemented tests, grouped by the directory that contains
+them. Each section is introduced by its number of tests.
 
 """)
 
-keys = list(dico.keys())
-keys.sort()
-count = 0
-
-idx = 1
-for k in keys:
+def _chapter_title(k):
     name = k[2:]
     name = name.replace('-', '/')
     name = name.replace('_', ' ').capitalize()
-    out.write(f"### {name}\n")
+    return name
+
+
+def _anchor(title, seen):
+    """GitHub-flavoured heading anchor: lower-case, drop punctuation other than
+    word characters/space/hyphen, then spaces to hyphens. A -1, -2... suffix is
+    added on collisions, exactly like GitHub does for duplicate headings, so the
+    table-of-contents links resolve."""
+    base = re.sub(r'[^\w\s-]', '', title.lower()).replace(' ', '-')
+    n = seen.get(base, 0)
+    seen[base] = n + 1
+    return base if n == 0 else f"{base}-{n}"
+
+
+keys = list(dico.keys())
+keys.sort()
+
+# Group tests into chapters. Each directory of dico is a chapter; any test found
+# directly at the tests/ root (dico[k] is a str) is collected in a 'Root' chapter.
+chapters = []            # list of (title, [(test_name, doc), ...])
+root_tests = []
+for k in keys:
     if isinstance(dico[k], str):
-        out.write(f"{idx}. **{k}**: {dico[k]}\n")
-        idx += 1
-        count += 1
-    else:
-        tests = list(dico[k].keys())
-        tests.sort()
-        idx = 1
-        for kk in tests:
-            if isinstance(dico[k][kk], str):
-                out.write(f"{idx}. **{kk}**: {dico[k][kk]}\n")
-                idx += 1
-                count += 1
-            else:
-                print("This tree is too deep")
-                exit(1)
-        out.write("\n")
+        root_tests.append((k, dico[k]))
+        continue
+    items = []
+    for kk in sorted(dico[k].keys()):
+        if not isinstance(dico[k][kk], str):
+            print("This tree is too deep")
+            exit(1)
+        items.append((kk, dico[k][kk]))
+    chapters.append((_chapter_title(k), items))
+if root_tests:
+    chapters.insert(0, ("Root", root_tests))
+
+# Anchors are computed on the exact titles used for the '### ' headings.
+seen_anchors = {}
+chapters = [(title, _anchor(title, seen_anchors), items)
+            for title, items in chapters]
+
+count = sum(len(items) for _, _, items in chapters)
+
+# Table of contents.
+out.write("## Table of contents\n\n")
+for title, anchor, items in chapters:
+    plural = "s" if len(items) != 1 else ""
+    out.write(f"- [{title}](#{anchor}) ({len(items)} test{plural})\n")
+out.write("\n")
+
+# One section per directory, each introduced by its test count.
+for title, anchor, items in chapters:
+    out.write(f"### {title}\n\n")
+    plural = "s" if len(items) != 1 else ""
+    out.write(f"This chapter contains {len(items)} test{plural}.\n\n")
+    for idx, (name, doc) in enumerate(items, start=1):
+        out.write(f"{idx}. **{name}**: {doc}\n")
+    out.write("\n")
 
 out.write(f"\n{count} tests currently implemented.\n")
 out.close()
